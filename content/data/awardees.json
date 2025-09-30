@@ -1,0 +1,244 @@
+[
+  {
+    "id": "1",
+    "name": "Adaeze Okafor",
+    "country": "Nigeria",
+    "category": "STEM Excellence",
+    "year": 2024,
+    "bio30": "Robotics mentor building low-cost kits for rural schools.",
+    "photo_url": "/awardee-photos/adaeze.jpg",
+    "featured": true
+  },
+  {
+    "id": "2",
+    "name": "Kwame Mensah",
+    "country": "Ghana",
+    "category": "Social Impact",
+    "year": 2024,
+    "bio30": "Led a sanitation drive across 15 schools in underserved areas."
+  },
+  {
+    "id": "3",
+    "name": "Zinhle Dlamini",
+    "country": "South Africa",
+    "category": "Creative Leadership",
+    "year": 2024,
+    "bio30": "Runs a youth arts collective promoting cultural heritage."
+  },
+  {
+    "id": "4",
+    "name": "Aisha Khalil",
+    "country": "Egypt",
+    "category": "Business Innovation",
+    "year": 2024,
+    "bio30": "Founded a startup for sustainable fashion in Cairo."
+  },
+  {
+    "id": "5",
+    "name": "Jemal Abera",
+    "country": "Ethiopia",
+    "category": "Health Advocacy",
+    "year": 2024,
+    "bio30": "Advocates for mental health awareness in universities."
+  },
+  {
+    "id": "6",
+    "name": "Fatou Diop",
+    "country": "Senegal",
+    "category": "Environmental Leadership",
+    "year": 2023,
+    "bio30": "Organizes beach cleanups and marine conservation efforts."
+  },
+  {
+    "id": "7",
+    "name": "Lerato Nkosi",
+    "country": "South Africa",
+    "category": "Education Reform",
+    "year": 2024,
+    "bio30": "Develops open-source learning platforms for rural students."
+  },
+  {
+    "id": "8",
+    "name": "Omar Hassan",
+    "country": "Kenya",
+    "category": "Tech Entrepreneurship",
+    "year": 2024,
+    "bio30": "Creates apps for smallholder farmers' market access."
+  },
+  {
+    "id": "9",
+    "name": "Nala Mwangi",
+    "country": "Kenya",
+    "category": "Social Impact",
+    "year": 2023,
+    "bio30": "Empowers girls through coding bootcamps in Nairobi."
+  },
+  {
+    "id": "10",
+    "name": "Ibrahim Touré",
+    "country": "Mali",
+    "category": "STEM Excellence",
+    "year": 2024,
+    "bio30": "Invents solar-powered devices for off-grid communities."
+  },
+  {
+    "id": "11",
+    "name": "Sofia Mendes",
+    "country": "Angola",
+    "category": "Creative Leadership",
+    "year": 2024,
+    "bio30": "Directs documentaries on African women's stories."
+  },
+  {
+    "id": "12",
+    "name": "Tumelo Ramokgopa",
+    "country": "South Africa",
+    "category": "Business Innovation",
+    "year": 2023,
+    "bio30": "Launches fintech solutions for unbanked youth."
+  },
+  {
+    "id": "13",
+    "name": "Youssef El-Sayed",
+    "country": "Egypt",
+    "category": "Health Advocacy",
+    "year": 2024,
+    "bio30": "Promotes vaccination drives in urban slums."
+  },
+  {
+    "id": "14",
+    "name": "Amina Bello",
+    "country": "Nigeria",
+    "category": "Environmental Leadership",
+    "year": 2024,
+    "bio30": "Fights deforestation with community tree-planting initiatives."
+  },
+  {
+    "id": "15",
+    "name": "David Kiptoo",
+    "country": "Kenya",
+    "category": "Education Reform",
+    "year": 2024,
+    "bio30": "Builds libraries in remote Kenyan villages."
+  },
+  {
+    "id": "16",
+    "name": "Rahma Alami",
+    "country": "Morocco",
+    "category": "Tech Entrepreneurship",
+    "year": 2024,
+    "bio30": "Develops AI tools for Arabic language preservation."
+  },
+  {
+    "id": "17",
+    "name": "Chiamaka Eze",
+    "country": "Nigeria",
+    "category": "Social Impact",
+    "year": 2023,
+    "bio30": "Supports orphanages with educational programs."
+  },
+  {
+    "id": "18",
+    "name": "Esi Agyeman",
+    "country": "Ghana",
+    "category": "STEM Excellence",
+    "year": 2024,
+    "bio30": "Researches renewable energy for coastal regions."
+  },
+  {
+    "id": "19",
+    "name": "Thabo Mthembu",
+    "country": "South Africa",
+    "category": "Creative Leadership",
+    "year": 2024,
+    "bio30": "Organizes music festivals for emerging artists."
+  },
+  {
+    "id": "20",
+    "name": "Fatima Zahra",
+    "country": "Egypt",
+    "category": "Business Innovation",
+    "year": 2024,
+    "bio30": "Introduces eco-friendly packaging for local markets."
+  },
+  {
+    "id": "21",
+    "name": "Solomon Gebreselassie",
+    "country": "Ethiopia",
+    "category": "Health Advocacy",
+    "year": 2023,
+    "bio30": "Trains community health workers in rural areas."
+  },
+  {
+    "id": "22",
+    "name": "Ndidi Okoro",
+    "country": "Nigeria",
+    "category": "Environmental Leadership",
+    "year": 2024,
+    "bio30": "Advocates for clean water access in Lagos."
+  },
+  {
+    "id": "23",
+    "name": "Kofi Annan Jr.",
+    "country": "Ghana",
+    "category": "Education Reform",
+    "year": 2024,
+    "bio30": "Reforms curriculum for digital literacy."
+  },
+  {
+    "id": "24",
+    "name": "Sipho Ndlovu",
+    "country": "South Africa",
+    "category": "Tech Entrepreneurship",
+    "year": 2024,
+    "bio30": "Builds drones for agricultural monitoring."
+  },
+  {
+    "id": "25",
+    "name": "Layla Ahmed",
+    "country": "Egypt",
+    "category": "Social Impact",
+    "year": 2024,
+    "bio30": "Supports refugee education in Alexandria."
+  },
+  {
+    "id": "26",
+    "name": "Musa Kabir",
+    "country": "Nigeria",
+    "category": "STEM Excellence",
+    "year": 2023,
+    "bio30": "Develops apps for waste management."
+  },
+  {
+    "id": "27",
+    "name": "Akosua Boateng",
+    "country": "Ghana",
+    "category": "Creative Leadership",
+    "year": 2024,
+    "bio30": "Curates art exhibitions for young talents."
+  },
+  {
+    "id": "28",
+    "name": "Nia Zulu",
+    "country": "South Africa",
+    "category": "Business Innovation",
+    "year": 2024,
+    "bio30": "Innovates in sustainable agriculture tech."
+  },
+  {
+    "id": "29",
+    "name": "Karim El-Fayed",
+    "country": "Egypt",
+    "category": "Health Advocacy",
+    "year": 2024,
+    "bio30": "Campaigns against food insecurity."
+  },
+  {
+    "id": "30",
+    "name": "Tigist Ayele",
+    "country": "Ethiopia",
+    "category": "Environmental Leadership",
+    "year": 2024,
+    "bio30": "Promotes biodiversity conservation efforts."
+  }
+]
