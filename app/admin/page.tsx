@@ -54,6 +54,11 @@ export default function AdminDashboard() {
   // Fetch stats from API
   useEffect(() => {
     fetchStats();
+    
+    // Set up a listener to automatically refresh stats periodically
+    const interval = setInterval(fetchStats, 30000); // Refresh every 30 seconds
+    
+    return () => clearInterval(interval);
   }, []);
 
   const fetchStats = async () => {

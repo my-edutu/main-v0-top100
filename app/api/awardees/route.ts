@@ -202,11 +202,15 @@ async function initializeAwardeesFromExcel() {
   try {
     const supabase = createClient();
     
-    // Fetch the Excel file from public directory
-    const excelResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/top100 Africa future Leaders 2025.xlsx`);
+    // Try to fetch the Excel file from public directory
+    // If running in development, fetch using a relative path
+    // If running in production, use the full path
+    const excelPath = `/top100 Africa future Leaders 2025.xlsx`;
+    const excelResponse = await fetch(excelPath);
     
     if (!excelResponse.ok) {
-      console.warn('Excel file not found, skipping initialization');
+      console.warn(`Excel file not found at ${excelPath}, skipping initialization`);
+      console.warn(`Status: ${excelResponse.status}, Status Text: ${excelResponse.statusText}`);
       return;
     }
     
