@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { 
@@ -14,9 +13,15 @@ import {
 } from '@/components/ui/table'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
+import { 
+  Card, 
+  CardContent, 
+  CardHeader, 
+  CardTitle 
+} from '@/components/ui/card'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
-import { Loader2, Plus } from 'lucide-react'
+import { Loader2, Plus, FileText, BarChart3, TrendingUp, Eye, Heart } from 'lucide-react'
 
 interface Post {
   id: string
@@ -31,65 +36,61 @@ interface Post {
   updatedAt: Date
 }
 
+interface Stats {
+  totalPosts: number;
+  publishedPosts: number;
+  featuredPosts: number;
+  draftPosts: number;
+}
+
 export default function AdminBlogPage() {
-  const { data: session, status } = useSession()
   const router = useRouter()
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [stats, setStats] = useState<Stats | null>(null)
 
   useEffect(() => {
-    if (status === 'authenticated') {
-      fetchPosts()
+    fetchPosts()
+  }, [])
+
+  useEffect(() => {
+    if (posts.length > 0) {
+      calculateStats();
     }
-  }, [status])
+  }, [posts]);
+
+  const calculateStats = () => {
+    const totalPosts = posts.length;
+    const publishedPosts = posts.filter(p => p.status === 'published').length;
+    const featuredPosts = posts.filter(p => p.isFeatured).length;
+    const draftPosts = posts.filter(p => p.status === 'draft').length;
+
+    setStats({
+      totalPosts,
+      publishedPosts,
+      featuredPosts,
+      draftPosts
+    });
+  };
 
   const fetchPosts = async () => {
     try {
       setLoading(true)
       toast.loading('Loading posts...', { id: 'loading-posts' })
       
-      // For now, we'll use mock data since we don't have a real database
-      const mockPosts: Post[] = [
-        {
-          id: '1',
-          title: 'Getting Started with Next.js',
-          slug: 'getting-started-nextjs',
-          content: 'This is a sample blog post content...',
-          coverImage: '/placeholder-image.jpg',
-          isFeatured: true,
-          status: 'published',
-          tags: ['Next.js', 'Tutorial'],
-          createdAt: new Date(),
-          updatedAt: new Date()
-        },
-        {
-          id: '2',
-          title: 'Building Secure Applications',
-          slug: 'building-secure-applications',
-          content: 'This is a sample blog post content about security...',
-          coverImage: '/placeholder-image.jpg',
-          isFeatured: false,
-          status: 'draft',
-          tags: ['Security', 'Best Practices'],
-          createdAt: new Date(Date.now() - 86400000), // 1 day ago
-          updatedAt: new Date(Date.now() - 86400000)
-        },
-        {
-          id: '3',
-          title: 'Advanced TypeScript Patterns',
-          slug: 'advanced-typescript-patterns',
-          content: 'This is a sample blog post content about TypeScript...',
-          coverImage: '/placeholder-image.jpg',
-          isFeatured: true,
-          status: 'published',
-          tags: ['TypeScript', 'Patterns'],
-          createdAt: new Date(Date.now() - 172800000), // 2 days ago
-          updatedAt: new Date(Date.now() - 172800000)
-        }
-      ]
+      const response = await fetch('/api/posts')
+      if (!response.ok) throw new Error('Failed to fetch posts')
       
-      setPosts(mockPosts)
+      const data = await response.json()
+      // Convert date strings to Date objects if necessary
+      const postsWithDates = data.map((post: any) => ({
+        ...post,
+        createdAt: new Date(post.createdAt),
+        updatedAt: new Date(post.updatedAt)
+      }))
+      
+      setPosts(postsWithDates)
       toast.success('Posts loaded successfully', { id: 'loading-posts' })
     } catch (error) {
       console.error('Error fetching posts:', error)
@@ -104,19 +105,19 @@ export default function AdminBlogPage() {
       const loadingToastId = `toggle-featured-${postId}`
       toast.loading('Updating post...', { id: loadingToastId })
       
-      // Update the post in the UI immediately
+      // Make API call to update the post
+      const response = await fetch(`/api/posts`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: postId, isFeatured: !currentFeatured })
+      })
+      
+      if (!response.ok) throw new Error('Failed to update post')
+      
+      // Update the post in the UI
       setPosts(posts.map(post => 
         post.id === postId ? { ...post, isFeatured: !currentFeatured } : post
       ))
-      
-      // In a real app, you would make an API call here
-      // const response = await fetch(`/api/posts/${postId}`, {
-      //   method: 'PATCH',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ isFeatured: !currentFeatured })
-      // })
-      
-      // if (!response.ok) throw new Error('Failed to update post')
       
       toast.success('Post updated successfully', { id: loadingToastId })
     } catch (error) {
@@ -137,12 +138,13 @@ export default function AdminBlogPage() {
       const loadingToastId = `delete-post-${postId}`
       toast.loading('Deleting post...', { id: loadingToastId })
       
-      // In a real app, you would make an API call here
-      // const response = await fetch(`/api/posts/${postId}`, {
-      //   method: 'DELETE'
-      // })
+      const response = await fetch(`/api/posts`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: postId })
+      })
       
-      // if (!response.ok) throw new Error('Failed to delete post')
+      if (!response.ok) throw new Error('Failed to delete post')
       
       setPosts(posts.filter(post => post.id !== postId))
       toast.success('Post deleted successfully', { id: loadingToastId })
@@ -158,23 +160,89 @@ export default function AdminBlogPage() {
     router.push('/admin/blog/new')
   }
 
-  if (status === 'loading') {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    )
-  }
-
-  if (status === 'unauthenticated') {
-    return <div className="p-6">Access denied. Please sign in.</div>
-  }
-
   return (
     <div className="container mx-auto py-10">
-      <div className="mb-6 flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Blog Dashboard</h1>
-        <Button onClick={handleAddNewPost}>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
+          Blog Dashboard
+        </h1>
+        <p className="text-muted-foreground">Manage your blog posts and content</p>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:shadow-lg transition-shadow">
+          <CardHeader className="pb-2">
+            <div className="flex items-center">
+              <div className="p-2 bg-blue-400/30 rounded-lg mr-3">
+                <FileText className="h-6 w-6" />
+              </div>
+              <CardTitle className="text-lg">Total Posts</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {loading ? <div className="h-6 w-12 bg-blue-400/30 rounded animate-pulse" /> : stats?.totalPosts || 0}
+            </div>
+            <p className="text-xs text-blue-100 mt-1">All blog posts</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white hover:shadow-lg transition-shadow">
+          <CardHeader className="pb-2">
+            <div className="flex items-center">
+              <div className="p-2 bg-green-400/30 rounded-lg mr-3">
+                <TrendingUp className="h-6 w-6" />
+              </div>
+              <CardTitle className="text-lg">Published</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {loading ? <div className="h-6 w-12 bg-green-400/30 rounded animate-pulse" /> : stats?.publishedPosts || 0}
+            </div>
+            <p className="text-xs text-green-100 mt-1">Live on site</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-amber-500 to-amber-600 text-white hover:shadow-lg transition-shadow">
+          <CardHeader className="pb-2">
+            <div className="flex items-center">
+              <div className="p-2 bg-amber-400/30 rounded-lg mr-3">
+                <Eye className="h-6 w-6" />
+              </div>
+              <CardTitle className="text-lg">Featured</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {loading ? <div className="h-6 w-12 bg-amber-400/30 rounded animate-pulse" /> : stats?.featuredPosts || 0}
+            </div>
+            <p className="text-xs text-amber-100 mt-1">Highlighted posts</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-gray-500 to-gray-600 text-white hover:shadow-lg transition-shadow">
+          <CardHeader className="pb-2">
+            <div className="flex items-center">
+              <div className="p-2 bg-gray-400/30 rounded-lg mr-3">
+                <FileText className="h-6 w-6" />
+              </div>
+              <CardTitle className="text-lg">Drafts</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {loading ? <div className="h-6 w-12 bg-gray-400/30 rounded animate-pulse" /> : stats?.draftPosts || 0}
+            </div>
+            <p className="text-xs text-gray-100 mt-1">Unpublished posts</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-semibold">All Posts</h2>
+        <Button onClick={handleAddNewPost} className="bg-blue-500 hover:bg-blue-600 text-white">
           <Plus className="mr-2 h-4 w-4" />
           Add New Post
         </Button>

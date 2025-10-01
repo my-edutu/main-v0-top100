@@ -10,8 +10,8 @@ export default async function AwardeesPage({
     search?: string;
   } 
 }) {
-  const people = await getAwardees();
+  const awardees = await getAwardees();
   
   // Pass the searchParams to the client component so it can handle pagination and search
-  return <AwardeesPageClient initialPeople={people} initialSearchParams={searchParams} />;
+  return <AwardeesPageClient initialPeople={awardees} initialSearchParams={searchParams} />;
 }

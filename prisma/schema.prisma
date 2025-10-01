@@ -26,3 +26,17 @@ model Post {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+model Awardee {
+  id       String   @id @default(cuid())
+  slug     String   @unique
+  name     String
+  email    String?
+  country  String?
+  cgpa     String?  // Can store as string to handle various formats
+  course   String?
+  bio      String?
+  year     Int?     // Year the awardee was recognized
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

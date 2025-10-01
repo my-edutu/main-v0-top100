@@ -1,87 +1,40 @@
+import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { read, utils } from 'xlsx';
 
-export type Awardee = {
-  id: string;
-  slug: string;
-  name: string;
-  email?: string;
-  country?: string;
-  cgpa?: string | number;
-  course?: string;
-  bio?: string; // leadership description
-  year?: number;
-  image_url?: string;
-};
-
-// simple slugify
-function slugify(s: string) {
-  return s.toLowerCase().replace(/[^a-z0-9\s-]/g, "").trim().replace(/\s+/g, "-");
-}
-
-// Fetch awardees from Supabase database
-export async function getAwardees(): Promise<Awardee[]> {
-  try {
-    // In the server component, we use the server-side Supabase client
-    const supabase = createClient();
-    
-    // Check if there are any awardees in the database
-    const { count, error: countError } = await supabase
-      .from('awardees')
-      .select('*', { count: 'exact', head: true });
-    
-    if (countError) {
-      console.error('Error counting awardees:', countError);
-    }
-    
-    // If no awardees exist in the database, try to initialize from the Excel file
-    if (!countError && count === 0) {
-      await initializeAwardeesFromExcel();
-    }
-    
-    const { data, error } = await supabase
-      .from('awardees')
-      .select('*')
-      .order('name', { ascending: true });
-    
-    if (error) {
-      console.error('Error fetching awardees:', error);
-      throw new Error('Failed to fetch awardees');
-    }
-    
-    return data as Awardee[];
-  } catch (error) {
-    console.error('Error in getAwardees:', error);
-    // Return empty array in case of error, or you could throw the error
-    return [];
-  }
-}
-
-// Initialize awardees from the Excel file
-async function initializeAwardeesFromExcel() {
+export async function POST(req: NextRequest) {
   try {
     const supabase = createClient();
     
-    // Fetch the Excel file from public directory
-    const excelResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/top100 Africa future Leaders 2025.xlsx`);
+    // Get the form data (which includes the file)
+    const formData = await req.formData();
+    const file = formData.get('file') as File;
     
-    if (!excelResponse.ok) {
-      console.warn('Excel file not found, skipping initialization');
-      return;
+    if (!file) {
+      return Response.json({ 
+        success: false, 
+        message: 'No file uploaded' 
+      }, { status: 400 });
     }
+
+    // Read the file content
+    const buffer = Buffer.from(await file.arrayBuffer());
     
-    const buffer = await excelResponse.arrayBuffer();
-    const workbook = read(buffer, { type: 'array' });
+    // Parse the Excel file
+    const workbook = read(buffer, { type: 'buffer' });
     const firstSheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[firstSheetName];
     const jsonData = utils.sheet_to_json(worksheet);
-    
+
+    // Validate the data structure
     if (!jsonData || jsonData.length === 0) {
-      console.warn('Excel file is empty, skipping initialization');
-      return;
+      return Response.json({ 
+        success: false, 
+        message: 'Excel file is empty or invalid' 
+      }, { status: 400 });
     }
-    
-    // Process the Excel data to match our schema
+
+    // Transform the data to match our database schema
     const awardeesToInsert = jsonData.map((row: any, index: number) => {
       // Normalize keys to handle different possible column names
       const normalizeKey = (obj: any, keyVariants: string[]): any => {
@@ -113,7 +66,6 @@ async function initializeAwardeesFromExcel() {
       }
 
       return {
-        id: row.id || `awardee-${index + 1}`,
         name: normalizeKey(row, ['name', 'fullname', 'awardee']) || `Awardee ${index + 1}`,
         email: normalizeKey(row, ['email', 'mail', 'e-mail']) || null,
         country: country || null,
@@ -126,19 +78,35 @@ async function initializeAwardeesFromExcel() {
     });
 
     // Insert the data into Supabase
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('awardees')
-      .insert(awardeesToInsert)
-      .select();
+      .upsert(awardeesToInsert, {
+        onConflict: 'slug', // Update if slug already exists, otherwise insert
+        ignoreDuplicates: false
+      });
     
     if (error) {
-      console.error('Error initializing awardees from Excel:', error);
-      throw error;
+      console.error('Error importing awardees:', error);
+      return Response.json({ 
+        success: false, 
+        message: 'Failed to import awardees',
+        error: error.message 
+      }, { status: 500 });
     }
-    
-    console.log(`Successfully initialized ${awardeesToInsert.length} awardees from Excel`);
+
+    return Response.json({ 
+      success: true, 
+      message: `Successfully imported ${awardeesToInsert.length} awardees`,
+      count: awardeesToInsert.length,
+      data: data // Include the inserted data in the response
+    });
   } catch (error) {
-    console.error('Error during Excel initialization:', error);
+    console.error('Error in awardees import:', error);
+    return Response.json({ 
+      success: false, 
+      message: 'Failed to import awardees',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }
 
