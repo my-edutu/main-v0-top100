@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase/client';
 import { 
   Plus, 
   Edit, 
@@ -70,10 +71,6 @@ export default function AwardeesManagement() {
   const [stats, setStats] = useState<Stats | null>(null);
 
   useEffect(() => {
-    fetchAwardees();
-  }, []);
-
-  useEffect(() => {
     if (awardees.length > 0) {
       calculateStats();
     }
@@ -94,39 +91,112 @@ export default function AwardeesManagement() {
     }
   }, [searchTerm, awardees]);
 
-  const fetchAwardees = async () => {
+  const fetchAwardees = useCallback(async ({ withSpinner = true }: { withSpinner?: boolean } = {}) => {
     try {
-      setLoading(true);
-      toast.loading('Loading awardees...', { id: 'loading-awardees' });
-      
+      if (withSpinner) {
+        setLoading(true);
+        toast.loading('Loading awardees...', { id: 'loading-awardees' });
+      }
+
       const response = await fetch('/api/awardees');
       if (!response.ok) throw new Error('Failed to fetch awardees');
-      
+
       const data = await response.json();
-      setAwardees(data);
-      setFilteredAwardees(data);
-      toast.success('Awardees loaded successfully', { id: 'loading-awardees' });
+      const normalized: Awardee[] = Array.isArray(data)
+        ? data.map((awardee: any) => {
+            const parsedYear = typeof awardee.year === 'string' ? parseInt(awardee.year, 10) : awardee.year;
+            const sanitizedCountry = awardee.country ? awardee.country.toString().trim() : null;
+            const sanitizedCourse = awardee.course ? awardee.course.toString().trim() : null;
+
+            return {
+              ...awardee,
+              name: (awardee.name ?? '').toString().trim(),
+              country: sanitizedCountry && sanitizedCountry.length > 0 ? sanitizedCountry : null,
+              course: sanitizedCourse && sanitizedCourse.length > 0 ? sanitizedCourse : null,
+              year: typeof parsedYear === 'number' && !Number.isNaN(parsedYear) ? parsedYear : null,
+            } as Awardee;
+          })
+        : [];
+      setAwardees(normalized);
+      setFilteredAwardees(normalized);
+      if (withSpinner) {
+        toast.success('Awardees loaded successfully', { id: 'loading-awardees' });
+      }
     } catch (error) {
       console.error('Error fetching awardees:', error);
-      toast.error('Failed to fetch awardees', { id: 'loading-awardees' });
+      if (withSpinner) {
+        toast.error('Failed to fetch awardees', { id: 'loading-awardees' });
+      } else {
+        toast.error('Failed to refresh awardees');
+      }
     } finally {
-      setLoading(false);
+      if (withSpinner) {
+        setLoading(false);
+      }
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchAwardees();
+  }, [fetchAwardees]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin-awardees-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'awardees' }, () => {
+        fetchAwardees({ withSpinner: false });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchAwardees]);
 
   const calculateStats = () => {
-    if (awardees.length === 0) return;
+    if (awardees.length === 0) {
+      setStats({
+        totalAwardees: 0,
+        totalCountries: 0,
+        totalCourses: 0,
+        currentYearAwardees: 0,
+        recentAwardees: 0
+      });
+      return;
+    }
 
     const currentYear = new Date().getFullYear();
-    
+    const currentMonth = new Date().getMonth();
+
+    const sanitizedCountries = awardees
+      .map(a => (a.country ?? '').toString().trim())
+      .filter(Boolean);
+    const sanitizedCourses = awardees
+      .map(a => (a.course ?? '').toString().trim())
+      .filter(Boolean);
+
     const totalAwardees = awardees.length;
-    const totalCountries = [...new Set(awardees.map(a => a.country))].length;
-    const totalCourses = [...new Set(awardees.map(a => a.course))].length;
-    const currentYearAwardees = awardees.filter(a => a.year === currentYear).length;
-    const recentAwardees = awardees.filter(a => 
-      a.year === currentYear || 
-      (a.year === currentYear - 1 && new Date().getMonth() < 3) // Include last year if we're early in current year
+    const totalCountries = new Set(sanitizedCountries).size;
+    const totalCourses = new Set(sanitizedCourses).size;
+    const currentYearAwardees = awardees.filter(
+      a => typeof a.year === 'number' && a.year === currentYear
     ).length;
+
+    const recentAwardees = awardees.filter(a => {
+      if (typeof a.year !== 'number') {
+        return false;
+      }
+
+      if (a.year === currentYear) {
+        return true;
+      }
+
+      if (a.year === currentYear - 1) {
+        return currentMonth < 3;
+      }
+
+      return false;
+    }).length;
 
     setStats({
       totalAwardees,
@@ -167,20 +237,22 @@ export default function AwardeesManagement() {
         body: formData,
       });
       
-      const result = await response.json();
+      const result = await response.json().catch(() => null);
+      const isSuccessful = response.ok && result?.success;
       
-      if (response.ok) {
-        toast.success(result.message, { id: 'import-awardees' });
+      if (isSuccessful) {
+        const message = result?.message || `Imported ${result?.imported ?? 0} awardees successfully`;
+        toast.success(message, { id: 'import-awardees' });
         setFile(null);
         
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
         
-        // Refresh the awardees list after import
-        await fetchAwardees();
+        await fetchAwardees({ withSpinner: false });
       } else {
-        throw new Error(result.message);
+        const errorMessage = result?.error || result?.message || 'Failed to import awardees';
+        throw new Error(errorMessage);
       }
     } catch (error) {
       console.error('Error importing awardees:', error);
@@ -220,7 +292,7 @@ export default function AwardeesManagement() {
       
       if (result.success) {
         // Refresh the awardee list
-        await fetchAwardees();
+        await fetchAwardees({ withSpinner: false });
         toast.success(result.message, { id: `delete-${id}` });
       } else {
         throw new Error(result.message);

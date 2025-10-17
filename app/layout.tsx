@@ -4,6 +4,9 @@ import { Space_Grotesk } from "next/font/google"
 import type React from "react" // Import React
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
+import Header from "./components/Header"
+import Footer from "./components/Footer"
+import { cn } from "@/lib/utils"
 
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"] })
 
@@ -20,15 +23,24 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className={`${spaceGrotesk.className} bg-black text-white pb-20`}>
+    <html lang="en" suppressHydrationWarning>
+      <body
+        className={cn(
+          spaceGrotesk.className,
+          "bg-background text-foreground antialiased transition-colors duration-300"
+        )}
+      >
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <Header />
+          <main className="min-h-[calc(100vh-120px)] pt-[80px] transition-colors duration-300">
+            {children}
+          </main>
+          <Footer />
           <Toaster />
         </ThemeProvider>
       </body>

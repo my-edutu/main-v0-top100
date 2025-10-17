@@ -1,76 +1,77 @@
-import { auth } from './auth';
-import { headers } from 'next/headers';
-import { cache } from 'react';
+import { cache } from 'react'
+import { headers } from 'next/headers'
 
-// Server-side function to get session for server components
+import type { BetterAuthSession } from '@/lib/better-auth/server'
+import { betterAuthServer } from '@/lib/better-auth/server'
+
+type SessionPayload = BetterAuthSession['session']
+type UserPayload = BetterAuthSession['user'] & { role?: string | null }
+
+const DEFAULT_ROLE = 'user'
+
+const extractRole = (user: Partial<UserPayload>) =>
+  (user?.role ?? (user as Record<string, unknown>)?.role ?? DEFAULT_ROLE) as string
+
+async function resolveSessionFromHeaders(requestHeaders: Headers) {
+  const result = await betterAuthServer.api.getSession({
+    headers: requestHeaders,
+  })
+
+  if (!result) {
+    return null
+  }
+
+  return result
+}
+
 export const getCurrentUser = cache(async () => {
   try {
-    const requestHeaders = headers();
-    const cookiesHeader = requestHeaders.get('cookie');
-    
-    if (!cookiesHeader) {
-      return null;
+    const headerList = headers()
+    const session = await resolveSessionFromHeaders(headerList)
+
+    if (!session) {
+      return null
     }
 
-    // Get the session cookie name
-    const sessionCookieName = auth.config.session.cookie.name;
-    const cookieMatch = cookiesHeader.match(new RegExp(`(?:^|;)\\s*${sessionCookieName}\\s*=\\s*([^;]+)`));
-    
-    if (!cookieMatch) {
-      return null;
-    }
+    const role = extractRole(session.user)
 
-    const sessionToken = cookieMatch[1];
-    
-    // Use the auth's internal session validation
-    // This calls the internal session validation logic
-    const sessionValidation = await auth.$internal.getSession({
-      token: sessionToken
-    });
-
-    // If session is valid and not expired, return the user
-    if (sessionValidation && new Date() < new Date(sessionValidation.expiresAt)) {
-      return sessionValidation.user;
+    return {
+      id: session.user.id,
+      name: session.user.name,
+      email: session.user.email,
+      role,
+      session: session.session,
     }
-    
-    return null;
   } catch (error) {
-    console.error('Error getting session:', error);
-    return null;
+    console.error('[auth-server] getCurrentUser failed', error)
+    return null
   }
-});
+})
 
-// Function to validate request in API routes
 export async function validateRequest(request: Request) {
   try {
-    const cookieHeader = request.headers.get('cookie');
-    if (!cookieHeader) {
-      return null;
+    const session = await resolveSessionFromHeaders(request.headers)
+
+    if (!session) {
+      return null
     }
 
-    // Get the session cookie name
-    const sessionCookieName = auth.config.session.cookie.name;
-    const cookieMatch = cookieHeader.match(new RegExp(`(?:^|;)\\s*${sessionCookieName}\\s*=\\s*([^;]+)`));
-    
-    if (!cookieMatch) {
-      return null;
-    }
+    const role = extractRole(session.user)
 
-    const sessionToken = cookieMatch[1];
-    
-    // Use the auth's internal session validation
-    const sessionValidation = await auth.$internal.getSession({
-      token: sessionToken
-    });
-
-    // If session is valid and not expired, return user and session
-    if (sessionValidation && new Date() < new Date(sessionValidation.expiresAt)) {
-      return { user: sessionValidation.user, session: sessionValidation };
+    return {
+      user: {
+        id: session.user.id,
+        name: session.user.name,
+        email: session.user.email,
+        role,
+      },
+      session: {
+        ...session.session,
+        role,
+      } as SessionPayload & { role: string },
     }
-    
-    return null;
   } catch (error) {
-    console.error('Error validating request:', error);
-    return null;
+    console.error('[auth-server] validateRequest failed', error)
+    return null
   }
 }

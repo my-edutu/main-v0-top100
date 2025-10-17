@@ -19,7 +19,7 @@ const FloatingParticle = ({ delay }: { delay: number }) => {
 
   return (
     <motion.div
-      className="absolute w-1 h-1 bg-orange-400 rounded-full"
+      className="absolute h-1 w-1 rounded-full bg-orange-400"
       style={{
         x: `${Math.random() * 100}%`,
         y: ySpring,
@@ -42,10 +42,10 @@ export default function HeroSection() {
   const [isHovered, setIsHovered] = useState(false)
 
   const stats = [
-    { icon: <Globe className="w-6 h-6" />, label: "Countries", value: "20+" },
-    { icon: <Users className="w-6 h-6" />, label: "Applications", value: "5,000+" },
-    { icon: <Award className="w-6 h-6" />, label: "Awardees", value: "100" },
-    { icon: <BookOpen className="w-6 h-6" />, label: "Scholarships", value: "150+" },
+    { icon: <Globe className="h-6 w-6" />, label: "Countries", value: "20+" },
+    { icon: <Users className="h-6 w-6" />, label: "Applications", value: "5,000+" },
+    { icon: <Award className="h-6 w-6" />, label: "Awardees", value: "100" },
+    { icon: <BookOpen className="h-6 w-6" />, label: "Scholarships", value: "150+" },
   ]
 
   const scrollToSection = (sectionId: string) => {
@@ -56,40 +56,42 @@ export default function HeroSection() {
   }
 
   return (
-    <section ref={containerRef} className="min-h-screen relative overflow-hidden">
+    <section
+      ref={containerRef}
+      className="relative min-h-screen overflow-hidden bg-linear-to-b from-slate-100 via-white to-slate-100 text-slate-900 dark:from-black dark:via-black dark:to-black dark:text-white transition-colors duration-300"
+    >
       <div className="absolute inset-0 overflow-hidden">
-        {[...Array(50)].map((_, i) => (
-          <FloatingParticle key={i} delay={i * 100} />
+        {[...Array(50)].map((_, index) => (
+          <FloatingParticle key={index} delay={index * 100} />
         ))}
       </div>
 
-      <motion.div style={{ y, opacity }} className="relative pt-32 pb-16 px-4">
-        <div className="max-w-7xl mx-auto">
+      <motion.div style={{ y, opacity }} className="relative px-4 pt-16 pb-16">
+        <div className="mx-auto max-w-7xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
-            className="text-center mb-16"
+            className="mb-16 text-center"
           >
-            <h1 className="text-6xl md:text-8xl font-bold mb-6 tracking-tight relative">
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-white via-orange-200 to-orange-400">
-                Celebrating Africa's Future Leaders
-              </span>
+            <h1 className="relative mb-6 text-6xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-slate-900 via-orange-500 to-orange-400 dark:from-white dark:via-orange-200 dark:to-orange-400 md:text-8xl">
+              Celebrating Africa&apos;s Future Leaders
               <motion.span
-                className="absolute -inset-1 bg-orange-400 rounded-full blur-3xl"
+                className="absolute -inset-1 rounded-full bg-orange-400/60 blur-3xl dark:bg-orange-400"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: [0, 0.1, 0] }}
                 transition={{ duration: 3, repeat: Number.POSITIVE_INFINITY, repeatType: "reverse" }}
               />
             </h1>
-            <p className="text-xl md:text-2xl mb-8 text-zinc-300 max-w-4xl mx-auto text-balance">
-              Top100 Africa Future Leaders 2025 spotlighted Young Leaders turning ideas into impact across 13+ Africa Countries.
+            <p className="mx-auto mb-8 max-w-4xl text-balance text-xl text-slate-600 dark:text-zinc-300 md:text-2xl">
+              Top100 Africa Future Leaders 2025 spotlighted young leaders turning ideas into impact across 13+ African
+              countries.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="relative z-10">
                 <Button
                   size="lg"
-                  className="bg-orange-500 text-white hover:bg-orange-600 text-lg px-8 py-6 rounded-full transition-colors relative overflow-hidden group"
+                  className="group relative overflow-hidden rounded-full bg-orange-500 px-8 py-6 text-lg text-white transition-colors hover:bg-orange-600"
                   onMouseEnter={() => setIsHovered(true)}
                   onMouseLeave={() => setIsHovered(false)}
                   onClick={() => scrollToSection("awardees")}
@@ -104,16 +106,16 @@ export default function HeroSection() {
                   <motion.span
                     animate={{ x: isHovered ? 5 : 0 }}
                     transition={{ duration: 0.2 }}
-                    className="ml-2 relative z-10"
+                    className="relative z-10 ml-2"
                   >
-                    →
+                    {"\u2192"}
                   </motion.span>
                 </Button>
               </motion.div>
               <Button
                 variant="outline"
                 size="lg"
-                className="border-orange-400 text-orange-400 hover:bg-orange-400 hover:text-black text-lg px-8 py-6 rounded-full bg-transparent"
+                className="rounded-full border border-orange-400 px-8 py-6 text-lg text-orange-500 hover:bg-orange-500 hover:text-black"
                 onClick={() => scrollToSection("magazine")}
               >
                 Download 2024 Magazine
@@ -121,7 +123,23 @@ export default function HeroSection() {
             </div>
           </motion.div>
 
-          
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.8 }}
+            className="grid gap-4 rounded-3xl border border-orange-400/20 bg-white/70 p-6 backdrop-blur dark:bg-black/30 md:grid-cols-4"
+          >
+            {stats.map((stat) => (
+              <div
+                key={stat.label}
+                className="flex flex-col items-center gap-2 rounded-2xl bg-white/80 p-4 shadow-sm dark:bg-black/40"
+              >
+                <div className="rounded-full bg-orange-500/10 p-3 text-orange-300">{stat.icon}</div>
+                <div className="text-2xl font-semibold text-slate-900 dark:text-white">{stat.value}</div>
+                <p className="text-xs uppercase tracking-[0.35em] text-slate-500 dark:text-zinc-400">{stat.label}</p>
+              </div>
+            ))}
+          </motion.div>
         </div>
       </motion.div>
     </section>

@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Loader2, Send, CheckCircle, Mail, Phone, MapPin } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { createClient } from "@/lib/supabase/client"
+import { supabase } from "@/lib/supabase/client"
 
 export default function ContactSection() {
   const [formData, setFormData] = useState({
@@ -46,8 +46,6 @@ export default function ContactSection() {
     setIsSubmitting(true)
 
     try {
-      const supabase = createClient()
-
       const { error } = await supabase.from("contact_messages").insert({
         name: formData.name,
         email: formData.email,
@@ -86,8 +84,6 @@ export default function ContactSection() {
     setIsNewsletterSubmitting(true)
 
     try {
-      const supabase = createClient()
-
       const { error } = await supabase.from("newsletter_subscribers").insert({
         email: newsletterEmail,
       })

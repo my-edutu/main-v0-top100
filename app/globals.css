@@ -3,31 +3,155 @@
 @tailwind utilities;
 
 :root {
-  --background: 0 0% 0%;
-  --foreground: 0 0% 100%;
-  --card: 0 0% 0%;
-  --card-foreground: 0 0% 100%;
-  --popover: 0 0% 0%;
-  --popover-foreground: 0 0% 100%;
-  --primary: 0 0% 100%;
-  --primary-foreground: 0 0% 0%;
-  --secondary: 0 0% 10%;
-  --secondary-foreground: 0 0% 100%;
-  --muted: 0 0% 10%;
-  --muted-foreground: 0 0% 60%;
-  --accent: 0 0% 10%;
-  --accent-foreground: 0 0% 100%;
+  color-scheme: dark;
+  --background: 224 71% 4%;
+  --foreground: 213 31% 91%;
+  --card: 224 71% 4%;
+  --card-foreground: 213 31% 91%;
+  --popover: 224 71% 4%;
+  --popover-foreground: 213 31% 91%;
+  --primary: 210 40% 98%;
+  --primary-foreground: 222.2 47.4% 11.2%;
+  --secondary: 215 27.9% 16.9%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 215 27.9% 16.9%;
+  --muted-foreground: 217.9 10.6% 64.9%;
+  --accent: 215 27.9% 16.9%;
+  --accent-foreground: 210 40% 98%;
   --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 0 0% 100%;
-  --border: 0 0% 10%;
-  --input: 0 0% 10%;
-  --ring: 0 0% 100%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 215 27.9% 16.9%;
+  --input: 215 27.9% 16.9%;
+  --ring: 216 12% 84%;
 }
 
-body {
-  background: black;
-  min-height: 100vh;
-  color: white;
+html.light {
+  color-scheme: light;
+  --background: 210 40% 98%;
+  --foreground: 222.2 47.4% 11.2%;
+  --card: 0 0% 100%;
+  --card-foreground: 222.2 47.4% 11.2%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222.2 47.4% 11.2%;
+  --primary: 222.2 47.4% 11.2%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222.2 47.4% 11.2%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+  --accent: 210 40% 96.1%;
+  --accent-foreground: 222.2 47.4% 11.2%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 222.2 47.4% 11.2%;
+}
+
+html.light body {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+html.light .bg-black,
+html.light .bg-zinc-950 {
+  background-color: #f8fafc !important;
+  color: #0f172a;
+}
+
+html.light .bg-black\/95,
+html.light .bg-black\/80,
+html.light .bg-black\/70 {
+  background-color: rgba(15, 23, 42, 0.12) !important;
+  color: #0f172a;
+}
+
+html.light .bg-black\/60,
+html.light .bg-black\/50,
+html.light .bg-black\/40,
+html.light .bg-black\/30,
+html.light .bg-black\/20,
+html.light .bg-black\/10 {
+  background-color: rgba(255, 255, 255, 0.85) !important;
+  color: #0f172a;
+}
+
+html.light .bg-zinc-900,
+html.light .bg-zinc-900\/90,
+html.light .bg-zinc-900\/80 {
+  background-color: #f1f5f9 !important;
+  color: #0f172a;
+}
+
+html.light .bg-zinc-950\/80,
+html.light .bg-zinc-950\/70,
+html.light .bg-zinc-950\/60,
+html.light .bg-zinc-950\/50,
+html.light .bg-zinc-950\/40 {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  color: #0f172a;
+}
+
+html.light .bg-zinc-900\/60,
+html.light .bg-zinc-900\/50,
+html.light .bg-zinc-900\/40,
+html.light .bg-zinc-900\/30,
+html.light .bg-zinc-900\/20 {
+  background-color: rgba(255, 255, 255, 0.94) !important;
+  color: #0f172a;
+}
+
+html.light .bg-white\/5,
+html.light .bg-white\/10,
+html.light .bg-white\/20,
+html.light .bg-white\/30 {
+  background-color: rgba(255, 255, 255, 0.92) !important;
+  color: #0f172a;
+}
+
+html.light .border-white\/10,
+html.light .border-white\/20 {
+  border-color: rgba(148, 163, 184, 0.25) !important;
+}
+
+html.light .text-white,
+html.light .text-zinc-100,
+html.light .text-zinc-200 {
+  color: #0f172a !important;
+}
+
+html.light .text-zinc-300 {
+  color: #1f2937 !important;
+}
+
+html.light .text-zinc-400 {
+  color: #475569 !important;
+}
+
+html.light .text-zinc-500 {
+  color: #64748b !important;
+}
+
+html.light .border-zinc-900,
+html.light .border-zinc-800,
+html.light .border-black {
+  border-color: rgba(15, 23, 42, 0.12) !important;
+}
+
+html.light .from-zinc-950,
+html.light .from-black {
+  --tw-gradient-from: #f8fafc !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(248, 250, 252, 0));
+}
+
+html.light .via-zinc-900,
+html.light .via-black {
+  --tw-gradient-stops: var(--tw-gradient-from), #e2e8f0, var(--tw-gradient-to, rgba(248, 250, 252, 0));
+}
+
+html.light .to-zinc-950,
+html.light .to-black {
+  --tw-gradient-to: #e2e8f0 !important;
 }
 
 @layer base {
@@ -35,7 +159,7 @@ body {
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground min-h-screen transition-colors duration-300;
   }
 }
 
@@ -73,3 +197,53 @@ body {
     box-shadow: 0 0 20px white;
   }
 }
+
+.tiptap-editor {
+  min-height: 420px;
+  padding: 2.5rem clamp(1.25rem, 3vw, 3rem);
+  font-size: 1.05rem;
+  line-height: 1.85;
+}
+
+.tiptap-editor p.is-editor-empty:first-child::before {
+  color: rgba(148, 163, 184, 0.6);
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+.tiptap-editor img {
+  display: block;
+  margin: 2rem auto;
+  border-radius: 1.25rem;
+  max-width: 100%;
+  box-shadow: 0 20px 80px rgba(0, 0, 0, 0.45);
+}
+
+.tiptap-editor blockquote {
+  border-left: 3px solid rgba(255, 255, 255, 0.15);
+  margin: 1.5rem 0;
+  padding-left: 1.5rem;
+  font-style: italic;
+  color: rgba(226, 232, 240, 0.85);
+}
+
+.tiptap-editor pre {
+  background: rgba(15, 23, 42, 0.6);
+  padding: 1.25rem 1.5rem;
+  border-radius: 1rem;
+  color: rgba(165, 243, 252, 0.95);
+  font-size: 0.95rem;
+  overflow-x: auto;
+}
+
+.tiptap-editor ul,
+.tiptap-editor ol {
+  padding-left: 1.5rem;
+}
+
+.tiptap-editor a {
+  color: rgba(96, 165, 250, 0.95);
+}
+

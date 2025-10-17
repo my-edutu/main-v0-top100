@@ -1,158 +1,192 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
 } from '@/components/ui/card'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { Loader2, Plus, FileText, BarChart3, TrendingUp, Eye, Heart } from 'lucide-react'
 
-interface Post {
+interface AdminPost {
   id: string
   title: string
   slug: string
-  content: string
-  coverImage?: string
+  content: string | null
+  coverImage: string | null
   isFeatured: boolean
   status: string
   tags: string[]
-  createdAt: Date
-  updatedAt: Date
+  createdAt: string
+  updatedAt: string
 }
 
 interface Stats {
-  totalPosts: number;
-  publishedPosts: number;
-  featuredPosts: number;
-  draftPosts: number;
+  totalPosts: number
+  publishedPosts: number
+  featuredPosts: number
+  draftPosts: number
+}
+
+const mapPostRecord = (raw: Record<string, any>): AdminPost => {
+  const createdAt = raw.created_at ?? raw.createdAt ?? new Date().toISOString()
+  const updatedAt = raw.updated_at ?? raw.updatedAt ?? createdAt
+
+  return {
+    id: raw.id,
+    title: raw.title ?? 'Untitled post',
+    slug: raw.slug ?? '',
+    content: raw.content ?? null,
+    coverImage: raw.cover_image ?? raw.coverImage ?? null,
+    isFeatured: Boolean(raw.is_featured ?? raw.isFeatured),
+    status: raw.status ?? 'draft',
+    tags: Array.isArray(raw.tags) ? raw.tags : [],
+    createdAt,
+    updatedAt
+  }
 }
 
 export default function AdminBlogPage() {
   const router = useRouter()
-  const [posts, setPosts] = useState<Post[]>([])
+  const [posts, setPosts] = useState<AdminPost[]>([])
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState<string | null>(null)
-  const [stats, setStats] = useState<Stats | null>(null)
 
-  useEffect(() => {
-    fetchPosts()
+  const stats = useMemo<Stats>(() => {
+    return {
+      totalPosts: posts.length,
+      publishedPosts: posts.filter(post => post.status === 'published').length,
+      featuredPosts: posts.filter(post => post.isFeatured).length,
+      draftPosts: posts.filter(post => post.status !== 'published').length
+    }
+  }, [posts])
+
+  const featuredPosts = useMemo(() => posts.filter(post => post.isFeatured), [posts])
+
+  const fetchPosts = useCallback(async ({ withSpinner = true }: { withSpinner?: boolean } = {}) => {
+    const toastId = 'loading-posts'
+
+    if (withSpinner) {
+      setLoading(true)
+      toast.loading('Loading posts...', { id: toastId })
+    }
+
+    try {
+  const response = await fetch('/api/posts?scope=admin', { cache: 'no-store' })
+      if (!response.ok) throw new Error('Failed to fetch posts')
+
+      const data = await response.json()
+      const mapped: AdminPost[] = Array.isArray(data) ? data.map(mapPostRecord) : []
+
+      setPosts(mapped)
+
+      if (withSpinner) {
+        toast.success('Posts loaded successfully', { id: toastId })
+      }
+    } catch (error) {
+      console.error('Error fetching posts:', error)
+      if (withSpinner) {
+        toast.error('Failed to fetch posts', { id: toastId })
+      } else {
+        toast.error('Live update failed to refresh posts')
+      }
+    } finally {
+      if (withSpinner) {
+        setLoading(false)
+      }
+    }
   }, [])
 
   useEffect(() => {
-    if (posts.length > 0) {
-      calculateStats();
+    fetchPosts()
+  }, [fetchPosts])
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin-posts-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
+        fetchPosts({ withSpinner: false })
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
     }
-  }, [posts]);
+  }, [fetchPosts])
 
-  const calculateStats = () => {
-    const totalPosts = posts.length;
-    const publishedPosts = posts.filter(p => p.status === 'published').length;
-    const featuredPosts = posts.filter(p => p.isFeatured).length;
-    const draftPosts = posts.filter(p => p.status === 'draft').length;
+  const toggleFeatured = async (postId: string, nextValue: boolean) => {
+    const toastId = `toggle-featured-${postId}`
+    toast.loading('Updating post...', { id: toastId })
 
-    setStats({
-      totalPosts,
-      publishedPosts,
-      featuredPosts,
-      draftPosts
-    });
-  };
-
-  const fetchPosts = async () => {
     try {
-      setLoading(true)
-      toast.loading('Loading posts...', { id: 'loading-posts' })
-      
-      const response = await fetch('/api/posts')
-      if (!response.ok) throw new Error('Failed to fetch posts')
-      
-      const data = await response.json()
-      // Convert date strings to Date objects if necessary
-      const postsWithDates = data.map((post: any) => ({
-        ...post,
-        createdAt: new Date(post.createdAt),
-        updatedAt: new Date(post.updatedAt)
-      }))
-      
-      setPosts(postsWithDates)
-      toast.success('Posts loaded successfully', { id: 'loading-posts' })
-    } catch (error) {
-      console.error('Error fetching posts:', error)
-      toast.error('Failed to fetch posts', { id: 'loading-posts' })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const toggleFeatured = async (postId: string, currentFeatured: boolean) => {
-    try {
-      const loadingToastId = `toggle-featured-${postId}`
-      toast.loading('Updating post...', { id: loadingToastId })
-      
-      // Make API call to update the post
-      const response = await fetch(`/api/posts`, {
+      const response = await fetch('/api/posts', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: postId, isFeatured: !currentFeatured })
+        body: JSON.stringify({ id: postId, is_featured: nextValue })
       })
-      
+
       if (!response.ok) throw new Error('Failed to update post')
-      
-      // Update the post in the UI
-      setPosts(posts.map(post => 
-        post.id === postId ? { ...post, isFeatured: !currentFeatured } : post
-      ))
-      
-      toast.success('Post updated successfully', { id: loadingToastId })
+
+      setPosts(prevPosts =>
+        prevPosts.map(post =>
+          post.id === postId ? { ...post, isFeatured: nextValue } : post
+        )
+      )
+
+      toast.success('Post updated successfully', { id: toastId })
     } catch (error) {
       console.error('Error updating post:', error)
-      toast.error('Failed to update post', { id: `toggle-featured-${postId}` })
-      // Revert the change if the API call fails
-      setPosts(posts.map(post => 
-        post.id === postId ? { ...post, isFeatured: currentFeatured } : post
-      ))
+      toast.error('Failed to update post', { id: toastId })
+
+      setPosts(prevPosts =>
+        prevPosts.map(post =>
+          post.id === postId ? { ...post, isFeatured: !nextValue } : post
+        )
+      )
     }
   }
 
   const deletePost = async (postId: string) => {
     if (!confirm('Are you sure you want to delete this post?')) return
-    
+
+    const toastId = `delete-post-${postId}`
+
     try {
       setDeleting(postId)
-      const loadingToastId = `delete-post-${postId}`
-      toast.loading('Deleting post...', { id: loadingToastId })
-      
-      const response = await fetch(`/api/posts`, {
+      toast.loading('Deleting post...', { id: toastId })
+
+      const response = await fetch('/api/posts', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: postId })
       })
-      
+
       if (!response.ok) throw new Error('Failed to delete post')
-      
-      setPosts(posts.filter(post => post.id !== postId))
-      toast.success('Post deleted successfully', { id: loadingToastId })
+
+      setPosts(prevPosts => prevPosts.filter(post => post.id !== postId))
+      toast.success('Post deleted successfully', { id: toastId })
     } catch (error) {
       console.error('Error deleting post:', error)
-      toast.error('Failed to delete post', { id: `delete-post-${postId}` })
+      toast.error('Failed to delete post', { id: toastId })
     } finally {
-      setDeleting(false)
+      setDeleting(null)
     }
   }
 
@@ -160,17 +194,24 @@ export default function AdminBlogPage() {
     router.push('/admin/blog/new')
   }
 
+  const renderStatsValue = (value: number) => {
+    if (loading) {
+      return <div className="h-6 w-12 bg-white/30 rounded animate-pulse" />
+    }
+
+    return value
+  }
+
   return (
-    <div className="container mx-auto py-10">
-      <div className="mb-8">
+    <div className="container mx-auto py-10 space-y-8">
+      <div>
         <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
           Blog Dashboard
         </h1>
-        <p className="text-muted-foreground">Manage your blog posts and content</p>
+        <p className="text-muted-foreground">Manage posts that power the homepage in real time.</p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:shadow-lg transition-shadow">
           <CardHeader className="pb-2">
             <div className="flex items-center">
@@ -181,9 +222,7 @@ export default function AdminBlogPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {loading ? <div className="h-6 w-12 bg-blue-400/30 rounded animate-pulse" /> : stats?.totalPosts || 0}
-            </div>
+            <div className="text-2xl font-bold">{renderStatsValue(stats.totalPosts)}</div>
             <p className="text-xs text-blue-100 mt-1">All blog posts</p>
           </CardContent>
         </Card>
@@ -192,15 +231,13 @@ export default function AdminBlogPage() {
           <CardHeader className="pb-2">
             <div className="flex items-center">
               <div className="p-2 bg-green-400/30 rounded-lg mr-3">
-                <TrendingUp className="h-6 w-6" />
+                <BarChart3 className="h-6 w-6" />
               </div>
               <CardTitle className="text-lg">Published</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {loading ? <div className="h-6 w-12 bg-green-400/30 rounded animate-pulse" /> : stats?.publishedPosts || 0}
-            </div>
+            <div className="text-2xl font-bold">{renderStatsValue(stats.publishedPosts)}</div>
             <p className="text-xs text-green-100 mt-1">Live on site</p>
           </CardContent>
         </Card>
@@ -215,10 +252,8 @@ export default function AdminBlogPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {loading ? <div className="h-6 w-12 bg-amber-400/30 rounded animate-pulse" /> : stats?.featuredPosts || 0}
-            </div>
-            <p className="text-xs text-amber-100 mt-1">Highlighted posts</p>
+            <div className="text-2xl font-bold">{renderStatsValue(stats.featuredPosts)}</div>
+            <p className="text-xs text-amber-100 mt-1">Homepage highlights</p>
           </CardContent>
         </Card>
 
@@ -226,21 +261,55 @@ export default function AdminBlogPage() {
           <CardHeader className="pb-2">
             <div className="flex items-center">
               <div className="p-2 bg-gray-400/30 rounded-lg mr-3">
-                <FileText className="h-6 w-6" />
+                <TrendingUp className="h-6 w-6" />
               </div>
               <CardTitle className="text-lg">Drafts</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {loading ? <div className="h-6 w-12 bg-gray-400/30 rounded animate-pulse" /> : stats?.draftPosts || 0}
-            </div>
+            <div className="text-2xl font-bold">{renderStatsValue(stats.draftPosts)}</div>
             <p className="text-xs text-gray-100 mt-1">Unpublished posts</p>
           </CardContent>
         </Card>
       </div>
 
-      <div className="flex justify-between items-center mb-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Heart className="h-5 w-5 text-red-500" />
+            Featured on Homepage
+          </CardTitle>
+          <CardDescription>
+            Posts with the featured switch enabled appear immediately on the homepage hero section.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {featuredPosts.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No posts are currently featured. Toggle the switch below to spotlight a post on the homepage.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {featuredPosts.map(post => (
+                <div key={post.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between border rounded-md p-3">
+                  <div>
+                    <p className="font-medium">{post.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Updated {format(new Date(post.updatedAt), 'MMM dd, yyyy')}
+                    </p>
+                  </div>
+                  <div className="mt-2 sm:mt-0 flex items-center gap-2 text-xs text-muted-foreground">
+                    <span className="rounded-full bg-primary/10 px-2 py-1 capitalize">{post.status}</span>
+                    <span>Slug: {post.slug || '—'}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">All Posts</h2>
         <Button onClick={handleAddNewPost} className="bg-blue-500 hover:bg-blue-600 text-white">
           <Plus className="mr-2 h-4 w-4" />
@@ -267,23 +336,26 @@ export default function AdminBlogPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {posts.map((post) => (
+              {posts.map(post => (
                 <TableRow key={post.id}>
                   <TableCell className="font-medium">{post.title}</TableCell>
+                  <TableCell>{format(new Date(post.createdAt), 'MMM dd, yyyy')}</TableCell>
                   <TableCell>
-                    {format(new Date(post.createdAt), 'MMM dd, yyyy')}
-                  </TableCell>
-                  <TableCell>
-                    {post.tags.map((tag, index) => (
-                      <Badge key={index} variant="secondary" className="mr-1">
-                        {tag}
-                      </Badge>
-                    ))}
+                    {post.tags.length === 0 ? (
+                      <Badge variant="outline">No tags</Badge>
+                    ) : (
+                      post.tags.map((tag, index) => (
+                        <Badge key={`${post.id}-${tag}-${index}`} variant="secondary" className="mr-1">
+                          {tag}
+                        </Badge>
+                      ))
+                    )}
                   </TableCell>
                   <TableCell>
                     <Switch
                       checked={post.isFeatured}
-                      onCheckedChange={(checked) => toggleFeatured(post.id, post.isFeatured)}
+                      onCheckedChange={checked => toggleFeatured(post.id, checked)}
+                      aria-label={`Toggle featured state for ${post.title}`}
                     />
                   </TableCell>
                   <TableCell>
@@ -293,15 +365,15 @@ export default function AdminBlogPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="sm"
                         onClick={() => router.push(`/admin/blog/edit/${post.id}`)}
                       >
                         Edit
                       </Button>
-                      <Button 
-                        variant="destructive" 
+                      <Button
+                        variant="destructive"
                         size="sm"
                         onClick={() => deletePost(post.id)}
                         disabled={deleting === post.id}
@@ -320,11 +392,6 @@ export default function AdminBlogPage() {
           </Table>
         </div>
       )}
-      
-      {/* Toast container for notifications */}
-      <div className="fixed bottom-4 right-4 z-50">
-        {/* This is handled by the sonner Toaster component in the layout */}
-      </div>
     </div>
   )
 }

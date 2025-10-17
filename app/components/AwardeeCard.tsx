@@ -1,4 +1,4 @@
-﻿import { memo } from "react"
+import { memo } from "react"
 import { Badge } from "@/components/ui/badge"
 import { AvatarSVG, flagEmoji, initials } from "@/lib/avatars"
 
@@ -17,16 +17,8 @@ type AwardeeCardProps = {
   awardee: Awardee
 }
 
-function truncateBio(bio?: string) {
-  if (!bio) return ""
-  const words = bio.trim().split(/\s+/)
-  if (words.length <= 30) return bio.trim()
-  return `${words.slice(0, 30).join(" ")}…`
-}
-
 const AwardeeCardComponent = ({ awardee }: AwardeeCardProps) => {
   const countryFlag = flagEmoji(awardee.country)
-  const displayBio = truncateBio(awardee.bio30)
 
   return (
     <article
@@ -61,9 +53,6 @@ const AwardeeCardComponent = ({ awardee }: AwardeeCardProps) => {
           </Badge>
         </div>
       </div>
-      <p className="text-sm leading-relaxed text-zinc-400" aria-describedby={`awardee-${awardee.id}`}>
-        {displayBio || "Bio coming soon."}
-      </p>
       <span className="sr-only">Awarded in {awardee.year}</span>
     </article>
   )
@@ -71,4 +60,3 @@ const AwardeeCardComponent = ({ awardee }: AwardeeCardProps) => {
 
 export const AwardeeCard = memo(AwardeeCardComponent)
 AwardeeCard.displayName = "AwardeeCard"
-

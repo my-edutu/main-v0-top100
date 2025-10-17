@@ -21,6 +21,7 @@ export default function AwardeesSection() {
       country: "Nigeria",
       bio: "Developing AI solutions for agricultural optimization",
       image: "/young-african-woman-technology-leader-smiling.jpg",
+      category: "Technology",
     },
     {
       id: 2,
@@ -28,6 +29,7 @@ export default function AwardeesSection() {
       country: "Ghana",
       bio: "Creating mobile health platforms for rural communities",
       image: "/young-african-man-healthcare-innovator.jpg",
+      category: "Healthcare",
     },
     {
       id: 3,
@@ -35,6 +37,7 @@ export default function AwardeesSection() {
       country: "Egypt",
       bio: "Building digital literacy programs for underserved youth",
       image: "/young-african-woman-education-leader.jpg",
+      category: "Education",
     },
     {
       id: 4,
@@ -42,6 +45,7 @@ export default function AwardeesSection() {
       country: "South Africa",
       bio: "Leading renewable energy initiatives in townships",
       image: "/young-african-man-environmental-activist.jpg",
+      category: "Environment",
     },
     {
       id: 5,
@@ -49,6 +53,7 @@ export default function AwardeesSection() {
       country: "Morocco",
       bio: "Empowering women entrepreneurs through microfinance",
       image: "/young-african-woman-social-entrepreneur.jpg",
+      category: "Social Impact",
     },
     {
       id: 6,
@@ -56,6 +61,7 @@ export default function AwardeesSection() {
       country: "Ethiopia",
       bio: "Revolutionizing supply chains for small farmers",
       image: "/young-african-man-business-leader.jpg",
+      category: "Business",
     },
     {
       id: 7,
@@ -63,6 +69,7 @@ export default function AwardeesSection() {
       country: "Kenya",
       bio: "Developing fintech solutions for financial inclusion",
       image: "/young-african-woman-fintech-entrepreneur.jpg",
+      category: "Technology",
     },
     {
       id: 8,
@@ -70,11 +77,14 @@ export default function AwardeesSection() {
       country: "Morocco",
       bio: "Creating telemedicine platforms for remote areas",
       image: "/young-african-man-telemedicine-innovator.jpg",
+      category: "Healthcare",
     },
   ]
 
   const filteredAwardees =
-    activeFilter === "All" ? awardees : awardees.filter((awardee) => awardee.category === activeFilter)
+    activeFilter === "All" 
+      ? awardees 
+      : awardees.filter((awardee) => awardee.category && awardee.category === activeFilter)
 
   return (
     <section id="awardees" className="py-20 bg-zinc-900/30 relative">
@@ -95,10 +105,25 @@ export default function AwardeesSection() {
         </motion.div>
 
         {/* Filter Chips */}
-        
+        <div className="flex flex-wrap justify-center gap-2 mb-10">
+          {categories.map((category) => (
+            <Button
+              key={category}
+              variant={activeFilter === category ? "secondary" : "ghost"}
+              onClick={() => setActiveFilter(category)}
+              className={`${
+                activeFilter === category
+                  ? "bg-orange-500 text-black hover:bg-orange-400"
+                  : "border border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+              }`}
+            >
+              {category}
+            </Button>
+          ))}
+        </div>
 
         {/* Awardees Grid */}
-        <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 mb-12">
+        <motion.div layout className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
           {filteredAwardees.map((awardee, index) => (
             <motion.div
               key={awardee.id}
@@ -108,27 +133,39 @@ export default function AwardeesSection() {
               exit={{ opacity: 0, scale: 0.9 }}
               transition={{ duration: 0.3, delay: index * 0.05 }}
               whileHover={{ y: -5 }}
-              className="bg-black/50 rounded-2xl overflow-hidden backdrop-blur-lg border border-orange-400/20 hover:border-orange-400/40 transition-all duration-300"
+              className="bg-black/50 rounded-xl overflow-hidden backdrop-blur-lg border border-orange-400/20 hover:border-orange-400/40 transition-all duration-300 flex flex-row"
             >
-              <div className="relative">
+              <div className="w-1/3 relative">
                 <Image
                   src={awardee.image || "/placeholder.svg"}
                   alt={awardee.name}
-                  width={300}
-                  height={300}
-                  className="w-full h-64 object-cover"
+                  width={200}
+                  height={200}
+                  className="w-full h-full object-cover"
                 />
-                <div className="absolute top-4 right-4">
-                  <Badge className="bg-orange-500 text-white">{awardee.category}</Badge>
+                <div className="absolute top-2 right-2">
+                  <Badge className="bg-orange-500 text-white text-xs">{awardee.category}</Badge>
                 </div>
               </div>
-              <div className="p-6">
-                <h3 className="text-xl font-bold mb-2 text-white">{awardee.name}</h3>
-                <div className="flex items-center mb-3 text-orange-400">
-                  <MapPin className="w-4 h-4 mr-1" />
-                  <span className="text-sm">{awardee.country}</span>
+              <div className="w-2/3 p-4">
+                <h3 className="text-lg font-bold mb-1 text-white">{awardee.name}</h3>
+                <div className="flex items-center mb-2 text-orange-400">
+                  <MapPin className="w-3 h-3 mr-1" />
+                  <span className="text-xs">{awardee.country}</span>
                 </div>
-                <p className="text-sm text-zinc-300 text-pretty">{awardee.bio}</p>
+                <p className="text-xs text-zinc-400 line-clamp-3">{awardee.bio}</p>
+                <div className="mt-2">
+                  <Button 
+                    asChild
+                    size="sm" 
+                    variant="ghost"
+                    className="text-orange-400 hover:text-orange-300 hover:bg-orange-500/10 px-2 py-1 text-xs"
+                  >
+                    <Link href={`/awardees/${awardee.id}`}>
+                      View Profile
+                    </Link>
+                  </Button>
+                </div>
               </div>
             </motion.div>
           ))}

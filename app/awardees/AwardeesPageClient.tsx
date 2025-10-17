@@ -1,201 +1,377 @@
-'use client';
+'use client'
 
-import { useState, useEffect } from 'react';
-import { getAwardees } from "@/lib/awardees";
-import { AvatarSVG, flagEmoji } from '@/lib/avatars';
-import { MapPin } from 'lucide-react';
-import { useSearchParams, usePathname, useRouter } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { Award, GraduationCap, MapPin, Users } from 'lucide-react'
 
-export default function AwardeesPageClient({ 
-  initialPeople, 
-  initialSearchParams 
-}: { 
-  initialPeople: Awaited<ReturnType<typeof getAwardees>>;
-  initialSearchParams?: { 
-    page?: string;
-    search?: string;
-  } 
-}) {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filteredPeople, setFilteredPeople] = useState(initialPeople);
-  const [showFilters, setShowFilters] = useState(false);
-  
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  
-  const currentPage = Number(searchParams.get('page')) || 1;
-  const urlSearch = searchParams.get('search') || '';
-  
-  // Update search term from URL
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import type { Awardee } from '@/lib/awardees'
+import { normalizeAwardeeEntry } from '@/lib/awardees'
+import { supabase } from '@/lib/supabase/client'
+import { AvatarSVG, flagEmoji } from '@/lib/avatars'
+import type { AwardeeDirectoryEntry } from '@/types/profile'
+
+const itemsPerPage = 30
+
+const formatExcerpt = (input?: string | null, length = 160) => {
+  if (!input) return ''
+  if (input.length <= length) return input
+  return `${input.slice(0, length)}...`
+}
+
+const countAchievements = (achievements?: any[] | null) => achievements?.length ?? 0
+
+const pickInterests = (interests?: string[] | null, limit = 3) =>
+  interests && interests.length > 0 ? interests.slice(0, limit) : []
+
+type AwardeesPageProps = {
+  initialPeople: Awardee[]
+  initialSearchParams?: {
+    page?: string
+    search?: string
+  }
+}
+
+const fallbackAvatar = (name: string) => (
+  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-orange-500/10">
+    <AvatarSVG name={name} size={40} />
+  </div>
+)
+
+const findCountry = (country?: string | null) => {
+  if (!country) return 'Unknown'
+  return country
+}
+
+export default function AwardeesPageClient({ initialPeople, initialSearchParams }: AwardeesPageProps) {
+  const [people, setPeople] = useState<Awardee[]>(() =>
+    [...initialPeople].sort((a, b) => a.name.localeCompare(b.name)),
+  )
+  const [searchTerm, setSearchTerm] = useState(initialSearchParams?.search ?? '')
+
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const router = useRouter()
+
+  const currentPageFromUrl = Number(searchParams.get('page')) || 1
+
+  const searchValue = searchParams.get('search') || ''
+
   useEffect(() => {
-    setSearchTerm(urlSearch);
-  }, [urlSearch]);
-  
-  // Filter data based on search term
+    setSearchTerm(searchValue)
+  }, [searchValue])
+
+  const updatePage = useCallback(
+    (newPage: number) => {
+      const params = new URLSearchParams(Array.from(searchParams.entries()))
+      if (newPage <= 1) {
+        params.delete('page')
+      } else {
+        params.set('page', newPage.toString())
+      }
+      const query = params.toString()
+      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false })
+    },
+    [pathname, router, searchParams],
+  )
+
+  const createQueryParams = useCallback(() => {
+    return new URLSearchParams(Array.from(searchParams.entries()))
+  }, [searchParams])
+
   useEffect(() => {
-    const filtered = initialPeople.filter(awardee => {
-      if (!searchTerm) return true;
-      const term = searchTerm.toLowerCase();
-      return (
-        awardee.name.toLowerCase().includes(term) ||
-        (awardee.country && awardee.country.toLowerCase().includes(term)) ||
-        (awardee.course && awardee.course.toLowerCase().includes(term)) ||
-        (awardee.bio && awardee.bio.toLowerCase().includes(term))
-      );
-    });
-    setFilteredPeople(filtered);
-  }, [searchTerm, initialPeople]);
-  
-  const itemsPerPage = 30;
-  
-  // Calculate pagination
-  const totalItems = filteredPeople.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
-  
-  // Get the people for the current page
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentPeople = filteredPeople.slice(startIndex, endIndex);
-  
-  // Check if there are previous/next pages
-  const hasPreviousPage = currentPage > 1 && currentPage <= totalPages;
-  const hasNextPage = currentPage < totalPages;
-  
-  // Update URL when search changes (only)
-  useEffect(() => {
-    const params = new URLSearchParams(searchParams);
+    const params = createQueryParams()
     if (searchTerm) {
-      params.set('search', searchTerm);
-      params.delete('page'); // Reset to first page when search changes
+      params.set('search', searchTerm)
+      params.delete('page')
     } else {
-      params.delete('search');
-      params.delete('page');
+      params.delete('search')
     }
-    router.push(`${pathname}?${params.toString()}`);
-  }, [searchTerm]); // Only run when searchTerm changes, not all parameters
-  
-  const updatePage = (newPage: number) => {
-    const params = new URLSearchParams(searchParams);
-    if (newPage === 1) {
-      params.delete('page');
-    } else {
-      params.set('page', newPage.toString());
+    const query = params.toString()
+    const target = query ? `${pathname}?${query}` : pathname
+    const current = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`
+    if (target !== current) {
+      router.replace(target, { scroll: false })
     }
-    router.push(`${pathname}?${params.toString()}`);
-  };
+  }, [createQueryParams, pathname, router, searchParams, searchTerm])
+
+  const filteredPeople = useMemo(() => {
+    if (!searchTerm) return people
+    const term = searchTerm.toLowerCase()
+    return people.filter((awardee) => {
+      const haystack = [
+        awardee.name,
+        awardee.country ?? '',
+        awardee.course ?? '',
+        awardee.headline ?? '',
+        awardee.tagline ?? '',
+        awardee.bio ?? '',
+        awardee.cohort ?? '',
+        awardee.current_school ?? '',
+        awardee.field_of_study ?? '',
+        awardee.interests?.join(' ') ?? '',
+      ]
+        .join(' ')
+        .toLowerCase()
+      return haystack.includes(term)
+    })
+  }, [people, searchTerm])
+
+  const totalItems = filteredPeople.length
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage))
+  const currentPage = Math.min(currentPageFromUrl, totalPages)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const currentPeople = filteredPeople.slice(startIndex, startIndex + itemsPerPage)
+
+  const upsertAwardee = useCallback((entry: Awardee) => {
+    setPeople((prev) => {
+      const existingIndex = prev.findIndex(
+        (item) => item.slug === entry.slug || item.awardee_id === entry.awardee_id,
+      )
+
+      if (!entry.is_public) {
+        if (existingIndex === -1) return prev
+        const clone = [...prev]
+        clone.splice(existingIndex, 1)
+        return clone
+      }
+
+      if (existingIndex >= 0) {
+        const clone = [...prev]
+        clone[existingIndex] = { ...clone[existingIndex], ...entry }
+        return clone
+      }
+
+      return [...prev, entry].sort((a, b) => a.name.localeCompare(b.name))
+    })
+  }, [])
+
+  const removeAwardeeBySlug = useCallback((slug?: string | null, awardeeId?: string | null) => {
+    if (!slug && !awardeeId) return
+    setPeople((prev) =>
+      prev.filter((item) => {
+        if (slug && item.slug === slug) return false
+        if (awardeeId && item.awardee_id === awardeeId) return false
+        return true
+      }),
+    )
+  }, [])
+
+  const fetchLatestEntry = useCallback(async (filters: {
+    slug?: string | null
+    profileId?: string | null
+    awardeeId?: string | null
+  }) => {
+    let query = supabase.from('awardee_directory').select('*').limit(1)
+    if (filters.slug) {
+      query = query.eq('slug', filters.slug)
+    } else if (filters.profileId) {
+      query = query.eq('profile_id', filters.profileId)
+    } else if (filters.awardeeId) {
+      query = query.eq('awardee_id', filters.awardeeId)
+    }
+
+    const { data, error } = await query.maybeSingle()
+    if (error) {
+      console.error('Realtime awardee refresh failed', error)
+      return null
+    }
+    if (!data) return null
+    return normalizeAwardeeEntry(data as AwardeeDirectoryEntry)
+  }, [])
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('awardee-directory-stream')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles' },
+        async (payload) => {
+          if (payload.eventType === 'DELETE') {
+            removeAwardeeBySlug(payload.old?.slug ?? null, null)
+            return
+          }
+          const entry = await fetchLatestEntry({
+            slug: payload.new?.slug ?? payload.old?.slug,
+            profileId: payload.new?.id ?? payload.old?.id,
+          })
+          if (entry) {
+            upsertAwardee(entry)
+          }
+        },
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'awardees' },
+        async (payload) => {
+          if (payload.eventType === 'DELETE') {
+            removeAwardeeBySlug(payload.old?.slug ?? null, payload.old?.id ?? null)
+            return
+          }
+          const entry = await fetchLatestEntry({
+            slug: payload.new?.slug ?? payload.old?.slug,
+            awardeeId: payload.new?.id ?? payload.old?.id,
+          })
+          if (entry) {
+            upsertAwardee(entry)
+          }
+        },
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [fetchLatestEntry, removeAwardeeBySlug, upsertAwardee])
 
   return (
     <div className="min-h-screen bg-black py-12">
       <div className="container mx-auto px-4">
-        {/* Header - only show on first page */}
-        {currentPage === 1 && (
-          <header className="mb-12 text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white to-orange-300">
-              Meet the Awardees
-            </h1>
-            <p className="text-xl text-zinc-400 max-w-3xl mx-auto text-balance">
-              Discover the inspiring individuals who have made significant contributions to their fields and communities.
-            </p>
-          </header>
-        )}
+        <header className="mb-12 text-center">
+          <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white to-orange-300">
+            Meet the Awardees
+          </h1>
+          <p className="text-xl text-zinc-400 max-w-3xl mx-auto text-balance">
+            Discover Africa's emerging leaders, innovators, and community builders shaping the future.
+          </p>
+        </header>
 
-        {/* Search Bar and Filter */}
-        <div className="mb-8 flex flex-col sm:flex-row gap-4">
+        <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex-1">
             <input
               type="text"
-              placeholder="Search awardees by name, country, course..."
+              placeholder="Search by name, country, field, or interest"
               className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(event) => setSearchTerm(event.target.value)}
             />
           </div>
-          <div className="sm:hidden flex items-center">
-            <button
-              className="flex items-center justify-center border border-zinc-700 rounded-lg px-3 py-2 bg-zinc-900 text-white w-10 h-10"
-              onClick={() => setShowFilters(!showFilters)}
-            >
-              <svg 
-                className="w-4 h-4" 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24" 
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth="2" 
-                  d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
-                ></path>
-              </svg>
-            </button>
+          <div className="flex items-center text-sm text-zinc-400">
+            Showing {currentPeople.length} of {filteredPeople.length} awardees
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-          {currentPeople.map(p => (
-            <a key={p.slug} href={`/awardees/${p.slug}`}>
-              <div className="bg-black/50 rounded-2xl overflow-hidden backdrop-blur-lg border border-orange-400/20 hover:border-orange-400/40 transition-all duration-300 h-full flex flex-col">
-                <div className="p-6 flex-1">
-                  <div className="flex items-start space-x-4">
-                    <div className="shrink-0">
-                      <AvatarSVG name={p.name} size={64} />
+        {filteredPeople.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-zinc-700 bg-black/40 p-12 text-center text-zinc-400">
+            No awardees match your search yet. Try a different phrase.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+            {currentPeople.map((person) => {
+              const trimmedCohort = person.cohort?.trim() ?? ''
+              const spotlightLabel =
+                trimmedCohort.length > 0
+                  ? trimmedCohort
+                  : `Top100 Africa Future Leader ${person.year ?? new Date().getFullYear()}`
+              const supportingLine =
+                person.tagline && person.tagline.trim().length > 0
+                  ? person.tagline
+                  : person.headline && person.headline.trim().length > 0
+                  ? person.headline
+                  : 'Amplifying African excellence with purpose and impact.'
+
+              return (
+                <Link key={person.slug} href={`/awardees/${person.slug}`} className="group">
+                  <div className="flex h-full flex-col rounded-2xl border border-orange-400/10 bg-black/60 p-6 transition-all duration-300 group-hover:border-orange-400/50 group-hover:bg-black/80">
+                    <div className="flex items-start gap-4">
+                      <Avatar className="h-14 w-14 border border-orange-400/20 text-white">
+                        {person.avatar_url ? (
+                          <AvatarImage src={person.avatar_url} alt={person.name} />
+                        ) : (
+                          <AvatarFallback className="bg-orange-500/10 text-white">
+                            {fallbackAvatar(person.name)}
+                          </AvatarFallback>
+                        )}
+                      </Avatar>
+                      <div className="flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="text-lg font-semibold text-white">Meet {person.name}</h3>
+                          <Badge variant="outline" className="border-orange-400/50 text-orange-200">
+                            {spotlightLabel}
+                          </Badge>
+                        </div>
+                        <p className="mt-2 text-sm text-orange-200">{supportingLine}</p>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-start">
-                        <h3 className="text-lg font-semibold text-white truncate">{p.name}</h3>
-                        <span className="ml-2 text-xs font-medium bg-orange-500/20 text-orange-200 rounded-full px-2 py-1 whitespace-nowrap">
-                          {p.cgpa || "—"}
+
+                    <div className="mt-4 space-y-3 text-sm text-zinc-300">
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-400">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-orange-500/15 px-3 py-1 text-orange-200">
+                          <MapPin className="h-3 w-3" />
+                          {flagEmoji(person.country ?? '')}
+                          {findCountry(person.country)}
                         </span>
+                        {(person.current_school || person.field_of_study) && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-zinc-800/60 px-3 py-1 text-zinc-300">
+                            <GraduationCap className="h-3 w-3" />
+                            {person.current_school || person.field_of_study}
+                          </span>
+                        )}
                       </div>
-                      <div className="flex items-center mt-1 text-orange-400">
-                        <span className="mr-1">{flagEmoji(p.country || '')}</span>
-                        <span className="text-sm">{p.country || "—"}</span>
-                      </div>
+                      {person.bio && (
+                        <p className="text-sm text-zinc-400">{formatExcerpt(person.bio)}</p>
+                      )}
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-zinc-400">
+                      <span className="inline-flex items-center gap-2 rounded-full bg-zinc-800/60 px-3 py-1">
+                        <Award className="h-3 w-3" />
+                        {countAchievements(person.achievements)} achievements
+                      </span>
+                      <span className="inline-flex items-center gap-2 rounded-full bg-zinc-800/60 px-3 py-1">
+                        <Users className="h-3 w-3" />
+                        {person.interests?.length ?? 0} interests
+                      </span>
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {pickInterests(person.interests).map((interest) => (
+                        <Badge key={interest} variant="outline" className="border-zinc-700 text-zinc-300">
+                          {interest}
+                        </Badge>
+                      ))}
+                    </div>
+
+                    <div className="mt-6 flex items-center justify-between text-sm">
+                      <span className="text-zinc-500">Tap to explore full profile</span>
+                      <Button variant="ghost" className="text-orange-300" size="sm">
+                        View profile →
+                      </Button>
                     </div>
                   </div>
-                </div>
-              </div>
-            </a>
-          ))}
-        </div>
-
-        {/* Results Info */}
-        <div className="mt-6 text-sm text-zinc-400">
-          Showing {Math.min(currentPeople.length, itemsPerPage)} of {totalItems} awardees
-        </div>
-
-        {/* Pagination Controls */}
-        <div className="mt-8 flex justify-between items-center">
-          {hasPreviousPage ? (
-            <button 
-              onClick={() => updatePage(currentPage - 1)}
-              className="px-4 py-2 rounded-lg border border-zinc-800 bg-zinc-900 text-white hover:bg-zinc-800 text-sm transition-colors"
-            >
-              Previous
-            </button>
-          ) : (
-            <div></div> // Empty div to maintain alignment
-          )}
-          
-          <div className="text-sm text-zinc-400">
-            Page {currentPage} of {totalPages}
+                </Link>
+              )
+            })}
           </div>
-          
-          {hasNextPage ? (
-            <button 
-              onClick={() => updatePage(currentPage + 1)}
-              className="px-4 py-2 rounded-lg border border-zinc-800 bg-zinc-900 text-white hover:bg-zinc-800 text-sm transition-colors"
-            >
-              Next
-            </button>
-          ) : (
-            <div></div> // Empty div to maintain alignment
-          )}
+        )}
+
+        <div className="mt-10 flex items-center justify-between text-sm text-zinc-400">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => updatePage(currentPage - 1)}
+            disabled={currentPage <= 1}
+            className="border-zinc-700 text-white hover:border-orange-400 hover:text-orange-300"
+          >
+            Previous
+          </Button>
+          <span>
+            Page {currentPage} of {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => updatePage(currentPage + 1)}
+            disabled={currentPage >= totalPages}
+            className="border-zinc-700 text-white hover:border-orange-400 hover:text-orange-300"
+          >
+            Next
+          </Button>
         </div>
       </div>
     </div>
-  );
+  )
 }

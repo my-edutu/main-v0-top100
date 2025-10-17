@@ -71,34 +71,62 @@ export default function CreateAwardeePage() {
       setIsSubmitting(true);
       toast.loading('Creating awardee...', { id: 'create-awardee' });
 
-      // Prepare form data for API request
-      const createData = {
-        name: data.name,
-        email: data.email || null,
-        country: data.country || null,
-        cgpa: data.cgpa || null,
-        course: data.course || null,
-        bio: data.bio || null,
-        year: data.year || 2024,
-        image_url: data.image_url || null,
-        slug: generateSlug(data.name)
-      };
+      // If there's an image file, use FormData to handle file upload
+      if (imageFile) {
+        const formData = new FormData();
+        formData.append('name', data.name);
+        formData.append('email', data.email || '');
+        formData.append('country', data.country || '');
+        formData.append('cgpa', data.cgpa || '');
+        formData.append('course', data.course || '');
+        formData.append('bio', data.bio || '');
+        formData.append('year', data.year?.toString() || '2024');
+        formData.append('image', imageFile);
+        formData.append('slug', generateSlug(data.name));
 
-      const response = await fetch('/api/awardees', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(createData),
-      });
+        const response = await fetch('/api/awardees', {
+          method: 'POST',
+          body: formData,
+        });
 
-      const result = await response.json();
+        const result = await response.json();
 
-      if (response.ok) {
-        toast.success(result.message, { id: 'create-awardee' });
-        router.push('/admin/awardees');
+        if (response.ok) {
+          toast.success(result.message, { id: 'create-awardee' });
+          router.push('/admin/awardees');
+        } else {
+          throw new Error(result.message);
+        }
       } else {
-        throw new Error(result.message);
+        // If no image file, use JSON request
+        const createData = {
+          name: data.name,
+          email: data.email || null,
+          country: data.country || null,
+          cgpa: data.cgpa || null,
+          course: data.course || null,
+          bio: data.bio || null,
+          year: data.year || 2024,
+          image_url: data.image_url || null, // Remove the temporary preview URL
+          slug: generateSlug(data.name)
+        };
+
+        const response = await fetch('/api/awardees', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(createData),
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          toast.success(result.message, { id: 'create-awardee' });
+          router.push('/admin/awardees');
+        } else {
+          throw new Error(result.message);
+        }
       }
     } catch (error) {
       console.error('Error creating awardee:', error);

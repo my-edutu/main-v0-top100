@@ -4,13 +4,13 @@ import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle
 } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Upload, FileSpreadsheet, Download, Loader2, ArrowLeft } from 'lucide-react';
@@ -45,31 +45,34 @@ export default function AwardeesImport() {
     setIsProcessing(true);
     try {
       toast.loading('Processing awardees...', { id: 'import-awardees' });
-      
+
       const formData = new FormData();
       formData.append('file', file);
-      
+
       const response = await fetch('/api/awardees/import', {
         method: 'POST',
         body: formData,
       });
-      
-      const result = await response.json();
-      
-      if (response.ok) {
-        toast.success(result.message, { id: 'import-awardees' });
+
+      const result = await response.json().catch(() => null);
+      const isSuccessful = response.ok && result?.success;
+
+      if (isSuccessful) {
+        const message = result?.message || `Imported ${result?.imported ?? 0} awardees successfully`;
+        toast.success(message, { id: 'import-awardees' });
         setFile(null);
-        
+
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
-        
+
         // Redirect back to the main awardees page after successful import
         setTimeout(() => {
           router.push('/admin/awardees');
         }, 1500);
       } else {
-        throw new Error(result.message);
+        const errorMessage = result?.error || result?.message || 'Failed to import awardees';
+        throw new Error(errorMessage);
       }
     } catch (error) {
       console.error('Error importing awardees:', error);
@@ -103,9 +106,9 @@ export default function AwardeesImport() {
       <Card className="max-w-3xl mx-auto">
         <CardHeader>
           <div className="flex items-center mb-4">
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => router.push('/admin/awardees')}
               className="p-0 mr-2"
             >
@@ -135,8 +138,8 @@ export default function AwardeesImport() {
               <p className="text-sm text-muted-foreground mb-3">
                 Download our Excel template to ensure your data is in the correct format.
               </p>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={handleDownloadTemplate}
               >
                 <Download className="mr-2 h-4 w-4" />
@@ -154,15 +157,15 @@ export default function AwardeesImport() {
                   accept=".xlsx,.xls"
                   className="hidden"
                 />
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={handleFileUploadClick}
                   className="w-full justify-start"
                 >
                   <Upload className="mr-2 h-4 w-4" />
                   {file ? file.name : 'Select Excel File (.xlsx or .xls)'}
                 </Button>
-                
+
                 {file && (
                   <div className="p-3 bg-secondary rounded border">
                     <div className="flex items-center">
@@ -183,25 +186,25 @@ export default function AwardeesImport() {
                 Your Excel file should include these columns (column names are flexible):
               </p>
               <ul className="grid grid-cols-2 gap-1 text-sm text-blue-800">
-                <li>• name (required)</li>
-                <li>• email</li>
-                <li>• country</li>
-                <li>• course</li>
-                <li>• cgpa</li>
-                <li>• bio</li>
-                <li>• year</li>
+                <li>- Name (required)</li>
+                <li>- E-mail</li>
+                <li>- Country</li>
+                <li>- CGPA</li>
+                <li>- Department / Course</li>
+                <li>- About / Bio</li>
+                <li>- Year (optional)</li>
               </ul>
             </div>
           </div>
         </CardContent>
         <CardFooter className="flex flex-col sm:flex-row sm:justify-between gap-3">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => router.push('/admin/awardees')}
           >
             Cancel
           </Button>
-          <Button 
+          <Button
             onClick={handleImport}
             disabled={!file || isProcessing}
           >

@@ -1,5 +1,7 @@
 // app/api/youtube/route.ts
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+
+import { requireAdmin } from '@/lib/api/require-admin';
 import { createClient } from '@/lib/supabase/server';
 
 export async function GET(request: NextRequest) {
@@ -32,6 +34,11 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const adminCheck = await requireAdmin(request);
+  if ('error' in adminCheck) {
+    return adminCheck.error;
+  }
+
   try {
     const body = await request.json();
     
@@ -43,7 +50,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const supabase = createClient();
+    const supabase = createClient(true);
     
     const { data, error } = await supabase
       .from('youtube_videos')
@@ -81,6 +88,11 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
+  const adminCheck = await requireAdmin(request);
+  if ('error' in adminCheck) {
+    return adminCheck.error;
+  }
+
   try {
     const body = await request.json();
     
@@ -91,7 +103,7 @@ export async function PUT(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const supabase = createClient();
+    const supabase = createClient(true);
     
     const { data, error } = await supabase
       .from('youtube_videos')
@@ -130,6 +142,11 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const adminCheck = await requireAdmin(request);
+  if ('error' in adminCheck) {
+    return adminCheck.error;
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
@@ -141,7 +158,7 @@ export async function DELETE(request: NextRequest) {
       }, { status: 400 });
     }
     
-    const supabase = createClient();
+    const supabase = createClient(true);
     
     const { error } = await supabase
       .from('youtube_videos')

@@ -1,5 +1,8 @@
 "use client"
+
 import { useState } from "react"
+import Link from "next/link"
+
 import { Play, Calendar, ExternalLink } from "lucide-react"
 
 interface VideoData {
@@ -100,7 +103,14 @@ const RecentEventsSection = () => {
         </div>
 
         {/* Watch More button */}
-        <div className="text-center mt-12">
+        <div className="mt-12 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+          <Link
+            href="/events"
+            className="inline-flex items-center gap-3 rounded-full border border-orange-400/70 bg-orange-500/10 px-8 py-4 font-semibold text-orange-200 transition-all duration-300 hover:scale-105 hover:-translate-y-1 hover:bg-orange-500/20 hover:text-white"
+          >
+            <span>Explore Events</span>
+            <ExternalLink className="w-5 h-5" />
+          </Link>
           <a
             href="https://youtube.com/@top100afl?si=CPlKQkvP_34uYW0h"
             target="_blank"
