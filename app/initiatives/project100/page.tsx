@@ -19,17 +19,17 @@ export default function Project100Page() {
 
       <main>
         {/* Hero Banner */}
-        <section className="bg-gradient-to-r from-blue-900 to-indigo-800 text-white py-20">
+        <section className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white py-20">
           <div className="container mx-auto px-4 text-center">
             <h1 className="text-4xl md:text-5xl font-bold mb-4">🎓 Project100 Scholarship</h1>
             <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
               From street to school — giving every child the chance to dream again.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <button className="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-bold py-3 px-6 rounded-lg transition duration-300">
+              <button className="bg-white hover:bg-gray-100 text-yellow-600 font-bold py-3 px-6 rounded-lg transition duration-300">
                 Donate Now
               </button>
-              <button className="bg-white hover:bg-gray-100 text-blue-900 font-bold py-3 px-6 rounded-lg transition duration-300">
+              <button className="bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300">
                 Become a Partner
               </button>
             </div>
@@ -46,7 +46,7 @@ export default function Project100Page() {
                 Our mission is to provide educational opportunities to those who need them most, breaking the cycle of poverty through knowledge and empowerment.
               </p>
               <div className="mt-6">
-                <Link href="/initiatives/opportunities/scholarships" className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition duration-300">
+                <Link href="/initiatives/opportunities/scholarships" className="inline-block bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-medium py-2 px-6 rounded-lg transition duration-300">
                   Learn More
                 </Link>
               </div>
@@ -61,32 +61,32 @@ export default function Project100Page() {
             <div className="max-w-3xl mx-auto">
               <ul className="space-y-4">
                 <li className="flex items-start">
-                  <div className="bg-blue-100 p-2 rounded-full mr-4">
-                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <div className="bg-yellow-100 p-2 rounded-full mr-4">
+                    <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                     </svg>
                   </div>
                   <span className="text-lg text-gray-700">Provide scholarships to deserving students who cannot afford education</span>
                 </li>
                 <li className="flex items-start">
-                  <div className="bg-blue-100 p-2 rounded-full mr-4">
-                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <div className="bg-yellow-100 p-2 rounded-full mr-4">
+                    <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                     </svg>
                   </div>
                   <span className="text-lg text-gray-700">Offer mentorship programs to guide students in their academic and career paths</span>
                 </li>
                 <li className="flex items-start">
-                  <div className="bg-blue-100 p-2 rounded-full mr-4">
-                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <div className="bg-yellow-100 p-2 rounded-full mr-4">
+                    <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                     </svg>
                   </div>
                   <span className="text-lg text-gray-700">Create opportunities for global exposure and networking</span>
                 </li>
                 <li className="flex items-start">
-                  <div className="bg-blue-100 p-2 rounded-full mr-4">
-                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <div className="bg-yellow-100 p-2 rounded-full mr-4">
+                    <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                     </svg>
                   </div>
@@ -94,7 +94,7 @@ export default function Project100Page() {
                 </li>
               </ul>
               <div className="mt-8 text-center">
-                <Link href="/initiatives/opportunities/scholarships" className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition duration-300">
+                <Link href="/initiatives/opportunities/scholarships" className="inline-block bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-medium py-2 px-6 rounded-lg transition duration-300">
                   Learn More About Our Mission
                 </Link>
               </div>
@@ -108,7 +108,7 @@ export default function Project100Page() {
             <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">Who We Support</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
               <div className="bg-gray-50 p-6 rounded-xl shadow-sm border border-gray-100">
-                <div className="text-blue-600 mb-4">
+                <div className="text-yellow-600 mb-4">
                   <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                   </svg>
@@ -118,7 +118,7 @@ export default function Project100Page() {
               </div>
               
               <div className="bg-gray-50 p-6 rounded-xl shadow-sm border border-gray-100">
-                <div className="text-blue-600 mb-4">
+                <div className="text-yellow-600 mb-4">
                   <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
                   </svg>
@@ -128,7 +128,7 @@ export default function Project100Page() {
               </div>
               
               <div className="bg-gray-50 p-6 rounded-xl shadow-sm border border-gray-100">
-                <div className="text-blue-600 mb-4">
+                <div className="text-yellow-600 mb-4">
                   <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                   </svg>
@@ -138,7 +138,7 @@ export default function Project100Page() {
               </div>
             </div>
             <div className="mt-8 text-center">
-              <Link href="/initiatives/opportunities/scholarships" className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition duration-300">
+              <Link href="/initiatives/opportunities/scholarships" className="inline-block bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-medium py-2 px-6 rounded-lg transition duration-300">
                 Learn More About Who We Support
               </Link>
             </div>
@@ -151,39 +151,39 @@ export default function Project100Page() {
             <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">How It Works</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
               <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-center">
-                <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl font-bold text-blue-600">1</span>
+                <div className="w-16 h-16 rounded-full bg-yellow-100 flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl font-bold text-yellow-600">1</span>
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">Identification</h3>
                 <p className="text-gray-700">We identify disadvantaged children and students in need through our network of community leaders and educators.</p>
               </div>
               
               <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-center">
-                <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl font-bold text-blue-600">2</span>
+                <div className="w-16 h-16 rounded-full bg-yellow-100 flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl font-bold text-yellow-600">2</span>
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">Selection</h3>
                 <p className="text-gray-700">Our committee carefully selects candidates based on need, merit, and potential for leadership.</p>
               </div>
               
               <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-center">
-                <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl font-bold text-blue-600">3</span>
+                <div className="w-16 h-16 rounded-full bg-yellow-100 flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl font-bold text-yellow-600">3</span>
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">Scholarship Support</h3>
                 <p className="text-gray-700">We provide comprehensive support including tuition, books, uniforms, and basic necessities.</p>
               </div>
               
               <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-center">
-                <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl font-bold text-blue-600">4</span>
+                <div className="w-16 h-16 rounded-full bg-yellow-100 flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl font-bold text-yellow-600">4</span>
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">Monitoring & Growth</h3>
                 <p className="text-gray-700">We track progress and provide mentorship to ensure our scholars reach their full potential.</p>
               </div>
             </div>
             <div className="mt-8 text-center">
-              <Link href="/initiatives/opportunities/scholarships" className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition duration-300">
+              <Link href="/initiatives/opportunities/scholarships" className="inline-block bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-medium py-2 px-6 rounded-lg transition duration-300">
                 Learn More About Our Process
               </Link>
             </div>
@@ -191,28 +191,28 @@ export default function Project100Page() {
         </section>
 
         {/* Impact Section */}
-        <section className="py-16 bg-gradient-to-r from-blue-900 to-indigo-800 text-white">
+        <section className="py-16 bg-gradient-to-r from-yellow-500 to-orange-500 text-white">
           <div className="container mx-auto px-4">
             <h2 className="text-3xl font-bold text-center mb-12">Our Impact</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-5xl mx-auto">
               <div className="text-center">
                 <div className="text-4xl font-bold mb-2">16+</div>
-                <p className="text-blue-200">Nigerian States</p>
+                <p className="text-white/90">Nigerian States</p>
               </div>
               
               <div className="text-center">
                 <div className="text-4xl font-bold mb-2">50+</div>
-                <p className="text-blue-200">Already Back to School</p>
+                <p className="text-white/90">Already Back to School</p>
               </div>
               
               <div className="text-center">
                 <div className="text-4xl font-bold mb-2">500+</div>
-                <p className="text-blue-200">Identified for Support</p>
+                <p className="text-white/90">Identified for Support</p>
               </div>
               
               <div className="text-center">
                 <div className="text-4xl font-bold mb-2">400+</div>
-                <p className="text-blue-200">Awardees Backing</p>
+                <p className="text-white/90">Awardees Backing</p>
               </div>
             </div>
           </div>
@@ -259,7 +259,7 @@ export default function Project100Page() {
                   Your contribution directly funds scholarships, providing access to education for disadvantaged children.
                 </p>
                 <div className="space-y-3">
-                  <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition duration-300">
+                  <button className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-medium py-2 px-6 rounded-lg transition duration-300">
                     Donate Now
                   </button>
                   <Link href="/initiatives/opportunities/scholarships" className="block w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-6 rounded-lg transition duration-300 text-center">
@@ -269,7 +269,7 @@ export default function Project100Page() {
               </div>
               
               <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 text-center">
-                <div className="text-blue-500 mb-4">
+                <div className="text-yellow-500 mb-4">
                   <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                   </svg>
@@ -279,7 +279,7 @@ export default function Project100Page() {
                   Share your expertise and guide scholars in their academic and professional journey.
                 </p>
                 <div className="space-y-3">
-                  <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition duration-300">
+                  <button className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-medium py-2 px-6 rounded-lg transition duration-300">
                     Volunteer as Mentor
                   </button>
                   <Link href="/initiatives/opportunities/scholarships" className="block w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-6 rounded-lg transition duration-300 text-center">
@@ -289,7 +289,7 @@ export default function Project100Page() {
               </div>
               
               <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 text-center">
-                <div className="text-green-500 mb-4">
+                <div className="text-yellow-500 mb-4">
                   <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
                   </svg>
@@ -299,7 +299,7 @@ export default function Project100Page() {
                   Collaborate with us to expand our reach and impact in transforming lives through education.
                 </p>
                 <div className="space-y-3">
-                  <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition duration-300">
+                  <button className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-medium py-2 px-6 rounded-lg transition duration-300">
                     Partner With Us
                   </button>
                   <Link href="/initiatives/opportunities/scholarships" className="block w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-6 rounded-lg transition duration-300 text-center">
@@ -451,9 +451,9 @@ export default function Project100Page() {
                 <input 
                   type="email" 
                   placeholder="Your email address" 
-                  className="flex-grow px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex-grow px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
                 />
-                <button className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition duration-300 whitespace-nowrap">
+                <button className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-medium py-3 px-6 rounded-lg transition duration-300 whitespace-nowrap">
                   Subscribe
                 </button>
               </div>
