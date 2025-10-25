@@ -487,7 +487,7 @@ export default function DashboardClient({ currentUser, initialProfile, initialNo
   };
 
   return (
-    <div ref={containerRef} className="relative min-h-screen overflow-hidden bg-gradient-to-br from-zinc-950 via-black to-zinc-900 text-white">
+    <div ref={containerRef} className="relative min-h-screen overflow-hidden bg-black text-white">
       <div 
         className="pointer-events-none absolute inset-0 opacity-70"
         style={{
@@ -497,7 +497,7 @@ export default function DashboardClient({ currentUser, initialProfile, initialNo
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,120,0,0.12),transparent_55%),radial-gradient(circle_at_bottom_right,rgba(80,160,255,0.12),transparent_55%)]" />
       <div className="container relative z-10 mx-auto max-w-7xl px-4 py-12 lg:px-6">
         {/* Dashboard Header */}
-        <section className="relative mb-10 overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-orange-500/25 via-amber-500/10 to-zinc-950 p-8 text-white shadow-[0_40px_90px_rgba(255,120,0,0.25)]">
+        <section className="relative mb-10 overflow-hidden rounded-3xl border border-white/10 bg-zinc-900/80 p-8 text-white shadow-[0_40px_90px_rgba(255,120,0,0.25)]">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.35)_0%,transparent_55%)]" />
           <div className="relative flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
             <div className="max-w-xl space-y-4">
@@ -574,7 +574,7 @@ export default function DashboardClient({ currentUser, initialProfile, initialNo
                     : 'You are all caught up!'}
                 </CardContent>
               </Card>
-              <Card className="sm:col-span-2 border-white/20 bg-gradient-to-r from-white/15 to-transparent backdrop-blur">
+              <Card className="sm:col-span-2 border-white/20 bg-white/10 backdrop-blur">
                 <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-xs uppercase tracking-wide text-white/70">

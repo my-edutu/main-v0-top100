@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { Menu, LogOut, User, X } from "lucide-react"
-import { useAuth } from "@/hooks/useAuth"
+import { Menu, X } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
 
 const navItems: Array<{ label: string; href?: string; section?: string }> = [
@@ -20,7 +21,6 @@ export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const headerRef = useRef<HTMLDivElement>(null)
-  const { user, isLoading, logout } = useAuth()
 
   useEffect(() => {
     const handleScroll = () => {
@@ -50,48 +50,34 @@ export default function Header() {
     setIsMenuOpen(false)
   }
 
-  const handleLogout = async () => {
-    await logout()
-    setIsMenuOpen(false)
-  }
-
   return (
     <header
       ref={headerRef}
       className={cn(
-        "fixed inset-x-0 top-0 z-50 flex h-16 items-center border-b border-transparent transition-all duration-300",
-        "backdrop-blur-lg",
-        isScrolled
-          ? "bg-white/85 text-slate-900 shadow-sm dark:border-zinc-800 dark:bg-black/90 dark:text-white"
-          : "bg-white/70 text-slate-900 dark:bg-black/70 dark:text-white lg:dark:bg-transparent lg:dark:backdrop-blur-0"
+        "sticky inset-x-0 top-0 z-50 border-b border-transparent transition-all duration-300",
+        isScrolled ? "backdrop-blur-lg bg-gradient-to-r from-yellow-500 to-orange-500 border-yellow-600/60" : "bg-gradient-to-r from-yellow-500 to-orange-500"
       )}
     >
-      <div className="container mx-auto flex max-w-7xl items-center justify-between px-4 lg:px-6">
-        <Link href="/" className="text-lg font-bold tracking-tight md:text-xl lg:text-2xl">
-          <span className="bg-gradient-to-r from-slate-900 to-orange-500 bg-clip-text text-transparent dark:from-white dark:to-zinc-400">
-            Top100 Africa Future Leaders
-          </span>
+      <div className="container flex h-16 items-center justify-between">
+        <Link href="/" className="flex items-center gap-2 text-lg font-semibold tracking-tight">
+          <div className="h-10 w-16">
+            <Image 
+              src="/Top100 Africa Future leaders Logo .png" 
+              alt="Top100 Africa Future Leaders Logo"
+              width={64}
+              height={40}
+              className="h-full w-full object-contain"
+            />
+          </div>
         </Link>
 
-        <div className="md:hidden">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsMenuOpen((prev) => !prev)}
-            className="rounded-full border border-slate-200 bg-white/80 text-slate-900 transition hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/15"
-            aria-label="Toggle navigation menu"
-          >
-            {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
-        </div>
-
-        <nav className="hidden items-center space-x-6 md:flex">
+        <nav className="hidden items-center gap-6 text-sm font-semibold md:flex">
           {navItems.map((item) =>
             item.href ? (
               <Link
                 key={item.label}
                 href={item.href}
-                className="text-sm font-medium text-slate-800 transition-colors hover:text-orange-500 dark:text-zinc-200 dark:hover:text-orange-300"
+                className="rounded-full px-3 py-2 text-white transition-colors hover:bg-yellow-400/50 hover:text-white"
               >
                 {item.label}
               </Link>
@@ -99,7 +85,7 @@ export default function Header() {
               <button
                 key={item.label}
                 onClick={() => scrollToSection(item.section!)}
-                className="text-sm font-medium text-slate-800 transition-colors hover:text-orange-500 dark:text-zinc-200 dark:hover:text-orange-300"
+                className="rounded-full px-3 py-2 text-white transition-colors hover:bg-yellow-400/50 hover:text-white"
               >
                 {item.label}
               </button>
@@ -107,90 +93,61 @@ export default function Header() {
           )}
         </nav>
 
+        <div className="md:hidden">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsMenuOpen((prev) => !prev)}
+            className="rounded-2xl border border-yellow-600/80 bg-yellow-200/50 text-white shadow-sm"
+            aria-label="Toggle navigation menu"
+          >
+            {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </Button>
+        </div>
+      </div>
+
+      <AnimatePresence>
         {isMenuOpen && (
-          <nav className="absolute left-0 top-full w-full border-t border-slate-200 bg-white/95 text-slate-900 shadow-lg dark:border-zinc-800 dark:bg-black/95 dark:text-white md:hidden">
-            <ul className="flex flex-col space-y-2 p-4">
+          <motion.nav
+            initial={{ opacity: 0, y: -12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm md:hidden"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setIsMenuOpen(false);
+              }
+            }}
+          >
+            <ul className="absolute right-4 top-20 w-[calc(100vw-32px)] max-w-sm space-y-2 rounded-3xl border border-yellow-600/70 bg-gradient-to-b from-yellow-100 to-orange-100 p-4 shadow-lg shadow-yellow-500/10 backdrop-blur-xl">
               {navItems.map((item) => (
                 <li key={item.label}>
                   {item.href ? (
                     <Link
                       href={item.href}
-                      className="block w-full rounded-lg px-2 py-3 text-left text-base font-semibold transition-colors hover:text-orange-500 dark:hover:text-orange-300"
+                      className="flex items-center justify-between rounded-2xl px-4 py-3 text-base font-semibold text-zinc-900 hover:bg-yellow-400/30 hover:text-zinc-700"
                       onClick={() => setIsMenuOpen(false)}
                     >
-                      {item.label}
+                      <span>{item.label}</span>
                     </Link>
                   ) : (
                     <button
-                      onClick={() => scrollToSection(item.section!)}
-                      className="block w-full rounded-lg px-2 py-3 text-left text-base font-semibold transition-colors hover:text-orange-500 dark:hover:text-orange-300"
+                      onClick={() => {
+                        scrollToSection(item.section!);
+                        setIsMenuOpen(false);
+                      }}
+                      className="flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left text-base font-semibold text-zinc-900 hover:bg-yellow-400/30 hover:text-zinc-700"
                     >
-                      {item.label}
+                      <span>{item.label}</span>
                     </button>
                   )}
                 </li>
               ))}
-              <li className="mt-4 border-t border-slate-200 pt-4 dark:border-zinc-800">
-                {isLoading ? (
-                  <Button disabled className="w-full bg-slate-200 py-6 text-slate-500 dark:bg-zinc-800 dark:text-white">
-                    Loading...
-                  </Button>
-                ) : user ? (
-                  <div className="flex flex-col space-y-3">
-                    <Button asChild className="w-full bg-orange-500 py-6 text-black hover:bg-orange-400">
-                      <Link href="/dashboard" onClick={() => setIsMenuOpen(false)}>
-                        <User className="mr-2 h-4 w-4" />
-                        Dashboard
-                      </Link>
-                    </Button>
-                    <Button
-                      onClick={handleLogout}
-                      className="flex w-full items-center justify-center bg-slate-200 py-6 text-slate-700 hover:bg-slate-300 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700"
-                    >
-                      <LogOut className="mr-2 h-4 w-4" />
-                      Log out
-                    </Button>
-                  </div>
-                ) : (
-                  <Button asChild className="w-full bg-orange-500 py-6 text-black hover:bg-orange-400">
-                    <Link href="/auth/signin" onClick={() => setIsMenuOpen(false)}>
-                      Log in
-                    </Link>
-                  </Button>
-                )}
-              </li>
             </ul>
-          </nav>
+          </motion.nav>
         )}
-
-        <div className="hidden items-center space-x-3 md:flex">
-          {isLoading ? (
-            <Button disabled className="bg-slate-200 text-slate-500 dark:bg-zinc-800 dark:text-white">
-              Loading...
-            </Button>
-          ) : user ? (
-            <>
-              <Button className="bg-slate-200 text-slate-900 hover:bg-slate-300 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700" asChild>
-                <Link href="/dashboard">
-                  <User className="mr-2 h-4 w-4" />
-                  Dashboard
-                </Link>
-              </Button>
-              <Button
-                onClick={handleLogout}
-                className="flex items-center bg-slate-200 text-slate-900 hover:bg-slate-300 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700"
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                Log out
-              </Button>
-            </>
-          ) : (
-            <Button asChild className="bg-orange-500 text-black hover:bg-orange-400">
-              <Link href="/auth/signin">Log in</Link>
-            </Button>
-          )}
-        </div>
-      </div>
+      </AnimatePresence>
     </header>
   )
 }

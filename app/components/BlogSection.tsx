@@ -1,179 +1,160 @@
 "use client"
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+
+import { useEffect, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { Calendar, ArrowRight, User } from "lucide-react"
+import { motion } from "framer-motion"
+import { ArrowRight, Calendar, User } from "lucide-react"
 
-interface BlogPost {
-  id: string;
-  title: string;
-  slug: string;
-  content: string;
-  coverImage?: string;
-  isFeatured: boolean;
-  status: string;
-  tags: string[];
-  createdAt: string;
-  updatedAt: string;
-}
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { blogPosts } from "@/content/data/blog-posts"
+import { mapStaticPost, ResolvedPost, selectHomepagePosts } from "@/lib/posts"
+
+const fallbackPosts = blogPosts.map(mapStaticPost)
+const fallbackHomepage = selectHomepagePosts(fallbackPosts)
 
 export default function BlogSection() {
-  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([])
-  const [loading, setLoading] = useState(true)
+  const [posts, setPosts] = useState<ResolvedPost[]>(fallbackHomepage)
 
   useEffect(() => {
-    const fetchFeaturedPosts = async () => {
+    let isMounted = true
+
+    const loadPosts = async () => {
       try {
-        // In a real app, you would fetch from the API:
-        // const res = await fetch('/api/posts/featured?limit=3&isFeatured=true')
-        // const data = await res.json()
-        
-        // For now, using mock data
-        const mockPosts: BlogPost[] = [
-          {
-            id: '1',
-            title: 'The Future of African Innovation',
-            slug: 'future-of-african-innovation',
-            content: 'Exploring how young leaders are driving technological advancement across the continent through groundbreaking solutions and creative thinking.',
-            coverImage: '/placeholder.svg?key=blog1',
-            isFeatured: true,
-            status: 'published',
-            tags: ['Innovation', 'Technology'],
-            createdAt: '2024-12-15T00:00:00Z',
-            updatedAt: '2024-12-15T00:00:00Z'
-          },
-          {
-            id: '2',
-            title: 'Building Sustainable Communities',
-            slug: 'building-sustainable-communities',
-            content: 'How our 2024 awardees are creating lasting environmental and social impact in their local communities through innovative approaches.',
-            coverImage: '/placeholder.svg?key=blog2',
-            isFeatured: true,
-            status: 'published',
-            tags: ['Sustainability', 'Environment'],
-            createdAt: '2024-12-10T00:00:00Z',
-            updatedAt: '2024-12-10T00:00:00Z'
-          },
-          {
-            id: '3',
-            title: 'Mentorship That Transforms',
-            slug: 'mentorship-that-transforms',
-            content: 'The power of mentorship in shaping Africa\'s future leaders and creating networks that span across borders and industries.',
-            coverImage: '/placeholder.svg?key=blog3',
-            isFeatured: true,
-            status: 'published',
-            tags: ['Leadership', 'Mentorship'],
-            createdAt: '2024-12-05T00:00:00Z',
-            updatedAt: '2024-12-05T00:00:00Z'
+        const response = await fetch("/api/posts?scope=homepage", { cache: "no-store" })
+        if (!response.ok) {
+          console.error("Failed to load homepage posts", response.statusText)
+          return
+        }
+
+        const payload = await response.json()
+        if (!Array.isArray(payload)) {
+          return
+        }
+
+        const merged = new Map<string, ResolvedPost>()
+        for (const post of payload as ResolvedPost[]) {
+          if (post && typeof post.slug === "string") {
+            merged.set(post.slug, post)
           }
-        ]
-        
-        setBlogPosts(mockPosts)
-        setLoading(false)
+        }
+
+        for (const fallback of fallbackHomepage) {
+          if (!merged.has(fallback.slug)) {
+            merged.set(fallback.slug, fallback)
+          }
+        }
+
+        const normalized = selectHomepagePosts(Array.from(merged.values()))
+
+        if (isMounted) {
+          setPosts(normalized)
+        }
       } catch (error) {
-        console.error('Error fetching featured posts:', error)
-        setLoading(false)
+        console.error("Error fetching homepage posts", error)
       }
     }
 
-    fetchFeaturedPosts()
+    loadPosts()
+
+    return () => {
+      isMounted = false
+    }
   }, [])
 
-  if (loading) {
-    return (
-      <section id="blog" className="py-20 bg-zinc-900/30 relative">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white to-orange-300">
-              Stories & Insights
-            </h2>
-            <p className="text-xl text-zinc-400 max-w-3xl mx-auto text-balance">
-              Discover inspiring stories and insights from Africa's future leaders
-            </p>
-          </div>
-          <div className="text-center py-10">
-            Loading featured posts...
-          </div>
-        </div>
-      </section>
-    )
-  }
-
   return (
-    <section id="blog" className="py-20 bg-zinc-900/30 relative">
-      <div className="container mx-auto px-4">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white to-orange-300">
-            Stories & Insights
+    <section id="blog">
+      <div className="container flex flex-col gap-10">
+        <div className="text-center">
+          <Badge variant="soft" className="mx-auto rounded-full text-xs uppercase tracking-[0.32em]">
+            From the journal
+          </Badge>
+          <h2 className="mt-4 text-3xl font-semibold sm:text-4xl">
+            Stories &amp; insights shaping the continent
           </h2>
-          <p className="text-xl text-zinc-400 max-w-3xl mx-auto text-balance">
-            Discover inspiring stories and insights from Africa's future leaders
+          <p className="mx-auto mt-3 max-w-2xl text-sm text-muted-foreground sm:text-base">
+            Dive into six of our latest features—leadership lessons, partnership spotlights, and community wins from the Top100 network.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-          {blogPosts.map((post) => (
-            <Link key={post.id} href={`/blog/${post.slug}`}>
-              <article className="bg-black/50 rounded-2xl overflow-hidden backdrop-blur-lg border border-orange-400/20 hover:border-orange-400/40 transition-all duration-300 group cursor-pointer hover:-translate-y-2">
-                <div className="relative overflow-hidden">
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          {posts.map((post, index) => (
+            <motion.div
+              key={post.id}
+              initial={{ opacity: 0, y: 18 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, delay: index * 0.05, ease: "easeOut" }}
+              viewport={{ once: true, amount: 0.3 }}
+            >
+              <Link
+                href={`/blog/${post.slug}`}
+                className={`group flex h-full flex-col overflow-hidden rounded-[28px] border border-border/60 shadow-md transition hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg ${
+                  index % 4 === 0 
+                    ? "bg-blue-50/80 dark:bg-blue-950/20" 
+                    : index % 4 === 1 
+                    ? "bg-purple-50/80 dark:bg-purple-950/20" 
+                    : index % 4 === 2 
+                    ? "bg-amber-50/80 dark:bg-amber-950/20" 
+                    : "bg-emerald-50/80 dark:bg-emerald-950/20"
+                }`}
+              >
+                <div className="relative aspect-[4/3] overflow-hidden">
                   <Image
                     src={post.coverImage || "/placeholder.svg"}
                     alt={post.title}
-                    width={400}
-                    height={250}
-                    className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
+                    fill
+                    className="object-cover transition duration-500 group-hover:scale-105"
                   />
-                  <div className="absolute top-4 left-4">
-                    <Badge className="bg-orange-500/90 text-white backdrop-blur-sm">
-                      {post.tags && post.tags.length > 0 ? post.tags[0] : 'Featured'}
+                  <div className="absolute left-4 top-4">
+                    <Badge variant="soft" className="rounded-full text-[0.7rem]">
+                      {post.tags.at(0) ?? "Feature"}
                     </Badge>
                   </div>
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
                 </div>
-
-                <div className="p-6">
-                  <div className="flex items-center text-sm text-zinc-400 mb-3">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    <span>{new Date(post.createdAt).toLocaleDateString()}</span>
-                    <span className="mx-2">•</span>
-                    <span>5 min read</span>
+                <div className="flex flex-1 flex-col gap-5 p-6">
+                  <div className="flex items-center gap-3 text-xs font-medium text-muted-foreground">
+                    <span className="inline-flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      {new Date(post.createdAt).toLocaleDateString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </span>
+                    <span className="text-muted-foreground/40">·</span>
+                    <span>{post.readTime ? `${post.readTime} min read` : "Read"}</span>
                   </div>
-
-                  <h3 className="text-xl font-bold mb-3 text-white group-hover:text-orange-300 transition-colors text-balance">
-                    {post.title}
-                  </h3>
-
-                  <p className="text-zinc-300 mb-4 text-pretty line-clamp-3">{post.content}</p>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center text-sm text-zinc-400">
-                      <User className="w-4 h-4 mr-2" />
-                      <span>Award Team</span>
-                    </div>
-
-                    <div className="flex items-center text-orange-400 group-hover:text-orange-300 transition-colors">
-                      <span className="text-sm font-medium mr-2">Read more</span>
-                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                    </div>
+                  <div className="space-y-3">
+                    <h3 className="text-lg font-semibold leading-tight transition-colors group-hover:text-primary">
+                      {post.title}
+                    </h3>
+                    <p className="line-clamp-3 text-sm text-muted-foreground">{post.excerpt}</p>
+                  </div>
+                  <div className="mt-auto flex items-center justify-between text-sm font-medium text-muted-foreground">
+                    <span className="inline-flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      {post.author}
+                    </span>
+                    <span className="inline-flex items-center gap-2 text-primary transition group-hover:text-primary/80">
+                      Read more
+                      <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
+                    </span>
                   </div>
                 </div>
-              </article>
-            </Link>
+              </Link>
+            </motion.div>
           ))}
         </div>
 
-        <div className="text-center">
-          <Button
-            size="lg"
-            variant="outline"
-            className="border-orange-400 text-orange-400 hover:bg-orange-400 hover:text-black px-8 py-6 rounded-full text-lg bg-transparent"
-            asChild
-          >
+        <div className="flex flex-col items-center justify-between gap-4 border-t border-border/60 pt-6 sm:flex-row">
+          <p className="text-sm text-muted-foreground">
+            Browse the full archive of interviews, essays, and programme recaps.
+          </p>
+          <Button size="lg" variant="soft" className="px-6" asChild>
             <Link href="/blog">
-              Read More Stories
-              <ArrowRight className="w-5 h-5 ml-2" />
+              Explore all stories
+              <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
         </div>
@@ -181,3 +162,4 @@ export default function BlogSection() {
     </section>
   )
 }
+

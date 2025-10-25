@@ -11,10 +11,36 @@ const config: Config = {
     '*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
+    container: {
+      center: true,
+      padding: {
+        DEFAULT: '1.25rem',
+        sm: '1.5rem',
+        lg: '2rem',
+        xl: '2.5rem',
+      },
+      screens: {
+        '2xl': '1200px',
+        '3xl': '1440px',
+      },
+    },
     extend: {
+      fontFamily: {
+        sans: ['var(--font-sans)'],
+        display: ['var(--font-display)'],
+        mono: ['var(--font-mono)'],
+      },
+      spacing: {
+        18: '4.5rem',
+        22: '5.5rem',
+        30: '7.5rem',
+        38: '9.5rem',
+      },
       colors: {
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
+        surface: 'hsl(var(--surface))',
+        'surface-strong': 'hsl(var(--surface-strong))',
         card: {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
@@ -43,6 +69,18 @@ const config: Config = {
           DEFAULT: 'hsl(var(--destructive))',
           foreground: 'hsl(var(--destructive-foreground))',
         },
+        success: {
+          DEFAULT: 'hsl(var(--success))',
+          foreground: 'hsl(var(--success-foreground))',
+        },
+        warning: {
+          DEFAULT: 'hsl(var(--warning))',
+          foreground: 'hsl(var(--warning-foreground))',
+        },
+        info: {
+          DEFAULT: 'hsl(var(--info))',
+          foreground: 'hsl(var(--info-foreground))',
+        },
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
@@ -65,9 +103,23 @@ const config: Config = {
         },
       },
       borderRadius: {
-        lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
+        md: 'calc(var(--radius) - 2px)',
+        lg: 'var(--radius)',
+        xl: 'calc(var(--radius) + 4px)',
+        '2xl': 'calc(var(--radius) + 8px)',
+        '3xl': 'calc(var(--radius) + 12px)',
+      },
+      boxShadow: {
+        xs: 'var(--shadow-xs)',
+        sm: 'var(--shadow-sm)',
+        md: 'var(--shadow-md)',
+        lg: 'var(--shadow-lg)',
+      },
+      backgroundImage: {
+        'gradient-brand': 'var(--gradient-brand)',
+        'gradient-hero': 'var(--gradient-hero)',
+        'noise-texture': 'var(--texture-noise)',
       },
       keyframes: {
         'accordion-down': {

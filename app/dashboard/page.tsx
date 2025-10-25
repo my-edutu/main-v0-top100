@@ -1,5 +1,4 @@
 import { cookies } from 'next/headers'
-import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth-server'
 import { fetchNotifications, fetchProfile } from '@/lib/dashboard/profile-service'
 import type { UserNotification, UserProfile } from '@/types/profile'
@@ -46,7 +45,27 @@ export default async function DashboardPage() {
   const user = await getCurrentUser()
 
   if (!user && !devBypassProfileId) {
-    redirect('/auth/signin?next=/dashboard')
+    return (
+      <div className="relative min-h-screen bg-gradient-to-br from-zinc-950 via-black to-zinc-900 text-white">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,140,0,0.12),transparent_45%),radial-gradient(circle_at_bottom_right,rgba(255,140,0,0.08),transparent_45%)]" />
+        <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-16 sm:px-6 lg:px-8">
+          <div className="max-w-2xl text-center space-y-4">
+            <h1 className="text-3xl font-semibold sm:text-4xl">Member hub arriving soon</h1>
+            <p className="text-sm text-zinc-300">
+              The awardee workspace is in private preview while we finalize the launch experience. Keep an eye on our announcements to know when the dashboard officially opens.
+            </p>
+            <div>
+              <a
+                href="/"
+                className="inline-flex items-center rounded-full bg-orange-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-orange-500"
+              >
+                Back to homepage
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   const effectiveProfileId = user?.id ?? devBypassProfileId ?? 'dev-user'

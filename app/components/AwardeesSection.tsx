@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -9,11 +8,6 @@ import Link from "next/link"
 import { MapPin, Award } from "lucide-react"
 
 export default function AwardeesSection() {
-  const [activeFilter, setActiveFilter] = useState("All")
-
-  const categories = ["All", "Technology", "Healthcare", "Education", "Environment", "Social Impact", "Business"]
-  const countries = ["All", "Nigeria", "Kenya", "South Africa", "Ghana", "Egypt", "Morocco", "Ethiopia"]
-
   const awardees = [
     {
       id: 1,
@@ -81,112 +75,91 @@ export default function AwardeesSection() {
     },
   ]
 
-  const filteredAwardees =
-    activeFilter === "All" 
-      ? awardees 
-      : awardees.filter((awardee) => awardee.category && awardee.category === activeFilter)
-
   return (
-    <section id="awardees" className="py-20 bg-zinc-900/30 relative">
-      <div className="container mx-auto px-4">
+    <section id="awardees">
+      <div className="container space-y-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          viewport={{ once: true }}
-          className="text-center mb-16"
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          viewport={{ once: true, amount: 0.4 }}
+          className="text-center"
         >
-          <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white to-orange-300">
-            Meet Our Awardees
+
+          <h2 className="mt-3 text-3xl font-semibold sm:text-[2.5rem]">
+            Meet the bold minds shaping Africa&apos;s tomorrow
           </h2>
-          <p className="text-xl text-zinc-400 max-w-3xl mx-auto text-balance">
-            Discover the inspiring stories of Africa's future leaders making impact across the continent
+          <p className="mx-auto mt-3 max-w-3xl text-sm text-muted-foreground sm:text-base">
+            Discover the inspiring stories of Africa&apos;s future leaders making impact across the continent.
           </p>
         </motion.div>
 
-        {/* Filter Chips */}
-        <div className="flex flex-wrap justify-center gap-2 mb-10">
-          {categories.map((category) => (
-            <Button
-              key={category}
-              variant={activeFilter === category ? "secondary" : "ghost"}
-              onClick={() => setActiveFilter(category)}
-              className={`${
-                activeFilter === category
-                  ? "bg-orange-500 text-black hover:bg-orange-400"
-                  : "border border-zinc-700 text-zinc-300 hover:bg-zinc-800"
-              }`}
-            >
-              {category}
-            </Button>
-          ))}
-        </div>
-
-        {/* Awardees Grid */}
-        <motion.div layout className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-          {filteredAwardees.map((awardee, index) => (
-            <motion.div
+        <motion.div
+          layout
+          className="grid grid-cols-2 gap-3 sm:grid-cols-2"
+        >
+          {awardees.map((awardee, index) => (
+            <motion.article
               key={awardee.id}
               layout
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 0.3, delay: index * 0.05 }}
-              whileHover={{ y: -5 }}
-              className="bg-black/50 rounded-xl overflow-hidden backdrop-blur-lg border border-orange-400/20 hover:border-orange-400/40 transition-all duration-300 flex flex-row"
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, delay: index * 0.05, ease: "easeOut" }}
+              viewport={{ once: true, amount: 0.35 }}
+              className="flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm shadow-primary/5 transition hover:border-primary/40"
             >
-              <div className="w-1/3 relative">
+              <div className="relative h-32 w-full overflow-hidden">
                 <Image
                   src={awardee.image || "/placeholder.svg"}
                   alt={awardee.name}
-                  width={200}
-                  height={200}
-                  className="w-full h-full object-cover"
+                  fill
+                  className="object-cover"
                 />
-                <div className="absolute top-2 right-2">
-                  <Badge className="bg-orange-500 text-white text-xs">{awardee.category}</Badge>
+                <div className="absolute left-3 top-3">
+                  <Badge variant="secondary" className="text-xs">
+                    {awardee.category}
+                  </Badge>
                 </div>
               </div>
-              <div className="w-2/3 p-4">
-                <h3 className="text-lg font-bold mb-1 text-white">{awardee.name}</h3>
-                <div className="flex items-center mb-2 text-orange-400">
-                  <MapPin className="w-3 h-3 mr-1" />
-                  <span className="text-xs">{awardee.country}</span>
+              <div className="flex flex-1 flex-col gap-2 p-4">
+                <div>
+                  <h3 className="text-lg font-semibold">{awardee.name}</h3>
+                  <div className="mt-1 inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.25em] text-muted-foreground">
+                    <MapPin className="h-2.5 w-2.5" />
+                    <span>{awardee.country}</span>
+                  </div>
                 </div>
-                <p className="text-xs text-zinc-400 line-clamp-3">{awardee.bio}</p>
+                <p className="text-xs text-muted-foreground line-clamp-2">
+                  {awardee.bio}
+                </p>
                 <div className="mt-2">
-                  <Button 
+                  <Button
                     asChild
-                    size="sm" 
+                    size="sm"
                     variant="ghost"
-                    className="text-orange-400 hover:text-orange-300 hover:bg-orange-500/10 px-2 py-1 text-xs"
+                    className="h-8 rounded-lg text-xs"
                   >
                     <Link href={`/awardees/${awardee.id}`}>
-                      View Profile
+                      View profile
                     </Link>
                   </Button>
                 </div>
               </div>
-            </motion.div>
+            </motion.article>
           ))}
         </motion.div>
 
-        {/* View All Button */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          viewport={{ once: true }}
-          className="text-center"
+          transition={{ duration: 0.45, ease: "easeOut" }}
+          viewport={{ once: true, amount: 0.3 }}
+          className="flex justify-center"
         >
-          <Button 
-            asChild
-            size="lg" 
-            className="bg-orange-500 text-white hover:bg-orange-600 px-8 py-6 rounded-full text-lg"
-          >
+          <Button asChild size="lg" className="bg-yellow-500 text-black hover:bg-yellow-400">
             <Link href="/awardees">
-              <Award className="w-5 h-5 mr-2" />
-              View All Awardees
+              <Award className="h-5 w-5" />
+              View all awardees
             </Link>
           </Button>
         </motion.div>

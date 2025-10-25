@@ -82,10 +82,10 @@ export default async function AwardeeDetail({ params }: { params: { slug: string
             alt={`${awardee.name} cover`}
             className="h-full w-full object-cover object-center opacity-70"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
+          <div className="absolute inset-0 bg-[linear-gradient(transparent,rgba(0,0,0,0.6),rgba(0,0,0,1))]" />
         </div>
       ) : (
-        <div className="h-40 w-full bg-gradient-to-r from-orange-500/20 via-black to-black" />
+        <div className="h-40 w-full bg-black" />
       )}
 
       <div className="container mx-auto max-w-5xl px-4 pb-16">

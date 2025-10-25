@@ -91,7 +91,7 @@ export default function HeroSection() {
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="relative z-10">
                 <Button
                   size="lg"
-                  className="group relative overflow-hidden rounded-full bg-orange-500 px-8 py-6 text-lg text-white transition-colors hover:bg-orange-600"
+                  className="group relative overflow-hidden rounded-full bg-yellow-500 px-8 py-6 text-lg text-white transition-colors hover:bg-yellow-600"
                   onMouseEnter={() => setIsHovered(true)}
                   onMouseLeave={() => setIsHovered(false)}
                   onClick={() => scrollToSection("awardees")}
@@ -115,7 +115,7 @@ export default function HeroSection() {
               <Button
                 variant="outline"
                 size="lg"
-                className="rounded-full border border-orange-400 px-8 py-6 text-lg text-orange-500 hover:bg-orange-500 hover:text-black"
+                className="rounded-full border border-yellow-400 px-8 py-6 text-lg text-yellow-500 hover:bg-yellow-500 hover:text-black"
                 onClick={() => scrollToSection("magazine")}
               >
                 Download 2024 Magazine

@@ -1,14 +1,15 @@
 import "./globals.css"
 import type { Metadata } from "next"
-import { Space_Grotesk } from "next/font/google"
+import { Urbanist } from "next/font/google"
 import type React from "react" // Import React
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import Header from "./components/Header"
 import Footer from "./components/Footer"
+import { BottomNav } from "./components/BottomNav"
 import { cn } from "@/lib/utils"
 
-const spaceGrotesk = Space_Grotesk({ subsets: ["latin"] })
+const urbanist = Urbanist({ subsets: ["latin"], variable: "--font-sans" })
 
 export const metadata: Metadata = {
   title: "Top100 Africa Future Leaders - 2024",
@@ -26,7 +27,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body
         className={cn(
-          spaceGrotesk.className,
+          `${urbanist.variable} ${urbanist.className}`,
           "bg-background text-foreground antialiased transition-colors duration-300"
         )}
       >
@@ -41,6 +42,7 @@ export default function RootLayout({
             {children}
           </main>
           <Footer />
+          <BottomNav />
           <Toaster />
         </ThemeProvider>
       </body>

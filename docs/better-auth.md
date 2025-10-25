@@ -3,6 +3,7 @@
 Better Auth is now wired into the project alongside the existing Supabase setup. Use the steps below to finish configuring and start using it.
 
 ## Environment
+- `NEXT_PUBLIC_ENABLE_AUTH` controls whether Better Auth boots at all. Leave it unset (or set to `false`) while staging. Set it to `true` only after the rest of the variables below are ready.
 - `DATABASE_URL` must point to the Postgres instance you want Better Auth to manage (the Supabase connection string works).
 - `BETTER_AUTH_SECRET` should be a strong random string (32+ chars). Generate one with `openssl rand -base64 32`.
 - `BETTER_AUTH_URL` should be the public base URL for the app (e.g. `http://localhost:3000` during development).

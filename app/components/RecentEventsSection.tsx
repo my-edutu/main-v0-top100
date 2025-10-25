@@ -3,6 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 
+import { Button } from "@/components/ui/button"
 import { Play, Calendar, ExternalLink } from "lucide-react"
 
 interface VideoData {
@@ -55,80 +56,72 @@ const RecentEventsSection = () => {
   }
 
   return (
-    <section className="py-20 relative">
-      <div className="max-w-7xl mx-auto px-4">
-        {/* Header */}
-        <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold mb-6 text-white font-sans">Recent Events</h2>
-          <p className="text-xl text-zinc-300 max-w-3xl mx-auto leading-relaxed">
+    <section className="py-16">
+      <div className="container space-y-8">
+        <div className="text-center space-y-3">
+
+          <h2 className="text-3xl font-semibold sm:text-4xl">Recent events &amp; highlights</h2>
+          <p className="text-sm text-muted-foreground max-w-2xl mx-auto leading-relaxed sm:text-base">
             Watch highlights from our latest events, workshops, and community gatherings that bring together young
             African leaders.
           </p>
         </div>
 
-        {/* Video Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
           {videos.map((video) => (
             <div key={video.id} className="group cursor-pointer" onClick={() => handleVideoClick(video.id)}>
-              <div className="bg-black/50 rounded-2xl overflow-hidden backdrop-blur-lg border border-orange-400/20 hover:border-orange-400/40 transition-all duration-300 hover:scale-105 hover:-translate-y-1">
-                {/* Video Thumbnail */}
+              <div className="overflow-hidden rounded-[24px] border border-border/60 bg-card shadow-sm transition hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg">
                 <div className="relative aspect-video overflow-hidden">
                   <img
                     src={getYouTubeThumbnail(video.id) || "/placeholder.svg"}
                     alt={video.title}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />
-                  <div className="absolute inset-0 bg-black/30 group-hover:bg-black/20 transition-colors duration-300" />
+                  <div className="absolute inset-0 bg-[linear-gradient(transparent,rgba(0,0,0,0.3))] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="bg-orange-400 rounded-full p-4 group-hover:scale-110 transition-transform duration-300 shadow-lg">
-                      <Play className="w-8 h-8 text-black fill-current" />
+                    <div className="rounded-full bg-primary p-3 text-background shadow-lg shadow-primary/30 transition-transform duration-300 group-hover:scale-105">
+                      <Play className="w-4 h-4" />
                     </div>
                   </div>
                 </div>
 
-                {/* Video Info */}
-                <div className="p-6">
-                  <div className="flex items-center gap-2 text-orange-400 text-sm mb-2">
-                    <Calendar className="w-4 h-4" />
+                <div className="space-y-2 p-4">
+                  <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+                    <Calendar className="w-3 h-3" />
                     <span>{video.date}</span>
                   </div>
-                  <h3 className="text-xl font-semibold text-white mb-2 group-hover:text-orange-400 transition-colors duration-300">
+                  <h3 className="text-base font-semibold transition-colors group-hover:text-primary">
                     {video.title}
                   </h3>
-                  <p className="text-zinc-400 text-sm leading-relaxed">{video.description}</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">{video.description}</p>
                 </div>
               </div>
             </div>
           ))}
         </div>
 
-        {/* Watch More button */}
-        <div className="mt-12 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-          <Link
-            href="/events"
-            className="inline-flex items-center gap-3 rounded-full border border-orange-400/70 bg-orange-500/10 px-8 py-4 font-semibold text-orange-200 transition-all duration-300 hover:scale-105 hover:-translate-y-1 hover:bg-orange-500/20 hover:text-white"
-          >
-            <span>Explore Events</span>
-            <ExternalLink className="w-5 h-5" />
-          </Link>
-          <a
-            href="https://youtube.com/@top100afl?si=CPlKQkvP_34uYW0h"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-3 bg-orange-400 hover:bg-orange-500 text-black font-semibold px-8 py-4 rounded-full transition-all duration-300 hover:scale-105 hover:-translate-y-1 shadow-lg hover:shadow-xl"
-          >
-            <span>Watch More</span>
-            <ExternalLink className="w-5 h-5" />
-          </a>
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <Button variant="soft" asChild>
+            <Link href="/events">
+              Explore events
+              <ExternalLink className="w-4 h-4 ml-2" />
+            </Link>
+          </Button>
+          <Button asChild>
+            <a href="https://youtube.com/@top100afl?si=CPlKQkvP_34uYW0h" target="_blank" rel="noopener noreferrer">
+              Watch more
+              <ExternalLink className="w-4 h-4 ml-2" />
+            </a>
+          </Button>
         </div>
 
         {/* Video Modal */}
         {selectedVideo && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="relative w-full max-w-4xl aspect-video">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-1 md:p-2">
+            <div className="relative w-full max-w-xl aspect-video">
               <button
                 onClick={closeVideo}
-                className="absolute -top-12 right-0 text-white hover:text-orange-400 transition-colors duration-300 text-xl font-bold"
+                className="absolute -top-6 right-0 text-white hover:text-orange-400 transition-colors duration-300 text-base font-bold"
               >
                 ✕ Close
               </button>

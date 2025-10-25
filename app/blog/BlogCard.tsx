@@ -1,29 +1,15 @@
-import Link from 'next/link';
-import { Badge } from '@/components/ui/badge';
-import { Calendar, User } from 'lucide-react';
-import Image from 'next/image';
+import Link from "next/link";
+import Image from "next/image";
+import { Calendar, User } from "lucide-react";
 
-interface BlogPost {
-  id: string;
-  title: string;
-  slug: string;
-  content: string;
-  excerpt: string;
-  coverImage?: string;
-  isFeatured: boolean;
-  status: string;
-  tags: string[];
-  createdAt: string;
-  updatedAt: string;
-  readTime: number;
-  author: string;
-}
+import { Badge } from "@/components/ui/badge";
+import type { ResolvedPost } from "@/lib/posts";
 
 interface BlogCardProps {
-  post: BlogPost;
+  post: ResolvedPost;
 }
 
-export const BlogCard: React.FC<BlogCardProps> = ({ post }) => {
+export function BlogCard({ post }: BlogCardProps) {
   return (
     <Link href={`/blog/${post.slug}`} className="block group">
       <article className="bg-black/50 rounded-2xl overflow-hidden backdrop-blur-lg border border-zinc-800 hover:border-orange-400/40 transition-all duration-300">
@@ -51,8 +37,8 @@ export const BlogCard: React.FC<BlogCardProps> = ({ post }) => {
           <div className="flex items-center text-sm text-zinc-400 mb-3">
             <Calendar className="w-4 h-4 mr-2" />
             <span>{new Date(post.createdAt).toLocaleDateString()}</span>
-            <span className="mx-2">•</span>
-            <span>{post.readTime} min read</span>
+            <span className="mx-2">{'\u2022'}</span>
+            <span>{post.readTime ? `${post.readTime} min read` : "Read"}</span>
           </div>
 
           <h3 className={`mb-3 text-white group-hover:text-orange-300 transition-colors ${
@@ -88,4 +74,4 @@ export const BlogCard: React.FC<BlogCardProps> = ({ post }) => {
       </article>
     </Link>
   );
-};
+}

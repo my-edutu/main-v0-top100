@@ -1,13 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { betterAuthClient } from "@/lib/better-auth/client";
+
+import { betterAuthClient, isBetterAuthClientEnabled } from "@/lib/better-auth/client";
 
 export const useAuth = () => {
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (!isBetterAuthClientEnabled) {
+      setIsLoading(false);
+      setUser(null);
+      return;
+    }
+
     const checkAuthStatus = async () => {
       setIsLoading(true);
       try {
@@ -29,6 +36,10 @@ export const useAuth = () => {
   }, []);
 
   const logout = async () => {
+    if (!isBetterAuthClientEnabled) {
+      setUser(null);
+      return;
+    }
     try {
       await betterAuthClient.signOut();
       setUser(null);

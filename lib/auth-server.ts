@@ -13,6 +13,10 @@ const extractRole = (user: Partial<UserPayload>) =>
   (user?.role ?? (user as Record<string, unknown>)?.role ?? DEFAULT_ROLE) as string
 
 async function resolveSessionFromHeaders(requestHeaders: Headers) {
+  if (!betterAuthServer) {
+    return null
+  }
+
   const result = await betterAuthServer.api.getSession({
     headers: requestHeaders,
   })
@@ -25,6 +29,9 @@ async function resolveSessionFromHeaders(requestHeaders: Headers) {
 }
 
 export const getCurrentUser = cache(async () => {
+  if (!betterAuthServer) {
+    return null
+  }
   try {
     const headerList = headers()
     const session = await resolveSessionFromHeaders(headerList)
@@ -49,6 +56,9 @@ export const getCurrentUser = cache(async () => {
 })
 
 export async function validateRequest(request: Request) {
+  if (!betterAuthServer) {
+    return null
+  }
   try {
     const session = await resolveSessionFromHeaders(request.headers)
 

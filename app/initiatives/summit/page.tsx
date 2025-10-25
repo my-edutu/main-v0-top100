@@ -203,7 +203,7 @@ const faqs = [
 
 export default function FutureLeadersSummitPage() {
   return (
-    <div className="bg-gradient-to-b from-zinc-950 via-black to-zinc-950 text-white">
+    <div className="bg-black text-white">
       <nav className="border-b border-white/10 bg-white/5 text-sm text-zinc-200 backdrop-blur">
         <div className="container mx-auto flex flex-wrap items-center gap-2 px-4 py-4">
           <Link
@@ -238,12 +238,12 @@ export default function FutureLeadersSummitPage() {
                 collaboration, and scalable impact across Africa’s innovation ecosystem.
               </p>
               <div className="flex flex-wrap gap-4">
-                <Button className="rounded-xl bg-orange-500 px-6 py-6 text-black shadow-lg shadow-orange-500/30 transition hover:bg-orange-400">
+                <Button className="rounded-xl bg-yellow-500 px-6 py-6 text-black shadow-lg shadow-yellow-500/30 transition hover:bg-yellow-400">
                   Register Interest
                 </Button>
                 <Button
                   variant="outline"
-                  className="rounded-xl border-orange-400/70 bg-transparent px-6 py-6 text-white hover:bg-orange-500/10"
+                  className="rounded-xl border-yellow-400/70 bg-transparent px-6 py-6 text-white hover:bg-yellow-500/10"
                 >
                   Become a Partner
                 </Button>
@@ -370,7 +370,7 @@ export default function FutureLeadersSummitPage() {
             </div>
             <Button
               asChild
-              className="h-fit rounded-xl bg-orange-500 px-6 py-3 text-black hover:bg-orange-400"
+              className="h-fit rounded-xl bg-yellow-500 px-6 py-3 text-black hover:bg-yellow-400"
             >
               <Link href="/join">Join Top100</Link>
             </Button>
@@ -438,7 +438,7 @@ export default function FutureLeadersSummitPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-4">
-            <Button className="rounded-xl bg-orange-500 px-6 py-6 text-black shadow-orange-500/30 hover:bg-orange-400">
+            <Button className="rounded-xl bg-yellow-500 px-6 py-6 text-black shadow-yellow-500/30 hover:bg-yellow-400">
               Apply to Showcase
             </Button>
             <Button variant="outline" className="rounded-xl border-white/20 px-6 py-6 text-white hover:bg-white/10">
@@ -526,7 +526,7 @@ export default function FutureLeadersSummitPage() {
             >
               Become a Partner
             </Button>
-            <Button className="rounded-xl bg-orange-500 px-6 py-6 text-black hover:bg-orange-400">Volunteer</Button>
+            <Button className="rounded-xl bg-yellow-500 px-6 py-6 text-black hover:bg-yellow-400">Volunteer</Button>
           </div>
         </section>
 
@@ -548,7 +548,7 @@ export default function FutureLeadersSummitPage() {
                 placeholder="Enter your email"
                 className="flex-1 rounded-xl border-white/20 bg-black/40 text-white placeholder:text-zinc-400 focus-visible:ring-orange-400"
               />
-              <Button type="submit" className="rounded-xl bg-orange-500 px-6 py-6 text-black hover:bg-orange-400">
+              <Button type="submit" className="rounded-xl bg-yellow-500 px-6 py-6 text-black hover:bg-yellow-400">
                 Subscribe
               </Button>
             </form>

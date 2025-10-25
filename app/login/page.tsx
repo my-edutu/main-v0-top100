@@ -7,9 +7,9 @@ export default function LoginPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Redirect to the actual signin page
-    router.push('/auth/signin');
+    router.replace('/');
   }, [router]);
 
-  return null; // Render nothing since we're redirecting
+  return null;
 }
+

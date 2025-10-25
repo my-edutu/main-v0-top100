@@ -58,28 +58,28 @@ const purchaseOptions = [
 
 export default function MagazinePage() {
   return (
-    <div className="bg-gradient-to-b from-zinc-950 via-black to-zinc-950 text-white">
+    <div className="bg-black text-white">
       <main className="container mx-auto space-y-20 px-4 py-16 lg:px-8">
-        <section className="relative overflow-hidden rounded-3xl border border-orange-400/20 bg-gradient-to-br from-black via-zinc-900/70 to-black p-10 shadow-xl lg:p-16">
+        <section className="relative overflow-hidden rounded-3xl border border-orange-400/20 bg-zinc-900/80 p-10 shadow-xl lg:p-16">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(249,115,22,0.12),_transparent_60%)]" />
           <div className="relative z-10 grid gap-12 lg:grid-cols-[3fr_2fr] lg:items-center">
             <div className="space-y-6">
               <p className="text-sm uppercase tracking-[0.35em] text-orange-300">Top100 Africa Future Leaders</p>
-              <h1 className="text-3xl font-semibold leading-tight sm:text-4xl lg:text-5xl">
+              <h1 className="text-3xl font-semibold leading-tight sm:text-4xl lg:text-5xl text-gray-800 dark:text-white">
                 Africa Future Leaders Magazine
               </h1>
-              <p className="text-lg text-zinc-300 lg:text-xl">
+              <p className="text-lg text-gray-700 dark:text-zinc-300 lg:text-xl">
                 Your annual immersion into the stories, strategies, and ecosystems powering the continent’s most
                 promising young changemakers. Crafted for leaders, partners, and investors who want to understand where
                 the future is being built—today.
               </p>
               <div className="flex flex-wrap gap-4">
-                <Button className="rounded-xl bg-orange-500 px-6 py-6 text-black shadow-lg shadow-orange-500/30 hover:bg-orange-400">
+                <Button className="rounded-xl bg-yellow-500 px-6 py-6 text-black shadow-lg shadow-yellow-500/30 hover:bg-yellow-400">
                   <Link href="/magazine/2024">Explore 2024 Digital Edition</Link>
                 </Button>
                 <Button
                   variant="outline"
-                  className="rounded-xl border-orange-400/60 px-6 py-6 text-white hover:bg-orange-500/10"
+                  className="rounded-xl border-yellow-400/60 px-6 py-6 text-white hover:bg-yellow-500/10"
                 >
                   <Link href="/magazine/2024#order">Purchase 2024 Print Edition</Link>
                 </Button>
@@ -93,7 +93,7 @@ export default function MagazinePage() {
                 className="object-cover"
                 priority
               />
-              <div className="absolute inset-0 bg-gradient-to-br from-black/40 via-transparent to-black/70" />
+              <div className="absolute inset-0 bg-black/50" />
             </div>
           </div>
         </section>
@@ -122,7 +122,7 @@ export default function MagazinePage() {
         <section className="grid gap-12 lg:grid-cols-[3fr_2fr] lg:items-center">
           <div className="space-y-6">
             <h2 className="text-2xl font-semibold text-white">Why the Magazine Matters</h2>
-            <p className="text-lg text-zinc-300">
+            <p className="text-lg text-gray-700 dark:text-zinc-300">
               Africa Future Leaders Magazine goes beyond celebration; it is a blueprint for how youth-led innovation is
               reshaping industries, influencing policy, and attracting serious capital. Every spread is anchored in
               data, context, and actionable insights.
@@ -176,7 +176,7 @@ export default function MagazinePage() {
                   </div>
                   <p className="text-sm leading-relaxed text-zinc-300">{option.description}</p>
                 </div>
-                <Button className="mt-6 rounded-xl bg-orange-500 px-6 py-6 text-black hover:bg-orange-400" asChild>
+                <Button className="mt-6 rounded-xl bg-yellow-500 px-6 py-6 text-black hover:bg-yellow-400" asChild>
                   <Link href={option.href}>{option.ctaLabel}</Link>
                 </Button>
               </div>
@@ -214,7 +214,7 @@ export default function MagazinePage() {
                 fill
                 className="object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-br from-black/40 via-transparent to-black/70" />
+              <div className="absolute inset-0 bg-black/50" />
             </div>
           </div>
         </section>
@@ -238,16 +238,16 @@ export default function MagazinePage() {
                 placeholder="Enter your email address"
                 className="flex-1 rounded-xl border-white/20 bg-black/40 text-white placeholder:text-zinc-400 focus-visible:ring-orange-400"
               />
-              <Button type="submit" className="rounded-xl bg-orange-500 px-6 py-6 text-black hover:bg-orange-400">
+              <Button type="submit" className="rounded-xl bg-yellow-500 px-6 py-6 text-black hover:bg-yellow-400">
                 Subscribe
               </Button>
             </form>
           </div>
         </section>
 
-        <section className="rounded-3xl border border-orange-400/20 bg-gradient-to-r from-orange-500/30 via-orange-500/10 to-transparent p-10 text-center shadow-lg">
+        <section className="rounded-3xl border border-orange-400/20 bg-orange-500/20 p-10 text-center shadow-lg">
           <h2 className="text-3xl font-semibold text-white">Let’s Keep Africa’s Future Stories Front & Centre</h2>
-          <p className="mt-4 text-lg text-orange-100">
+          <p className="mt-4 text-lg text-gray-800 dark:text-orange-100">
             Whether you are an educator, policymaker, investor, or alumni, the Africa Future Leaders Magazine keeps you
             in sync with the continent’s boldest youth-led breakthroughs.
           </p>

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 
-import { betterAuthServer } from '@/lib/better-auth/server'
+import { betterAuthServer, isBetterAuthEnabled } from '@/lib/better-auth/server'
 import type { BetterAuthSession } from '@/lib/better-auth/server'
 
 const DEFAULT_ROLE = 'user'
@@ -19,6 +19,11 @@ const isFailure = (result: RequireAdminResult): result is RequireAdminFailure =>
   Object.prototype.hasOwnProperty.call(result, 'error')
 
 export const requireAdmin = async (request: Request): Promise<RequireAdminResult> => {
+  if (!isBetterAuthEnabled || !betterAuthServer) {
+    return {
+      error: NextResponse.json({ error: 'Authentication disabled' }, { status: 503 }),
+    }
+  }
   try {
     const headers = new Headers(request.headers)
     const session = await betterAuthServer.api.getSession({ headers })

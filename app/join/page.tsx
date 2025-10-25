@@ -30,7 +30,7 @@ export default function JoinPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-zinc-900 to-zinc-950 text-white">
+    <div className="min-h-screen bg-zinc-900 text-white">
       <div className="container mx-auto px-4 py-16">
         <div className="max-w-4xl mx-auto text-center mb-16">
           <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-orange-400 to-orange-600">
@@ -100,7 +100,7 @@ export default function JoinPage() {
               </p>
               <button
                 onClick={() => setIsSubmitted(false)}
-                className="mt-4 px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors"
+                className="mt-4 px-6 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition-colors"
               >
                 Join Again
               </button>

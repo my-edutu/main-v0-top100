@@ -139,7 +139,7 @@ export default function ContactSection() {
   return (
     <section id="contact" ref={ref} className="py-12 bg-zinc-900 relative overflow-hidden">
       <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:40px_40px]" />
-      <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 to-transparent" />
+      <div className="absolute inset-0 bg-[linear-gradient(transparent,rgba(24,24,27,1))]" />
       <motion.div
         variants={containerVariants}
         initial="hidden"
@@ -196,7 +196,7 @@ export default function ContactSection() {
               </div>
               <Button
                 type="submit"
-                className="w-full bg-orange-500 text-white hover:bg-orange-600 transition-colors h-10"
+                className="w-full bg-yellow-500 text-white hover:bg-yellow-600 transition-colors h-10"
                 disabled={isSubmitting || isSubmitted}
               >
                 <span className="flex items-center justify-center">

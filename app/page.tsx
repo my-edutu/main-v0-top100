@@ -3,9 +3,17 @@
 import { useEffect, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
+import { motion } from "framer-motion"
+import { ArrowRight } from "lucide-react"
+
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import AwardeesSection from "./components/AwardeesSection"
+import BlogSection from "./components/BlogSection"
+import MagazineSection from "./components/MagazineSection"
+import RecentEventsSection from "./components/RecentEventsSection"
+import ImpactSection from "./components/ImpactSection"
 import {
   Accordion,
   AccordionContent,
@@ -21,24 +29,10 @@ type Awardee = {
   imageUrl: string
 }
 
-type Story = {
-  title: string
-  excerpt: string
-  tags: string[]
-  href: string
-  imageUrl: string
-}
-
 type Initiative = {
   title: string
   description: string
   href: string
-}
-
-type Statistic = {
-  value: string
-  label: string
-  description: string
 }
 
 type FAQ = {
@@ -75,96 +69,6 @@ const heroAwardees: Awardee[] = [
   },
 ]
 
-const featuredStories: Story[] = [
-  {
-    title: "How Project100 Scholars Are Building Resilient Communities",
-    excerpt: "Four scholars share the community-led innovations that are reshaping access to education and healthcare.",
-    tags: ["Impact", "Community"],
-    href: "/blog/project100-resilience",
-    imageUrl: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?auto=format&fit=crop&w=1200&q=80",
-  },
-  {
-    title: "Inside Talk100 Live: Conversations that Spark Policy Shifts",
-    excerpt: "Highlights from our latest Talk100 Live session with young policymakers driving change across the continent.",
-    tags: ["Leadership", "Policy"],
-    href: "/blog/talk100-live-highlights",
-    imageUrl: "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1200&q=80",
-  },
-  {
-    title: "Designing the Future Leaders Summit Experience",
-    excerpt: "Behind the scenes with the curators building immersive learning journeys for young innovators.",
-    tags: ["Summit", "Innovation"],
-    href: "/blog/future-leaders-summit",
-    imageUrl: "https://images.unsplash.com/photo-1515165562835-c4c7e1d19f3c?auto=format&fit=crop&w=1200&q=80",
-  },
-  {
-    title: "Funding the Next Generation of African Founders",
-    excerpt: "A new opportunities hub is connecting youth-led ventures to capital, mentorship, and global partners.",
-    tags: ["Opportunities", "Entrepreneurship"],
-    href: "/blog/opportunities-hub-launch",
-    imageUrl: "https://images.unsplash.com/photo-1454165205744-3b78555e5572?auto=format&fit=crop&w=1200&q=80",
-  },
-  {
-    title: "Breaking Barriers: Women in Tech Across Africa",
-    excerpt: "The inspiring journey of four women who've overcome challenges to lead innovation in their communities.",
-    tags: ["Innovation", "Women in Tech"],
-    href: "/blog/women-in-tech-across-africa",
-    imageUrl: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=1200&q=80",
-  },
-  {
-    title: "Climate Action Champions: The 2024 Awardees",
-    excerpt: "Meet the young climate leaders whose projects are driving sustainable development across the continent.",
-    tags: ["Climate", "Sustainability"],
-    href: "/blog/climate-action-champions",
-    imageUrl: "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=1200&q=80",
-  },
-]
-
-const awardeeHighlights: Awardee[] = [
-  {
-    name: "Awa Traore",
-    achievement: "Launched a digital literacy academy for girls.",
-    country: "Mali",
-    headline: "Coding confidence for thousands",
-    imageUrl: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=600&q=80",
-  },
-  {
-    name: "Kofi Boateng",
-    achievement: "Co-founded an affordable agri-tech sensor network.",
-    country: "Ghana",
-    headline: "Smart farms, thriving harvests",
-    imageUrl: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80",
-  },
-  {
-    name: "Zanele Dube",
-    achievement: "Runs a pan-African mentorship exchange for girls in STEM.",
-    country: "South Africa",
-    headline: "Mentorship without borders",
-    imageUrl: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=600&q=80",
-  },
-  {
-    name: "Omar Diallo",
-    achievement: "Engineered AI tools for early crop disease detection.",
-    country: "Senegal",
-    headline: "Predicting harvest health",
-    imageUrl: "https://images.unsplash.com/photo-1519345182560-3f2917c472ef?auto=format&fit=crop&w=600&q=80",
-  },
-  {
-    name: "Nadia Benkirane",
-    achievement: "Built a cross-border microfinance network for women entrepreneurs.",
-    country: "Morocco",
-    headline: "Catalyzing inclusive finance",
-    imageUrl: "https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=crop&w=600&q=80",
-  },
-  {
-    name: "Tendai Chirwa",
-    achievement: "Developed a mental health playbook for universities.",
-    country: "Malawi",
-    headline: "Campus wellbeing rebooted",
-    imageUrl: "https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=crop&w=600&q=80",
-  },
-]
-
 const initiatives: Initiative[] = [
   {
     title: "Project100 Scholarship",
@@ -188,44 +92,36 @@ const initiatives: Initiative[] = [
   },
 ]
 
-const statistics: Statistic[] = [
-  {
-    value: "31+",
-    label: "Countries",
-    description: "Across the African continent",
-  },
-  {
-    value: "97,000",
-    label: "Lives impacted",
-    description: "Stories of students inspiring their communities",
-  },
-  {
-    value: "400+",
-    label: "Awardees",
-    description: "Future leaders recognized since launch",
-  },
-  {
-    value: "3",
-    label: "Global partners",
-    description: "Strategic collaborations powering the movement",
-  },
-]
-
 const faqs: FAQ[] = [
   {
-    question: "Who can be nominated for Top100 Africa Future Leaders?",
+    question: "What is Top100 Africa Future Leaders?",
     answer:
-      "We celebrate undergraduate students in African universities who are demonstrating outstanding leadership, innovation, or community impact across any discipline.",
+      "Top100 Africa Future Leaders is a youth-driven movement that identifies, celebrates, and empowers Africa's brightest young leaders.",
   },
   {
-    question: "How does the programme support selected awardees?",
+    question: "When did it start?",
     answer:
-      "Awardees join a continent-wide network, receive mentorship, gain visibility through our storytelling platforms, and access opportunities that accelerate their initiatives.",
+      "The initiative started in 2023 and officially launched its first continental summit in 2024, profiling 400+ outstanding students and leaders across Africa.",
   },
   {
-    question: "Can organisations collaborate with Top100?",
+    question: "What makes Top100 unique?",
     answer:
-      "Yes. We craft bespoke partnerships for organisations that want to co-create scholarships, mentorship programmes, internships, or youth-focused events.",
+      "Unlike traditional awards, Top100 is a community. Awardees join a lifelong network gaining visibility, mentorship, and access to global opportunities.",
+  },
+  {
+    question: "What happened at the 2024 Africa Future Leaders Empowerment Summit?",
+    answer:
+      "The 2024 Summit brought hundreds of students, professionals, and partners together under the theme ‘Empowering Africa's Future Leaders’.",
+  },
+  {
+    question: "Who can be part of Top100?",
+    answer:
+      "We welcome awardees, volunteers, partners, and donors aligned with youth empowerment and community impact.",
+  },
+  {
+    question: "How are awardees selected?",
+    answer:
+      "Awardees are nominated and assessed on academic excellence, leadership, community contribution, and their potential for impact.",
   },
 ]
 
@@ -244,30 +140,9 @@ const teamMembers: TeamMember[] = [
   },
 ]
 
-const StatsMarqueeStyle = () => (
-  <style jsx global>{`
-    @keyframes stats-marquee-horizontal {
-      from {
-        transform: translateX(0);
-      }
-      to {
-        transform: translateX(-50%);
-      }
-    }
-
-    .animate-stats-marquee-horizontal {
-      display: flex;
-      animation: stats-marquee-horizontal 24s linear infinite;
-    }
-
-    .animate-stats-marquee-horizontal:hover {
-      animation-play-state: paused;
-    }
-  `}</style>
-)
-
 export default function HomePage() {
   const [currentHeroIndex, setCurrentHeroIndex] = useState(0)
+  const [visibleFaqs, setVisibleFaqs] = useState(3)
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -279,362 +154,290 @@ export default function HomePage() {
 
   const activeAwardee = heroAwardees[currentHeroIndex]
 
+  const showMoreFaqs = () => {
+    setVisibleFaqs((prev) => Math.min(prev + 3, faqs.length))
+  }
+
   return (
-    <div className="bg-gradient-to-b from-zinc-950 via-black to-zinc-950 text-white">
-      <StatsMarqueeStyle />
-      <div className="container mx-auto px-4 lg:px-8 py-16 space-y-20">
-        <section className="relative overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-900/40 shadow-sm">
-          <div className="absolute inset-0 lg:hidden">
-            <Image
-              src={activeAwardee.imageUrl}
-              alt={activeAwardee.name}
-              fill
-              className="object-cover blur-[6px] scale-110"
-              priority
-            />
-            <div className="absolute inset-0 bg-black/70" />
-          </div>
-
-          <div className="relative grid gap-10 lg:grid-cols-[3fr_2fr]">
-            <div className="p-8 sm:p-12 flex flex-col justify-center space-y-6">
-              <p className="text-sm uppercase tracking-[0.3em] text-orange-300">
-                {activeAwardee.country} · {activeAwardee.name}
-              </p>
-              <div className="space-y-4">
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight">
-                  {activeAwardee.headline}
-                </h1>
-                <p className="text-lg text-zinc-300">
-                  {activeAwardee.achievement}
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-3">
-                <Button asChild className="bg-orange-500 text-black hover:bg-orange-400 px-6 py-6 rounded-xl">
-                  <Link href="/awardees">Explore Awardees</Link>
-                </Button>
-                <Button
-                  asChild
-                  variant="outline"
-                  className="border-zinc-700 bg-transparent text-white hover:bg-zinc-800 px-6 py-6 rounded-xl"
-                >
-                  <Link href="/blog">Read Stories</Link>
-                </Button>
-              </div>
-              <div className="flex space-x-2 pt-2">
-                {heroAwardees.map((awardee, index) => (
-                  <button
-                    key={awardee.name}
-                    onClick={() => setCurrentHeroIndex(index)}
-                    className={`h-2.5 w-10 rounded-full transition-all ${
-                      currentHeroIndex === index ? "bg-orange-400" : "bg-zinc-700 hover:bg-zinc-600"
-                    }`}
-                    aria-label={`Show ${awardee.name}`}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <div className="relative hidden lg:block">
-              <Image src={activeAwardee.imageUrl} alt={activeAwardee.name} fill className="object-cover" priority />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-            </div>
-          </div>
-        </section>
-
-        <section
-          id="about"
-          className="rounded-3xl border border-zinc-800 bg-zinc-900/40 shadow-sm p-8 sm:p-12 space-y-6"
+    <div className="bg-background text-foreground">
+      <div className="space-y-16 pb-24 pt-16 md:space-y-24">
+        <motion.section
+          className="relative"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
         >
-          <div className="max-w-4xl space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-semibold">Top100 Africa Future Leaders</h2>
-            <p className="text-zinc-300 text-base sm:text-lg leading-relaxed">
-              Top100 Africa Future Leaders celebrates undergraduates rewriting what leadership looks like on the
-              continent. We spotlight students whose ideas uplift communities, unlock opportunity, and challenge the
-              status quo.
-            </p>
-            <p className="text-zinc-400 text-sm sm:text-base leading-relaxed">
-              From mentorship and global exposure to funding pathways and storytelling support, every cohort receives the
-              resources they need to transform campus-born projects into scalable solutions.
-            </p>
-          </div>
-          <Button asChild className="bg-orange-500 text-black hover:bg-orange-400 px-6 py-6 rounded-xl w-full sm:w-auto">
-            <Link href="/africa-future-leaders">Read more</Link>
-          </Button>
-        </section>
-
-        <section className="space-y-8">
-          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-            <div>
-              <h2 className="text-2xl sm:text-3xl font-semibold">Impact at a glance</h2>
-              <p className="text-zinc-400 text-base sm:text-lg">
-                Highlights from the Top100 network, inspired by our Africa Future Leaders showcase.
-              </p>
-            </div>
-          </div>
-          <div className="relative overflow-hidden rounded-3xl border border-orange-400/15 bg-zinc-900/40 py-6">
-            <div className="pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-zinc-950 via-zinc-950/70 to-transparent" />
-            <div className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-zinc-950 via-zinc-950/70 to-transparent" />
-            <div className="overflow-hidden px-4 sm:px-6">
-              <div className="flex animate-stats-marquee-horizontal gap-4 sm:gap-6">
-                {[...statistics, ...statistics].map((stat, index) => (
-                  <div
-                    key={`${stat.label}-${index}`}
-                    className="flex h-48 w-[210px] flex-col justify-between rounded-2xl border border-orange-400/20 bg-black/50 px-5 py-5 shadow-md backdrop-blur-lg transition hover:border-orange-400/50 hover:shadow-orange-500/10 sm:h-52 sm:w-[240px]"
-                  >
-                    <div className="text-2xl font-semibold text-orange-300 sm:text-3xl">{stat.value}</div>
-                    <div className="mt-2 text-[10px] font-semibold uppercase tracking-[0.35em] text-zinc-200 sm:text-xs">
-                      {stat.label}
-                    </div>
-                    <p className="mt-4 text-xs text-zinc-400 leading-relaxed sm:text-sm">{stat.description}</p>
+          <div className="container">
+            <div className="overflow-hidden rounded-[32px] border border-border/60 bg-card/95 shadow-xl shadow-primary/10 backdrop-blur-xl">
+              <div className="grid gap-8 p-8 sm:p-10 lg:grid-cols-[1.1fr_0.9fr] lg:p-12">
+                <div className="space-y-8">
+                  <div className="flex items-center gap-3 text-xs uppercase tracking-[0.35em] text-primary">
+                    <span className="inline-flex h-2 w-2 rounded-full bg-primary" />
+                    <span>{activeAwardee.country}</span>
                   </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="space-y-8">
-          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-            <div>
-              <h2 className="text-2xl sm:text-3xl font-semibold">Featured Stories</h2>
-              <p className="text-zinc-400 text-base sm:text-lg">
-                Follow the journeys of young leaders reshaping Africa&apos;s future.
-              </p>
-            </div>
-            <Button asChild variant="ghost" className="text-orange-300 hover:text-orange-200 hover:bg-orange-500/10">
-              <Link href="/blog">Browse all stories</Link>
-            </Button>
-          </div>
-
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {featuredStories.slice(0, 6).map((story) => (
-              <Link
-                key={story.title}
-                href={story.href}
-                className="group flex flex-col rounded-2xl border border-zinc-800 bg-zinc-900/40 shadow-sm transition hover:-translate-y-1 hover:border-orange-400/40 hover:shadow-lg overflow-hidden"
-              >
-                <div className="relative h-48 w-full overflow-hidden">
-                  <Image src={story.imageUrl} alt={story.title} fill className="object-cover transition group-hover:scale-105" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
-                </div>
-                <div className="p-6 flex flex-col flex-1">
-                  <div className="flex gap-2 mb-4 flex-wrap">
-                    {story.tags.map((tag) => (
-                      <Badge key={tag} variant="outline" className="border-orange-400/30 text-orange-200">
-                        {tag}
-                      </Badge>
+                  <div className="space-y-4">
+                    <h1 className="text-4xl font-semibold leading-tight sm:text-5xl">
+                      {activeAwardee.headline}
+                    </h1>
+                    <p className="text-base text-muted-foreground sm:text-lg">
+                      {activeAwardee.achievement}
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-3 sm:flex-row">
+                    <Button asChild size="lg" className="bg-orange-500 text-black hover:bg-orange-400">
+                      <Link href="/awardees">Explore awardees</Link>
+                    </Button>
+                    <Button asChild variant="outline" size="lg" className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-black">
+                      <Link href="/blog">Read stories</Link>
+                    </Button>
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    {heroAwardees.map((awardee, index) => (
+                      <button
+                        key={awardee.name}
+                        onClick={() => setCurrentHeroIndex(index)}
+                        className={cn(
+                          "h-2.5 w-10 rounded-full transition-all",
+                          currentHeroIndex === index
+                            ? "bg-primary"
+                            : "bg-muted hover:bg-primary/40",
+                        )}
+                        aria-label={`Show ${awardee.name}`}
+                      />
                     ))}
                   </div>
-                  <h3 className="text-xl font-semibold group-hover:text-orange-300 transition">{story.title}</h3>
-                  <p className="mt-3 text-sm text-zinc-400 leading-relaxed flex-1">{story.excerpt}</p>
-                  <span className="mt-5 inline-flex items-center text-sm font-medium text-orange-300">
-                    Read more &rarr;
-                  </span>
                 </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        <section className="space-y-8">
-          <div>
-            <h2 className="text-2xl sm:text-3xl font-semibold">Awardee Highlights</h2>
-            <p className="text-zinc-400 text-base sm:text-lg">
-              Meet the changemakers leading impact in communities across Africa.
-            </p>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {awardeeHighlights.map((awardee) => (
-              <div
-                key={awardee.name}
-                className="flex items-start gap-4 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-5 shadow-sm transition hover:border-orange-400/30"
-              >
-                <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl">
-                  <Image src={awardee.imageUrl} alt={awardee.name} fill className="object-cover" />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-semibold">{awardee.name}</h3>
-                    <span className="text-xs uppercase tracking-widest text-orange-300">{awardee.country}</span>
+                <div className="relative overflow-hidden rounded-[28px] bg-surface/70">
+                  <Image
+                    src={activeAwardee.imageUrl}
+                    alt={activeAwardee.name}
+                    fill
+                    className="object-cover"
+                    priority
+                  />
+                  <div className="absolute inset-0 bg-[linear-gradient(transparent,rgba(0,0,0,0.7))]" />
+                  <div className="absolute bottom-4 left-4 right-4 rounded-2xl border border-white/30 bg-background/80 p-4 text-sm shadow-lg shadow-primary/10">
+                    <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Featured awardee</p>
+                    <p className="mt-2 text-base font-semibold">{activeAwardee.name}</p>
                   </div>
-                  <p className="text-sm text-zinc-300 leading-snug">{awardee.headline}</p>
-                  <p className="text-xs text-zinc-500 leading-snug">{awardee.achievement}</p>
                 </div>
               </div>
-            ))}
+            </div>
           </div>
+        </motion.section>
 
-          <Button
-            asChild
-            className="font-bold bg-orange-500 text-black hover:bg-orange-400 w-full sm:w-auto px-6 py-6 rounded-xl"
-          >
-            <Link href="/awardees">View all awardees</Link>
-          </Button>
+        <section id="about">
+          <div className="container">
+            <div className="rounded-[32px] border border-border/70 bg-surface p-8 shadow-sm sm:p-10">
+              <div className="space-y-6">
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.32em] text-primary">
+                    About the movement
+                  </p>
+                  <h2 className="text-3xl font-semibold leading-tight sm:text-[2.5rem]">
+                    Top100 Africa Future Leaders
+                  </h2>
+                </div>
+                <div className="space-y-4 text-base text-muted-foreground sm:text-lg">
+                  <p>
+                    We celebrate undergraduates rewriting what leadership looks like across the continent. From Lagos to
+                    Kigali, our awardees transform bold ideas into movements that uplift communities and open doors for
+                    their peers.
+                  </p>
+                  <p>
+                    Each cohort receives mentorship, global exposure, funding pathways, and storytelling support—because
+                    every breakthrough deserves a platform and a community to sustain it.
+                  </p>
+                </div>
+                <Button asChild size="lg" className="w-full sm:w-auto">
+                  <Link href="/africa-future-leaders">Explore our story</Link>
+                </Button>
+              </div>
+            </div>
+          </div>
         </section>
 
-        <section className="space-y-8">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <ImpactSection />
+
+        <section id="initiatives">
+          <div className="container space-y-6">
             <div>
-              <h2 className="text-2xl sm:text-3xl font-semibold">Meet the Team</h2>
-              <p className="text-zinc-400 text-base sm:text-lg">
-                The people championing the Top100 movement across programmes, partners, and storytelling.
+              <h2 className="text-3xl font-semibold">Our latest initiatives</h2>
+              <p className="text-sm text-muted-foreground sm:text-base">
+                Each initiative unlocks mentorship, funding, and opportunities tailored for Africa&apos;s youth.
               </p>
             </div>
-          </div>
-
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {teamMembers.map((member) => (
-              <div
-                key={member.name}
-                className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 shadow-sm transition hover:border-orange-400/30"
-              >
-                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-xl bg-orange-500/20 text-2xl font-semibold text-orange-200">
-                  {member.name
-                    .split(" ")
-                    .map((part) => part[0])
-                    .join("")}
-                </div>
-                <div className="space-y-2">
-                  <h3 className="text-lg font-semibold text-white">{member.name}</h3>
-                  <p className="text-sm uppercase tracking-[0.25em] text-orange-300">{member.role}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section id="magazine" className="rounded-3xl border border-orange-400/20 bg-gradient-to-r from-zinc-900 via-zinc-900/80 to-black p-8 sm:p-12 shadow-sm">
-          <div className="grid gap-10 lg:grid-cols-2">
-            <div className="space-y-4">
-              <h2 className="text-2xl sm:text-3xl font-semibold text-orange-200">Partner with us</h2>
-              <p className="text-zinc-200 text-base sm:text-lg leading-relaxed">
-                Collaborate with Top100 to unlock bespoke programmes, scholarships, and experiences that elevate Africa&apos;s next generation of leaders.
-              </p>
-              <ul className="space-y-3 text-sm text-orange-100/80 leading-relaxed">
-                <li className="flex gap-3">
-                  <span className="mt-2 h-2 w-2 flex-shrink-0 rounded-full bg-orange-300" />
-                  <span>Showcase your organisation alongside Africa&apos;s brightest young innovators.</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="mt-2 h-2 w-2 flex-shrink-0 rounded-full bg-orange-300" />
-                  <span>Co-create mentorship, internship, or venture support pipelines tailored to your goals.</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="mt-2 h-2 w-2 flex-shrink-0 rounded-full bg-orange-300" />
-                  <span>Invest in catalytic events such as Talk100 Live and the Future Leaders Summit.</span>
-                </li>
-              </ul>
+            <div className="grid grid-cols-2 gap-6">
+              {initiatives.map((initiative) => (
+                <Link
+                  key={initiative.title}
+                  href={initiative.href}
+                  className={`group rounded-[28px] border border-border/40 p-6 shadow-md transition hover:-translate-y-1 hover:border-primary/60 hover:shadow-lg flex flex-col h-full ${
+                    initiative.title === "Project100 Scholarship" 
+                      ? "bg-blue-50/80 dark:bg-blue-950/20" 
+                      : initiative.title === "Talk100 Live" 
+                      ? "bg-purple-50/80 dark:bg-purple-950/20" 
+                      : initiative.title === "Future Leaders Summit" 
+                      ? "bg-amber-50/80 dark:bg-amber-950/20" 
+                      : "bg-emerald-50/80 dark:bg-emerald-950/20"
+                  }`}
+                >
+                  <div>
+                    <h3 className="text-xl font-semibold group-hover:text-primary transition">
+                      {initiative.title}
+                    </h3>
+                    <p className="mt-3 text-sm text-muted-foreground sm:text-base">
+                      {initiative.description}
+                    </p>
+                  </div>
+                  <div className="mt-auto pt-5 flex justify-end">
+                    <div className="rounded-full bg-primary/10 p-2 group-hover:bg-primary/20 transition-colors">
+                      <ArrowRight className="h-4 w-4 text-primary" />
+                    </div>
+                  </div>
+                </Link>
+              ))}
             </div>
-            <div className="rounded-2xl border border-orange-400/20 bg-black/40 p-6 space-y-4">
-              <h3 className="text-lg font-semibold text-orange-200">Let&apos;s build something bold</h3>
-              <p className="text-sm text-zinc-300 leading-relaxed">
-                Share your partnership idea and we&apos;ll connect you with the team crafting collaborations across the continent.
-              </p>
-              <div className="space-y-3 text-sm text-zinc-400">
-                <p>Email: partnerships@top100africa.com</p>
-                <p>WhatsApp: +234 812 345 6789</p>
-              </div>
-              <Button asChild className="bg-orange-500 text-black hover:bg-orange-400 px-6 py-6 rounded-xl">
-                <Link href="/join">Partner with us</Link>
+            <div className="flex justify-center">
+              <Button asChild variant="outline" size="sm">
+                <Link href="/initiatives">Explore all initiatives</Link>
               </Button>
             </div>
           </div>
         </section>
 
-        <section id="initiatives" className="space-y-8">
-          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-            <div>
-              <h2 className="text-2xl sm:text-3xl font-semibold">Initiatives</h2>
-              <p className="text-zinc-400 text-base sm:text-lg">
-                Dive into the programmes powering the Top100 Africa Future Leaders movement.
+        <BlogSection />
+        <AwardeesSection />
+        <MagazineSection />
+        <RecentEventsSection />
+
+        <section>
+          <div className="container space-y-8">
+            <div className="space-y-2">
+              <h2 className="text-3xl font-semibold">
+                Meet the people behind the platform
+              </h2>
+              <p className="text-sm text-muted-foreground sm:text-base">
+                Programme leads, storytellers, and community builders sustaining the Top100 movement.
               </p>
             </div>
-            <Button asChild variant="ghost" className="text-orange-300 hover:text-orange-200 hover:bg-orange-500/10">
-              <Link href="/initiatives">Explore all initiatives</Link>
-            </Button>
-          </div>
-
-          <div className="grid gap-6 sm:grid-cols-2">
-            {initiatives.map((initiative) => (
-              <Link
-                key={initiative.title}
-                href={initiative.href}
-                className="group rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 shadow-sm transition hover:-translate-y-1 hover:border-orange-400/40 hover:shadow-lg"
-              >
-                <h3 className="text-xl font-semibold group-hover:text-orange-300 transition">
-                  {initiative.title}
-                </h3>
-                <p className="mt-3 text-sm text-zinc-400 leading-relaxed">
-                  {initiative.description}
-                </p>
-                <span className="mt-5 inline-flex items-center text-sm font-medium text-orange-300">
-                  Learn more &rarr;
-                </span>
-              </Link>
-            ))}
+            <div className="flex gap-6 overflow-x-auto pb-4 -mx-4 px-4">
+              {teamMembers.map((member) => (
+                <div
+                  key={member.name}
+                  className="flex-shrink-0 w-64 rounded-[28px] border border-border/60 bg-card shadow-lg transition hover:-translate-y-1 hover:shadow-xl"
+                >
+                  <div className="relative h-48 overflow-hidden rounded-t-[28px]">
+                    <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                      <div className="text-4xl font-bold text-primary">
+                        {member.name.split(' ').map(n => n[0]).join('')}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-5 space-y-2">
+                    <h3 className="text-lg font-bold">{member.name}</h3>
+                    <p className="text-sm uppercase tracking-[0.15em] text-muted-foreground">{member.role}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 
-        <section id="faq" className="space-y-8">
-          <div>
-            <h2 className="text-2xl sm:text-3xl font-semibold">Frequently Asked Questions</h2>
-            <p className="text-zinc-400 text-base sm:text-lg">
-              Answers to the questions we hear most from nominees, partners, and supporters.
-            </p>
+        <section id="magazine">
+          <div className="container">
+            <div className="grid gap-8 rounded-[32px] border border-border/60 bg-card p-8 shadow-lg shadow-primary/10">
+              <div className="space-y-5">
+                <h2 className="text-3xl font-semibold leading-tight sm:text-[2.25rem]">
+                  Partner with us to unlock bespoke programmes and future-forward experiences.
+                </h2>
+                <ul className="space-y-3 text-sm text-muted-foreground sm:text-base">
+                  <li className="flex items-start gap-3">
+                    <span className="mt-2 h-2.5 w-2.5 rounded-full bg-primary" />
+                    Showcase your organisation alongside Africa&apos;s brightest young innovators.
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="mt-2 h-2.5 w-2.5 rounded-full bg-primary" />
+                    Co-create mentorship, internship, or venture pipelines tailored to your goals.
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="mt-2 h-2.5 w-2.5 rounded-full bg-primary" />
+                    Invest in catalytic gatherings such as Talk100 Live and the Future Leaders Summit.
+                  </li>
+                </ul>
+                <Button asChild size="lg" className="w-full sm:w-auto">
+                  <Link href="/join">Partner with us</Link>
+                </Button>
+              </div>
+            </div>
           </div>
-          <Accordion
-            type="single"
-            collapsible
-            className="space-y-4"
-          >
-            {faqs.map((faq, index) => (
-              <AccordionItem
-                key={faq.question}
-                value={`faq-${index}`}
-                className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/40 shadow-sm transition hover:border-orange-400/30"
-              >
-                <AccordionTrigger className="px-6 py-4 text-left text-lg font-semibold text-white hover:text-orange-300 data-[state=open]:text-orange-300">
-                  {faq.question}
-                </AccordionTrigger>
-                <AccordionContent className="px-6 pb-5">
-                  <p className="text-sm text-zinc-300 leading-relaxed">{faq.answer}</p>
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
         </section>
 
-        <section
-          id="contact"
-          className="rounded-3xl border border-zinc-800 bg-gradient-to-r from-zinc-900 via-black to-zinc-900 p-10 shadow-sm"
-        >
-          <div className="max-w-3xl space-y-6">
+        <section id="faq">
+          <div className="container space-y-6">
             <div className="space-y-3">
-              <h2 className="text-3xl font-semibold">Stay in the loop</h2>
-              <p className="text-zinc-400 text-lg">
-                Subscribe for monthly updates on awardees, events, and opportunities.
+              <h2 className="text-3xl font-semibold">Frequently asked questions</h2>
+              <p className="text-sm text-muted-foreground sm:text-base">
+                Answers for nominees, partners, and community members curious about the journey ahead.
               </p>
             </div>
-            <form
-              className="flex flex-col sm:flex-row gap-4"
-              onSubmit={(event) => {
-                event.preventDefault()
-              }}
-            >
-              <Input
-                type="email"
-                placeholder="Enter your email address"
-                className="flex-1 rounded-xl border-zinc-700 bg-zinc-900 text-white placeholder:text-zinc-500"
-                required
-              />
-              <Button type="submit" className="rounded-xl bg-orange-500 px-6 py-6 text-black hover:bg-orange-400">
-                Subscribe
-              </Button>
-            </form>
-            <p className="text-xs text-zinc-500">
-              We respect your inbox. Expect one email per month with curated highlights.
-            </p>
+            <Accordion type="single" collapsible className="space-y-4">
+              {faqs.slice(0, visibleFaqs).map((faq, index) => (
+                <AccordionItem
+                  key={faq.question}
+                  value={`faq-${index}`}
+                  className="overflow-hidden rounded-[24px] border border-border/60 bg-card/95 shadow-sm transition hover:border-primary/40"
+                >
+                  <AccordionTrigger className="px-6 py-4 text-left text-base font-semibold hover:text-primary data-[state=open]:text-primary">
+                    {faq.question}
+                  </AccordionTrigger>
+                  <AccordionContent className="px-6 pb-5 text-sm text-muted-foreground">
+                    {faq.answer}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+            {visibleFaqs < faqs.length && (
+              <div className="flex justify-center">
+                <Button variant="soft" size="lg" onClick={showMoreFaqs}>
+                  Show more questions
+                </Button>
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section id="contact">
+          <div className="container">
+            <div className="rounded-[32px] border border-border/60 bg-card/95 p-8 shadow-lg shadow-primary/10 sm:p-12">
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <h2 className="text-3xl font-semibold">Stay in the loop</h2>
+                  <p className="text-sm text-muted-foreground sm:text-base">
+                    Get monthly highlights on awardees, opportunities, and events delivered straight to your inbox.
+                  </p>
+                </div>
+                <form
+                  className="flex flex-col gap-4 sm:flex-row"
+                  onSubmit={(event) => {
+                    event.preventDefault()
+                  }}
+                >
+                  <Input
+                    type="email"
+                    placeholder="Email address"
+                    className="flex-1 rounded-2xl border-border/60 bg-background"
+                    required
+                  />
+                  <Button type="submit" size="lg" className="rounded-2xl">
+                    Subscribe
+                  </Button>
+                </form>
+                <p className="text-xs text-muted-foreground">
+                  We respect your inbox. Expect one email per month with curated highlights and opportunities.
+                </p>
+              </div>
+            </div>
           </div>
         </section>
       </div>

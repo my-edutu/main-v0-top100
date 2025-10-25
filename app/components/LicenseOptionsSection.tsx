@@ -77,7 +77,7 @@ export default function LicenseOptionsSection() {
 
   return (
     <section ref={ref} id="license-options" className="py-20 relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-black via-zinc-900/20 to-black"></div>
+      <div className="absolute inset-0 bg-black"></div>
 
       <div className="container mx-auto px-4 relative">
         <motion.div
@@ -171,7 +171,7 @@ export default function LicenseOptionsSection() {
                     </div>
                   )}
 
-                  <Button asChild className={`w-full bg-white text-black hover:bg-zinc-200 transition-colors`}>
+                  <Button asChild className={`w-full bg-yellow-500 text-black hover:bg-yellow-400 transition-colors`}>
                     <a href="https://drqnnel.beatstars.com" target="_blank" rel="noopener noreferrer">
                       Get Started
                     </a>

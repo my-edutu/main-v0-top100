@@ -135,7 +135,7 @@ export default function EventsPage() {
         onClick={() => openEventDetail(event)}
         className={`relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:border-orange-400/70 hover:bg-white/10 hover:shadow-xl ${variant === "upcoming" ? "backdrop-blur" : "backdrop-blur-sm"}`}
       >
-        <div className="absolute inset-0 bg-gradient-to-br from-orange-400/10 via-transparent to-purple-500/10 opacity-0 transition-opacity duration-300 hover:opacity-100" />
+        <div className="absolute inset-0 bg-orange-400/10 opacity-0 transition-opacity duration-300 hover:opacity-100" />
         <div className="relative z-10 flex flex-col gap-4">
           <div className="flex items-start justify-between">
             <div>
@@ -195,7 +195,7 @@ export default function EventsPage() {
   }
 
   return (
-    <div className="relative min-h-screen bg-[radial-gradient(circle_at_top,_rgba(255,140,0,0.2),_rgba(0,0,0,0.95))] py-24 text-white">
+    <div className="relative min-h-screen bg-black py-24 text-white">
       <div className="absolute inset-0 bg-[url('/textures/noise.png')] opacity-50 mix-blend-soft-light" aria-hidden="true" />
       <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-16 px-4 md:px-6">
         <div className="space-y-6 text-center md:text-left">
@@ -262,7 +262,7 @@ export default function EventsPage() {
                       </div>
                       <div className="flex flex-wrap gap-3 pt-2">
                         {featuredEvent.registration_url ? (
-                          <Button asChild className="bg-orange-500 text-black hover:bg-orange-400">
+                          <Button asChild className="bg-yellow-500 text-black hover:bg-yellow-400">
                             <a href={featuredEvent.registration_url} target="_blank" rel="noopener noreferrer">
                               {featuredEvent.registration_label || "Register"}
                               <ExternalLink className="ml-2 h-4 w-4" />
@@ -402,7 +402,7 @@ export default function EventsPage() {
                 </div>
                 <div className="flex flex-wrap gap-3">
                   {selectedEvent.registration_url ? (
-                    <Button asChild className="bg-orange-500 text-black hover:bg-orange-400">
+                    <Button asChild className="bg-yellow-500 text-black hover:bg-yellow-400">
                       <a href={selectedEvent.registration_url} target="_blank" rel="noopener noreferrer">
                         {selectedEvent.registration_label || "Register"}
                         <ExternalLink className="ml-2 h-4 w-4" />

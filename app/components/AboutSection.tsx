@@ -26,7 +26,7 @@ export default function AboutSection() {
       <div className="container mx-auto px-4">
         <div className="grid items-center gap-12 md:grid-cols-2">
           <div className="relative">
-            <div className="absolute inset-0 -rotate-6 rounded-3xl bg-gradient-to-br from-orange-400/20 to-orange-600/10"></div>
+            <div className="absolute inset-0 -rotate-6 rounded-3xl bg-orange-500/10"></div>
             <Image
               src="/african-students-celebrating-achievement-at-gradua.jpg"
               alt="Top100 Africa Future Leaders celebration"

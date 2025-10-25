@@ -28,7 +28,7 @@ const AnimatedPartnersSection = () => {
   ];
 
   return (
-    <section className="relative overflow-hidden py-10 bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950">
+    <section className="relative overflow-hidden py-10 bg-zinc-900">
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-cyan-500/25 to-transparent" />
         <div className="absolute inset-y-0 right-0 w-40 bg-gradient-to-l from-cyan-500/10 to-transparent" />

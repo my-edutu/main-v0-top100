@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 
-import { betterAuthServer } from '@/lib/better-auth/server'
+import { betterAuthServer, isBetterAuthEnabled } from '@/lib/better-auth/server'
 import { createClient } from '@/lib/supabase/server'
 
 type EnsureProfilePayload = {
@@ -12,6 +12,9 @@ type EnsureProfilePayload = {
 const DEFAULT_ROLE = 'user'
 
 export async function POST(request: Request) {
+  if (!isBetterAuthEnabled || !betterAuthServer) {
+    return NextResponse.json({ error: 'Authentication disabled' }, { status: 503 })
+  }
   try {
     const headers = new Headers(request.headers)
     const session = await betterAuthServer.api.getSession({

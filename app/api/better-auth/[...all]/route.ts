@@ -1,7 +1,10 @@
-import { betterAuthServer } from "@/lib/better-auth/server";
+import { NextResponse } from "next/server";
+import { betterAuthServer, isBetterAuthEnabled } from "@/lib/better-auth/server";
 import { toNextJsHandler } from "better-auth/next-js";
 
-const handler = toNextJsHandler(betterAuthServer);
+const disabled = () => NextResponse.json({ error: "Authentication disabled" }, { status: 503 });
 
-export const GET = handler.GET;
-export const POST = handler.POST;
+const handler = betterAuthServer && isBetterAuthEnabled ? toNextJsHandler(betterAuthServer) : null;
+
+export const GET = handler?.GET ?? disabled;
+export const POST = handler?.POST ?? disabled;
