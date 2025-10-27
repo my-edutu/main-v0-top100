@@ -18,7 +18,7 @@ const impactStats: ImpactStat[] = [
     icon: Globe,
     label: "Countries",
     value: "31+",
-    description: "Across the world",
+    description: "Across Africa",
     gradient: "linear-gradient(145deg, rgba(255,179,71,0.95), rgba(255,131,87,0.92))",
     accent: "rgba(255,255,255,0.75)",
   },
@@ -26,7 +26,7 @@ const impactStats: ImpactStat[] = [
     icon: Users,
     label: "Lives impacted",
     value: "97,000",
-    description: "Stories of students inspiring communities",
+    description: "Across Africa",
     gradient: "linear-gradient(145deg, rgba(101,200,255,0.95), rgba(80,130,255,0.92))",
     accent: "rgba(255,255,255,0.8)",
   },
@@ -34,7 +34,7 @@ const impactStats: ImpactStat[] = [
     icon: Award,
     label: "Awardees",
     value: "400+",
-    description: "Future leaders recognized since launch",
+    description: "Across Africa",
     gradient: "linear-gradient(145deg, rgba(238,186,255,0.95), rgba(255,144,214,0.92))",
     accent: "rgba(255,255,255,0.8)",
   },
@@ -64,32 +64,36 @@ export default function ImpactSection() {
                 whileHover={{ y: -5 }}
                 transition={{ type: "spring", stiffness: 220, damping: 24, delay: index * 0.05 }}
                 viewport={{ once: true, amount: 0.3 }}
-                className="group relative flex flex-col items-center gap-4 overflow-hidden rounded-[28px] border border-white/25 bg-card p-6 text-center shadow-lg shadow-black/10 transition-all"
+                className="group relative flex flex-col items-center gap-6 overflow-hidden rounded-[28px] border border-white/25 bg-card p-8 text-center shadow-lg shadow-black/10 transition-all"
                 style={{ backgroundImage: stat.gradient }}
               >
                 <span
                   aria-hidden="true"
                   className="pointer-events-none absolute inset-0 rounded-[28px] bg-white/15 opacity-0 transition-opacity duration-500 group-hover:opacity-100"
                 />
-                <div
-                  className="relative flex h-12 w-12 items-center justify-center rounded-full border bg-white/15 text-white shadow-inner"
-                  style={{
-                    borderColor: stat.accent,
-                    boxShadow: `0 18px 38px -12px ${stat.accent}`,
-                  }}
-                >
-                  <Icon className="h-5 w-5" />
-                </div>
-                <div className="space-y-2 text-center">
-                  <div className="text-4xl font-bold tracking-tight text-white">
-                    {stat.value}
+                <div className="flex items-center space-x-3">
+                  <div className="flex items-center justify-center">
+                    <div
+                      className="relative flex h-10 w-10 items-center justify-center rounded-full border bg-white/15 text-white shadow-inner"
+                      style={{
+                        borderColor: stat.accent,
+                        boxShadow: `0 18px 38px -12px ${stat.accent}`,
+                      }}
+                    >
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <div className="text-4xl font-bold tracking-tight text-white ml-2">
+                      {stat.value}
+                    </div>
                   </div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.25em] text-white/90">
-                    {stat.label}
-                  </p>
-                  <p className="text-sm leading-relaxed text-white/90">
-                    {stat.description}
-                  </p>
+                  <div className="text-left">
+                    <p className="text-xs font-semibold uppercase tracking-[0.25em] text-white/90 leading-[1.3]">
+                      {stat.label}
+                    </p>
+                    <p className="text-sm leading-[1.3] text-white/90">
+                      {stat.description}
+                    </p>
+                  </div>
                 </div>
               </motion.article>
             )

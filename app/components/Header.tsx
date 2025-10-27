@@ -60,12 +60,12 @@ export default function Header() {
     >
       <div className="container flex h-16 items-center justify-between">
         <Link href="/" className="flex items-center gap-2 text-lg font-semibold tracking-tight">
-          <div className="h-10 w-16">
+          <div className="h-12 w-24">
             <Image 
               src="/Top100 Africa Future leaders Logo .png" 
               alt="Top100 Africa Future Leaders Logo"
-              width={64}
-              height={40}
+              width={96}
+              height={48}
               className="h-full w-full object-contain"
             />
           </div>

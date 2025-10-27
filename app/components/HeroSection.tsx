@@ -30,15 +30,6 @@ const FloatingParticle = ({ delay }: { delay: number }) => {
 }
 
 export default function HeroSection() {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start start", "end start"],
-  })
-
-  const y = useTransform(scrollYProgress, [0, 1], ["0%", "50%"])
-  const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0])
-
   const [isHovered, setIsHovered] = useState(false)
 
   const stats = [
@@ -56,17 +47,14 @@ export default function HeroSection() {
   }
 
   return (
-    <section
-      ref={containerRef}
-      className="relative min-h-screen overflow-hidden bg-linear-to-b from-slate-100 via-white to-slate-100 text-slate-900 dark:from-black dark:via-black dark:to-black dark:text-white transition-colors duration-300"
-    >
+    <section className="relative min-h-screen overflow-hidden bg-linear-to-b from-slate-100 via-white to-slate-100 text-slate-900 dark:from-black dark:via-black dark:to-black dark:text-white transition-colors duration-300">
       <div className="absolute inset-0 overflow-hidden">
         {[...Array(50)].map((_, index) => (
           <FloatingParticle key={index} delay={index * 100} />
         ))}
       </div>
 
-      <motion.div style={{ y, opacity }} className="relative px-4 py-16 sm:px-6 md:px-8 md:py-24 xl:py-28">
+      <motion.div className="relative px-4 py-16 sm:px-6 md:px-8 md:py-24 xl:py-28">
         <div className="mx-auto max-w-6xl md:max-w-7xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}

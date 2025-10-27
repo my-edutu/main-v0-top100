@@ -263,12 +263,12 @@ export default function HomePage() {
                 Each initiative unlocks mentorship, funding, and opportunities tailored for Africa&apos;s youth.
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-6">
+            <div className="flex flex-col gap-6">
               {initiatives.map((initiative) => (
                 <Link
                   key={initiative.title}
                   href={initiative.href}
-                  className={`group rounded-[28px] border border-transparent p-1 shadow-md transition-all hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/20 flex flex-col h-full ${
+                  className={`group rounded-[28px] border border-transparent p-1 shadow-md transition-all hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/20 ${
                     initiative.title === "Project100 Scholarship" 
                       ? "bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30" 
                       : initiative.title === "Talk100 Live" 
