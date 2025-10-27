@@ -105,6 +105,7 @@ export default function BlogSection() {
                     alt={post.title}
                     fill
                     className="object-cover transition duration-500 group-hover:scale-105"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   />
                   <div className="absolute left-4 top-4">
                     <Badge variant="soft" className="rounded-full text-[0.7rem]">

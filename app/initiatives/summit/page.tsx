@@ -349,7 +349,7 @@ export default function FutureLeadersSummitPage() {
                 className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-sm transition hover:border-orange-400/40"
               >
                 <div className="relative h-44 w-full overflow-hidden rounded-2xl">
-                  <Image src={speaker.imageUrl} alt={speaker.name} fill className="object-cover" />
+                  <Image src={speaker.imageUrl} alt={speaker.name} fill className="object-cover" sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
                 </div>
                 <div className="mt-4 space-y-1">
                   <h3 className="text-lg font-semibold text-white">{speaker.name}</h3>
@@ -382,7 +382,7 @@ export default function FutureLeadersSummitPage() {
                 className="rounded-3xl border border-white/10 bg-black/40 p-6 shadow-sm transition hover:border-orange-400/40"
               >
                 <div className="relative h-44 w-full overflow-hidden rounded-2xl">
-                  <Image src={member.imageUrl} alt={member.name} fill className="object-cover" />
+                  <Image src={member.imageUrl} alt={member.name} fill className="object-cover" sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
                 </div>
                 <div className="mt-4 space-y-1">
                   <h3 className="text-lg font-semibold text-white">{member.name}</h3>

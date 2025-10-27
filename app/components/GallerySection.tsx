@@ -175,9 +175,9 @@ export default function GallerySection() {
                 <Image
                   src={image.src || "/IMG_0682.jpg"}
                   alt={image.alt}
-                  width={300}
-                  height={200}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                  fill
+                  className="object-cover group-hover:scale-110 transition-transform duration-300"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 />
                 <div className="absolute top-2 right-2">
                   <Badge className="bg-orange-500/90 text-white backdrop-blur-sm text-xs px-2 py-1">

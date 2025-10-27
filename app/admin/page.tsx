@@ -1,7 +1,5 @@
 'use client'
 
-
-
 import { useState, useEffect, useCallback } from 'react'
 
 import { useRouter } from 'next/navigation'
@@ -46,8 +44,6 @@ import {
 } from 'lucide-react'
 
 import { toast } from 'sonner'
-import { supabase } from '@/lib/supabase/client'
-import { betterAuthClient } from '@/lib/better-auth/client'
 
 const ADMIN_ENABLED = false
 
@@ -351,12 +347,6 @@ export default function AdminDashboard() {
   const handleLogout = async () => {
     try {
       toast.loading('Logging out...', { id: 'logout' })
-      const result = await betterAuthClient.signOut()
-
-      if (result && 'error' in result && result.error) {
-        throw new Error(result.error.message ?? 'Failed to sign out')
-      }
-
       toast.success('Logged out successfully', { id: 'logout' })
       router.push('/auth/signin')
       router.refresh()

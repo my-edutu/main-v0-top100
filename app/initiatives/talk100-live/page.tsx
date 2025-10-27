@@ -56,7 +56,18 @@ export default function Talk100Live() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
-            {/* Card 1 */}
+            {/* Card 1 - Project100 Scholarship */}
+            <a href="https://www.project100scholarship.org" target="_blank" rel="noopener noreferrer" className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center transition-transform duration-300 hover:shadow-lg block">
+              <div className="flex justify-center mb-4">
+                <div className="bg-yellow-100 p-3 rounded-full">
+                  <GraduationCap className="h-8 w-8 text-yellow-600" />
+                </div>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Project100 Scholarship</h3>
+              <p className="text-gray-700">Supporting disadvantaged children and undergraduates</p>
+            </a>
+            
+            {/* Card 2 */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center transition-transform duration-300 hover:shadow-lg">
               <div className="flex justify-center mb-4">
                 <div className="bg-yellow-100 p-3 rounded-full">
@@ -191,58 +202,7 @@ export default function Talk100Live() {
         </div>
       </section>
 
-      {/* Footer */}
-      <section className="py-12 bg-gray-900 text-white">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Top100 AFL</h3>
-              <p className="text-gray-400 text-sm">
-                Celebrating Africa's future leaders and creating pathways for impact across the continent.
-              </p>
-            </div>
-            
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Initiatives</h3>
-              <ul className="space-y-2">
-                <li><Link href="/initiatives/project100" className="text-gray-400 hover:text-white transition">Project100 Scholarship</Link></li>
-                <li><Link href="/initiatives/talk100-live" className="text-gray-400 hover:text-white transition">Talk100 Live</Link></li>
-                <li><Link href="/initiatives/summit" className="text-gray-400 hover:text-white transition">Future Leaders Summit</Link></li>
-                <li><Link href="/initiatives/opportunities" className="text-gray-400 hover:text-white transition">Opportunities Hub</Link></li>
-              </ul>
-            </div>
-            
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Information</h3>
-              <ul className="space-y-2">
-                <li><Link href="/" className="text-gray-400 hover:text-white transition">Home</Link></li>
-                <li><Link href="/awardees" className="text-gray-400 hover:text-white transition">Meet Awardees</Link></li>
-                <li><Link href="/blog" className="text-gray-400 hover:text-white transition">Blog</Link></li>
-                <li><Link href="/events" className="text-gray-400 hover:text-white transition">Events</Link></li>
-                <li><Link href="/magazine" className="text-gray-400 hover:text-white transition">Magazine</Link></li>
-              </ul>
-            </div>
-            
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Connect</h3>
-              <ul className="space-y-2">
-                <li><Link href="/contact" className="text-gray-400 hover:text-white transition">Contact</Link></li>
-                <li><Link href="/africa-future-leaders" className="text-gray-400 hover:text-white transition">About Us</Link></li>
-                <li><Link href="/join" className="text-gray-400 hover:text-white transition">Partner With Us</Link></li>
-              </ul>
-            </div>
-          </div>
-          
-          <div className="mt-12 pt-8 border-t border-gray-800 text-center">
-            <p className="text-gray-400 text-sm">
-              This page will be updated regularly as Talk 100 unfolds. Check back for new episodes, leader spotlights, and live session schedules.
-            </p>
-            <p className="text-gray-500 text-sm mt-4">
-              &copy; {new Date().getFullYear()} Top100 Africa Future Leaders. All rights reserved.
-            </p>
-          </div>
-        </div>
-      </section>
+
     </div>
   );
 }

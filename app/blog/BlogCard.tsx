@@ -14,15 +14,17 @@ export function BlogCard({ post }: BlogCardProps) {
     <Link href={`/blog/${post.slug}`} className="block group">
       <article className="bg-black/50 rounded-2xl overflow-hidden backdrop-blur-lg border border-zinc-800 hover:border-orange-400/40 transition-all duration-300">
         <div className="relative overflow-hidden">
-          <Image
-            src={post.coverImage || "/placeholder.svg"}
-            alt={post.title}
-            width={800}
-            height={400}
-            className={`w-full object-cover group-hover:scale-105 transition-transform duration-300 ${
-              post.isFeatured ? 'h-64' : 'h-48'
-            }`}
-          />
+          <div className={`relative overflow-hidden w-full ${
+            post.isFeatured ? 'h-64' : 'h-48'
+          }`}>
+            <Image
+              src={post.coverImage || "/placeholder.svg"}
+              alt={post.title}
+              fill
+              className="object-cover group-hover:scale-105 transition-transform duration-300"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            />
+          </div>
           <div className="absolute top-4 left-4">
             {post.tags && post.tags.length > 0 && (
               <Badge className="bg-orange-500/90 text-white backdrop-blur-sm">

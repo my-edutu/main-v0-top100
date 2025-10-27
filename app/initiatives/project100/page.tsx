@@ -234,9 +234,9 @@ export default function Project100Page() {
                 <Image 
                   src="https://placehold.co/600x400?text=Education+Transforming+Lives" 
                   alt="Children in a classroom receiving educational support" 
-                  layout="fill"
-                  objectFit="cover"
-                  className="opacity-80"
+                  fill
+                  className="object-cover opacity-80"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 />
               </div>
             </div>

@@ -113,38 +113,49 @@ export default function Header() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }}
             transition={{ duration: 0.25, ease: "easeOut" }}
-            className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm md:hidden"
+            className="fixed inset-0 z-40 bg-black/40 md:hidden"
             onClick={(e) => {
               if (e.target === e.currentTarget) {
                 setIsMenuOpen(false);
               }
             }}
           >
-            <ul className="absolute right-4 top-20 w-[calc(100vw-32px)] max-w-sm space-y-2 rounded-3xl border border-yellow-600/70 bg-gradient-to-b from-yellow-100 to-orange-100 p-4 shadow-lg shadow-yellow-500/10 backdrop-blur-xl">
-              {navItems.map((item) => (
-                <li key={item.label}>
-                  {item.href ? (
-                    <Link
-                      href={item.href}
-                      className="flex items-center justify-between rounded-2xl px-4 py-3 text-base font-semibold text-zinc-900 hover:bg-yellow-400/30 hover:text-zinc-700"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      <span>{item.label}</span>
-                    </Link>
-                  ) : (
-                    <button
-                      onClick={() => {
-                        scrollToSection(item.section!);
-                        setIsMenuOpen(false);
-                      }}
-                      className="flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left text-base font-semibold text-zinc-900 hover:bg-yellow-400/30 hover:text-zinc-700"
-                    >
-                      <span>{item.label}</span>
-                    </button>
-                  )}
-                </li>
-              ))}
-            </ul>
+            <div className="absolute right-4 top-20 w-[calc(100vw-32px)] max-w-sm">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsMenuOpen(false)}
+                className="absolute -top-12 right-0 rounded-full bg-white/80 text-gray-800 shadow-md hover:bg-white"
+                aria-label="Close menu"
+              >
+                <X className="h-6 w-6" />
+              </Button>
+              <ul className="space-y-2 rounded-3xl border border-yellow-600/70 bg-gradient-to-b from-yellow-100 to-orange-100 p-4 shadow-lg shadow-yellow-500/10">
+                {navItems.map((item) => (
+                  <li key={item.label}>
+                    {item.href ? (
+                      <Link
+                        href={item.href}
+                        className="flex items-center justify-between rounded-2xl px-4 py-3 text-base font-semibold text-zinc-900 hover:bg-yellow-400/30 hover:text-zinc-700"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <span>{item.label}</span>
+                      </Link>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          scrollToSection(item.section!);
+                          setIsMenuOpen(false);
+                        }}
+                        className="flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left text-base font-semibold text-zinc-900 hover:bg-yellow-400/30 hover:text-zinc-700"
+                      >
+                        <span>{item.label}</span>
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
           </motion.nav>
         )}
       </AnimatePresence>
