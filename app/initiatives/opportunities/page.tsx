@@ -25,21 +25,25 @@ export default function OpportunitiesHub() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       {/* Partnership Hero */}
-      <section className="py-20 bg-gradient-to-r from-yellow-500 to-orange-500 text-white min-h-screen flex items-center">
+      <section className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white">
         <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-4xl md:text-5xl font-bold mb-6">Top100 Partners with Edutu.ai</h2>
-            <p className="text-xl md:text-2xl mb-8">
-              Bringing personalized opportunities and global access to underprivileged communities lacking access to global opportunities.
-            </p>
-            <a 
-              href="https://www.edutu.org" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="inline-block bg-white text-yellow-600 font-bold py-4 px-10 rounded-lg text-lg transition duration-300 hover:bg-gray-100"
-            >
-              Join Edutu
-            </a>
+          <div className="relative pt-[75%] max-w-4xl mx-auto"> {/* 4:3 aspect ratio using padding-top trick */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-center px-4">
+                <h2 className="text-3xl md:text-4xl font-bold mb-4">Top100 Partners with Edutu.ai</h2>
+                <p className="text-lg md:text-xl mb-6">
+                  Bringing personalized opportunities and global access to underprivileged communities lacking access to global opportunities.
+                </p>
+                <a 
+                  href="https://www.edutu.org" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="inline-block bg-white text-yellow-600 font-bold py-3 px-8 rounded-lg text-base transition duration-300 hover:bg-gray-100"
+                >
+                  Join Edutu
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       </section>
