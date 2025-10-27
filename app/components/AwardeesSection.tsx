@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import Image from "next/image"
 import Link from "next/link"
-import { MapPin, Award } from "lucide-react"
+import { MapPin, Award, ArrowRight } from "lucide-react"
 
 export default function AwardeesSection() {
   const awardees = [
@@ -125,20 +125,15 @@ export default function AwardeesSection() {
                     <span>{awardee.country}</span>
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground line-clamp-2">
-                  {awardee.bio}
-                </p>
-                <div className="mt-2">
-                  <Button
-                    asChild
-                    size="sm"
-                    variant="ghost"
-                    className="h-8 rounded-lg text-xs"
-                  >
-                    <Link href={`/awardees/${awardee.id}`}>
-                      View profile
-                    </Link>
-                  </Button>
+                <div className="flex justify-between items-start">
+                  <p className="text-xs text-muted-foreground line-clamp-2 flex-grow">
+                    {awardee.bio}
+                  </p>
+                  <Link href={`/awardees/${awardee.id}`} className="flex-shrink-0 ml-2 flex items-center justify-center">
+                    <div className="rounded-full bg-primary/10 p-1.5 group-hover:bg-primary/20 transition-colors">
+                      <ArrowRight className="h-3 w-3 text-primary" />
+                    </div>
+                  </Link>
                 </div>
               </div>
             </motion.article>

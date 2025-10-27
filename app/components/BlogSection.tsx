@@ -145,8 +145,7 @@ export default function BlogSection() {
           ))}
         </div>
 
-        <div className="flex flex-col items-center justify-between gap-4 border-t border-border/60 pt-6 sm:flex-row">
-          <div></div>
+        <div className="mt-4 flex justify-center">
           <Button size="lg" variant="soft" className="px-6" asChild>
             <Link href="/blog">
               Explore all stories

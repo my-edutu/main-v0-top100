@@ -155,7 +155,7 @@ export default function HomePage() {
 
   return (
     <div className="bg-background text-foreground">
-      <div className="space-y-8 pb-24 pt-0 sm:space-y-10 sm:pt-0 md:space-y-12 md:pt-0 lg:space-y-18 lg:pt-0">
+      <div className="space-y-8 pb-24 pt-8 sm:space-y-12 sm:pt-10 md:space-y-14 md:pt-12 lg:space-y-20 lg:pt-16">
         <motion.section
           className="relative"
           initial={{ opacity: 0, y: 20 }}
@@ -268,27 +268,27 @@ export default function HomePage() {
                 <Link
                   key={initiative.title}
                   href={initiative.href}
-                  className={`group rounded-[28px] border border-border/40 p-6 shadow-md transition hover:-translate-y-1 hover:border-primary/60 hover:shadow-lg flex flex-col h-full ${
+                  className={`group rounded-[28px] border border-transparent p-1 shadow-md transition-all hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/20 flex flex-col h-full ${
                     initiative.title === "Project100 Scholarship" 
-                      ? "bg-blue-50/80 dark:bg-blue-950/20" 
+                      ? "bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30" 
                       : initiative.title === "Talk100 Live" 
-                      ? "bg-purple-50/80 dark:bg-purple-950/20" 
+                      ? "bg-gradient-to-br from-purple-100 to-fuchsia-100 dark:from-purple-900/30 dark:to-fuchsia-900/30" 
                       : initiative.title === "Future Leaders Summit" 
-                      ? "bg-amber-50/80 dark:bg-amber-950/20" 
-                      : "bg-emerald-50/80 dark:bg-emerald-950/20"
+                      ? "bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30" 
+                      : "bg-gradient-to-br from-emerald-100 to-green-100 dark:from-emerald-900/30 dark:to-green-900/30"
                   }`}
                 >
-                  <div>
-                    <h3 className="text-xl font-semibold group-hover:text-primary transition">
+                  <div className="p-5 rounded-[27px] bg-white/80 dark:bg-background/80 h-full flex flex-col">
+                    <h3 className="text-xl font-semibold group-hover:text-primary transition-colors">
                       {initiative.title}
                     </h3>
-                    <p className="mt-3 text-sm text-muted-foreground sm:text-base">
+                    <p className="mt-2 text-sm text-muted-foreground flex-grow">
                       {initiative.description}
                     </p>
-                  </div>
-                  <div className="mt-auto pt-5 flex justify-end">
-                    <div className="rounded-full bg-primary/10 p-2 group-hover:bg-primary/20 transition-colors">
-                      <ArrowRight className="h-4 w-4 text-primary" />
+                    <div className="mt-4 flex justify-end">
+                      <div className="rounded-full bg-primary/10 p-2 group-hover:bg-primary/20 transition-colors">
+                        <ArrowRight className="h-4 w-4 text-primary" />
+                      </div>
                     </div>
                   </div>
                 </Link>

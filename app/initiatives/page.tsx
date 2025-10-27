@@ -54,21 +54,31 @@ export default function InitiativesPage() {
             <Link
               key={initiative.title}
               href={initiative.href}
-              className={`group rounded-[28px] border border-border/40 p-8 shadow-lg transition hover:-translate-y-1 hover:border-primary/60 hover:shadow-xl flex flex-col h-full min-h-[280px] ${initiative.colorClass}`}
+              className={`group rounded-[28px] border border-transparent p-1 shadow-lg transition-all hover:-translate-y-1 hover:shadow-xl flex flex-col h-full ${
+                initiative.title === "Project100 Scholarship" 
+                  ? "bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30" 
+                  : initiative.title === "Talk100 Live" 
+                  ? "bg-gradient-to-br from-purple-100 to-fuchsia-100 dark:from-purple-900/30 dark:to-fuchsia-900/30" 
+                  : initiative.title === "Future Leaders Summit" 
+                  ? "bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30" 
+                  : "bg-gradient-to-br from-emerald-100 to-green-100 dark:from-emerald-900/30 dark:to-green-900/30"
+              }`}
             >
-              <div className="flex-1">
-                <h2 className="text-2xl font-bold mb-4 group-hover:text-primary transition-colors">
-                  {initiative.title}
-                </h2>
-                <p className="text-muted-foreground mb-6 leading-relaxed">
-                  {initiative.description}
-                </p>
-              </div>
-              <div className="flex justify-between items-center mt-auto pt-4">
-                <Button variant="link" className="p-0 h-auto text-primary hover:text-primary/80 group">
-                  Learn more
-                  <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                </Button>
+              <div className="rounded-[27px] bg-white/90 dark:bg-background/90 p-6 flex flex-col h-full">
+                <div className="flex-1">
+                  <h2 className="text-2xl font-bold mb-3 group-hover:text-primary transition-colors">
+                    {initiative.title}
+                  </h2>
+                  <p className="text-muted-foreground leading-relaxed flex-grow">
+                    {initiative.description}
+                  </p>
+                </div>
+                <div className="flex justify-end items-center mt-4">
+                  <Button variant="link" className="p-0 h-auto text-primary hover:text-primary/80 group flex items-center">
+                    Learn more
+                    <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  </Button>
+                </div>
               </div>
             </Link>
           ))}

@@ -14,7 +14,7 @@ export default function MagazineSection() {
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
           viewport={{ once: true }}
-          className="text-center mb-16"
+          className="text-center mb-8"
         >
           <h2 className="text-3xl md:text-4xl font-semibold mb-4">
             Africa Future Leaders Magazine
