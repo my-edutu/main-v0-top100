@@ -8,7 +8,7 @@ const AnimatedImpactSection = () => {
       icon: <Globe className="w-8 h-8" />,
       label: "Countries",
       value: "31+",
-      description: "Across the African continent",
+      description: "Across the world",
     },
     {
       icon: <Users className="w-8 h-8" />,

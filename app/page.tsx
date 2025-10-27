@@ -160,7 +160,7 @@ export default function HomePage() {
 
   return (
     <div className="bg-background text-foreground">
-      <div className="space-y-16 pb-24 pt-16 md:space-y-24">
+      <div className="space-y-8 pb-24 pt-4 sm:space-y-12 sm:pt-6 md:space-y-14 md:pt-8 lg:space-y-20 lg:pt-14">
         <motion.section
           className="relative"
           initial={{ opacity: 0, y: 20 }}
@@ -169,8 +169,8 @@ export default function HomePage() {
         >
           <div className="container">
             <div className="overflow-hidden rounded-[32px] border border-border/60 bg-card/95 shadow-xl shadow-primary/10 backdrop-blur-xl">
-              <div className="grid gap-8 p-8 sm:p-10 lg:grid-cols-[1.1fr_0.9fr] lg:p-12">
-                <div className="space-y-8">
+              <div className="grid gap-6 px-6 py-7 sm:gap-8 sm:px-8 sm:py-9 lg:grid-cols-[1.1fr_0.9fr] lg:px-10 lg:py-12">
+                <div className="space-y-6">
                   <div className="flex items-center gap-3 text-xs uppercase tracking-[0.35em] text-primary">
                     <span className="inline-flex h-2 w-2 rounded-full bg-primary" />
                     <span>{activeAwardee.country}</span>

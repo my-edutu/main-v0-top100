@@ -66,15 +66,15 @@ export default function HeroSection() {
         ))}
       </div>
 
-      <motion.div style={{ y, opacity }} className="relative px-4 pt-16 pb-16">
-        <div className="mx-auto max-w-7xl">
+      <motion.div style={{ y, opacity }} className="relative px-4 py-16 sm:px-6 md:px-8 md:py-24 xl:py-28">
+        <div className="mx-auto max-w-6xl md:max-w-7xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
-            className="mb-16 text-center"
+            className="mb-12 space-y-6 text-center md:mb-16"
           >
-            <h1 className="relative mb-6 text-6xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-slate-900 via-orange-500 to-orange-400 dark:from-white dark:via-orange-200 dark:to-orange-400 md:text-8xl">
+            <h1 className="relative mx-auto max-w-4xl text-5xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-slate-900 via-orange-500 to-orange-400 dark:from-white dark:via-orange-200 dark:to-orange-400 sm:text-6xl md:text-7xl md:leading-tight lg:text-8xl">
               Celebrating Africa&apos;s Future Leaders
               <motion.span
                 className="absolute -inset-1 rounded-full bg-orange-400/60 blur-3xl dark:bg-orange-400"
@@ -83,11 +83,11 @@ export default function HeroSection() {
                 transition={{ duration: 3, repeat: Number.POSITIVE_INFINITY, repeatType: "reverse" }}
               />
             </h1>
-            <p className="mx-auto mb-8 max-w-4xl text-balance text-xl text-slate-600 dark:text-zinc-300 md:text-2xl">
+            <p className="mx-auto max-w-3xl text-balance text-lg leading-relaxed text-slate-600 dark:text-zinc-300 md:max-w-4xl md:text-xl">
               Top100 Africa Future Leaders 2025 spotlighted young leaders turning ideas into impact across 13+ African
               countries.
             </p>
-            <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
+            <div className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="relative z-10">
                 <Button
                   size="lg"
@@ -127,7 +127,7 @@ export default function HeroSection() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.8 }}
-            className="grid gap-4 rounded-3xl border border-orange-400/20 bg-white/70 p-6 backdrop-blur dark:bg-black/30 md:grid-cols-4"
+            className="grid gap-4 rounded-3xl border border-orange-400/20 bg-white/70 p-6 backdrop-blur dark:bg-black/30 sm:gap-6 sm:p-8 md:grid-cols-4"
           >
             {stats.map((stat) => (
               <div

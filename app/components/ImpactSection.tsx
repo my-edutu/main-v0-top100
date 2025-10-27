@@ -1,14 +1,14 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Globe, Users, Award, Handshake } from "lucide-react"
+import { Globe, Users, Award } from "lucide-react"
 
 const impactStats = [
   {
     icon: Globe,
     label: "Countries",
     value: "31+",
-    description: "Across the African continent",
+    description: "Across the world",
   },
   {
     icon: Users,
@@ -27,35 +27,48 @@ const impactStats = [
 export default function ImpactSection() {
   return (
     <section>
-      <div className="container space-y-6">
-        <div className="text-center">
-
-          <h2 className="mt-3 text-3xl font-semibold sm:text-4xl">The movement in numbers</h2>
-          <p className="mx-auto mt-3 max-w-2xl text-sm text-muted-foreground sm:text-base">
+      <div className="container space-y-10">
+        <div className="mx-auto max-w-3xl space-y-4 text-center">
+          <h2 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl sm:leading-tight">
+            The movement in numbers
+          </h2>
+          <p className="mx-auto text-sm leading-relaxed text-muted-foreground sm:text-base">
             Celebrating achievements and creating opportunities across Africa&apos;s campuses, communities, and capitals.
           </p>
         </div>
 
-        <div className="flex gap-3">
+        <div className="grid grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
           {impactStats.map((stat, index) => {
             const Icon = stat.icon
             return (
               <motion.div
                 key={stat.label}
-                initial={{ opacity: 0, y: 16 }}
+                initial={{ opacity: 0, y: 14 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: index * 0.1, ease: "easeOut" }}
+                whileHover={{ y: -6 }}
+                whileTap={{ y: -1 }}
+                transition={{ type: "spring", stiffness: 220, damping: 24, delay: index * 0.05 }}
                 viewport={{ once: true, amount: 0.3 }}
-                className="flex-1 min-w-[150px] rounded-xl border border-border/70 bg-card/95 p-4 shadow-sm shadow-primary/5 flex flex-col"
+                className="group relative flex min-w-0 flex-col gap-3 rounded-2xl border border-border/50 bg-background/85 px-4 py-5 text-left shadow-sm ring-1 ring-transparent backdrop-blur-sm transition-all sm:px-5 sm:py-6 md:hover:shadow-lg md:hover:ring-primary/20"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/12 text-primary">
-                  <Icon className="h-4 w-4" />
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+                />
+                <div className="flex items-center gap-2.5 sm:gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-primary">
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <div className="text-xl font-semibold tracking-tight text-foreground sm:text-[1.65rem]">
+                      {stat.value}
+                    </div>
+                    <div className="text-[0.55rem] font-semibold uppercase tracking-[0.28em] text-muted-foreground sm:text-[0.65rem]">
+                      {stat.label}
+                    </div>
+                  </div>
                 </div>
-                <div className="mt-4 text-xl font-semibold text-foreground">{stat.value}</div>
-                <div className="mt-1 text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
-                  {stat.label}
-                </div>
-                <p className="mt-2 text-xs text-muted-foreground mt-auto">{stat.description}</p>
+                <p className="text-xs leading-relaxed text-muted-foreground sm:text-sm">{stat.description}</p>
               </motion.div>
             )
           })}

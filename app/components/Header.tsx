@@ -113,30 +113,30 @@ export default function Header() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }}
             transition={{ duration: 0.25, ease: "easeOut" }}
-            className="fixed inset-0 z-40 bg-black/40 md:hidden"
+            className="fixed inset-0 z-40 bg-gradient-to-br from-orange-500/95 via-yellow-500/90 to-red-500/90 md:hidden"
             onClick={(e) => {
               if (e.target === e.currentTarget) {
                 setIsMenuOpen(false);
               }
             }}
           >
-            <div className="absolute right-4 top-20 w-[calc(100vw-32px)] max-w-sm">
+            <div className="absolute right-4 top-20 w-[calc(100vw-32px)] max-w-sm rounded-3xl border border-yellow-100/40 bg-gradient-to-br from-orange-500/90 via-yellow-400/90 to-orange-400/90 p-5 shadow-xl shadow-orange-500/30 backdrop-blur">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setIsMenuOpen(false)}
-                className="absolute -top-12 right-0 rounded-full bg-white/80 text-gray-800 shadow-md hover:bg-white"
+                className="absolute -top-12 right-0 rounded-full bg-white/15 text-white shadow-md hover:bg-white/25"
                 aria-label="Close menu"
               >
                 <X className="h-6 w-6" />
               </Button>
-              <ul className="space-y-2 rounded-3xl border border-yellow-600/70 bg-gradient-to-b from-yellow-100 to-orange-100 p-4 shadow-lg shadow-yellow-500/10">
+              <ul className="space-y-2">
                 {navItems.map((item) => (
                   <li key={item.label}>
                     {item.href ? (
                       <Link
                         href={item.href}
-                        className="flex items-center justify-between rounded-2xl px-4 py-3 text-base font-semibold text-zinc-900 hover:bg-yellow-400/30 hover:text-zinc-700"
+                        className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-base font-semibold text-white transition hover:border-white/30 hover:bg-white/20"
                         onClick={() => setIsMenuOpen(false)}
                       >
                         <span>{item.label}</span>
@@ -147,7 +147,7 @@ export default function Header() {
                           scrollToSection(item.section!);
                           setIsMenuOpen(false);
                         }}
-                        className="flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left text-base font-semibold text-zinc-900 hover:bg-yellow-400/30 hover:text-zinc-700"
+                        className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-left text-base font-semibold text-white transition hover:border-white/30 hover:bg-white/20"
                       >
                         <span>{item.label}</span>
                       </button>
