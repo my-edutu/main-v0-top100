@@ -1,6 +1,6 @@
 'use client';
 
-import { Mail, Users, Globe, Video, Send, MessageCircle, Instagram, Youtube, Linkedin, Calendar } from 'lucide-react';
+import { Mail, Users, Globe, Video, Send, MessageCircle, Instagram, Youtube, Linkedin, Calendar, GraduationCap } from 'lucide-react';
 import Link from 'next/link';
 
 export default function Talk100Live() {
