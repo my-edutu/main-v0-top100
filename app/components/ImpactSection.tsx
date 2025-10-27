@@ -53,50 +53,47 @@ export default function ImpactSection() {
           </p>
         </div>
 
-        <div className="relative -mx-4">
-          <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-5 sm:pb-6 lg:gap-6">
-            {impactStats.map((stat, index) => {
-              const Icon = stat.icon
-              return (
-                <motion.article
-                  key={stat.label}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  whileHover={{ y: -10 }}
-                  whileTap={{ y: -2 }}
-                  transition={{ type: "spring", stiffness: 220, damping: 24, delay: index * 0.05 }}
-                  viewport={{ once: true, amount: 0.3 }}
-                  className="group relative flex min-w-[260px] snap-center flex-shrink-0 flex-col items-center gap-6 overflow-hidden rounded-[28px] border border-white/25 px-6 py-8 text-center shadow-lg shadow-black/10 ring-1 ring-transparent transition-all sm:min-w-[280px] sm:px-8 sm:py-9 lg:min-w-[320px] lg:gap-7 lg:px-10 lg:py-10"
-                  style={{ backgroundImage: stat.gradient }}
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {impactStats.map((stat, index) => {
+            const Icon = stat.icon
+            return (
+              <motion.article
+                key={stat.label}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                whileHover={{ y: -5 }}
+                transition={{ type: "spring", stiffness: 220, damping: 24, delay: index * 0.05 }}
+                viewport={{ once: true, amount: 0.3 }}
+                className="group relative flex flex-col items-center gap-4 overflow-hidden rounded-[28px] border border-white/25 bg-card p-6 text-center shadow-lg shadow-black/10 transition-all"
+                style={{ backgroundImage: stat.gradient }}
+              >
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 rounded-[28px] bg-white/15 opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+                />
+                <div
+                  className="relative flex h-12 w-12 items-center justify-center rounded-full border bg-white/15 text-white shadow-inner"
+                  style={{
+                    borderColor: stat.accent,
+                    boxShadow: `0 18px 38px -12px ${stat.accent}`,
+                  }}
                 >
-                  <span
-                    aria-hidden="true"
-                    className="pointer-events-none absolute inset-0 rounded-[28px] bg-white/15 opacity-0 transition-opacity duration-500 group-hover:opacity-100"
-                  />
-                  <div
-                    className="relative flex h-12 w-12 items-center justify-center rounded-full border bg-white/15 text-white shadow-inner"
-                    style={{
-                      borderColor: stat.accent,
-                      boxShadow: `0 18px 38px -12px ${stat.accent}`,
-                    }}
-                  >
-                    <Icon className="h-5 w-5" />
+                  <Icon className="h-5 w-5" />
+                </div>
+                <div className="space-y-2 text-center">
+                  <div className="text-4xl font-bold tracking-tight text-white">
+                    {stat.value}
                   </div>
-                  <div className="space-y-3 text-center">
-                    <div className="text-5xl font-bold tracking-tight text-white sm:text-6xl">
-                      {stat.value}
-                    </div>
-                    <p className="text-[0.65rem] font-semibold uppercase tracking-[0.4em] text-white/85 sm:text-xs">
-                      {stat.label}
-                    </p>
-                    <p className="text-sm leading-relaxed text-white/85 sm:text-base">
-                      {stat.description}
-                    </p>
-                  </div>
-                </motion.article>
-              )
-            })}
-          </div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.25em] text-white/90">
+                    {stat.label}
+                  </p>
+                  <p className="text-sm leading-relaxed text-white/90">
+                    {stat.description}
+                  </p>
+                </div>
+              </motion.article>
+            )
+          })}
         </div>
       </div>
     </section>
