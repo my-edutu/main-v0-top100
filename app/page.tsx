@@ -142,7 +142,6 @@ const teamMembers: TeamMember[] = [
 
 export default function HomePage() {
   const [currentHeroIndex, setCurrentHeroIndex] = useState(0)
-  const [visibleFaqs, setVisibleFaqs] = useState(3)
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -154,13 +153,9 @@ export default function HomePage() {
 
   const activeAwardee = heroAwardees[currentHeroIndex]
 
-  const showMoreFaqs = () => {
-    setVisibleFaqs((prev) => Math.min(prev + 3, faqs.length))
-  }
-
   return (
     <div className="bg-background text-foreground">
-      <div className="space-y-8 pb-24 pt-4 sm:space-y-12 sm:pt-6 md:space-y-14 md:pt-8 lg:space-y-20 lg:pt-14">
+      <div className="space-y-8 pb-24 pt-0 sm:space-y-10 sm:pt-0 md:space-y-12 md:pt-0 lg:space-y-18 lg:pt-0">
         <motion.section
           className="relative"
           initial={{ opacity: 0, y: 20 }}
@@ -383,13 +378,13 @@ export default function HomePage() {
               </p>
             </div>
             <Accordion type="single" collapsible className="space-y-4">
-              {faqs.slice(0, visibleFaqs).map((faq, index) => (
+              {faqs.map((faq, index) => (
                 <AccordionItem
                   key={faq.question}
                   value={`faq-${index}`}
-                  className="overflow-hidden rounded-[24px] border border-border/60 bg-card/95 shadow-sm transition hover:border-primary/40"
+                  className="overflow-hidden rounded-[24px] border border-border/60 bg-card/95 shadow-sm transition-all hover:border-primary/60 data-[state=open]:border-primary/60"
                 >
-                  <AccordionTrigger className="px-6 py-4 text-left text-base font-semibold hover:text-primary data-[state=open]:text-primary">
+                  <AccordionTrigger className="px-6 py-4 text-left text-base font-semibold hover:text-primary data-[state=open]:text-primary transition-colors">
                     {faq.question}
                   </AccordionTrigger>
                   <AccordionContent className="px-6 pb-5 text-sm text-muted-foreground">
@@ -398,23 +393,16 @@ export default function HomePage() {
                 </AccordionItem>
               ))}
             </Accordion>
-            {visibleFaqs < faqs.length && (
-              <div className="flex justify-center">
-                <Button variant="soft" size="lg" onClick={showMoreFaqs}>
-                  Show more questions
-                </Button>
-              </div>
-            )}
           </div>
         </section>
 
         <section id="contact">
           <div className="container">
-            <div className="rounded-[32px] border border-border/60 bg-card/95 p-8 shadow-lg shadow-primary/10 sm:p-12">
+            <div className="rounded-[32px] border border-border/60 bg-gradient-to-br from-orange-50 to-amber-50 p-8 shadow-lg shadow-primary/10 sm:p-12">
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <h2 className="text-3xl font-semibold">Stay in the loop</h2>
-                  <p className="text-sm text-muted-foreground sm:text-base">
+                  <h2 className="text-2xl font-semibold">Stay in the loop</h2>
+                  <p className="text-sm text-muted-foreground">
                     Get monthly highlights on awardees, opportunities, and events delivered straight to your inbox.
                   </p>
                 </div>
@@ -424,15 +412,17 @@ export default function HomePage() {
                     event.preventDefault()
                   }}
                 >
-                  <Input
-                    type="email"
-                    placeholder="Email address"
-                    className="flex-1 rounded-2xl border-border/60 bg-background"
-                    required
-                  />
-                  <Button type="submit" size="lg" className="rounded-2xl">
-                    Subscribe
-                  </Button>
+                  <div className="relative flex-1">
+                    <Input
+                      type="email"
+                      placeholder="Email address"
+                      className="w-full rounded-2xl border-0 bg-white py-6 pl-6 pr-32 shadow-sm shadow-black/5 focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                      required
+                    />
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 bg-orange-500 text-white rounded-xl px-4 py-2 text-sm font-medium">
+                      Subscribe
+                    </div>
+                  </div>
                 </form>
                 <p className="text-xs text-muted-foreground">
                   We respect your inbox. Expect one email per month with curated highlights and opportunities.

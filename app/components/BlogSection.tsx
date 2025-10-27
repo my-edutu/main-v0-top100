@@ -67,9 +67,6 @@ export default function BlogSection() {
     <section id="blog">
       <div className="container flex flex-col gap-10">
         <div className="text-center">
-          <Badge variant="soft" className="mx-auto rounded-full text-xs uppercase tracking-[0.32em]">
-            From the journal
-          </Badge>
           <h2 className="mt-4 text-3xl font-semibold sm:text-4xl">
             Stories &amp; insights shaping the continent
           </h2>
@@ -149,9 +146,7 @@ export default function BlogSection() {
         </div>
 
         <div className="flex flex-col items-center justify-between gap-4 border-t border-border/60 pt-6 sm:flex-row">
-          <p className="text-sm text-muted-foreground">
-            Browse the full archive of interviews, essays, and programme recaps.
-          </p>
+          <div></div>
           <Button size="lg" variant="soft" className="px-6" asChild>
             <Link href="/blog">
               Explore all stories

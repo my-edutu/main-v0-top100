@@ -37,7 +37,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <Header />
-          <main className="min-h-[calc(100vh-120px)] pt-[80px] transition-colors duration-300">
+          <main className="min-h-[calc(100vh-120px)] transition-colors duration-300">
             {children}
           </main>
           <Footer />

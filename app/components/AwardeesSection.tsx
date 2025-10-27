@@ -116,11 +116,6 @@ export default function AwardeesSection() {
                   className="object-cover"
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 />
-                <div className="absolute left-3 top-3">
-                  <Badge variant="secondary" className="text-xs">
-                    {awardee.category}
-                  </Badge>
-                </div>
               </div>
               <div className="flex flex-1 flex-col gap-2 p-4">
                 <div>
