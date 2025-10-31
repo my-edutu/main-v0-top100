@@ -1,27 +1,39 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
-import { motion, useScroll, useTransform, useMotionValue, useSpring } from "framer-motion"
+import { useEffect, useMemo, useState } from "react"
+import { motion, useMotionValue, useSpring } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Users, Globe, Award, BookOpen } from "lucide-react"
 
-const FloatingParticle = ({ delay }: { delay: number }) => {
+type FloatingParticleProps = {
+  delay: number
+}
+
+const FloatingParticle = ({ delay }: FloatingParticleProps) => {
   const y = useMotionValue(0)
   const ySpring = useSpring(y, { stiffness: 100, damping: 10 })
+  const xPosition = useMemo(() => Math.random() * 100, [])
 
   useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout>
+
     const moveParticle = () => {
       y.set(Math.random() * -100)
-      setTimeout(moveParticle, Math.random() * 5000 + 3000)
+      timeoutId = setTimeout(moveParticle, Math.random() * 5000 + 3000)
     }
-    setTimeout(moveParticle, delay)
-  }, [y, delay])
+
+    timeoutId = setTimeout(moveParticle, delay)
+
+    return () => {
+      clearTimeout(timeoutId)
+    }
+  }, [delay, y])
 
   return (
     <motion.div
       className="absolute h-1 w-1 rounded-full bg-orange-400"
       style={{
-        x: `${Math.random() * 100}%`,
+        x: `${xPosition}%`,
         y: ySpring,
         opacity: 0.7,
       }}
@@ -47,7 +59,7 @@ export default function HeroSection() {
   }
 
   return (
-    <section className="relative min-h-screen overflow-hidden bg-linear-to-b from-slate-100 via-white to-slate-100 text-slate-900 dark:from-black dark:via-black dark:to-black dark:text-white transition-colors duration-300">
+    <section className="relative min-h-screen overflow-hidden bg-linear-to-b from-slate-100 via-white to-slate-100 text-slate-900 transition-colors duration-300 dark:from-black dark:via-black dark:to-black dark:text-white">
       <div className="absolute inset-0 overflow-hidden">
         {[...Array(50)].map((_, index) => (
           <FloatingParticle key={index} delay={index * 100} />
@@ -62,8 +74,8 @@ export default function HeroSection() {
             transition={{ duration: 0.8 }}
             className="mb-12 space-y-6 text-center md:mb-16"
           >
-            <h1 className="relative mx-auto max-w-4xl text-5xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-slate-900 via-orange-500 to-orange-400 dark:from-white dark:via-orange-200 dark:to-orange-400 sm:text-6xl md:text-7xl md:leading-tight lg:text-8xl">
-              Celebrating Africa&apos;s Future Leaders
+            <h1 className="relative mx-auto max-w-4xl bg-gradient-to-r from-slate-900 via-orange-500 to-orange-400 text-5xl font-bold tracking-tight text-transparent dark:from-white dark:via-orange-200 dark:to-orange-400 sm:text-6xl md:text-7xl md:leading-tight lg:text-8xl">
+              Africa Future Leaders
               <motion.span
                 className="absolute -inset-1 rounded-full bg-orange-400/60 blur-3xl dark:bg-orange-400"
                 initial={{ opacity: 0 }}
@@ -72,8 +84,7 @@ export default function HeroSection() {
               />
             </h1>
             <p className="mx-auto max-w-3xl text-balance text-lg leading-relaxed text-slate-600 dark:text-zinc-300 md:max-w-4xl md:text-xl">
-              Top100 Africa Future Leaders 2025 spotlighted young leaders turning ideas into impact across 13+ African
-              countries.
+              Join us in discovering, celebrating, and empowering the bright minds shaping Africa&apos;s future.
             </p>
             <div className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="relative z-10">
@@ -84,7 +95,7 @@ export default function HeroSection() {
                   onMouseLeave={() => setIsHovered(false)}
                   onClick={() => scrollToSection("awardees")}
                 >
-                  <span className="relative z-10">Meet the Awardees</span>
+                  <span className="relative z-10">Explore Leadership</span>
                   <motion.span
                     className="absolute inset-0 bg-gradient-to-r from-orange-600 to-orange-500"
                     initial={{ x: "100%" }}
@@ -104,9 +115,9 @@ export default function HeroSection() {
                 variant="outline"
                 size="lg"
                 className="rounded-full border border-yellow-400 px-8 py-6 text-lg text-yellow-500 hover:bg-yellow-500 hover:text-black"
-                onClick={() => scrollToSection("magazine")}
+                onClick={() => scrollToSection("about")}
               >
-                Download 2024 Magazine
+                Learn More
               </Button>
             </div>
           </motion.div>

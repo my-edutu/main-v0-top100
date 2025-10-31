@@ -6,23 +6,38 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 
 export default function VerifyEmailPage() {
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-zinc-950 via-black to-zinc-900">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,140,0,0.12),transparent_40%),radial-gradient(circle_at_bottom_right,rgba(255,140,0,0.08),transparent_40%)]" />
-      <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
-        <div className="w-full max-w-xl text-center">
-          <Card className="border-zinc-800/80 bg-zinc-950/70 backdrop-blur">
-            <CardHeader className="space-y-3">
-              <CardTitle className="text-2xl font-semibold text-white">Email verification paused</CardTitle>
-              <CardDescription className="text-sm text-zinc-400">
-                Public access is temporarily closed while we prepare the next release. We’ll start sending verification links again once sign-in is re-enabled.
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-primary-50 to-secondary-50 dark:from-primary-900/20 dark:to-secondary-900/20">
+      <div className="absolute inset-0 bg-grid-pattern opacity-5 dark:opacity-10"></div>
+      <div className="relative z-10 flex min-h-screen items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="mb-8 text-center">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/20">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+            </div>
+            <h1 className="mt-4 text-2xl font-bold tracking-tight text-foreground">Email Verification</h1>
+            <p className="mt-2 text-sm text-muted-foreground">Account verification status</p>
+          </div>
+          
+          <Card className="border-0 bg-background/80 backdrop-blur-sm shadow-xl">
+            <CardHeader className="text-center space-y-2">
+              <CardTitle className="text-xl font-semibold">Email verification</CardTitle>
+              <CardDescription className="text-sm text-muted-foreground">
+                Email verification is part of the Top100 Awardee profile setup process.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Button asChild className="w-full bg-yellow-500 text-white hover:bg-yellow-400">
-                <Link href="/">Explore the site</Link>
-              </Button>
-              <p className="text-xs text-zinc-500">
-                Need help as part of the internal team? Ping us on the team channel for a direct invite.
+              <div className="text-center text-sm text-muted-foreground">
+                <p className="mb-4">Are you a Top100 Awardee with credentials?</p>
+                <Button asChild variant="outline" className="w-full">
+                  <Link href="/auth/signin">Sign In to Your Profile</Link>
+                </Button>
+              </div>
+              <p className="text-xs text-center text-muted-foreground">
+                For assistance with your Top100 Awardee profile, contact our administrative team.
               </p>
             </CardContent>
           </Card>

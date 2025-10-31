@@ -7,7 +7,7 @@ import { Download, FileText } from "lucide-react"
 
 export default function MagazineSection() {
   return (
-    <section id="magazine" className="py-20 relative">
+    <section id="magazine" className="section-padding relative">
       <div className="container">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

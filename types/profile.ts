@@ -95,6 +95,7 @@ export type AwardeeDirectoryEntry = {
   metadata?: Record<string, unknown> | null;
   cgpa?: string | null;
   year?: number | null;
+  featured?: boolean | null;
   created_at?: string | null;
   updated_at?: string | null;
   is_public: boolean;

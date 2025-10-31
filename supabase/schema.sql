@@ -143,6 +143,7 @@ select
   p.metadata,
   a.cgpa,
   a.year,
+  a.featured,
   a.created_at,
   p.updated_at,
   coalesce(p.is_public, true) as is_public,

@@ -158,7 +158,7 @@ export default function GallerySection() {
         {/* Category Filter */}
         
 
-        <motion.div layout className="grid grid-cols-3 gap-4 max-w-4xl mx-auto">
+        <motion.div layout className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-4 gap-4 max-w-6xl mx-auto">
           {filteredImages.slice(0, 12).map((image, index) => (
             <motion.div
               key={image.id}
@@ -168,7 +168,7 @@ export default function GallerySection() {
               exit={{ opacity: 0, scale: 0.9 }}
               transition={{ duration: 0.3, delay: index * 0.05 }}
               whileHover={{ scale: 1.05 }}
-              className="bg-black/50 rounded-lg overflow-hidden backdrop-blur-lg border border-orange-400/20 hover:border-orange-400/40 transition-all duration-300 cursor-pointer group aspect-[4/3]"
+              className="bg-black/50 rounded-lg overflow-hidden backdrop-blur-lg border border-orange-400/20 hover:border-orange-400/40 transition-all duration-300 cursor-pointer group aspect-[3/2]"
               onClick={() => openModal(image)}
             >
               <div className="relative h-full overflow-hidden">
@@ -179,11 +179,6 @@ export default function GallerySection() {
                   className="object-cover group-hover:scale-110 transition-transform duration-300"
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 />
-                <div className="absolute top-2 right-2">
-                  <Badge className="bg-orange-500/90 text-white backdrop-blur-sm text-xs px-2 py-1">
-                    {image.category}
-                  </Badge>
-                </div>
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300" />
               </div>
             </motion.div>

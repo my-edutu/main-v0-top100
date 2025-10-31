@@ -64,7 +64,7 @@ export default function BlogSection() {
   }, [])
 
   return (
-    <section id="blog">
+    <section id="blog" className="section-padding">
       <div className="container flex flex-col gap-10">
         <div className="text-center">
           <h2 className="mt-4 text-3xl font-semibold sm:text-4xl">
@@ -157,4 +157,3 @@ export default function BlogSection() {
     </section>
   )
 }
-

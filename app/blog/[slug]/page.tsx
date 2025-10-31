@@ -1,9 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Calendar, Clock, User } from "lucide-react";
+import { Calendar, Clock } from "lucide-react";
 
 import { getPostBySlug, getRelatedPosts } from "@/lib/posts/server";
+import { SimpleBlogCard } from "../SimpleBlogCard";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,24 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
     <div className="min-h-screen bg-black py-16">
       <div className="container mx-auto max-w-5xl px-4">
         <article className="overflow-hidden rounded-3xl border border-zinc-800 bg-black/50 backdrop-blur-xl">
+          {/* Header section */}
+          <div className="p-8 md:p-10 pb-4">
+            <h1 className="text-3xl font-semibold text-white md:text-4xl mb-2">
+              {post.title}
+            </h1>
+            <div className="flex flex-wrap items-center gap-4 text-sm text-zinc-300">
+              <span className="inline-flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                {new Date(post.createdAt).toLocaleDateString()}
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                {post.readTime} min read
+              </span>
+            </div>
+          </div>
+
+          {/* Image section */}
           <div className="relative h-80 w-full overflow-hidden md:h-96">
             <Image
               src={post.coverImage || "/placeholder.svg"}
@@ -44,39 +63,9 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
               className="object-cover"
               priority
             />
-            <div className="absolute inset-x-0 bottom-0 bg-[linear-gradient(transparent,rgba(0,0,0,1))] p-8">
-              <div className="space-y-3">
-                <div className="flex flex-wrap gap-3">
-                  {post.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="rounded-full border border-orange-400/40 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-orange-200"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-                <h1 className="text-3xl font-semibold text-white md:text-4xl">
-                  {post.title}
-                </h1>
-                <div className="flex flex-wrap items-center gap-4 text-sm text-zinc-300">
-                  <span className="inline-flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    {post.author}
-                  </span>
-                  <span className="inline-flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    {new Date(post.createdAt).toLocaleDateString()}
-                  </span>
-                  <span className="inline-flex items-center gap-2">
-                    <Clock className="h-4 w-4" />
-                    {post.readTime} min read
-                  </span>
-                </div>
-              </div>
-            </div>
           </div>
 
+          {/* Content section */}
           <div className="space-y-6 p-8 md:p-10">
             <div
               className="prose prose-invert max-w-none space-y-6 text-lg leading-relaxed text-zinc-300"
@@ -90,24 +79,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
             <h2 className="text-2xl font-semibold text-white">Keep exploring</h2>
             <div className="grid gap-6 md:grid-cols-2">
               {relatedPosts.map((related) => (
-                <Link
-                  key={related.id}
-                  href={`/blog/${related.slug}`}
-                  className="group flex h-full flex-col gap-4 rounded-2xl border border-zinc-800 bg-black/40 p-6 transition hover:border-orange-400/40"
-                >
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.25em] text-orange-300">
-                      {new Date(related.createdAt).toLocaleDateString()}
-                    </p>
-                    <h3 className="mt-2 text-lg font-semibold text-white group-hover:text-orange-200">
-                      {related.title}
-                    </h3>
-                  </div>
-                  <p className="text-sm text-zinc-400">{related.excerpt}</p>
-                  <span className="text-sm font-semibold text-orange-300">
-                    Read story &rarr;
-                  </span>
-                </Link>
+                <SimpleBlogCard key={related.id} post={related} />
               ))}
             </div>
           </section>

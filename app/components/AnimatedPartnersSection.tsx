@@ -12,9 +12,9 @@ const AnimatedPartnersSection = () => {
         "Partners with youth-led initiatives accelerating leadership, innovation, and social impact across the continent.",
     },
     {
-      name: "ALX",
+      name: "ALX Nigeria",
       logo: "/7.png",
-      alt: "ALX logo",
+      alt: "ALX Nigeria logo",
       description:
         "Driving Africa's digital transformation by developing tech talent and empowering the next generation of builders.",
     },
@@ -28,50 +28,34 @@ const AnimatedPartnersSection = () => {
   ];
 
   return (
-    <section className="relative overflow-hidden py-10 bg-zinc-900">
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-cyan-500/25 to-transparent" />
-        <div className="absolute inset-y-0 right-0 w-40 bg-gradient-to-l from-cyan-500/10 to-transparent" />
-      </div>
-
+    <section className="relative overflow-hidden py-6 bg-zinc-900">
       <div className="container relative mx-auto px-4">
-        <div className="text-center mb-8">
-          <span className="inline-flex items-center px-4 py-1 rounded-full border border-cyan-300/40 text-cyan-200 text-xs tracking-[0.2em] uppercase">
-            Partners
-          </span>
-          <h2 className="mt-4 text-2xl md:text-3xl font-bold text-white">
-            Building Africa's future with visionary allies
+        <div className="text-center mb-6">
+          <h2 className="text-xl md:text-2xl font-bold text-white">
+            Meet some of our sponsors
           </h2>
-          <p className="mt-3 text-sm md:text-base text-zinc-300 max-w-2xl mx-auto">
-            These partners amplify our mission, unlocking opportunities and resources for Africa's boldest innovators.
-          </p>
         </div>
 
         {/* Mobile view: Scrollable partners */}
-        <div className="md:hidden overflow-x-auto py-4 px-2 -mx-2 scrollbar-hide">
+        <div className="md:hidden overflow-x-auto py-3 px-2 -mx-2 scrollbar-hide">
           <div className="flex space-x-4 min-w-max">
             {partners.map((partner, index) => (
               <div
                 key={`mobile-${partner.name}-${index}`}
-                className="flex-shrink-0 w-60 group relative overflow-hidden rounded-3xl border border-cyan-500/10 bg-white/[0.03] backdrop-blur-md"
+                className="flex-shrink-0 w-40 group relative overflow-hidden rounded-2xl border border-cyan-500/10 bg-white/[0.03] backdrop-blur-md"
               >
-                <div className="absolute top-0 left-0 h-px w-2/3 bg-gradient-to-r from-cyan-400/50 to-transparent" />
-                <div className="flex flex-col items-center px-4 py-6 text-center relative">
-                  <div className="relative flex h-16 w-full items-center justify-center mb-3">
-                    <div className="absolute inset-0 rounded-2xl bg-cyan-400/10 blur-xl transition group-hover:bg-cyan-400/20" />
+                <div className="flex flex-col items-center px-2 py-4 text-center relative">
+                  <div className="relative flex h-20 w-full items-center justify-center mb-1">
                     <Image
                       src={partner.logo}
                       alt={partner.alt}
                       width={180}
                       height={80}
                       priority
-                      className="relative z-10 h-12 w-auto object-contain"
+                      className="relative z-10 h-16 w-auto object-contain"
                     />
                   </div>
-                  <h3 className="text-base font-semibold text-white mb-2">{partner.name}</h3>
-                  <p className="text-xs text-zinc-400 leading-relaxed">
-                    {partner.description}
-                  </p>
+                  <h3 className="text-xs font-semibold text-white">{partner.name}</h3>
                 </div>
               </div>
             ))}
@@ -79,30 +63,25 @@ const AnimatedPartnersSection = () => {
         </div>
 
         {/* Desktop view: Continuous sliding partners */}
-        <div className="hidden md:block overflow-hidden py-4">
+        <div className="hidden md:block overflow-hidden py-3">
           <div className="animate-infinite-partner-scroll">
             {[...partners, ...partners, ...partners].map((partner, index) => (
               <div
                 key={`${partner.name}-${index}`}
-                className="flex-shrink-0 w-64 mx-3 group relative overflow-hidden rounded-3xl border border-cyan-500/10 bg-white/[0.03] backdrop-blur-md"
+                className="flex-shrink-0 w-48 mx-2 group relative overflow-hidden rounded-2xl border border-cyan-500/10 bg-white/[0.03] backdrop-blur-md"
               >
-                <div className="absolute top-0 left-0 h-px w-2/3 bg-gradient-to-r from-cyan-400/50 to-transparent" />
-                <div className="flex flex-col items-center px-6 py-8 text-center relative">
-                  <div className="relative flex h-20 w-full items-center justify-center mb-4">
-                    <div className="absolute inset-0 rounded-2xl bg-cyan-400/10 blur-xl transition group-hover:bg-cyan-400/20" />
+                <div className="flex flex-col items-center px-3 py-5 text-center relative">
+                  <div className="relative flex h-24 w-full items-center justify-center mb-2">
                     <Image
                       src={partner.logo}
                       alt={partner.alt}
                       width={220}
                       height={96}
                       priority
-                      className="relative z-10 h-16 w-auto object-contain"
+                      className="relative z-10 h-20 w-auto object-contain"
                     />
                   </div>
-                  <h3 className="text-lg font-semibold text-white mb-2">{partner.name}</h3>
-                  <p className="text-xs text-zinc-400 leading-relaxed">
-                    {partner.description}
-                  </p>
+                  <h3 className="text-sm font-semibold text-white">{partner.name}</h3>
                 </div>
               </div>
             ))}

@@ -154,6 +154,21 @@ html.light .to-black {
   --tw-gradient-to: #e2e8f0 !important;
 }
 
+/* Handle gradients in light theme */
+html.light .from-white {
+  --tw-gradient-from: #0f172a !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(15, 23, 42, 0));
+}
+
+html.light .to-orange-300 {
+  --tw-gradient-to: #c2410c !important;
+}
+
+html.light .from-orange-300 {
+  --tw-gradient-from: #c2410c !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(194, 65, 12, 0));
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -169,9 +184,24 @@ html.light .to-black {
   }
 }
 
+@layer components {
+  .section-padding {
+    @apply py-12 sm:py-16 lg:py-20;
+  }
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+  
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
   }
 }
 
@@ -246,4 +276,3 @@ html.light .to-black {
 .tiptap-editor a {
   color: rgba(96, 165, 250, 0.95);
 }
-

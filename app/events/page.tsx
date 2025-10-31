@@ -199,7 +199,6 @@ export default function EventsPage() {
       <div className="absolute inset-0 bg-[url('/textures/noise.png')] opacity-50 mix-blend-soft-light" aria-hidden="true" />
       <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-16 px-4 md:px-6">
         <div className="space-y-6 text-center md:text-left">
-          <Badge className="mx-auto md:mx-0 w-fit bg-white/10 text-orange-300">Events & Experiences</Badge>
           <h1 className="text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl">
             Stories that shape the future of African leadership
           </h1>
@@ -302,21 +301,52 @@ export default function EventsPage() {
                   <h2 className="text-2xl font-semibold text-white">Upcoming Gatherings</h2>
                   <p className="text-sm text-zinc-300">Reserve your spot before capacity fills up.</p>
                 </div>
-                {upcomingEvents.length > 0 && (
-                  <Badge className="bg-white/10 text-orange-200">
-                    {upcomingEvents.length} upcoming
-                  </Badge>
-                )}
+                <Badge className="bg-white/10 text-orange-200">
+                  {upcomingEvents.length + 1} upcoming
+                </Badge>
               </div>
-              {upcomingEvents.length === 0 ? (
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-10 text-center text-zinc-300">
-                  No scheduled events yet. Join our community to receive first access once the next experience drops.
+              <div className="grid gap-6 md:grid-cols-2">
+                {/* Africa Future Leaders Summit 2026 */}
+                <div 
+                  className="group cursor-pointer relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:border-orange-400/70 hover:bg-white/10 hover:shadow-xl backdrop-blur"
+                  onClick={() => window.location.href = '/initiatives/summit'}
+                >
+                  <div className="absolute inset-0 bg-orange-400/10 opacity-0 transition-opacity duration-300 hover:opacity-100" />
+                  <div className="relative z-10 flex flex-col gap-4">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center gap-2 text-sm text-orange-300">
+                          <CalendarDays className="h-4 w-4" />
+                          <span>2026</span>
+                        </div>
+                        <h3 className="mt-2 text-2xl font-semibold text-white">
+                          Africa Future Leaders Summit 2026
+                        </h3>
+                      </div>
+                      <div className="flex flex-col items-center justify-center rounded-xl bg-white/10 px-3 py-2 text-white">
+                        <span className="text-xs tracking-[0.2em] uppercase">2026</span>
+                        <span className="text-xl font-bold">TBD</span>
+                      </div>
+                    </div>
+                    <p className="text-sm leading-relaxed text-zinc-300 line-clamp-3">
+                      Join us in co-creating a gathering that accelerates Africa's next generation of changemakers.
+                    </p>
+                    <div className="flex flex-wrap items-center gap-3 text-sm text-zinc-300">
+                      <div className="flex items-center gap-2">
+                        <Globe2 className="h-4 w-4" />
+                        <span>Hybrid experience</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge className="bg-orange-500/20 text-orange-200">
+                        Registration opening soon
+                      </Badge>
+                    </div>
+                  </div>
                 </div>
-              ) : (
-                <div className="grid gap-6 md:grid-cols-2">
-                  {upcomingEvents.map((event) => renderEventCard(event, "upcoming"))}
-                </div>
-              )}
+
+                {upcomingEvents.map((event) => renderEventCard(event, "upcoming"))}
+              </div>
             </section>
 
             <section id="past-events" className="space-y-6">
@@ -325,14 +355,82 @@ export default function EventsPage() {
                   <h2 className="text-2xl font-semibold text-white">Past Highlights</h2>
                   <p className="text-sm text-zinc-300">Relive the moments that have shaped our network.</p>
                 </div>
-                <Badge className="bg-white/10 text-zinc-200">{pastEvents.length} recorded</Badge>
+                <Badge className="bg-white/10 text-zinc-200">{pastEvents.length + 2} recorded</Badge>
               </div>
-              {pastEvents.length === 0 ? (
+              {(pastEvents.length === 0 && upcomingEvents.length > 0) ? (
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-10 text-center text-zinc-300">
                   Our timeline is just getting started. Check back for recaps from recent programs.
                 </div>
               ) : (
                 <div className="grid gap-6 md:grid-cols-3">
+                  {/* Africa Future Leaders Summit 2025 - Past Event */}
+                  <div 
+                    className="group cursor-pointer relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:border-orange-400/70 hover:bg-white/10 hover:shadow-xl backdrop-blur"
+                    onClick={() => window.location.href = '/initiatives/summit'}
+                  >
+                    <div className="absolute inset-0 bg-orange-400/10 opacity-0 transition-opacity duration-300 hover:opacity-100" />
+                    <div className="relative z-10 flex flex-col gap-4">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="flex items-center gap-2 text-sm text-orange-300">
+                            <CalendarDays className="h-4 w-4" />
+                            <span>2025</span>
+                          </div>
+                          <h3 className="mt-2 text-xl font-semibold text-white">
+                            Africa Future Leaders Summit 2025
+                          </h3>
+                        </div>
+                        <div className="flex flex-col items-center justify-center rounded-xl bg-white/10 px-3 py-2 text-white">
+                          <span className="text-xs tracking-[0.2em] uppercase">2025</span>
+                          <span className="text-lg font-bold">TBD</span>
+                        </div>
+                      </div>
+                      <p className="text-sm leading-relaxed text-zinc-300 line-clamp-3">
+                        Join us in co-creating a gathering that accelerates Africa's next generation of changemakers.
+                      </p>
+                      <div className="flex flex-wrap items-center gap-3 text-sm text-zinc-300">
+                        <div className="flex items-center gap-2">
+                          <Globe2 className="h-4 w-4" />
+                          <span>Hybrid experience</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Africa Future Leaders Summit 2024 - Past Event */}
+                  <div 
+                    className="group cursor-pointer relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:border-orange-400/70 hover:bg-white/10 hover:shadow-xl backdrop-blur"
+                    onClick={() => window.location.href = '/initiatives/summit'}
+                  >
+                    <div className="absolute inset-0 bg-orange-400/10 opacity-0 transition-opacity duration-300 hover:opacity-100" />
+                    <div className="relative z-10 flex flex-col gap-4">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="flex items-center gap-2 text-sm text-orange-300">
+                            <CalendarDays className="h-4 w-4" />
+                            <span>2024</span>
+                          </div>
+                          <h3 className="mt-2 text-xl font-semibold text-white">
+                            Africa Future Leaders Summit 2024
+                          </h3>
+                        </div>
+                        <div className="flex flex-col items-center justify-center rounded-xl bg-white/10 px-3 py-2 text-white">
+                          <span className="text-xs tracking-[0.2em] uppercase">2024</span>
+                          <span className="text-lg font-bold">TBD</span>
+                        </div>
+                      </div>
+                      <p className="text-sm leading-relaxed text-zinc-300 line-clamp-3">
+                        Empowering Africa's Future Leaders - Recap of the groundbreaking summit.
+                      </p>
+                      <div className="flex flex-wrap items-center gap-3 text-sm text-zinc-300">
+                        <div className="flex items-center gap-2">
+                          <Globe2 className="h-4 w-4" />
+                          <span>Hybrid experience</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   {pastEvents.map((event) => renderEventCard(event, "past"))}
                 </div>
               )}

@@ -42,7 +42,7 @@ const impactStats: ImpactStat[] = [
 
 export default function ImpactSection() {
   return (
-    <section>
+    <section className="section-padding">
       <div className="container space-y-10">
         <div className="mx-auto max-w-3xl space-y-4 text-center">
           <h2 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl sm:leading-tight">

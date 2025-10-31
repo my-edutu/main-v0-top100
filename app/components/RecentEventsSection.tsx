@@ -56,7 +56,7 @@ const RecentEventsSection = () => {
   }
 
   return (
-    <section className="py-16">
+    <section className="section-padding">
       <div className="container space-y-8">
         <div className="text-center space-y-3">
 

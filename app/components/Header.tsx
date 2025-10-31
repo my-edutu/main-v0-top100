@@ -9,11 +9,13 @@ import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
 
 const navItems: Array<{ label: string; href?: string; section?: string }> = [
+  { label: "Home", href: "/" },
   { label: "Meet the Awardees", href: "/awardees" },
   { label: "Top100 Africa Future Leaders", href: "/africa-future-leaders" },
   { label: "Blog", href: "/blog" },
   { label: "Events", href: "/events" },
   { label: "Magazine", href: "/magazine" },
+  { label: "Partner", href: "/partners" },
   { label: "Contact", section: "contact" },
 ]
 
@@ -91,18 +93,32 @@ export default function Header() {
               </button>
             )
           )}
+          <Link
+            href="/auth/signin"
+            className="ml-4 rounded-full px-4 py-2 text-white transition-colors hover:bg-yellow-400/50 hover:text-white border border-white/30"
+          >
+            Admin Sign In
+          </Link>
         </nav>
 
-        <div className="md:hidden">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsMenuOpen((prev) => !prev)}
-            className="rounded-2xl border border-yellow-600/80 bg-yellow-200/50 text-white shadow-sm"
-            aria-label="Toggle navigation menu"
+        <div className="flex items-center gap-2">
+          <Link
+            href="/auth/signin"
+            className="hidden md:block rounded-full px-4 py-2 text-xs sm:text-sm text-white transition-colors hover:bg-yellow-400/50 hover:text-white border border-white/30"
           >
-            {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
+            Admin Sign In
+          </Link>
+          <div className="md:hidden">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsMenuOpen((prev) => !prev)}
+              className="rounded-2xl border border-yellow-600/80 bg-yellow-200/50 text-white shadow-sm"
+              aria-label="Toggle navigation menu"
+            >
+              {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </Button>
+          </div>
         </div>
       </div>
 

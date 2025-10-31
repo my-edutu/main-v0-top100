@@ -33,14 +33,11 @@ export default async function BlogPage({ searchParams }: { searchParams?: { page
     <div className="min-h-screen bg-black py-16">
       <div className="container mx-auto max-w-6xl px-4">
         <header className="mb-16 text-center">
-          <p className="text-sm uppercase tracking-[0.4em] text-orange-300">
-            Top100 Journal
-          </p>
           <h1 className="mt-4 text-4xl font-semibold text-white md:text-5xl">
             Stories &amp; Insights from Africa&rsquo;s Future Leaders
           </h1>
           <p className="mt-4 text-lg text-zinc-400 md:text-xl">
-            Dive into long-form essays, partnership spotlights, and leadership lessons curated from the Top100 network.
+            Explore essays, partnership spotlights, and leadership lessons from the Top100 network.
           </p>
         </header>
 
@@ -50,16 +47,7 @@ export default async function BlogPage({ searchParams }: { searchParams?: { page
               <h2 className="text-2xl font-semibold text-white md:text-3xl">
                 Featured Stories
               </h2>
-              <p className="mt-2 text-sm text-zinc-400 md:text-base">
-                Hand-picked narratives highlighting partnerships, mentorship, and awardee journeys.
-              </p>
             </div>
-            <Link
-              href="#all-stories"
-              className="text-sm font-semibold text-orange-300 hover:text-orange-200"
-            >
-              Skip to all stories &rarr;
-            </Link>
           </div>
 
           <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">

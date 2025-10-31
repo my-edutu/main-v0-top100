@@ -33,10 +33,10 @@ export default function Footer() {
                 />
               </div>
               <div>
-                <p className="text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-white mb-2 text-right">Let's connect</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white mb-1 text-right">Let's connect</p>
                 <a
                   href="mailto:patnership@top100Afl.com"
-                  className="inline-flex items-center gap-1.5 rounded-full border border-white/40 bg-white/10 px-3 py-1.5 text-[0.6rem] text-white transition hover:border-white hover:text-white/90 block ml-auto"
+                  className="inline-flex items-center gap-1 rounded-full border border-white/40 bg-white/10 px-2.5 py-1 text-xs text-white transition hover:border-white hover:text-white/90 block ml-auto"
                 >
                   <Mail className="h-2.5 w-2.5" strokeWidth={1.6} />
                   patnership@top100Afl.com
@@ -53,28 +53,28 @@ export default function Footer() {
             <div>
               <h3 className="text-sm font-semibold mb-2 tracking-tight">Initiatives</h3>
               <ul className="space-y-1">
-                <li><Link href="/initiatives/project100" className="text-white/80 hover:text-white transition text-xs">Project100 Scholarship</Link></li>
-                <li><Link href="/initiatives/talk100-live" className="text-white/80 hover:text-white transition text-xs">Talk100 Live</Link></li>
-                <li><Link href="/initiatives/summit" className="text-white/80 hover:text-white transition text-xs">Future Leaders Summit</Link></li>
-                <li><Link href="/initiatives/opportunities" className="text-white/80 hover:text-white transition text-xs">Opportunities Hub</Link></li>
+                <li><Link href="/initiatives/project100" className="text-white/80 hover:text-white transition text-sm">Project100 Scholarship</Link></li>
+                <li><Link href="/initiatives/talk100-live" className="text-white/80 hover:text-white transition text-sm">Talk100 Live</Link></li>
+                <li><Link href="/initiatives/summit" className="text-white/80 hover:text-white transition text-sm">Future Leaders Summit</Link></li>
+                <li><Link href="/initiatives/opportunities" className="text-white/80 hover:text-white transition text-sm">Opportunities Hub</Link></li>
               </ul>
               
               <h3 className="text-sm font-semibold mb-2 mt-3 tracking-tight">Information</h3>
               <ul className="space-y-1">
-                <li><Link href="/" className="text-white/80 hover:text-white transition text-xs">Home</Link></li>
-                <li><Link href="/awardees" className="text-white/80 hover:text-white transition text-xs">Meet Awardees</Link></li>
-                <li><Link href="/blog" className="text-white/80 hover:text-white transition text-xs">Blog</Link></li>
-                <li><Link href="/events" className="text-white/80 hover:text-white transition text-xs">Events</Link></li>
-                <li><Link href="/magazine" className="text-white/80 hover:text-white transition text-xs">Magazine</Link></li>
+                <li><Link href="/" className="text-white/80 hover:text-white transition text-sm">Home</Link></li>
+                <li><Link href="/awardees" className="text-white/80 hover:text-white transition text-sm">Meet Awardees</Link></li>
+                <li><Link href="/blog" className="text-white/80 hover:text-white transition text-sm">Blog</Link></li>
+                <li><Link href="/events" className="text-white/80 hover:text-white transition text-sm">Events</Link></li>
+                <li><Link href="/magazine" className="text-white/80 hover:text-white transition text-sm">Magazine</Link></li>
               </ul>
             </div>
             
             <div>
               <h3 className="text-sm font-semibold mb-2 tracking-tight">Connect</h3>
               <ul className="space-y-1">
-                <li><Link href="/contact" className="text-white/80 hover:text-white transition text-xs">Contact</Link></li>
-                <li><Link href="/africa-future-leaders" className="text-white/80 hover:text-white transition text-xs">About Us</Link></li>
-                <li><Link href="/join" className="text-white/80 hover:text-white transition text-xs">Partner With Us</Link></li>
+                <li><Link href="/contact" className="text-white/80 hover:text-white transition text-sm">Contact</Link></li>
+                <li><Link href="/africa-future-leaders" className="text-white/80 hover:text-white transition text-sm">About Us</Link></li>
+                <li><Link href="/join" className="text-white/80 hover:text-white transition text-sm">Partner With Us</Link></li>
               </ul>
               
               <div className="mt-3">
@@ -91,22 +91,20 @@ export default function Footer() {
                   ))}
                 </div>
 
-                <div className="mt-2 pt-2 flex flex-col gap-1 text-[0.6rem] text-white/90">
+                <div className="mt-2 pt-2 flex flex-col gap-1 text-xs text-white/90">
+                  <Link href="/admin" className="text-xs text-white/90 hover:text-white/70">Login</Link>
                   <button
                     onClick={() => setTheme(isDark ? "light" : "dark")}
-                    className="flex items-center justify-start gap-0.5 text-[0.6rem] text-white hover:text-white/90 font-medium"
+                    className="flex items-center justify-start gap-0.5 text-xs text-white hover:text-white/90 font-medium"
                   >
                     {mounted ? (
                       isDark ? <Sun className="h-2 w-2 text-zinc-900 mr-1" /> : <Moon className="h-2 w-2 text-zinc-900 mr-1" />
                     ) : (
                       <Sun className="h-2 w-2 text-zinc-900 opacity-0 mr-1" />
                     )}
-                    <span className="text-[0.6rem]">{mounted ? (isDark ? "Switch to light" : "Switch to dark") : "Toggle theme"}</span>
+                    <span className="text-xs">{mounted ? (isDark ? "Switch to light mode" : "Switch to dark mode") : "Toggle theme"}</span>
                   </button>
-                  <div className="flex flex-col gap-1">
-                    <p>&copy; {new Date().getFullYear()} Top100 Africa Future Leaders. All rights reserved.</p>
-                    <Link href="/admin" className="text-[0.6rem] text-white/90 hover:text-white/70">Login</Link>
-                  </div>
+                  <p className="text-xs">&copy; {new Date().getFullYear()} Top100 Africa Future Leaders. All rights reserved.</p>
                 </div>
               </div>
             </div>

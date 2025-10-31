@@ -84,22 +84,7 @@ export default function InitiativesPage() {
           ))}
         </div>
 
-        <div className="max-w-4xl mx-auto mt-16 text-center">
-          <h2 className="text-3xl font-bold mb-6">About Our Movement</h2>
-          <p className="text-lg text-muted-foreground mb-8">
-            We celebrate undergraduates rewriting what leadership looks like across the continent. 
-            From Lagos to Kigali, our awardees transform bold ideas into movements that uplift 
-            communities and open doors for their peers.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg">
-              <Link href="/africa-future-leaders">Explore Our Story</Link>
-            </Button>
-            <Button asChild variant="outline" size="lg">
-              <Link href="/awardees">Meet Our Awardees</Link>
-            </Button>
-          </div>
-        </div>
+
       </div>
     </div>
   );

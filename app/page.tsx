@@ -1,33 +1,21 @@
-"use client"
-
-import { useEffect, useState } from "react"
-import Image from "next/image"
 import Link from "next/link"
-import { motion } from "framer-motion"
 import { ArrowRight } from "lucide-react"
 
-import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import HomePageHeroSection from "./components/HomePageHeroSection"
 import AwardeesSection from "./components/AwardeesSection"
 import BlogSection from "./components/BlogSection"
 import MagazineSection from "./components/MagazineSection"
 import RecentEventsSection from "./components/RecentEventsSection"
 import ImpactSection from "./components/ImpactSection"
+import InitiativeCards from "@/components/InitiativeCards"
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
-
-type Awardee = {
-  name: string
-  achievement: string
-  country: string
-  headline: string
-  imageUrl: string
-}
 
 type Initiative = {
   title: string
@@ -44,30 +32,6 @@ type TeamMember = {
   name: string
   role: string
 }
-
-const heroAwardees: Awardee[] = [
-  {
-    name: "Ama Mensah",
-    achievement: "Founded a solar-powered learning hub reaching 50 rural schools in Ghana.",
-    country: "Ghana",
-    headline: "Lighting the path for future scientists",
-    imageUrl: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=1200&q=80",
-  },
-  {
-    name: "Chinedu Okafor",
-    achievement: "Built a telehealth platform that connects 200+ doctors to remote communities.",
-    country: "Nigeria",
-    headline: "Reimagining access to healthcare",
-    imageUrl: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=1200&q=80",
-  },
-  {
-    name: "Lerato Khumalo",
-    achievement: "Scaled youth-led climate action projects to 12 cities across Southern Africa.",
-    country: "South Africa",
-    headline: "Mobilizing a green vanguard",
-    imageUrl: "https://images.unsplash.com/photo-1487412912498-0447578fcca8?auto=format&fit=crop&w=1200&q=80",
-  },
-]
 
 const initiatives: Initiative[] = [
   {
@@ -141,111 +105,28 @@ const teamMembers: TeamMember[] = [
 ]
 
 export default function HomePage() {
-  const [currentHeroIndex, setCurrentHeroIndex] = useState(0)
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentHeroIndex((prev) => (prev + 1) % heroAwardees.length)
-    }, 6000)
-
-    return () => clearInterval(interval)
-  }, [])
-
-  const activeAwardee = heroAwardees[currentHeroIndex]
-
   return (
     <div className="bg-background text-foreground">
-      <div className="space-y-8 pb-24 pt-8 sm:space-y-12 sm:pt-10 md:space-y-14 md:pt-12 lg:space-y-20 lg:pt-16">
-        <motion.section
-          className="relative"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-        >
-          <div className="container">
-            <div className="overflow-hidden rounded-[32px] border border-border/60 bg-card/95 shadow-xl shadow-primary/10 backdrop-blur-xl">
-              <div className="grid gap-6 px-6 py-7 sm:gap-8 sm:px-8 sm:py-9 lg:grid-cols-[1.1fr_0.9fr] lg:px-10 lg:py-12">
-                <div className="space-y-6">
-                  <div className="flex items-center gap-3 text-xs uppercase tracking-[0.35em] text-primary">
-                    <span className="inline-flex h-2 w-2 rounded-full bg-primary" />
-                    <span>{activeAwardee.country}</span>
-                  </div>
-                  <div className="space-y-4">
-                    <h1 className="text-4xl font-semibold leading-tight sm:text-5xl">
-                      {activeAwardee.headline}
-                    </h1>
-                    <p className="text-base text-muted-foreground sm:text-lg">
-                      {activeAwardee.achievement}
-                    </p>
-                  </div>
-                  <div className="flex flex-col gap-3 sm:flex-row">
-                    <Button asChild size="lg" className="bg-orange-500 text-black hover:bg-orange-400">
-                      <Link href="/awardees">Explore awardees</Link>
-                    </Button>
-                    <Button asChild variant="outline" size="lg" className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-black">
-                      <Link href="/blog">Read stories</Link>
-                    </Button>
-                  </div>
-                  <div className="flex gap-2 pt-2">
-                    {heroAwardees.map((awardee, index) => (
-                      <button
-                        key={awardee.name}
-                        onClick={() => setCurrentHeroIndex(index)}
-                        className={cn(
-                          "h-2.5 w-10 rounded-full transition-all",
-                          currentHeroIndex === index
-                            ? "bg-primary"
-                            : "bg-muted hover:bg-primary/40",
-                        )}
-                        aria-label={`Show ${awardee.name}`}
-                      />
-                    ))}
-                  </div>
-                </div>
-                <div className="relative overflow-hidden rounded-[28px] bg-surface/70">
-                  <Image
-                    src={activeAwardee.imageUrl}
-                    alt={activeAwardee.name}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    priority
-                  />
-                  <div className="absolute inset-0 bg-[linear-gradient(transparent,rgba(0,0,0,0.7))]" />
-                  <div className="absolute bottom-4 left-4 right-4 rounded-2xl border border-white/30 bg-background/80 p-4 text-sm shadow-lg shadow-primary/10">
-                    <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Featured awardee</p>
-                    <p className="mt-2 text-base font-semibold">{activeAwardee.name}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </motion.section>
+      <div className="flex flex-col pb-16 pt-8 sm:pt-10 md:pt-12 lg:pt-16 [--section-gap:clamp(1.5rem,5vw,2.5rem)] sm:[--section-gap:clamp(1.75rem,4vw,3rem)] lg:[--section-gap:clamp(2rem,3vw,3.5rem)] xl:[--section-gap:clamp(2.25rem,2vw,4rem)] gap-[var(--section-gap)]">
+        <HomePageHeroSection />
 
-        <section id="about">
-          <div className="container">
-            <div className="rounded-[32px] border border-border/70 bg-surface p-8 shadow-sm sm:p-10">
-              <div className="space-y-6">
-                <div className="space-y-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.32em] text-primary">
-                    About the movement
-                  </p>
-                  <h2 className="text-3xl font-semibold leading-tight sm:text-[2.5rem]">
-                    Top100 Africa Future Leaders
-                  </h2>
-                </div>
-                <div className="space-y-4 text-base text-muted-foreground sm:text-lg">
-                  <p>
-                    We celebrate undergraduates rewriting what leadership looks like across the continent. From Lagos to
-                    Kigali, our awardees transform bold ideas into movements that uplift communities and open doors for
-                    their peers.
-                  </p>
-                  <p>
-                    Each cohort receives mentorship, global exposure, funding pathways, and storytelling support—because
-                    every breakthrough deserves a platform and a community to sustain it.
-                  </p>
-                </div>
-                <Button asChild size="lg" className="w-full sm:w-auto">
+        <section className="py-8">
+          <div className="container space-y-6">
+            <div className="max-w-3xl mx-auto text-center space-y-4">
+              <h2 className="text-3xl font-semibold">About the movement</h2>
+              <div className="space-y-4 text-lg text-muted-foreground">
+                <p>
+                  <span className="font-semibold">Top100 Africa Future Leaders</span>
+                </p>
+                <p>
+                  We celebrate undergraduates rewriting what leadership looks like across the continent. From Lagos to Kigali, our awardees transform bold ideas into movements that uplift communities and open doors for their peers.
+                </p>
+                <p>
+                  Each cohort receives mentorship, global exposure, funding pathways, and storytelling support—because every breakthrough deserves a platform and a community to sustain it.
+                </p>
+              </div>
+              <div className="pt-4">
+                <Button asChild>
                   <Link href="/africa-future-leaders">Explore our story</Link>
                 </Button>
               </div>
@@ -253,47 +134,52 @@ export default function HomePage() {
           </div>
         </section>
 
+
+
         <ImpactSection />
 
-        <section id="initiatives">
-          <div className="container space-y-6">
+
+        <section className="py-8">
+          <div className="container space-y-6 sm:space-y-8">
+            <div className="text-center">
+              <h2 className="text-3xl font-semibold">Meet some of our sponsors</h2>
+              <p className="text-sm text-muted-foreground sm:text-base mt-2">
+                These partners amplify our mission, unlocking opportunities and resources for Africa's boldest innovators.
+              </p>
+            </div>
+            <div className="grid grid-cols-3 gap-6">
+              {[
+                { name: "One Young World Africa & Middle East", logo: "/3.png", alt: "One Young World Africa and Middle East logo" },
+                { name: "ALX Nigeria", logo: "/7.png", alt: "ALX Nigeria logo" },
+                { name: "Learning Planet Institute", logo: "/6.png", alt: "Learning Planet Institute logo" },
+              ].map((partner, index) => (
+                <div 
+                  key={index} 
+                  className="flex flex-col items-center justify-center p-4 rounded-2xl border border-border/60 bg-card shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+                >
+                  <div className="w-full h-24 flex items-center justify-center mb-3">
+                    <img 
+                      src={partner.logo} 
+                      alt={partner.alt} 
+                      className="max-h-full max-w-full object-contain"
+                    />
+                  </div>
+                  <p className="text-center text-sm font-medium">{partner.name}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="initiatives" className="py-8">
+          <div className="container space-y-6 sm:space-y-8">
             <div>
               <h2 className="text-3xl font-semibold">Our latest initiatives</h2>
               <p className="text-sm text-muted-foreground sm:text-base">
                 Each initiative unlocks mentorship, funding, and opportunities tailored for Africa&apos;s youth.
               </p>
             </div>
-            <div className="flex flex-col gap-6">
-              {initiatives.map((initiative) => (
-                <Link
-                  key={initiative.title}
-                  href={initiative.href}
-                  className={`group rounded-[28px] border border-transparent p-1 shadow-md transition-all hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/20 ${
-                    initiative.title === "Project100 Scholarship" 
-                      ? "bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30" 
-                      : initiative.title === "Talk100 Live" 
-                      ? "bg-gradient-to-br from-purple-100 to-fuchsia-100 dark:from-purple-900/30 dark:to-fuchsia-900/30" 
-                      : initiative.title === "Future Leaders Summit" 
-                      ? "bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30" 
-                      : "bg-gradient-to-br from-emerald-100 to-green-100 dark:from-emerald-900/30 dark:to-green-900/30"
-                  }`}
-                >
-                  <div className="p-5 rounded-[27px] bg-white/80 dark:bg-background/80 h-full flex flex-col">
-                    <h3 className="text-xl font-semibold group-hover:text-primary transition-colors">
-                      {initiative.title}
-                    </h3>
-                    <p className="mt-2 text-sm text-muted-foreground flex-grow">
-                      {initiative.description}
-                    </p>
-                    <div className="mt-4 flex justify-end">
-                      <div className="rounded-full bg-primary/10 p-2 group-hover:bg-primary/20 transition-colors">
-                        <ArrowRight className="h-4 w-4 text-primary" />
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
+            <InitiativeCards />
             <div className="flex justify-center">
               <Button asChild variant="outline" size="sm">
                 <Link href="/initiatives">Explore all initiatives</Link>
@@ -307,8 +193,8 @@ export default function HomePage() {
         <MagazineSection />
         <RecentEventsSection />
 
-        <section>
-          <div className="container space-y-8">
+        <section className="py-8">
+          <div className="container space-y-6">
             <div className="space-y-2">
               <h2 className="text-3xl font-semibold">
                 Meet the people behind the platform
@@ -317,7 +203,7 @@ export default function HomePage() {
                 Programme leads, storytellers, and community builders sustaining the Top100 movement.
               </p>
             </div>
-            <div className="flex gap-6 overflow-x-auto pb-4 -mx-4 px-4">
+            <div className="flex gap-6 sm:gap-7 overflow-x-auto pb-4 -mx-4 px-4">
               {teamMembers.map((member) => (
                 <div
                   key={member.name}
@@ -340,14 +226,14 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section id="magazine">
+        <section id="magazine" className="py-8">
           <div className="container">
-            <div className="grid gap-8 rounded-[32px] border border-border/60 bg-card p-8 shadow-lg shadow-primary/10">
-              <div className="space-y-5">
+            <div className="grid gap-6 rounded-[32px] border border-border/60 bg-card p-6 sm:p-8 shadow-lg shadow-primary/10">
+              <div className="space-y-4">
                 <h2 className="text-3xl font-semibold leading-tight sm:text-[2.25rem]">
                   Partner with us to unlock bespoke programmes and future-forward experiences.
                 </h2>
-                <ul className="space-y-3 text-sm text-muted-foreground sm:text-base">
+                <ul className="space-y-2 text-sm text-muted-foreground sm:text-base">
                   <li className="flex items-start gap-3">
                     <span className="mt-2 h-2.5 w-2.5 rounded-full bg-primary" />
                     Showcase your organisation alongside Africa&apos;s brightest young innovators.
@@ -369,15 +255,31 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section id="faq">
-          <div className="container space-y-6">
+        <section className="py-8">
+          <div className="container space-y-6 sm:space-y-8">
+            <div className="text-center">
+              <h2 className="text-3xl font-semibold">Africa Future Leaders Summit 2026</h2>
+              <p className="mt-4 text-lg text-muted-foreground">
+                Join us in co-creating a gathering that accelerates Africa&apos;s next generation of changemakers.
+              </p>
+            </div>
+            <div className="flex justify-center">
+              <Button asChild className="bg-yellow-500 text-black hover:bg-yellow-400">
+                <Link href="/initiatives/summit">Learn More</Link>
+              </Button>
+            </div>
+          </div>
+        </section>
+
+        <section id="faq" className="py-8">
+          <div className="container space-y-6 sm:space-y-8">
             <div className="space-y-3">
               <h2 className="text-3xl font-semibold">Frequently asked questions</h2>
               <p className="text-sm text-muted-foreground sm:text-base">
                 Answers for nominees, partners, and community members curious about the journey ahead.
               </p>
             </div>
-            <Accordion type="single" collapsible className="space-y-4">
+            <Accordion type="single" collapsible className="space-y-5">
               {faqs.map((faq, index) => (
                 <AccordionItem
                   key={faq.question}
@@ -396,10 +298,10 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section id="contact">
+        <section id="contact" className="py-8">
           <div className="container">
-            <div className="rounded-[32px] border border-border/60 bg-gradient-to-br from-orange-50 to-amber-50 p-8 shadow-lg shadow-primary/10 sm:p-12">
-              <div className="space-y-6">
+            <div className="rounded-[32px] border border-border/60 bg-gradient-to-br from-orange-50 to-amber-50 p-6 sm:p-8 lg:p-10 shadow-lg shadow-primary/10">
+              <div className="space-y-6 sm:space-y-7">
                 <div className="space-y-2">
                   <h2 className="text-2xl font-semibold">Stay in the loop</h2>
                   <p className="text-sm text-muted-foreground">
@@ -408,9 +310,7 @@ export default function HomePage() {
                 </div>
                 <form
                   className="flex flex-col gap-4 sm:flex-row"
-                  onSubmit={(event) => {
-                    event.preventDefault()
-                  }}
+                  action="#"
                 >
                   <div className="relative flex-1">
                     <Input
