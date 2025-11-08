@@ -47,9 +47,9 @@ export default function InternshipsPage() {
                 <Link href="/initiatives/opportunities" className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition duration-300">
                   Back to Opportunities Hub
                 </Link>
-                <Link href="/contact" className="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-3 px-6 rounded-lg transition duration-300">
+                <a href="mailto:partnership@top100afl.com?subject=Internships%20Opportunity%20Inquiry&body=Hello%2C%0A%0AI%20would%20love%20to%20get%20more%20information%20on%20the%20Internships%20plan.%0A%0AThank%20you." className="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-3 px-6 rounded-lg transition duration-300">
                   Contact Us
-                </Link>
+                </a>
               </div>
             </div>
             

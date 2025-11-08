@@ -16,6 +16,7 @@ export default function SignInContent() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get('from') || '/'
@@ -27,66 +28,104 @@ export default function SignInContent() {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    
+    setIsLoading(true)
+
     try {
+      console.log('Starting sign-in process for:', email)
+
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
       if (signInError) {
+        console.error('Sign-in error:', signInError)
         // Check if the error is because user doesn't exist or wrong password
         if (signInError.message.includes('Invalid login credentials')) {
           setError('Invalid email or password')
         } else {
           setError(signInError.message)
         }
+        setIsLoading(false)
         return
       }
+
+      console.log('Sign-in successful, checking profile...')
 
       // Check if user is an awardee with appropriate access
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single()
-        
-        if (profileError) {
-          // If profile doesn't exist, this could be an issue with the profile creation or access
-          setError('Top100 Awardee profile not found. Contact administrative team.')
+        console.log('User authenticated, ID:', user.id)
+
+        // Use API endpoint to check profile (bypasses RLS issues)
+        const response = await fetch('/api/auth/check-profile', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userId: user.id })
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          console.error('Profile check failed:', response.status, errorData)
+
+          if (response.status === 404) {
+            setError('Top100 Awardee profile not found. Contact administrative team.')
+          } else if (response.status === 403) {
+            setError('Access denied. This account does not have Top100 Awardee privileges.')
+          } else {
+            setError('Authentication error. Please try again.')
+          }
           // Sign out the user
           await supabase.auth.signOut()
+          setIsLoading(false)
           return
         }
-        
-        // Allow users with either 'user' or 'admin' roles to access the dashboard
-        // This allows both awardees and administrators to access their profiles
+
+        const { profile } = await response.json()
+        console.log('Profile loaded:', profile)
+
+        // This check is now redundant since API already validates role, but keeping for clarity
         if (profile.role !== 'admin' && profile.role !== 'user') {
+          console.error('Invalid role:', profile.role)
           setError('Access denied. This account does not have Top100 Awardee privileges.')
           // Sign out unauthorized user
           await supabase.auth.signOut()
+          setIsLoading(false)
           return
         }
+
+        // Redirect based on user role
+        let redirectPath = redirectTo
+        if (!redirectTo || redirectTo === '/') {
+          // Default redirect based on role
+          redirectPath = profile.role === 'admin' ? '/admin' : '/dashboard'
+        } else if (redirectTo.startsWith('/admin') && profile.role !== 'admin') {
+          // Non-admin trying to access admin area
+          redirectPath = '/dashboard'
+        }
+
+        console.log('Redirecting to:', redirectPath)
+        router.push(redirectPath)
+        router.refresh()
       } else {
         // No user returned from auth.getUser()
+        console.error('No user returned from auth.getUser()')
         setError('Authentication error. Please try again.')
+        setIsLoading(false)
         return
       }
-      
-      // Redirect to the intended destination or dashboard
-      router.push(redirectTo.startsWith('/admin') ? redirectTo : '/dashboard')
-      router.refresh()
     } catch (err) {
+      console.error('Unexpected error during sign-in:', err)
       setError('An unexpected error occurred. Please try again later.')
-      console.error(err)
+      setIsLoading(false)
     }
   }
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-primary-50 to-secondary-50 dark:from-primary-900/20 dark:to-secondary-900/20">
-      <div className="absolute inset-0 bg-grid-pattern opacity-5 dark:opacity-10"></div>
+      <div className="absolute inset-0 bg-grid-pattern opacity-5 dark:opacity-10 pointer-events-none"></div>
       <div className="relative z-10 flex min-h-screen items-center justify-center p-4">
         <div className="w-full max-w-md">
           <div className="mb-8 text-center">
@@ -149,8 +188,19 @@ export default function SignInContent() {
                     </Button>
                   </div>
                 </div>
-                <Button type="submit" className="w-full h-11 bg-primary hover:bg-primary/90">
-                  Sign In
+                <Button
+                  type="submit"
+                  className="w-full h-11 bg-primary hover:bg-primary/90 transition-all duration-200 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent" />
+                      <span>Signing in...</span>
+                    </div>
+                  ) : (
+                    'Sign In'
+                  )}
                 </Button>
               </form>
             </CardContent>

@@ -64,7 +64,7 @@ export default function ImpactSection() {
                 whileHover={{ y: -5 }}
                 transition={{ type: "spring", stiffness: 220, damping: 24, delay: index * 0.05 }}
                 viewport={{ once: true, amount: 0.3 }}
-                className="group relative flex flex-col items-center gap-6 overflow-hidden rounded-[28px] border border-white/25 bg-card p-8 text-center shadow-lg shadow-black/10 transition-all"
+                className="group relative flex flex-col items-center gap-6 overflow-hidden rounded-xl border border-white/25 bg-card p-8 text-center shadow-lg shadow-black/10 transition-all"
                 style={{ backgroundImage: stat.gradient }}
               >
                 <span
@@ -74,7 +74,7 @@ export default function ImpactSection() {
                 <div className="flex items-center space-x-3">
                   <div className="flex items-center justify-center">
                     <div
-                      className="relative flex h-10 w-10 items-center justify-center rounded-full border bg-white/15 text-white shadow-inner"
+                      className="relative flex h-10 w-10 items-center justify-center rounded-full border bg-white/15 text-slate-900 shadow-inner"
                       style={{
                         borderColor: stat.accent,
                         boxShadow: `0 18px 38px -12px ${stat.accent}`,
@@ -82,15 +82,15 @@ export default function ImpactSection() {
                     >
                       <Icon className="h-4 w-4" />
                     </div>
-                    <div className="text-4xl font-bold tracking-tight text-white ml-2">
+                    <div className="text-4xl font-bold tracking-tight text-slate-900 ml-2">
                       {stat.value}
                     </div>
                   </div>
                   <div className="text-left">
-                    <p className="text-xs font-semibold uppercase tracking-[0.25em] text-white/90 leading-[1.3]">
+                    <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-900 leading-[1.3]">
                       {stat.label}
                     </p>
-                    <p className="text-sm leading-[1.3] text-white/90">
+                    <p className="text-sm leading-[1.3] text-slate-900">
                       {stat.description}
                     </p>
                   </div>

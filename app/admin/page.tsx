@@ -45,7 +45,7 @@ import {
 
 import { toast } from 'sonner'
 
-const ADMIN_ENABLED = false
+const ADMIN_ENABLED = true
 
 
 // Define interfaces for our data

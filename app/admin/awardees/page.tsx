@@ -21,13 +21,13 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase/client';
-import { 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Upload, 
-  Download, 
-  Search, 
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Upload,
+  Download,
+  Search,
   Loader2,
   X,
   Image as ImageIcon,
@@ -35,7 +35,9 @@ import {
   Globe,
   GraduationCap,
   Calendar,
-  Award
+  Award,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 interface Awardee {
@@ -49,6 +51,13 @@ interface Awardee {
   bio?: string;
   year?: number;
   image_url?: string;
+  is_public?: boolean;
+  avatar_url?: string;
+  tagline?: string;
+  headline?: string;
+  social_links?: Record<string, string>;
+  achievements?: any[];
+  interests?: string[];
 }
 
 interface Stats {
@@ -281,15 +290,15 @@ export default function AwardeesManagement() {
 
     try {
       toast.loading('Deleting awardee...', { id: `delete-${id}` });
-      
+
       const response = await fetch(`/api/awardees?id=${id}`, {
         method: 'DELETE'
       });
-      
+
       if (!response.ok) throw new Error('Failed to delete awardee');
-      
+
       const result = await response.json();
-      
+
       if (result.success) {
         // Refresh the awardee list
         await fetchAwardees({ withSpinner: false });
@@ -300,6 +309,40 @@ export default function AwardeesManagement() {
     } catch (error) {
       console.error('Error deleting awardee:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to delete awardee', { id: `delete-${id}` });
+    }
+  };
+
+  const handleToggleVisibility = async (id: string, currentVisibility: boolean) => {
+    try {
+      toast.loading('Updating visibility...', { id: `visibility-${id}` });
+
+      const response = await fetch('/api/awardees', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id,
+          is_public: !currentVisibility
+        })
+      });
+
+      if (!response.ok) throw new Error('Failed to update visibility');
+
+      const result = await response.json();
+
+      if (result.success) {
+        await fetchAwardees({ withSpinner: false });
+        toast.success(
+          `Profile is now ${!currentVisibility ? 'visible' : 'hidden'}`,
+          { id: `visibility-${id}` }
+        );
+      } else {
+        throw new Error(result.message);
+      }
+    } catch (error) {
+      console.error('Error toggling visibility:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to update visibility', { id: `visibility-${id}` });
     }
   };
 
@@ -442,6 +485,7 @@ export default function AwardeesManagement() {
                       <TableHead>Country</TableHead>
                       <TableHead>Course</TableHead>
                       <TableHead>Year</TableHead>
+                      <TableHead>Visibility</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -467,6 +511,20 @@ export default function AwardeesManagement() {
                         </TableCell>
                         <TableCell>{awardee.course}</TableCell>
                         <TableCell>{awardee.year}</TableCell>
+                        <TableCell>
+                          <Button
+                            variant={awardee.is_public !== false ? "default" : "secondary"}
+                            size="sm"
+                            onClick={() => handleToggleVisibility(awardee.id, awardee.is_public !== false)}
+                            title={awardee.is_public !== false ? "Profile is visible - Click to hide" : "Profile is hidden - Click to show"}
+                          >
+                            {awardee.is_public !== false ? (
+                              <><Eye className="h-4 w-4 mr-1" /> Visible</>
+                            ) : (
+                              <><EyeOff className="h-4 w-4 mr-1" /> Hidden</>
+                            )}
+                          </Button>
+                        </TableCell>
                         <TableCell>
                           <div className="flex space-x-2">
                             <Button

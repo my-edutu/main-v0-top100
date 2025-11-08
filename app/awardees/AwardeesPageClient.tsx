@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button'
 import type { Awardee } from '@/lib/awardees'
 import { normalizeAwardeeEntry } from '@/lib/awardees'
 import { supabase } from '@/lib/supabase/client'
-import { AvatarSVG, flagEmoji } from '@/lib/avatars'
+import { AvatarSVG } from '@/lib/avatars'
 import type { AwardeeDirectoryEntry } from '@/types/profile'
 
 const itemsPerPage = 30
@@ -41,10 +41,7 @@ const fallbackAvatar = (name: string) => (
   </div>
 )
 
-const findCountry = (country?: string | null) => {
-  if (!country) return 'Unknown'
-  return country
-}
+
 
 export default function AwardeesPageClient({ initialPeople, initialSearchParams }: AwardeesPageProps) {
   const [people, setPeople] = useState<Awardee[]>(() =>
@@ -235,7 +232,7 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
             Meet the Awardees
           </h1>
           <p className="text-xl text-zinc-400 max-w-3xl mx-auto text-balance">
-            Discover Africa's emerging leaders, innovators, and community builders shaping the future.
+            Discover Africa's emerging leaders, innovators, and community builders.
           </p>
         </header>
 
@@ -259,87 +256,69 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
             No awardees match your search yet. Try a different phrase.
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
             {currentPeople.map((person) => {
-              const trimmedCohort = person.cohort?.trim() ?? ''
-              const spotlightLabel =
-                trimmedCohort.length > 0
-                  ? trimmedCohort
-                  : `Top100 Africa Future Leader ${person.year ?? new Date().getFullYear()}`
-              const supportingLine =
+              const displayTagline =
                 person.tagline && person.tagline.trim().length > 0
                   ? person.tagline
                   : person.headline && person.headline.trim().length > 0
                   ? person.headline
-                  : 'Amplifying African excellence with purpose and impact.'
+                  : person.field_of_study || person.course || ''
 
               return (
                 <Link key={person.slug} href={`/awardees/${person.slug}`} className="group">
-                  <div className="flex h-full flex-col rounded-2xl border border-orange-400/10 bg-black/60 p-6 transition-all duration-300 group-hover:border-orange-400/50 group-hover:bg-black/80">
-                    <div className="flex items-start gap-4">
-                      <Avatar className="h-14 w-14 border border-orange-400/20 text-white">
-                        {person.avatar_url ? (
-                          <AvatarImage src={person.avatar_url} alt={person.name} />
-                        ) : (
-                          <AvatarFallback className="bg-orange-500/10 text-white">
-                            {fallbackAvatar(person.name)}
-                          </AvatarFallback>
-                        )}
-                      </Avatar>
-                      <div className="flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="text-lg font-semibold text-white">Meet {person.name}</h3>
-                          <Badge variant="outline" className="border-orange-400/50 text-orange-200">
-                            {spotlightLabel}
-                          </Badge>
-                        </div>
-                        <p className="mt-2 text-sm text-orange-200">{supportingLine}</p>
-                      </div>
-                    </div>
+                  <div className="relative aspect-[2/3] overflow-hidden rounded-lg bg-zinc-900 transition-all duration-300 ease-out group-hover:scale-105 group-hover:z-10">
+                    {/* Background gradient */}
+                    <div className="absolute inset-0 bg-gradient-to-b from-zinc-900 via-zinc-800 to-zinc-900" />
 
-                    <div className="mt-4 space-y-3 text-sm text-zinc-300">
-                      <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-400">
-                        <span className="inline-flex items-center gap-1 rounded-full bg-orange-500/15 px-3 py-1 text-orange-200">
-                          <MapPin className="h-3 w-3" />
-                          {flagEmoji(person.country ?? '')}
-                          {findCountry(person.country)}
-                        </span>
-                        {(person.current_school || person.field_of_study) && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-zinc-800/60 px-3 py-1 text-zinc-300">
-                            <GraduationCap className="h-3 w-3" />
-                            {person.current_school || person.field_of_study}
+                    {/* Cover image if available */}
+                    {person.cover_image_url && (
+                      <div className="absolute inset-0">
+                        <img
+                          src={person.cover_image_url}
+                          alt={person.name}
+                          className="h-full w-full object-cover opacity-40 transition-opacity group-hover:opacity-60"
+                        />
+                      </div>
+                    )}
+
+                    {/* Content overlay */}
+                    <div className="absolute inset-0 flex flex-col justify-end p-4 bg-gradient-to-t from-black via-black/80 to-transparent">
+                      <h3 className="text-sm font-semibold text-white mb-1 line-clamp-2">
+                        {person.name}
+                      </h3>
+
+                      {displayTagline && (
+                        <p className="text-xs text-zinc-400 line-clamp-1 mb-2">
+                          {displayTagline}
+                        </p>
+                      )}
+
+                      <div className="flex flex-col gap-1 text-xs text-zinc-500">
+                        {person.country && (
+                          <span className="line-clamp-1">
+                            {person.country}
                           </span>
                         )}
                       </div>
-                      {person.bio && (
-                        <p className="text-sm text-zinc-400">{formatExcerpt(person.bio)}</p>
-                      )}
-                    </div>
 
-                    <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-zinc-400">
-                      <span className="inline-flex items-center gap-2 rounded-full bg-zinc-800/60 px-3 py-1">
-                        <Award className="h-3 w-3" />
-                        {countAchievements(person.achievements)} achievements
-                      </span>
-                      <span className="inline-flex items-center gap-2 rounded-full bg-zinc-800/60 px-3 py-1">
-                        <Users className="h-3 w-3" />
-                        {person.interests?.length ?? 0} interests
-                      </span>
-                    </div>
-
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {pickInterests(person.interests).map((interest) => (
-                        <Badge key={interest} variant="outline" className="border-zinc-700 text-zinc-300">
-                          {interest}
-                        </Badge>
-                      ))}
-                    </div>
-
-                    <div className="mt-6 flex items-center justify-between text-sm">
-                      <span className="text-zinc-500">Tap to explore full profile</span>
-                      <Button variant="ghost" className="text-orange-300" size="sm">
-                        View profile →
-                      </Button>
+                      {/* Hover state - show more info */}
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 mt-2 pt-2 border-t border-zinc-700">
+                        {person.bio && (
+                          <p className="text-xs text-zinc-400 line-clamp-3 mb-2">
+                            {person.bio}
+                          </p>
+                        )}
+                        {person.interests && person.interests.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {pickInterests(person.interests, 2).map((interest) => (
+                              <span key={interest} className="text-xs px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300">
+                                {interest}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </Link>

@@ -131,7 +131,7 @@ export default function PartnershipPage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <a 
-                href="mailto:partnerships@top100afl.com?subject=Partnership%20Inquiry&body=Hello%2C%0A%0AI%20am%20interested%20in%20partnering%20with%20Top100%20Africa%20Future%20Leaders.%0A%0APlease%20send%20me%20more%20information%20about%20partnership%20opportunities.%0A%0AThank%20you."
+                href="mailto:partnership@top100afl.com?subject=Partnership%20Inquiry&body=Hello,%0A%0AI%20would%20love%20to%20get%20more%20information%20on%20the%20partnership%20plan.%0A%0AThank%20you."
               >
                 <Button 
                   size="lg" 
@@ -245,7 +245,7 @@ export default function PartnershipPage() {
                         : 'bg-emerald-600 hover:bg-emerald-700'} text-white`}
                   >
                     <a 
-                      href={`mailto:partnerships@top100afl.com?subject=Partnership%20Inquiry%20-%20${tier.name}&body=Hello%2C%0A%0AI%20am%20interested%20in%20the%20${tier.name}%20partnership%20tier%20with%20Top100%20Africa%20Future%20Leaders.%0A%0APlease%20send%20me%20more%20information%20about%20this%20partnership%20opportunity.%0A%0AThank%20you.`}
+                      href={`mailto:partnership@top100afl.com?subject=Partnership%20Inquiry%20-%20${tier.name}&body=Hello,%0A%0AI%20would%20love%20to%20get%20more%20information%20on%20this%20${tier.name}%20plan.%0A%0AThank%20you.`}
                     >
                       <span className="font-bold">{tier.cta}</span>
                     </a>
@@ -290,9 +290,9 @@ export default function PartnershipPage() {
                       const message = formData.get('message') as string;
                       
                       const subject = "Partnership Inquiry";
-                      const body = `Hello,\n\nName: ${name}\nEmail: ${email}\n\nMessage: ${message}\n\nI am interested in partnering with Top100 Africa Future Leaders.\n\nThank you.`;
+                      const body = `Hello,\n\nName: ${name}\nEmail: ${email}\n\nMessage: ${message}\n\nI would love to get more information on the partnership plan.\n\nThank you.`;
                       
-                      window.location.href = `mailto:partnerships@top100afl.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                      window.location.href = `mailto:partnership@top100afl.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
                       setIsSubmitted(true);
                     }}
                     className="max-w-md mx-auto space-y-4"

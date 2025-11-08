@@ -311,19 +311,28 @@ export async function PUT(request: NextRequest) {
 
     const supabase = createClient(true); // Use service role for admin operations
     
+    const updateData: any = {};
+
+    if (body.name !== undefined) updateData.name = body.name;
+    if (body.email !== undefined) updateData.email = body.email || null;
+    if (body.country !== undefined) updateData.country = body.country || null;
+    if (body.cgpa !== undefined) updateData.cgpa = body.cgpa || null;
+    if (body.course !== undefined) updateData.course = body.course || null;
+    if (body.bio !== undefined) updateData.bio = body.bio || null;
+    if (body.year !== undefined) updateData.year = body.year || 2024;
+    if (body.image_url !== undefined) updateData.image_url = body.image_url || null;
+    if (body.slug !== undefined) updateData.slug = body.slug || (body.name ? generateSlug(body.name) : undefined);
+    if (body.is_public !== undefined) updateData.is_public = body.is_public;
+    if (body.avatar_url !== undefined) updateData.avatar_url = body.avatar_url || null;
+    if (body.tagline !== undefined) updateData.tagline = body.tagline || null;
+    if (body.headline !== undefined) updateData.headline = body.headline || null;
+    if (body.social_links !== undefined) updateData.social_links = body.social_links || {};
+    if (body.achievements !== undefined) updateData.achievements = body.achievements || [];
+    if (body.interests !== undefined) updateData.interests = body.interests || [];
+
     const { data, error } = await supabase
       .from('awardees')
-      .update({
-        name: body.name,
-        email: body.email || null,
-        country: body.country || null,
-        cgpa: body.cgpa || null,
-        course: body.course || null,
-        bio: body.bio || null,
-        year: body.year || 2024,
-        image_url: body.image_url || null,
-        slug: body.slug || generateSlug(body.name)
-      })
+      .update(updateData)
       .eq('id', body.id)
       .select()
       .single();

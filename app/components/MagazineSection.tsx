@@ -54,7 +54,7 @@ export default function MagazineSection() {
                 className="w-full sm:w-auto"
                 asChild
               >
-                <a href="/pdf/top100-2024-magazine.pdf" target="_blank" rel="noopener noreferrer">
+                <a href="https://drive.google.com/file/d/1WDdJnROclQ57fUm_g6Eeu0enKC_DJELS/view?usp=sharing" target="_blank" rel="noopener noreferrer">
                   <Download className="w-5 h-5 mr-2" />
                   Download the 2024 Magazine (PDF)
                 </a>

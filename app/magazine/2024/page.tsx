@@ -85,7 +85,7 @@ export default function Magazine2024Page() {
                   className="bg-orange-500 text-white hover:bg-orange-600 px-8 py-6 rounded-full text-lg w-full"
                   asChild
                 >
-                  <a href="/pdf/top100-2024-magazine.pdf" target="_blank" rel="noopener noreferrer">
+                  <a href="https://drive.google.com/file/d/1WDdJnROclQ57fUm_g6Eeu0enKC_DJELS/view?usp=sharing" target="_blank" rel="noopener noreferrer">
                     <Download className="w-5 h-5 mr-2" />
                     Download the 2024 Magazine (PDF)
                   </a>

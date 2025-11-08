@@ -74,7 +74,7 @@ export default function AwardeesSpotlightClient({ awardees }: Props) {
               Spotlight awardees will appear here once they are marked as featured in Supabase.
             </div>
           ) : (
-            <motion.div layout className="flex overflow-x-auto pb-4 -mx-4 px-4 gap-4 hide-scrollbar">
+            <motion.div layout className="flex overflow-x-auto pb-4 -mx-4 px-4 gap-3 hide-scrollbar">
               {safeAwardees.map((awardee, index) => (
                 <motion.article
                   key={awardee.slug}
@@ -83,7 +83,7 @@ export default function AwardeesSpotlightClient({ awardees }: Props) {
                   whileInView={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.45, delay: index * 0.05, ease: "easeOut" }}
                   viewport={{ once: true, amount: 0.35 }}
-                  className="flex-shrink-0 w-64 flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm shadow-primary/5 transition hover:border-primary/40 hover:scale-105 hover:shadow-lg"
+                  className="flex-shrink-0 w-52 flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm shadow-primary/5 transition hover:border-primary/40 hover:scale-105 hover:shadow-lg"
                 >
                   <div className="relative h-48 w-full overflow-hidden bg-muted">
                     {awardee.avatar_url ? (
@@ -106,28 +106,38 @@ export default function AwardeesSpotlightClient({ awardees }: Props) {
                       <div className="mt-1 inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.25em] text-muted-foreground">
                         <MapPin className="h-2.5 w-2.5" />
                         <span>
-                          {flagEmoji(awardee.country ?? "")}
                           {awardee.country ?? "Across Africa"}
                         </span>
                       </div>
                     </div>
                     <div className="flex flex-1 flex-col justify-center">
                       {awardee.cgpa && (
-                        <div className="mb-2">
-                          <span className="text-xs text-muted-foreground">CGPA</span>
-                          <div className="font-bold text-primary">{awardee.cgpa}</div>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="text-xs text-muted-foreground">CGPA</span>
+                            <div className="font-bold text-primary">{awardee.cgpa}</div>
+                          </div>
+                          <Link
+                            href={`/awardees/${awardee.slug}`}
+                            className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 transition hover:bg-primary/20"
+                            aria-label={`View ${awardee.name}'s profile`}
+                          >
+                            <ArrowRight className="h-4 w-4 text-primary" />
+                          </Link>
                         </div>
                       )}
                     </div>
-                    <div className="flex justify-end pt-1">
-                      <Link
-                        href={`/awardees/${awardee.slug}`}
-                        className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 transition hover:bg-primary/20"
-                        aria-label={`View ${awardee.name}'s profile`}
-                      >
-                        <ArrowRight className="h-4 w-4 text-primary" />
-                      </Link>
-                    </div>
+                    {!awardee.cgpa && (
+                      <div className="flex justify-end">
+                        <Link
+                          href={`/awardees/${awardee.slug}`}
+                          className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 transition hover:bg-primary/20"
+                          aria-label={`View ${awardee.name}'s profile`}
+                        >
+                          <ArrowRight className="h-4 w-4 text-primary" />
+                        </Link>
+                      </div>
+                    )}
                   </div>
                 </motion.article>
               ))}

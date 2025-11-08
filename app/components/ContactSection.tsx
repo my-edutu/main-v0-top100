@@ -46,21 +46,45 @@ export default function ContactSection() {
     setIsSubmitting(true)
 
     try {
-      const { error } = await supabase.from("contact_messages").insert({
+      // First, save the message to the database
+      const { error: dbError } = await supabase.from("contact_messages").insert({
         name: formData.name,
         email: formData.email,
         message: formData.message,
       })
 
-      if (error) {
-        throw error
+      if (dbError) {
+        throw dbError
       }
 
-      setIsSubmitted(true)
-      toast({
-        title: "Message sent!",
-        description: "Thank you for reaching out. We'll get back to you soon.",
+      // Then, send the email notification
+      const response = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          message: formData.message,
+        }),
       })
+
+      if (!response.ok) {
+        const result = await response.json();
+        console.error('Email sending failed:', result.error)
+        // Still show success message to user but log the email failure
+        toast({
+          title: "Message received!",
+          description: "Thank you for reaching out. We'll get back to you soon.",
+        })
+      } else {
+        setIsSubmitted(true)
+        toast({
+          title: "Message sent!",
+          description: "Thank you for reaching out. We'll get back to you soon.",
+        })
+      }
 
       // Reset form after 3 seconds
       setTimeout(() => {

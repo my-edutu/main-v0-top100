@@ -19,7 +19,6 @@ export const AwardeeCard: React.FC<AwardeeCardProps> = ({ awardee }) => {
           <div className="flex-1 min-w-0">
             <h3 className="text-lg font-semibold text-white truncate">{awardee.name}</h3>
             <div className="flex items-center mt-1 text-orange-400">
-              <span className="mr-1">{flagEmoji(awardee.country ?? '')}</span>
               <span className="text-sm">{awardee.country ?? 'Unknown'}</span>
             </div>
             {primaryTag && (

@@ -1,10 +1,12 @@
 import Link from "next/link"
+import Image from "next/image"
 import { ArrowRight } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import HomePageHeroSection from "./components/HomePageHeroSection"
 import AwardeesSection from "./components/AwardeesSection"
+import HomeFeaturedAwardeesSection from "./components/HomeFeaturedAwardeesSection"
 import BlogSection from "./components/BlogSection"
 import MagazineSection from "./components/MagazineSection"
 import RecentEventsSection from "./components/RecentEventsSection"
@@ -107,17 +109,14 @@ const teamMembers: TeamMember[] = [
 export default function HomePage() {
   return (
     <div className="bg-background text-foreground">
-      <div className="flex flex-col pb-16 pt-8 sm:pt-10 md:pt-12 lg:pt-16 [--section-gap:clamp(1.5rem,5vw,2.5rem)] sm:[--section-gap:clamp(1.75rem,4vw,3rem)] lg:[--section-gap:clamp(2rem,3vw,3.5rem)] xl:[--section-gap:clamp(2.25rem,2vw,4rem)] gap-[var(--section-gap)]">
+      <div className="flex flex-col pb-16 [--section-gap:clamp(1.5rem,5vw,2.5rem)] sm:[--section-gap:clamp(1.75rem,4vw,3rem)] lg:[--section-gap:clamp(2rem,3vw,3.5rem)] xl:[--section-gap:clamp(2rem,2vw,4rem)] gap-[var(--section-gap)]">
         <HomePageHeroSection />
 
         <section className="py-8">
           <div className="container space-y-6">
             <div className="max-w-3xl mx-auto text-center space-y-4">
               <h2 className="text-3xl font-semibold">About the movement</h2>
-              <div className="space-y-4 text-lg text-muted-foreground">
-                <p>
-                  <span className="font-semibold">Top100 Africa Future Leaders</span>
-                </p>
+              <div className="space-y-4 text-lg text-slate-900">
                 <p>
                   We celebrate undergraduates rewriting what leadership looks like across the continent. From Lagos to Kigali, our awardees transform bold ideas into movements that uplift communities and open doors for their peers.
                 </p>
@@ -143,13 +142,13 @@ export default function HomePage() {
           <div className="container space-y-6 sm:space-y-8">
             <div className="text-center">
               <h2 className="text-3xl font-semibold">Meet some of our sponsors</h2>
-              <p className="text-sm text-muted-foreground sm:text-base mt-2">
+              <p className="text-sm text-slate-900 sm:text-base mt-2">
                 These partners amplify our mission, unlocking opportunities and resources for Africa's boldest innovators.
               </p>
             </div>
             <div className="grid grid-cols-3 gap-6">
               {[
-                { name: "One Young World Africa & Middle East", logo: "/3.png", alt: "One Young World Africa and Middle East logo" },
+                { name: "One Young World West & Central Africa", logo: "/3.png", alt: "One Young World West and Central Africa logo" },
                 { name: "ALX Nigeria", logo: "/7.png", alt: "ALX Nigeria logo" },
                 { name: "Learning Planet Institute", logo: "/6.png", alt: "Learning Planet Institute logo" },
               ].map((partner, index) => (
@@ -175,7 +174,7 @@ export default function HomePage() {
           <div className="container space-y-6 sm:space-y-8">
             <div>
               <h2 className="text-3xl font-semibold">Our latest initiatives</h2>
-              <p className="text-sm text-muted-foreground sm:text-base">
+              <p className="text-sm text-slate-900 sm:text-base">
                 Each initiative unlocks mentorship, funding, and opportunities tailored for Africa&apos;s youth.
               </p>
             </div>
@@ -189,7 +188,7 @@ export default function HomePage() {
         </section>
 
         <BlogSection />
-        <AwardeesSection />
+        <HomeFeaturedAwardeesSection />
         <MagazineSection />
         <RecentEventsSection />
 
@@ -199,7 +198,7 @@ export default function HomePage() {
               <h2 className="text-3xl font-semibold">
                 Meet the people behind the platform
               </h2>
-              <p className="text-sm text-muted-foreground sm:text-base">
+              <p className="text-sm text-slate-900 sm:text-base">
                 Programme leads, storytellers, and community builders sustaining the Top100 movement.
               </p>
             </div>
@@ -209,16 +208,42 @@ export default function HomePage() {
                   key={member.name}
                   className="flex-shrink-0 w-64 rounded-[28px] border border-border/60 bg-card shadow-lg transition hover:-translate-y-1 hover:shadow-xl"
                 >
-                  <div className="relative h-48 overflow-hidden rounded-t-[28px]">
-                    <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-                      <div className="text-4xl font-bold text-primary">
-                        {member.name.split(' ').map(n => n[0]).join('')}
+                  <div className="relative w-full h-48 overflow-hidden rounded-t-[28px]">
+                    {member.name === "Nwosu Paul Light" ? (
+                      <Image 
+                        src="/team/Paul light.jpg.png" 
+                        alt={member.name}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      />
+                    ) : member.name === "Emmanuella Igboafu" ? (
+                      <Image 
+                        src="/team/emmanuella igboafu.jpg" 
+                        alt={member.name}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      />
+                    ) : member.name === "Chinedu Daniel" ? (
+                      <Image 
+                        src="/team/chinedu daniel.jpg.png" 
+                        alt={member.name}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                        <div className="text-4xl font-bold text-primary">
+                          {member.name.split(' ').map(n => n[0]).join('')}
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                   <div className="p-5 space-y-2">
                     <h3 className="text-lg font-bold">{member.name}</h3>
-                    <p className="text-sm uppercase tracking-[0.15em] text-muted-foreground">{member.role}</p>
+                    <p className="text-sm uppercase tracking-[0.15em] text-slate-900">{member.role}</p>
                   </div>
                 </div>
               ))}
@@ -233,7 +258,7 @@ export default function HomePage() {
                 <h2 className="text-3xl font-semibold leading-tight sm:text-[2.25rem]">
                   Partner with us to unlock bespoke programmes and future-forward experiences.
                 </h2>
-                <ul className="space-y-2 text-sm text-muted-foreground sm:text-base">
+                <ul className="space-y-2 text-sm text-slate-900 sm:text-base">
                   <li className="flex items-start gap-3">
                     <span className="mt-2 h-2.5 w-2.5 rounded-full bg-primary" />
                     Showcase your organisation alongside Africa&apos;s brightest young innovators.
@@ -259,7 +284,7 @@ export default function HomePage() {
           <div className="container space-y-6 sm:space-y-8">
             <div className="text-center">
               <h2 className="text-3xl font-semibold">Africa Future Leaders Summit 2026</h2>
-              <p className="mt-4 text-lg text-muted-foreground">
+              <p className="mt-4 text-lg text-slate-900">
                 Join us in co-creating a gathering that accelerates Africa&apos;s next generation of changemakers.
               </p>
             </div>
@@ -275,7 +300,7 @@ export default function HomePage() {
           <div className="container space-y-6 sm:space-y-8">
             <div className="space-y-3">
               <h2 className="text-3xl font-semibold">Frequently asked questions</h2>
-              <p className="text-sm text-muted-foreground sm:text-base">
+              <p className="text-sm text-slate-900 sm:text-base">
                 Answers for nominees, partners, and community members curious about the journey ahead.
               </p>
             </div>
@@ -289,7 +314,7 @@ export default function HomePage() {
                   <AccordionTrigger className="px-6 py-4 text-left text-base font-semibold hover:text-primary data-[state=open]:text-primary transition-colors">
                     {faq.question}
                   </AccordionTrigger>
-                  <AccordionContent className="px-6 pb-5 text-sm text-muted-foreground">
+                  <AccordionContent className="px-6 pb-5 text-sm text-slate-900">
                     {faq.answer}
                   </AccordionContent>
                 </AccordionItem>
@@ -304,7 +329,7 @@ export default function HomePage() {
               <div className="space-y-6 sm:space-y-7">
                 <div className="space-y-2">
                   <h2 className="text-2xl font-semibold">Stay in the loop</h2>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-slate-900">
                     Get monthly highlights on awardees, opportunities, and events delivered straight to your inbox.
                   </p>
                 </div>
@@ -324,7 +349,7 @@ export default function HomePage() {
                     </div>
                   </div>
                 </form>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-slate-900">
                   We respect your inbox. Expect one email per month with curated highlights and opportunities.
                 </p>
               </div>

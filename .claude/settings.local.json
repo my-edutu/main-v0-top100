@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(env)",
+      "Bash(node:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash([ -f .env.local ])"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

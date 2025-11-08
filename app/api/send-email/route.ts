@@ -1,0 +1,70 @@
+import { NextRequest } from "next/server";
+import { sendContactFormNotification } from "@/lib/email/brevo";
+import { z } from "zod";
+
+// Define a schema for validation
+const contactFormSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  email: z.string().email("Valid email is required"),
+  message: z.string().min(1, "Message is required"),
+});
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    
+    // Validate the input data
+    const validatedData = contactFormSchema.parse(body);
+    
+    // Send the email notification
+    const emailSent = await sendContactFormNotification(validatedData);
+    
+    if (!emailSent) {
+      return new Response(
+        JSON.stringify({ 
+          error: "Failed to send email notification" 
+        }),
+        { 
+          status: 500, 
+          headers: { "Content-Type": "application/json" } 
+        }
+      );
+    }
+    
+    return new Response(
+      JSON.stringify({ 
+        success: true,
+        message: "Contact form submitted and email notification sent successfully" 
+      }),
+      { 
+        status: 200, 
+        headers: { "Content-Type": "application/json" } 
+      }
+    );
+  } catch (error) {
+    console.error("Error processing contact form:", error);
+    
+    if (error instanceof z.ZodError) {
+      return new Response(
+        JSON.stringify({ 
+          error: "Invalid input data", 
+          details: error.errors 
+        }),
+        { 
+          status: 400, 
+          headers: { "Content-Type": "application/json" } 
+        }
+      );
+    }
+    
+    return new Response(
+      JSON.stringify({ 
+        error: "Internal server error" 
+      }),
+      { 
+        status: 500, 
+        headers: { "Content-Type": "application/json" } 
+      }
+    );
+  }
+}

@@ -79,6 +79,25 @@ const parseRows = (rows: any[]) => {
     const rawCourse = normalizeKey(row, ['course', 'program', 'department'])
     const rawBio = normalizeKey(row, ['bio', 'description', 'about', 'leadership', 'bio30'])
 
+    // Extract additional fields
+    const rawAvatarUrl = normalizeKey(row, ['avatar', 'avatar_url', 'image', 'photo', 'picture'])
+    const rawTagline = normalizeKey(row, ['tagline', 'title', 'position'])
+    const rawHeadline = normalizeKey(row, ['headline', 'summary', 'intro'])
+
+    // Social links - try to extract from various possible columns
+    const rawLinkedIn = normalizeKey(row, ['linkedin', 'linkedin_url', 'linked_in'])
+    const rawTwitter = normalizeKey(row, ['twitter', 'twitter_url', 'x'])
+    const rawInstagram = normalizeKey(row, ['instagram', 'instagram_url', 'ig'])
+    const rawFacebook = normalizeKey(row, ['facebook', 'facebook_url', 'fb'])
+    const rawWebsite = normalizeKey(row, ['website', 'website_url', 'portfolio'])
+
+    const socialLinks: Record<string, string> = {}
+    if (rawLinkedIn) socialLinks.linkedin = rawLinkedIn.toString().trim()
+    if (rawTwitter) socialLinks.twitter = rawTwitter.toString().trim()
+    if (rawInstagram) socialLinks.instagram = rawInstagram.toString().trim()
+    if (rawFacebook) socialLinks.facebook = rawFacebook.toString().trim()
+    if (rawWebsite) socialLinks.website = rawWebsite.toString().trim()
+
     return {
       id,
       name,
@@ -88,7 +107,14 @@ const parseRows = (rows: any[]) => {
       cgpa: rawCgpa !== null && rawCgpa !== undefined ? rawCgpa.toString().trim() : null,
       course: rawCourse ? rawCourse.toString().trim() : null,
       bio: rawBio ? rawBio.toString().trim() : null,
-      year: typeof year === 'number' && Number.isFinite(year) ? year : currentYear
+      year: typeof year === 'number' && Number.isFinite(year) ? year : currentYear,
+      avatar_url: rawAvatarUrl ? rawAvatarUrl.toString().trim() : null,
+      tagline: rawTagline ? rawTagline.toString().trim() : null,
+      headline: rawHeadline ? rawHeadline.toString().trim() : null,
+      social_links: Object.keys(socialLinks).length > 0 ? socialLinks : {},
+      achievements: [],
+      interests: [],
+      is_public: true
     }
   })
 }

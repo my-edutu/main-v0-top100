@@ -32,12 +32,12 @@ export default function RootLayout({
       >
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
+          defaultTheme="light"
           enableSystem
           disableTransitionOnChange
         >
           <Header />
-          <main className="min-h-[calc(100vh-120px)] transition-colors duration-300">
+          <main className="min-h-screen transition-colors duration-300">
             {children}
           </main>
           <Footer />

@@ -245,6 +245,7 @@ export default function FutureLeadersSummitPage() {
   const [isSpeakersExpanded, setIsSpeakersExpanded] = useState(false);
   const [isTeamExpanded, setIsTeamExpanded] = useState(false);
   const [isWhyAttendExpanded, setIsWhyAttendExpanded] = useState(false);
+  const [isFaqExpanded, setIsFaqExpanded] = useState(false);
 
   return (
     <div className="bg-black text-white">
@@ -288,34 +289,7 @@ export default function FutureLeadersSummitPage() {
 
         <GallerySection />
 
-        <section className="space-y-8 bg-slate-50 dark:bg-slate-900/30 py-10 rounded-3xl -mx-4 lg:-mx-8">
-          <div className="space-y-3 px-4">
-            <h2 className="text-2xl font-semibold text-slate-800 dark:text-white">Why Attend</h2>
-            <p className="text-slate-600 dark:text-slate-300">
-              Built for awardees, alumni, partners, ecosystem leaders, and investors committed to unlocking Africa’s next decade.
-            </p>
-          </div>
-          <div className="px-4 flex justify-center">
-            <Image
-              src="/african-students-celebrating-achievement-at-gradua.jpg"
-              alt="Top100 Africa Future Leaders celebration"
-              width={800}
-              height={600}
-              className="rounded-3xl shadow-xl max-w-full h-auto"
-            />
-          </div>
-          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 px-4">
-            {whyAttend.map((item) => (
-              <div
-                key={item.title}
-                className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/70 p-6 shadow-sm transition hover:-translate-y-1 hover:border-orange-400/40 hover:shadow-lg min-h-[200px] md:min-h-[240px] flex flex-col"
-              >
-                <h3 className="text-xl font-semibold text-slate-800 dark:text-white">{item.title}</h3>
-                <p className="mt-4 text-sm leading-relaxed text-slate-600 dark:text-slate-300 flex-grow">{item.description}</p>
-              </div>
-            ))}
-          </div>
-        </section>
+
 
 
 
@@ -422,11 +396,6 @@ export default function FutureLeadersSummitPage() {
                   </div>
                 ))}
               </div>
-              <div className="flex justify-center mt-4">
-                <Button className="bg-emerald-500 text-white hover:bg-emerald-600">
-                  <Link href="/join">Become a Mentor</Link>
-                </Button>
-              </div>
             </div>
           )}
         </section>
@@ -472,13 +441,42 @@ export default function FutureLeadersSummitPage() {
                     }`}
                   >
                     <div className="relative h-40 w-full overflow-hidden rounded-t-xl">
-                      <Image 
-                        src={member.imageUrl} 
-                        alt={member.name} 
-                        fill 
-                        className="object-cover transition-transform duration-500 group-hover:scale-105" 
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" 
-                      />
+                      {index === 0 && (
+                        <Image 
+                          src="/team/emmanuella igboafu.jpg" 
+                          alt={member.name} 
+                          fill 
+                          className="object-cover transition-transform duration-500 group-hover:scale-105" 
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" 
+                        />
+                      )}
+                      {index === 1 && (
+                        <Image 
+                          src="/team/chinedu daniel.jpg.png" 
+                          alt={member.name} 
+                          fill 
+                          className="object-cover transition-transform duration-500 group-hover:scale-105" 
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" 
+                        />
+                      )}
+                      {index === 2 && (
+                        <Image 
+                          src="/team/irechukwu Goodness.jpeg" 
+                          alt={member.name} 
+                          fill 
+                          className="object-cover transition-transform duration-500 group-hover:scale-105" 
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" 
+                        />
+                      )}
+                      {index === 3 && (
+                        <Image 
+                          src="/team/stephen igboasia.jpeg" 
+                          alt={member.name} 
+                          fill 
+                          className="object-cover transition-transform duration-500 group-hover:scale-105" 
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" 
+                        />
+                      )}
                     </div>
                     <div className="p-3">
                       <h3 className="text-sm font-medium text-slate-800 dark:text-white truncate">{member.name}</h3>
@@ -486,14 +484,6 @@ export default function FutureLeadersSummitPage() {
                     </div>
                   </div>
                 ))}
-              </div>
-              <div className="flex justify-center mt-4">
-                <Button
-                  asChild
-                  className="h-fit rounded-xl bg-amber-500 px-6 py-3 text-white hover:bg-amber-600"
-                >
-                  <Link href="https://whatsapp.com/channel/0029VbAYtQ4HbFV67E9tEj3k" target="_blank">Join Top100 Community</Link>
-                </Button>
               </div>
             </div>
           )}
@@ -507,29 +497,52 @@ export default function FutureLeadersSummitPage() {
 
 
 
-        <section className="space-y-6 rounded-3xl border border-white/10 bg-white/5 p-8 shadow-sm lg:p-10">
+        <section className="space-y-6 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-slate-800/50 dark:to-slate-900/50 py-6 rounded-2xl px-4 border border-purple-100 dark:border-slate-700">
           <div className="space-y-3">
-            <h2 className="text-2xl font-semibold text-white">Frequently Asked Questions</h2>
-            <p className="text-zinc-300">
-              Everything you need to know about participating, partnering, or showcasing at the summit.
-            </p>
-          </div>
-          <Accordion type="single" collapsible className="space-y-4">
-            {faqs.map((faq, index) => (
-              <AccordionItem
-                key={faq.question}
-                value={`faq-${index}`}
-                className="overflow-hidden rounded-2xl border border-white/10 bg-black/40 transition hover:border-orange-400/30"
+            <div className="flex justify-between items-center cursor-pointer" onClick={() => setIsFaqExpanded(!isFaqExpanded)}>
+              <div className="flex items-center">
+                <h2 className="text-lg font-semibold text-slate-800 dark:text-white mr-2">Frequently Asked Questions</h2>
+                <p className="text-slate-600 dark:text-slate-300 hidden md:block">Everything you need to know about participating, partnering, or showcasing at the summit.</p>
+              </div>
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsFaqExpanded(!isFaqExpanded);
+                }}
+                className="p-1 rounded-full bg-purple-200 dark:bg-slate-700 hover:bg-purple-300 dark:hover:bg-slate-600 transition-colors"
+                aria-label={isFaqExpanded ? 'Collapse' : 'Expand'}
               >
-                <AccordionTrigger className="px-6 py-4 text-left text-base font-semibold text-white hover:text-orange-300">
-                  {faq.question}
-                </AccordionTrigger>
-                <AccordionContent className="px-6 pb-5 text-sm text-zinc-300">
-                  {faq.answer}
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  className={`h-5 w-5 text-purple-700 dark:text-slate-300 transition-transform ${isFaqExpanded ? 'rotate-180' : ''}`} 
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          
+          {isFaqExpanded && (
+            <Accordion type="single" collapsible className="space-y-4 pt-4">
+              {faqs.map((faq, index) => (
+                <AccordionItem
+                  key={faq.question}
+                  value={`faq-${index}`}
+                  className="overflow-hidden rounded-2xl border border-white/10 bg-black/40 transition hover:border-orange-400/30"
+                >
+                  <AccordionTrigger className="px-6 py-4 text-left text-base font-semibold text-white hover:text-orange-300">
+                    {faq.question}
+                  </AccordionTrigger>
+                  <AccordionContent className="px-6 pb-5 text-sm text-zinc-300">
+                    {faq.answer}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          )}
         </section>
 
         <section className="rounded-3xl border border-orange-400/20 bg-gradient-to-r from-orange-500/30 via-orange-500/10 to-transparent p-10 text-center shadow-lg">

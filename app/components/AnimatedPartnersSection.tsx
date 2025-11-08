@@ -5,9 +5,9 @@ import Image from "next/image";
 const AnimatedPartnersSection = () => {
   const partners = [
     {
-      name: "One Young World Africa & Middle East",
+      name: "One Young World West & Central Africa",
       logo: "/3.png",
-      alt: "One Young World Africa and Middle East logo",
+      alt: "One Young World West and Central Africa logo",
       description:
         "Partners with youth-led initiatives accelerating leadership, innovation, and social impact across the continent.",
     },

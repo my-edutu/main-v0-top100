@@ -59,9 +59,9 @@ export default function ScholarshipPage() {
                 <Link href="/initiatives/project100" className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition duration-300">
                   Back to Project100
                 </Link>
-                <Link href="/contact" className="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-3 px-6 rounded-lg transition duration-300">
+                <a href="mailto:partnership@top100afl.com?subject=Project100%20Scholarship%20Inquiry&body=Hello%2C%0A%0AI%20would%20love%20to%20get%20more%20information%20on%20the%20Project100%20Scholarship%20plan.%0A%0AThank%20you." className="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-3 px-6 rounded-lg transition duration-300">
                   Contact Us
-                </Link>
+                </a>
               </div>
             </div>
             
@@ -92,9 +92,9 @@ export default function ScholarshipPage() {
               <p className="text-blue-800 mb-4">
                 Our team is here to help you navigate the scholarship process.
               </p>
-              <Link href="/contact" className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition duration-300">
+              <a href="mailto:partnership@top100afl.com?subject=Project100%20Scholarship%20Support&body=Hello%2C%0A%0AI%20would%20love%20to%20get%20more%20information%20on%20the%20Project100%20Scholarship%20plan.%0A%0AThank%20you." className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition duration-300">
                 Contact Support
-              </Link>
+              </a>
             </div>
           </section>
         </main>

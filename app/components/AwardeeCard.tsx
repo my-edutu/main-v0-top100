@@ -18,7 +18,7 @@ type AwardeeCardProps = {
 }
 
 const AwardeeCardComponent = ({ awardee }: AwardeeCardProps) => {
-  const countryFlag = flagEmoji(awardee.country)
+
 
   return (
     <article
@@ -40,9 +40,6 @@ const AwardeeCardComponent = ({ awardee }: AwardeeCardProps) => {
             {awardee.name}
           </h3>
           <p className="mt-1 flex items-center gap-2 text-sm text-zinc-300">
-            <span aria-hidden="true" className="text-base leading-none">
-              {countryFlag || initials(awardee.country)}
-            </span>
             <span className="text-sm text-zinc-300">{awardee.country}</span>
           </p>
           <Badge

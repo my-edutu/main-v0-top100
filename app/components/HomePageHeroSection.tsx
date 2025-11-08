@@ -53,7 +53,7 @@ function HomePageHeroSection() {
   }
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-b from-slate-50 via-white to-slate-100 text-slate-900 transition-colors duration-300 dark:from-slate-900 dark:via-slate-950 dark:to-black dark:text-white">
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-white text-slate-900 transition-colors duration-300 dark:bg-slate-950 dark:text-white">
       <div className="absolute inset-0 overflow-hidden">
         {/* Subtle grid pattern */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
@@ -83,14 +83,14 @@ function HomePageHeroSection() {
                 <span>13+ African Countries</span>
               </div>
               
-              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight tracking-tight">
+              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight tracking-tight text-slate-900">
                 <span className="block">Celebrating Africa&apos;s</span>
-                <span className="block mt-2 bg-gradient-to-r from-green-600 via-yellow-500 to-orange-500 bg-clip-text text-transparent">
+                <span className="block mt-2 text-slate-900">
                   Future Leaders
                 </span>
               </h1>
               
-              <p className="mx-auto mt-6 max-w-3xl text-lg leading-relaxed text-slate-600 dark:text-slate-300 md:text-xl">
+              <p className="mx-auto mt-6 max-w-3xl text-lg leading-relaxed text-slate-900 md:text-xl">
                 Top100 Africa Future Leaders identifies, celebrates, and empowers Africa's brightest young leaders across diverse fields and countries.
               </p>
             </div>
@@ -103,17 +103,17 @@ function HomePageHeroSection() {
               >
                 <Button
                   size="lg"
-                  className="group relative overflow-hidden rounded-full bg-gradient-to-r from-green-600 to-yellow-500 px-8 py-6 text-lg text-white transition-all hover:from-green-700 hover:to-yellow-600"
+                  className="group relative overflow-hidden rounded-full bg-gradient-to-r from-orange-500 to-yellow-500 px-6 py-4 text-base sm:px-8 sm:py-6 sm:text-lg text-white transition-all hover:from-orange-600 hover:to-yellow-600"
                   onMouseEnter={() => setIsHovered(true)}
                   onMouseLeave={() => setIsHovered(false)}
                   onClick={() => scrollToSection("awardees")}
                 >
                   <span className="relative z-10 flex items-center gap-2">
-                    <Users className="h-5 w-5" />
-                    <span>Meet the Awardees</span>
+                    <Users className="h-4 w-4 sm:h-5 sm:w-5" />
+                    <span className="text-sm sm:text-base">Meet the Awardees</span>
                   </span>
                   <motion.span
-                    className="absolute inset-0 bg-gradient-to-r from-green-700 to-yellow-600"
+                    className="absolute inset-0 bg-gradient-to-r from-orange-600 to-yellow-600"
                     initial={{ x: "-100%" }}
                     animate={{ x: isHovered ? "100%" : "-100%" }}
                     transition={{ duration: 0.5 }}
@@ -124,12 +124,12 @@ function HomePageHeroSection() {
               <Button
                 variant="outline"
                 size="lg"
-                className="rounded-full border border-primary px-8 py-6 text-lg text-primary hover:bg-primary hover:text-primary-foreground"
+                className="rounded-full border border-primary px-6 py-4 text-base sm:px-8 sm:py-6 sm:text-lg text-primary hover:bg-primary hover:text-primary-foreground"
                 onClick={() => scrollToSection("magazine")}
               >
                 <span className="flex items-center gap-2">
-                  <GraduationCap className="h-5 w-5" />
-                  <span>View 2025 Magazine</span>
+                  <GraduationCap className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <span className="text-sm sm:text-base">View 2025 Magazine</span>
                 </span>
               </Button>
             </div>
