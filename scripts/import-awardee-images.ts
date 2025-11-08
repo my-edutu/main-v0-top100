@@ -1,6 +1,10 @@
 import { readFileSync } from 'fs';
 import { parse } from 'csv-parse/sync';
 import { processAwardeesWithImageLinks } from '@/lib/imageDownloadUpload';
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
 
 async function importAwardeeImages() {
   try {

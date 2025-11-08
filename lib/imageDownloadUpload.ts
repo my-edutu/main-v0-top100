@@ -1,4 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
 
 // Initialize Supabase client for server-side operations
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';

@@ -143,21 +143,6 @@ export default function HomeFeaturedAwardees({ awardees }: Props) {
             </motion.div>
           )}
         </div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, ease: "easeOut" }}
-          viewport={{ once: true, amount: 0.3 }}
-          className="flex justify-center"
-        >
-          <Button asChild size="lg" className="bg-yellow-500 text-black hover:bg-yellow-400">
-            <Link href="/awardees">
-              <Award className="h-5 w-5" />
-              View all awardees
-            </Link>
-          </Button>
-        </motion.div>
       </div>
     </section>
   )

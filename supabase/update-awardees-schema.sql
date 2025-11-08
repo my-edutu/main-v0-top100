@@ -9,6 +9,7 @@ ALTER TABLE public.awardees ADD COLUMN IF NOT EXISTS achievements JSONB DEFAULT 
 ALTER TABLE public.awardees ADD COLUMN IF NOT EXISTS is_public BOOLEAN NOT NULL DEFAULT TRUE;
 ALTER TABLE public.awardees ADD COLUMN IF NOT EXISTS headline TEXT;
 ALTER TABLE public.awardees ADD COLUMN IF NOT EXISTS interests TEXT[] DEFAULT ARRAY[]::TEXT[];
+CREATE INDEX IF NOT EXISTS awardees_is_public_idx ON public.awardees (is_public);
 
 -- Create index for visibility queries
 CREATE INDEX IF NOT EXISTS awardees_is_public_idx ON public.awardees (is_public);
@@ -19,7 +20,7 @@ DROP VIEW IF EXISTS public.awardee_directory;
 CREATE OR REPLACE VIEW public.awardee_directory AS
 SELECT
   a.id AS awardee_id,
-  COALESCE(p.id, a.profile_id) AS profile_id,
+  a.profile_id,
   COALESCE(p.slug, a.slug) AS slug,
   COALESCE(p.full_name, a.name) AS name,
   COALESCE(p.email, a.email) AS email,
@@ -53,16 +54,3 @@ FROM public.awardees a
 LEFT JOIN public.profiles p ON p.id = a.profile_id
 WHERE COALESCE(p.is_public, a.is_public, TRUE);
 
--- Add RLS policy for public awardees with visibility control
-DROP POLICY IF EXISTS "Public awardee directory" ON public.awardees;
-
-DO $$ BEGIN
-  CREATE POLICY "Public visible awardees" ON public.awardees
-    FOR SELECT USING (is_public = TRUE);
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
--- Service role can see all awardees
-DO $$ BEGIN
-  CREATE POLICY "Service manages all awardees" ON public.awardees
-    FOR ALL USING (auth.role() = 'service_role');
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
