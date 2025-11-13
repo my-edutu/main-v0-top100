@@ -1,12 +1,16 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { Menu, X } from "lucide-react"
-import { motion, AnimatePresence } from "framer-motion"
+import { Menu } from "lucide-react"
 import { cn } from "@/lib/utils"
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet"
 
 const navItems: Array<{ label: string; href?: string; section?: string }> = [
   { label: "Home", href: "/" },
@@ -15,14 +19,13 @@ const navItems: Array<{ label: string; href?: string; section?: string }> = [
   { label: "Blog", href: "/blog" },
   { label: "Events", href: "/events" },
   { label: "Magazine", href: "/magazine" },
-  { label: "Partner", href: "/partners" },
+  { label: "Become a Partner", href: "/partners" },
   { label: "Contact", section: "contact" },
 ]
 
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false)
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const headerRef = useRef<HTMLDivElement>(null)
+  const [isSheetOpen, setIsSheetOpen] = useState(false)
 
   useEffect(() => {
     const handleScroll = () => {
@@ -33,28 +36,23 @@ export default function Header() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (headerRef.current && !headerRef.current.contains(event.target as Node)) {
-        setIsMenuOpen(false)
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [])
-
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId)
     if (element) {
       element.scrollIntoView({ behavior: "smooth" })
     }
-    setIsMenuOpen(false)
+    setIsSheetOpen(false)
+  }
+
+  const handleNavigation = (href?: string, section?: string) => {
+    if (section) {
+      scrollToSection(section)
+    }
+    setIsSheetOpen(false)
   }
 
   return (
     <header
-      ref={headerRef}
       className={cn(
         "sticky inset-x-0 top-0 z-50 border-b border-transparent transition-all duration-300",
         isScrolled ? "backdrop-blur-lg bg-gradient-to-r from-yellow-500 to-orange-500 border-yellow-600/60" : "bg-gradient-to-r from-yellow-500 to-orange-500"
@@ -97,72 +95,61 @@ export default function Header() {
 
         <div className="flex items-center gap-2">
           <div className="md:hidden">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsMenuOpen((prev) => !prev)}
-              className="rounded-2xl border border-yellow-600/80 bg-yellow-200/50 text-white shadow-sm"
-              aria-label="Toggle navigation menu"
-            >
-              {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </Button>
+            <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+              <SheetTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-2xl border border-yellow-600/80 bg-yellow-200/50 text-white shadow-sm"
+                  aria-label="Toggle navigation menu"
+                >
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-64 bg-gradient-to-b from-yellow-500 to-orange-500 p-0">
+                <div className="flex flex-col h-full pt-6">
+                  {/* Logo in Sheet */}
+                  <div className="px-6 pb-6 flex items-center space-x-3 border-b border-white/20">
+                    <div className="h-12 w-20">
+                      <Image
+                        src="/Top100 Africa Future leaders Logo .png"
+                        alt="Top100 Africa Future Leaders Logo"
+                        width={80}
+                        height={48}
+                        className="h-full w-full object-contain"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Navigation Items */}
+                  <nav className="flex flex-col space-y-2 px-4 py-6 flex-grow">
+                    {navItems.map((item) => (
+                      item.href ? (
+                        <Link
+                          key={item.label}
+                          href={item.href}
+                          onClick={() => handleNavigation(item.href, item.section)}
+                          className="flex items-center px-4 py-3 rounded-lg text-sm font-medium text-white hover:bg-white/20 transition-all"
+                        >
+                          {item.label}
+                        </Link>
+                      ) : (
+                        <button
+                          key={item.label}
+                          onClick={() => handleNavigation(item.href, item.section)}
+                          className="flex items-center px-4 py-3 rounded-lg text-sm font-medium text-white hover:bg-white/20 transition-all text-left"
+                        >
+                          {item.label}
+                        </button>
+                      )
+                    ))}
+                  </nav>
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
       </div>
-
-      <AnimatePresence>
-        {isMenuOpen && (
-          <motion.nav
-            initial={{ opacity: 0, y: -12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.25, ease: "easeOut" }}
-            className="fixed inset-0 z-40 bg-gradient-to-br from-orange-500/95 via-yellow-500/90 to-red-500/90 md:hidden"
-            onClick={(e) => {
-              if (e.target === e.currentTarget) {
-                setIsMenuOpen(false);
-              }
-            }}
-          >
-            <div className="absolute right-4 top-20 w-[calc(100vw-32px)] max-w-sm rounded-3xl border border-yellow-100/40 bg-gradient-to-br from-orange-500/90 via-yellow-400/90 to-orange-400/90 p-5 shadow-xl shadow-orange-500/30 backdrop-blur">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsMenuOpen(false)}
-                className="absolute -top-12 right-0 rounded-full bg-white/15 text-white shadow-md hover:bg-white/25"
-                aria-label="Close menu"
-              >
-                <X className="h-6 w-6" />
-              </Button>
-              <ul className="space-y-2">
-                {navItems.map((item) => (
-                  <li key={item.label}>
-                    {item.href ? (
-                      <Link
-                        href={item.href}
-                        className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-base font-semibold text-white transition hover:border-white/30 hover:bg-white/20"
-                        onClick={() => setIsMenuOpen(false)}
-                      >
-                        <span>{item.label}</span>
-                      </Link>
-                    ) : (
-                      <button
-                        onClick={() => {
-                          scrollToSection(item.section!);
-                          setIsMenuOpen(false);
-                        }}
-                        className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-left text-base font-semibold text-white transition hover:border-white/30 hover:bg-white/20"
-                      >
-                        <span>{item.label}</span>
-                      </button>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </motion.nav>
-        )}
-      </AnimatePresence>
     </header>
   )
 }

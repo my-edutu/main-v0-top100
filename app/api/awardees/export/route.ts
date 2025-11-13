@@ -4,7 +4,7 @@ import { utils, write } from 'xlsx';
 
 export async function GET(req: NextRequest) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     
     // Fetch all awardees from the database
     const { data: awardees, error } = await supabase

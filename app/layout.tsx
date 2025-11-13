@@ -4,17 +4,55 @@ import { Urbanist } from "next/font/google"
 import type React from "react" // Import React
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
+import ConditionalLayout from "./components/ConditionalLayout"
+import { cn } from "@/lib/utils"
 import Header from "./components/Header"
 import Footer from "./components/Footer"
-import { cn } from "@/lib/utils"
 
 const urbanist = Urbanist({ subsets: ["latin"], variable: "--font-sans" })
 
 export const metadata: Metadata = {
-  title: "Top100 Africa Future Leaders - 2024",
+  title: {
+    default: "Top100 Africa Future Leaders",
+    template: "%s | Top100 Africa Future Leaders",
+  },
   description:
-    "Celebrating Africa's Future Leaders - Top100 Africa Future Leaders 2024 spotlighted students turning ideas into impact across the continent.",
-    generator: 'v0.app'
+    "Celebrating Africa's Future Leaders - Top100 Africa Future Leaders spotlighted students turning ideas into impact across the continent.",
+  keywords: ["Africa", "leadership", "young leaders", "innovation", "education"],
+  generator: 'v0.app',
+  openGraph: {
+    title: "Top100 Africa Future Leaders",
+    description:
+      "Celebrating Africa's Future Leaders - Top100 Africa Future Leaders spotlighted students turning ideas into impact across the continent.",
+    url: "https://www.top100afl.org",
+    siteName: "Top100 Africa Future Leaders",
+    images: [
+      {
+        url: "/top100-africa-future-leaders-2024-magazine-cover-w.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Top100 Africa Future Leaders",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Top100 Africa Future Leaders",
+    description:
+      "Celebrating Africa's Future Leaders - Top100 Africa Future Leaders spotlighted students turning ideas into impact across the continent.",
+    images: ["/top100-africa-future-leaders-2024-magazine-cover-w.jpg"],
+  },
+  icons: {
+    icon: "/Top100 Africa Future leaders Logo .png",
+    shortcut: "/favicon-16x16.png",
+    other: {
+      rel: "apple-touch-icon",
+      url: "/apple-touch-icon.png",
+    },
+  },
+  manifest: "/site.webmanifest",
 }
 
 export default function RootLayout({
@@ -36,11 +74,9 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <Header />
-          <main className="min-h-screen transition-colors duration-300">
+          <ConditionalLayout>
             {children}
-          </main>
-          <Footer />
+          </ConditionalLayout>
           <Toaster />
         </ThemeProvider>
       </body>

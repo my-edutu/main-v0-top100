@@ -1,7 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 
 // Helper function to safely access cookies in server components
-function getCookies() {
+async function getCookies() {
   if (typeof window !== 'undefined') {
     // Client-side, return a mock cookie store
     const cookieJar: Record<string, string> = {}
@@ -18,7 +18,7 @@ function getCookies() {
   // Server-side, use next/headers
   try {
     const { cookies } = require('next/headers')
-    return cookies()
+    return await cookies()
   } catch (error) {
     console.warn('Could not access next/headers. Are you using this in a client component?')
     return {
@@ -71,8 +71,8 @@ const getSupabaseConfig = (useServiceRole: boolean) => {
   return { url: supabaseUrl, key: anonKey }
 }
 
-export const createClient = (useServiceRole: boolean = false) => {
-  const cookieStore = getCookies()
+export const createClient = async (useServiceRole: boolean = false) => {
+  const cookieStore = await getCookies()
 
   const { url: supabaseUrl, key: supabaseKey } = getSupabaseConfig(useServiceRole)
 
@@ -91,8 +91,8 @@ export const createClient = (useServiceRole: boolean = false) => {
             return value || undefined;
           } else {
             // Server-side: use cookieStore
-            return typeof cookieStore.get === 'function' 
-              ? cookieStore.get(name)?.value 
+            return typeof cookieStore.get === 'function'
+              ? cookieStore.get(name)?.value
               : undefined;
           }
         },

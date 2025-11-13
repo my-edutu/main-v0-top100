@@ -50,7 +50,7 @@ export default async function BlogPage({ searchParams }: { searchParams?: { page
             </div>
           </div>
 
-          <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
+          <div className="space-y-6">
             {featuredPosts.map((post) => (
               <BlogCard key={post.id} post={post} />
             ))}
@@ -74,7 +74,7 @@ export default async function BlogPage({ searchParams }: { searchParams?: { page
               <p>No additional stories yet. Check back soon for more updates from the network.</p>
             </div>
           ) : (
-            <div className="space-y-10">
+            <div className="space-y-6">
               {currentPosts.map((post) => (
                 <BlogCard key={post.id} post={post} />
               ))}

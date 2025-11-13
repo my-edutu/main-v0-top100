@@ -38,14 +38,14 @@ This handbook captures the current state of the Top100 Africa Future Leaders pla
 | Language | TypeScript end-to-end |
 | Styling | Tailwind CSS, shadcn/ui, Lucide icons |
 | State & Forms | React hooks, `react-hook-form`, `zod` |
-| Data & Auth | Supabase (Postgres + Realtime), Better Auth session layer |
+| Data & Auth | Supabase (Postgres + Realtime, Auth) |
 | Tooling | ESLint (Next defaults), Prettier formatting, Sonner toasts, date-fns |
 
 **Environment variables** (never commit secrets):
 - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `DATABASE_URL`
-- `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`
+- (Better Auth removed - using only Supabase Auth)
 
 ---
 
@@ -59,7 +59,7 @@ app/                  Next.js routes (marketing + authenticated)
 │  ├─ awardees/       Public directory + detail profiles
 │  ├─ blog/           Articles listing & detail pages
 │  ├─ events/         Event timelines and spotlight details
-│  ├─ auth/           Sign-in / sign-up flows (Better Auth)
+│  ├─ auth/           Sign-in / sign-up flows (Supabase Auth)
 │  ├─ admin/          Staff dashboard (role-gated)
 │  └─ api/            Route handlers (sessions, profiles, awardees, blog, events)
 components/           Global UI primitives and shared shadcn exports
@@ -90,10 +90,9 @@ scripts/              Seed/import helpers (Excel processing)
 
 ## 6. Authentication & Authorization
 
-- **Better Auth** via `/api/better-auth`:
-  - Email/password flow with Next.js cookies using `nextCookies`.
-  - Persists user roles (defaults to `user`, can be elevated in Supabase).
-  - Client wrapper in `lib/better-auth/client.ts` simplifies protected API calls.
+- **Supabase Auth**:
+  - Session management through Supabase client
+  - User profiles and roles stored in the `profiles` table
 - Role gating: Admin-only routes and dashboards rely on Supabase profile role checks.
 
 ---
@@ -161,7 +160,7 @@ scripts/              Seed/import helpers (Excel processing)
 
 1. Provision environment variables in Vercel (or chosen platform).
 2. Run Supabase migrations (`supabase/schema.sql`) or apply equivalent SQL migrations.
-3. Set `BETTER_AUTH_URL` to the production domain for email flows.
+3. (Better Auth removed - using only Supabase Auth)
 4. Harden security: never expose `SUPABASE_SERVICE_ROLE_KEY` client-side.
 5. Configure storage bucket (`awardees`) for media uploads if not already present.
 
@@ -172,7 +171,7 @@ scripts/              Seed/import helpers (Excel processing)
 - Build Talk100 Live standalone initiative page.
 - Enrich Opportunities Hub with dynamic filters and submission forms.
 - Integrate analytics dashboard into the admin home.
-- Automate role promotion tooling for Better Auth users.
+- Automate role promotion tooling for Supabase Auth users.
 - Expand light/dark mode support across all inner routes (admin, blog detail, etc.).
 - Add localized experiences (multi-language copy toggles).
 
@@ -181,7 +180,7 @@ scripts/              Seed/import helpers (Excel processing)
 ## 13. Quick Reference
 
 - **Primary datastore:** Supabase `public` schema.
-- **Auth gate:** Better Auth + Supabase profile roles.
+- **Auth gate:** Supabase Auth + Supabase profile roles.
 - **Realtime footprint:** Awardees, events, and future expansions.
 - **Marketing alignment:** All marketing pages consume the same datasets the admin team curates—changes propagate instantly.
 - **Theme readiness:** Light & dark palettes already wired; new components should stick to `bg-*` and `text-*` classes derived from CSS variables.

@@ -25,6 +25,7 @@ type Speaker = {
   name: string
   role: string
   imageUrl: string
+  linkedIn?: string
 }
 
 const whyAttend = [
@@ -136,34 +137,64 @@ const dayTwoAgenda: AgendaItem[] = [
 
 const speakers: Speaker[] = [
   {
-    name: "Ama Mensah",
-    role: "Founder, Solar Leap Labs",
-    imageUrl: "https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=crop&w=500&q=80",
+    name: "Ruby Igwe",
+    role: "Speaker",
+    imageUrl: "/speakers/Ruby Igwe.jpeg",
+    linkedIn: "https://www.linkedin.com/in/rubyigwe/",
   },
   {
-    name: "Chinedu Okafor",
-    role: "CEO, MedAccess Africa",
-    imageUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=500&q=80",
+    name: "Lungile Tlomatsana",
+    role: "Speaker",
+    imageUrl: "/speakers/lungile.jpeg",
+    linkedIn: "https://www.linkedin.com/in/lungile-tlomatsana-1b09a3235",
   },
   {
-    name: "Lerato Khumalo",
-    role: "Climate Strategist, GreenRoots SA",
-    imageUrl: "https://images.unsplash.com/photo-1463453091185-61582044d556?auto=format&fit=crop&w=500&q=80",
+    name: "Samuel Ogunsola",
+    role: "Speaker",
+    imageUrl: "/speakers/samuel olanrewaju.jpeg",
+    linkedIn: "https://www.linkedin.com/in/samuelolarewaju",
   },
   {
-    name: "Omar Diallo",
-    role: "Partner, Impact Ventures Collective",
-    imageUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=500&q=80",
+    name: "Belinda Idinmachi",
+    role: "Speaker",
+    imageUrl: "/speakers/belinda nkechi.jpeg",
+    linkedIn: "https://www.linkedin.com/in/belinda-nkechi-idinmachi/",
   },
   {
-    name: "Zanele Dube",
-    role: "Director, STEMinist Network",
-    imageUrl: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=500&q=80",
+    name: "Tochukwu Idinmachi",
+    role: "Speaker",
+    imageUrl: "/speakers/tochukwu idinmachi.jpeg",
+    linkedIn: "https://www.linkedin.com/in/tochukwu-idinmachi-b-tech-mba-pmp%C2%AE-476b2115/",
   },
   {
-    name: "Kwame Adeyemi",
-    role: "Programme Lead, Africa Catalysts",
-    imageUrl: "https://images.unsplash.com/photo-1487412720507-1c0f6f9a4c83?auto=format&fit=crop&w=500&q=80",
+    name: "Damilola Babatunde",
+    role: "Speaker",
+    imageUrl: "/speakers/damilola babatunde.jpeg",
+    linkedIn: "https://www.linkedin.com/in/damilola-babatunde/",
+  },
+  {
+    name: "Kaitochukwu Chukwudi",
+    role: "Speaker",
+    imageUrl: "/speakers/kaitochukwu chukwudi.jpeg",
+    linkedIn: "https://www.linkedin.com/in/kaitochukwuchukwudi/",
+  },
+  {
+    name: "Odinakachi Umunna",
+    role: "Speaker",
+    imageUrl: "/speakers/odinakachi umunna.jpeg",
+    linkedIn: "https://www.linkedin.com/in/odinakachi-umunna-8b879679/",
+  },
+  {
+    name: "Leye Falade",
+    role: "Speaker",
+    imageUrl: "/speakers/Leye Falade.jpeg",
+    linkedIn: "https://www.linkedin.com/in/leye-falade-fnse-39a1901/",
+  },
+  {
+    name: "Yetunde Asekun",
+    role: "Speaker",
+    imageUrl: "/speakers/yetunde asekun.jpeg",
+    linkedIn: "https://www.linkedin.com/in/yetunde-shado-asekun-mnse-r-engr-652a5658/",
   },
 ]
 
@@ -174,7 +205,7 @@ const teamMembers: Array<{ name: string; role: string; imageUrl: string }> = [
     imageUrl: "https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=crop&w=500&q=80",
   },
   {
-    name: "Chinedu Daniel",
+    name: "Nwandu Chinedu",
     role: "Operations & Experience",
     imageUrl: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=500&q=80",
   },
@@ -184,7 +215,7 @@ const teamMembers: Array<{ name: string; role: string; imageUrl: string }> = [
     imageUrl: "https://images.unsplash.com/photo-1494790108755-2616b612b786?auto=format&fit=crop&w=500&q=80",
   },
   {
-    name: "Kenechukwu Igboasia",
+    name: "Stephen Igboasia",
     role: "Outreach Specialist",
     imageUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=500&q=80",
   },
@@ -377,24 +408,41 @@ export default function FutureLeadersSummitPage() {
           {isSpeakersExpanded && (
             <div className="pt-2">
               <div className="grid gap-6 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3">
-                {speakers.map((speaker, index) => (
-                  <div
-                    key={speaker.name}
-                    className={`rounded-2xl border border-emerald-200 dark:border-slate-600 p-4 shadow-sm transition hover:border-emerald-400/40 ${
-                      index % 2 === 0 
-                        ? 'bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30' 
-                        : 'bg-gradient-to-br from-teal-50 to-cyan-50 dark:from-teal-900/30 dark:to-cyan-900/30'
-                    }`}
-                  >
-                    <div className="relative h-32 w-full overflow-hidden rounded-xl">
-                      <Image src={speaker.imageUrl} alt={speaker.name} fill className="object-cover" sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
+                {speakers.map((speaker, index) => {
+                  const CardContent = (
+                    <>
+                      <div className="relative h-32 w-full overflow-hidden rounded-xl">
+                        <Image src={speaker.imageUrl} alt={speaker.name} fill className="object-cover" sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
+                      </div>
+                      <div className="mt-3 space-y-1">
+                        <h3 className="text-base font-medium text-slate-800 dark:text-white">{speaker.name}</h3>
+                        <p className="text-xs text-emerald-600 dark:text-emerald-400">{speaker.role}</p>
+                      </div>
+                    </>
+                  );
+
+                  const cardClassName = `rounded-2xl border border-emerald-200 dark:border-slate-600 p-4 shadow-sm transition hover:border-emerald-400/40 ${
+                    index % 2 === 0
+                      ? 'bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30'
+                      : 'bg-gradient-to-br from-teal-50 to-cyan-50 dark:from-teal-900/30 dark:to-cyan-900/30'
+                  }${speaker.linkedIn ? ' cursor-pointer hover:scale-105' : ''}`;
+
+                  return speaker.linkedIn ? (
+                    <a
+                      key={speaker.name}
+                      href={speaker.linkedIn}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={cardClassName}
+                    >
+                      {CardContent}
+                    </a>
+                  ) : (
+                    <div key={speaker.name} className={cardClassName}>
+                      {CardContent}
                     </div>
-                    <div className="mt-3 space-y-1">
-                      <h3 className="text-base font-medium text-slate-800 dark:text-white">{speaker.name}</h3>
-                      <p className="text-xs text-emerald-600 dark:text-emerald-400">{speaker.role}</p>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -558,7 +606,6 @@ export default function FutureLeadersSummitPage() {
             >
               Become a Partner
             </Button>
-            <Button className="rounded-xl bg-yellow-500 px-6 py-6 text-black hover:bg-yellow-400">Volunteer</Button>
           </div>
         </section>
 

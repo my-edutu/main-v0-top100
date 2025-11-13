@@ -25,7 +25,7 @@ const initiatives: Initiative[] = [
     colorClass: "bg-purple-50/80 dark:bg-purple-950/20",
   },
   {
-    title: "Future Leaders Summit",
+    title: "Future Leaders Summit 2025",
     description: "Immersive leadership summit connecting awardees, partners, and investors.",
     href: "/initiatives/summit",
     colorClass: "bg-amber-50/80 dark:bg-amber-950/20",
@@ -35,6 +35,12 @@ const initiatives: Initiative[] = [
     description: "Career opportunities, grants, and fellowships curated for young African leaders.",
     href: "/initiatives/opportunities",
     colorClass: "bg-emerald-50/80 dark:bg-emerald-950/20",
+  },
+  {
+    title: "African Future Leaders Magazine",
+    description: "Curated stories and insights from Africa's emerging leaders and changemakers.",
+    href: "/magazine/2025",
+    colorClass: "bg-rose-50/80 dark:bg-rose-950/20",
   },
 ];
 
@@ -55,12 +61,14 @@ export default function InitiativesPage() {
               key={initiative.title}
               href={initiative.href}
               className={`group rounded-[28px] border border-transparent p-1 shadow-lg transition-all hover:-translate-y-1 hover:shadow-xl flex flex-col h-full ${
-                initiative.title === "Project100 Scholarship" 
-                  ? "bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30" 
-                  : initiative.title === "Talk100 Live" 
-                  ? "bg-gradient-to-br from-purple-100 to-fuchsia-100 dark:from-purple-900/30 dark:to-fuchsia-900/30" 
-                  : initiative.title === "Future Leaders Summit" 
-                  ? "bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30" 
+                initiative.title === "Project100 Scholarship"
+                  ? "bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30"
+                  : initiative.title === "Talk100 Live"
+                  ? "bg-gradient-to-br from-purple-100 to-fuchsia-100 dark:from-purple-900/30 dark:to-fuchsia-900/30"
+                  : initiative.title === "Future Leaders Summit 2025"
+                  ? "bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30"
+                  : initiative.title === "African Future Leaders Magazine"
+                  ? "bg-gradient-to-br from-rose-100 to-pink-100 dark:from-rose-900/30 dark:to-pink-900/30"
                   : "bg-gradient-to-br from-emerald-100 to-green-100 dark:from-emerald-900/30 dark:to-green-900/30"
               }`}
             >

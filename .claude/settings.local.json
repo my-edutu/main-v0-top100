@@ -4,7 +4,8 @@
       "Bash(env)",
       "Bash(node:*)",
       "mcp__ide__getDiagnostics",
-      "Bash([ -f .env.local ])"
+      "Bash([ -f .env.local ])",
+      "Bash(npx tsx:*)"
     ],
     "deny": [],
     "ask": []

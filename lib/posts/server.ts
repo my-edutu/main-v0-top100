@@ -7,7 +7,7 @@ import { mapStaticPost, mapSupabaseRecord, mergePosts, ResolvedPost, selectHomep
 
 const fetchSupabasePosts = async (): Promise<ResolvedPost[]> => {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data, error } = await supabase.from("posts").select("*").order("created_at", { ascending: false })
 
     if (error || !data) {
@@ -26,7 +26,7 @@ const fetchSupabasePosts = async (): Promise<ResolvedPost[]> => {
 
 const fetchSupabasePostBySlug = async (slug: string): Promise<ResolvedPost | null> => {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data, error } = await supabase.from("posts").select("*").eq("slug", slug).maybeSingle()
 
     if (error || !data) {

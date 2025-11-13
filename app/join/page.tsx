@@ -1,25 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useActionState } from "react";
 import Link from "next/link";
 import { Users, GraduationCap, Globe, Award } from "lucide-react";
+import { handleJoinSubmission } from "@/app/actions/join";
 
 export default function JoinPage() {
   const [email, setEmail] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [state, formAction, isPending] = useActionState(handleJoinSubmission, null);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    
-    // Simulate form submission
+  // Reset form and show success when submission succeeds
+  if (state?.success && !isSubmitted) {
+    setIsSubmitted(true);
+    setEmail("");
+
+    // Reset submitted state after 5 seconds
     setTimeout(() => {
-      setIsSubmitting(false);
-      setIsSubmitted(true);
-      setEmail("");
-    }, 1500);
-  };
+      setIsSubmitted(false);
+    }, 5000);
+  }
 
   // Mock statistics data
   const stats = [
@@ -96,17 +96,17 @@ export default function JoinPage() {
             <div className="bg-green-900/30 border border-green-500/30 rounded-xl p-6 text-center">
               <h3 className="text-xl font-semibold text-green-400 mb-2">Thank You for Joining!</h3>
               <p className="text-green-300">
-                We've sent a confirmation to {email}. You'll be the first to know when applications open.
+                {state?.message || "We've received your interest. You'll be the first to know when applications open."}
               </p>
               <button
                 onClick={() => setIsSubmitted(false)}
-                className="mt-4 px-6 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition-colors"
+                className="mt-4 px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors"
               >
-                Join Again
+                Join Another
               </button>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form action={formAction} className="space-y-6">
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-zinc-300 mb-2">
                   Email Address
@@ -114,6 +114,7 @@ export default function JoinPage() {
                 <input
                   type="email"
                   id="email"
+                  name="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -121,13 +122,22 @@ export default function JoinPage() {
                   className="w-full px-4 py-3 bg-zinc-800/50 border border-orange-400/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-white"
                 />
               </div>
-              
+
+              {/* Hidden field for interest type */}
+              <input type="hidden" name="interestType" value="member" />
+
+              {state?.success === false && (
+                <div className="bg-red-900/30 border border-red-500/30 rounded-lg p-4 text-center">
+                  <p className="text-red-300 text-sm">{state.message}</p>
+                </div>
+              )}
+
               <button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isPending}
                 className="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all duration-300 disabled:opacity-70"
               >
-                {isSubmitting ? "Processing..." : "Sign Up for Updates"}
+                {isPending ? "Processing..." : "Sign Up for Updates"}
               </button>
             </form>
           )}

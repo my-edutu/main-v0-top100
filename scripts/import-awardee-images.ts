@@ -3,10 +3,14 @@ import { parse } from 'csv-parse/sync';
 import { processAwardeesWithImageLinks } from '@/lib/imageDownloadUpload';
 import dotenv from 'dotenv';
 
-// Load environment variables
-dotenv.config();
+// Load environment variables explicitly
+dotenv.config({ path: '../.env.local' });
 
 async function importAwardeeImages() {
+  // Check if environment variables are properly loaded
+  console.log('NEXT_PUBLIC_SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL ? 'Present' : 'Missing');
+  console.log('SUPABASE_SERVICE_ROLE_KEY:', process.env.SUPABASE_SERVICE_ROLE_KEY ? 'Present' : 'Missing');
+
   try {
     // Read the CSV file
     const csvPath = 'scripts/awardee_images.csv';

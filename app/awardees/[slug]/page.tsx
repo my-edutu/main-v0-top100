@@ -8,6 +8,7 @@ import { normalizeAwardeeEntry } from '@/lib/awardees'
 import { fetchAwardeeBySlug } from '@/lib/dashboard/profile-service'
 import { AvatarSVG, flagEmoji } from '@/lib/avatars'
 import type { Achievement, GalleryItem, SocialLinks } from '@/types/profile'
+import ContactCardClient from './ContactCardClient'
 
 export const runtime = 'nodejs'
 export const revalidate = 0
@@ -114,7 +115,7 @@ export default async function AwardeeDetail({ params }: { params: { slug: string
         {/* Back Button - Positioned on the gradient */}
         <div className="absolute top-4 left-4 z-10">
           <Link
-            href="/awardees"
+            href="/"
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-zinc-900 shadow-lg border border-zinc-200 dark:border-zinc-800 hover:scale-105 transition-all duration-300 group hover:shadow-xl hover:bg-zinc-50 dark:hover:bg-zinc-800"
           >
             <ArrowLeft className="h-4 w-4 text-zinc-700 dark:text-zinc-300 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors" />
@@ -191,6 +192,51 @@ export default async function AwardeeDetail({ params }: { params: { slug: string
             </div>
           )}
         </div>
+
+        {/* Impact Metrics Row */}
+        {(awardee.impact_projects || awardee.lives_impacted || awardee.awards_received) && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            {awardee.impact_projects && (
+              <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-lg border border-zinc-200 dark:border-zinc-800">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-green-100 dark:bg-green-500/20 rounded-xl">
+                    <Trophy className="h-6 w-6 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400">Projects</p>
+                    <p className="text-lg font-bold text-zinc-900 dark:text-white">{awardee.impact_projects}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            {awardee.lives_impacted && (
+              <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-lg border border-zinc-200 dark:border-zinc-800">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-blue-100 dark:bg-blue-500/20 rounded-xl">
+                    <Users2 className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400">Lives Impacted</p>
+                    <p className="text-lg font-bold text-zinc-900 dark:text-white">{awardee.lives_impacted}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            {awardee.awards_received && (
+              <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-lg border border-zinc-200 dark:border-zinc-800">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-amber-100 dark:bg-amber-500/20 rounded-xl">
+                    <Trophy className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400">Awards</p>
+                    <p className="text-lg font-bold text-zinc-900 dark:text-white">{awardee.awards_received}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Two Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -312,29 +358,36 @@ export default async function AwardeeDetail({ params }: { params: { slug: string
                 </div>
               </section>
             )}
+
+            {/* YouTube Video Section */}
+            {awardee.youtube_video_url && (
+              <section className="bg-white dark:bg-zinc-900 rounded-3xl p-8 shadow-lg border border-zinc-200 dark:border-zinc-800">
+                <h2 className="text-2xl font-bold text-zinc-900 dark:text-white mb-6 flex items-center gap-2">
+                  <div className="h-1 w-8 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full"></div>
+                  Featured Interview
+                </h2>
+                <div className="aspect-video rounded-2xl overflow-hidden shadow-md">
+                  <iframe
+                    src={`https://www.youtube.com/embed/${awardee.youtube_video_url}`}
+                    title="Featured Interview"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="w-full h-full"
+                  ></iframe>
+                </div>
+              </section>
+            )}
           </div>
 
           {/* Sidebar - Right Side */}
           <div className="lg:col-span-1 space-y-6">
             {/* Contact Card */}
             {(awardee.email || awardee.personal_email) && (
-              <div className="bg-gradient-to-br from-orange-500 to-amber-500 rounded-3xl p-8 shadow-xl text-white sticky top-6">
-                <h3 className="text-xl font-bold mb-4">Get in Touch</h3>
-                <p className="text-white/90 mb-6 text-sm">
-                  Connect with {awardee.name.split(' ')[0]} to collaborate, network, or learn more about their work.
-                </p>
-                <Button
-                  asChild
-                  className="w-full bg-white text-orange-600 hover:bg-zinc-100 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
-                >
-                  <a
-                    href={`mailto:${awardee.email || awardee.personal_email}?subject=Hello from Top100 AFL&body=Hi ${awardee.name.split(' ')[0]},%0D%0A%0D%0AI came across your profile on the Top100 Africa Future Leaders platform and would love to connect.%0D%0A%0D%0ABest regards`}
-                  >
-                    <Mail className="h-4 w-4" />
-                    Send Message
-                  </a>
-                </Button>
-              </div>
+              <ContactCardClient 
+                email={awardee.email} 
+                personalEmail={awardee.personal_email} 
+                name={awardee.name} 
+              />
             )}
 
             {/* Social Links Card */}

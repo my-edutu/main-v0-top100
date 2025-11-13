@@ -14,8 +14,7 @@ Welcome! This document captures the full picture of the Top100 Africa Future Lea
 - **State & Forms**: React state hooks, `react-hook-form`, `zod` for validation.
 - **Realtime Backend**: Supabase (Postgres + Realtime) via `@supabase/supabase-js`.
 - **Auth**:
-  - `better-auth` for cookie-based session handling (custom API under `/api/better-auth`).
-  - Parallel NextAuth fallback (`/api/auth/[...nextauth]`) for OAuth/Credentials during legacy flows and development.
+  - Supabase Auth for session management and user authentication.
 - **Data Access**: Supabase client + service role utilities, Prisma client available for future relational queries.
 - **Tooling**: ESLint (Next.js default prompt pending), Prettier-aligned formatting via editor, Sonner for toasts, Date-fns for formatting.
 
@@ -23,8 +22,8 @@ Required environment variables (never commit secrets):
 - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `DATABASE_URL` (+ optional database pool for Better Auth)
-- `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`
-- `NEXTAUTH_SECRET`, `GITHUB_ID`, `GITHUB_SECRET`
+- `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` (removed)
+- `NEXTAUTH_SECRET`, `GITHUB_ID`, `GITHUB_SECRET` (removed)
 - Optional `DEV_BYPASS` cookie for middleware short-circuiting.
 
 ## 3. Repository Map
@@ -49,7 +48,7 @@ scripts/         # Data import/export utilities
 - `app/magazine/**`: Curated magazine experience (static + dynamic content).
 - `app/auth/signin|signup`: Branded authentication forms wired into Better Auth endpoints.
 - `app/admin/**`: Auth-gated dashboard for staff operations (see section 6).
-- `app/api/**`: Server routes for awardees, posts, YouTube links, events, Better Auth, NextAuth, and dev bypass helpers.
+- `app/api/**`: Server routes for awardees, posts, YouTube links, events, and dev bypass helpers.
 
 ## 4. Data Layer & Supabase Schema
 - **Database**: Supabase Postgres. Schema managed via `supabase/schema.sql` (idempotent guards keep re-runs safe).
@@ -67,14 +66,10 @@ scripts/         # Data import/export utilities
 - `lib/supabase/server.ts`: Context-aware server client. Accepts `useServiceRole = true` to run privileged queries (API routes, admin operations).
 
 ## 5. Authentication & Authorization
-- **Better Auth** (`lib/better-auth/server.ts`, `client.ts`):
-  - Sets up `/api/better-auth` endpoints with optional Postgres pooling.
-  - Uses `nextCookies()` plugin to persist sessions in App Router islands.
-  - Email+password provider enabled; base path configurable via env.
-- **NextAuth** fallback (`app/api/auth/[...nextauth]`):
-  - Provides GitHub OAuth + development credentials provider.
-  - Session strategy uses JWT; login page mapped to `/auth/signin`.
-  - Referenced by `lib/auth.ts` for compatibility with legacy components.
+- **Supabase Auth**:
+  - Uses Supabase's built-in authentication system for user management.
+  - Session handling through Supabase client.
+  - User profiles are stored in the `profiles` table with role-based access.
 - **Middleware** (`middleware.ts`):
   - Protects `/admin/**`. In dev, checks `dev_bypass=1` cookie.
   - Validates Supabase session ? loads profile ? ensures `role === 'admin'` else redirect to `/`.
@@ -128,7 +123,7 @@ Entry: `/admin` (Dashboard).
 ### Environment Setup
 - Copy `.env` / `.env.local`, populate Supabase + auth secrets.
 - Provide Postgres `DATABASE_URL` if running Better Auth with persistence; otherwise it falls back to in-memory (sessions reset on restart).
-- For NextAuth GitHub provider, set `GITHUB_ID`/`GITHUB_SECRET`.
+- GitHub OAuth provider has been removed in favor of Supabase Auth only.
 - Optional: set `dev_bypass` cookie via `/api/auth/dev-bypass/user` for admin testing without Supabase session flow.
 
 ### Database & Supabase
@@ -138,7 +133,7 @@ Entry: `/admin` (Dashboard).
 
 ## 12. Deployment Notes
 - Target platform: Vercel or similar serverless Node environment.
-- Ensure environment variables configured for production (`BETTER_AUTH_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXTAUTH_SECRET`).
+- Ensure environment variables configured for production (`SUPABASE_SERVICE_ROLE_KEY`).
 - Supabase service role must be treated as secret (never ship to client).
 - Plan migrations: each change in `supabase/schema.sql` should be ported into Supabase migration history.
 - Configure Better Auth `BETTER_AUTH_URL` to public domain for email links if enabling providers beyond credentials.
@@ -149,7 +144,7 @@ Entry: `/admin` (Dashboard).
 - **Type Safety**: `types/` directory houses shared DTOs (e.g., `profile.ts`) to keep front + back aligned.
 
 ## 14. Future Enhancements
-- Consolidate auth (choose Better Auth vs NextAuth and remove redundant flows).
+- Consolidated auth to use only Supabase Auth.
 - Add role-based UI (e.g., content editors vs super admins).
 - Surface `user_notifications` in dashboard UI.
 - Integrate analytics dashboard (placeholder card already on admin home).

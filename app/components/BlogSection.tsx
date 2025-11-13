@@ -86,57 +86,59 @@ export default function BlogSection() {
             >
               <Link
                 href={`/blog/${post.slug}`}
-                className={`group flex h-full flex-col overflow-hidden rounded-[28px] border border-border/60 shadow-md transition hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg ${
-                  index % 4 === 0 
-                    ? "bg-blue-50/80 dark:bg-blue-950/20" 
-                    : index % 4 === 1 
-                    ? "bg-purple-50/80 dark:bg-purple-950/20" 
-                    : index % 4 === 2 
-                    ? "bg-amber-50/80 dark:bg-amber-950/20" 
+                className={`group flex h-full overflow-hidden rounded-[28px] border border-border/60 shadow-md transition hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg ${
+                  index % 4 === 0
+                    ? "bg-blue-50/80 dark:bg-blue-950/20"
+                    : index % 4 === 1
+                    ? "bg-purple-50/80 dark:bg-purple-950/20"
+                    : index % 4 === 2
+                    ? "bg-amber-50/80 dark:bg-amber-950/20"
                     : "bg-emerald-50/80 dark:bg-emerald-950/20"
-                }`}
+                } flex-row gap-4 p-4 md:flex-col md:gap-0 md:p-0`}
               >
-                <div className="relative aspect-[4/3] overflow-hidden">
+                {/* Mobile: Small image on left | Desktop: Large image on top */}
+                <div className="relative w-24 h-24 flex-shrink-0 rounded-xl overflow-hidden md:w-full md:h-auto md:aspect-[4/3] md:rounded-none">
                   <Image
                     src={post.coverImage || "/placeholder.svg"}
                     alt={post.title}
                     fill
                     className="object-cover transition duration-500 group-hover:scale-105"
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    sizes="(max-width: 768px) 96px, (max-width: 1200px) 50vw, 33vw"
                   />
-                  <div className="absolute left-4 top-4">
-                    <Badge variant="soft" className="rounded-full text-[0.7rem]">
-                      {post.tags.at(0) ?? "Feature"}
-                    </Badge>
-                  </div>
                 </div>
-                <div className="flex flex-1 flex-col gap-5 p-6">
-                  <div className="flex items-center gap-3 text-xs font-medium text-muted-foreground">
-                    <span className="inline-flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
-                      {new Date(post.createdAt).toLocaleDateString(undefined, {
+
+                {/* Content */}
+                <div className="flex flex-1 flex-col gap-2 md:gap-5 md:p-6">
+                  <div className="flex items-center gap-2 md:gap-3 text-xs md:text-xs font-medium text-muted-foreground">
+                    <span className="inline-flex items-center gap-1 md:gap-2">
+                      <Calendar className="h-4 w-4 md:h-4 md:w-4" />
+                      <span className="hidden md:inline">{new Date(post.createdAt).toLocaleDateString(undefined, {
                         month: "short",
                         day: "numeric",
                         year: "numeric",
-                      })}
+                      })}</span>
+                      <span className="md:hidden">{new Date(post.createdAt).toLocaleDateString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                      })}</span>
                     </span>
                     <span className="text-muted-foreground/40">·</span>
-                    <span>{post.readTime ? `${post.readTime} min read` : "Read"}</span>
+                    <span>{post.readTime ? `${post.readTime} min` : "Read"}</span>
                   </div>
-                  <div className="space-y-3">
-                    <h3 className="text-lg font-semibold leading-tight transition-colors group-hover:text-primary">
+                  <div className="space-y-1 md:space-y-3">
+                    <h3 className="text-base md:text-lg font-semibold leading-tight transition-colors group-hover:text-primary line-clamp-2 md:line-clamp-none">
                       {post.title}
                     </h3>
-                    <p className="line-clamp-3 text-sm text-muted-foreground">{post.excerpt}</p>
+                    <p className="hidden md:block line-clamp-3 text-sm text-muted-foreground">{post.excerpt}</p>
+                    <p className="md:hidden text-sm text-muted-foreground">{post.excerpt}</p>
                   </div>
-                  <div className="mt-auto flex items-center justify-between text-sm font-medium text-muted-foreground">
-                    <span className="inline-flex items-center gap-2">
-                      <User className="h-4 w-4" />
-                      {post.author}
-                    </span>
-                    <span className="inline-flex items-center gap-2 text-primary transition group-hover:text-primary/80">
-                      Read more
-                      <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
+                  <div className="mt-auto flex items-center justify-between text-xs md:text-sm font-medium text-muted-foreground">
+                    <span className="text-[0.65rem] md:text-sm">&nbsp;</span>
+                    <span className="inline-flex items-center gap-1 md:gap-2 text-primary transition group-hover:text-primary/80">
+                      <span className="hidden md:inline text-[0.65rem] md:text-sm">Read more</span>
+                      <span className="flex items-center justify-center h-6 w-6 md:h-auto md:w-auto md:border-0 border-2 border-primary rounded-full transition-all duration-200 group-hover:scale-110 group-hover:bg-primary/10">
+                        <ArrowRight className="h-3 w-3 md:h-4 md:w-4 text-primary transition-transform duration-200 group-hover:translate-x-1" />
+                      </span>
                     </span>
                   </div>
                 </div>

@@ -37,7 +37,8 @@ import {
   Calendar,
   Award,
   Eye,
-  EyeOff
+  EyeOff,
+  Star
 } from 'lucide-react';
 
 interface Awardee {
@@ -58,6 +59,7 @@ interface Awardee {
   social_links?: Record<string, string>;
   achievements?: any[];
   interests?: string[];
+  featured?: boolean;
 }
 
 interface Stats {
@@ -346,6 +348,40 @@ export default function AwardeesManagement() {
     }
   };
 
+  const handleToggleFeatured = async (id: string, currentFeatured: boolean) => {
+    try {
+      toast.loading('Updating featured status...', { id: `featured-${id}` });
+
+      const response = await fetch('/api/awardees', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id,
+          featured: !currentFeatured
+        })
+      });
+
+      if (!response.ok) throw new Error('Failed to update featured status');
+
+      const result = await response.json();
+
+      if (result.success) {
+        await fetchAwardees({ withSpinner: false });
+        toast.success(
+          `Awardee is now ${!currentFeatured ? 'featured' : 'unfeatured'}`,
+          { id: `featured-${id}` }
+        );
+      } else {
+        throw new Error(result.message);
+      }
+    } catch (error) {
+      console.error('Error toggling featured status:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to update featured status', { id: `featured-${id}` });
+    }
+  };
+
   const handleFileUploadClick = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
@@ -485,6 +521,7 @@ export default function AwardeesManagement() {
                       <TableHead>Country</TableHead>
                       <TableHead>Course</TableHead>
                       <TableHead>Year</TableHead>
+                      <TableHead>Featured</TableHead>
                       <TableHead>Visibility</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
@@ -511,6 +548,18 @@ export default function AwardeesManagement() {
                         </TableCell>
                         <TableCell>{awardee.course}</TableCell>
                         <TableCell>{awardee.year}</TableCell>
+                        <TableCell>
+                          <Button
+                            variant={awardee.featured ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => handleToggleFeatured(awardee.id, awardee.featured || false)}
+                            title={awardee.featured ? "Featured on homepage - Click to unfeature" : "Not featured - Click to feature"}
+                            className={awardee.featured ? "bg-amber-500 hover:bg-amber-600 text-white" : ""}
+                          >
+                            <Star className={`h-4 w-4 mr-1 ${awardee.featured ? 'fill-current' : ''}`} />
+                            {awardee.featured ? 'Featured' : 'Feature'}
+                          </Button>
+                        </TableCell>
                         <TableCell>
                           <Button
                             variant={awardee.is_public !== false ? "default" : "secondary"}

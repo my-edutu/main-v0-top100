@@ -13,14 +13,19 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next()
   }
 
-  // Create Supabase client to check auth and profile
-  const supabase = createClient()
+  console.log('[Middleware] Checking access to:', pathname)
+
+  // Create Supabase client with anon key for auth checks
+  const supabase = await createClient()
 
   // Get session
   const {
     data: { session },
     error,
   } = await supabase.auth.getSession()
+
+  console.log('[Middleware] Session check:', session ? `USER: ${session.user.email}` : 'NO SESSION')
+  if (error) console.error('[Middleware] Session error:', error)
 
   // If no session, redirect to sign in
   if (!session || error) {
@@ -32,26 +37,34 @@ export async function middleware(req: NextRequest) {
 
   // Get user profile to check access level
   const { data: { user } } = await supabase.auth.getUser()
-  
+
   if (user) {
-    const { data: profile, error: profileError } = await supabase
+    // Use service role client for profile query to bypass RLS
+    const supabaseAdmin = await createClient(true)
+    const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('role')
       .eq('id', user.id)
       .single()
 
+    if (profileError) {
+      console.error('[Middleware] Profile fetch error:', profileError)
+    }
+
     // For admin routes, require admin role
     if (pathname.startsWith(ADMIN_PREFIX)) {
       if (profileError || !profile || profile.role !== 'admin') {
+        console.log('[Middleware] Access denied to admin route:', { profileError, profile, pathname })
         const url = req.nextUrl.clone()
         url.pathname = '/'  // Redirect to homepage if not admin
         return NextResponse.redirect(url)
       }
     }
-    
+
     // For dashboard routes, allow both admin and user roles
     if (pathname.startsWith(DASHBOARD_PREFIX)) {
       if (profileError || !profile || (profile.role !== 'admin' && profile.role !== 'user')) {
+        console.log('[Middleware] Access denied to dashboard route:', { profileError, profile, pathname })
         const url = req.nextUrl.clone()
         url.pathname = '/'  // Redirect to homepage if not authorized
         return NextResponse.redirect(url)
@@ -70,5 +83,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  matcher: ['/admin/:path*', '/dashboard/:path*'],
 }

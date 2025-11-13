@@ -107,8 +107,27 @@ export default function SignInContent() {
         }
 
         console.log('Redirecting to:', redirectPath)
-        router.push(redirectPath)
-        router.refresh()
+        console.log('Current cookies:', document.cookie)
+
+        // Verify session is actually stored
+        const { data: verifySession } = await supabase.auth.getSession()
+        console.log('Session verification before redirect:', verifySession.session ? 'EXISTS' : 'MISSING')
+
+        if (!verifySession.session) {
+          console.error('❌ SESSION MISSING BEFORE REDIRECT!')
+          setError('Session storage failed. Please clear cookies and try again.')
+          setIsLoading(false)
+          return
+        }
+
+        // Wait a bit longer for cookies to be set, then use hard redirect
+        // This ensures middleware can read the session
+        await new Promise(resolve => setTimeout(resolve, 1000))
+
+        console.log('🚀 Performing redirect to:', redirectPath)
+
+        // Use window.location for hard redirect to ensure cookies are picked up
+        window.location.href = redirectPath
       } else {
         // No user returned from auth.getUser()
         console.error('No user returned from auth.getUser()')

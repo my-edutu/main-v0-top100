@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Badge } from "@/components/ui/badge"
 import Image from "next/image"
 import { Camera, Users, Award, Mic, X } from "lucide-react"
 
@@ -15,99 +14,129 @@ export default function GallerySection() {
   const galleryImages = [
     {
       id: 1,
-      src: "/img_0671.jpg?height=200&width=300&key=gallery1",
-      alt: "Award ceremony main stage",
-      category: "Ceremony",
-      caption: "Main stage during the awards ceremony",
-      credit: "Photo by John Doe",
-    },
-    {
-      id: 2,
-      src: "/IMG_0672.jpg?height=200&width=300&key=gallery2",
+      thumb: "/thumbs/IMG_0672.jpg",
+      src: "/IMG_0672.jpg",
       alt: "Awardees networking backstage",
       category: "Backstage",
       caption: "Awardees connecting backstage",
       credit: "Photo by Jane Smith",
     },
     {
-      id: 3,
-      src: "/IMG_0673.jpg?height=200&width=300&key=gallery3",
+      id: 2,
+      thumb: "/thumbs/IMG_0673.jpg",
+      src: "/IMG_0673.jpg",
       alt: "Community celebration",
       category: "Community",
       caption: "Local community celebrating with awardees",
       credit: "Photo by Mike Johnson",
     },
     {
-      id: 4,
-      src: "/IMG_0674.jpg?height=200&width=300&key=gallery4",
+      id: 3,
+      thumb: "/thumbs/IMG_0674.jpg",
+      src: "/IMG_0674.jpg",
       alt: "Media interviews",
       category: "Media",
       caption: "Press interviews with top awardees",
       credit: "Photo by Sarah Wilson",
     },
     {
-      id: 5,
-      src: "/IMG_0675.jpg?height=200&width=300&key=gallery5",
+      id: 4,
+      thumb: "/thumbs/IMG_0675.jpg",
+      src: "/IMG_0675.jpg",
       alt: "Award presentation moment",
       category: "Ceremony",
       caption: "Moment of award presentation",
       credit: "Photo by David Brown",
     },
     {
-      id: 6,
-      src: "/IMG_0676.jpg?height=200&width=300&key=gallery6",
+      id: 5,
+      thumb: "/thumbs/IMG_0676.jpg",
+      src: "/IMG_0676.jpg",
       alt: "Behind the scenes preparation",
       category: "Backstage",
       caption: "Final preparations before the ceremony",
       credit: "Photo by Lisa Davis",
     },
     {
-      id: 7,
-      src: "/IMG_0677.jpg?height=200&width=300&key=gallery7",
+      id: 6,
+      thumb: "/thumbs/IMG_0677.jpg",
+      src: "/IMG_0677.jpg",
       alt: "Community impact showcase",
       category: "Community",
       caption: "Showcasing community impact projects",
       credit: "Photo by Tom Anderson",
     },
     {
-      id: 8,
-      src: "/IMG_0678.jpg?height=200&width=300&key=gallery8",
+      id: 7,
+      thumb: "/thumbs/IMG_0678.jpg",
+      src: "/IMG_0678.jpg",
       alt: "Live broadcast setup",
       category: "Media",
       caption: "Live broadcast setup and coverage",
       credit: "Photo by Emma Taylor",
     },
     {
-      id: 9,
-      src: "/IMG_0679.jpg?height=200&width=300&key=gallery9",
+      id: 8,
+      thumb: "/thumbs/IMG_0679.jpg",
+      src: "/IMG_0679.jpg",
       alt: "Group photo of all awardees",
       category: "Ceremony",
       caption: "Group photo of all 100 awardees",
       credit: "Photo by Alex Chen",
     },
     {
-      id: 10,
-      src: "/IMG_0680.jpg?height=200&width=300&key=gallery10",
+      id: 9,
+      thumb: "/thumbs/IMG_0680.jpg",
+      src: "/IMG_0680.jpg",
       alt: "Mentorship session",
       category: "Backstage",
       caption: "Mentorship session with industry leaders",
       credit: "Photo by Maria Garcia",
     },
     {
-      id: 11,
-      src: "/IMG_0681.jpg?height=200&width=300&key=gallery11",
+      id: 10,
+      thumb: "/thumbs/IMG_0681.jpg",
+      src: "/IMG_0681.jpg",
       alt: "Local youth engagement",
       category: "Community",
       caption: "Engaging with local youth leaders",
       credit: "Photo by James Wilson",
     },
     {
-      id: 12,
-      src: "/IMG_0682.jpg?height=200&width=300&key=gallery12",
+      id: 11,
+      thumb: "/thumbs/IMG_0682.jpg",
+      src: "/IMG_0682.jpg",
       alt: "Documentary filming",
       category: "Media",
       caption: "Documentary crew capturing stories",
       credit: "Photo by Rachel Green",
+    },
+    {
+      id: 12,
+      thumb: "/thumbs/IMG_0683.jpg",
+      src: "/IMG_0683.jpg",
+      alt: "Leadership workshop",
+      category: "Ceremony",
+      caption: "Interactive leadership workshop",
+      credit: "Photo by Michael Brown",
+    },
+    {
+      id: 13,
+      thumb: "/thumbs/IMG_0684.jpg",
+      src: "/IMG_0684.jpg",
+      alt: "Networking session",
+      category: "Backstage",
+      caption: "Awardees networking at the event",
+      credit: "Photo by Sarah Lee",
+    },
+    {
+      id: 14,
+      thumb: "/thumbs/IMG_0685.jpg",
+      src: "/IMG_0685.jpg",
+      alt: "Community engagement",
+      category: "Community",
+      caption: "Community members engaging with leaders",
+      credit: "Photo by David Kim",
     },
   ]
 
@@ -173,11 +202,11 @@ export default function GallerySection() {
             >
               <div className="relative h-full overflow-hidden">
                 <Image
-                  src={image.src || "/IMG_0682.jpg"}
+                  src={image.thumb || image.src || "/IMG_0682.jpg"}
                   alt={image.alt}
                   fill
                   className="object-cover group-hover:scale-110 transition-transform duration-300"
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
                 />
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300" />
               </div>
@@ -224,20 +253,17 @@ export default function GallerySection() {
 
               <div className="relative">
                 <Image
-                  src={selectedImage.src.replace("height=200&width=300", "height=600&width=800") || "/placeholder.svg"}
+                  src={selectedImage.src || "/placeholder.svg"}
                   alt={selectedImage.alt}
-                  width={800}
-                  height={600}
+                  width={1200}
+                  height={900}
                   className="w-full h-auto max-h-[70vh] object-contain"
                 />
               </div>
 
               <div className="p-6">
-                <div className="flex items-center gap-3 mb-3">
-                  <Badge className="bg-orange-500 text-white">{selectedImage.category}</Badge>
-                </div>
-                <h3 className="text-xl font-semibold text-white mb-2">{selectedImage.caption}</h3>
-                <p className="text-zinc-400 text-sm">{selectedImage.credit}</p>
+                <h3 className="text-xl font-semibold text-white mb-2">Africa Future Leaders Festival 2025</h3>
+                <p className="text-zinc-400 text-sm">Celebrating Africa's brightest young innovators and changemakers</p>
               </div>
             </motion.div>
           </motion.div>

@@ -218,7 +218,7 @@ export default function AdminBlogPage() {
               <div className="p-2 bg-blue-400/30 rounded-lg mr-3">
                 <FileText className="h-6 w-6" />
               </div>
-              <CardTitle className="text-lg">Total Posts</CardTitle>
+              <CardTitle className="text-lg md:text-xl font-bold">Total Posts</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
@@ -233,7 +233,7 @@ export default function AdminBlogPage() {
               <div className="p-2 bg-green-400/30 rounded-lg mr-3">
                 <BarChart3 className="h-6 w-6" />
               </div>
-              <CardTitle className="text-lg">Published</CardTitle>
+              <CardTitle className="text-lg md:text-xl font-bold">Published</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
@@ -248,7 +248,7 @@ export default function AdminBlogPage() {
               <div className="p-2 bg-amber-400/30 rounded-lg mr-3">
                 <Eye className="h-6 w-6" />
               </div>
-              <CardTitle className="text-lg">Featured</CardTitle>
+              <CardTitle className="text-lg md:text-xl font-bold">Featured</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
@@ -263,12 +263,12 @@ export default function AdminBlogPage() {
               <div className="p-2 bg-gray-400/30 rounded-lg mr-3">
                 <TrendingUp className="h-6 w-6" />
               </div>
-              <CardTitle className="text-lg">Drafts</CardTitle>
+              <CardTitle className="text-lg md:text-xl font-bold">Drafts</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{renderStatsValue(stats.draftPosts)}</div>
-            <p className="text-xs text-gray-100 mt-1">Unpublished posts</p>
+            <p className="text-xs text-amber-100 mt-1">Unpublished posts</p>
           </CardContent>
         </Card>
       </div>

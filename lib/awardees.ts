@@ -32,11 +32,15 @@ type StaticAwardeeRecord = {
 export const normalizeAwardeeEntry = (entry: AwardeeDirectoryEntry): Awardee => ({
   ...entry,
   course: entry.field_of_study ?? entry.current_school ?? null,
+  impact_projects: entry.impact_projects ?? null,
+  lives_impacted: entry.lives_impacted ?? null,
+  awards_received: entry.awards_received ?? null,
+  youtube_video_url: entry.youtube_video_url ?? null,
 })
 
 export async function getAwardees(): Promise<Awardee[]> {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     // Query the awardee_directory view instead of the table directly
     const { data, error } = await supabase
@@ -53,7 +57,8 @@ export async function getAwardees(): Promise<Awardee[]> {
     if (!data || data.length === 0) {
       await initializeAwardeesFromExcel()
       // Re-fetch after initialization
-      const { data: newData, error: newError } = await supabase
+      const reSupabase = await createClient()
+      const { data: newData, error: newError } = await reSupabase
         .from('awardee_directory')
         .select('*')
         .order('name', { ascending: true })
@@ -84,7 +89,7 @@ export async function getAwardees(): Promise<Awardee[]> {
 
 async function initializeAwardeesFromExcel() {
   try {
-    const supabase = createClient(true)
+    const supabase = await createClient(true)
     const excelPath = `/top100 Africa future Leaders 2025.xlsx`
     const excelResponse = await fetch(excelPath)
 

@@ -44,6 +44,11 @@ const FloatingParticle = ({ delay }: FloatingParticleProps) => {
 
 function HomePageHeroSection() {
   const [isHovered, setIsHovered] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId)
@@ -57,9 +62,9 @@ function HomePageHeroSection() {
       <div className="absolute inset-0 overflow-hidden">
         {/* Subtle grid pattern */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
-        
-        {/* Floating particles */}
-        {[...Array(30)].map((_, index) => (
+
+        {/* Floating particles - only render on client to avoid hydration mismatch */}
+        {isMounted && [...Array(30)].map((_, index) => (
           <FloatingParticle key={index} delay={index * 150} />
         ))}
       </div>
@@ -83,7 +88,7 @@ function HomePageHeroSection() {
                 <span>13+ African Countries</span>
               </div>
               
-              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight tracking-tight text-slate-900">
+              <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold leading-tight tracking-tight text-slate-900">
                 <span className="block">Celebrating Africa&apos;s</span>
                 <span className="block mt-2 text-slate-900">
                   Future Leaders
@@ -95,22 +100,22 @@ function HomePageHeroSection() {
               </p>
             </div>
             
-            <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-              <motion.div 
-                whileHover={{ scale: 1.05 }} 
-                whileTap={{ scale: 0.95 }} 
+            <div className="mt-10 flex flex-row items-center justify-center gap-2 sm:gap-4">
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 className="relative"
               >
                 <Button
-                  size="lg"
-                  className="group relative overflow-hidden rounded-full bg-gradient-to-r from-orange-500 to-yellow-500 px-6 py-4 text-base sm:px-8 sm:py-6 sm:text-lg text-white transition-all hover:from-orange-600 hover:to-yellow-600"
+                  size="sm"
+                  className="group relative overflow-hidden rounded-full bg-gradient-to-r from-orange-500 to-yellow-500 px-4 py-2 text-xs sm:px-8 sm:py-6 sm:text-lg text-white transition-all hover:from-orange-600 hover:to-yellow-600"
                   onMouseEnter={() => setIsHovered(true)}
                   onMouseLeave={() => setIsHovered(false)}
                   onClick={() => scrollToSection("awardees")}
                 >
-                  <span className="relative z-10 flex items-center gap-2">
-                    <Users className="h-4 w-4 sm:h-5 sm:w-5" />
-                    <span className="text-sm sm:text-base">Meet the Awardees</span>
+                  <span className="relative z-10 flex items-center gap-1 sm:gap-2">
+                    <Users className="h-3 w-3 sm:h-5 sm:w-5" />
+                    <span className="text-xs sm:text-base">Meet the Awardees</span>
                   </span>
                   <motion.span
                     className="absolute inset-0 bg-gradient-to-r from-orange-600 to-yellow-600"
@@ -120,16 +125,16 @@ function HomePageHeroSection() {
                   />
                 </Button>
               </motion.div>
-              
+
               <Button
                 variant="outline"
-                size="lg"
-                className="rounded-full border border-primary px-6 py-4 text-base sm:px-8 sm:py-6 sm:text-lg text-primary hover:bg-primary hover:text-primary-foreground"
+                size="sm"
+                className="rounded-full border border-primary px-4 py-2 text-xs sm:px-8 sm:py-6 sm:text-lg text-primary hover:bg-primary hover:text-primary-foreground"
                 onClick={() => scrollToSection("magazine")}
               >
-                <span className="flex items-center gap-2">
-                  <GraduationCap className="h-4 w-4 sm:h-5 sm:w-5" />
-                  <span className="text-sm sm:text-base">View 2025 Magazine</span>
+                <span className="flex items-center gap-1 sm:gap-2">
+                  <GraduationCap className="h-3 w-3 sm:h-5 sm:w-5" />
+                  <span className="text-xs sm:text-base">View 2025 Magazine</span>
                 </span>
               </Button>
             </div>

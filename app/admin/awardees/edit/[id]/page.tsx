@@ -16,12 +16,17 @@ import {
   CardTitle 
 } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { 
-  ArrowLeft, 
-  Loader2, 
+import {
+  ArrowLeft,
+  Loader2,
   Image as ImageIcon,
-  Upload
+  Upload,
+  Star,
+  Plus,
+  X
 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 interface Awardee {
   id: string;
@@ -34,6 +39,12 @@ interface Awardee {
   bio?: string;
   year?: number;
   image_url?: string;
+  featured?: boolean;
+  headline?: string;
+  tagline?: string;
+  social_links?: Record<string, string>;
+  achievements?: string[];
+  avatar_url?: string;
 }
 
 const awardeeSchema = z.object({
@@ -45,6 +56,13 @@ const awardeeSchema = z.object({
   bio: z.string().optional(),
   year: z.number().int().min(1900).max(2100).optional(),
   image_url: z.string().optional(),
+  featured: z.boolean().optional(),
+  headline: z.string().optional(),
+  tagline: z.string().optional(),
+  linkedin: z.string().optional(),
+  twitter: z.string().optional(),
+  github: z.string().optional(),
+  website: z.string().optional(),
 });
 
 type AwardeeFormValues = z.infer<typeof awardeeSchema>
@@ -67,6 +85,13 @@ export default function EditAwardeePage({ params }: { params: { id: string } }) 
       bio: '',
       year: 2024,
       image_url: '',
+      featured: false,
+      headline: '',
+      tagline: '',
+      linkedin: '',
+      twitter: '',
+      github: '',
+      website: '',
     }
   });
 
@@ -83,7 +108,14 @@ export default function EditAwardeePage({ params }: { params: { id: string } }) 
       setValue('course', awardee.course || '');
       setValue('bio', awardee.bio || '');
       setValue('year', awardee.year || 2024);
-      setValue('image_url', awardee.image_url || '');
+      setValue('image_url', awardee.image_url || awardee.avatar_url || '');
+      setValue('featured', awardee.featured || false);
+      setValue('headline', awardee.headline || '');
+      setValue('tagline', awardee.tagline || '');
+      setValue('linkedin', awardee.social_links?.linkedin || '');
+      setValue('twitter', awardee.social_links?.twitter || '');
+      setValue('github', awardee.social_links?.github || '');
+      setValue('website', awardee.social_links?.website || '');
     }
   }, [awardee, setValue]);
 
@@ -130,7 +162,17 @@ export default function EditAwardeePage({ params }: { params: { id: string } }) 
         bio: data.bio || null,
         year: data.year || 2024,
         image_url: data.image_url || null,
-        slug: generateSlug(data.name)
+        avatar_url: data.image_url || null,
+        slug: generateSlug(data.name),
+        featured: data.featured || false,
+        headline: data.headline || null,
+        tagline: data.tagline || null,
+        social_links: {
+          linkedin: data.linkedin || '',
+          twitter: data.twitter || '',
+          github: data.github || '',
+          website: data.website || '',
+        }
       };
 
       const response = await fetch('/api/awardees', {
@@ -317,6 +359,94 @@ export default function EditAwardeePage({ params }: { params: { id: string } }) 
                       Upload a profile image (JPG, PNG)
                     </p>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Featured Status */}
+            <div className="border-t pt-6">
+              <h3 className="text-lg font-semibold mb-4">Featured Status</h3>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="featured"
+                  checked={watch('featured')}
+                  onCheckedChange={(checked) => setValue('featured', checked)}
+                />
+                <Label htmlFor="featured" className="cursor-pointer">
+                  <div className="flex items-center">
+                    <Star className={`h-4 w-4 mr-2 ${watch('featured') ? 'fill-amber-500 text-amber-500' : ''}`} />
+                    <span>{watch('featured') ? 'Featured on homepage' : 'Not featured'}</span>
+                  </div>
+                </Label>
+              </div>
+              <p className="text-sm text-muted-foreground mt-2">
+                Featured awardees appear in the "Meet the Bold Minds Shaping Africa Tomorrow" section on the homepage.
+              </p>
+            </div>
+
+            {/* Profile Details */}
+            <div className="border-t pt-6">
+              <h3 className="text-lg font-semibold mb-4">Profile Details</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Headline</label>
+                  <Input
+                    {...register('headline')}
+                    placeholder="e.g., Software Engineer & Community Builder"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    A brief professional title or role description
+                  </p>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Tagline</label>
+                  <Textarea
+                    {...register('tagline')}
+                    placeholder="e.g., Building technology solutions for African communities"
+                    rows={2}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    A short inspiring statement or mission
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Social Links */}
+            <div className="border-t pt-6">
+              <h3 className="text-lg font-semibold mb-4">Social Links</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium mb-1 block">LinkedIn</label>
+                  <Input
+                    {...register('linkedin')}
+                    placeholder="https://linkedin.com/in/username"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Twitter</label>
+                  <Input
+                    {...register('twitter')}
+                    placeholder="https://twitter.com/username"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-1 block">GitHub</label>
+                  <Input
+                    {...register('github')}
+                    placeholder="https://github.com/username"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Website</label>
+                  <Input
+                    {...register('website')}
+                    placeholder="https://yourwebsite.com"
+                  />
                 </div>
               </div>
             </div>

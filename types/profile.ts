@@ -102,4 +102,8 @@ export type AwardeeDirectoryEntry = {
   role?: string | null;
   mentor?: string | null;
   course?: string | null;
+  impact_projects?: number | null;
+  lives_impacted?: number | null;
+  awards_received?: number | null;
+  youtube_video_url?: string | null;
 };

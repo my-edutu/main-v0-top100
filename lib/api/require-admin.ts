@@ -13,7 +13,7 @@ type RequireAdminFailure = {
 export type RequireAdminResult = RequireAdminSuccess | RequireAdminFailure
 
 export const requireAdmin = async (request?: NextRequest): Promise<RequireAdminResult> => {
-  const supabase = createClient()
+  const supabase = await createClient()
   
   // Get session
   const { data: { session }, error } = await supabase.auth.getSession()

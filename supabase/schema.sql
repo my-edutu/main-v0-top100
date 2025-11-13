@@ -1,4 +1,4 @@
-﻿-- Centralized database schema for Top100 Africa Future Leaders
+-- Centralized database schema for Top100 Africa Future Leaders
 -- This file can be re-run safely thanks to IF NOT EXISTS / IF EXISTS guards.
 
 create extension if not exists "pgcrypto";
@@ -233,6 +233,71 @@ create trigger on_awardees_before_update
 
 
 -- ---------------------------------------------------------------------------
+-- BLOG POSTS (editorial content for homepage and public blog)
+-- ---------------------------------------------------------------------------
+create table if not exists public.posts (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  slug text unique not null,
+  content text,
+  cover_image text,
+  author text,
+  excerpt text,
+  tags text[] default array[]::text[],
+  read_time integer,
+  is_featured boolean default false,
+  status text not null default 'draft',
+  visibility text not null default 'public',
+  created_at timestamp with time zone not null default now(),
+  updated_at timestamp with time zone not null default now()
+);
+
+create index if not exists posts_status_idx on public.posts (status);
+create index if not exists posts_is_featured_idx on public.posts (is_featured);
+create index if not exists posts_visibility_idx on public.posts (visibility);
+create index if not exists posts_slug_idx on public.posts (slug);
+
+-- Keep updated_at in sync on mutations
+create or replace function public.handle_post_updated()
+returns trigger as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists on_post_updated on public.posts;
+create trigger on_post_updated
+  before update on public.posts
+  for each row execute function public.handle_post_updated();
+
+alter table public.posts enable row level security;
+
+DO $$ BEGIN
+  create policy "Public published posts" on public.posts
+    for select using (status = 'published' and visibility = 'public');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  create policy "Service manages posts" on public.posts
+    for all using (auth.role() = 'service_role')
+    with check (auth.role() = 'service_role');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  alter publication supabase_realtime add table public.posts;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+  WHEN others THEN
+    IF SQLSTATE = '42704' THEN
+      -- publication does not exist (local dev), ignore
+      NULL;
+    ELSE
+      RAISE;
+    END IF;
+END $$;
+
+-- ---------------------------------------------------------------------------
 -- EVENTS (public timeline of programs, meetups, and gatherings)
 -- ---------------------------------------------------------------------------
 create table if not exists public.events (
@@ -295,6 +360,60 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
   alter publication supabase_realtime add table public.events;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+  WHEN others THEN
+    IF SQLSTATE = '42704' THEN
+      -- publication does not exist (local dev), ignore
+      NULL;
+    ELSE
+      RAISE;
+    END IF;
+END $$;
+
+-- ---------------------------------------------------------------------------
+-- YOUTUBE VIDEOS (videos for the homepage event highlights)
+-- ---------------------------------------------------------------------------
+create table if not exists public.youtube_videos (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  description text,
+  video_id text not null unique,
+  date text,
+  created_at timestamp with time zone not null default now(),
+  updated_at timestamp with time zone not null default now()
+);
+
+create index if not exists youtube_videos_video_id_idx on public.youtube_videos (video_id);
+
+create or replace function public.handle_youtube_updated()
+returns trigger as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists on_youtube_updated on public.youtube_videos;
+create trigger on_youtube_updated
+  before update on public.youtube_videos
+  for each row execute function public.handle_youtube_updated();
+
+alter table public.youtube_videos enable row level security;
+
+DO $$ BEGIN
+  create policy "Public youtube videos" on public.youtube_videos
+    for select using (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  create policy "Service manages youtube videos" on public.youtube_videos
+    for all using (auth.role() = 'service_role')
+    with check (auth.role() = 'service_role');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  alter publication supabase_realtime add table public.youtube_videos;
 EXCEPTION
   WHEN duplicate_object THEN NULL;
   WHEN others THEN

@@ -1,18 +1,25 @@
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 
-// Load environment variables
-dotenv.config();
+// Function to get Supabase client
+function getSupabaseClient() {
+  // Load environment variables explicitly from .env.local in the project root
+  dotenv.config({ path: '.env.local' });
 
-// Initialize Supabase client for server-side operations
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
+  // Initialize Supabase client for server-side operations
+  const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
+  const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
 
-if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-  console.warn('Supabase environment variables are missing, image download/upload functions will not work');
+  console.log('In getSupabaseClient - NEXT_PUBLIC_SUPABASE_URL:', SUPABASE_URL ? 'Present' : 'Missing');
+  console.log('In getSupabaseClient - SUPABASE_SERVICE_ROLE_KEY:', SUPABASE_SERVICE_ROLE_KEY ? 'Present' : 'Missing');
+
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    console.warn('Supabase environment variables are missing, image download/upload functions will not work');
+    return null;
+  }
+
+  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 }
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 /**
  * Downloads an image from a URL and uploads it to Supabase storage
@@ -22,10 +29,16 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
  * @returns The public URL of the uploaded image
  */
 export async function downloadAndUploadImage(imageUrl: string, fileName: string, bucketName: string = 'awardees'): Promise<string | null> {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    console.error('Supabase client not available');
+    return null;
+  }
+
   try {
     // Fetch the image from the URL
     const response = await fetch(imageUrl);
-    
+
     if (!response.ok) {
       throw new Error(`Failed to download image: ${response.status} ${response.statusText}`);
     }
@@ -42,7 +55,7 @@ export async function downloadAndUploadImage(imageUrl: string, fileName: string,
     // Generate a unique filename if needed
     const fileExtension = getExtensionFromContentType(contentType) || getExtensionFromUrl(imageUrl) || '.jpg';
     const uniqueFileName = `${Date.now()}-${fileName}${fileExtension}`;
-    
+
     // Upload the image to Supabase storage
     const { data, error } = await supabase.storage
       .from(bucketName)
@@ -76,6 +89,12 @@ export async function downloadAndUploadImage(imageUrl: string, fileName: string,
  * @returns Success status
  */
 export async function updateAwardeeWithImage(awardeeId: string, imageUrl: string): Promise<boolean> {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    console.error('Supabase client not available');
+    return false;
+  }
+
   try {
     // Update the awardee record with the image URL
     const { data, error } = await supabase
@@ -140,17 +159,33 @@ export async function processAwardeesWithImageLinks(
   let successCount = 0;
   let failureCount = 0;
 
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    console.error('Supabase client not available');
+    return { successCount, failureCount };
+  }
+
   for (const { awardeeId, imageUrl } of awardeeImageLinks) {
     try {
       // Extract name from the awardee record to use as filename
-      const { data: awardee, error: fetchError } = await supabase
+      // First try to find by slug (as CSV contains slug values)
+      let { data: awardee, error: fetchError } = await supabase
         .from('awardees')
-        .select('name')
-        .eq('id', awardeeId)
+        .select('name, id')
+        .eq('slug', awardeeId)
         .single();
 
+      // If not found by slug, try to find by id
+      if ((fetchError || !awardee) && awardeeId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+        ({ data: awardee, error: fetchError } = await supabase
+          .from('awardees')
+          .select('name, id')
+          .eq('id', awardeeId)
+          .single());
+      }
+
       if (fetchError || !awardee) {
-        console.error(`Failed to fetch awardee with ID ${awardeeId}:`, fetchError);
+        console.error(`Failed to fetch awardee with ID/slug ${awardeeId}:`, fetchError);
         failureCount++;
         continue;
       }
@@ -167,15 +202,15 @@ export async function processAwardeesWithImageLinks(
       const uploadedImageUrl = await downloadAndUploadImage(imageUrl, sanitizedName);
 
       if (uploadedImageUrl) {
-        // Update the awardee record with the new image URL
-        const updateSuccess = await updateAwardeeWithImage(awardeeId, uploadedImageUrl);
-        
+        // Update the awardee record with the new image URL using the actual awardee ID
+        const updateSuccess = await updateAwardeeWithImage(awardee.id, uploadedImageUrl);
+
         if (updateSuccess) {
           successCount++;
           console.log(`Successfully processed image for ${awardee.name}`);
         } else {
           failureCount++;
-          console.error(`Failed to update awardee ${awardeeId} with image URL`);
+          console.error(`Failed to update awardee ${awardee.id} with image URL`);
         }
       } else {
         failureCount++;
