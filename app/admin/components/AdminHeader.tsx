@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter, usePathname } from 'next/navigation'
+import Link from 'next/link'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import {
@@ -14,16 +15,19 @@ import {
   LogOut,
   Search,
   Bell,
-  Menu
+  Menu,
+  Loader2
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import {
   Sheet,
   SheetContent,
   SheetTrigger,
+  SheetTitle,
 } from "@/components/ui/sheet"
+import { createClient } from '@/utils/supabase/client'
 
 interface NavItem {
   label: string
@@ -45,13 +49,55 @@ export default function AdminHeader() {
   const router = useRouter()
   const pathname = usePathname()
   const [isSheetOpen, setIsSheetOpen] = useState(false)
+  const [isPending, startTransition] = useTransition()
+  const [navigatingTo, setNavigatingTo] = useState<string | null>(null)
 
   const handleLogout = async () => {
     try {
       toast.loading('Logging out...', { id: 'logout' })
+
+      // Broadcast logout to other tabs FIRST
+      if (typeof window !== 'undefined') {
+        // Method 1: localStorage event
+        localStorage.setItem('logout-event', JSON.stringify({
+          timestamp: Date.now(),
+          reason: 'manual'
+        }))
+
+        // Method 2: BroadcastChannel
+        if ('BroadcastChannel' in window) {
+          const logoutChannel = new BroadcastChannel('auth-events')
+          logoutChannel.postMessage({
+            type: 'logout',
+            reason: 'manual',
+            timestamp: Date.now()
+          })
+          logoutChannel.close()
+        }
+      }
+
+      // Create Supabase client and call logout
+      const supabase = createClient()
+      const { error } = await supabase.auth.signOut()
+
+      if (error) {
+        console.error('Error logging out:', error)
+        toast.error('Failed to log out', { id: 'logout' })
+        return
+      }
+
+      // Clear local storage
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('lastActivity')
+        sessionStorage.clear()
+      }
+
       toast.success('Logged out successfully', { id: 'logout' })
-      router.push('/auth/signin')
-      router.refresh()
+
+      // Use hard redirect to ensure clean logout
+      setTimeout(() => {
+        window.location.href = '/auth/signin?reason=manual'
+      }, 500)
     } catch (error) {
       console.error('Error logging out:', error)
       toast.error('Failed to log out', { id: 'logout' })
@@ -66,12 +112,27 @@ export default function AdminHeader() {
   }
 
   const handleNavigation = (href: string) => {
-    router.push(href)
-    setIsSheetOpen(false)
+    setNavigatingTo(href)
+    startTransition(() => {
+      router.push(href)
+      setIsSheetOpen(false)
+    })
   }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-gradient-to-r from-orange-500 to-amber-500 shadow-lg">
+      {/* Loading Progress Bar */}
+      {isPending && (
+        <div className="absolute top-0 left-0 right-0 h-1 bg-white/20 overflow-hidden">
+          <div className="h-full bg-white animate-[loading_1s_ease-in-out_infinite]"
+               style={{
+                 width: '40%',
+                 animation: 'loading 1s ease-in-out infinite'
+               }}
+          />
+        </div>
+      )}
+
       {/* Top Bar */}
       <div className="flex h-16 items-center justify-between px-6">
         {/* Left Side - Menu and Logo */}
@@ -90,6 +151,7 @@ export default function AdminHeader() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-64 bg-gradient-to-b from-orange-500 to-amber-500 p-0">
+                <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
                 <div className="flex flex-col h-full pt-6">
                   {/* Logo in Sheet */}
                   <div className="px-6 pb-6 flex items-center space-x-3 border-b border-white/20">
@@ -111,18 +173,29 @@ export default function AdminHeader() {
                       const active = isActive(item.href)
 
                       return (
-                        <button
+                        <Link
                           key={item.href}
-                          onClick={() => handleNavigation(item.href)}
+                          href={item.href}
+                          onClick={(e) => {
+                            if (isPending) {
+                              e.preventDefault();
+                              return;
+                            }
+                            setIsSheetOpen(false);
+                          }}
                           className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
                             active
                               ? 'bg-white text-orange-600 shadow-md'
                               : 'text-white hover:bg-white/20'
-                          }`}
+                          } ${isPending ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
                         >
-                          <Icon className="h-5 w-5" />
+                          {isPending && navigatingTo === item.href ? (
+                            <Loader2 className="h-5 w-5 animate-spin" />
+                          ) : (
+                            <Icon className="h-5 w-5" />
+                          )}
                           <span>{item.label}</span>
-                        </button>
+                        </Link>
                       )
                     })}
                   </nav>
@@ -209,20 +282,25 @@ export default function AdminHeader() {
             const active = isActive(item.href)
 
             return (
-              <button
+              <Link
                 key={item.href}
-                onClick={() => router.push(item.href)}
+                href={item.href}
                 className={`
                   flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap
                   ${active
                     ? 'bg-white text-orange-600 shadow-md'
                     : 'text-white hover:bg-white/20'
                   }
+                  ${isPending ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}
                 `}
               >
-                <Icon className="h-4 w-4" />
+                {isPending && navigatingTo === item.href ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Icon className="h-4 w-4" />
+                )}
                 <span>{item.label}</span>
-              </button>
+              </Link>
             )
           })}
         </div>

@@ -5,7 +5,11 @@
       "Bash(node:*)",
       "mcp__ide__getDiagnostics",
       "Bash([ -f .env.local ])",
-      "Bash(npx tsx:*)"
+      "Bash(npx tsx:*)",
+      "Bash(cat:*)",
+      "Bash(npm run build:*)",
+      "Bash(test:*)",
+      "Bash(timeout:*)"
     ],
     "deny": [],
     "ask": []

@@ -113,14 +113,25 @@ export async function POST(req: NextRequest) {
       content,
       cover_image,
       coverImage,
+      cover_image_alt,
+      coverImageAlt,
       is_featured,
       isFeatured,
       status,
       tags,
       author,
+      author_id,
       excerpt,
       read_time,
       readTime,
+      scheduled_at,
+      scheduledAt,
+      meta_title,
+      metaTitle,
+      meta_description,
+      metaDescription,
+      meta_keywords,
+      metaKeywords,
     } = body
 
     const payload: Record<string, unknown> = {
@@ -128,6 +139,7 @@ export async function POST(req: NextRequest) {
       slug,
       content,
       cover_image: cover_image ?? coverImage ?? null,
+      cover_image_alt: cover_image_alt ?? coverImageAlt ?? null,
       is_featured: Boolean(is_featured ?? isFeatured),
       status: status ?? 'draft',
       tags: normalizeTags(tags),
@@ -137,6 +149,10 @@ export async function POST(req: NextRequest) {
       payload.author = author.trim()
     }
 
+    if (typeof author_id === 'string') {
+      payload.author_id = author_id
+    }
+
     if (typeof excerpt === 'string' && excerpt.trim().length > 0) {
       payload.excerpt = excerpt.trim()
     }
@@ -144,6 +160,30 @@ export async function POST(req: NextRequest) {
     const suppliedReadTime = typeof read_time === 'number' ? read_time : typeof readTime === 'number' ? readTime : null
     if (typeof suppliedReadTime === 'number' && Number.isFinite(suppliedReadTime)) {
       payload.read_time = Math.max(1, Math.round(suppliedReadTime))
+    }
+
+    if (scheduled_at) {
+      payload.scheduled_at = scheduled_at
+    } else if (scheduledAt) {
+      payload.scheduled_at = scheduledAt
+    }
+
+    if (typeof meta_title === 'string' && meta_title.trim().length > 0) {
+      payload.meta_title = meta_title.trim()
+    } else if (typeof metaTitle === 'string' && metaTitle.trim().length > 0) {
+      payload.meta_title = metaTitle.trim()
+    }
+
+    if (typeof meta_description === 'string' && meta_description.trim().length > 0) {
+      payload.meta_description = meta_description.trim()
+    } else if (typeof metaDescription === 'string' && metaDescription.trim().length > 0) {
+      payload.meta_description = metaDescription.trim()
+    }
+
+    if (typeof meta_keywords === 'string' && meta_keywords.trim().length > 0) {
+      payload.meta_keywords = meta_keywords.trim()
+    } else if (typeof metaKeywords === 'string' && metaKeywords.trim().length > 0) {
+      payload.meta_keywords = metaKeywords.trim()
     }
 
     const { data, error } = await supabase.from('posts').insert([payload]).select().single()
@@ -179,14 +219,25 @@ export async function PUT(req: NextRequest) {
       content,
       cover_image,
       coverImage,
+      cover_image_alt,
+      coverImageAlt,
       is_featured,
       isFeatured,
       status,
       tags,
       author,
+      author_id,
       excerpt,
       read_time,
       readTime,
+      scheduled_at,
+      scheduledAt,
+      meta_title,
+      metaTitle,
+      meta_description,
+      metaDescription,
+      meta_keywords,
+      metaKeywords,
     } = body
 
     if (!id) {
@@ -198,6 +249,7 @@ export async function PUT(req: NextRequest) {
       slug,
       content,
       cover_image: cover_image ?? coverImage ?? null,
+      cover_image_alt: cover_image_alt ?? coverImageAlt ?? null,
       is_featured: Boolean(is_featured ?? isFeatured),
       status: status ?? 'draft',
       tags: normalizeTags(tags),
@@ -207,6 +259,10 @@ export async function PUT(req: NextRequest) {
       updates.author = author.trim()
     }
 
+    if (typeof author_id === 'string') {
+      updates.author_id = author_id
+    }
+
     if (typeof excerpt === 'string' && excerpt.trim().length > 0) {
       updates.excerpt = excerpt.trim()
     }
@@ -214,6 +270,38 @@ export async function PUT(req: NextRequest) {
     const suppliedReadTime = typeof read_time === 'number' ? read_time : typeof readTime === 'number' ? readTime : null
     if (typeof suppliedReadTime === 'number' && Number.isFinite(suppliedReadTime)) {
       updates.read_time = Math.max(1, Math.round(suppliedReadTime))
+    }
+
+    if (scheduled_at !== undefined) {
+      updates.scheduled_at = scheduled_at
+    } else if (scheduledAt !== undefined) {
+      updates.scheduled_at = scheduledAt
+    } else {
+      updates.scheduled_at = null // Allow clearing scheduled_at
+    }
+
+    if (typeof meta_title === 'string' && meta_title.trim().length > 0) {
+      updates.meta_title = meta_title.trim()
+    } else if (typeof metaTitle === 'string' && metaTitle.trim().length > 0) {
+      updates.meta_title = metaTitle.trim()
+    } else {
+      updates.meta_title = null
+    }
+
+    if (typeof meta_description === 'string' && meta_description.trim().length > 0) {
+      updates.meta_description = meta_description.trim()
+    } else if (typeof metaDescription === 'string' && metaDescription.trim().length > 0) {
+      updates.meta_description = metaDescription.trim()
+    } else {
+      updates.meta_description = null
+    }
+
+    if (typeof meta_keywords === 'string' && meta_keywords.trim().length > 0) {
+      updates.meta_keywords = meta_keywords.trim()
+    } else if (typeof metaKeywords === 'string' && metaKeywords.trim().length > 0) {
+      updates.meta_keywords = metaKeywords.trim()
+    } else {
+      updates.meta_keywords = null
     }
 
     const { data, error } = await supabase
@@ -247,7 +335,7 @@ export async function PATCH(req: NextRequest) {
   try {
     const supabase = createClient(true)
     const body = await req.json()
-    const { id, is_featured, isFeatured, status, visibility } = body
+    const { id, is_featured, isFeatured, status, visibility, scheduled_at, scheduledAt } = body
 
     if (!id) {
       return NextResponse.json({ message: 'Post id is required' }, { status: 400 })
@@ -262,6 +350,11 @@ export async function PATCH(req: NextRequest) {
     }
     if (typeof visibility === 'string') {
       updates.visibility = visibility
+    }
+    if (scheduled_at !== undefined) {
+      updates.scheduled_at = scheduled_at
+    } else if (scheduledAt !== undefined) {
+      updates.scheduled_at = scheduledAt
     }
 
     if (Object.keys(updates).length === 0) {

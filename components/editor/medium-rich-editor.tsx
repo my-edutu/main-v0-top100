@@ -5,9 +5,9 @@ import { BubbleMenu, EditorContent, FloatingMenu, useEditor } from '@tiptap/reac
 import StarterKit from '@tiptap/starter-kit'
 import Link from '@tiptap/extension-link'
 import Image from '@tiptap/extension-image'
-import Underline from '@tiptap/extension-underline'
+import UnderlineExtension from '@tiptap/extension-underline'
 import Placeholder from '@tiptap/extension-placeholder'
-import { Bold, Heading1, Heading2, Heading3, Italic, LinkIcon, List, ListOrdered, Quote, Code, ImageIcon, Minus } from 'lucide-react'
+import { Bold, Heading1, Heading2, Heading3, Italic, Underline, LinkIcon, List, ListOrdered, Quote, Code, ImageIcon, Minus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 type MediumRichEditorProps = {
@@ -43,7 +43,7 @@ export function MediumRichEditor({ value, onChange, placeholder }: MediumRichEdi
         bulletList: { keepMarks: true, keepAttributes: false },
         orderedList: { keepMarks: true, keepAttributes: false },
       }),
-      Underline,
+      UnderlineExtension,
       Link.configure({
         autolink: true,
         openOnClick: true,

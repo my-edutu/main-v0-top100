@@ -4,18 +4,13 @@ import { useEffect, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { ArrowRight, Calendar, User } from "lucide-react"
+import { ArrowRight, Calendar } from "lucide-react"
 
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { blogPosts } from "@/content/data/blog-posts"
-import { mapStaticPost, ResolvedPost, selectHomepagePosts } from "@/lib/posts"
-
-const fallbackPosts = blogPosts.map(mapStaticPost)
-const fallbackHomepage = selectHomepagePosts(fallbackPosts)
+import { ResolvedPost } from "@/lib/posts"
 
 export default function BlogSection() {
-  const [posts, setPosts] = useState<ResolvedPost[]>(fallbackHomepage)
+  const [posts, setPosts] = useState<ResolvedPost[]>([])
 
   useEffect(() => {
     let isMounted = true
@@ -33,23 +28,9 @@ export default function BlogSection() {
           return
         }
 
-        const merged = new Map<string, ResolvedPost>()
-        for (const post of payload as ResolvedPost[]) {
-          if (post && typeof post.slug === "string") {
-            merged.set(post.slug, post)
-          }
-        }
-
-        for (const fallback of fallbackHomepage) {
-          if (!merged.has(fallback.slug)) {
-            merged.set(fallback.slug, fallback)
-          }
-        }
-
-        const normalized = selectHomepagePosts(Array.from(merged.values()))
-
         if (isMounted) {
-          setPosts(normalized)
+          // Limit to 6 posts for homepage display
+          setPosts(payload.slice(0, 6))
         }
       } catch (error) {
         console.error("Error fetching homepage posts", error)

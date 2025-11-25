@@ -139,7 +139,7 @@ export default function EventsPage() {
         <div className="relative z-10 flex flex-col gap-4">
           <div className="flex items-start justify-between">
             <div>
-              <div className="flex items-center gap-2 text-sm text-orange-300">
+              <div className="flex items-center gap-2 text-sm md:text-base text-orange-300">
                 <CalendarDays className="h-4 w-4" />
                 <span>{format(start, "EEEE, MMMM d")}</span>
               </div>
@@ -148,16 +148,16 @@ export default function EventsPage() {
               </h3>
             </div>
             <div className="flex flex-col items-center justify-center rounded-xl bg-white/10 px-3 py-2 text-white">
-              <span className="text-xs tracking-[0.2em] uppercase">{month}</span>
+              <span className="text-xs md:text-sm tracking-[0.2em] uppercase">{month}</span>
               <span className="text-xl font-bold">{day}</span>
             </div>
           </div>
           {event.summary && (
-            <p className="text-sm leading-relaxed text-zinc-300 line-clamp-3">
+            <p className="text-sm md:text-base leading-relaxed text-zinc-300 line-clamp-3">
               {event.summary}
             </p>
           )}
-          <div className="flex flex-wrap items-center gap-3 text-sm text-zinc-300">
+          <div className="flex flex-wrap items-center gap-3 text-sm md:text-base text-zinc-300">
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4" />
               <span>{format(start, "h:mm a")}</span>
@@ -195,14 +195,14 @@ export default function EventsPage() {
   }
 
   return (
-    <div className="relative min-h-screen bg-black py-24 text-white">
+    <div className="relative min-h-[70vh] sm:min-h-screen bg-black py-12 sm:py-24 text-white">
       <div className="absolute inset-0 bg-[url('/textures/noise.png')] opacity-50 mix-blend-soft-light" aria-hidden="true" />
       <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-16 px-4 md:px-6">
         <div className="space-y-6 text-center md:text-left">
           <h1 className="text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl">
             Stories that shape the future of African leadership
           </h1>
-          <p className="mx-auto max-w-3xl text-lg text-zinc-300 md:mx-0">
+          <p className="mx-auto max-w-3xl text-lg sm:text-xl text-zinc-300 md:mx-0">
             Dive into our archive of summits, workshops, and community gatherings. Each program is crafted to amplify
             bold African voices and create lasting impact. Tap any event to relive the moments or save your seat for what's next.
           </p>
@@ -215,25 +215,25 @@ export default function EventsPage() {
             {featuredEvent && (
               <section className="space-y-6">
                 <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div className="flex items-center gap-2 text-sm uppercase tracking-[0.3em] text-orange-300">
+                  <div className="flex items-center gap-2 text-sm sm:text-base uppercase tracking-[0.3em] text-orange-300">
                     <Sparkles className="h-4 w-4" />
                     Featured Experience
                   </div>
-                  <Link href="#past-events" className="text-sm text-orange-200 hover:text-orange-100">
+                  <Link href="#past-events" className="text-sm sm:text-base text-orange-200 hover:text-orange-100">
                     Jump to past highlights →
                   </Link>
                 </div>
                 <Card className="overflow-hidden border border-orange-500/40 bg-white/10 backdrop-blur">
                   <CardContent className="grid gap-8 p-8 md:grid-cols-[2fr_3fr]">
                     <div className="space-y-4">
-                      <div className="inline-flex items-center gap-2 rounded-full bg-orange-500/20 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-orange-100">
+                      <div className="inline-flex items-center gap-2 rounded-full bg-orange-500/20 px-3 py-1 text-xs sm:text-sm font-semibold uppercase tracking-wide text-orange-100">
                         Upcoming spotlight
                       </div>
                       <h2 className="text-3xl font-semibold text-white md:text-4xl">{featuredEvent.title}</h2>
-                      <p className="text-sm leading-relaxed text-zinc-200 md:text-base">
+                      <p className="text-sm leading-relaxed text-zinc-200 md:text-base lg:text-lg">
                         {featuredEvent.summary ?? "Join us for a transformational gathering designed to accelerate changemakers across the continent."}
                       </p>
-                      <dl className="space-y-3 text-sm text-zinc-200">
+                      <dl className="space-y-3 text-sm md:text-base text-zinc-200">
                         <div className="flex items-center gap-3">
                           <CalendarDays className="h-5 w-5 text-orange-300" />
                           <span>{formatRange(featuredEvent.start_at, featuredEvent.end_at)}</span>
@@ -298,8 +298,8 @@ export default function EventsPage() {
             <section className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-semibold text-white">Upcoming Gatherings</h2>
-                  <p className="text-sm text-zinc-300">Reserve your spot before capacity fills up.</p>
+                  <h2 className="text-2xl sm:text-3xl font-semibold text-white">Upcoming Gatherings</h2>
+                  <p className="text-sm sm:text-base text-zinc-300">Reserve your spot before capacity fills up.</p>
                 </div>
                 <Badge className="bg-white/10 text-orange-200">
                   {upcomingEvents.length + 1} upcoming
@@ -352,8 +352,8 @@ export default function EventsPage() {
             <section id="past-events" className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-semibold text-white">Past Highlights</h2>
-                  <p className="text-sm text-zinc-300">Relive the moments that have shaped our network.</p>
+                  <h2 className="text-2xl sm:text-3xl font-semibold text-white">Past Highlights</h2>
+                  <p className="text-sm sm:text-base text-zinc-300">Relive the moments that have shaped our network.</p>
                 </div>
                 <Badge className="bg-white/10 text-zinc-200">{pastEvents.length + 2} recorded</Badge>
               </div>
@@ -445,8 +445,8 @@ export default function EventsPage() {
             <>
               <DialogHeader className="space-y-2">
                 <DialogTitle className="text-3xl font-semibold">{selectedEvent.title}</DialogTitle>
-                {selectedEvent.subtitle && <DialogDescription className="text-base text-zinc-300">{selectedEvent.subtitle}</DialogDescription>}
-                <div className="flex flex-wrap items-center gap-3 text-sm text-zinc-300">
+                {selectedEvent.subtitle && <DialogDescription className="text-base sm:text-lg text-zinc-300">{selectedEvent.subtitle}</DialogDescription>}
+                <div className="flex flex-wrap items-center gap-3 text-sm md:text-base text-zinc-300">
                   <div className="flex items-center gap-2">
                     <CalendarDays className="h-4 w-4 text-orange-300" />
                     <span>{formatRange(selectedEvent.start_at, selectedEvent.end_at)}</span>
@@ -477,7 +477,7 @@ export default function EventsPage() {
                     />
                   </div>
                 )}
-                <div className="space-y-4 text-sm leading-relaxed text-zinc-200">
+                <div className="space-y-4 text-sm sm:text-base leading-relaxed text-zinc-200">
                   {selectedEvent.description ? (
                     <p className="whitespace-pre-line">{selectedEvent.description}</p>
                   ) : selectedEvent.summary ? (
@@ -495,7 +495,7 @@ export default function EventsPage() {
                 </div>
               </div>
               <DialogFooter className="flex flex-col gap-3 sm:flex-row sm:justify-between">
-                <div className="text-xs uppercase tracking-[0.3em] text-zinc-400">
+                <div className="text-xs sm:text-sm uppercase tracking-[0.3em] text-zinc-400">
                   Last updated {format(new Date(selectedEvent.updated_at), "MMM d, yyyy")}
                 </div>
                 <div className="flex flex-wrap gap-3">

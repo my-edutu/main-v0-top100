@@ -1,21 +1,22 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { 
-  Users, 
-  Globe, 
-  Award, 
-  TrendingUp, 
-  TrendingDown, 
-  FileText, 
-  Youtube, 
-  Calendar, 
-  BarChart3, 
-  Activity, 
-  ActivityIcon, 
+import {
+  Users,
+  Globe,
+  Award,
+  TrendingUp,
+  TrendingDown,
+  FileText,
+  Youtube,
+  Calendar,
+  BarChart3,
+  Activity,
+  ActivityIcon,
   Clock,
   CheckCircle,
   AlertCircle,
@@ -28,7 +29,8 @@ import {
   ChevronRight,
   Filter,
   Download,
-  Search
+  Search,
+  Loader2
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -54,6 +56,7 @@ interface Stats {
   activeUsers: number
   engagementRate: number
   pendingApprovals: number
+  recentVideos: number
 }
 
 interface RecentActivity {
@@ -74,6 +77,8 @@ interface ContentStats {
 
 export default function AdminDashboard() {
   const router = useRouter()
+  const [isPending, startTransition] = useTransition()
+  const [navigatingTo, setNavigatingTo] = useState<string | null>(null)
 
   if (!ADMIN_ENABLED) {
     return (
@@ -100,6 +105,13 @@ export default function AdminDashboard() {
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([])
   const [contentStats, setContentStats] = useState<ContentStats[]>([])
 
+  const handleNavigation = (href: string) => {
+    setNavigatingTo(href)
+    startTransition(() => {
+      router.push(href)
+    })
+  }
+
   const fetchStats = useCallback(async ({ withSpinner = true }: { withSpinner?: boolean } = {}) => {
     try {
       if (withSpinner) setLoading(true)
@@ -108,11 +120,12 @@ export default function AdminDashboard() {
       const eventsResponse = await fetch('/api/events')
       const postsResponse = await fetch('/api/posts')
       const youtubeResponse = await fetch('/api/youtube')
-      
+
       const rawAwardees = awardeesResponse.ok ? await awardeesResponse.json() : []
       const events = eventsResponse.ok ? await eventsResponse.json() : []
       const posts = postsResponse.ok ? await postsResponse.json() : []
-      const youtubeVideos = youtubeResponse.ok ? await youtubeResponse.json() : []
+      const youtubeData = youtubeResponse.ok ? await youtubeResponse.json() : []
+      const youtubeVideos = Array.isArray(youtubeData) ? youtubeData : []
 
       const normalizedAwardees: Awardee[] = Array.isArray(rawAwardees)
         ? rawAwardees.map((awardee: any) => {
@@ -140,6 +153,19 @@ export default function AdminDashboard() {
         : 0
       const totalYouTubeVideos = Array.isArray(youtubeVideos) ? youtubeVideos.length : 0
       const totalEvents = Array.isArray(events) ? events.length : 0
+
+      // Calculate recent YouTube videos (last 3 months)
+      const currentDate = new Date()
+      const threeMonthsAgo = new Date()
+      threeMonthsAgo.setMonth(currentDate.getMonth() - 3)
+
+      const recentYouTubeVideos = Array.isArray(youtubeVideos)
+        ? youtubeVideos.filter((video: any) => {
+            if (!video.created_at) return false
+            const videoDate = new Date(video.created_at)
+            return videoDate >= threeMonthsAgo
+          }).length
+        : 0
 
       // Calculate recent awardees
       const currentYear = new Date().getFullYear()
@@ -175,8 +201,9 @@ export default function AdminDashboard() {
         totalEvents,
         activeUsers,
         engagementRate,
-        pendingApprovals
-      })
+        pendingApprovals,
+        recentVideos: recentYouTubeVideos
+      } as Stats)
       setCountries(countriesArray)
 
       // Generate mock recent activity
@@ -217,28 +244,28 @@ export default function AdminDashboard() {
   }, [fetchStats])
 
   // KPI Card Component with gradient backgrounds
-  const KPICard = ({ title, value, change, icon: Icon, trend, gradient }: { 
-    title: string, 
-    value: number | string, 
-    change: string, 
-    icon: React.ComponentType<{ className?: string }>, 
+  const KPICard = ({ title, value, change, icon: Icon, trend, gradient }: {
+    title: string,
+    value: number | string,
+    change: string,
+    icon: React.ComponentType<{ className?: string }>,
     trend: 'up' | 'down',
-    gradient: string 
+    gradient: string
   }) => (
-    <Card className={`hover:shadow-xl transition-all ${gradient}`}>
+    <Card className={`hover:shadow-xl transition-all ${gradient} min-h-[140px]`}>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base font-semibold text-white">{title}</CardTitle>
+          <CardTitle className="text-base font-semibold text-white truncate max-w-[70%]">{title}</CardTitle>
           <div className="p-3 rounded-lg bg-white/20 backdrop-blur-sm">
             <Icon className="h-5 w-5 text-white" />
           </div>
         </div>
       </CardHeader>
       <CardContent>
-        <div className="text-3xl font-bold text-white mb-1">{value}</div>
+        <div className="text-3xl font-bold text-white mb-1 truncate">{value}</div>
         <div className={`flex items-center text-sm ${trend === 'up' ? 'text-green-200' : 'text-red-200'}`}>
           {trend === 'up' ? <TrendingUp className="h-4 w-4 mr-1" /> : <TrendingDown className="h-4 w-4 mr-1" />}
-          <span className="text-white/90">{change}</span>
+          <span className="text-white/90 truncate max-w-[80%]">{change}</span>
         </div>
       </CardContent>
     </Card>
@@ -265,37 +292,37 @@ export default function AdminDashboard() {
       </div>
 
       {/* Executive Summary - KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <KPICard 
-          title="Total Awardees" 
-          value={stats?.totalAwardees || 0} 
-          change="+12% from last month" 
-          icon={Users} 
-          trend="up" 
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+        <KPICard
+          title="Total Awardees"
+          value={stats?.totalAwardees || 0}
+          change="+12% from last month"
+          icon={Users}
+          trend="up"
           gradient="bg-gradient-to-br from-blue-500 to-blue-600 text-white"
         />
-        <KPICard 
-          title="Countries" 
-          value={stats?.totalCountries || 0} 
-          change="+3 new countries" 
-          icon={Globe} 
-          trend="up" 
+        <KPICard
+          title="Countries"
+          value={stats?.totalCountries || 0}
+          change="+3 new countries"
+          icon={Globe}
+          trend="up"
           gradient="bg-gradient-to-br from-green-500 to-green-600 text-white"
         />
-        <KPICard 
-          title="Active Users" 
-          value={stats?.activeUsers || 0} 
-          change="+5.2% from last month" 
-          icon={Activity} 
-          trend="up" 
+        <KPICard
+          title="Active Users"
+          value={stats?.activeUsers || 0}
+          change="+5.2% from last month"
+          icon={Activity}
+          trend="up"
           gradient="bg-gradient-to-br from-purple-500 to-purple-600 text-white"
         />
-        <KPICard 
-          title="Engagement Rate" 
-          value={`${stats?.engagementRate || 0}%`} 
-          change="+2.1% from last month" 
-          icon={BarChart3} 
-          trend="up" 
+        <KPICard
+          title="Engagement Rate"
+          value={`${stats?.engagementRate || 0}%`}
+          change="+2.1% from last month"
+          icon={BarChart3}
+          trend="up"
           gradient="bg-gradient-to-br from-amber-500 to-amber-600 text-white"
         />
       </div>
@@ -310,61 +337,95 @@ export default function AdminDashboard() {
                 <CardTitle className="text-xl font-bold text-gray-900">Content Management</CardTitle>
                 <p className="text-sm text-gray-500 mt-1">Manage and organize all platform content</p>
               </div>
-              <Button variant="outline" size="sm" onClick={() => router.push('/admin/blog')}>
-                View All
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
+              <Link href="/admin/blog">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={isPending}
+                >
+                  {isPending && navigatingTo === '/admin/blog' ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  )}
+                  View All
+                </Button>
+              </Link>
             </div>
           </CardHeader>
           <CardContent className="pt-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {/* Awardees */}
-              <button
-                onClick={() => router.push('/admin/awardees')}
-                className="flex flex-col items-center justify-center p-5 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:shadow-lg hover:scale-[1.02] transition-all"
-              >
-                <div className="p-3 rounded-full bg-white/20 mb-3">
-                  <Users className="h-7 w-7 text-white" />
+              <Link href="/admin/awardees" className="block">
+                <div
+                  className="flex flex-col items-center justify-center p-6 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:shadow-lg hover:scale-[1.02] transition-all disabled:opacity-50 min-h-[140px]"
+                  onClick={(e) => isPending && e.preventDefault()}
+                >
+                  <div className="p-3 rounded-full bg-white/20 mb-3">
+                    {isPending && navigatingTo === '/admin/awardees' ? (
+                      <Loader2 className="h-7 w-7 text-white animate-spin" />
+                    ) : (
+                      <Users className="h-7 w-7 text-white" />
+                    )}
+                  </div>
+                  <span className="text-base font-semibold mb-1 text-center">Awardees</span>
+                  <span className="text-sm text-white/90">{stats?.totalAwardees || 0}</span>
                 </div>
-                <span className="text-base font-semibold mb-1">Awardees</span>
-                <span className="text-sm text-white/90">{stats?.totalAwardees || 0}</span>
-              </button>
-              
+              </Link>
+
               {/* Blog Posts */}
-              <button
-                onClick={() => router.push('/admin/blog')}
-                className="flex flex-col items-center justify-center p-5 rounded-xl bg-gradient-to-br from-green-500 to-green-600 text-white hover:shadow-lg hover:scale-[1.02] transition-all"
-              >
-                <div className="p-3 rounded-full bg-white/20 mb-3">
-                  <FileText className="h-7 w-7 text-white" />
+              <Link href="/admin/blog" className="block">
+                <div
+                  className="flex flex-col items-center justify-center p-6 rounded-xl bg-gradient-to-br from-green-500 to-green-600 text-white hover:shadow-lg hover:scale-[1.02] transition-all disabled:opacity-50 min-h-[140px]"
+                  onClick={(e) => isPending && e.preventDefault()}
+                >
+                  <div className="p-3 rounded-full bg-white/20 mb-3">
+                    {isPending && navigatingTo === '/admin/blog' ? (
+                      <Loader2 className="h-7 w-7 text-white animate-spin" />
+                    ) : (
+                      <FileText className="h-7 w-7 text-white" />
+                    )}
+                  </div>
+                  <span className="text-base font-semibold mb-1 text-center">Blog Posts</span>
+                  <span className="text-sm text-white/90">{stats?.totalPosts || 0}</span>
                 </div>
-                <span className="text-base font-semibold mb-1">Blog Posts</span>
-                <span className="text-sm text-white/90">{stats?.totalPosts || 0}</span>
-              </button>
-              
+              </Link>
+
               {/* Events */}
-              <button
-                onClick={() => router.push('/admin/events')}
-                className="flex flex-col items-center justify-center p-5 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 text-white hover:shadow-lg hover:scale-[1.02] transition-all"
-              >
-                <div className="p-3 rounded-full bg-white/20 mb-3">
-                  <Calendar className="h-7 w-7 text-white" />
+              <Link href="/admin/events" className="block">
+                <div
+                  className="flex flex-col items-center justify-center p-6 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 text-white hover:shadow-lg hover:scale-[1.02] transition-all disabled:opacity-50 min-h-[140px]"
+                  onClick={(e) => isPending && e.preventDefault()}
+                >
+                  <div className="p-3 rounded-full bg-white/20 mb-3">
+                    {isPending && navigatingTo === '/admin/events' ? (
+                      <Loader2 className="h-7 w-7 text-white animate-spin" />
+                    ) : (
+                      <Calendar className="h-7 w-7 text-white" />
+                    )}
+                  </div>
+                  <span className="text-base font-semibold mb-1 text-center">Events</span>
+                  <span className="text-sm text-white/90">{stats?.totalEvents || 0}</span>
                 </div>
-                <span className="text-base font-semibold mb-1">Events</span>
-                <span className="text-sm text-white/90">{stats?.totalEvents || 0}</span>
-              </button>
-              
+              </Link>
+
               {/* YouTube */}
-              <button
-                onClick={() => router.push('/admin/youtube')}
-                className="flex flex-col items-center justify-center p-5 rounded-xl bg-gradient-to-br from-red-500 to-red-600 text-white hover:shadow-lg hover:scale-[1.02] transition-all"
-              >
-                <div className="p-3 rounded-full bg-white/20 mb-3">
-                  <Youtube className="h-7 w-7 text-white" />
+              <Link href="/admin/youtube" className="block">
+                <div
+                  className="flex flex-col items-center justify-center p-6 rounded-xl bg-gradient-to-br from-red-500 to-red-600 text-white hover:shadow-lg hover:scale-[1.02] transition-all disabled:opacity-50 min-h-[140px]"
+                  onClick={(e) => isPending && e.preventDefault()}
+                >
+                  <div className="p-3 rounded-full bg-white/20 mb-3">
+                    {isPending && navigatingTo === '/admin/youtube' ? (
+                      <Loader2 className="h-7 w-7 text-white animate-spin" />
+                    ) : (
+                      <Youtube className="h-7 w-7 text-white" />
+                    )}
+                  </div>
+                  <span className="text-base font-semibold mb-1 text-center">YouTube</span>
+                  <span className="text-sm text-white/90">{stats?.totalYouTubeVideos || 0}</span>
                 </div>
-                <span className="text-base font-semibold mb-1">YouTube</span>
-                <span className="text-sm text-white/90">{stats?.totalYouTubeVideos || 0}</span>
-              </button>
+              </Link>
             </div>
 
             {/* Pending Approvals */}
@@ -383,16 +444,18 @@ export default function AdminDashboard() {
                   <p className="mt-2 text-amber-700">
                     Review and approve content before it goes live on the platform.
                   </p>
-                  <Button 
-                    size="sm" 
-                    className="mt-3 bg-amber-500 hover:bg-amber-600 text-white"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      router.push('/admin/blog?status=pending');
-                    }}
-                  >
-                    Review Items
-                  </Button>
+                  <Link href="/admin/blog?status=pending">
+                    <Button
+                      size="sm"
+                      className="mt-3 bg-amber-500 hover:bg-amber-600 text-white"
+                      disabled={isPending}
+                    >
+                      {isPending && navigatingTo === '/admin/blog?status=pending' ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : null}
+                      Review Items
+                    </Button>
+                  </Link>
                 </div>
               </div>
             </div>
@@ -464,46 +527,124 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
-      {/* Content Performance and Top Countries */}
+      {/* YouTube Analytics and Top Countries */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top Content Performance */}
+        {/* YouTube Analytics */}
         <Card>
           <CardHeader className="border-b">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-xl font-bold text-gray-900">Content Performance</CardTitle>
-                <p className="text-sm text-gray-500 mt-1">Top-performing content metrics</p>
+                <CardTitle className="text-xl font-bold text-gray-900">YouTube Analytics</CardTitle>
+                <p className="text-sm text-gray-500 mt-1">Recent video performance</p>
               </div>
-              <Button variant="outline" size="sm">
-                <ExternalLink className="h-4 w-4 mr-2" />
-                View Report
-              </Button>
+              <Link href="/admin/youtube">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={isPending}
+                >
+                  {isPending && navigatingTo === '/admin/youtube' ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                  ) : (
+                    <>
+                      <Youtube className="h-4 w-4 mr-2" />
+                      Manage
+                    </>
+                  )}
+                </Button>
+              </Link>
             </div>
           </CardHeader>
           <CardContent className="pt-6">
-            <div className="space-y-4">
-              {contentStats.map((content, index) => (
-                <div key={index} className="flex items-center justify-between p-4 hover:bg-gray-50 rounded-xl transition-colors">
-                  <div className="min-w-0">
-                    <p className="text-base font-semibold text-gray-900 truncate">{content.title}</p>
+            {loading ? (
+              <div className="space-y-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="flex items-center space-x-4 p-4">
+                    <div className="h-16 w-24 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+                      <div className="h-3 bg-gray-200 rounded w-1/2 animate-pulse"></div>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-6">
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Eye className="h-4 w-4 mr-2 text-gray-500" />
-                      <span>{content.views.toLocaleString()}</span>
+                ))}
+              </div>
+            ) : stats?.totalYouTubeVideos === 0 ? (
+              <div className="text-center py-8">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 mb-4">
+                  <Youtube className="h-8 w-8 text-red-600" />
+                </div>
+                <p className="text-gray-600 mb-4">No YouTube videos added yet</p>
+                <Link href="/admin/youtube">
+                  <Button
+                    size="sm"
+                    className="bg-red-500 hover:bg-red-600 text-white"
+                    disabled={isPending}
+                  >
+                    {isPending && navigatingTo === '/admin/youtube' ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <Youtube className="h-4 w-4 mr-2" />
+                    )}
+                    Add Your First Video
+                  </Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-red-50 to-orange-50 rounded-xl border border-red-200">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-3 rounded-lg bg-red-100">
+                      <Youtube className="h-6 w-6 text-red-600" />
                     </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <ActivityIcon className="h-4 w-4 mr-2 text-gray-500" />
-                      <span>{content.likes.toLocaleString()}</span>
+                    <div>
+                      <p className="text-sm text-gray-600">Total Videos</p>
+                      <p className="text-2xl font-bold text-gray-900">{stats?.totalYouTubeVideos || 0}</p>
                     </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <MessageCircle className="h-4 w-4 mr-2 text-gray-500" />
-                      <span>{content.comments}</span>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-600">On Homepage</p>
+                    <p className="text-lg font-semibold text-red-600">Live</p>
+                  </div>
+                </div>
+                <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <BarChart3 className="h-5 w-5 text-blue-600" />
+                    <p className="font-semibold text-gray-900">Quick Stats</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <p className="text-gray-600">This Month</p>
+                      <p className="text-lg font-bold text-gray-900">
+                        {stats?.recentVideos || 0}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-gray-600">All Time</p>
+                      <p className="text-lg font-bold text-gray-900">
+                        {stats?.totalYouTubeVideos || 0}
+                      </p>
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
+                <div className="pt-2">
+                  <Link href="/admin/youtube">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      disabled={isPending}
+                    >
+                      {isPending && navigatingTo === '/admin/youtube' ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 mr-2" />
+                      )}
+                      View Detailed Analytics
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -515,10 +656,20 @@ export default function AdminDashboard() {
                 <CardTitle className="text-xl font-bold text-gray-900">Top Countries</CardTitle>
                 <p className="text-sm text-gray-500 mt-1">Geographic distribution of awardees</p>
               </div>
-              <Button variant="outline" size="sm" onClick={() => router.push('/admin/awardees')}>
-                View All
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
+              <Link href="/admin/awardees">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={isPending}
+                >
+                  {isPending && navigatingTo === '/admin/awardees' ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  )}
+                  View All
+                </Button>
+              </Link>
             </div>
           </CardHeader>
           <CardContent className="pt-6">
@@ -559,43 +710,67 @@ export default function AdminDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <button
-          onClick={() => router.push('/admin/awardees/import')}
-          className="flex flex-col items-center justify-center p-6 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:shadow-xl hover:scale-[1.02] transition-all"
-        >
-          <div className="p-3 rounded-full bg-white/20 mb-3">
-            <FileText className="h-6 w-6" />
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        <Link href="/admin/awardees/import" className="block">
+          <div
+            className="flex flex-col items-center justify-center p-6 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:shadow-xl hover:scale-[1.02] transition-all disabled:opacity-50 min-h-[140px]"
+            onClick={(e) => isPending && e.preventDefault()}
+          >
+            <div className="p-3 rounded-full bg-white/20 mb-3">
+              {isPending && navigatingTo === '/admin/awardees/import' ? (
+                <Loader2 className="h-6 w-6 animate-spin" />
+              ) : (
+                <FileText className="h-6 w-6" />
+              )}
+            </div>
+            <span className="text-base font-semibold text-center">Import Awardees</span>
           </div>
-          <span className="text-base font-semibold">Import Awardees</span>
-        </button>
-        <button
-          onClick={() => router.push('/admin/blog/new')}
-          className="flex flex-col items-center justify-center p-6 rounded-2xl bg-gradient-to-br from-green-500 to-green-600 text-white hover:shadow-xl hover:scale-[1.02] transition-all"
-        >
-          <div className="p-3 rounded-full bg-white/20 mb-3">
-            <FileText className="h-6 w-6" />
+        </Link>
+        <Link href="/admin/blog/new" className="block">
+          <div
+            className="flex flex-col items-center justify-center p-6 rounded-2xl bg-gradient-to-br from-green-500 to-green-600 text-white hover:shadow-xl hover:scale-[1.02] transition-all disabled:opacity-50 min-h-[140px]"
+            onClick={(e) => isPending && e.preventDefault()}
+          >
+            <div className="p-3 rounded-full bg-white/20 mb-3">
+              {isPending && navigatingTo === '/admin/blog/new' ? (
+                <Loader2 className="h-6 w-6 animate-spin" />
+              ) : (
+                <FileText className="h-6 w-6" />
+              )}
+            </div>
+            <span className="text-base font-semibold text-center">Create Post</span>
           </div>
-          <span className="text-base font-semibold">Create Post</span>
-        </button>
-        <button
-          onClick={() => router.push('/admin/events?create=1')}
-          className="flex flex-col items-center justify-center p-6 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 text-white hover:shadow-xl hover:scale-[1.02] transition-all"
-        >
-          <div className="p-3 rounded-full bg-white/20 mb-3">
-            <Calendar className="h-6 w-6" />
+        </Link>
+        <Link href="/admin/events?create=1" className="block">
+          <div
+            className="flex flex-col items-center justify-center p-6 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 text-white hover:shadow-xl hover:scale-[1.02] transition-all disabled:opacity-50 min-h-[140px]"
+            onClick={(e) => isPending && e.preventDefault()}
+          >
+            <div className="p-3 rounded-full bg-white/20 mb-3">
+              {isPending && navigatingTo === '/admin/events?create=1' ? (
+                <Loader2 className="h-6 w-6 animate-spin" />
+              ) : (
+                <Calendar className="h-6 w-6" />
+              )}
+            </div>
+            <span className="text-base font-semibold text-center">Add Event</span>
           </div>
-          <span className="text-base font-semibold">Add Event</span>
-        </button>
-        <button
-          onClick={() => router.push('/admin/analytics')}
-          className="flex flex-col items-center justify-center p-6 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 text-white hover:shadow-xl hover:scale-[1.02] transition-all"
-        >
-          <div className="p-3 rounded-full bg-white/20 mb-3">
-            <BarChart3 className="h-6 w-6" />
+        </Link>
+        <Link href="/admin/analytics" className="block">
+          <div
+            className="flex flex-col items-center justify-center p-6 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 text-white hover:shadow-xl hover:scale-[1.02] transition-all disabled:opacity-50 min-h-[140px]"
+            onClick={(e) => isPending && e.preventDefault()}
+          >
+            <div className="p-3 rounded-full bg-white/20 mb-3">
+              {isPending && navigatingTo === '/admin/analytics' ? (
+                <Loader2 className="h-6 w-6 animate-spin" />
+              ) : (
+                <BarChart3 className="h-6 w-6" />
+              )}
+            </div>
+            <span className="text-base font-semibold text-center">Analytics</span>
           </div>
-          <span className="text-base font-semibold">Analytics</span>
-        </button>
+        </Link>
       </div>
     </div>
   )

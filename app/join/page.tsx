@@ -39,20 +39,32 @@ export default function JoinPage() {
           <p className="text-xl text-zinc-300 mb-8">
             Become part of a prestigious community of exceptional students driving change across Africa
           </p>
+
+          <div className="flex flex-col sm:flex-row justify-center gap-4 mb-12">
+            <button
+              onClick={() => document.getElementById('brevo-popup')?.classList.remove('hidden')}
+              className="px-8 py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all duration-300"
+            >
+              Join Community
+            </button>
+            <button className="px-8 py-4 bg-white/10 backdrop-blur-sm text-white font-semibold rounded-lg border border-white/20 hover:bg-white/20 transition-all duration-300">
+              Become an Africa Future Leader
+            </button>
+          </div>
         </div>
 
         {/* Statistics Section */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-16">
           {stats.map((stat, index) => (
-            <div 
+            <div
               key={index}
-              className="bg-zinc-800/50 rounded-2xl p-6 backdrop-blur-lg border border-orange-400/20 text-center transition-all duration-300 hover:scale-105"
+              className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20 text-center transition-all duration-300 hover:scale-105"
             >
-              <div className="flex justify-center mb-3 text-orange-400">
+              <div className="flex justify-center mb-3 text-orange-500">
                 {stat.icon}
               </div>
-              <div className="text-3xl font-bold text-white mb-1">{stat.value}</div>
-              <div className="text-sm text-zinc-400">{stat.label}</div>
+              <div className="text-3xl font-bold text-slate-900 dark:text-white mb-1">{stat.value}</div>
+              <div className="text-sm text-slate-700 dark:text-slate-300">{stat.label}</div>
             </div>
           ))}
         </div>
@@ -85,62 +97,36 @@ export default function JoinPage() {
           </div>
         </div>
 
-        {/* Join Form */}
-        <div className="bg-zinc-900/50 rounded-3xl p-8 md:p-12 border border-orange-400/20 max-w-2xl mx-auto">
-          <h2 className="text-3xl font-bold mb-6 text-center">Join Our Community</h2>
-          <p className="text-zinc-400 mb-8 text-center">
-            Interested in becoming part of the Top100 Africa Future Leaders? Sign up for our newsletter to receive updates on application periods and opportunities.
-          </p>
-          
-          {isSubmitted ? (
-            <div className="bg-green-900/30 border border-green-500/30 rounded-xl p-6 text-center">
-              <h3 className="text-xl font-semibold text-green-400 mb-2">Thank You for Joining!</h3>
-              <p className="text-green-300">
-                {state?.message || "We've received your interest. You'll be the first to know when applications open."}
-              </p>
-              <button
-                onClick={() => setIsSubmitted(false)}
-                className="mt-4 px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors"
-              >
-                Join Another
-              </button>
-            </div>
-          ) : (
-            <form action={formAction} className="space-y-6">
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-zinc-300 mb-2">
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  placeholder="you@university.edu"
-                  className="w-full px-4 py-3 bg-zinc-800/50 border border-orange-400/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-white"
-                />
-              </div>
+        {/* Brevo Popup Trigger */}
+        <div className="max-w-2xl mx-auto text-center">
+          <h2 className="text-3xl font-bold mb-6">Join Our Community</h2>
+          <button
+            onClick={() => document.getElementById('brevo-popup')?.classList.remove('hidden')}
+            className="px-8 py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all duration-300"
+          >
+            Join Community
+          </button>
+        </div>
 
-              {/* Hidden field for interest type */}
-              <input type="hidden" name="interestType" value="member" />
-
-              {state?.success === false && (
-                <div className="bg-red-900/30 border border-red-500/30 rounded-lg p-4 text-center">
-                  <p className="text-red-300 text-sm">{state.message}</p>
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={isPending}
-                className="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all duration-300 disabled:opacity-70"
-              >
-                {isPending ? "Processing..." : "Sign Up for Updates"}
-              </button>
-            </form>
-          )}
+        {/* Brevo Popup */}
+        <div id="brevo-popup" className="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="relative bg-white rounded-xl overflow-hidden w-full max-w-2xl">
+            <button
+              onClick={() => document.getElementById('brevo-popup')?.classList.add('hidden')}
+              className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-700 hover:bg-gray-300 transition-colors"
+            >
+              &times;
+            </button>
+            <iframe
+              width="100%"
+              height="500"
+              src="https://f0aba197.sibforms.com/serve/MUIFAPFMTsu3W4IE9dWRYrekyRkTG0WUdiF38Omu9oEJo63I6kqyigl5z-v1sh47KF01MGsjEw6M_U1FlY7FXP_UVKSfmjOKhFsB44yNYJEi64EfYyOENi6jZpUT25B_IogmtPZeJwZyeoOS7-2daQZMcg3gFrwhBfAj-gznoXyDkf8bGq9xeL8_T1_H3rKwo_3mrcKY9TZtcv23"
+              frameBorder="0"
+              scrolling="auto"
+              allowFullScreen
+              className="min-h-[500px]"
+            ></iframe>
+          </div>
         </div>
 
         <div className="mt-12 text-center">

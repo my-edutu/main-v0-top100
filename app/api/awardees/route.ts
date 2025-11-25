@@ -1,11 +1,12 @@
 // app/api/awardees/route.ts
 import { NextRequest } from 'next/server';
+import { revalidatePath } from 'next/cache';
 
 import { promises as fs } from 'fs';
 import path from 'path';
 
 import { requireAdmin } from '@/lib/api/require-admin';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { read, utils } from 'xlsx';
 
 type AwardeeRecord = {
@@ -20,7 +21,7 @@ type AwardeeRecord = {
   slug?: string | null;
 };
 
-const syncProfileFromAwardee = async (supabase: ReturnType<typeof createClient>, awardeeId: string) => {
+const syncProfileFromAwardee = async (supabase: Awaited<ReturnType<typeof createClient>>, awardeeId: string) => {
   const { data: awardee } = await supabase
     .from('awardees')
     .select('id, profile_id, name, country, course, bio, email, image_url, slug')
@@ -48,42 +49,45 @@ const syncProfileFromAwardee = async (supabase: ReturnType<typeof createClient>,
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient(true); // Use service role for admin operations
-    
+    // Use admin client to fetch ALL awardees (including hidden ones)
+    const supabase = createAdminClient();
+
     // Check if there are any awardees in the database
     const { count, error: countError } = await supabase
       .from('awardees')
       .select('*', { count: 'exact', head: true });
-    
+
     if (countError) {
       console.error('Error counting awardees:', countError);
     }
-    
+
     // If no awardees exist in the database, try to initialize from the Excel file
     if (!countError && count === 0) {
       await initializeAwardeesFromExcel();
     }
-    
-    // Fetch awardees from the database
+
+    // Fetch ALL awardees from the database (including hidden ones)
     const { data, error } = await supabase
       .from('awardees')
       .select('*')
       .order('name', { ascending: true });
-    
+
     if (error) {
       console.error('Error fetching awardees:', error);
-      return Response.json({ 
-        success: false, 
+      return Response.json({
+        success: false,
         message: 'Failed to fetch awardees',
-        error: error.message 
+        error: error.message
       }, { status: 500 });
     }
-    
+
+    console.log(`[GET /api/awardees] Fetched ${data?.length || 0} awardees (including hidden)`);
+
     return Response.json(data);
   } catch (error) {
     console.error('Error in awardees GET:', error);
-    return Response.json({ 
-      success: false, 
+    return Response.json({
+      success: false,
       message: 'Failed to fetch awardees',
       error: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
@@ -127,11 +131,11 @@ export async function POST(request: NextRequest) {
       // If there's an image file, upload it to Supabase storage
       let imageUrl = null;
       if (body.image && body.image.size > 0) {
-        const supabase = createClient(true); // Use service role for admin operations
-        
+        const supabase = await createClient(true); // Use service role for admin operations
+
         // Generate a unique filename
         const fileName = `${Date.now()}-${body.image.name}`;
-        
+
         try {
           // Upload to Supabase storage
           const { data: uploadData, error: uploadError } = await supabase.storage
@@ -140,7 +144,7 @@ export async function POST(request: NextRequest) {
               cacheControl: '3600',
               upsert: false
             });
-          
+
           if (uploadError) {
             console.error('Error uploading image:', uploadError);
             // Don't fail the entire request if image upload fails, just continue without image
@@ -150,7 +154,7 @@ export async function POST(request: NextRequest) {
             const { data: publicUrlData } = supabase.storage
               .from('awardees')
               .getPublicUrl(uploadData.path);
-              
+
             imageUrl = publicUrlData.publicUrl;
           }
         } catch (storageError) {
@@ -159,8 +163,8 @@ export async function POST(request: NextRequest) {
           console.warn('Image upload failed due to unexpected error, proceeding without image');
         }
       }
-      
-      const supabase = createClient(true); // Use service role for admin operations
+
+      const supabase = await createClient(true); // Use service role for admin operations
       
       // Check if an awardee with the same slug already exists
       const { data: existingAwardee } = await supabase
@@ -195,25 +199,29 @@ export async function POST(request: NextRequest) {
       if (!error && data) {
         await syncProfileFromAwardee(supabase, data.id);
       }
-      
+
       if (error) {
         console.error('Error adding awardee:', error);
         // Check if the error is related to a unique constraint violation
         if (error.code === '23505') { // PostgreSQL unique violation code
-          return Response.json({ 
-            success: false, 
-            message: 'An awardee with this information already exists' 
+          return Response.json({
+            success: false,
+            message: 'An awardee with this information already exists'
           }, { status: 409 });
         }
-        return Response.json({ 
-          success: false, 
+        return Response.json({
+          success: false,
           message: 'Failed to add awardee',
-          error: error.message 
+          error: error.message
         }, { status: 500 });
       }
-      
-      return Response.json({ 
-        success: true, 
+
+      // Revalidate pages that display awardee data
+      revalidatePath('/');
+      revalidatePath('/awardees');
+
+      return Response.json({
+        success: true,
         message: 'Awardee added successfully',
         awardee: data
       });
@@ -229,22 +237,22 @@ export async function POST(request: NextRequest) {
         }, { status: 400 });
       }
 
-      const supabase = createClient(true); // Use service role for admin operations
-      
+      const supabase = await createClient(true); // Use service role for admin operations
+
       // Check if an awardee with the same slug already exists
       const { data: existingAwardee } = await supabase
         .from('awardees')
         .select('id')
         .eq('slug', generateSlug(body.name))
         .single();
-      
+
       if (existingAwardee) {
-        return Response.json({ 
-          success: false, 
-          message: 'An awardee with this name already exists' 
+        return Response.json({
+          success: false,
+          message: 'An awardee with this name already exists'
         }, { status: 409 }); // 409 Conflict
       }
-      
+
       const { data, error } = await supabase
         .from('awardees')
         .insert([{
@@ -260,25 +268,29 @@ export async function POST(request: NextRequest) {
         }])
         .select()
         .single();
-      
+
       if (error) {
         console.error('Error adding awardee:', error);
         // Check if the error is related to a unique constraint violation
         if (error.code === '23505') { // PostgreSQL unique violation code
-          return Response.json({ 
-            success: false, 
-            message: 'An awardee with this information already exists' 
+          return Response.json({
+            success: false,
+            message: 'An awardee with this information already exists'
           }, { status: 409 });
         }
-        return Response.json({ 
-          success: false, 
+        return Response.json({
+          success: false,
           message: 'Failed to add awardee',
-          error: error.message 
+          error: error.message
         }, { status: 500 });
       }
-      
-      return Response.json({ 
-        success: true, 
+
+      // Revalidate pages that display awardee data
+      revalidatePath('/');
+      revalidatePath('/awardees');
+
+      return Response.json({
+        success: true,
         message: 'Awardee added successfully',
         awardee: data
       });
@@ -294,23 +306,30 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
+  console.log('[PUT /api/awardees] Request received');
+
   const adminCheck = await requireAdmin(request);
   if ('error' in adminCheck) {
+    console.log('[PUT /api/awardees] Admin check failed, returning error');
     return adminCheck.error;
   }
 
+  console.log('[PUT /api/awardees] Admin check passed');
+
   try {
     const body = await request.json();
+    console.log('[PUT /api/awardees] Request body:', { id: body.id, fields: Object.keys(body) });
     
     if (!body.id) {
-      return Response.json({ 
-        success: false, 
-        message: 'Awardee ID is required' 
+      return Response.json({
+        success: false,
+        message: 'Awardee ID is required'
       }, { status: 400 });
     }
 
-    const supabase = createClient(true); // Use service role for admin operations
-    
+    // Use admin client to completely bypass RLS
+    const supabase = createAdminClient();
+
     const updateData: any = {};
 
     if (body.name !== undefined) updateData.name = body.name;
@@ -329,31 +348,75 @@ export async function PUT(request: NextRequest) {
     if (body.social_links !== undefined) updateData.social_links = body.social_links || {};
     if (body.achievements !== undefined) updateData.achievements = body.achievements || [];
     if (body.interests !== undefined) updateData.interests = body.interests || [];
+    if (body.featured !== undefined) updateData.featured = body.featured;
 
-    const { data, error } = await supabase
+    console.log('[PUT /api/awardees] Update data:', updateData);
+
+    // First check if the awardee exists
+    const { data: existing, error: checkError } = await supabase
+      .from('awardees')
+      .select('id')
+      .eq('id', body.id)
+      .maybeSingle();
+
+    if (checkError) {
+      console.error('[PUT /api/awardees] Error checking awardee existence:', checkError);
+      return Response.json({
+        success: false,
+        message: 'Failed to check awardee existence',
+        error: checkError.message,
+        details: checkError
+      }, { status: 500 });
+    }
+
+    if (!existing) {
+      console.error('[PUT /api/awardees] Awardee not found:', body.id);
+      return Response.json({
+        success: false,
+        message: 'Awardee not found',
+        error: `No awardee found with id: ${body.id}`
+      }, { status: 404 });
+    }
+
+    // Perform the update with admin client (bypasses RLS)
+    const { data: updateResult, error: updateError } = await supabase
       .from('awardees')
       .update(updateData)
       .eq('id', body.id)
       .select()
       .single();
 
-    if (!error && data) {
-      await syncProfileFromAwardee(supabase, data.id);
-    }
-    
-    if (error) {
-      console.error('Error updating awardee:', error);
-      return Response.json({ 
-        success: false, 
+    console.log('[PUT /api/awardees] Update result:', { data: updateResult, error: updateError });
+
+    if (updateError) {
+      console.error('[PUT /api/awardees] Database error updating awardee:', updateError);
+      return Response.json({
+        success: false,
         message: 'Failed to update awardee',
-        error: error.message 
+        error: updateError.message,
+        details: updateError
       }, { status: 500 });
     }
-    
-    return Response.json({ 
-      success: true, 
+
+    // updateResult contains the updated awardee
+    const updatedAwardee = updateResult;
+
+    // Sync to profile if needed
+    if (updatedAwardee) {
+      await syncProfileFromAwardee(supabase, updatedAwardee.id);
+    }
+
+    // Revalidate pages that display awardee data
+    revalidatePath('/');
+    revalidatePath('/awardees');
+    if (updatedAwardee.slug) {
+      revalidatePath(`/awardees/${updatedAwardee.slug}`);
+    }
+
+    return Response.json({
+      success: true,
       message: 'Awardee updated successfully',
-      awardee: data
+      awardee: updatedAwardee
     });
   } catch (error) {
     console.error('Error in awardees PUT:', error);
@@ -382,24 +445,28 @@ export async function DELETE(request: NextRequest) {
       }, { status: 400 });
     }
     
-    const supabase = createClient(true); // Use service role for admin operations
-    
+    const supabase = await createClient(true); // Use service role for admin operations
+
     const { error } = await supabase
       .from('awardees')
       .delete()
       .eq('id', id);
-    
+
     if (error) {
       console.error('Error deleting awardee:', error);
-      return Response.json({ 
-        success: false, 
+      return Response.json({
+        success: false,
         message: 'Failed to delete awardee',
-        error: error.message 
+        error: error.message
       }, { status: 500 });
     }
-    
-    return Response.json({ 
-      success: true, 
+
+    // Revalidate pages that display awardee data
+    revalidatePath('/');
+    revalidatePath('/awardees');
+
+    return Response.json({
+      success: true,
       message: 'Awardee deleted successfully'
     });
   } catch (error) {
@@ -415,8 +482,8 @@ export async function DELETE(request: NextRequest) {
 // Initialize awardees from the Excel file
 async function initializeAwardeesFromExcel() {
   try {
-    const supabase = createClient(true); // Use service role for admin operations
-    
+    const supabase = await createClient(true); // Use service role for admin operations
+
     // Try to fetch the Excel file from public directory
     // If running in development, fetch using a relative path
     // If running in production, use the full path
@@ -435,18 +502,18 @@ async function initializeAwardeesFromExcel() {
     const firstSheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[firstSheetName];
     const jsonData = utils.sheet_to_json(worksheet);
-    
+
     if (!jsonData || jsonData.length === 0) {
       console.warn('Excel file is empty, skipping initialization');
       return;
     }
-    
+
     // Process the Excel data to match our schema
     const awardeesToInsert = jsonData.map((row: any, index: number) => {
       // Normalize keys to handle different possible column names
       const normalizeKey = (obj: any, keyVariants: string[]): any => {
         for (const variant of keyVariants) {
-          const foundKey = Object.keys(obj).find(k => 
+          const foundKey = Object.keys(obj).find(k =>
             k.toLowerCase().replace(/\s+/g, '').includes(variant.toLowerCase().replace(/\s+/g, ''))
           );
           if (foundKey && obj[foundKey]) {
@@ -465,7 +532,7 @@ async function initializeAwardeesFromExcel() {
           country = parts.slice(1).join(' '); // Take everything after the abbreviation
         }
       }
-      
+
       // Extract year properly
       let year = normalizeKey(row, ['year', 'batch']);
       if (typeof year === 'string') {
@@ -490,12 +557,12 @@ async function initializeAwardeesFromExcel() {
       .from('awardees')
       .insert(awardeesToInsert)
       .select();
-    
+
     if (error) {
       console.error('Error initializing awardees from Excel:', error);
       throw error;
     }
-    
+
     console.log(`Successfully initialized ${awardeesToInsert.length} awardees from Excel`);
   } catch (error) {
     console.error('Error during Excel initialization:', error);

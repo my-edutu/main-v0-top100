@@ -215,58 +215,94 @@ export async function POST(request: NextRequest) {
       throw new Error('Excel sheet appears to be empty')
     }
 
-    if (payload.length > 0) {
-      const chunkSize = 99
-      let existingAwardees: { id: string; slug: string }[] = []
+    // Process in chunks to handle large imports
+    const chunkSize = 100
+    let imported = 0
+    let updated = 0
 
-      for (let i = 0; i < payload.length; i += chunkSize) {
-        const chunk = payload.slice(i, i + chunkSize)
-        const { data, error } = await supabase
+    for (let i = 0; i < payload.length; i += chunkSize) {
+      const chunk = payload.slice(i, i + chunkSize)
+
+      // Check which awardees already exist based on slug
+      const { data: existingAwardees, error: lookupError } = await supabase
+        .from('awardees')
+        .select('id, slug')
+        .in('slug', chunk.map(item => item.slug))
+
+      if (lookupError) {
+        console.error('Supabase lookup error:', lookupError)
+        return NextResponse.json({
+          success: false,
+          message: 'Failed to prepare awardee import',
+          error: lookupError.message
+        }, { status: 500 })
+      }
+
+      // Map existing slugs to IDs
+      const existingMap = new Map(existingAwardees?.map(item => [item.slug, item.id]) ?? [])
+
+      // Separate into updates and inserts
+      const toUpdate: any[] = []
+      const toInsert: any[] = []
+
+      for (const item of chunk) {
+        const existingId = existingMap.get(item.slug)
+        if (existingId) {
+          // Update existing awardee
+          toUpdate.push({ ...item, id: existingId })
+        } else {
+          // Insert new awardee (remove id if it was auto-generated from Excel)
+          const { id, ...rest } = item
+          toInsert.push(rest)
+        }
+      }
+
+      // Perform updates
+      if (toUpdate.length > 0) {
+        const { error: updateError } = await supabase
           .from('awardees')
-          .select('id, slug')
-          .in('slug', chunk.map(item => item.slug))
+          .upsert(toUpdate, { onConflict: 'id' })
 
-        if (error) {
-          console.error('Supabase lookup error:', error)
+        if (updateError) {
+          console.error('Update error:', updateError)
           return NextResponse.json({
             success: false,
-            message: 'Failed to prepare awardee import',
-            error: error.message
+            message: 'Failed to update existing awardees',
+            error: updateError.message
           }, { status: 500 })
         }
+        updated += toUpdate.length
+      }
 
-        if (data) {
-          existingAwardees = existingAwardees.concat(data)
+      // Perform inserts
+      if (toInsert.length > 0) {
+        const { error: insertError } = await supabase
+          .from('awardees')
+          .insert(toInsert)
+
+        if (insertError) {
+          console.error('Insert error:', insertError)
+          return NextResponse.json({
+            success: false,
+            message: 'Failed to insert new awardees',
+            error: insertError.message
+          }, { status: 500 })
         }
-      }
-
-      if (existingAwardees.length > 0) {
-        const existingMap = new Map(existingAwardees.map(item => [item.slug, item.id]))
-        payload = payload.map(item => ({
-          ...item,
-          id: existingMap.get(item.slug) ?? item.id
-        }))
+        imported += toInsert.length
       }
     }
 
-    const { error } = await supabase.from('awardees').upsert(payload, {
-      onConflict: 'slug'
-    })
-
-    if (error) {
-      console.error('Supabase upsert error:', error)
-      return NextResponse.json({
-        success: false,
-        message: 'Failed to import awardees',
-        error: error.message
-      }, { status: 500 })
-    }
+    const totalProcessed = imported + updated
+    const message = `Successfully processed ${totalProcessed} awardee${totalProcessed === 1 ? '' : 's'} (${imported} new, ${updated} updated)`
 
     return NextResponse.json({
       success: true,
-      message: `Imported ${payload.length} awardee${payload.length === 1 ? '' : 's'} successfully`,
-      imported: payload.length
+      message,
+      imported,
+      updated,
+      total: totalProcessed
     })
+
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Import failed'
     console.error('Awardees import error:', message)

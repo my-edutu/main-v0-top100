@@ -38,69 +38,17 @@ const RecentEventsSection = () => {
             description: video.description,
             date: video.date
           }))
-          
+
           // Update titles with actual YouTube titles if possible
           const updatedVideos = await updateVideoTitlesWithYouTube(mappedVideos)
           setVideos(updatedVideos)
         } else {
           console.error('Failed to fetch YouTube videos:', response.status)
-          // Fallback to mock data if API call fails
-          setVideos([
-            {
-              id: "-gbPMU40-LQ",
-              title: "Leadership Summit 2024",
-              description: "Annual gathering of young African leaders discussing innovation and impact",
-              date: "March 2024",
-            },
-            {
-              id: "abSGdFZ3URU",
-              title: "Innovation Workshop",
-              description: "Interactive session on entrepreneurship and technology solutions",
-              date: "February 2024",
-            },
-            {
-              id: "dcKQs726FLI",
-              title: "Community Impact Forum",
-              description: "Showcasing community-driven projects across Africa",
-              date: "January 2024",
-            },
-            {
-              id: "AJjsyO9ff8g",
-              title: "Awards Ceremony Highlights",
-              description: "Celebrating outstanding achievements of young African leaders",
-              date: "December 2023",
-            },
-          ])
+          setVideos([])
         }
       } catch (error) {
         console.error('Error fetching YouTube videos:', error)
-        // Fallback to mock data if API call fails
-        setVideos([
-          {
-            id: "-gbPMU40-LQ",
-            title: "Leadership Summit 2024",
-            description: "Annual gathering of young African leaders discussing innovation and impact",
-            date: "March 2024",
-          },
-          {
-            id: "abSGdFZ3URU",
-            title: "Innovation Workshop",
-            description: "Interactive session on entrepreneurship and technology solutions",
-            date: "February 2024",
-          },
-          {
-            id: "dcKQs726FLI",
-            title: "Community Impact Forum",
-            description: "Showcasing community-driven projects across Africa",
-            date: "January 2024",
-          },
-          {
-            id: "AJjsyO9ff8g",
-            title: "Awards Ceremony Highlights",
-            description: "Celebrating outstanding achievements of young African leaders",
-            date: "December 2023",
-          },
-        ])
+        setVideos([])
       } finally {
         setLoading(false)
       }
@@ -160,9 +108,25 @@ const RecentEventsSection = () => {
     }
   }
 
+  // State to track failed thumbnail URLs for fallback
+  const [failedThumbnails, setFailedThumbnails] = useState<Record<string, boolean>>({});
+
   const getYouTubeThumbnail = (videoId: string) => {
-    return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`
-  }
+    // If we know this thumbnail has failed, use a fallback
+    if (failedThumbnails[videoId]) {
+      return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`; // fallback to hq if maxres fails
+    }
+    // Try the high quality thumbnail first
+    return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+  };
+
+  const handleThumbnailError = (videoId: string) => {
+    // Mark this thumbnail as failed so we use the fallback from now on
+    setFailedThumbnails(prev => ({
+      ...prev,
+      [videoId]: true
+    }));
+  };
 
   const handleVideoClick = (videoId: string) => {
     setSelectedVideo(videoId)
@@ -177,14 +141,14 @@ const RecentEventsSection = () => {
       <div className="container space-y-8">
         <div className="text-center space-y-3">
 
-          <h2 className="text-3xl font-semibold sm:text-4xl">Recent events &amp; highlights</h2>
+          <h2 className="text-3xl font-semibold sm:text-4xl">Event Gallery</h2>
           <p className="text-sm text-muted-foreground max-w-2xl mx-auto leading-relaxed sm:text-base">
             Watch highlights from our latest events, workshops, and community gatherings that bring together young
             African leaders.
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
           {loading ? (
             // Loading state - show placeholders while fetching
             Array.from({ length: 4 }).map((_, index) => (
@@ -193,13 +157,13 @@ const RecentEventsSection = () => {
                   <div className="relative aspect-video overflow-hidden bg-muted animate-pulse">
                     <div className="w-full h-full" />
                   </div>
-                  <div className="space-y-2 p-4">
-                    <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-                      <div className="h-3 w-16 bg-muted rounded animate-pulse"></div>
+                  <div className="space-y-1 p-2 sm:p-3">
+                    <div className="inline-flex items-center gap-1 text-[0.6rem] font-semibold uppercase tracking-[0.1em] text-primary">
+                      <div className="h-2 w-12 bg-muted rounded animate-pulse"></div>
                     </div>
-                    <div className="h-4 bg-muted rounded animate-pulse w-3/4"></div>
-                    <div className="h-3 bg-muted rounded animate-pulse w-full"></div>
-                    <div className="h-3 bg-muted rounded animate-pulse w-2/3"></div>
+                    <div className="h-3 bg-muted rounded animate-pulse w-4/5"></div>
+                    <div className="h-2 bg-muted rounded animate-pulse w-full"></div>
+                    <div className="h-2 bg-muted rounded animate-pulse w-3/4"></div>
                   </div>
                 </div>
               </div>
@@ -210,27 +174,28 @@ const RecentEventsSection = () => {
                 <div className="overflow-hidden rounded-[24px] border border-border/60 bg-card shadow-sm transition hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg">
                   <div className="relative aspect-video overflow-hidden">
                     <img
-                      src={getYouTubeThumbnail(video.id) || "/placeholder.svg"}
+                      src={getYouTubeThumbnail(video.id)}
                       alt={video.title}
                       className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      onError={() => handleThumbnailError(video.id)}
                     />
                     <div className="absolute inset-0 bg-[linear-gradient(transparent,rgba(0,0,0,0.3))] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="rounded-full bg-primary p-3 text-background shadow-lg shadow-primary/30 transition-transform duration-300 group-hover:scale-105">
-                        <Play className="w-4 h-4" />
+                      <div className="rounded-full bg-primary p-2 text-background shadow-lg shadow-primary/30 transition-transform duration-300 group-hover:scale-105">
+                        <Play className="w-3 h-3" />
                       </div>
                     </div>
                   </div>
 
-                  <div className="space-y-2 p-4">
-                    <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-                      <Calendar className="w-3 h-3" />
-                      <span>{video.date}</span>
+                  <div className="space-y-1 p-2 sm:p-3">
+                    <div className="inline-flex items-center gap-1 text-[0.6rem] font-semibold uppercase tracking-[0.1em] text-primary">
+                      <Calendar className="w-2 h-2" />
+                      <span className="text-[0.6rem]">{video.date}</span>
                     </div>
-                    <h3 className="text-base font-semibold transition-colors group-hover:text-primary">
+                    <h3 className="text-sm font-semibold transition-colors group-hover:text-primary line-clamp-1">
                       {video.title}
                     </h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">{video.description}</p>
+                    <p className="text-xs text-muted-foreground line-clamp-2">{video.description}</p>
                   </div>
                 </div>
               </div>

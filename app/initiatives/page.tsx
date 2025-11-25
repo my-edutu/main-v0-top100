@@ -1,6 +1,29 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: "Our Initiatives - Scholarships, Summits & Opportunities",
+  description: "Explore Top100 Africa Future Leaders initiatives: Project100 Scholarship, Future Leaders Summit, Talk100 Live, and the Opportunities Hub. Unlock mentorship, funding, and global opportunities for African youth leaders.",
+  keywords: [
+    "African scholarships",
+    "leadership summit Africa",
+    "Project100 scholarship",
+    "African youth opportunities",
+    "leadership development programs",
+    "African student funding",
+    "mentorship programs Africa",
+    "career opportunities Africa",
+    "youth empowerment initiatives"
+  ],
+  openGraph: {
+    title: "Top100 Africa Future Leaders Initiatives",
+    description: "Unlock mentorship, funding, and opportunities through our initiatives: Project100 Scholarship, Future Leaders Summit, Talk100 Live, and Opportunities Hub.",
+    images: ['/top100-africa-future-leaders-2024-magazine-cover-w.jpg'],
+    url: "https://www.top100afl.org/initiatives",
+  },
+};
 
 // Define the initiative type
 type Initiative = {
@@ -39,7 +62,7 @@ const initiatives: Initiative[] = [
   {
     title: "African Future Leaders Magazine",
     description: "Curated stories and insights from Africa's emerging leaders and changemakers.",
-    href: "/magazine/2025",
+    href: "/magazine/afl2025",
     colorClass: "bg-rose-50/80 dark:bg-rose-950/20",
   },
 ];

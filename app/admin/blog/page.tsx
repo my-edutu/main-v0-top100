@@ -31,11 +31,13 @@ interface AdminPost {
   slug: string
   content: string | null
   coverImage: string | null
+  coverImageAlt: string | null
   isFeatured: boolean
   status: string
   tags: string[]
   createdAt: string
   updatedAt: string
+  scheduledAt: string | null
 }
 
 interface Stats {
@@ -43,11 +45,13 @@ interface Stats {
   publishedPosts: number
   featuredPosts: number
   draftPosts: number
+  scheduledPosts: number
 }
 
 const mapPostRecord = (raw: Record<string, any>): AdminPost => {
   const createdAt = raw.created_at ?? raw.createdAt ?? new Date().toISOString()
   const updatedAt = raw.updated_at ?? raw.updatedAt ?? createdAt
+  const scheduledAt = raw.scheduled_at ?? raw.scheduledAt ?? null
 
   return {
     id: raw.id,
@@ -55,11 +59,13 @@ const mapPostRecord = (raw: Record<string, any>): AdminPost => {
     slug: raw.slug ?? '',
     content: raw.content ?? null,
     coverImage: raw.cover_image ?? raw.coverImage ?? null,
+    coverImageAlt: raw.cover_image_alt ?? raw.coverImageAlt ?? null,
     isFeatured: Boolean(raw.is_featured ?? raw.isFeatured),
     status: raw.status ?? 'draft',
     tags: Array.isArray(raw.tags) ? raw.tags : [],
     createdAt,
-    updatedAt
+    updatedAt,
+    scheduledAt
   }
 }
 
@@ -74,7 +80,8 @@ export default function AdminBlogPage() {
       totalPosts: posts.length,
       publishedPosts: posts.filter(post => post.status === 'published').length,
       featuredPosts: posts.filter(post => post.isFeatured).length,
-      draftPosts: posts.filter(post => post.status !== 'published').length
+      draftPosts: posts.filter(post => post.status === 'draft').length,
+      scheduledPosts: posts.filter(post => post.status === 'scheduled').length
     }
   }, [posts])
 
@@ -89,8 +96,13 @@ export default function AdminBlogPage() {
     }
 
     try {
-  const response = await fetch('/api/posts?scope=admin', { cache: 'no-store' })
-      if (!response.ok) throw new Error('Failed to fetch posts')
+      const response = await fetch('/api/posts?scope=admin', { cache: 'no-store' })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        console.error('API Error Response:', errorData)
+        throw new Error(errorData.message || errorData.error || 'Failed to fetch posts')
+      }
 
       const data = await response.json()
       const mapped: AdminPost[] = Array.isArray(data) ? data.map(mapPostRecord) : []
@@ -257,18 +269,18 @@ export default function AdminBlogPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-gray-500 to-gray-600 text-white hover:shadow-lg transition-shadow">
+        <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white hover:shadow-lg transition-shadow">
           <CardHeader className="pb-2">
             <div className="flex items-center">
-              <div className="p-2 bg-gray-400/30 rounded-lg mr-3">
+              <div className="p-2 bg-purple-400/30 rounded-lg mr-3">
                 <TrendingUp className="h-6 w-6" />
               </div>
-              <CardTitle className="text-lg md:text-xl font-bold">Drafts</CardTitle>
+              <CardTitle className="text-lg md:text-xl font-bold">Scheduled</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{renderStatsValue(stats.draftPosts)}</div>
-            <p className="text-xs text-amber-100 mt-1">Unpublished posts</p>
+            <div className="text-2xl font-bold">{renderStatsValue(stats.scheduledPosts)}</div>
+            <p className="text-xs text-purple-100 mt-1">Posts scheduled for future</p>
           </CardContent>
         </Card>
       </div>
@@ -329,6 +341,7 @@ export default function AdminBlogPage() {
               <TableRow>
                 <TableHead>Title</TableHead>
                 <TableHead>Date</TableHead>
+                <TableHead>Scheduled For</TableHead>
                 <TableHead>Tags</TableHead>
                 <TableHead>Featured</TableHead>
                 <TableHead>Status</TableHead>
@@ -340,6 +353,11 @@ export default function AdminBlogPage() {
                 <TableRow key={post.id}>
                   <TableCell className="font-medium">{post.title}</TableCell>
                   <TableCell>{format(new Date(post.createdAt), 'MMM dd, yyyy')}</TableCell>
+                  <TableCell>
+                    {post.status === 'scheduled' && post.scheduledAt
+                      ? format(new Date(post.scheduledAt), 'MMM dd, yyyy HH:mm')
+                      : '—'}
+                  </TableCell>
                   <TableCell>
                     {post.tags.length === 0 ? (
                       <Badge variant="outline">No tags</Badge>
@@ -359,7 +377,7 @@ export default function AdminBlogPage() {
                     />
                   </TableCell>
                   <TableCell>
-                    <Badge variant={post.status === 'published' ? 'default' : 'secondary'}>
+                    <Badge variant={post.status === 'published' ? 'default' : post.status === 'scheduled' ? 'outline' : 'secondary'}>
                       {post.status}
                     </Badge>
                   </TableCell>

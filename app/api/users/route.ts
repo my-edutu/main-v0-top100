@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const supabase = createClient(true)
+    const supabase = await createClient(true)
 
     // Fetch all users from profiles table
     const { data: profiles, error } = await supabase
@@ -57,7 +57,7 @@ export async function PUT(req: NextRequest) {
   }
 
   try {
-    const supabase = createClient(true)
+    const supabase = await createClient(true)
     const body = await req.json()
     const { id, role, status, full_name, email, bio, location, headline } = body
 
@@ -144,7 +144,7 @@ export async function DELETE(req: NextRequest) {
   }
 
   try {
-    const supabase = createClient(true)
+    const supabase = await createClient(true)
     const { searchParams } = new URL(req.url)
     const id = searchParams.get('id')
 

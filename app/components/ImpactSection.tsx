@@ -3,6 +3,7 @@
 import type { ComponentType, SVGProps } from "react"
 import { motion } from "framer-motion"
 import { Globe, Users, Award } from "lucide-react"
+import Counter from "@/components/Counter"
 
 type ImpactStat = {
   icon: ComponentType<SVGProps<SVGSVGElement>>
@@ -11,6 +12,7 @@ type ImpactStat = {
   description: string
   gradient: string
   accent: string
+  target: number
 }
 
 const impactStats: ImpactStat[] = [
@@ -21,6 +23,7 @@ const impactStats: ImpactStat[] = [
     description: "Across Africa",
     gradient: "linear-gradient(145deg, rgba(255,179,71,0.95), rgba(255,131,87,0.92))",
     accent: "rgba(255,255,255,0.75)",
+    target: 31,
   },
   {
     icon: Users,
@@ -29,6 +32,7 @@ const impactStats: ImpactStat[] = [
     description: "Across Africa",
     gradient: "linear-gradient(145deg, rgba(101,200,255,0.95), rgba(80,130,255,0.92))",
     accent: "rgba(255,255,255,0.8)",
+    target: 97000,
   },
   {
     icon: Award,
@@ -37,6 +41,7 @@ const impactStats: ImpactStat[] = [
     description: "Across Africa",
     gradient: "linear-gradient(145deg, rgba(238,186,255,0.95), rgba(255,144,214,0.92))",
     accent: "rgba(255,255,255,0.8)",
+    target: 400,
   },
 ]
 
@@ -64,7 +69,7 @@ export default function ImpactSection() {
                 whileHover={{ y: -5 }}
                 transition={{ type: "spring", stiffness: 220, damping: 24, delay: index * 0.05 }}
                 viewport={{ once: true, amount: 0.3 }}
-                className="group relative flex flex-col items-center gap-6 overflow-hidden rounded-xl border border-white/25 bg-card p-8 text-center shadow-lg shadow-black/10 transition-all"
+                className="group relative flex flex-col items-center justify-center gap-6 overflow-hidden rounded-xl border border-white/25 bg-card p-8 text-center shadow-lg shadow-black/10 transition-all min-h-32 sm:min-h-44"
                 style={{ backgroundImage: stat.gradient }}
               >
                 <span
@@ -83,7 +88,8 @@ export default function ImpactSection() {
                       <Icon className="h-4 w-4" />
                     </div>
                     <div className="text-4xl font-bold tracking-tight text-slate-900 ml-2">
-                      {stat.value}
+                      <Counter target={stat.target} duration={2000} className="text-black" />
+                      {stat.value.includes('+') ? '+' : ''}
                     </div>
                   </div>
                   <div className="text-left">

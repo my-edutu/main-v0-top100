@@ -6,10 +6,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { useSearchParams } from 'next/navigation';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Shield, Clock, AlertTriangle } from 'lucide-react';
 
 export default function SignInContent() {
   const [email, setEmail] = useState('')
@@ -17,9 +17,38 @@ export default function SignInContent() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [securityMessage, setSecurityMessage] = useState<{
+    type: 'warning' | 'info'
+    message: string
+    icon: React.ReactNode
+  } | null>(null)
   const router = useRouter()
   const searchParams = useSearchParams()
-  const redirectTo = searchParams.get('from') || '/'
+  const redirectTo = searchParams.get('from') || searchParams.get('redirect') || '/'
+  const reason = searchParams.get('reason')
+
+  // Display security messages based on redirect reason
+  useEffect(() => {
+    if (reason === 'inactivity') {
+      setSecurityMessage({
+        type: 'warning',
+        message: 'You have been logged out due to inactivity. Please sign in again to continue.',
+        icon: <Clock className="h-5 w-5" />
+      })
+    } else if (reason === 'expired') {
+      setSecurityMessage({
+        type: 'warning',
+        message: 'Your session has expired. Please sign in again for security.',
+        icon: <Shield className="h-5 w-5" />
+      })
+    } else if (reason === 'security') {
+      setSecurityMessage({
+        type: 'warning',
+        message: 'For your security, please sign in again to access this page.',
+        icon: <AlertTriangle className="h-5 w-5" />
+      })
+    }
+  }, [reason])
   
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword)
@@ -98,20 +127,25 @@ export default function SignInContent() {
 
         // Redirect based on user role
         let redirectPath = redirectTo
+
+        console.log('📍 Redirect decision - Role:', profile.role, 'From:', redirectTo)
+
         if (!redirectTo || redirectTo === '/') {
           // Default redirect based on role
           redirectPath = profile.role === 'admin' ? '/admin' : '/dashboard'
+          console.log('📍 No redirect specified, using default for role:', redirectPath)
         } else if (redirectTo.startsWith('/admin') && profile.role !== 'admin') {
           // Non-admin trying to access admin area
           redirectPath = '/dashboard'
+          console.log('📍 Non-admin trying admin area, redirecting to dashboard')
         }
 
-        console.log('Redirecting to:', redirectPath)
-        console.log('Current cookies:', document.cookie)
+        console.log('✅ Final redirect path:', redirectPath)
+        console.log('🍪 Current cookies:', document.cookie)
 
         // Verify session is actually stored
         const { data: verifySession } = await supabase.auth.getSession()
-        console.log('Session verification before redirect:', verifySession.session ? 'EXISTS' : 'MISSING')
+        console.log('✅ Session verification:', verifySession.session ? 'EXISTS' : 'MISSING')
 
         if (!verifySession.session) {
           console.error('❌ SESSION MISSING BEFORE REDIRECT!')
@@ -120,13 +154,14 @@ export default function SignInContent() {
           return
         }
 
-        // Wait a bit longer for cookies to be set, then use hard redirect
-        // This ensures middleware can read the session
-        await new Promise(resolve => setTimeout(resolve, 1000))
+        // For admin users, wait longer to ensure cookies are fully set
+        const waitTime = profile.role === 'admin' ? 1500 : 1000
+        console.log(`⏳ Waiting ${waitTime}ms for session cookies to be set...`)
+        await new Promise(resolve => setTimeout(resolve, waitTime))
 
-        console.log('🚀 Performing redirect to:', redirectPath)
+        console.log('🚀 Performing hard redirect to:', redirectPath)
 
-        // Use window.location for hard redirect to ensure cookies are picked up
+        // Force a full page reload to ensure middleware can read the session
         window.location.href = redirectPath
       } else {
         // No user returned from auth.getUser()
@@ -162,6 +197,16 @@ export default function SignInContent() {
           <Card className="border-0 bg-background/80 backdrop-blur-sm shadow-xl">
             <CardContent className="p-6">
               <form onSubmit={handleSignIn} className="space-y-4">
+                {securityMessage && (
+                  <div className={`rounded-lg px-4 py-3 text-sm border flex items-start gap-3 ${
+                    securityMessage.type === 'warning'
+                      ? 'bg-amber-50 text-amber-900 border-amber-200 dark:bg-amber-900/20 dark:text-amber-200 dark:border-amber-800'
+                      : 'bg-blue-50 text-blue-900 border-blue-200 dark:bg-blue-900/20 dark:text-blue-200 dark:border-blue-800'
+                  }`}>
+                    <span className="flex-shrink-0 mt-0.5">{securityMessage.icon}</span>
+                    <span>{securityMessage.message}</span>
+                  </div>
+                )}
                 {error && (
                   <div className="rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive border border-destructive/30">
                     {error}

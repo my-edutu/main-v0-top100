@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Calendar, ExternalLink, Globe, Instagram, Linkedin, Mail, MapPin, PenSquare, Trophy, Twitter, Users2, Youtube, GraduationCap, ArrowLeft } from 'lucide-react'
+import type { Metadata } from 'next'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -9,9 +10,67 @@ import { fetchAwardeeBySlug } from '@/lib/dashboard/profile-service'
 import { AvatarSVG, flagEmoji } from '@/lib/avatars'
 import type { Achievement, GalleryItem, SocialLinks } from '@/types/profile'
 import ContactCardClient from './ContactCardClient'
+import StructuredData from '@/components/StructuredData'
 
 export const runtime = 'nodejs'
 export const revalidate = 0
+
+export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+  const raw = await fetchAwardeeBySlug(params.slug)
+
+  if (!raw || raw.is_public === false) {
+    return {
+      title: 'Awardee Not Found',
+      description: 'This awardee profile is not available.',
+    }
+  }
+
+  const awardee = normalizeAwardeeEntry(raw)
+  const showcaseYear = typeof awardee.year === 'number' && Number.isFinite(awardee.year) ? awardee.year : new Date().getFullYear()
+  const cohortLabel = awardee.cohort && awardee.cohort.trim().length > 0 ? awardee.cohort : `Top100 Africa Future Leader ${showcaseYear}`
+
+  const title = `${awardee.name} - ${awardee.headline || cohortLabel}`
+  const description = awardee.bio?.substring(0, 160) ||
+    `Meet ${awardee.name}, ${cohortLabel}${awardee.country ? ` from ${awardee.country}` : ''}. ${awardee.tagline || awardee.headline || 'Celebrating excellence in African youth leadership.'}`
+
+  const keywords = [
+    awardee.name,
+    ...(awardee.country ? [awardee.country, `${awardee.country} youth leader`] : []),
+    ...(awardee.interests || []),
+    'Top100 Africa Future Leaders',
+    'African youth leader',
+    'African innovation',
+    cohortLabel
+  ]
+
+  const imageUrl = awardee.cover_image_url || awardee.avatar_url || '/top100-africa-future-leaders-2024-magazine-cover-w.jpg'
+
+  return {
+    title,
+    description,
+    keywords,
+    openGraph: {
+      title,
+      description,
+      images: [
+        {
+          url: imageUrl,
+          width: 1200,
+          height: 630,
+          alt: `${awardee.name} - ${cohortLabel}`,
+        }
+      ],
+      type: 'profile',
+      url: `https://www.top100afl.org/awardees/${awardee.slug}`,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description: description.substring(0, 200),
+      images: [imageUrl],
+    },
+  }
+}
 
 const socialIconMap: Partial<Record<keyof SocialLinks, React.ComponentType<{ className?: string }>>> = {
   website: Globe,
@@ -91,8 +150,33 @@ export default async function AwardeeDetail({ params }: { params: { slug: string
       ? awardee.tagline
       : awardee.headline ?? null
 
+  // Person Schema for SEO
+  const personSchema = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "name": awardee.name,
+    "image": awardee.avatar_url || awardee.cover_image_url,
+    "jobTitle": awardee.headline,
+    "description": awardee.bio,
+    ...(awardee.current_school && { "alumniOf": awardee.current_school }),
+    ...(awardee.country && { "nationality": awardee.country }),
+    ...(achievements.length > 0 && { "award": achievements.map(a => a.title) }),
+    ...(socialEntries.length > 0 && { "sameAs": socialEntries.map(([, url]) => url) }),
+    "memberOf": {
+      "@type": "Organization",
+      "name": "Top100 Africa Future Leaders"
+    },
+    ...(awardee.email && {
+      "email": awardee.email
+    }),
+    ...(awardee.interests && awardee.interests.length > 0 && {
+      "knowsAbout": awardee.interests
+    })
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-white to-orange-50 dark:from-black dark:via-zinc-950 dark:to-zinc-900">
+      <StructuredData data={personSchema} />
       {/* Hero Section with Full-Width Image */}
       <div className="relative h-[500px] w-full overflow-hidden">
         {awardee.cover_image_url || awardee.avatar_url ? (

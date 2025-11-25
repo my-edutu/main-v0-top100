@@ -5,6 +5,7 @@ import { Calendar, Clock } from "lucide-react";
 
 import { getPostBySlug, getRelatedPosts } from "@/lib/posts/server";
 import { SimpleBlogCard } from "../SimpleBlogCard";
+import StructuredData from "@/components/StructuredData";
 
 export const dynamic = "force-dynamic";
 
@@ -18,9 +19,33 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     };
   }
 
+  const imageUrl = post.coverImage || '/top100-africa-future-leaders-2024-magazine-cover-w.jpg';
+
   return {
     title: `${post.title} | Top100 Africa Future Leaders`,
     description: post.excerpt,
+    keywords: ['Top100 Africa Future Leaders', 'African youth leaders', 'African leadership', 'African innovation', post.title],
+    openGraph: {
+      title: post.title,
+      description: post.excerpt,
+      images: [
+        {
+          url: imageUrl,
+          width: 1200,
+          height: 630,
+          alt: post.title,
+        }
+      ],
+      type: 'article',
+      publishedTime: post.createdAt,
+      url: `https://www.top100afl.org/blog/${post.slug}`,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: post.title,
+      description: post.excerpt,
+      images: [imageUrl],
+    },
   };
 }
 
@@ -33,8 +58,39 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
 
   const relatedPosts = await getRelatedPosts(post.slug, 2);
 
+  // BlogPosting Schema for SEO
+  const blogPostingSchema = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": post.title,
+    "image": post.coverImage || '/top100-africa-future-leaders-2024-magazine-cover-w.jpg',
+    "datePublished": post.createdAt,
+    "dateModified": post.updatedAt || post.createdAt,
+    "description": post.excerpt,
+    "author": {
+      "@type": "Organization",
+      "name": "Top100 Africa Future Leaders",
+      "url": "https://www.top100afl.org"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Top100 Africa Future Leaders",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://www.top100afl.org/Top100 Africa Future leaders Logo .png"
+      }
+    },
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": `https://www.top100afl.org/blog/${post.slug}`
+    },
+    "wordCount": post.contentHtml?.split(' ').length || 0,
+    "timeRequired": `PT${post.readTime}M`
+  }
+
   return (
     <div className="min-h-screen bg-black py-16">
+      <StructuredData data={blogPostingSchema} />
       <div className="container mx-auto max-w-5xl px-4">
         <article className="overflow-hidden rounded-3xl border border-zinc-800 bg-black/50 backdrop-blur-xl">
           {/* Header section */}

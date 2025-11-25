@@ -11,6 +11,12 @@ export interface ResolvedPost {
   contentHtml: string
   tags: string[]
   coverImage: string | null
+  coverImageAlt: string | null
+  authorId: string | null
+  metaTitle: string | null
+  metaDescription: string | null
+  metaKeywords: string | null
+  scheduledAt: string | null
   createdAt: string
   updatedAt: string
   readTime: number
@@ -133,6 +139,7 @@ export const mapSupabaseRecord = (record: Record<string, unknown>): ResolvedPost
   const plainText = stripHtml(contentHtml)
   const createdAt = toIsoString(record["created_at"] ?? record["createdAt"])
   const updatedAt = toIsoString(record["updated_at"] ?? record["updatedAt"] ?? createdAt)
+  const scheduledAt = record["scheduled_at"] ? toIsoString(record["scheduled_at"]) : null
 
   return {
     id: generateId(record["id"] ?? record["slug"]),
@@ -154,6 +161,35 @@ export const mapSupabaseRecord = (record: Record<string, unknown>): ResolvedPost
         : typeof record["coverImage"] === "string" && record["coverImage"].length > 0
           ? (record["coverImage"] as string)
           : null,
+    coverImageAlt:
+      typeof record["cover_image_alt"] === "string"
+        ? (record["cover_image_alt"] as string)
+        : typeof record["coverImageAlt"] === "string"
+          ? (record["coverImageAlt"] as string)
+          : null,
+    authorId:
+      typeof record["author_id"] === "string"
+        ? (record["author_id"] as string)
+        : null,
+    metaTitle:
+      typeof record["meta_title"] === "string"
+        ? (record["meta_title"] as string)
+        : typeof record["metaTitle"] === "string"
+          ? (record["metaTitle"] as string)
+          : null,
+    metaDescription:
+      typeof record["meta_description"] === "string"
+        ? (record["meta_description"] as string)
+        : typeof record["metaDescription"] === "string"
+          ? (record["metaDescription"] as string)
+          : null,
+    metaKeywords:
+      typeof record["meta_keywords"] === "string"
+        ? (record["meta_keywords"] as string)
+        : typeof record["metaKeywords"] === "string"
+          ? (record["metaKeywords"] as string)
+          : null,
+    scheduledAt,
     createdAt,
     updatedAt,
     readTime:

@@ -10,26 +10,18 @@ import HomeFeaturedAwardeesSection from "./components/HomeFeaturedAwardeesSectio
 import BlogSection from "./components/BlogSection"
 import MagazineSection from "./components/MagazineSection"
 import RecentEventsSection from "./components/RecentEventsSection"
+import UpcomingEventsSection from "./components/UpcomingEventsSection"
 import ImpactSection from "./components/ImpactSection"
 import InitiativeCards from "@/components/InitiativeCards"
 import NewsletterForm from "./components/NewsletterForm"
 import TypeEffect from "@/components/TypeEffect"
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion"
+import Counter from "@/components/Counter"
+import FAQSection from "./components/FAQSection"
 
 type Initiative = {
   title: string
   description: string
   href: string
-}
-
-type FAQ = {
-  question: string
-  answer: string
 }
 
 type TeamMember = {
@@ -61,54 +53,6 @@ const initiatives: Initiative[] = [
   },
 ]
 
-const faqs: FAQ[] = [
-  {
-    question: "What is Top100 Africa Future Leaders?",
-    answer:
-      "Top100 Africa Future Leaders is a continental initiative dedicated to identifying, celebrating, and empowering Africa's brightest young leaders. We spotlight exceptional students and youth driving innovation, leadership, and social impact across Africa.",
-  },
-  {
-    question: "What is the mission of Top100?",
-    answer:
-      "Our mission is to build a generation of purpose-driven African leaders by providing access to opportunities, mentorship, and exposure through our leadership network, empowerment summits, and digital platforms.",
-  },
-  {
-    question: "Who founded Top100 Africa Future Leaders?",
-    answer:
-      "Top100 was founded by Nwosu Paul Light, a youth leader and innovator passionate about education, leadership, and technology in Africa. He envisions a connected ecosystem that discovers and empowers young Africans shaping the continent's future.",
-  },
-  {
-    question: "Is Top100 a registered organization?",
-    answer:
-      "Yes. Top100 is in the process of being registered as an NGO with the Corporate Affairs Commission (CAC) in Nigeria, with expansion plans to partner with youth organizations, universities, and government agencies across Africa.",
-  },
-  {
-    question: "What is the Africa Future Leaders Summit?",
-    answer:
-      "The Africa Future Leaders Empowerment Summit is our flagship annual event that brings together young leaders, innovators, and changemakers across Africa for two days of virtual and physical sessions. The summit features keynote speakers, leadership panels, skill workshops, and networking sessions — all themed around 'Empowering Africa's Future Leaders.'",
-  },
-  {
-    question: "Who are the speakers at the Summit?",
-    answer:
-      "Each year, we invite a diverse lineup of speakers — from global youth advocates to successful entrepreneurs and scholarship recipients — who inspire participants with real-life stories and actionable insights. (Speaker list is updated yearly on our website.)",
-  },
-  {
-    question: "What is the Top100 Leadership Network?",
-    answer:
-      "The Top100 Leadership Network is our alumni and partnership community that connects past Top100 awardees, student leaders, and emerging professionals for peer mentorship, collaborations, and exclusive access to leadership resources.",
-  },
-  {
-    question: "What is the Project100 Scholarship Initiative?",
-    answer:
-      "The Project100 Scholarship is a scholarship-verification and mentorship initiative designed to help students access verified funding opportunities. It also interviews past scholarship recipients to share their success stories and inspire others.",
-  },
-  {
-    question: "Who can apply to be part of Top100 Africa Future Leaders?",
-    answer:
-      "Applications are open to graduates, and young professionals between 18–35 years old across Africa who have demonstrated leadership, innovation, or social impact in their communities, schools, or workplaces.",
-  },
-]
-
 const teamMembers: TeamMember[] = [
   {
     name: "Nwosu Paul Light",
@@ -136,15 +80,15 @@ export default function HomePage() {
         <section className="py-8">
           <div className="container space-y-6">
             <div className="max-w-3xl mx-auto text-center space-y-4">
-              <h2 className="text-3xl font-semibold">About the movement</h2>
-              <div className="space-y-4 text-lg text-slate-900">
+              <h2 className="text-3xl sm:text-4xl font-semibold">About the movement</h2>
+              <div className="space-y-4 text-lg sm:text-xl text-slate-900">
                 <p>
                   We celebrate Africa's high-achieving youth leaders — from first-class graduates to innovators, changemakers, and student leaders — who are redefining what leadership looks like across the continent. From Lagos to Kigali, our awardees turn bold ideas into movements that uplift communities and create opportunities for their peers.
                 </p>
               </div>
               <div className="pt-4">
                 <Button asChild>
-                  <Link href="/africa-future-leaders">Explore our story</Link>
+                  <Link href="/africa-future-leaders" className="text-base sm:text-lg">Explore our story</Link>
                 </Button>
               </div>
             </div>
@@ -174,15 +118,15 @@ export default function HomePage() {
           <div className="container relative z-10">
             <div className="flex flex-col items-center justify-center text-center text-white">
               <div className="flex items-center gap-4 mb-4">
-                <div className="text-6xl md:text-7xl lg:text-8xl font-extrabold drop-shadow-2xl">
-                  <TypeEffect text="10,000" speed={100} />
+                <div className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-extrabold drop-shadow-2xl" style={{ color: '#ffffff', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
+                  10,000
                 </div>
                 <div className="flex flex-col items-start justify-center">
-                  <div className="text-lg md:text-xl font-bold uppercase drop-shadow-lg leading-tight"><TypeEffect text="youth" speed={150} /></div>
-                  <div className="text-lg md:text-xl font-bold uppercase drop-shadow-lg leading-tight"><TypeEffect text="leaders" speed={200} /></div>
+                  <div className="text-lg sm:text-xl md:text-2xl font-bold uppercase drop-shadow-lg leading-tight"><TypeEffect text="youth" speed={150} /></div>
+                  <div className="text-lg sm:text-xl md:text-2xl font-bold uppercase drop-shadow-lg leading-tight"><TypeEffect text="leaders" speed={200} /></div>
                 </div>
               </div>
-              <p className="text-xl md:text-2xl lg:text-3xl font-bold mt-4 max-w-4xl drop-shadow-xl" style={{ color: '#ffffff' }}>
+              <p className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mt-4 max-w-4xl drop-shadow-xl" style={{ color: '#ffffff' }}>
                 our vision is to identify, empower, and celebrate youth leaders across Africa by 2030.
               </p>
               <div className="w-24 h-1 bg-white/70 mx-auto rounded-full mt-6 shadow-lg"></div>
@@ -198,8 +142,8 @@ export default function HomePage() {
         <section className="py-8">
           <div className="container space-y-6 sm:space-y-8">
             <div className="text-center">
-              <h2 className="text-3xl font-semibold">Meet some of our sponsors</h2>
-              <p className="text-sm text-slate-900 sm:text-base mt-2">
+              <h2 className="text-3xl sm:text-4xl font-semibold">Our Partners</h2>
+              <p className="text-sm sm:text-base md:text-lg text-slate-900 mt-2">
                 These partners amplify our mission, unlocking opportunities and resources for Africa's boldest innovators.
               </p>
             </div>
@@ -233,15 +177,15 @@ export default function HomePage() {
         <section id="initiatives" className="py-8">
           <div className="container space-y-6 sm:space-y-8">
             <div>
-              <h2 className="text-3xl font-semibold">Our latest initiatives</h2>
-              <p className="text-sm text-slate-900 sm:text-base">
+              <h2 className="text-3xl sm:text-4xl font-semibold">Our latest initiatives</h2>
+              <p className="text-sm sm:text-base md:text-lg text-slate-900">
                 Each initiative unlocks mentorship, funding, and opportunities tailored for Africa&apos;s youth.
               </p>
             </div>
             <InitiativeCards />
             <div className="flex justify-center">
               <Button asChild variant="outline" size="sm">
-                <Link href="/initiatives">Explore all initiatives</Link>
+                <Link href="/initiatives" className="text-base sm:text-lg">Explore all initiatives</Link>
               </Button>
             </div>
           </div>
@@ -250,15 +194,16 @@ export default function HomePage() {
         <BlogSection />
         <HomeFeaturedAwardeesSection />
         <MagazineSection />
+        <UpcomingEventsSection />
         <RecentEventsSection />
 
         <section className="py-8">
           <div className="container space-y-6">
             <div className="space-y-2 text-center">
-              <h2 className="text-3xl font-semibold md:text-4xl">
+              <h2 className="text-3xl sm:text-4xl font-semibold">
                 Meet the people behind the platform
               </h2>
-              <p className="text-base text-slate-900 sm:text-lg">
+              <p className="text-base sm:text-lg md:text-xl text-slate-900">
                 Programme leads, storytellers, and community builders sustaining the Top100 movement.
               </p>
             </div>
@@ -266,7 +211,7 @@ export default function HomePage() {
               {teamMembers.map((member) => {
                 const cardContent = (
                   <>
-                    <div className="relative w-full h-28 sm:h-32 overflow-hidden rounded-t-[18px] sm:rounded-t-[20px]">
+                    <div className="relative w-full h-28 sm:h-32 md:h-36 overflow-hidden rounded-t-[18px] sm:rounded-t-[20px]">
                       {member.name === "Nwosu Paul Light" ? (
                         <Image
                           src="/team/Paul light.jpg.png"
@@ -300,8 +245,8 @@ export default function HomePage() {
                       )}
                     </div>
                     <div className="p-2 sm:p-3 space-y-1">
-                      <h3 className="text-sm sm:text-base font-bold line-clamp-2">{member.name}</h3>
-                      <p className="text-[0.6rem] sm:text-xs uppercase tracking-[0.05em] text-slate-900">{member.role}</p>
+                      <h3 className="text-sm sm:text-base md:text-lg font-bold line-clamp-2">{member.name}</h3>
+                      <p className="text-[0.6rem] sm:text-xs md:text-sm uppercase tracking-[0.05em] text-slate-900">{member.role}</p>
                     </div>
                   </>
                 );
@@ -309,7 +254,7 @@ export default function HomePage() {
                 return (
                   <div
                     key={member.name}
-                    className={`w-full max-w-[180px] sm:max-w-[200px] rounded-[18px] sm:rounded-[20px] border border-border/60 bg-card shadow-lg transition hover:-translate-y-1 hover:shadow-xl flex-shrink-0 ${
+                    className={`w-full max-w-[180px] sm:max-w-[200px] md:max-w-[220px] rounded-[18px] sm:rounded-[20px] border border-border/60 bg-card shadow-lg transition hover:-translate-y-1 hover:shadow-xl flex-shrink-0 ${
                       member.linkedIn ? 'cursor-pointer hover:scale-[1.02]' : ''
                     }`}
                   >
@@ -335,26 +280,22 @@ export default function HomePage() {
           <div className="container">
             <div className="grid gap-6 rounded-[32px] border border-border/60 bg-card p-6 sm:p-8 shadow-lg shadow-primary/10">
               <div className="space-y-4 text-center max-w-3xl mx-auto">
-                <h2 className="text-3xl font-semibold leading-tight sm:text-[2.25rem]">
-                  Partner with us to unlock bespoke programmes and future-forward experiences.
+                <h2 className="text-3xl font-semibold leading-tight sm:text-[2.25rem] md:text-[2.5rem]">
+                  Partner With Us to Empower Africa's Future Leaders
                 </h2>
-                <ul className="space-y-2 text-sm text-slate-900 sm:text-base text-left inline-block">
-                  <li className="flex items-start gap-3">
-                    <span className="mt-2 h-2.5 w-2.5 rounded-full bg-primary flex-shrink-0" />
-                    Showcase your organisation alongside Africa&apos;s brightest young innovators.
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="mt-2 h-2.5 w-2.5 rounded-full bg-primary flex-shrink-0" />
-                    Co-create mentorship, internship, or venture pipelines tailored to your goals.
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="mt-2 h-2.5 w-2.5 rounded-full bg-primary flex-shrink-0" />
-                    Invest in catalytic gatherings such as Talk100 Live and the Future Leaders Summit.
-                  </li>
-                </ul>
+                <div className="space-y-2 text-sm text-slate-900 sm:text-base md:text-lg text-center inline-block">
+                  <p>Top100 connects brilliant young Africans to life-changing opportunities, scholarships, and leadership development.</p>
+                  <p>We're looking to collaborate with organizations that believe in supporting talent, education, and innovation across the continent.</p>
+                </div>
                 <div className="flex justify-center">
                   <Button asChild size="lg">
-                    <Link href="/join">Partner with us</Link>
+                    <Link href="/join" className="text-base sm:text-lg flex items-center gap-2">
+                      <span className="block sm:hidden">Learn more</span>
+                      <span className="hidden sm:block">Learn more about partnership opportunities</span>
+                      <span className="block sm:hidden">
+                        <ArrowRight className="h-4 w-4" />
+                      </span>
+                    </Link>
                   </Button>
                 </div>
               </div>
@@ -365,58 +306,33 @@ export default function HomePage() {
         <section className="py-8">
           <div className="container space-y-6 sm:space-y-8">
             <div className="text-center">
-              <h2 className="text-3xl font-semibold">Africa Future Leaders Summit 2026</h2>
-              <p className="mt-4 text-lg text-slate-900">
+              <h2 className="text-3xl sm:text-4xl font-semibold">Africa Future Leaders Summit 2026</h2>
+              <p className="mt-4 text-lg sm:text-xl text-slate-900">
                 Join us in co-creating a gathering that accelerates Africa&apos;s next generation of changemakers.
               </p>
             </div>
             <div className="flex justify-center">
               <Button asChild className="bg-yellow-500 text-black hover:bg-yellow-400">
-                <Link href="/initiatives/summit">Learn More</Link>
+                <Link href="/initiatives/summit" className="text-base sm:text-lg">Learn More</Link>
               </Button>
             </div>
           </div>
         </section>
 
-        <section id="faq" className="py-8">
-          <div className="container space-y-6 sm:space-y-8">
-            <div className="space-y-3">
-              <h2 className="text-3xl font-semibold">Frequently asked questions</h2>
-              <p className="text-sm text-slate-900 sm:text-base">
-                Answers for nominees, partners, and community members curious about the journey ahead.
-              </p>
-            </div>
-            <Accordion type="single" collapsible className="space-y-5">
-              {faqs.map((faq, index) => (
-                <AccordionItem
-                  key={faq.question}
-                  value={`faq-${index}`}
-                  className="overflow-hidden rounded-[24px] border border-border/60 bg-card/95 shadow-sm transition-all hover:border-primary/60 data-[state=open]:border-primary/60"
-                >
-                  <AccordionTrigger className="px-6 py-4 text-left text-base font-semibold hover:text-primary data-[state=open]:text-primary transition-colors">
-                    {faq.question}
-                  </AccordionTrigger>
-                  <AccordionContent className="px-6 pb-5 text-sm text-slate-900">
-                    {faq.answer}
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-          </div>
-        </section>
+        <FAQSection />
 
         <section id="contact" className="py-8">
           <div className="container">
-            <div className="rounded-[32px] border border-border/60 bg-gradient-to-br from-orange-50 to-amber-50 p-6 sm:p-8 lg:p-10 shadow-lg shadow-primary/10">
+            <div className="rounded-[32px] border border-border/60 p-6 sm:p-8 lg:p-10">
               <div className="space-y-6 sm:space-y-7">
                 <div className="space-y-2">
-                  <h2 className="text-2xl font-semibold">Stay in the loop</h2>
-                  <p className="text-sm text-slate-900">
+                  <h2 className="text-2xl sm:text-3xl font-semibold">Stay in the loop</h2>
+                  <p className="text-sm sm:text-base md:text-lg text-slate-900">
                     Get monthly highlights on awardees, opportunities, and events delivered straight to your inbox.
                   </p>
                 </div>
                 <NewsletterForm />
-                <p className="text-xs text-slate-900">
+                <p className="text-xs sm:text-sm text-slate-900">
                   We respect your inbox. Expect one email per month with curated highlights and opportunities.
                 </p>
               </div>

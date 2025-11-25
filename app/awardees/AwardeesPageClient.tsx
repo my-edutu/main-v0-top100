@@ -228,10 +228,10 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
     <div className="min-h-screen bg-black py-12">
       <div className="container mx-auto px-4">
         <header className="mb-12 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white to-orange-300">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white to-orange-300">
             Meet the Awardees
           </h1>
-          <p className="text-xl text-zinc-400 max-w-3xl mx-auto text-balance">
+          <p className="text-xl sm:text-2xl text-zinc-400 max-w-3xl mx-auto text-balance">
             Discover Africa's emerging leaders, innovators, and community builders.
           </p>
         </header>
@@ -241,12 +241,12 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
             <input
               type="text"
               placeholder="Search by name, country, field, or interest"
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+              className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-3 text-base sm:text-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
             />
           </div>
-          <div className="flex items-center text-sm text-zinc-400">
+          <div className="flex items-center text-sm sm:text-base text-zinc-400">
             Showing {currentPeople.length} of {filteredPeople.length} awardees
           </div>
         </div>
@@ -284,17 +284,17 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
 
                     {/* Content overlay */}
                     <div className="absolute inset-0 flex flex-col justify-end p-4 bg-gradient-to-t from-black via-black/80 to-transparent">
-                      <h3 className="text-sm font-semibold text-white mb-1 line-clamp-2">
+                      <h3 className="text-sm sm:text-base font-semibold text-white mb-1 line-clamp-2">
                         {person.name}
                       </h3>
 
                       {displayTagline && (
-                        <p className="text-xs text-zinc-400 line-clamp-1 mb-2">
+                        <p className="text-xs sm:text-sm text-zinc-400 line-clamp-1 mb-2">
                           {displayTagline}
                         </p>
                       )}
 
-                      <div className="flex flex-col gap-1 text-xs text-zinc-500">
+                      <div className="flex flex-col gap-1 text-xs sm:text-sm text-zinc-500">
                         {person.country && (
                           <span className="line-clamp-1">
                             {person.country}
@@ -305,14 +305,14 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
                       {/* Hover state - show more info */}
                       <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 mt-2 pt-2 border-t border-zinc-700">
                         {person.bio && (
-                          <p className="text-xs text-zinc-400 line-clamp-3 mb-2">
+                          <p className="text-xs sm:text-sm text-zinc-400 line-clamp-3 mb-2">
                             {person.bio}
                           </p>
                         )}
                         {person.interests && person.interests.length > 0 && (
-                          <div className="flex flex-wrap gap-1">
+                          <div className="flex flex-wrap gap-1.5">
                             {pickInterests(person.interests, 2).map((interest) => (
-                              <span key={interest} className="text-xs px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300">
+                              <span key={interest} className="text-xs sm:text-sm px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300">
                                 {interest}
                               </span>
                             ))}
@@ -327,7 +327,7 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
           </div>
         )}
 
-        <div className="mt-10 flex items-center justify-between text-sm text-zinc-400">
+        <div className="mt-10 flex items-center justify-between text-sm sm:text-base text-zinc-400">
           <Button
             variant="outline"
             size="sm"

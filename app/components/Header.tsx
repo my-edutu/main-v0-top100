@@ -71,13 +71,13 @@ export default function Header() {
           </div>
         </Link>
 
-        <nav className="hidden items-center gap-6 text-sm font-semibold md:flex">
+        <nav className="hidden items-center gap-4 text-base font-semibold md:gap-6 md:flex">
           {navItems.map((item) =>
             item.href ? (
               <Link
                 key={item.label}
                 href={item.href}
-                className="rounded-full px-3 py-2 text-white transition-colors hover:bg-yellow-400/50 hover:text-white"
+                className="rounded-full px-3 py-2 text-white transition-colors hover:bg-yellow-400/50 hover:text-white text-sm md:text-base"
               >
                 {item.label}
               </Link>
@@ -85,7 +85,7 @@ export default function Header() {
               <button
                 key={item.label}
                 onClick={() => scrollToSection(item.section!)}
-                className="rounded-full px-3 py-2 text-white transition-colors hover:bg-yellow-400/50 hover:text-white"
+                className="rounded-full px-3 py-2 text-white transition-colors hover:bg-yellow-400/50 hover:text-white text-sm md:text-base"
               >
                 {item.label}
               </button>
@@ -109,7 +109,7 @@ export default function Header() {
               <SheetContent side="right" className="w-64 bg-gradient-to-b from-yellow-500 to-orange-500 p-0">
                 <div className="flex flex-col h-full pt-6">
                   {/* Logo in Sheet */}
-                  <div className="px-6 pb-6 flex items-center space-x-3 border-b border-white/20">
+                  <div className="px-6 pb-6 flex items-center justify-center border-b border-white/20">
                     <div className="h-12 w-20">
                       <Image
                         src="/Top100 Africa Future leaders Logo .png"
@@ -129,7 +129,7 @@ export default function Header() {
                           key={item.label}
                           href={item.href}
                           onClick={() => handleNavigation(item.href, item.section)}
-                          className="flex items-center px-4 py-3 rounded-lg text-sm font-medium text-white hover:bg-white/20 transition-all"
+                          className="flex items-center px-4 py-3 rounded-lg text-base md:text-lg font-medium text-white hover:bg-white/20 transition-all"
                         >
                           {item.label}
                         </Link>
@@ -137,7 +137,7 @@ export default function Header() {
                         <button
                           key={item.label}
                           onClick={() => handleNavigation(item.href, item.section)}
-                          className="flex items-center px-4 py-3 rounded-lg text-sm font-medium text-white hover:bg-white/20 transition-all text-left"
+                          className="flex items-center px-4 py-3 rounded-lg text-base md:text-lg font-medium text-white hover:bg-white/20 transition-all text-left"
                         >
                           {item.label}
                         </button>

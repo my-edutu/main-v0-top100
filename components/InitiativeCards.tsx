@@ -13,39 +13,38 @@ interface InitiativeCardProps {
   gradientClass: string;
 }
 
-const InitiativeCard = ({ 
-  icon, 
-  title, 
-  description, 
-  ctaText, 
+const InitiativeCard = ({
+  icon,
+  title,
+  description,
+  ctaText,
   href,
-  gradientClass 
+  gradientClass
 }: InitiativeCardProps) => {
   return (
-    <motion.div
-      whileHover={{ y: -10 }}
-      className={`rounded-2xl p-0.5 ${gradientClass} shadow-lg transition-all duration-300`}
-    >
-      <div className="h-full rounded-2xl bg-white/90 p-6 dark:bg-black/90">
-        <div className="mb-4 text-3xl text-primary">{icon}</div>
-        <h3 className="mb-3 text-xl font-bold text-slate-900 dark:text-white">{title}</h3>
-        <p className="mb-6 text-sm text-slate-600 dark:text-slate-300">{description}</p>
-        <div className="mt-auto flex justify-end">
-          <Link 
-            href={href}
-            className="inline-flex items-center text-sm font-medium text-slate-900 hover:text-primary dark:text-white dark:hover:text-primary"
-          >
-            <span>{ctaText}</span>
-            <motion.span
-              className="ml-2"
-              whileHover={{ x: 5 }}
-            >
-              <ArrowRight className="h-4 w-4" />
-            </motion.span>
-          </Link>
+    <Link href={href}>
+      <motion.div
+        whileHover={{ y: -10 }}
+        className={`rounded-2xl p-0.5 ${gradientClass} shadow-lg transition-all duration-300 cursor-pointer`}
+      >
+        <div className="h-full rounded-2xl bg-white/90 p-6 dark:bg-black/90">
+          <div className="mb-4 text-3xl text-primary">{icon}</div>
+          <h3 className="mb-3 text-xl font-bold text-slate-900 dark:text-white">{title}</h3>
+          <p className="mb-6 text-sm text-slate-600 dark:text-slate-300">{description}</p>
+          <div className="mt-auto flex justify-end">
+            <div className="inline-flex items-center text-sm font-medium text-slate-900 hover:text-primary dark:text-white dark:hover:text-primary">
+              <span>{ctaText}</span>
+              <motion.span
+                className="ml-2"
+                whileHover={{ x: 5 }}
+              >
+                <ArrowRight className="h-4 w-4" />
+              </motion.span>
+            </div>
+          </div>
         </div>
-      </div>
-    </motion.div>
+      </motion.div>
+    </Link>
   );
 };
 

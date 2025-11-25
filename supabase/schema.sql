@@ -241,6 +241,7 @@ create table if not exists public.posts (
   slug text unique not null,
   content text,
   cover_image text,
+  cover_image_alt text,
   author text,
   excerpt text,
   tags text[] default array[]::text[],
@@ -248,6 +249,11 @@ create table if not exists public.posts (
   is_featured boolean default false,
   status text not null default 'draft',
   visibility text not null default 'public',
+  scheduled_at timestamp with time zone,
+  author_id uuid references public.profiles (id),
+  meta_title text,
+  meta_description text,
+  meta_keywords text,
   created_at timestamp with time zone not null default now(),
   updated_at timestamp with time zone not null default now()
 );
@@ -414,6 +420,179 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
   alter publication supabase_realtime add table public.youtube_videos;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+  WHEN others THEN
+    IF SQLSTATE = '42704' THEN
+      -- publication does not exist (local dev), ignore
+      NULL;
+    ELSE
+      RAISE;
+    END IF;
+END $$;
+
+-- ---------------------------------------------------------------------------
+-- SITE SETTINGS (global configuration for the website)
+-- ---------------------------------------------------------------------------
+create table if not exists public.site_settings (
+  id uuid primary key default gen_random_uuid(),
+
+  -- General Site Information
+  site_name text not null default 'Top100 Africa Future Leaders',
+  site_description text default 'Showcasing Africa''s emerging leaders',
+  site_url text default 'https://top100afl.org',
+  site_tagline text,
+  contact_email text not null default 'admin@top100afl.org',
+  support_email text,
+
+  -- Social Media Links
+  social_links jsonb default '{
+    "twitter": "https://twitter.com/top100afl",
+    "linkedin": "https://linkedin.com/company/top100afl",
+    "instagram": "https://instagram.com/top100afl",
+    "facebook": "",
+    "youtube": "",
+    "tiktok": ""
+  }'::jsonb,
+
+  -- SEO Settings
+  seo_meta_title text,
+  seo_meta_description text,
+  seo_meta_keywords text[] default array[]::text[],
+  seo_og_image text,
+  seo_twitter_card text default 'summary_large_image',
+  google_analytics_id text,
+  google_tag_manager_id text,
+  google_search_console_verification text,
+  facebook_pixel_id text,
+
+  -- Branding
+  logo_url text,
+  logo_dark_url text,
+  favicon_url text,
+  primary_color text default '#000000',
+  secondary_color text default '#666666',
+  accent_color text default '#0066cc',
+
+  -- Email/SMTP Configuration
+  smtp_host text,
+  smtp_port integer,
+  smtp_username text,
+  smtp_password text,
+  smtp_from_email text,
+  smtp_from_name text,
+  email_footer_text text,
+
+  -- Homepage Customization
+  hero_title text default 'Africa Future Leaders',
+  hero_subtitle text default 'Showcasing Africa''s emerging leaders',
+  hero_cta_text text default 'Explore Awardees',
+  hero_cta_url text default '/awardees',
+  hero_background_image text,
+  hero_video_url text,
+  show_hero_section boolean default true,
+  show_featured_awardees boolean default true,
+  show_recent_events boolean default true,
+  show_blog_section boolean default true,
+  show_impact_section boolean default true,
+  show_newsletter_section boolean default true,
+  featured_awardees_title text default 'Featured Awardees',
+  featured_awardees_count integer default 6,
+
+  -- Footer Customization
+  footer_about_text text default 'Top100 Africa Future Leaders showcases the continent''s most promising young leaders.',
+  footer_copyright text default '© 2024 Top100 Africa Future Leaders. All rights reserved.',
+  footer_links jsonb default '[]'::jsonb,
+  show_footer_social boolean default true,
+  show_footer_newsletter boolean default true,
+
+  -- Feature Toggles
+  registration_enabled boolean default true,
+  newsletter_enabled boolean default true,
+  blog_enabled boolean default true,
+  events_enabled boolean default true,
+  awardees_directory_enabled boolean default true,
+  contact_form_enabled boolean default true,
+
+  -- System Settings
+  maintenance_mode boolean default false,
+  maintenance_message text default 'We are currently performing scheduled maintenance. Please check back soon.',
+  allow_public_profiles boolean default true,
+  require_email_verification boolean default true,
+  max_upload_size_mb integer default 10,
+
+  -- API Keys & Integration
+  youtube_api_key text,
+  google_maps_api_key text,
+  recaptcha_site_key text,
+  recaptcha_secret_key text,
+  brevo_api_key text,
+  cloudinary_cloud_name text,
+  cloudinary_api_key text,
+  cloudinary_api_secret text,
+
+  -- Content Moderation
+  enable_comment_moderation boolean default true,
+  enable_profanity_filter boolean default true,
+  auto_approve_comments boolean default false,
+
+  -- Notifications
+  admin_notification_email text,
+  notify_on_new_registration boolean default true,
+  notify_on_new_contact_message boolean default true,
+  notify_on_new_blog_comment boolean default false,
+
+  -- Advanced Settings
+  custom_css text,
+  custom_js text,
+  custom_head_html text,
+  robots_txt text,
+  sitemap_enabled boolean default true,
+
+  -- Metadata
+  created_at timestamp with time zone not null default now(),
+  updated_at timestamp with time zone not null default now()
+);
+
+-- Ensure only one settings row exists
+create unique index if not exists site_settings_singleton on public.site_settings ((true));
+
+-- Keep updated_at in sync on mutations
+create or replace function public.handle_settings_updated()
+returns trigger as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists on_settings_updated on public.site_settings;
+create trigger on_settings_updated
+  before update on public.site_settings
+  for each row execute function public.handle_settings_updated();
+
+alter table public.site_settings enable row level security;
+
+-- Allow public read access to non-sensitive settings
+DO $$ BEGIN
+  create policy "Public read site settings" on public.site_settings
+    for select using (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- Only service role can modify settings
+DO $$ BEGIN
+  create policy "Service manages site settings" on public.site_settings
+    for all using (auth.role() = 'service_role')
+    with check (auth.role() = 'service_role');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- Insert default settings if none exist
+insert into public.site_settings (id)
+select gen_random_uuid()
+where not exists (select 1 from public.site_settings);
+
+DO $$ BEGIN
+  alter publication supabase_realtime add table public.site_settings;
 EXCEPTION
   WHEN duplicate_object THEN NULL;
   WHEN others THEN

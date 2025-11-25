@@ -8,18 +8,20 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
 
-    const { data, error } = await supabase
+    const { data, error, status } = await supabase
       .from('youtube_videos')
       .select('*')
       .order('created_at', { ascending: false });
 
     if (error) {
       console.error('Error fetching YouTube videos:', error);
-      return Response.json({
-        success: false,
-        message: 'Failed to fetch YouTube videos',
-        error: error.message
-      }, { status: 500 });
+      // Handle case where table doesn't exist or other issues
+      if (status === 404 || error.message.includes('does not exist')) {
+        // Return empty array when table doesn't exist
+        return Response.json([]);
+      }
+      // For other errors, return empty array as fallback
+      return Response.json([]);
     }
 
     // Fetch actual YouTube titles using oEmbed API to avoid needing a YouTube API key
@@ -89,7 +91,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const supabase = createClient(true);
+    const supabase = await createClient(true);
 
     const { data, error } = await supabase
       .from('youtube_videos')
@@ -142,7 +144,7 @@ export async function PUT(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const supabase = createClient(true);
+    const supabase = await createClient(true);
 
     const { data, error } = await supabase
       .from('youtube_videos')
@@ -197,7 +199,7 @@ export async function DELETE(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const supabase = createClient(true);
+    const supabase = await createClient(true);
 
     const { error } = await supabase
       .from('youtube_videos')

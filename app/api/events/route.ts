@@ -130,7 +130,7 @@ const toJsonResponse = (payload: unknown, status = 200) =>
   })
 
 export async function GET(req: NextRequest) {
-  const supabase = createClient(true)
+  const supabase = await createClient(true)
   const searchParams = req.nextUrl.searchParams
   const scope = searchParams.get('scope')
 
@@ -162,7 +162,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as RawEventPayload
     const payload = sanitizePayload(body)
-    const supabase = createClient(true)
+    const supabase = await createClient(true)
 
     const { data, error } = await supabase
       .from('events')
@@ -197,7 +197,7 @@ export async function PUT(req: NextRequest) {
     }
 
     const payload = sanitizePayload(body, { isUpdate: true })
-    const supabase = createClient(true)
+    const supabase = await createClient(true)
 
     const { data, error } = await supabase
       .from('events')
@@ -232,7 +232,7 @@ export async function PATCH(req: NextRequest) {
       return toJsonResponse({ message: 'Event id is required for partial update' }, 400)
     }
 
-    const supabase = createClient(true)
+    const supabase = await createClient(true)
 
     const updates: Record<string, unknown> = {}
 
@@ -306,7 +306,7 @@ export async function DELETE(req: NextRequest) {
       return toJsonResponse({ message: 'Event id is required for deletion' }, 400)
     }
 
-    const supabase = createClient(true)
+    const supabase = await createClient(true)
     const { error } = await supabase
       .from('events')
       .delete()

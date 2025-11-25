@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { toast } from "sonner"
-import { ArrowLeft, ImageIcon, Loader2 } from "lucide-react"
+import { ArrowLeft, ImageIcon, Loader2, Search, Calendar } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -20,9 +20,16 @@ const postSchema = z.object({
   slug: z.string().min(1, "Slug is required"),
   content: z.string().min(1, "Content is required"),
   coverImage: z.string().optional(),
+  coverImageAlt: z.string().optional(),
   isFeatured: z.boolean(),
-  status: z.enum(["draft", "published"]),
+  status: z.enum(["draft", "published", "scheduled"]),
   tags: z.string().optional(),
+  excerpt: z.string().optional(),
+  author: z.string().optional(),
+  metaTitle: z.string().max(60, "Meta title should be less than 60 characters").optional(),
+  metaDescription: z.string().max(160, "Meta description should be less than 160 characters").optional(),
+  metaKeywords: z.string().optional(),
+  scheduledAt: z.string().optional(),
 })
 
 type PostFormValues = z.infer<typeof postSchema>
@@ -49,9 +56,16 @@ interface AdminPostResponse {
   slug: string
   content: string
   cover_image?: string | null
+  cover_image_alt?: string | null
   is_featured?: boolean | null
   status?: string | null
   tags?: string[] | null
+  excerpt?: string | null
+  author?: string | null
+  meta_title?: string | null
+  meta_description?: string | null
+  meta_keywords?: string | null
+  scheduled_at?: string | null
 }
 
 export default function EditPostPage({ params }: { params: { id: string } }) {
@@ -61,6 +75,7 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
   const [isLoading, setIsLoading] = useState(true)
   const [slugLocked, setSlugLocked] = useState(true)
   const [coverUploading, setCoverUploading] = useState(false)
+  const [scheduledDate, setScheduledDate] = useState<string>("")
 
   const {
     register,
@@ -69,6 +84,7 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
     setValue,
     watch,
     reset,
+    getValues,
   } = useForm<PostFormValues>({
     resolver: zodResolver(postSchema),
     defaultValues: {
@@ -76,16 +92,26 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
       slug: "",
       content: "",
       coverImage: "",
+      coverImageAlt: "",
       isFeatured: false,
       status: "draft",
       tags: "",
+      excerpt: "",
+      author: "",
+      metaTitle: "",
+      metaDescription: "",
+      metaKeywords: "",
+      scheduledAt: "",
     },
   })
 
   const contentValue = watch("content")
   const coverImageValue = watch("coverImage")
+  const coverImageAltValue = watch("coverImageAlt")
   const isFeatured = watch("isFeatured")
   const statusValue = watch("status")
+  const metaTitleValue = watch("metaTitle")
+  const metaDescriptionValue = watch("metaDescription")
 
   const estimatedReadingTime = useMemo(() => {
     const plain = contentValue.replace(/<[^>]+>/g, " ")
@@ -105,6 +131,18 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
     ...slugRest
   } = register("slug")
 
+  const {
+    ref: excerptRef,
+    onChange: excerptOnChange,
+    ...excerptRest
+  } = register("excerpt")
+
+  const {
+    ref: authorRef,
+    onChange: authorOnChange,
+    ...authorRest
+  } = register("author")
+
   useEffect(() => {
     const loadPost = async () => {
       try {
@@ -116,16 +154,30 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
 
         const data = (await response.json()) as AdminPostResponse
 
+        const status = data.status === "published" ? "published" :
+                      data.status === "scheduled" ? "scheduled" : "draft";
+
         reset({
           title: data.title ?? "",
           slug: data.slug ?? "",
           content: data.content ?? "",
           coverImage: data.cover_image ?? "",
+          coverImageAlt: data.cover_image_alt ?? "",
           isFeatured: Boolean(data.is_featured),
-          status: data.status === "published" ? "published" : "draft",
+          status: status,
           tags: Array.isArray(data.tags) ? data.tags.join(", ") : "",
+          excerpt: data.excerpt ?? "",
+          author: data.author ?? "",
+          metaTitle: data.meta_title ?? "",
+          metaDescription: data.meta_description ?? "",
+          metaKeywords: data.meta_keywords ?? "",
+          scheduledAt: data.scheduled_at ?? "",
         })
+
         setSlugLocked(true)
+        if (data.scheduled_at) {
+          setScheduledDate(data.scheduled_at.substring(0, 16)) // format to YYYY-MM-DDTHH:MM
+        }
       } catch (error) {
         console.error("Error loading post", error)
         toast.error("Failed to load post details")
@@ -192,9 +244,16 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
           slug: data.slug,
           content: data.content,
           cover_image: data.coverImage || null,
+          cover_image_alt: data.coverImageAlt || null,
           is_featured: data.isFeatured,
           status: data.status,
           tags: tagsArray,
+          excerpt: data.excerpt || null,
+          author: data.author || null,
+          meta_title: data.metaTitle || null,
+          meta_description: data.metaDescription || null,
+          meta_keywords: data.metaKeywords || null,
+          scheduled_at: data.status === 'scheduled' ? data.scheduledAt : null,
         }),
       })
 
@@ -283,12 +342,40 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
               </div>
 
               <div className="space-y-3">
+                <Label htmlFor="excerpt" className="text-sm font-semibold text-zinc-100">
+                  Excerpt
+                </Label>
+                <Input
+                  id="excerpt"
+                  placeholder="Brief summary of the post content"
+                  className="border-zinc-700/50 bg-black/40 text-white"
+                  ref={excerptRef}
+                  {...excerptRest}
+                />
+                {errors.excerpt && <p className="text-sm text-red-500">{errors.excerpt.message}</p>}
+              </div>
+
+              <div className="space-y-3">
+                <Label htmlFor="author" className="text-sm font-semibold text-zinc-100">
+                  Author
+                </Label>
+                <Input
+                  id="author"
+                  placeholder="Author name"
+                  className="border-zinc-700/50 bg-black/40 text-white"
+                  ref={authorRef}
+                  {...authorRest}
+                />
+                {errors.author && <p className="text-sm text-red-500">{errors.author.message}</p>}
+              </div>
+
+              <div className="space-y-3">
                 <Label className="text-sm font-semibold text-zinc-100">Cover image</Label>
                 <div className="group relative overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-950/70">
                   {coverImageValue ? (
                     <img
                       src={coverImageValue}
-                      alt="Cover preview"
+                      alt={coverImageAltValue || "Cover preview"}
                       className="h-72 w-full object-cover transition duration-500 group-hover:scale-[1.02]"
                     />
                   ) : (
@@ -330,6 +417,19 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
               </div>
 
               <div className="space-y-3">
+                <Label htmlFor="coverImageAlt" className="text-sm font-semibold text-zinc-100">
+                  Cover Image Alt Text
+                </Label>
+                <Input
+                  id="coverImageAlt"
+                  placeholder="Describe the cover image for accessibility"
+                  className="border-zinc-700/50 bg-black/40 text-white"
+                  value={coverImageAltValue}
+                  onChange={(e) => setValue("coverImageAlt", e.target.value, { shouldDirty: true })}
+                />
+              </div>
+
+              <div className="space-y-3">
                 <Label htmlFor="content" className="text-sm font-semibold text-zinc-100">
                   Story body
                 </Label>
@@ -368,20 +468,44 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
                 <Label className="text-sm font-semibold text-zinc-100">Status</Label>
                 <select
                   value={statusValue}
-                  onChange={(event) => setValue("status", event.target.value as "draft" | "published", { shouldDirty: true })}
+                  onChange={(event) => {
+                    setValue("status", event.target.value as "draft" | "published" | "scheduled", { shouldDirty: true })
+                    if (event.target.value !== 'scheduled') {
+                      setValue("scheduledAt", "", { shouldDirty: true }) // Clear scheduled date if not scheduled
+                    }
+                  }}
                   className="w-full rounded-lg border border-zinc-800 bg-black/60 px-3 py-2 text-sm text-zinc-200"
                 >
                   <option value="draft">Draft (hidden)</option>
                   <option value="published">Published</option>
+                  <option value="scheduled">Scheduled</option>
                 </select>
               </div>
+
+              {statusValue === 'scheduled' && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-zinc-100">Scheduled Date & Time</Label>
+                  <Input
+                    type="datetime-local"
+                    value={scheduledDate}
+                    onChange={(e) => {
+                      setScheduledDate(e.target.value);
+                      setValue("scheduledAt", e.target.value, { shouldDirty: true });
+                    }}
+                    className="w-full rounded-lg border border-zinc-800 bg-black/60 px-3 py-2 text-sm text-zinc-200"
+                  />
+                </div>
+              )}
 
               <div className="flex items-center justify-between rounded-2xl border border-zinc-800/70 bg-black/40 px-4 py-3">
                 <div className="space-y-1">
                   <p className="text-sm font-semibold text-zinc-100">Feature on homepage</p>
                   <p className="text-xs text-zinc-500">Toggle to promote this story in the homepage carousel.</p>
                 </div>
-                <Switch checked={isFeatured} onCheckedChange={(checked) => setValue("isFeatured", checked, { shouldDirty: true })} />
+                <Switch
+                  checked={isFeatured}
+                  onCheckedChange={(checked) => setValue("isFeatured", checked, { shouldDirty: true })}
+                />
               </div>
 
               <div className="space-y-2">
@@ -395,6 +519,66 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
                   {...register("tags")}
                 />
                 <p className="text-xs text-zinc-500">Comma separated keywords.</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* SEO Section */}
+          <Card className="border-white/10 bg-black/50 backdrop-blur">
+            <CardContent className="space-y-4 p-6">
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-zinc-100 flex items-center gap-2">
+                  <Search className="h-4 w-4" />
+                  SEO Settings
+                </p>
+                <p className="text-xs text-zinc-500">Optimize your post for search engines</p>
+              </div>
+
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="metaTitle" className="text-sm font-semibold text-zinc-100">
+                    Meta Title
+                  </Label>
+                  <Input
+                    id="metaTitle"
+                    placeholder="SEO title for search results"
+                    className="border-zinc-800 bg-black/60"
+                    {...register("metaTitle")}
+                  />
+                  <p className="text-xs text-zinc-500">
+                    {metaTitleValue?.length || 0}/60 characters
+                  </p>
+                  {errors.metaTitle && <p className="text-sm text-red-500">{errors.metaTitle.message}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="metaDescription" className="text-sm font-semibold text-zinc-100">
+                    Meta Description
+                  </Label>
+                  <textarea
+                    id="metaDescription"
+                    placeholder="Brief description for search results"
+                    className="w-full rounded-lg border border-zinc-800 bg-black/60 px-3 py-2 text-sm text-zinc-200 min-h-[80px]"
+                    {...register("metaDescription")}
+                  />
+                  <p className="text-xs text-zinc-500">
+                    {metaDescriptionValue?.length || 0}/160 characters
+                  </p>
+                  {errors.metaDescription && <p className="text-sm text-red-500">{errors.metaDescription.message}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="metaKeywords" className="text-sm font-semibold text-zinc-100">
+                    Meta Keywords
+                  </Label>
+                  <Input
+                    id="metaKeywords"
+                    placeholder="seo, keywords, comma, separated"
+                    className="border-zinc-800 bg-black/60"
+                    {...register("metaKeywords")}
+                  />
+                  <p className="text-xs text-zinc-500">Comma separated SEO keywords (optional)</p>
+                </div>
               </div>
             </CardContent>
           </Card>
