@@ -63,7 +63,9 @@ function HomePageHeroSection() {
           // Add animation class when hero comes into view
           setAnimationClass('')
           // Trigger reflow to restart animation
-          void document.body.offsetHeight;
+          if (typeof document !== 'undefined') {
+            void document.body.offsetHeight;
+          }
           setAnimationClass('animate-hero-highlight')
         }
       },
@@ -83,9 +85,11 @@ function HomePageHeroSection() {
   }, [])
 
   const scrollToSection = (sectionId: string) => {
-    const element = document.getElementById(sectionId)
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth" })
+    if (typeof document !== 'undefined') {
+      const element = document.getElementById(sectionId)
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth" })
+      }
     }
   }
 

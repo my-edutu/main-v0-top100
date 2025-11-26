@@ -14,6 +14,9 @@ export default function AuthStatusPage() {
   }, [])
 
   const checkAuthStatus = async () => {
+    // Prevent running on the server side
+    if (typeof window === 'undefined') return;
+
     try {
       const allCookies = document.cookie
       setCookies(allCookies || 'NO COOKIES FOUND')
@@ -77,9 +80,13 @@ export default function AuthStatusPage() {
         <Card>
           <CardHeader><CardTitle>Browser Information</CardTitle></CardHeader>
           <CardContent className="space-y-2 text-sm">
-            <div><strong>Cookie Enabled:</strong> {navigator.cookieEnabled ? '✅ Yes' : '❌ No'}</div>
-            <div><strong>Protocol:</strong> {window.location.protocol}</div>
-            <div><strong>Host:</strong> {window.location.host}</div>
+            {typeof window !== 'undefined' && (
+              <>
+                <div><strong>Cookie Enabled:</strong> {navigator.cookieEnabled ? '✅ Yes' : '❌ No'}</div>
+                <div><strong>Protocol:</strong> {window.location.protocol}</div>
+                <div><strong>Host:</strong> {window.location.host}</div>
+              </>
+            )}
           </CardContent>
         </Card>
 
