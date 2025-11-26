@@ -148,7 +148,7 @@ const DEFAULT_SETTINGS: Partial<SiteSettings> = {
 
 export async function GET(req: NextRequest) {
   try {
-    const supabase = createClient(true)
+    const supabase = await createClient(true)
 
     // Try to fetch settings
     const { data, error } = await supabase
@@ -193,7 +193,7 @@ export async function PUT(req: NextRequest) {
   }
 
   try {
-    const supabase = createClient(true)
+    const supabase = await createClient(true)
     const body = await req.json()
 
     // Validate required fields

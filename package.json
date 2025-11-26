@@ -8,7 +8,8 @@
         "lint": "next lint",
         "start": "next start",
         "import-awardee-images": "tsx scripts/import-awardee-images.ts",
-        "test-security": "tsx scripts/test-security-fixes.ts"
+        "test-security": "tsx scripts/test-security-fixes.ts",
+        "check-images": "tsx scripts/check-awardee-images.ts"
     },
     "dependencies": {
         "@emotion/is-prop-valid": "latest",

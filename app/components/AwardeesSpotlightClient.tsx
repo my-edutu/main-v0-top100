@@ -157,7 +157,19 @@ export default function AwardeesSpotlightClient({ awardees }: Props) {
                             <div>
                               <span className="text-xs text-muted-foreground">CGPA</span>
                               <div className="font-bold text-primary">{awardee.cgpa}</div>
+                            </div>
+                            <Link
+                              href={`/awardees/${awardee.slug}`}
+                              className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 transition hover:bg-primary/20"
+                              aria-label={`View ${awardee.name}'s profile`}
+                            >
+                              <ArrowRight className="h-4 w-4 text-primary" />
+                            </Link>
                           </div>
+                        )}
+                      </div>
+                      {!awardee.cgpa && (
+                        <div className="flex justify-end">
                           <Link
                             href={`/awardees/${awardee.slug}`}
                             className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 transition hover:bg-primary/20"
@@ -168,19 +180,7 @@ export default function AwardeesSpotlightClient({ awardees }: Props) {
                         </div>
                       )}
                     </div>
-                    {!awardee.cgpa && (
-                      <div className="flex justify-end">
-                        <Link
-                          href={`/awardees/${awardee.slug}`}
-                          className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 transition hover:bg-primary/20"
-                          aria-label={`View ${awardee.name}'s profile`}
-                        >
-                          <ArrowRight className="h-4 w-4 text-primary" />
-                        </Link>
-                      </div>
-                    )}
-                  </div>
-                </motion.article>
+                  </motion.article>
               ))}
             </motion.div>
 

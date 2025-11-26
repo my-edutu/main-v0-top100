@@ -65,8 +65,8 @@ const teamMembers: TeamMember[] = [
     linkedIn: "https://www.linkedin.com/in/emmanuellaigboafu/",
   },
   {
-    name: "Chinedu Daniel",
-    role: "Team Lead",
+    name: "Chinedu Nwangwu",
+    role: "Community Manager",
     linkedIn: "https://www.linkedin.com/in/chinedu-nwandu-a4689323b/",
   },
 ]
@@ -77,11 +77,11 @@ export default function HomePage() {
       <div className="flex flex-col pb-16 [--section-gap:clamp(1.5rem,5vw,2.5rem)] sm:[--section-gap:clamp(1.75rem,4vw,3rem)] lg:[--section-gap:clamp(2rem,3vw,3.5rem)] xl:[--section-gap:clamp(2rem,2vw,4rem)] gap-[var(--section-gap)]">
         <HomePageHeroSection />
 
-        <section className="py-8">
+        <section className="py-6">
           <div className="container space-y-6">
             <div className="max-w-3xl mx-auto text-center space-y-4">
-              <h2 className="text-3xl sm:text-4xl font-semibold">About the movement</h2>
-              <div className="space-y-4 text-lg sm:text-xl text-slate-900">
+              <h2 className="text-2xl sm:text-3xl md:text-[2rem] font-semibold font-sans">About the movement</h2>
+              <div className="space-y-4 text-lg sm:text-xl text-slate-900 font-sans leading-relaxed tracking-wide">
                 <p>
                   We celebrate Africa's high-achieving youth leaders — from first-class graduates to innovators, changemakers, and student leaders — who are redefining what leadership looks like across the continent. From Lagos to Kigali, our awardees turn bold ideas into movements that uplift communities and create opportunities for their peers.
                 </p>
@@ -127,7 +127,7 @@ export default function HomePage() {
                 </div>
               </div>
               <p className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mt-4 max-w-4xl drop-shadow-xl" style={{ color: '#ffffff' }}>
-                our vision is to identify, empower, and celebrate youth leaders across Africa by 2030.
+                Our vision is to identify, empower, and celebrate youth leaders across Africa by 2030.
               </p>
               <div className="w-24 h-1 bg-white/70 mx-auto rounded-full mt-6 shadow-lg"></div>
             </div>
@@ -139,11 +139,11 @@ export default function HomePage() {
         <ImpactSection />
 
 
-        <section className="py-8">
+        <section className="py-6">
           <div className="container space-y-6 sm:space-y-8">
             <div className="text-center">
-              <h2 className="text-3xl sm:text-4xl font-semibold">Our Partners</h2>
-              <p className="text-sm sm:text-base md:text-lg text-slate-900 mt-2">
+              <h2 className="text-2xl sm:text-3xl md:text-[2rem] font-semibold font-sans">Our Partners</h2>
+              <p className="text-sm sm:text-base md:text-lg text-slate-900 mt-2 font-sans leading-relaxed tracking-wide">
                 These partners amplify our mission, unlocking opportunities and resources for Africa's boldest innovators.
               </p>
             </div>
@@ -167,18 +167,18 @@ export default function HomePage() {
                       priority={index < 2} // Prioritize loading of first two sponsors
                     />
                   </div>
-                  <p className="text-center text-sm font-medium">{partner.name}</p>
+                  <p className={`text-center ${partner.name === "One Young World West & Central Africa" ? "text-xs" : "text-sm"} font-medium font-sans leading-relaxed tracking-wide`}>{partner.name}</p>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        <section id="initiatives" className="py-8">
+        <section id="initiatives" className="py-6">
           <div className="container space-y-6 sm:space-y-8">
             <div>
-              <h2 className="text-3xl sm:text-4xl font-semibold">Our latest initiatives</h2>
-              <p className="text-sm sm:text-base md:text-lg text-slate-900">
+              <h2 className="text-2xl sm:text-3xl md:text-[2rem] font-semibold font-sans">Our latest initiatives</h2>
+              <p className="text-sm sm:text-base md:text-lg text-slate-900 font-sans leading-relaxed tracking-wide">
                 Each initiative unlocks mentorship, funding, and opportunities tailored for Africa&apos;s youth.
               </p>
             </div>
@@ -197,27 +197,27 @@ export default function HomePage() {
         <UpcomingEventsSection />
         <RecentEventsSection />
 
-        <section className="py-8">
-          <div className="container space-y-6">
+        <section className="py-2">
+          <div className="container space-y-4">
             <div className="space-y-2 text-center">
-              <h2 className="text-3xl sm:text-4xl font-semibold">
+              <h2 className="text-2xl sm:text-3xl md:text-[2rem] font-semibold">
                 Meet the people behind the platform
               </h2>
               <p className="text-base sm:text-lg md:text-xl text-slate-900">
                 Programme leads, storytellers, and community builders sustaining the Top100 movement.
               </p>
             </div>
-            <div className="grid grid-cols-3 gap-4 justify-items-center overflow-x-auto pb-4 -mx-4 px-4">
+            <div className="grid grid-cols-3 gap-2 md:gap-4 justify-center pb-4 overflow-x-hidden">
               {teamMembers.map((member) => {
                 const cardContent = (
                   <>
-                    <div className="relative w-full h-28 sm:h-32 md:h-36 overflow-hidden rounded-t-[18px] sm:rounded-t-[20px]">
+                    <div className="relative w-full h-32 sm:h-36 md:h-48 lg:h-56 xl:h-64 overflow-hidden rounded-t-[12px] sm:rounded-t-[16px]">
                       {member.name === "Nwosu Paul Light" ? (
                         <Image
                           src="/team/Paul light.jpg.png"
                           alt={member.name}
                           fill
-                          className="object-cover"
+                          className="object-cover object-top"
                           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         />
                       ) : member.name === "Emmanuella Igboafu" ? (
@@ -225,15 +225,15 @@ export default function HomePage() {
                           src="/team/emmanuella igboafu.jpg"
                           alt={member.name}
                           fill
-                          className="object-cover"
+                          className="object-cover object-top"
                           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         />
-                      ) : member.name === "Chinedu Daniel" ? (
+                      ) : member.name === "Chinedu Nwangwu" ? (
                         <Image
                           src="/team/chinedu daniel.jpg.png"
                           alt={member.name}
                           fill
-                          className="object-cover"
+                          className="object-cover object-top"
                           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         />
                       ) : (
@@ -244,9 +244,9 @@ export default function HomePage() {
                         </div>
                       )}
                     </div>
-                    <div className="p-2 sm:p-3 space-y-1">
-                      <h3 className="text-sm sm:text-base md:text-lg font-bold line-clamp-2">{member.name}</h3>
-                      <p className="text-[0.6rem] sm:text-xs md:text-sm uppercase tracking-[0.05em] text-slate-900">{member.role}</p>
+                    <div className="p-2 sm:p-3 md:p-4 xl:p-5 space-y-1 text-center">
+                      <h3 className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl font-bold line-clamp-2">{member.name}</h3>
+                      <p className="text-[0.6rem] sm:text-xs md:text-sm lg:text-base xl:text-lg uppercase tracking-[0.05em] text-slate-900">{member.role}</p>
                     </div>
                   </>
                 );
@@ -254,7 +254,7 @@ export default function HomePage() {
                 return (
                   <div
                     key={member.name}
-                    className={`w-full max-w-[180px] sm:max-w-[200px] md:max-w-[220px] rounded-[18px] sm:rounded-[20px] border border-border/60 bg-card shadow-lg transition hover:-translate-y-1 hover:shadow-xl flex-shrink-0 ${
+                    className={`w-full rounded-[12px] sm:rounded-[16px] lg:rounded-[24px] border border-border/60 bg-card shadow-lg transition hover:-translate-y-1 hover:shadow-xl flex-shrink-0 ${
                       member.linkedIn ? 'cursor-pointer hover:scale-[1.02]' : ''
                     }`}
                   >
@@ -276,16 +276,15 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section id="magazine" className="py-8">
+        <section id="magazine" className="py-3">
           <div className="container">
             <div className="grid gap-6 rounded-[32px] border border-border/60 bg-card p-6 sm:p-8 shadow-lg shadow-primary/10">
               <div className="space-y-4 text-center max-w-3xl mx-auto">
-                <h2 className="text-3xl font-semibold leading-tight sm:text-[2.25rem] md:text-[2.5rem]">
+                <h2 className="text-2xl font-semibold leading-tight sm:text-3xl md:text-[2.25rem] lg:text-[2.5rem] font-sans">
                   Partner With Us to Empower Africa's Future Leaders
                 </h2>
-                <div className="space-y-2 text-sm text-slate-900 sm:text-base md:text-lg text-center inline-block">
-                  <p>Top100 connects brilliant young Africans to life-changing opportunities, scholarships, and leadership development.</p>
-                  <p>We're looking to collaborate with organizations that believe in supporting talent, education, and innovation across the continent.</p>
+                <div className="space-y-4 text-sm text-slate-900 sm:text-base md:text-lg text-center inline-block font-sans leading-relaxed tracking-wide">
+                  <p>Top100 connects brilliant young Africans to life-changing opportunities, scholarships, and leadership development. We're looking to collaborate with organizations that believe in supporting talent, education, and innovation across the continent.</p>
                 </div>
                 <div className="flex justify-center">
                   <Button asChild size="lg">
@@ -303,11 +302,11 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="py-8">
+        <section className="py-6">
           <div className="container space-y-6 sm:space-y-8">
             <div className="text-center">
-              <h2 className="text-3xl sm:text-4xl font-semibold">Africa Future Leaders Summit 2026</h2>
-              <p className="mt-4 text-lg sm:text-xl text-slate-900">
+              <h2 className="text-2xl sm:text-3xl md:text-[2rem] font-semibold font-sans">Africa Future Leaders Summit 2026</h2>
+              <p className="mt-4 text-lg sm:text-xl text-slate-900 font-sans leading-relaxed tracking-wide">
                 Join us in co-creating a gathering that accelerates Africa&apos;s next generation of changemakers.
               </p>
             </div>
@@ -321,18 +320,18 @@ export default function HomePage() {
 
         <FAQSection />
 
-        <section id="contact" className="py-8">
+        <section id="contact" className="py-6">
           <div className="container">
             <div className="rounded-[32px] border border-border/60 p-6 sm:p-8 lg:p-10">
               <div className="space-y-6 sm:space-y-7">
                 <div className="space-y-2">
-                  <h2 className="text-2xl sm:text-3xl font-semibold">Stay in the loop</h2>
-                  <p className="text-sm sm:text-base md:text-lg text-slate-900">
+                  <h2 className="text-2xl sm:text-3xl font-semibold font-sans">Stay in the loop</h2>
+                  <p className="text-sm sm:text-base md:text-lg text-slate-900 font-sans leading-relaxed tracking-wide">
                     Get monthly highlights on awardees, opportunities, and events delivered straight to your inbox.
                   </p>
                 </div>
                 <NewsletterForm />
-                <p className="text-xs sm:text-sm text-slate-900">
+                <p className="text-xs sm:text-sm text-slate-900 font-sans leading-relaxed tracking-wide">
                   We respect your inbox. Expect one email per month with curated highlights and opportunities.
                 </p>
               </div>

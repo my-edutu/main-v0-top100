@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
 
-    const supabase = createClient(true)
+    const supabase = await createClient(true)
 
     const filePath = createFileName(file)
     const arrayBuffer = await file.arrayBuffer()

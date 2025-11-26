@@ -90,36 +90,19 @@ export default function BlogSection() {
 
                 {/* Content */}
                 <div className="flex flex-1 flex-col gap-2 md:gap-5 md:p-6">
-                  <div className="flex items-center gap-2 md:gap-3 text-xs md:text-xs font-medium text-muted-foreground">
-                    <span className="inline-flex items-center gap-1 md:gap-2">
-                      <Calendar className="h-4 w-4 md:h-4 md:w-4" />
-                      <span className="hidden md:inline">{new Date(post.createdAt).toLocaleDateString(undefined, {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}</span>
-                      <span className="md:hidden">{new Date(post.createdAt).toLocaleDateString(undefined, {
-                        month: "short",
-                        day: "numeric",
-                      })}</span>
-                    </span>
-                    <span className="text-muted-foreground/40">·</span>
-                    <span>{post.readTime ? `${post.readTime} min` : "Read"}</span>
-                  </div>
+                  {/* Date and reading time are hidden on all devices */}
                   <div className="space-y-1 md:space-y-3">
                     <h3 className="text-base md:text-lg font-semibold leading-tight transition-colors group-hover:text-primary line-clamp-2 md:line-clamp-none">
                       {post.title}
                     </h3>
                     <p className="hidden md:block line-clamp-3 text-sm text-muted-foreground">{post.excerpt}</p>
-                    <p className="md:hidden text-sm text-muted-foreground">{post.excerpt}</p>
+                    <p className="md:hidden text-sm text-muted-foreground line-clamp-2">{post.excerpt}</p>
                   </div>
                   <div className="mt-auto flex items-center justify-between text-xs md:text-sm font-medium text-muted-foreground">
                     <span className="text-[0.65rem] md:text-sm">&nbsp;</span>
                     <span className="inline-flex items-center gap-1 md:gap-2 text-primary transition group-hover:text-primary/80">
-                      <span className="hidden md:inline text-[0.65rem] md:text-sm">Read more</span>
-                      <span className="flex items-center justify-center h-6 w-6 md:h-auto md:w-auto md:border-0 border-2 border-primary rounded-full transition-all duration-200 group-hover:scale-110 group-hover:bg-primary/10">
-                        <ArrowRight className="h-3 w-3 md:h-4 md:w-4 text-primary transition-transform duration-200 group-hover:translate-x-1" />
-                      </span>
+                      <span className="text-[0.65rem] md:text-sm whitespace-nowrap">Read more</span>
+                      <ArrowRight className="h-3 w-3 md:h-4 md:w-4 text-primary transition-transform duration-200 group-hover:translate-x-1" />
                     </span>
                   </div>
                 </div>
@@ -129,7 +112,7 @@ export default function BlogSection() {
         </div>
 
         <div className="mt-4 flex justify-center">
-          <Button size="lg" variant="soft" className="px-6" asChild>
+          <Button size="lg" variant="soft" className="px-6 border border-orange-400 text-base" asChild>
             <Link href="/blog">
               Explore all stories
               <ArrowRight className="ml-2 h-4 w-4" />

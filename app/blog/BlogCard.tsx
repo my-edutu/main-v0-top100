@@ -27,20 +27,13 @@ export function BlogCard({ post }: BlogCardProps) {
 
           {/* Content */}
           <div className="flex-1 flex flex-col">
-            <div className="flex items-center text-sm text-zinc-400 mb-2">
-              <Calendar className="w-4 h-4 mr-2" />
-              <span>{new Date(post.createdAt).toLocaleDateString()}</span>
-              <span className="mx-2">{'\u2022'}</span>
-              <span>{post.readTime ? `${post.readTime} min read` : "Read"}</span>
-            </div>
-
             <h3 className={`mb-2 text-white group-hover:text-orange-300 transition-colors ${
               post.isFeatured ? 'text-xl font-bold' : 'text-lg font-semibold'
             }`}>
               {post.title}
             </h3>
 
-            <p className="text-zinc-300 mb-3 text-sm line-clamp-2 flex-1">
+            <p className="text-zinc-300 mb-3 text-sm line-clamp-2 sm:line-clamp-none flex-1">
               {post.excerpt}
             </p>
 

@@ -8,6 +8,20 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'zsavekrhfwrpqudhjvlq.supabase.co',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.supabase.co',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.supabase.co',
+      },
+    ],
   },
   async headers() {
     return [
@@ -57,26 +71,21 @@ const nextConfig = {
             // Disable unnecessary browser features
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()'
-          },
-          {
-            // Content Security Policy - restrictive but allows necessary resources
-            key: 'Content-Security-Policy',
-            value: [
-              "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://vercel.live https://va.vercel-scripts.com",
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              "img-src 'self' data: https: blob:",
-              "font-src 'self' data: https://fonts.gstatic.com",
-              "connect-src 'self' https://*.supabase.co https://vercel.live https://va.vercel-scripts.com",
-              "frame-src 'self' https://vercel.live",
-              "media-src 'self' https:",
-              "object-src 'none'",
-              "base-uri 'self'",
-              "form-action 'self'",
-              "frame-ancestors 'self'",
-              "upgrade-insecure-requests"
-            ].join('; ')
           }
+          // CSP TEMPORARILY DISABLED - Was blocking images
+          // Re-enable after confirming images work, then tune the policy
+          // {
+          //   key: 'Content-Security-Policy',
+          //   value: [
+          //     "default-src 'self'",
+          //     "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+          //     "style-src 'self' 'unsafe-inline'",
+          //     "img-src * data: blob:",
+          //     "font-src 'self' data:",
+          //     "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+          //     "media-src 'self' https: data:"
+          //   ].join('; ')
+          // }
         ]
       },
       {

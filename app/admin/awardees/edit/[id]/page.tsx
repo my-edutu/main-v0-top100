@@ -67,7 +67,7 @@ const awardeeSchema = z.object({
 
 type AwardeeFormValues = z.infer<typeof awardeeSchema>
 
-export default function EditAwardeePage({ params }: { params: { id: string } }) {
+export default function EditAwardeePage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const [awardee, setAwardee] = useState<Awardee | null>(null);
   const [loading, setLoading] = useState(true);
@@ -96,8 +96,13 @@ export default function EditAwardeePage({ params }: { params: { id: string } }) 
   });
 
   useEffect(() => {
-    fetchAwardee();
-  }, []);
+    const fetchData = async () => {
+      const unwrappedParams = await params;
+      fetchAwardee(unwrappedParams);
+    };
+
+    fetchData();
+  }, [params]);
 
   useEffect(() => {
     if (awardee) {
@@ -119,12 +124,12 @@ export default function EditAwardeePage({ params }: { params: { id: string } }) 
     }
   }, [awardee, setValue]);
 
-  const fetchAwardee = async () => {
+  const fetchAwardee = async (unwrappedParams: { id: string }) => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/awardees/${params.id}`);
+      const response = await fetch(`/api/awardees/${unwrappedParams.id}`);
       if (!response.ok) throw new Error('Failed to fetch awardee');
-      
+
       const data = await response.json();
       setAwardee(data);
     } catch (error) {
@@ -139,10 +144,10 @@ export default function EditAwardeePage({ params }: { params: { id: string } }) 
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setImageFile(file);
-      
-      // Create a preview URL for the image
-      const imageUrl = URL.createObjectURL(file);
-      setValue('image_url', imageUrl);
+
+      // Create a preview URL for display only (won't be saved to DB)
+      const previewUrl = URL.createObjectURL(file);
+      setValue('image_url', previewUrl);
     }
   };
 
@@ -151,9 +156,31 @@ export default function EditAwardeePage({ params }: { params: { id: string } }) 
       setIsSubmitting(true);
       toast.loading('Updating awardee...', { id: 'update-awardee' });
 
+      // If there's an image file to upload, handle it separately
+      let imageUrl = data.image_url;
+
+      if (imageFile) {
+        // Upload image to Supabase Storage
+        const formData = new FormData();
+        formData.append('image', imageFile);
+        formData.append('awardee_id', awardee?.id || '');
+
+        const uploadResponse = await fetch('/api/upload-image', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (uploadResponse.ok) {
+          const uploadResult = await uploadResponse.json();
+          imageUrl = uploadResult.imageUrl;
+        } else {
+          console.error('Image upload failed, continuing with existing image URL');
+        }
+      }
+
       // Prepare form data for API request
       const updateData = {
-        id: params.id,
+        id: awardee.id,
         name: data.name,
         email: data.email || null,
         country: data.country || null,
@@ -161,8 +188,8 @@ export default function EditAwardeePage({ params }: { params: { id: string } }) 
         course: data.course || null,
         bio: data.bio || null,
         year: data.year || 2024,
-        image_url: data.image_url || null,
-        avatar_url: data.image_url || null,
+        image_url: imageUrl || null,
+        avatar_url: imageUrl || null,
         slug: generateSlug(data.name),
         featured: data.featured || false,
         headline: data.headline || null,
@@ -177,7 +204,7 @@ export default function EditAwardeePage({ params }: { params: { id: string } }) 
 
       const response = await fetch('/api/awardees', {
         method: 'PUT',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(updateData),

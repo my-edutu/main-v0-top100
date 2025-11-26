@@ -50,10 +50,10 @@ export default function ImpactSection() {
     <section className="section-padding">
       <div className="container space-y-10">
         <div className="mx-auto max-w-3xl space-y-4 text-center">
-          <h2 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl sm:leading-tight">
+          <h2 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl sm:leading-tight font-sans">
             The movement in numbers
           </h2>
-          <p className="mx-auto text-sm leading-relaxed text-muted-foreground sm:text-base">
+          <p className="mx-auto text-sm leading-relaxed text-muted-foreground sm:text-base font-sans tracking-wide">
             Celebrating achievements and creating opportunities across Africa&apos;s campuses, communities, and capitals.
           </p>
         </div>
@@ -93,10 +93,10 @@ export default function ImpactSection() {
                     </div>
                   </div>
                   <div className="text-left">
-                    <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-900 leading-[1.3]">
+                    <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-900 leading-[1.3] font-sans">
                       {stat.label}
                     </p>
-                    <p className="text-sm leading-[1.3] text-slate-900">
+                    <p className="text-sm leading-[1.3] text-slate-900 font-sans">
                       {stat.description}
                     </p>
                   </div>

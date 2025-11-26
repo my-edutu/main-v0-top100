@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const supabase = createClient(true); // Use service role for admin operations
+    const supabase = await createClient(true); // Use service role for admin operations
 
     // Fetch all awardees from the database
     const { data: awardees, error } = await supabase

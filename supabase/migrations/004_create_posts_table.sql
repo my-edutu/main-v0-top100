@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS public.posts (
   cover_image_alt text,
   author text,
   author_id uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
-  status text DEFAULT 'draft' CHECK (status IN ('draft', 'published', 'archived')),
+  status text DEFAULT 'draft' CHECK (status IN ('draft', 'published', 'scheduled', 'archived')),
   is_featured boolean DEFAULT false,
   visibility text DEFAULT 'public' CHECK (visibility IN ('public', 'private', 'unlisted')),
   tags text[] DEFAULT ARRAY[]::text[],

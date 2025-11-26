@@ -82,10 +82,10 @@ export default function FAQSection() {
               value={`faq-${index}`}
               className="overflow-hidden rounded-lg border border-border/60 bg-card/95 shadow-sm transition-all hover:border-primary/60 data-[state=open]:border-primary/60"
             >
-              <AccordionTrigger className="px-4 py-3 text-left text-sm sm:text-base font-semibold hover:text-primary data-[state=open]:text-primary transition-colors">
+              <AccordionTrigger className="px-4 py-3 text-left text-base sm:text-lg md:text-xl font-semibold hover:text-primary data-[state=open]:text-primary transition-colors font-sans leading-relaxed tracking-wide">
                 {faq.question}
               </AccordionTrigger>
-              <AccordionContent className="px-4 pb-4 text-sm sm:text-base text-slate-900">
+              <AccordionContent className="px-4 pb-4 text-base sm:text-lg md:text-xl text-slate-900 leading-relaxed tracking-wide">
                 {faq.answer}
               </AccordionContent>
             </AccordionItem>

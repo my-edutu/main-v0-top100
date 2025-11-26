@@ -27,18 +27,18 @@ const InitiativeCard = ({
         whileHover={{ y: -10 }}
         className={`rounded-2xl p-0.5 ${gradientClass} shadow-lg transition-all duration-300 cursor-pointer`}
       >
-        <div className="h-full rounded-2xl bg-white/90 p-6 dark:bg-black/90">
-          <div className="mb-4 text-3xl text-primary">{icon}</div>
-          <h3 className="mb-3 text-xl font-bold text-slate-900 dark:text-white">{title}</h3>
-          <p className="mb-6 text-sm text-slate-600 dark:text-slate-300">{description}</p>
+        <div className="h-full rounded-2xl bg-white/90 p-4 dark:bg-black/90">
+          <div className="mb-3 text-2xl text-primary">{icon}</div>
+          <h3 className="mb-2 text-lg font-bold text-slate-900 dark:text-white font-sans leading-relaxed">{title}</h3>
+          <p className="mb-4 text-xs text-slate-600 dark:text-slate-300 font-sans leading-relaxed tracking-wide">{description}</p>
           <div className="mt-auto flex justify-end">
-            <div className="inline-flex items-center text-sm font-medium text-slate-900 hover:text-primary dark:text-white dark:hover:text-primary">
+            <div className="inline-flex items-center text-xs font-medium text-slate-900 hover:text-primary dark:text-white dark:hover:text-primary font-sans">
               <span>{ctaText}</span>
               <motion.span
-                className="ml-2"
+                className="ml-1"
                 whileHover={{ x: 5 }}
               >
-                <ArrowRight className="h-4 w-4" />
+                <ArrowRight className="h-3 w-3" />
               </motion.span>
             </div>
           </div>

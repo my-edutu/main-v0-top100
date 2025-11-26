@@ -602,16 +602,16 @@ export default function AwardeesManagement() {
   };
 
   return (
-    <div className="w-full px-4 sm:px-6 lg:px-8 py-10">
+    <div className="container mx-auto py-10">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">
-          Awardees Management
-        </h1>
-        <p className="text-muted-foreground">Manage and update Top100 Africa Future Leaders</p>
-      </div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">
+            Awardees Management
+          </h1>
+          <p className="text-muted-foreground">Manage and update Top100 Africa Future Leaders</p>
+        </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:shadow-lg transition-shadow">
           <CardHeader className="pb-2">
             <div className="flex items-center">

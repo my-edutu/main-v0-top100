@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { MediumRichEditor } from "@/components/editor/medium-rich-editor"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { processImageForUpload, processCoverImage } from "@/lib/utils/image-processor"
 
 const postSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -137,8 +138,24 @@ export default function CreatePostPage() {
   const handleCoverUpload = async (file: File) => {
     try {
       setCoverUploading(true)
+
+      // Process the cover image specifically for blog posts
+      const { processedFile, validationErrors } = await processCoverImage(
+        file,
+        {
+          quality: 0.8,
+          maxWidth: 1920,
+          maxHeight: 1080,
+        }
+      )
+
+      // If there are validation errors even after compression, show them
+      if (validationErrors.length > 0) {
+        throw new Error(`Image validation failed: ${validationErrors.join(', ')}`);
+      }
+
       const formData = new FormData()
-      formData.append("file", file)
+      formData.append("file", processedFile)
 
       const response = await fetch("/api/uploads", {
         method: "POST",
@@ -151,7 +168,7 @@ export default function CreatePostPage() {
       }
 
       setValue("coverImage", payload.url, { shouldDirty: true })
-      toast.success("Cover image uploaded")
+      toast.success("Cover image uploaded and optimized")
     } catch (error) {
       console.error("[blog-new] cover upload failed", error)
       toast.error(error instanceof Error ? error.message : "Failed to upload cover image")
@@ -190,11 +207,23 @@ export default function CreatePostPage() {
         }),
       })
 
-      const payload = await response.json().catch(() => null)
+      let payload;
+      try {
+        payload = await response.json()
+      } catch (parseError) {
+        // If JSON parsing fails, create an error payload
+        console.error("Failed to parse response JSON:", parseError)
+        throw new Error(`API response parse error: ${response.status} ${response.statusText}`)
+      }
 
-      if (!response.ok || !payload) {
-        const message = payload?.message ?? payload?.error ?? "Failed to create post"
-        throw new Error(message)
+      if (!response.ok) {
+        // Use the error message from API if available, otherwise create a generic one
+        const errorMessage = payload?.message || payload?.error || `Request failed with status ${response.status}`
+        throw new Error(errorMessage)
+      }
+
+      if (!payload) {
+        throw new Error("No response data received from server")
       }
 
       toast.success("Story saved", { id: toastId })
@@ -202,7 +231,9 @@ export default function CreatePostPage() {
       router.refresh()
     } catch (error) {
       console.error("Error creating post:", error)
-      toast.error(error instanceof Error ? error.message : "Failed to create post", { id: toastId })
+      // Provide more detailed error feedback
+      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred while creating the post"
+      toast.error(`Creation failed: ${errorMessage}`, { id: toastId })
     } finally {
       setIsSubmitting(false)
     }

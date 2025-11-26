@@ -144,10 +144,10 @@ export default function AdminHeader() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-white hover:bg-white/20"
+                  className="text-white hover:bg-white/20 h-12 w-12"
                   aria-label="Open menu"
                 >
-                  <Menu className="h-6 w-6" />
+                  <Menu className="h-8 w-8" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-64 bg-gradient-to-b from-orange-500 to-amber-500 p-0">

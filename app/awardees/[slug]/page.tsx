@@ -15,8 +15,9 @@ import StructuredData from '@/components/StructuredData'
 export const runtime = 'nodejs'
 export const revalidate = 0
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const raw = await fetchAwardeeBySlug(params.slug)
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const raw = await fetchAwardeeBySlug(slug)
 
   if (!raw || raw.is_public === false) {
     return {
@@ -97,8 +98,9 @@ const fallbackSocialLabel: Record<string, string> = {
 const hasGallery = (items?: GalleryItem[] | null) => Boolean(items && items.length > 0)
 const hasAchievements = (items?: Achievement[] | null) => Boolean(items && items.length > 0)
 
-export default async function AwardeeDetail({ params }: { params: { slug: string } }) {
-  const raw = await fetchAwardeeBySlug(params.slug)
+export default async function AwardeeDetail({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const raw = await fetchAwardeeBySlug(slug)
 
   if (!raw || raw.is_public === false) {
     return (
@@ -113,11 +115,11 @@ export default async function AwardeeDetail({ params }: { params: { slug: string
 
   // Fetch random other awardees for suggestions
   const { createClient } = await import('@/lib/supabase/server')
-  const supabase = createClient(true)
+  const supabase = await createClient(true)
   const { data: otherAwardees } = await supabase
     .from('awardee_directory')
     .select('slug, name, avatar_url, cover_image_url, headline, country')
-    .neq('slug', params.slug)
+    .neq('slug', slug)
     .eq('is_public', true)
     .limit(20)
 
@@ -226,9 +228,9 @@ export default async function AwardeeDetail({ params }: { params: { slug: string
       <div className="container mx-auto max-w-6xl px-4 py-12">
 
         {/* Quick Info Cards */}
-        <div className="grid grid-cols-2 gap-4 mb-12 -mt-8 relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-12 -mt-8 relative z-10">
           {awardee.cgpa && (
-            <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-xl border border-zinc-200 dark:border-zinc-800 hover:shadow-2xl transition-all duration-300 hover:scale-105">
+            <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-md border border-zinc-200 dark:border-zinc-800 hover:shadow-lg transition-all duration-300 hover:scale-105">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-purple-100 dark:bg-purple-500/20 rounded-xl">
                   <Trophy className="h-6 w-6 text-purple-600 dark:text-purple-400" />
@@ -240,7 +242,7 @@ export default async function AwardeeDetail({ params }: { params: { slug: string
             </div>
           )}
           {awardee.country && (
-            <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-xl border border-zinc-200 dark:border-zinc-800 hover:shadow-2xl transition-all duration-300 hover:scale-105">
+            <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-md border border-zinc-200 dark:border-zinc-800 hover:shadow-lg transition-all duration-300 hover:scale-105">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-orange-100 dark:bg-orange-500/20 rounded-xl">
                   <MapPin className="h-6 w-6 text-orange-600 dark:text-orange-400" />
@@ -252,7 +254,7 @@ export default async function AwardeeDetail({ params }: { params: { slug: string
             </div>
           )}
           {awardee.current_school && (
-            <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-xl border border-zinc-200 dark:border-zinc-800 hover:shadow-2xl transition-all duration-300 hover:scale-105">
+            <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-md border border-zinc-200 dark:border-zinc-800 hover:shadow-lg transition-all duration-300 hover:scale-105">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-blue-100 dark:bg-blue-500/20 rounded-xl">
                   <GraduationCap className="h-6 w-6 text-blue-600 dark:text-blue-400" />
@@ -264,7 +266,7 @@ export default async function AwardeeDetail({ params }: { params: { slug: string
             </div>
           )}
           {awardee.year && (
-            <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-xl border border-zinc-200 dark:border-zinc-800 hover:shadow-2xl transition-all duration-300 hover:scale-105">
+            <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-md border border-zinc-200 dark:border-zinc-800 hover:shadow-lg transition-all duration-300 hover:scale-105">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-amber-100 dark:bg-amber-500/20 rounded-xl">
                   <Calendar className="h-6 w-6 text-amber-600 dark:text-amber-400" />

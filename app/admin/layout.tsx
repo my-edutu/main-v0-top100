@@ -19,7 +19,7 @@ export default function AdminLayout({
       />
 
       <AdminHeader />
-      <main className="w-full px-4 md:px-6 lg:px-8 xl:px-12 flex-grow">
+      <main className="w-full px-0 sm:px-1 md:px-2 lg:px-3 xl:px-4 flex-grow">
         <div className="container mx-auto max-w-[95%] 2xl:max-w-[1400px]">
           {children}
         </div>

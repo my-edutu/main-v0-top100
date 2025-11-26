@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { use, useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { MediumRichEditor } from "@/components/editor/medium-rich-editor"
+import { processImageForUpload, processCoverImage } from "@/lib/utils/image-processor"
 
 const postSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -68,7 +69,8 @@ interface AdminPostResponse {
   scheduled_at?: string | null
 }
 
-export default function EditPostPage({ params }: { params: { id: string } }) {
+export default function EditPostPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
   const router = useRouter()
   const coverInputRef = useRef<HTMLInputElement>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -147,7 +149,7 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
     const loadPost = async () => {
       try {
         setIsLoading(true)
-        const response = await fetch(`/api/posts?scope=admin&id=${params.id}`, { cache: "no-store" })
+        const response = await fetch(`/api/posts?scope=admin&id=${id}`, { cache: "no-store" })
         if (!response.ok) {
           throw new Error("Failed to load post")
         }
@@ -188,7 +190,7 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
     }
 
     loadPost()
-  }, [params.id, reset, router])
+  }, [id, reset, router])
 
   useEffect(() => {
     if (!slugLocked) {
@@ -202,24 +204,53 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
 
   const handleCoverUpload = async (file: File) => {
     try {
+      console.log('[blog-edit] Starting cover upload for file:', file.name, 'Size:', file.size)
       setCoverUploading(true)
+
+      // Process the cover image specifically for blog posts
+      const { processedFile, validationErrors } = await processCoverImage(
+        file,
+        {
+          quality: 0.8,
+          maxWidth: 1920,
+          maxHeight: 1080,
+        }
+      )
+
+      console.log('[blog-edit] Image processed. New size:', processedFile.size)
+
+      // If there are validation errors even after compression, show them
+      if (validationErrors.length > 0) {
+        throw new Error(`Image validation failed: ${validationErrors.join(', ')}`);
+      }
+
       const formData = new FormData()
-      formData.append("file", file)
+      formData.append("file", processedFile)
+
+      console.log('[blog-edit] Uploading to /api/uploads...')
 
       const response = await fetch("/api/uploads", {
         method: "POST",
         body: formData,
+      }).catch(fetchError => {
+        console.error('[blog-edit] Fetch error details:', fetchError)
+        throw new Error(`Network error: ${fetchError.message}. Is the dev server running?`)
       })
 
+      console.log('[blog-edit] Upload response status:', response.status)
+
       const payload = await response.json().catch(() => null)
+      console.log('[blog-edit] Upload response payload:', payload)
+
       if (!response.ok || !payload?.url) {
-        throw new Error(payload?.error ?? "Failed to upload cover image")
+        throw new Error(payload?.error ?? `Upload failed with status ${response.status}`)
       }
 
+      console.log('[blog-edit] Image uploaded successfully:', payload.url)
       setValue("coverImage", payload.url, { shouldDirty: true })
-      toast.success("Cover image uploaded")
+      toast.success("Cover image uploaded and optimized")
     } catch (error) {
-      console.error("[blog-edit] cover upload failed", error)
+      console.error("[blog-edit] Cover upload error:", error)
       toast.error(error instanceof Error ? error.message : "Failed to upload cover image")
     } finally {
       setCoverUploading(false)
@@ -227,6 +258,15 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
   }
 
   const onSubmit = async (data: PostFormValues) => {
+    console.log('[blog-edit] ========== FORM SUBMISSION STARTED ==========')
+    console.log('[blog-edit] Post ID:', id)
+    console.log('[blog-edit] Form data title:', data.title)
+    console.log('[blog-edit] Form data slug:', data.slug)
+    console.log('[blog-edit] Form data content length:', data.content?.length || 0)
+    console.log('[blog-edit] Form data coverImage:', data.coverImage)
+    console.log('[blog-edit] Form data status:', data.status)
+    console.log('[blog-edit] Full form data:', JSON.stringify(data, null, 2))
+
     setIsSubmitting(true)
     const toastId = "updating-post"
 
@@ -235,41 +275,93 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
 
       const tagsArray = serializeTags(data.tags)
 
+      console.log('[blog-edit] Tags array:', tagsArray)
+      console.log('[blog-edit] Serialized tags:', JSON.stringify(tagsArray))
+
+      const requestPayload = {
+        id: id,
+        title: data.title,
+        slug: data.slug,
+        content: data.content,
+        cover_image: data.coverImage || null,
+        cover_image_alt: data.coverImageAlt || null,
+        is_featured: data.isFeatured,
+        status: data.status,
+        tags: tagsArray,
+        excerpt: data.excerpt || null,
+        author: data.author || null,
+        meta_title: data.metaTitle || null,
+        meta_description: data.metaDescription || null,
+        meta_keywords: data.metaKeywords || null,
+        scheduled_at: data.status === 'scheduled' ? data.scheduledAt : null,
+      }
+
+      console.log('[blog-edit] Request payload JSON:', JSON.stringify(requestPayload, null, 2))
+
       const response = await fetch("/api/posts", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: params.id,
-          title: data.title,
-          slug: data.slug,
-          content: data.content,
-          cover_image: data.coverImage || null,
-          cover_image_alt: data.coverImageAlt || null,
-          is_featured: data.isFeatured,
-          status: data.status,
-          tags: tagsArray,
-          excerpt: data.excerpt || null,
-          author: data.author || null,
-          meta_title: data.metaTitle || null,
-          meta_description: data.metaDescription || null,
-          meta_keywords: data.metaKeywords || null,
-          scheduled_at: data.status === 'scheduled' ? data.scheduledAt : null,
-        }),
+        body: JSON.stringify(requestPayload),
       })
 
-      const payload = await response.json().catch(() => null)
+      console.log('[blog-edit] Response status:', response.status)
+      console.log('[blog-edit] Response statusText:', response.statusText)
+      console.log('[blog-edit] Response ok:', response.ok)
 
-      if (!response.ok || !payload) {
-        const message = payload?.message ?? payload?.error ?? "Failed to update post"
-        throw new Error(message)
+      let payload;
+      let responseText;
+      try {
+        responseText = await response.text()
+        console.log('[blog-edit] Raw response text:', responseText)
+
+        if (responseText) {
+          payload = JSON.parse(responseText)
+          console.log('[blog-edit] Parsed payload:', JSON.stringify(payload, null, 2))
+        }
+      } catch (parseError) {
+        // If JSON parsing fails, create an error payload
+        console.error("[blog-edit] Failed to parse response JSON:", parseError)
+        console.error("[blog-edit] Response text was:", responseText)
+        throw new Error(`API response parse error: ${response.status} ${response.statusText}`)
+      }
+
+      if (!response.ok) {
+        // Log the full error details for debugging
+        console.error('[blog-edit] ========== API ERROR ==========')
+        console.error('[blog-edit] Status:', response.status)
+        console.error('[blog-edit] Status Text:', response.statusText)
+        console.error('[blog-edit] Error payload:', JSON.stringify(payload, null, 2))
+
+        // Use the error message from API if available, otherwise create a generic one
+        const errorMessage = payload?.message || payload?.error || `Request failed with status ${response.status}`
+        throw new Error(errorMessage)
+      }
+
+      if (!payload) {
+        throw new Error("No response data received from server")
       }
 
       toast.success("Post updated", { id: toastId })
       router.push("/admin/blog")
       router.refresh()
     } catch (error) {
-      console.error("Error updating post", error)
-      toast.error(error instanceof Error ? error.message : "Failed to update post", { id: toastId })
+      console.error('[blog-edit] ========== ERROR CAUGHT ==========')
+      console.error('[blog-edit] Error:', error)
+      console.error('[blog-edit] Error message:', error instanceof Error ? error.message : 'Unknown error')
+      console.error('[blog-edit] Error stack:', error instanceof Error ? error.stack : 'No stack')
+      console.error('[blog-edit] Post data summary:', JSON.stringify({
+        id: id,
+        title: data.title,
+        slug: data.slug,
+        hasContent: !!data.content,
+        contentLength: data.content?.length || 0,
+        coverImage: data.coverImage,
+        status: data.status
+      }, null, 2))
+
+      // Provide more detailed error feedback
+      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred while updating the post"
+      toast.error(`Update failed: ${errorMessage}`, { id: toastId })
     } finally {
       setIsSubmitting(false)
     }

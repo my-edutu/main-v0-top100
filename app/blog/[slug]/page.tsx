@@ -9,8 +9,9 @@ import StructuredData from "@/components/StructuredData";
 
 export const dynamic = "force-dynamic";
 
-export async function generateMetadata({ params }: { params: { slug: string } }) {
-  const post = await getPostBySlug(params.slug);
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const post = await getPostBySlug(slug);
 
   if (!post) {
     return {
@@ -49,14 +50,15 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   };
 }
 
-export default async function BlogPostPage({ params }: { params: { slug: string } }) {
-  const post = await getPostBySlug(params.slug);
+export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const post = await getPostBySlug(slug);
 
   if (!post) {
     notFound();
   }
 
-  const relatedPosts = await getRelatedPosts(post.slug, 2);
+  const relatedPosts = await getRelatedPosts(slug, 2);
 
   // BlogPosting Schema for SEO
   const blogPostingSchema = {
@@ -98,16 +100,6 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
             <h1 className="text-3xl font-semibold text-white md:text-4xl mb-2">
               {post.title}
             </h1>
-            <div className="flex flex-wrap items-center gap-4 text-sm text-zinc-300">
-              <span className="inline-flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                {new Date(post.createdAt).toLocaleDateString()}
-              </span>
-              <span className="inline-flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                {post.readTime} min read
-              </span>
-            </div>
           </div>
 
           {/* Image section */}

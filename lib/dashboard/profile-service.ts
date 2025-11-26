@@ -69,7 +69,7 @@ const generateSlug = (value: string) =>
     .replace(/-+/g, '-')
 
 const ensureUniqueSlug = async (profileId: string, proposed: string) => {
-  const serviceClient = createClient(true)
+  const serviceClient = await createClient(true)
   const base = proposed && proposed.trim() ? proposed : randomUUID().split('-')[0]
 
   let candidate = base
@@ -102,7 +102,7 @@ export const fetchProfile = cache(async (profileId: string): Promise<UserProfile
   }
 
   try {
-    const supabase = createClient(true)
+    const supabase = await createClient(true)
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -125,7 +125,7 @@ export const fetchProfile = cache(async (profileId: string): Promise<UserProfile
 })
 
 export const fetchProfileBySlug = cache(async (slug: string): Promise<UserProfile | null> => {
-  const supabase = createClient(true)
+  const supabase = await createClient(true)
   const { data, error } = await supabase
     .from('profiles')
     .select('*')
@@ -141,7 +141,7 @@ export const fetchProfileBySlug = cache(async (slug: string): Promise<UserProfil
 })
 
 export const fetchAwardeeDirectory = cache(async (): Promise<AwardeeDirectoryEntry[]> => {
-  const supabase = createClient(true)
+  const supabase = await createClient(true)
   const { data, error } = await supabase
     .from('awardee_directory')
     .select('*')
@@ -156,7 +156,7 @@ export const fetchAwardeeDirectory = cache(async (): Promise<AwardeeDirectoryEnt
 })
 
 export const fetchAwardeeBySlug = cache(async (slug: string): Promise<AwardeeDirectoryEntry | null> => {
-  const supabase = createClient(true)
+  const supabase = await createClient(true)
   const { data, error } = await supabase
     .from('awardee_directory')
     .select('*')
@@ -177,7 +177,7 @@ export const fetchNotifications = async (userId: string): Promise<UserNotificati
   }
 
   try {
-    const supabase = createClient(true)
+    const supabase = await createClient(true)
     const { data, error } = await supabase
       .from('user_notifications')
       .select('*')
@@ -218,7 +218,7 @@ export const updateProfile = async ({
 
   // Validate that profileId is a proper UUID format before updating
   const parsed = profileUpdateSchema.parse(payload)
-  const supabase = createClient(asService)
+  const supabase = await createClient(asService)
 
   const baseSlug = parsed.slug ? parsed.slug : generateSlug(parsed.fullName)
   const slug = await ensureUniqueSlug(profileId, baseSlug)
@@ -274,7 +274,7 @@ export const ensureAwardeeLink = async ({ profileId, fullName, slug }: EnsureAwa
     return null
   }
 
-  const serviceClient = createClient(true)
+  const serviceClient = await createClient(true)
   const { data: existing, error: fetchError } = await serviceClient
     .from('awardees')
     .select('id')
@@ -321,7 +321,7 @@ export const ensureAwardeeLink = async ({ profileId, fullName, slug }: EnsureAwa
 }
 
 export const markNotificationAsRead = async (notificationId: string, asService = false) => {
-  const supabase = createClient(asService)
+  const supabase = await createClient(asService)
   const { error } = await supabase
     .from('user_notifications')
     .update({ read_at: new Date().toISOString() })
@@ -334,7 +334,7 @@ export const markNotificationAsRead = async (notificationId: string, asService =
 }
 
 export const dismissNotification = async (notificationId: string, asService = false) => {
-  const supabase = createClient(asService)
+  const supabase = await createClient(asService)
   const { error } = await supabase
     .from('user_notifications')
     .delete()

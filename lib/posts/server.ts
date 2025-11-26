@@ -1,9 +1,12 @@
 import { cache } from "react"
+import { unstable_cache } from 'next/cache'
 
 import { blogPosts } from "@/content/data/blog-posts"
 import { createClient } from "@/lib/supabase/server"
 
 import { mapStaticPost, mapSupabaseRecord, mergePosts, ResolvedPost, selectHomepagePosts } from "../posts"
+
+export { selectHomepagePosts } from "../posts"
 
 const fetchSupabasePosts = async (): Promise<ResolvedPost[]> => {
   try {

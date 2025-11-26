@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { Award, GraduationCap, MapPin, Users } from 'lucide-react'
+import { Award, GraduationCap, MapPin, Users, ArrowRight } from 'lucide-react'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -256,7 +256,7 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
             No awardees match your search yet. Try a different phrase.
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
             {currentPeople.map((person) => {
               const displayTagline =
                 person.tagline && person.tagline.trim().length > 0
@@ -266,64 +266,100 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
                   : person.field_of_study || person.course || ''
 
               return (
-                <Link key={person.slug} href={`/awardees/${person.slug}`} className="group">
-                  <div className="relative aspect-[2/3] overflow-hidden rounded-lg bg-zinc-900 transition-all duration-300 ease-out group-hover:scale-105 group-hover:z-10">
-                    {/* Background gradient */}
-                    <div className="absolute inset-0 bg-gradient-to-b from-zinc-900 via-zinc-800 to-zinc-900" />
-
-                    {/* Cover image if available */}
-                    {person.cover_image_url && (
-                      <div className="absolute inset-0">
+                <Link key={person.slug} href={`/awardees/${person.slug}`} className="group block">
+                  <div className="bg-white rounded-md border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden flex flex-col h-full">
+                    {/* Image container */}
+                    <div className="w-full aspect-square overflow-hidden bg-gray-100">
+                      {(person.cover_image_url || person.avatar_url) ? (
                         <img
-                          src={person.cover_image_url}
+                          src={person.cover_image_url || person.avatar_url || ''}
                           alt={person.name}
-                          className="h-full w-full object-cover opacity-40 transition-opacity group-hover:opacity-60"
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                         />
-                      </div>
-                    )}
-
-                    {/* Content overlay */}
-                    <div className="absolute inset-0 flex flex-col justify-end p-4 bg-gradient-to-t from-black via-black/80 to-transparent">
-                      <h3 className="text-sm sm:text-base font-semibold text-white mb-1 line-clamp-2">
-                        {person.name}
-                      </h3>
-
-                      {displayTagline && (
-                        <p className="text-xs sm:text-sm text-zinc-400 line-clamp-1 mb-2">
-                          {displayTagline}
-                        </p>
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-blue-50 to-gray-100 flex items-center justify-center">
+                          <AvatarSVG name={person.name} size={32} />
+                        </div>
                       )}
+                    </div>
 
-                      <div className="flex flex-col gap-1 text-xs sm:text-sm text-zinc-500">
-                        {person.country && (
-                          <span className="line-clamp-1">
-                            {person.country}
-                          </span>
-                        )}
-                      </div>
+                    {/* Content area with minimal padding */}
+                    <div className="p-2 flex flex-col flex-grow">
+                      <div className="flex-grow">
+                        <h3 className="text-xs font-semibold text-gray-900 group-hover:text-blue-600 transition-colors mb-0.5 line-clamp-1">
+                          {person.name}
+                        </h3>
 
-                      {/* Hover state - show more info */}
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 mt-2 pt-2 border-t border-zinc-700">
-                        {person.bio && (
-                          <p className="text-xs sm:text-sm text-zinc-400 line-clamp-3 mb-2">
-                            {person.bio}
+                        {displayTagline && (
+                          <p className="text-[0.6rem] text-gray-600 mb-1 line-clamp-1">
+                            {displayTagline}
                           </p>
                         )}
-                        {person.interests && person.interests.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5">
-                            {pickInterests(person.interests, 2).map((interest) => (
-                              <span key={interest} className="text-xs sm:text-sm px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300">
-                                {interest}
-                              </span>
-                            ))}
+
+                        {/* Prominently display CGPA */}
+                        {person.cgpa && (
+                          <div className="mb-1">
+                            <span className="text-[0.7rem] font-bold text-gray-900">
+                              {person.cgpa}
+                            </span>
                           </div>
                         )}
+
+                        <div className="space-y-0.5">
+                          {person.country && (
+                            <div className="flex items-center gap-0.5 text-[0.6rem] text-gray-500">
+                              <MapPin className="h-2 w-2" />
+                              <span>{person.country}</span>
+                            </div>
+                          )}
+
+                          {person.course && (
+                            <div className="flex items-center gap-0.5 text-[0.6rem] text-gray-500">
+                              <GraduationCap className="h-2 w-2" />
+                              <span className="line-clamp-1">{person.course}</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
+
+                      {person.interests && person.interests.length > 0 && (
+                        <div className="mt-1 flex flex-wrap gap-0.5 pt-1 border-t border-gray-100">
+                          {pickInterests(person.interests, 2).map((interest) => (
+                            <span
+                              key={interest}
+                              className="text-[0.5rem] px-1 py-0.5 rounded-full bg-gray-100 text-gray-700"
+                            >
+                              {interest}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </Link>
               )
             })}
+
+            {/* Magazine CTA Card */}
+            <Link
+              href="/magazine"
+              className="group block"
+            >
+              <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-md shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col h-full items-center justify-center p-6">
+                <Award className="h-12 w-12 text-orange-500 mb-3" />
+                <div className="text-center mb-3">
+                  <p className="text-base font-bold text-gray-900 leading-tight">
+                    Get magazine
+                  </p>
+                  <p className="text-base font-bold text-gray-900 leading-tight">
+                    to see full list
+                  </p>
+                </div>
+                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-orange-200 group-hover:bg-orange-300 transition-colors">
+                  <ArrowRight className="h-5 w-5 text-orange-600" />
+                </div>
+              </div>
+            </Link>
           </div>
         )}
 

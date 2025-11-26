@@ -5,7 +5,7 @@ export default function AdminFooter() {
 
   return (
     <footer className="bg-white border-t border-gray-200 py-6 mt-8">
-      <div className="container mx-auto px-6">
+      <div className="container mx-auto px-0 sm:px-1">
         <div className="flex flex-col md:flex-row justify-between items-center">
           <div className="text-sm text-gray-600 mb-4 md:mb-0">
             © {currentYear} Top100 Africa Future Leaders. All rights reserved.
