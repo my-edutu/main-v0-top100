@@ -1,6 +1,7 @@
-"use client"
+"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { format } from "date-fns"
 import { supabase } from "@/lib/supabase/client"
@@ -73,10 +74,15 @@ const sortUpcoming = (a: PublicEvent, b: PublicEvent) => new Date(a.start_at).ge
 const sortPast = (a: PublicEvent, b: PublicEvent) => new Date(b.start_at).getTime() - new Date(a.start_at).getTime()
 
 export default function EventsPage() {
+  const router = useRouter()
   const [events, setEvents] = useState<PublicEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedEvent, setSelectedEvent] = useState<PublicEvent | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
+
+  const handleNavigateToSummit = () => {
+    router.push('/initiatives/summit')
+  }
 
   const fetchEvents = useCallback(async () => {
     try {
@@ -307,9 +313,9 @@ export default function EventsPage() {
               </div>
               <div className="grid gap-6 md:grid-cols-2">
                 {/* Africa Future Leaders Summit 2026 */}
-                <div 
+                <div
                   className="group cursor-pointer relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:border-orange-400/70 hover:bg-white/10 hover:shadow-xl backdrop-blur"
-                  onClick={() => window.location.href = '/initiatives/summit'}
+                  onClick={handleNavigateToSummit}
                 >
                   <div className="absolute inset-0 bg-orange-400/10 opacity-0 transition-opacity duration-300 hover:opacity-100" />
                   <div className="relative z-10 flex flex-col gap-4">
@@ -364,9 +370,9 @@ export default function EventsPage() {
               ) : (
                 <div className="grid gap-6 md:grid-cols-3">
                   {/* Africa Future Leaders Summit 2025 - Past Event */}
-                  <div 
+                  <div
                     className="group cursor-pointer relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:border-orange-400/70 hover:bg-white/10 hover:shadow-xl backdrop-blur"
-                    onClick={() => window.location.href = '/initiatives/summit'}
+                    onClick={handleNavigateToSummit}
                   >
                     <div className="absolute inset-0 bg-orange-400/10 opacity-0 transition-opacity duration-300 hover:opacity-100" />
                     <div className="relative z-10 flex flex-col gap-4">
@@ -398,9 +404,9 @@ export default function EventsPage() {
                   </div>
 
                   {/* Africa Future Leaders Summit 2024 - Past Event */}
-                  <div 
+                  <div
                     className="group cursor-pointer relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:border-orange-400/70 hover:bg-white/10 hover:shadow-xl backdrop-blur"
-                    onClick={() => window.location.href = '/initiatives/summit'}
+                    onClick={handleNavigateToSummit}
                   >
                     <div className="absolute inset-0 bg-orange-400/10 opacity-0 transition-opacity duration-300 hover:opacity-100" />
                     <div className="relative z-10 flex flex-col gap-4">

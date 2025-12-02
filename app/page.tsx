@@ -228,7 +228,7 @@ export default function HomePage() {
                           className="object-cover object-top"
                           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         />
-                      ) : member.name === "Chinedu Nwangwu" ? (
+                      ) : member.name === "Chinedu Nwangwu" || member.name === "Chinedu Daniel" ? (
                         <Image
                           src="/team/chinedu daniel.jpg.png"
                           alt={member.name}

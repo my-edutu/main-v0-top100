@@ -1,8 +1,15 @@
 "use client"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
 import { Users, Target, Lightbulb } from "lucide-react"
 
 export default function AboutSection() {
+  const router = useRouter()
+
+  const handleJoinClick = () => {
+    router.push('/join')
+  }
+
   return (
     <section id="about" className="py-12">
       <div className="container mx-auto px-4">
@@ -25,8 +32,8 @@ export default function AboutSection() {
               students with resources, mentorship, and platforms that amplify their impact across Africa and beyond.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
-              <button 
-                onClick={() => window.location.href = '/join'}
+              <button
+                onClick={handleJoinClick}
                 className="transform rounded-lg border border-orange-400/30 bg-gradient-to-r from-orange-500 to-orange-600 px-8 py-3 font-semibold text-white shadow-lg shadow-orange-500/20 transition-all duration-300 hover:scale-105 hover:from-orange-600 hover:to-orange-700"
               >
                 Join Top100
