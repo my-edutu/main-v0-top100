@@ -122,6 +122,12 @@ export async function compressImage(
   }
 
   return new Promise((resolve, reject) => {
+    // Create canvas only on the client side
+    if (typeof document === 'undefined') {
+      reject(new Error('Document API not available (likely running on server)'));
+      return;
+    }
+
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
 

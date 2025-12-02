@@ -184,10 +184,12 @@ export const createClient = async (
       get(name: string) {
         // Client-side behavior
         if (typeof window !== "undefined") {
-          const value = document.cookie
-            .split("; ")
-            .find((row) => row.startsWith(`${name}=`))
-            ?.split("=")[1];
+          const value = typeof document !== "undefined"
+            ? document.cookie
+                .split("; ")
+                .find((row) => row.startsWith(`${name}=`))
+                ?.split("=")[1]
+            : undefined;
           return value || undefined;
         }
 
@@ -213,7 +215,9 @@ export const createClient = async (
           if (options.domain) cookieString += `; domain=${options.domain}`;
           if (options.sameSite) cookieString += `; samesite=${options.sameSite}`;
           if (options.secure) cookieString += "; secure";
-          document.cookie = cookieString;
+          if (typeof document !== "undefined") {
+            document.cookie = cookieString;
+          }
         } else {
           try {
             if (cookieStore && typeof (cookieStore as any).set === "function") {
@@ -226,9 +230,11 @@ export const createClient = async (
       },
       remove(name: string, options: CookieOptions) {
         if (typeof window !== "undefined") {
-          document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT${
-            options.path ? `; path=${options.path}` : ""
-          }`;
+          if (typeof document !== "undefined") {
+            document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT${
+              options.path ? `; path=${options.path}` : ""
+            }`;
+          }
         } else {
           try {
             if (cookieStore && typeof (cookieStore as any).set === "function") {

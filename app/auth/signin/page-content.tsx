@@ -141,7 +141,9 @@ export default function SignInContent() {
         }
 
         console.log('✅ Final redirect path:', redirectPath)
-        console.log('🍪 Current cookies:', document.cookie)
+        if (typeof document !== 'undefined') {
+          console.log('🍪 Current cookies:', document.cookie)
+        }
 
         // Verify session is actually stored
         const { data: verifySession } = await supabase.auth.getSession()
