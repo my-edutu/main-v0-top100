@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
 import {
   Table,
   TableBody,
@@ -133,7 +134,7 @@ const formatRange = (startAt: string, endAt?: string | null) => {
       return `${formattedStart} - ${format(end, "pp")}`
     }
 
-    return `${formattedStart} ? ${format(end, "PPpp")}`
+    return `${formattedStart} – ${format(end, "PPpp")}`
   } catch (error) {
     return startAt
   }
@@ -451,362 +452,460 @@ function AdminEventsPageContent() {
   }
 
   return (
-    <div className="space-y-10">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Events</h1>
-          <p className="text-muted-foreground">
-            Manage past and upcoming programs. New entries sync to the public site instantly.
+    <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pt-20 lg:pt-0">
+      {/* Header Section */}
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+            <span className="text-[10px] uppercase tracking-widest text-zinc-400 font-bold">Program Management</span>
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white leading-none">
+            Event <span className="text-amber-500">Registry</span>
+          </h1>
+          <p className="text-zinc-500 text-xs sm:text-sm font-medium">
+            Coordinate leader gatherings and digital summits.
           </p>
         </div>
-        <Button onClick={openCreateDialog} className="bg-primary text-primary-foreground">
-          <Plus className="mr-2 h-4 w-4" />
-          Add Event
+
+        <Button onClick={openCreateDialog} size="sm" className="bg-amber-500 hover:bg-amber-600 text-black font-bold rounded-xl h-10 px-4 shadow-lg shadow-amber-500/20">
+          <Plus className="mr-1 h-4 w-4" />
+          Create Event
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total events</CardTitle>
-            <CalendarDays className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
-            <CardDescription>Events tracked in the system</CardDescription>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Published</CardTitle>
-            <Eye className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.published}</div>
-            <CardDescription>Visible on the public site</CardDescription>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Upcoming</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.upcoming}</div>
-            <CardDescription>Start date is in the future</CardDescription>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Past events</CardTitle>
-            <EyeOff className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.past}</div>
-            <CardDescription>Completed programs</CardDescription>
-          </CardContent>
-        </Card>
+      {/* KPI Stats Grid - 2x2 on mobile */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <KPITile
+          label="Total Events"
+          value={stats.total}
+          icon={CalendarDays}
+          color="blue"
+          subValue="Tracked"
+        />
+        <KPITile
+          label="Active"
+          value={stats.published}
+          icon={Globe2}
+          color="emerald"
+          subValue="Public"
+        />
+        <KPITile
+          label="Upcoming"
+          value={stats.upcoming}
+          icon={Clock}
+          color="amber"
+          subValue="Scheduled"
+        />
+        <KPITile
+          label="Completed"
+          value={stats.past}
+          icon={EyeOff}
+          color="zinc"
+          subValue="Archived"
+        />
       </div>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0">
-          <div>
-            <CardTitle className="text-xl font-semibold">Event timeline</CardTitle>
-            <CardDescription>Toggle visibility or publish state directly from the list.</CardDescription>
+      {/* Main Events Table Card */}
+      <Card className="bg-zinc-900/40 border-white/5 backdrop-blur-sm rounded-3xl overflow-hidden min-h-[500px]">
+        <CardHeader className="border-b border-white/5 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg font-bold text-white flex items-center gap-2">
+              <CalendarDays className="h-4 w-4 text-zinc-400" />
+              Timeline
+            </CardTitle>
+            <Badge variant="outline" className="bg-emerald-500/5 text-emerald-400 border-emerald-500/20">
+              Sync Active
+            </Badge>
           </div>
-          <Badge variant="outline">Real-time sync</Badge>
+          <CardDescription className="text-zinc-500">
+            Real-time overview of all programmed activities.
+          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="p-0">
           {loading ? (
-            <div className="flex items-center justify-center py-16 text-muted-foreground">
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              Loading events...
+            <div className="flex flex-col items-center justify-center p-20 space-y-4 text-zinc-500">
+              <Loader2 className="h-10 w-10 animate-spin text-amber-500" />
+              <p>Loading schedule...</p>
             </div>
           ) : events.length === 0 ? (
-            <div className="py-16 text-center text-muted-foreground">
-              No events yet. Create your first one to kickstart the timeline.
+            <div className="py-20 text-center text-zinc-500 border-2 border-dashed border-zinc-800 m-8 rounded-2xl">
+              <p>No events scheduled. Launch your first program to get started.</p>
             </div>
           ) : (
-            <div className="rounded-md border overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="min-w-[200px]">Event</TableHead>
-                    <TableHead className="min-w-[220px]">Schedule</TableHead>
-                    <TableHead className="min-w-[140px]">Location</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Visibility</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {events.map((event) => (
-                    <TableRow key={event.id}>
-                      <TableCell>
-                        <div className="space-y-1">
-                          <div className="font-medium flex items-center gap-2">
-                            {event.title}
-                            {event.is_featured && (
-                              <span className="inline-flex items-center rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-800">
-                                Featured
+            <div className="relative">
+              {/* Desktop Table View */}
+              <div className="hidden lg:block overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-white/5">
+                    <TableRow className="border-white/5 hover:bg-transparent">
+                      <TableHead className="text-zinc-400 pl-6">Event Details</TableHead>
+                      <TableHead className="text-zinc-400">Schedule</TableHead>
+                      <TableHead className="text-zinc-400">Location</TableHead>
+                      <TableHead className="text-zinc-400">Status</TableHead>
+                      <TableHead className="text-zinc-400">Visibility</TableHead>
+                      <TableHead className="text-zinc-400 text-right pr-6">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {events.map((event) => (
+                      <TableRow key={event.id} className="border-white/5 hover:bg-white/5 transition-colors group">
+                        <TableCell className="pl-6 py-4">
+                          <div className="space-y-1">
+                            <div className="font-medium text-zinc-200 flex items-center gap-2 text-base">
+                              {event.title}
+                              {event.is_featured && (
+                                <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-400 border border-amber-500/20">
+                                  Featured
+                                </span>
+                              )}
+                            </div>
+                            {event.summary && (
+                              <p className="text-xs text-zinc-500 line-clamp-1 max-w-[300px]">{event.summary}</p>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm text-zinc-400 font-mono">
+                            {formatRange(event.start_at, event.end_at)}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm text-zinc-300 flex items-center gap-2">
+                            {event.is_virtual ? (
+                              <Badge variant="secondary" className="bg-purple-500/10 text-purple-400 border-purple-500/20">
+                                <Globe2 className="h-3 w-3 mr-1" /> Virtual
+                              </Badge>
+                            ) : (
+                              <span className="flex items-center gap-1.5">
+                                <MapPin className="h-3.5 w-3.5 text-zinc-500" />
+                                {event.city || event.location || "Onsite"}
                               </span>
                             )}
                           </div>
-                          {event.summary && (
-                            <p className="text-xs text-muted-foreground line-clamp-2">{event.summary}</p>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm text-muted-foreground">
-                          {formatRange(event.start_at, event.end_at)}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm text-muted-foreground flex items-center gap-2">
-                          {event.is_virtual ? (
-                            <>
-                              <Globe2 className="h-3.5 w-3.5" />
-                              Virtual
-                            </>
-                          ) : (
-                            <>
-                              <MapPin className="h-3.5 w-3.5" />
-                              {event.city || event.location || "Onsite"}
-                            </>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={event.status === "published" ? "default" : event.status === "draft" ? "secondary" : "outline"}
-                        >
-                          {event.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={event.visibility === "public" ? "outline" : "secondary"}>
-                          {event.visibility}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
+                        </TableCell>
+                        <TableCell>
+                          <Badge
                             variant="outline"
-                            size="sm"
-                            onClick={() => toggleStatus(event)}
-                            className="w-24"
+                            className={event.status === "published"
+                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                              : event.status === "draft"
+                                ? "bg-zinc-800 text-zinc-400 border-zinc-700"
+                                : "bg-red-900/20 text-red-400 border-red-900/30"}
                           >
-                            {event.status === "published" ? "Unpublish" : "Publish"}
-                          </Button>
-                          <Button
+                            {event.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="border-white/10 text-zinc-400">
+                            {event.visibility}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right pr-6">
+                          <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => toggleStatus(event)}
+                              className="h-8 text-xs text-zinc-400 hover:text-white hover:bg-white/10"
+                            >
+                              {event.status === "published" ? "Unpublish" : "Publish"}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => toggleFeatured(event)}
+                              className={`h-8 w-8 rounded-lg ${event.is_featured ? 'text-amber-400 bg-amber-400/10' : 'text-zinc-600 hover:text-amber-400'}`}
+                            >
+                              <Star className={`h-4 w-4 ${event.is_featured ? "fill-current" : ""}`} />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openEditDialog(event)}
+                              className="h-8 w-8 text-zinc-400 hover:text-white hover:bg-white/10 rounded-lg"
+                            >
+                              <Edit2 className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDelete(event.id, event.title)}
+                              disabled={deletingId === event.id}
+                              className="h-8 w-8 text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg"
+                            >
+                              {deletingId === event.id ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-3.5 w-3.5" />
+                              )}
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="lg:hidden p-4 space-y-4">
+                {events.map((event) => (
+                  <div key={event.id} className="relative bg-zinc-950/40 border border-white/5 rounded-3xl p-5 space-y-4 hover:border-amber-500/30 transition-all overflow-hidden">
+                    {/* Featured Badge */}
+                    {event.is_featured && (
+                      <div className="absolute top-4 right-4">
+                        <span className="inline-flex items-center rounded-full bg-amber-500/20 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-400">
+                          <Star className="h-3 w-3 mr-1 fill-current" /> Featured
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="space-y-2">
+                      <h3 className="text-lg font-bold text-white pr-20">{event.title}</h3>
+                      {event.summary && (
+                        <p className="text-xs text-zinc-500 line-clamp-2">{event.summary}</p>
+                      )}
+                    </div>
+
+                    <div className="space-y-3 bg-white/5 rounded-2xl p-3 border border-white/5">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-zinc-500 flex items-center gap-1.5">
+                          <CalendarDays className="h-3.5 w-3.5" /> Schedule
+                        </span>
+                        <span className="text-white font-mono text-[10px]">{format(new Date(event.start_at), "MMM d, yyyy")}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-zinc-500 flex items-center gap-1.5">
+                          {event.is_virtual ? <Globe2 className="h-3.5 w-3.5" /> : <MapPin className="h-3.5 w-3.5" />}
+                          Location
+                        </span>
+                        <span className="text-white">{event.is_virtual ? "Virtual" : (event.city || event.location || "Onsite")}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <div className="flex gap-2">
+                          <Badge
                             variant="outline"
-                            size="sm"
-                            onClick={() => toggleVisibility(event)}
-                            className="w-20"
-                          >
-                            {event.visibility === "public" ? "Hide" : "Show"}
-                          </Button>
-                          <Button
-                            variant={event.is_featured ? "secondary" : "outline"}
-                            size="sm"
-                            onClick={() => toggleFeatured(event)}
-                          >
-                            <Star className={`mr-1 h-3.5 w-3.5 ${event.is_featured ? "fill-current" : ""}`} />
-                            Highlight
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openEditDialog(event)}
-                          >
-                            <Edit2 className="mr-1 h-3.5 w-3.5" />
-                            Edit
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => handleDelete(event.id, event.title)}
-                            disabled={deletingId === event.id}
-                          >
-                            {deletingId === event.id ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <>
-                                <Trash2 className="mr-1 h-3.5 w-3.5" />
-                                Delete
-                              </>
+                            className={cn(
+                              "text-[10px]",
+                              event.status === "published"
+                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                : "bg-zinc-800 text-zinc-400 border-zinc-700"
                             )}
-                          </Button>
+                          >
+                            {event.status}
+                          </Badge>
+                          <Badge variant="outline" className="border-white/10 text-zinc-400 text-[10px]">
+                            {event.visibility}
+                          </Badge>
                         </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-white/5">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleStatus(event)}
+                        className="h-8 text-xs text-zinc-400 hover:text-white hover:bg-white/10 rounded-lg"
+                      >
+                        {event.status === "published" ? "Unpublish" : "Publish"}
+                      </Button>
+                      <div className="flex gap-1.5">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => toggleFeatured(event)}
+                          className={cn("h-8 w-8 rounded-full", event.is_featured ? "bg-amber-500/20 text-amber-500" : "bg-white/5 text-zinc-600")}
+                        >
+                          <Star className={cn("h-4 w-4", event.is_featured && "fill-current")} />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => openEditDialog(event)} className="h-8 w-8 rounded-full bg-white/5 text-zinc-400">
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDelete(event.id, event.title)} disabled={deletingId === event.id} className="h-8 w-8 rounded-full bg-rose-500/10 text-rose-500">
+                          {deletingId === event.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </CardContent>
       </Card>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-h-[90vh] overflow-y-auto bg-zinc-950 border-white/10 text-white sm:max-w-[700px]">
           <DialogHeader>
-            <DialogTitle>{mode === "create" ? "Add new event" : "Edit event"}</DialogTitle>
+            <DialogTitle className="text-xl font-bold">{mode === "create" ? "Create New Event" : "Edit Event Details"}</DialogTitle>
           </DialogHeader>
 
-          <div className="grid gap-4 py-2">
+          <div className="grid gap-6 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="title">Title</Label>
+              <Label htmlFor="title" className="text-zinc-400">Event Title</Label>
               <Input
                 id="title"
                 value={formState.title}
                 onChange={(event) => setFormState((prev) => ({ ...prev, title: event.target.value }))}
-                placeholder="Leadership Summit 2025"
+                placeholder="Ex: Leadership Summit 2025"
+                className="bg-zinc-900 border-zinc-800 text-white focus:ring-amber-500/50 focus:border-amber-500/50"
               />
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="subtitle">Subtitle</Label>
+              <Label htmlFor="subtitle" className="text-zinc-400">Subtitle</Label>
               <Input
                 id="subtitle"
                 value={formState.subtitle}
                 onChange={(event) => setFormState((prev) => ({ ...prev, subtitle: event.target.value }))}
                 placeholder="Inspiring bold ideas"
+                className="bg-zinc-900 border-zinc-800 text-white"
               />
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="summary">Summary</Label>
+              <Label htmlFor="summary" className="text-zinc-400">Summary (Short)</Label>
               <Textarea
                 id="summary"
                 value={formState.summary}
                 onChange={(event) => setFormState((prev) => ({ ...prev, summary: event.target.value }))}
-                placeholder="Short teaser that appears in listings"
-                rows={3}
+                placeholder="Teaser for list views..."
+                rows={2}
+                className="bg-zinc-900 border-zinc-800 text-white resize-none"
               />
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description" className="text-zinc-400">Full Description</Label>
               <Textarea
                 id="description"
                 value={formState.description}
                 onChange={(event) => setFormState((prev) => ({ ...prev, description: event.target.value }))}
-                placeholder="Full overview for the event detail view"
-                rows={5}
+                placeholder="Detailed event information..."
+                rows={4}
+                className="bg-zinc-900 border-zinc-800 text-white"
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="startAt">Start</Label>
+                <Label htmlFor="startAt" className="text-zinc-400">Start Date</Label>
                 <Input
                   id="startAt"
                   type="datetime-local"
                   value={formState.startAt}
                   onChange={(event) => setFormState((prev) => ({ ...prev, startAt: event.target.value }))}
+                  className="bg-zinc-900 border-zinc-800 text-white"
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="endAt">End</Label>
+                <Label htmlFor="endAt" className="text-zinc-400">End Date</Label>
                 <Input
                   id="endAt"
                   type="datetime-local"
                   value={formState.endAt}
                   onChange={(event) => setFormState((prev) => ({ ...prev, endAt: event.target.value }))}
+                  className="bg-zinc-900 border-zinc-800 text-white"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="city">City</Label>
-                <Input
-                  id="city"
-                  value={formState.city}
-                  onChange={(event) => setFormState((prev) => ({ ...prev, city: event.target.value }))}
-                  placeholder="Lagos"
-                />
+            {/* Location Group */}
+            <div className="space-y-3 bg-zinc-900/50 p-4 rounded-xl border border-white/5">
+              <div className="flex justify-between items-center mb-2">
+                <h4 className="text-sm font-medium text-zinc-300">Location Settings</h4>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-zinc-500">Virtual Event</span>
+                  <Switch
+                    checked={formState.isVirtual}
+                    onCheckedChange={(checked) => setFormState((prev) => ({ ...prev, isVirtual: checked }))}
+                    className="data-[state=checked]:bg-amber-500"
+                  />
+                </div>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="country">Country</Label>
-                <Input
-                  id="country"
-                  value={formState.country}
-                  onChange={(event) => setFormState((prev) => ({ ...prev, country: event.target.value }))}
-                  placeholder="Nigeria"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="location">Venue / URL</Label>
+                <Label htmlFor="location" className="text-xs text-zinc-500">Venue Name</Label>
                 <Input
                   id="location"
                   value={formState.location}
                   onChange={(event) => setFormState((prev) => ({ ...prev, location: event.target.value }))}
                   placeholder="Eko Convention Centre"
+                  className="bg-zinc-950 border-zinc-800 text-white"
                 />
               </div>
-            </div>
-
-            <div className="flex items-center justify-between rounded-lg border px-4 py-3">
-              <div>
-                <p className="text-sm font-medium">Virtual event</p>
-                <p className="text-xs text-muted-foreground">Switch on for online-only experiences.</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="city" className="text-xs text-zinc-500">City</Label>
+                  <Input
+                    id="city"
+                    value={formState.city}
+                    onChange={(event) => setFormState((prev) => ({ ...prev, city: event.target.value }))}
+                    placeholder="Lagos"
+                    className="bg-zinc-950 border-zinc-800 text-white"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="country" className="text-xs text-zinc-500">Country</Label>
+                  <Input
+                    id="country"
+                    value={formState.country}
+                    onChange={(event) => setFormState((prev) => ({ ...prev, country: event.target.value }))}
+                    placeholder="Nigeria"
+                    className="bg-zinc-950 border-zinc-800 text-white"
+                  />
+                </div>
               </div>
-              <Switch
-                checked={formState.isVirtual}
-                onCheckedChange={(checked) => setFormState((prev) => ({ ...prev, isVirtual: checked }))}
-              />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="registrationUrl">Registration link</Label>
+                <Label htmlFor="registrationUrl" className="text-zinc-400">Registration Link</Label>
                 <Input
                   id="registrationUrl"
                   value={formState.registrationUrl}
                   onChange={(event) => setFormState((prev) => ({ ...prev, registrationUrl: event.target.value }))}
-                  placeholder="https://example.com/register"
+                  placeholder="https://..."
+                  className="bg-zinc-900 border-zinc-800 text-white"
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="registrationLabel">Button label</Label>
+                <Label htmlFor="registrationLabel" className="text-zinc-400">Button Label</Label>
                 <Input
                   id="registrationLabel"
                   value={formState.registrationLabel}
                   onChange={(event) => setFormState((prev) => ({ ...prev, registrationLabel: event.target.value }))}
-                  placeholder="Register"
+                  placeholder="Register Now"
+                  className="bg-zinc-900 border-zinc-800 text-white"
                 />
               </div>
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="featuredImageUrl">Cover image URL</Label>
+              <Label htmlFor="featuredImageUrl" className="text-zinc-400">Cover Image URL</Label>
               <Input
                 id="featuredImageUrl"
                 value={formState.featuredImageUrl}
                 onChange={(event) => setFormState((prev) => ({ ...prev, featuredImageUrl: event.target.value }))}
-                placeholder="https://images.example.com/event.jpg"
+                placeholder="https://..."
+                className="bg-zinc-900 border-zinc-800 text-white"
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="tags">Tags</Label>
+                <Label htmlFor="tags" className="text-zinc-400">Tags</Label>
                 <Input
                   id="tags"
                   value={formState.tags}
                   onChange={(event) => setFormState((prev) => ({ ...prev, tags: event.target.value }))}
-                  placeholder="leadership, innovation"
+                  placeholder="Leadership, Technology"
+                  className="bg-zinc-900 border-zinc-800 text-white"
                 />
-                <span className="text-xs text-muted-foreground">Comma separated keywords</span>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="capacity">Capacity</Label>
+                <Label htmlFor="capacity" className="text-zinc-400">Capacity</Label>
                 <Input
                   id="capacity"
                   type="number"
@@ -814,23 +913,24 @@ function AdminEventsPageContent() {
                   value={formState.capacity}
                   onChange={(event) => setFormState((prev) => ({ ...prev, capacity: event.target.value }))}
                   placeholder="250"
+                  className="bg-zinc-900 border-zinc-800 text-white"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-zinc-900/50 rounded-xl border border-white/5">
               <div className="grid gap-2">
-                <Label>Status</Label>
+                <Label className="text-zinc-400">Status</Label>
                 <Select
                   value={formState.status}
                   onValueChange={(status: "draft" | "published" | "archived") =>
                     setFormState((prev) => ({ ...prev, status }))
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-zinc-950 border-zinc-800 text-white">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
                     <SelectItem value="draft">Draft</SelectItem>
                     <SelectItem value="published">Published</SelectItem>
                     <SelectItem value="archived">Archived</SelectItem>
@@ -838,17 +938,17 @@ function AdminEventsPageContent() {
                 </Select>
               </div>
               <div className="grid gap-2">
-                <Label>Visibility</Label>
+                <Label className="text-zinc-400">Visibility</Label>
                 <Select
                   value={formState.visibility}
                   onValueChange={(visibility: "public" | "private") =>
                     setFormState((prev) => ({ ...prev, visibility }))
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-zinc-950 border-zinc-800 text-white">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
                     <SelectItem value="public">Public</SelectItem>
                     <SelectItem value="private">Private</SelectItem>
                   </SelectContent>
@@ -856,25 +956,25 @@ function AdminEventsPageContent() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between rounded-lg border px-4 py-3">
+            <div className="flex items-center justify-between rounded-lg border border-amber-500/20 bg-amber-500/5 px-4 py-3">
               <div>
-                <p className="text-sm font-medium">Feature on homepage</p>
-                <p className="text-xs text-muted-foreground">Highlighted events show up in hero sections.</p>
+                <p className="text-sm font-medium text-amber-500">Spotlight Feature</p>
+                <p className="text-xs text-zinc-500">Show this event on the homepage hero section.</p>
               </div>
               <Switch
                 checked={formState.isFeatured}
                 onCheckedChange={(checked) => setFormState((prev) => ({ ...prev, isFeatured: checked }))}
+                className="data-[state=checked]:bg-amber-500"
               />
             </div>
+
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={closeDialog} disabled={submitting}>
-              Cancel
-            </Button>
-            <Button onClick={handleSubmit} disabled={submitting}>
-              {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {mode === "create" ? "Create event" : "Save changes"}
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="ghost" onClick={closeDialog} className="text-zinc-400 hover:text-white hover:bg-white/5">Cancel</Button>
+            <Button onClick={handleSubmit} disabled={submitting} className="bg-amber-500 hover:bg-amber-600 text-black font-semibold">
+              {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {mode === "create" ? "Create Event" : "Save Changes"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -895,5 +995,43 @@ export default function AdminEventsPage() {
     >
       <AdminEventsPageContent />
     </Suspense>
+  )
+}
+
+function KPITile({ label, value, icon: Icon, color, subValue }: any) {
+  const colors: any = {
+    blue: "from-blue-600 to-indigo-600 shadow-blue-500/20",
+    emerald: "from-emerald-600 to-teal-500 shadow-emerald-500/20",
+    amber: "from-orange-500 to-amber-500 shadow-orange-500/20",
+    rose: "from-rose-600 to-pink-500 shadow-rose-500/20",
+    purple: "from-purple-600 to-indigo-600 shadow-purple-500/20",
+    zinc: "from-zinc-700 to-zinc-900 shadow-zinc-500/20",
+  }
+
+  const selectedColor = colors[color] || colors.blue
+
+  return (
+    <div className={cn(
+      "relative p-6 rounded-[2rem] border-none bg-gradient-to-br shadow-xl overflow-hidden transition-all duration-300 hover:scale-[1.05] hover:-translate-y-1 group",
+      selectedColor
+    )}>
+      {/* Background Icon */}
+      <Icon className="absolute -right-4 -bottom-4 h-24 w-24 text-white opacity-[0.08] -rotate-12 group-hover:scale-110 transition-transform duration-700" />
+
+      <div className="relative z-10 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="h-12 w-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-lg">
+            <Icon className="h-6 w-6 text-white" />
+          </div>
+        </div>
+        <div className="space-y-1">
+          <p className="text-4xl font-black text-white tracking-tighter">{value}</p>
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/80">{label}</p>
+            {subValue && <span className="text-[10px] font-medium text-white/90 bg-black/10 px-2 py-0.5 rounded-full backdrop-blur-sm border border-white/10">{subValue}</span>}
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }

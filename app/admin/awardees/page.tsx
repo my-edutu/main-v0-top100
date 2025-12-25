@@ -2,21 +2,22 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table';
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle 
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -38,7 +39,8 @@ import {
   Award,
   Eye,
   EyeOff,
-  Star
+  Star,
+  FileText
 } from 'lucide-react';
 
 interface Awardee {
@@ -149,18 +151,18 @@ export default function AwardeesManagement() {
       const data = await response.json();
       const normalized: Awardee[] = Array.isArray(data)
         ? data.map((awardee: any) => {
-            const parsedYear = typeof awardee.year === 'string' ? parseInt(awardee.year, 10) : awardee.year;
-            const sanitizedCountry = awardee.country ? awardee.country.toString().trim() : null;
-            const sanitizedCourse = awardee.course ? awardee.course.toString().trim() : null;
+          const parsedYear = typeof awardee.year === 'string' ? parseInt(awardee.year, 10) : awardee.year;
+          const sanitizedCountry = awardee.country ? awardee.country.toString().trim() : null;
+          const sanitizedCourse = awardee.course ? awardee.course.toString().trim() : null;
 
-            return {
-              ...awardee,
-              name: (awardee.name ?? '').toString().trim(),
-              country: sanitizedCountry && sanitizedCountry.length > 0 ? sanitizedCountry : null,
-              course: sanitizedCourse && sanitizedCourse.length > 0 ? sanitizedCourse : null,
-              year: typeof parsedYear === 'number' && !Number.isNaN(parsedYear) ? parsedYear : null,
-            } as Awardee;
-          })
+          return {
+            ...awardee,
+            name: (awardee.name ?? '').toString().trim(),
+            country: sanitizedCountry && sanitizedCountry.length > 0 ? sanitizedCountry : null,
+            course: sanitizedCourse && sanitizedCourse.length > 0 ? sanitizedCourse : null,
+            year: typeof parsedYear === 'number' && !Number.isNaN(parsedYear) ? parsedYear : null,
+          } as Awardee;
+        })
         : [];
       setAwardees(normalized);
       setFilteredAwardees(normalized);
@@ -283,27 +285,27 @@ export default function AwardeesManagement() {
     try {
       setUploading(true);
       toast.loading('Importing awardees...', { id: 'import-awardees' });
-      
+
       const formData = new FormData();
       formData.append('file', file);
-      
+
       const response = await fetch('/api/awardees/import', {
         method: 'POST',
         body: formData,
       });
-      
+
       const result = await response.json().catch(() => null);
       const isSuccessful = response.ok && result?.success;
-      
+
       if (isSuccessful) {
         const message = result?.message || `Imported ${result?.imported ?? 0} awardees successfully`;
         toast.success(message, { id: 'import-awardees' });
         setFile(null);
-        
+
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
-        
+
         await fetchAwardees({ withSpinner: false });
       } else {
         const errorMessage = result?.error || result?.message || 'Failed to import awardees';
@@ -601,509 +603,444 @@ export default function AwardeesManagement() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // ... existing code ...
+
   return (
-    <div className="container mx-auto py-10">
-      <div className="mb-8">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">
-            Awardees Management
+    <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pt-20 lg:pt-0">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+            <span className="text-[10px] uppercase tracking-widest text-zinc-400 font-bold">Awardee Management</span>
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight leading-none">
+            Awardee <span className="text-blue-500">Directory</span>
           </h1>
-          <p className="text-muted-foreground">Manage and update Top100 Africa Future Leaders</p>
+          <p className="text-zinc-500 text-xs sm:text-sm font-medium">
+            Manage, verify, and spotlight future leaders of Africa.
+          </p>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:shadow-lg transition-shadow">
-          <CardHeader className="pb-2">
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-400/30 rounded-lg mr-3">
-                <Users className="h-6 w-6" />
-              </div>
-              <CardTitle className="text-lg">Total</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {loading ? <div className="h-6 w-12 bg-blue-400/30 rounded animate-pulse" /> : stats?.totalAwardees || 0}
-            </div>
-            <p className="text-xs text-blue-100 mt-1">All awardees</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white hover:shadow-lg transition-shadow">
-          <CardHeader className="pb-2">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-400/30 rounded-lg mr-3">
-                <Globe className="h-6 w-6" />
-              </div>
-              <CardTitle className="text-lg">Countries</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {loading ? <div className="h-6 w-12 bg-green-400/30 rounded animate-pulse" /> : stats?.totalCountries || 0}
-            </div>
-            <p className="text-xs text-green-100 mt-1">From different countries</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white hover:shadow-lg transition-shadow">
-          <CardHeader className="pb-2">
-            <div className="flex items-center">
-              <div className="p-2 bg-purple-400/30 rounded-lg mr-3">
-                <GraduationCap className="h-6 w-6" />
-              </div>
-              <CardTitle className="text-lg">Courses</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {loading ? <div className="h-6 w-12 bg-purple-400/30 rounded animate-pulse" /> : stats?.totalCourses || 0}
-            </div>
-            <p className="text-xs text-purple-100 mt-1">Different fields</p>
-          </CardContent>
-        </Card>
-
-        <Card
-          className="bg-gradient-to-br from-yellow-500 to-orange-600 text-white hover:shadow-lg transition-shadow cursor-pointer"
-          onClick={() => setFilterType('featured')}
-        >
-          <CardHeader className="pb-2">
-            <div className="flex items-center">
-              <div className="p-2 bg-yellow-400/30 rounded-lg mr-3">
-                <Star className="h-6 w-6 fill-current" />
-              </div>
-              <CardTitle className="text-lg">Featured</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {loading ? <div className="h-6 w-12 bg-yellow-400/30 rounded animate-pulse" /> : stats?.featuredAwardees || 0}
-            </div>
-            <p className="text-xs text-yellow-100 mt-1">On homepage</p>
-          </CardContent>
-        </Card>
+        <div className="flex items-center gap-2 shrink-0">
+          <Link href="/admin/awardees/new">
+            <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-9 px-2 sm:px-4 shadow-lg shadow-blue-900/20 font-bold">
+              <Plus className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">Add New</span>
+            </Button>
+          </Link>
+          <Button variant="outline" size="sm" onClick={handleExport} className="bg-zinc-950/50 border-white/10 text-zinc-400 hover:text-white rounded-xl h-9 px-2 sm:px-4 font-bold">
+            <Download className="h-4 w-4 sm:mr-1" />
+            <span className="hidden sm:inline">Export</span>
+          </Button>
+        </div>
       </div>
 
-      {/* Import/Export Section - Moved to top on desktop */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Excel Import/Export</CardTitle>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+        <KPITile
+          label="Total Leaders"
+          value={stats?.totalAwardees || 0}
+          icon={Users}
+          color="blue"
+          subValue="All time"
+        />
+        <KPITile
+          label="Nations"
+          value={stats?.totalCountries || 0}
+          icon={Globe}
+          color="emerald"
+          subValue="Represented"
+        />
+        <KPITile
+          label="Featured"
+          value={stats?.featuredAwardees || 0}
+          icon={Star}
+          color="amber"
+          subValue="On Homepage"
+        />
+        <KPITile
+          label="Hidden"
+          value={stats?.hiddenAwardees || 0}
+          icon={EyeOff}
+          color="rose"
+          subValue="Private Profiles"
+        />
+      </div>
+
+      {/* Operations Bar: Import/Export & Filters */}
+      <Card className="bg-zinc-900/40 border-white/5 backdrop-blur-sm rounded-3xl overflow-hidden">
+        <CardHeader className="border-b border-white/5 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg font-bold text-white flex items-center gap-2">
+              <Download className="h-4 w-4 text-zinc-400" />
+              Data Operations
+            </CardTitle>
+          </div>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <h3 className="text-sm font-medium mb-2">Import Awardees</h3>
-              <div className="flex flex-col gap-2">
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Left: Search & Filters */}
+            <div className="space-y-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
                 <Input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileChange}
-                  accept=".xlsx,.xls"
-                  className="hidden"
+                  placeholder="Search leaders..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 bg-zinc-950/50 border-white/10 text-white h-11 rounded-xl focus:ring-blue-500/50 focus:border-blue-500/50 placeholder:text-zinc-600 w-full"
                 />
-                <Button
-                  variant="outline"
-                  onClick={handleFileUploadClick}
-                  className="w-full justify-start"
-                  disabled={uploading}
-                >
-                  {uploading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Uploading...
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="mr-2 h-4 w-4" />
-                      {file ? file.name : 'Select Excel File'}
-                    </>
-                  )}
-                </Button>
-                {file && (
-                  <div className="flex items-center justify-between bg-secondary p-2 rounded">
-                    <span className="text-xs truncate">{file.name}</span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setFile(null);
-                        if (fileInputRef.current) {
-                          fileInputRef.current.value = '';
-                        }
-                      }}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-                <Button
-                  onClick={handleImport}
-                  disabled={!file || uploading}
-                >
-                  {uploading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Importing...
-                    </>
-                  ) : (
-                    'Import'
-                  )}
-                </Button>
+              </div>
+
+              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar -mx-2 px-2 pb-1">
+                <FilterButton
+                  active={filterType === 'all'}
+                  onClick={() => setFilterType('all')}
+                  label={`All (${awardees.length})`}
+                />
+                <FilterButton
+                  active={filterType === 'featured'}
+                  onClick={() => setFilterType('featured')}
+                  label={`Featured (${stats?.featuredAwardees || 0})`}
+                  icon={Star}
+                  color="amber"
+                />
+                <FilterButton
+                  active={filterType === 'visible'}
+                  onClick={() => setFilterType('visible')}
+                  label={`Visible (${stats?.visibleAwardees || 0})`}
+                  icon={Eye}
+                  color="emerald"
+                />
+                <FilterButton
+                  active={filterType === 'hidden'}
+                  onClick={() => setFilterType('hidden')}
+                  label={`Hidden (${stats?.hiddenAwardees || 0})`}
+                  icon={EyeOff}
+                  color="rose"
+                />
               </div>
             </div>
 
-            <div>
-              <h3 className="text-sm font-medium mb-2">Export Awardees</h3>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={handleExport}
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Download as Excel
-              </Button>
-            </div>
-
-            <div>
-              <h3 className="text-sm font-medium mb-2">Template</h3>
-              <p className="text-xs text-muted-foreground mb-2">
-                Download a sample Excel template to format your data correctly.
-              </p>
-              <a
-                href="/top100 Africa future Leaders 2025.xlsx"
-                download
-                className="w-full"
-              >
-                <Button
-                  variant="outline"
-                  className="w-full"
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  Download Template
-                </Button>
-              </a>
+            {/* Right: Import/Export Actions */}
+            <div className="flex flex-col justify-between p-4 rounded-2xl bg-white/5 border border-white/5">
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-zinc-300">Bulk Data Management</h3>
+                <p className="text-xs text-zinc-500">Import records via Excel or export current view.</p>
+              </div>
+              <div className="flex flex-wrap gap-2 mt-4">
+                <div className="flex-1 min-w-[200px] flex gap-2">
+                  <Input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept=".xlsx,.xls"
+                    className="hidden"
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={handleFileUploadClick}
+                    disabled={uploading}
+                    className="flex-1 bg-zinc-900 border-white/10 hover:bg-zinc-800 text-zinc-300"
+                  >
+                    {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                    {file ? file.name : 'Select Excel'}
+                  </Button>
+                  {file && (
+                    <Button onClick={handleImport} disabled={uploading} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                      Import
+                    </Button>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={handleExport} className="bg-zinc-900 border-white/10 hover:bg-zinc-800 text-zinc-300">
+                    <Download className="mr-2 h-4 w-4" /> Export
+                  </Button>
+                  <a href="/top100 Africa future Leaders 2025.xlsx" download>
+                    <Button variant="ghost" size="icon" className="text-zinc-500 hover:text-white" title="Download Template">
+                      <FileText className="h-4 w-4" />
+                    </Button>
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
+
+          {/* Bulk Selection Actions */}
+          {selectedAwardees.size > 0 && (
+            <div className="mt-6 flex items-center justify-between p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl animate-in slide-in-from-top-2">
+              <span className="text-sm font-medium text-blue-200 px-2">
+                {selectedAwardees.size} items selected
+              </span>
+              <div className="flex gap-2">
+                <Button size="sm" variant="ghost" onClick={() => handleBulkFeature(true)} className="text-amber-400 hover:text-amber-300 hover:bg-amber-500/10">Feature</Button>
+                <Button size="sm" variant="ghost" onClick={() => handleBulkVisibility(true)} className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10">Show</Button>
+                <Button size="sm" variant="ghost" onClick={() => handleBulkVisibility(false)} className="text-zinc-400 hover:text-zinc-300 hover:bg-white/5">Hide</Button>
+                <Button size="sm" variant="ghost" onClick={handleBulkDelete} className="text-rose-400 hover:text-rose-300 hover:bg-rose-500/10">Delete</Button>
+                <Button size="sm" variant="ghost" onClick={() => setSelectedAwardees(new Set())} className="text-zinc-500">Cancel</Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Awardees Table - Now full width */}
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle>Manage Awardees</CardTitle>
-        </CardHeader>
-        <CardContent>
-            <div className="flex flex-col gap-4 mb-6">
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="relative flex-1">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search awardees..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-8"
-                  />
-                </div>
-                <Button onClick={handleAddNew}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add New Awardee
-                </Button>
-              </div>
-
-              {/* Filter Buttons */}
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  variant={filterType === 'all' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setFilterType('all')}
-                >
-                  All ({awardees.length})
-                </Button>
-                <Button
-                  variant={filterType === 'featured' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setFilterType('featured')}
-                  className={filterType === 'featured' ? 'bg-yellow-500 hover:bg-yellow-600' : ''}
-                >
-                  <Star className="mr-1 h-3 w-3" />
-                  Featured ({stats?.featuredAwardees || 0})
-                </Button>
-                <Button
-                  variant={filterType === 'visible' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setFilterType('visible')}
-                  className={filterType === 'visible' ? 'bg-green-500 hover:bg-green-600' : ''}
-                >
-                  <Eye className="mr-1 h-3 w-3" />
-                  Visible ({stats?.visibleAwardees || 0})
-                </Button>
-                <Button
-                  variant={filterType === 'hidden' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setFilterType('hidden')}
-                  className={filterType === 'hidden' ? 'bg-red-500 hover:bg-red-600' : ''}
-                >
-                  <EyeOff className="mr-1 h-3 w-3" />
-                  Hidden ({stats?.hiddenAwardees || 0})
-                </Button>
-              </div>
-
-              {/* Bulk Actions */}
-              {selectedAwardees.size > 0 && (
-                <div className="flex flex-wrap gap-2 p-3 bg-muted rounded-lg">
-                  <span className="text-sm font-medium self-center">
-                    {selectedAwardees.size} selected
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleBulkFeature(true)}
-                  >
-                    <Star className="mr-1 h-3 w-3" />
-                    Feature All
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleBulkFeature(false)}
-                  >
-                    <Star className="mr-1 h-3 w-3" />
-                    Unfeature All
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleBulkVisibility(true)}
-                  >
-                    <Eye className="mr-1 h-3 w-3" />
-                    Show All
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleBulkVisibility(false)}
-                  >
-                    <EyeOff className="mr-1 h-3 w-3" />
-                    Hide All
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={handleBulkDelete}
-                  >
-                    <Trash2 className="mr-1 h-3 w-3" />
-                    Delete All
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSelectedAwardees(new Set())}
-                  >
-                    Clear Selection
-                  </Button>
-                </div>
-              )}
-            </div>
-
-            {loading ? (
-              <div className="flex justify-center items-center py-10">
-                <Loader2 className="h-8 w-8 animate-spin" />
-              </div>
-            ) : (
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
+      {/* Main Data Table */}
+      <Card className="bg-zinc-900/40 border-white/5 backdrop-blur-sm rounded-3xl overflow-hidden min-h-[500px]">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center p-20 space-y-4 text-zinc-500">
+            <Loader2 className="h-10 w-10 animate-spin text-blue-500" />
+            <p>Accessing secure records...</p>
+          </div>
+        ) : (
+          <div className="relative">
+            {/* Desktop Table View */}
+            <div className="hidden lg:block overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-white/5">
+                  <TableRow className="border-white/5 hover:bg-transparent">
+                    <TableHead className="w-12 text-zinc-400 pl-6">
+                      <input
+                        type="checkbox"
+                        checked={selectedAwardees.size === filteredAwardees.length && filteredAwardees.length > 0}
+                        onChange={handleSelectAll}
+                        className="rounded border-zinc-700 bg-zinc-800 text-blue-500 focus:ring-blue-500/20"
+                      />
+                    </TableHead>
+                    <TableHead className="text-zinc-400">Profile</TableHead>
+                    <TableHead className="text-zinc-400">Name</TableHead>
+                    <TableHead className="text-zinc-400">Country</TableHead>
+                    <TableHead className="text-zinc-400">Education</TableHead>
+                    <TableHead className="text-zinc-400">Year</TableHead>
+                    <TableHead className="text-zinc-400">Status</TableHead>
+                    <TableHead className="text-zinc-400 text-right pr-6">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedAwardees.length === 0 ? (
                     <TableRow>
-                      <TableHead className="w-12">
-                        <input
-                          type="checkbox"
-                          checked={selectedAwardees.size === filteredAwardees.length && filteredAwardees.length > 0}
-                          onChange={handleSelectAll}
-                          className="rounded"
-                        />
-                      </TableHead>
-                      <TableHead>Image</TableHead>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Country</TableHead>
-                      <TableHead>Course</TableHead>
-                      <TableHead>Year</TableHead>
-                      <TableHead>Featured</TableHead>
-                      <TableHead>Visibility</TableHead>
-                      <TableHead>Actions</TableHead>
+                      <TableCell colSpan={8} className="text-center py-20 text-zinc-500">
+                        No awardees found matching your criteria.
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginatedAwardees.map((awardee) => (
-                      <TableRow key={awardee.id}>
-                        <TableCell>
+                  ) : (
+                    paginatedAwardees.map((awardee) => (
+                      <TableRow key={awardee.id} className="border-white/5 hover:bg-white/5 transition-colors group">
+                        <TableCell className="pl-6">
                           <input
                             type="checkbox"
                             checked={selectedAwardees.has(awardee.id)}
                             onChange={() => handleSelectAwardee(awardee.id)}
-                            className="rounded"
+                            className="rounded border-zinc-700 bg-zinc-800 text-blue-500 focus:ring-blue-500/20"
                           />
                         </TableCell>
                         <TableCell>
-                          {awardee.image_url ? (
-                            <img 
-                              src={awardee.image_url} 
-                              alt={awardee.name} 
-                              className="w-10 h-10 object-cover rounded"
-                            />
-                          ) : (
-                            <div className="w-10 h-10 bg-gray-200 rounded flex items-center justify-center">
-                              <ImageIcon className="h-5 w-5 text-gray-500" />
+                          <div className="h-10 w-10 rounded-full overflow-hidden bg-zinc-800 ring-2 ring-white/10 group-hover:ring-blue-500/50 transition-all">
+                            {awardee.image_url ? (
+                              <img src={awardee.image_url} alt={awardee.name} className="h-full w-full object-cover" />
+                            ) : (
+                              <div className="h-full w-full flex items-center justify-center text-zinc-500">
+                                <ImageIcon className="h-4 w-4" />
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-bold text-zinc-200">{awardee.name}</TableCell>
+                        <TableCell>
+                          {awardee.country && (
+                            <div className="flex items-center gap-2">
+                              <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                              <span className="text-zinc-400 text-xs font-medium">{awardee.country}</span>
                             </div>
                           )}
                         </TableCell>
-                        <TableCell className="font-medium">{awardee.name}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">{awardee.country}</Badge>
+                        <TableCell className="text-zinc-400 text-xs max-w-[200px] truncate" title={awardee.course || ''}>
+                          {awardee.course || '—'}
                         </TableCell>
-                        <TableCell>{awardee.course}</TableCell>
-                        <TableCell>{awardee.year}</TableCell>
+                        <TableCell className="text-zinc-500 font-mono text-xs">{awardee.year}</TableCell>
                         <TableCell>
-                          <Button
-                            variant={awardee.featured ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => handleToggleFeatured(awardee.id, awardee.featured || false)}
-                            title={awardee.featured ? "Featured on homepage - Click to unfeature" : "Not featured - Click to feature"}
-                            className={awardee.featured ? "bg-amber-500 hover:bg-amber-600 text-white" : ""}
-                            disabled={loadingStates[awardee.id] === 'featured'}
-                          >
-                            {loadingStates[awardee.id] === 'featured' ? (
-                              <>
-                                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                                {awardee.featured ? 'Unfeaturing...' : 'Featuring...'}
-                              </>
-                            ) : (
-                              <>
-                                <Star className={`h-4 w-4 mr-1 ${awardee.featured ? 'fill-current' : ''}`} />
-                                {awardee.featured ? 'Featured' : 'Feature'}
-                              </>
-                            )}
-                          </Button>
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant={awardee.is_public !== false ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => handleToggleVisibility(awardee.id, awardee.is_public !== false)}
-                            title={awardee.is_public !== false ? "Profile is visible - Click to hide" : "Profile is hidden - Click to show"}
-                            className={awardee.is_public !== false ? "bg-green-500 hover:bg-green-600 text-white" : ""}
-                            disabled={loadingStates[awardee.id] === 'visibility'}
-                          >
-                            {loadingStates[awardee.id] === 'visibility' ? (
-                              <>
-                                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                                {awardee.is_public !== false ? 'Hiding...' : 'Showing...'}
-                              </>
-                            ) : (
-                              <>
-                                {awardee.is_public !== false ? (
-                                  <><Eye className="h-4 w-4 mr-1" /> Visible</>
-                                ) : (
-                                  <><EyeOff className="h-4 w-4 mr-1" /> Hidden</>
-                                )}
-                              </>
-                            )}
-                          </Button>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex space-x-2">
+                          <div className="flex gap-2">
                             <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEdit(awardee.id)}
+                              variant="ghost"
+                              size="icon"
+                              className={`h-8 w-8 rounded-full ${awardee.featured ? 'text-amber-400 bg-amber-400/10' : 'text-zinc-600 hover:text-amber-400 hover:bg-white/5'}`}
+                              onClick={() => handleToggleFeatured(awardee.id, awardee.featured || false)}
+                              disabled={loadingStates[awardee.id] === 'featured'}
                             >
-                              <Edit className="h-4 w-4" />
+                              {loadingStates[awardee.id] === 'featured' ? <Loader2 className="h-3 w-3 animate-spin" /> : <Star className={`h-4 w-4 ${awardee.featured ? 'fill-current' : ''}`} />}
                             </Button>
                             <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleDelete(awardee.id)}
+                              variant="ghost"
+                              size="icon"
+                              className={`h-8 w-8 rounded-full ${awardee.is_public !== false ? 'text-emerald-400 bg-emerald-400/10' : 'text-zinc-600 hover:text-emerald-400 hover:bg-white/5'}`}
+                              onClick={() => handleToggleVisibility(awardee.id, awardee.is_public !== false)}
+                              disabled={loadingStates[awardee.id] === 'visibility'}
                             >
+                              {loadingStates[awardee.id] === 'visibility' ? <Loader2 className="h-3 w-3 animate-spin" /> : (awardee.is_public !== false ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />)}
+                            </Button>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right pr-6">
+                          <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button variant="ghost" size="icon" onClick={() => handleEdit(awardee.id)} className="h-8 w-8 text-zinc-400 hover:text-white hover:bg-white/10 rounded-lg">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => handleDelete(awardee.id)} className="h-8 w-8 text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg">
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
 
-            {/* Pagination Controls */}
-            {!loading && filteredAwardees.length > ITEMS_PER_PAGE && (
-              <div className="flex items-center justify-between mt-6 pt-6 border-t">
-                <div className="text-sm text-muted-foreground">
-                  Showing {startIndex + 1} to {Math.min(endIndex, filteredAwardees.length)} of {filteredAwardees.length} awardees
+            {/* Mobile Card View */}
+            <div className="lg:hidden p-4 space-y-4">
+              {paginatedAwardees.length === 0 ? (
+                <div className="py-20 text-center text-zinc-500 bg-white/5 rounded-3xl border border-dashed border-white/10">
+                  No awardees found matching your criteria.
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                  >
-                    Previous
-                  </Button>
+              ) : (
+                paginatedAwardees.map((awardee) => (
+                  <div key={awardee.id} className="relative bg-zinc-950/40 border border-white/5 rounded-2xl sm:rounded-3xl p-3 sm:p-4 space-y-3 hover:border-blue-500/30 transition-all overflow-hidden group">
+                    {/* Select Checkbox Top Right */}
+                    <div className="absolute top-3 right-3 z-10">
+                      <input
+                        type="checkbox"
+                        checked={selectedAwardees.has(awardee.id)}
+                        onChange={() => handleSelectAwardee(awardee.id)}
+                        className="h-4 w-4 sm:h-5 sm:w-5 rounded border-zinc-700 bg-zinc-800 text-blue-500 focus:ring-blue-500/20"
+                      />
+                    </div>
 
-                  {/* Page numbers */}
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      let pageNum;
-                      if (totalPages <= 5) {
-                        pageNum = i + 1;
-                      } else if (currentPage <= 3) {
-                        pageNum = i + 1;
-                      } else if (currentPage >= totalPages - 2) {
-                        pageNum = totalPages - 4 + i;
-                      } else {
-                        pageNum = currentPage - 2 + i;
-                      }
+                    <div className="flex items-center gap-3">
+                      <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl sm:rounded-2xl overflow-hidden bg-zinc-900 border border-white/10 shrink-0">
+                        {awardee.image_url ? (
+                          <img src={awardee.image_url} alt={awardee.name} className="h-full w-full object-cover" />
+                        ) : (
+                          <div className="h-full w-full flex items-center justify-center text-zinc-600">
+                            <ImageIcon className="h-5 w-5" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0 pr-6">
+                        <h3 className="text-sm sm:text-base font-bold text-white truncate">{awardee.name}</h3>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="text-zinc-500 text-[10px] sm:text-xs font-mono">{awardee.year}</span>
+                          <span className="h-0.5 w-0.5 rounded-full bg-zinc-700" />
+                          <span className="text-blue-400 text-[10px] sm:text-xs font-bold uppercase tracking-wider truncate">{awardee.country}</span>
+                        </div>
+                      </div>
+                    </div>
 
-                      return (
-                        <Button
-                          key={pageNum}
-                          variant={currentPage === pageNum ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => handlePageChange(pageNum)}
-                          className="w-10"
-                        >
-                          {pageNum}
-                        </Button>
-                      );
-                    })}
-                    {totalPages > 5 && currentPage < totalPages - 2 && (
-                      <>
-                        <span className="px-2">...</span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handlePageChange(totalPages)}
-                          className="w-10"
-                        >
-                          {totalPages}
-                        </Button>
-                      </>
-                    )}
+                    <div className="space-y-2 bg-white/5 rounded-xl p-2 sm:p-3 border border-white/5">
+                      <div className="flex justify-between items-center text-[10px] sm:text-xs">
+                        <span className="text-zinc-500">Education</span>
+                        <span className="text-white font-medium truncate max-w-[120px] sm:max-w-[150px]">{awardee.course || '—'}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-zinc-600 text-[9px] sm:text-[10px] uppercase font-bold tracking-wider">Actions</span>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleToggleFeatured(awardee.id, awardee.featured || false)}
+                            className={cn("h-7 w-7 sm:h-8 sm:w-8 rounded-full", awardee.featured ? "bg-amber-500/20 text-amber-500" : "bg-white/5 text-zinc-600")}
+                          >
+                            <Star className={cn("h-3.5 w-3.5 sm:h-4 sm:w-4", awardee.featured && "fill-current")} />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleToggleVisibility(awardee.id, awardee.is_public !== false)}
+                            className={cn("h-7 w-7 sm:h-8 sm:w-8 rounded-full", awardee.is_public !== false ? "bg-emerald-500/20 text-emerald-500" : "bg-white/5 text-zinc-600")}
+                          >
+                            <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleEdit(awardee.id)} className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-white/5 text-zinc-400">
+                            <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleDelete(awardee.id)} className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-rose-500/10 text-rose-500">
+                            <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
 
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                  >
-                    Next
-                  </Button>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {/* Pagination Footer */}
+        {!loading && filteredAwardees.length > ITEMS_PER_PAGE && (
+          <div className="border-t border-white/5 p-4 flex items-center justify-between">
+            <p className="text-xs text-zinc-500">
+              {startIndex + 1}-{Math.min(endIndex, filteredAwardees.length)} of {filteredAwardees.length} records
+            </p>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="bg-transparent border-white/10 text-zinc-400 hover:text-white">Previous</Button>
+              <Button variant="outline" size="sm" onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className="bg-transparent border-white/10 text-zinc-400 hover:text-white">Next</Button>
+            </div>
+          </div>
+        )}
+      </Card>
     </div>
   );
+}
+
+// Sub-components
+import { cn } from '@/lib/utils';
+
+function KPITile({ label, value, icon: Icon, color, subValue }: any) {
+  const colors: any = {
+    blue: "from-blue-600 to-indigo-600 shadow-blue-500/20",
+    emerald: "from-emerald-600 to-teal-600 shadow-emerald-500/20",
+    amber: "from-orange-500 to-amber-500 shadow-orange-500/20",
+    rose: "from-rose-600 to-pink-600 shadow-rose-500/20",
+  }
+
+  return (
+    <div className={cn(
+      "relative p-6 rounded-[2rem] border-none bg-gradient-to-br shadow-xl overflow-hidden transition-all duration-300 hover:scale-[1.05] hover:-translate-y-1 group",
+      colors[color]
+    )}>
+      {/* Background Icon */}
+      <Icon className="absolute -right-4 -bottom-4 h-24 w-24 text-white opacity-[0.08] -rotate-12 group-hover:scale-110 transition-transform duration-700" />
+
+      <div className="relative z-10 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="h-12 w-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-lg">
+            <Icon className="h-6 w-6 text-white" />
+          </div>
+        </div>
+        <div className="space-y-1">
+          <p className="text-4xl font-black text-white tracking-tighter">{value}</p>
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/80">{label}</p>
+            {subValue && <span className="text-[10px] font-medium text-white/90 bg-black/10 px-2 py-0.5 rounded-full backdrop-blur-sm border border-white/10">{subValue}</span>}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function FilterButton({ active, onClick, label, icon: Icon, color = "blue" }: any) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 border",
+        active
+          ? `bg-${color}-500/10 text-${color}-400 border-${color}-500/50`
+          : "bg-white/5 text-zinc-400 border-transparent hover:bg-white/10 hover:text-zinc-200"
+      )}
+    >
+      {Icon && <Icon className="h-3.5 w-3.5" />}
+      {label}
+    </button>
+  )
 }

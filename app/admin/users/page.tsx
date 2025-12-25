@@ -36,7 +36,8 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
-import { Search, User, Mail, Calendar, Shield, Eye, EyeOff, Edit, Trash2 } from 'lucide-react'
+import { Search, User, Mail, Calendar, Shield, Eye, EyeOff, Edit, Trash2, Users, UserCheck, UserPlus, Loader2 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface User {
   id: string
@@ -193,256 +194,298 @@ export default function UserManagement() {
   }
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-500 to-indigo-500 bg-clip-text text-transparent">
-          User Management
-        </h1>
-        <p className="text-muted-foreground">Manage platform users and their permissions</p>
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-[10px] uppercase tracking-[0.2em] text-blue-400 font-bold">Access Control</span>
+          </div>
+          <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
+            User <span className="text-blue-500">Directory</span>
+          </h1>
+          <p className="text-zinc-400 text-lg max-w-2xl font-medium">
+            Manage permissions and access levels for the platform ecosystem.
+          </p>
+        </div>
+
+        <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-12 px-6 shadow-lg shadow-blue-500/20 transition-all hover:scale-105">
+          <UserPlus className="mr-2 h-4 w-4" />
+          Invite User
+        </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
-        <Card className="lg:col-span-3">
-          <CardHeader>
-            <CardTitle>Users</CardTitle>
-            <CardDescription>Manage registered users on the platform</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-              <div className="relative w-full sm:w-64">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+      {/* KPI Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <KPITile
+          label="Total Users"
+          value={users.length}
+          icon={Users}
+          color="blue"
+          subValue="Registered"
+        />
+        <KPITile
+          label="Active"
+          value={users.filter(u => u.status === 'active').length}
+          icon={UserCheck}
+          color="emerald"
+          subValue="Online"
+        />
+        <KPITile
+          label="Admins"
+          value={users.filter(u => u.role === 'admin').length}
+          icon={Shield}
+          color="rose"
+          subValue="Full Access"
+        />
+        <KPITile
+          label="Editors"
+          value={users.filter(u => u.role === 'editor').length}
+          icon={Edit}
+          color="purple"
+          subValue="Content"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <Card className="lg:col-span-3 bg-zinc-900/40 border-white/5 backdrop-blur-sm rounded-3xl overflow-hidden min-h-[500px]">
+          <CardHeader className="border-b border-white/5 px-6 py-4">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg font-bold text-white flex items-center gap-2">
+                <Users className="h-4 w-4 text-zinc-400" />
+                Personnel
+              </CardTitle>
+              <div className="relative w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
                 <Input
                   placeholder="Search users..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8"
+                  className="pl-9 bg-zinc-950/50 border-white/10 text-sm text-white focus:ring-blue-500/20"
                 />
               </div>
-              <Button className="w-full sm:w-auto">
-                <User className="mr-2 h-4 w-4" />
-                Add New User
-              </Button>
             </div>
-
+          </CardHeader>
+          <CardContent className="p-0">
             {loading ? (
-              <div className="flex justify-center items-center py-10">
-                <div className="h-8 w-8 rounded-full animate-spin border-b-2 border-blue-500"></div>
+              <div className="flex justify-center items-center py-20">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
               </div>
             ) : (
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>User</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Joined</TableHead>
-                      <TableHead>Actions</TableHead>
+              <Table>
+                <TableHeader className="bg-white/5">
+                  <TableRow className="border-white/5 hover:bg-transparent">
+                    <TableHead className="text-zinc-400 pl-6">Identity</TableHead>
+                    <TableHead className="text-zinc-400">Role</TableHead>
+                    <TableHead className="text-zinc-400">Status</TableHead>
+                    <TableHead className="text-zinc-400">Last Active</TableHead>
+                    <TableHead className="text-zinc-400 text-right pr-6">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredUsers.map((user) => (
+                    <TableRow key={user.id} className="border-white/5 hover:bg-white/5 transition-colors group">
+                      <TableCell className="font-medium pl-6 py-4">
+                        <div className="flex items-center space-x-3">
+                          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-zinc-800 to-zinc-900 border border-white/10 flex items-center justify-center text-zinc-400">
+                            <User className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <div className="text-white font-semibold">{user.name}</div>
+                            <div className="text-xs text-zinc-500">{user.email}</div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={cn(
+                          "border-0 px-2.5 py-0.5 rounded-full uppercase text-[10px] tracking-wider font-bold",
+                          user.role === 'admin' ? "bg-rose-500/10 text-rose-400" :
+                            user.role === 'editor' ? "bg-blue-500/10 text-blue-400" :
+                              "bg-zinc-700/50 text-zinc-400"
+                        )}>
+                          {user.role}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div className={cn("h-2 w-2 rounded-full", user.status === 'active' ? "bg-emerald-500 animate-pulse" : "bg-zinc-700")} />
+                          <span className={cn("text-xs font-medium", user.status === 'active' ? "text-emerald-400" : "text-zinc-500")}>
+                            {user.status === 'active' ? 'Active' : user.status}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-zinc-500 text-xs">
+                        {new Date(user.lastActive || user.joinedDate).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="text-right pr-6">
+                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => toggleStatus(user.id)}
+                            className="h-8 w-8 text-zinc-500 hover:text-white hover:bg-white/10"
+                            title={`Mark as ${user.status === 'active' ? 'inactive' : 'active'}`}
+                          >
+                            {user.status === 'active' ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEditUser(user)}
+                            className="h-8 w-8 text-zinc-500 hover:text-blue-400 hover:bg-blue-500/10"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(user.id)}
+                            className="h-8 w-8 text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredUsers.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell className="font-medium">
-                          <div className="flex items-center space-x-3">
-                            <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                              <User className="h-5 w-5 text-gray-500" />
-                            </div>
-                            <div>
-                              <div>{user.name}</div>
-                              <div className="text-sm text-muted-foreground">{user.email}</div>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>
-                          <Badge variant={user.role === 'admin' ? 'default' : user.role === 'editor' ? 'secondary' : 'outline'}>
-                            {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={user.status === 'active' ? 'default' : user.status === 'pending' ? 'secondary' : 'destructive'}>
-                            {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {new Date(user.joinedDate).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center space-x-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => toggleStatus(user.id)}
-                              title={`Mark as ${user.status === 'active' ? 'inactive' : 'active'}`}
-                            >
-                              {user.status === 'active' ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEditUser(user)}
-                              title="Edit user"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleDelete(user.id)}
-                              title="Delete user"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                  ))}
+                </TableBody>
+              </Table>
             )}
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Stats</CardTitle>
-            <CardDescription>Platform user statistics</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span>Total Users</span>
-              <span className="font-semibold">{users.length}</span>
+        {/* Roles Info Box */}
+        <div className="space-y-6">
+          <Card className="bg-zinc-900/40 border-white/5 backdrop-blur-sm rounded-3xl overflow-hidden p-6">
+            <h3 className="text-white font-bold mb-4 flex items-center gap-2">
+              <Shield className="h-5 w-5 text-amber-500" />
+              Role Definitions
+            </h3>
+            <div className="space-y-4">
+              <div className="p-3 rounded-xl bg-zinc-950/50 border border-white/5">
+                <div className="flex items-center gap-2 mb-1">
+                  <Shield className="h-3 w-3 text-rose-500" />
+                  <span className="text-sm font-semibold text-zinc-200">Admin</span>
+                </div>
+                <p className="text-xs text-zinc-500 leading-relaxed">Full system access. Can manage users, settings, and all content.</p>
+              </div>
+              <div className="p-3 rounded-xl bg-zinc-950/50 border border-white/5">
+                <div className="flex items-center gap-2 mb-1">
+                  <Badge className="h-3 w-3 p-0 bg-blue-500 rounded-full" />
+                  <span className="text-sm font-semibold text-zinc-200">Editor</span>
+                </div>
+                <p className="text-xs text-zinc-500 leading-relaxed">Can publish content and manage events. Restricted from system settings.</p>
+              </div>
+              <div className="p-3 rounded-xl bg-zinc-950/50 border border-white/5">
+                <div className="flex items-center gap-2 mb-1">
+                  <User className="h-3 w-3 text-zinc-500" />
+                  <span className="text-sm font-semibold text-zinc-200">User</span>
+                </div>
+                <p className="text-xs text-zinc-500 leading-relaxed">Standard account. Read-only access to public content.</p>
+              </div>
             </div>
-            <div className="flex justify-between items-center">
-              <span>Active</span>
-              <span className="font-semibold">{users.filter(u => u.status === 'active').length}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span>Pending</span>
-              <span className="font-semibold">{users.filter(u => u.status === 'pending').length}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span>Admins</span>
-              <span className="font-semibold">{users.filter(u => u.role === 'admin').length}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span>Editors</span>
-              <span className="font-semibold">{users.filter(u => u.role === 'editor').length}</span>
-            </div>
-          </CardContent>
-        </Card>
+          </Card>
+        </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>User Roles</CardTitle>
-          <CardDescription>Understand the permissions for each role</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="border rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Shield className="h-5 w-5 text-red-500" />
-                <h3 className="font-semibold">Admin</h3>
-              </div>
-              <ul className="text-sm space-y-1">
-                <li>• Full platform access</li>
-                <li>• Manage all content</li>
-                <li>• User management</li>
-                <li>• Site settings</li>
-              </ul>
-            </div>
-            <div className="border rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Shield className="h-5 w-5 text-blue-500" />
-                <h3 className="font-semibold">Editor</h3>
-              </div>
-              <ul className="text-sm space-y-1">
-                <li>• Content management</li>
-                <li>• Post creation/editing</li>
-                <li>• Event management</li>
-                <li>• Limited access</li>
-              </ul>
-            </div>
-            <div className="border rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <User className="h-5 w-5 text-gray-500" />
-                <h3 className="font-semibold">User</h3>
-              </div>
-              <ul className="text-sm space-y-1">
-                <li>• View public content</li>
-                <li>• Profile management</li>
-                <li>• Limited permissions</li>
-                <li>• No admin access</li>
-              </ul>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="bg-zinc-950 border-white/10 text-white">
           <DialogHeader>
             <DialogTitle>Edit User Role</DialogTitle>
-            <DialogDescription>
-              Change the role for {selectedUser?.name}
+            <DialogDescription className="text-zinc-400">
+              Change the role for <span className="text-white font-medium">{selectedUser?.name}</span>
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="role">Role</Label>
+              <Label htmlFor="role" className="text-zinc-400">Role Assignment</Label>
               <Select
                 value={newRole}
                 onValueChange={(value) => setNewRole(value as 'admin' | 'editor' | 'user')}
               >
-                <SelectTrigger id="role">
+                <SelectTrigger id="role" className="bg-zinc-900 border-zinc-800 text-white">
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
                   <SelectItem value="admin">
                     <div className="flex items-center gap-2">
-                      <Shield className="h-4 w-4 text-red-500" />
-                      <span>Admin - Full access</span>
+                      <Shield className="h-4 w-4 text-rose-500" />
+                      <span>Admin</span>
                     </div>
                   </SelectItem>
                   <SelectItem value="editor">
                     <div className="flex items-center gap-2">
-                      <Shield className="h-4 w-4 text-blue-500" />
-                      <span>Editor - Content management</span>
+                      <Edit className="h-4 w-4 text-blue-500" />
+                      <span>Editor</span>
                     </div>
                   </SelectItem>
                   <SelectItem value="user">
                     <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-gray-500" />
-                      <span>User - Basic access</span>
+                      <User className="h-4 w-4 text-zinc-500" />
+                      <span>User</span>
                     </div>
                   </SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="text-sm text-muted-foreground">
-              {newRole === 'admin' && 'Full platform access including user management'}
-              {newRole === 'editor' && 'Can create and manage content but limited admin access'}
-              {newRole === 'user' && 'Basic user with limited permissions'}
+
+            <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-xs text-blue-300">
+              {newRole === 'admin' && 'Warning: Admins have full control over the platform.'}
+              {newRole === 'editor' && 'Editors can manage content but cannot change system settings.'}
+              {newRole === 'user' && 'Users have standard read/write access to their own data only.'}
             </div>
+
           </div>
           <DialogFooter>
             <Button
-              variant="outline"
+              variant="ghost"
               onClick={() => setEditDialogOpen(false)}
               disabled={updating}
+              className="text-zinc-400 hover:text-white hover:bg-white/10"
             >
               Cancel
             </Button>
-            <Button onClick={handleUpdateRole} disabled={updating}>
+            <Button onClick={handleUpdateRole} disabled={updating} className="bg-blue-600 hover:bg-blue-700 text-white">
+              {updating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {updating ? 'Updating...' : 'Update Role'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  )
+}
+
+function KPITile({ label, value, icon: Icon, color, subValue }: any) {
+  const colors: any = {
+    blue: "from-blue-500/20 via-blue-500/5 to-transparent border-blue-500/20 text-blue-400",
+    emerald: "from-emerald-500/20 via-emerald-500/5 to-transparent border-emerald-500/20 text-emerald-400",
+    amber: "from-amber-500/20 via-amber-500/5 to-transparent border-amber-500/20 text-amber-400",
+    rose: "from-rose-500/20 via-rose-500/5 to-transparent border-rose-500/20 text-rose-400",
+    purple: "from-purple-500/20 via-purple-500/5 to-transparent border-purple-500/20 text-purple-400",
+    zinc: "from-zinc-500/20 via-zinc-500/5 to-transparent border-zinc-500/20 text-zinc-400",
+  }
+
+  return (
+    <div className={cn(
+      "relative p-6 rounded-3xl border bg-zinc-900/40 backdrop-blur-sm overflow-hidden transition-all duration-300 hover:scale-[1.02] group",
+      colors[color] || colors.blue
+    )}>
+      <div className={cn("absolute inset-0 bg-gradient-to-br opacity-50", (colors[color] || colors.blue).split(" ")[0])} />
+      <div className="relative z-10 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="h-10 w-10 rounded-2xl bg-zinc-950 flex items-center justify-center border border-white/5 shadow-inner">
+            <Icon className="h-5 w-5" />
+          </div>
+        </div>
+        <div className="space-y-1">
+          <p className="text-3xl font-black text-white tracking-tight">{value}</p>
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-bold uppercase tracking-widest text-zinc-500">{label}</p>
+            {subValue && <span className="text-[10px] text-zinc-400 bg-white/5 px-2 py-0.5 rounded-full">{subValue}</span>}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

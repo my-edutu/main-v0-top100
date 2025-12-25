@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import {
   Table,
   TableBody,
@@ -23,7 +24,7 @@ import {
 } from '@/components/ui/card'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
-import { Loader2, Plus, FileText, BarChart3, TrendingUp, Eye, Heart } from 'lucide-react'
+import { Loader2, Plus, FileText, BarChart3, TrendingUp, Eye, Heart, ChevronLeft, ChevronRight, Star } from 'lucide-react'
 
 interface AdminPost {
   id: string
@@ -84,6 +85,9 @@ export default function AdminBlogPage() {
       scheduledPosts: posts.filter(post => post.status === 'scheduled').length
     }
   }, [posts])
+
+  const [spotlightPage, setSpotlightPage] = useState(0)
+  const SPOTLIGHT_PER_PAGE = 3
 
   const featuredPosts = useMemo(() => posts.filter(post => post.isFeatured), [posts])
 
@@ -214,202 +218,285 @@ export default function AdminBlogPage() {
     return value
   }
 
+  // ... existing code ...
+
   return (
-    <div className="container mx-auto py-10 space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
-          Blog Dashboard
-        </h1>
-        <p className="text-muted-foreground">Manage posts that power the homepage in real time.</p>
-      </div>
+    <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pt-20 lg:pt-0">
+      {/* Header Section */}
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="h-2 w-2 rounded-full bg-purple-500 animate-pulse" />
+            <span className="text-[10px] uppercase tracking-widest text-zinc-400 font-bold">Content Engine</span>
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white leading-none">
+            Editorial <span className="text-purple-500">Control</span>
+          </h1>
+          <p className="text-zinc-500 text-xs sm:text-sm font-medium">
+            Orchestrate your content strategy with real-time publishing.
+          </p>
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:shadow-lg transition-shadow">
-          <CardHeader className="pb-2">
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-400/30 rounded-lg mr-3">
-                <FileText className="h-6 w-6" />
-              </div>
-              <CardTitle className="text-lg md:text-xl font-bold">Total Posts</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{renderStatsValue(stats.totalPosts)}</div>
-            <p className="text-xs text-blue-100 mt-1">All blog posts</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white hover:shadow-lg transition-shadow">
-          <CardHeader className="pb-2">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-400/30 rounded-lg mr-3">
-                <BarChart3 className="h-6 w-6" />
-              </div>
-              <CardTitle className="text-lg md:text-xl font-bold">Published</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{renderStatsValue(stats.publishedPosts)}</div>
-            <p className="text-xs text-green-100 mt-1">Live on site</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-amber-500 to-amber-600 text-white hover:shadow-lg transition-shadow">
-          <CardHeader className="pb-2">
-            <div className="flex items-center">
-              <div className="p-2 bg-amber-400/30 rounded-lg mr-3">
-                <Eye className="h-6 w-6" />
-              </div>
-              <CardTitle className="text-lg md:text-xl font-bold">Featured</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{renderStatsValue(stats.featuredPosts)}</div>
-            <p className="text-xs text-amber-100 mt-1">Homepage highlights</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white hover:shadow-lg transition-shadow">
-          <CardHeader className="pb-2">
-            <div className="flex items-center">
-              <div className="p-2 bg-purple-400/30 rounded-lg mr-3">
-                <TrendingUp className="h-6 w-6" />
-              </div>
-              <CardTitle className="text-lg md:text-xl font-bold">Scheduled</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{renderStatsValue(stats.scheduledPosts)}</div>
-            <p className="text-xs text-purple-100 mt-1">Posts scheduled for future</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Heart className="h-5 w-5 text-red-500" />
-            Featured on Homepage
-          </CardTitle>
-          <CardDescription>
-            Posts with the featured switch enabled appear immediately on the homepage hero section.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {featuredPosts.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No posts are currently featured. Toggle the switch below to spotlight a post on the homepage.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {featuredPosts.map(post => (
-                <div key={post.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between border rounded-md p-3">
-                  <div>
-                    <p className="font-medium">{post.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Updated {format(new Date(post.updatedAt), 'MMM dd, yyyy')}
-                    </p>
-                  </div>
-                  <div className="mt-2 sm:mt-0 flex items-center gap-2 text-xs text-muted-foreground">
-                    <span className="rounded-full bg-primary/10 px-2 py-1 capitalize">{post.status}</span>
-                    <span>Slug: {post.slug || '—'}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold">All Posts</h2>
-        <Button onClick={handleAddNewPost} className="bg-blue-500 hover:bg-blue-600 text-white">
-          <Plus className="mr-2 h-4 w-4" />
-          Add New Post
+        <Button onClick={handleAddNewPost} size="sm" className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl h-10 px-4 shadow-lg shadow-purple-500/20 font-bold">
+          <Plus className="mr-1 h-4 w-4" />
+          Create Article
         </Button>
       </div>
 
-      {loading ? (
-        <div className="flex justify-center items-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin" />
-          <span className="ml-2">Loading posts...</span>
-        </div>
-      ) : (
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Scheduled For</TableHead>
-                <TableHead>Tags</TableHead>
-                <TableHead>Featured</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {posts.map(post => (
-                <TableRow key={post.id}>
-                  <TableCell className="font-medium">{post.title}</TableCell>
-                  <TableCell>{format(new Date(post.createdAt), 'MMM dd, yyyy')}</TableCell>
-                  <TableCell>
-                    {post.status === 'scheduled' && post.scheduledAt
-                      ? format(new Date(post.scheduledAt), 'MMM dd, yyyy HH:mm')
-                      : '—'}
-                  </TableCell>
-                  <TableCell>
-                    {post.tags.length === 0 ? (
-                      <Badge variant="outline">No tags</Badge>
-                    ) : (
-                      post.tags.map((tag, index) => (
-                        <Badge key={`${post.id}-${tag}-${index}`} variant="secondary" className="mr-1">
-                          {tag}
+      {/* KPI Stats Grid - 2x2 on mobile */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <KPITile
+          label="Total Content"
+          value={stats.totalPosts}
+          icon={FileText}
+          color="blue"
+          subValue="Articles"
+        />
+        <KPITile
+          label="Live Now"
+          value={stats.publishedPosts}
+          icon={BarChart3}
+          color="emerald"
+          subValue="Public"
+        />
+        <KPITile
+          label="Spotlight"
+          value={stats.featuredPosts}
+          icon={Heart}
+          color="rose"
+          subValue="Featured"
+        />
+        <KPITile
+          label="Scheduled"
+          value={stats.scheduledPosts}
+          icon={TrendingUp}
+          color="amber"
+          subValue="Upcoming"
+        />
+      </div>
+
+      {/* Featured Post Spotlight Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="lg:col-span-2 bg-zinc-900/40 border-white/5 backdrop-blur-sm rounded-3xl overflow-hidden">
+          <CardHeader className="border-b border-white/5 px-6 py-4">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg font-bold text-white flex items-center gap-2">
+                <Eye className="h-4 w-4 text-zinc-400" />
+                Content Library
+              </CardTitle>
+            </div>
+          </CardHeader>
+          {loading ? (
+            <div className="flex justify-center items-center py-20">
+              <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+            </div>
+          ) : (
+            <div className="p-0">
+              <Table>
+                <TableHeader className="bg-white/5">
+                  <TableRow className="border-white/5 hover:bg-transparent">
+                    <TableHead className="text-zinc-400 pl-6">Title</TableHead>
+                    <TableHead className="text-zinc-400">Date</TableHead>
+                    <TableHead className="text-zinc-400">Status</TableHead>
+                    <TableHead className="text-zinc-400">Featured</TableHead>
+                    <TableHead className="text-zinc-400 text-right pr-6">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {posts.map(post => (
+                    <TableRow key={post.id} className="border-white/5 hover:bg-white/5 transition-colors group">
+                      <TableCell className="font-medium text-zinc-200 pl-6">
+                        <div className="flex flex-col">
+                          <span className="line-clamp-1">{post.title}</span>
+                          {post.scheduledAt && post.status === 'scheduled' && (
+                            <span className="text-[10px] text-amber-500 flex items-center gap-1 mt-1">
+                              <TrendingUp className="h-3 w-3" /> Scheduled
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-zinc-400">
+                        {format(new Date(post.createdAt), 'MMM dd, yyyy')}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={cn(
+                          "border-0 px-2 py-0.5 rounded-full capitalize",
+                          post.status === 'published' ? "bg-emerald-500/10 text-emerald-400" :
+                            post.status === 'scheduled' ? "bg-amber-500/10 text-amber-400" :
+                              "bg-zinc-700/50 text-zinc-400"
+                        )}>
+                          {post.status}
                         </Badge>
-                      ))
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Switch
-                      checked={post.isFeatured}
-                      onCheckedChange={checked => toggleFeatured(post.id, checked)}
-                      aria-label={`Toggle featured state for ${post.title}`}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={post.status === 'published' ? 'default' : post.status === 'scheduled' ? 'outline' : 'secondary'}>
-                      {post.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => router.push(`/admin/blog/edit/${post.id}`)}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => deletePost(post.id)}
-                        disabled={deleting === post.id}
-                      >
-                        {deleting === post.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          'Delete'
-                        )}
-                      </Button>
+                      </TableCell>
+                      <TableCell>
+                        <Switch
+                          checked={post.isFeatured}
+                          onCheckedChange={checked => toggleFeatured(post.id, checked)}
+                          className="data-[state=checked]:bg-rose-500"
+                        />
+                      </TableCell>
+                      <TableCell className="text-right pr-6">
+                        <div className="flex justify-end items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => router.push(`/admin/blog/edit/${post.id}`)}
+                            className="h-8 w-8 text-zinc-400 hover:text-white hover:bg-white/10"
+                          >
+                            <FileText className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => deletePost(post.id)}
+                            disabled={deleting === post.id}
+                            className="h-8 w-8 text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10"
+                          >
+                            {deleting === post.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <div className="h-4 w-4">×</div> // Using simple character for delete icon to be safe or Trash icon if imported
+                            )}
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </Card>
+
+        {/* Right Column: Hero Spotlight Preview */}
+        <div className="space-y-6">
+          <Card className="bg-gradient-to-br from-rose-500/10 to-purple-500/10 border-rose-500/20 backdrop-blur-sm rounded-3xl overflow-hidden">
+            <CardHeader className="border-b border-rose-500/10 pb-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <CardTitle className="text-rose-400 text-sm font-bold uppercase tracking-[0.15em] flex items-center gap-2">
+                    <Star className="h-4 w-4 fill-current" /> Homepage Spotlight
+                  </CardTitle>
+                  <CardDescription className="text-zinc-500 text-xs font-medium">
+                    Maximum visibility on the landing page hero section.
+                  </CardDescription>
+                </div>
+                {featuredPosts.length > SPOTLIGHT_PER_PAGE && (
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setSpotlightPage(p => Math.max(0, p - 1))}
+                      disabled={spotlightPage === 0}
+                      className="h-7 w-7 rounded-full text-zinc-500 hover:text-white hover:bg-white/5"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setSpotlightPage(p => Math.min(Math.ceil(featuredPosts.length / SPOTLIGHT_PER_PAGE) - 1, p + 1))}
+                      disabled={spotlightPage >= Math.ceil(featuredPosts.length / SPOTLIGHT_PER_PAGE) - 1}
+                      className="h-7 w-7 rounded-full text-zinc-500 hover:text-white hover:bg-white/5"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="p-4 space-y-4">
+              {featuredPosts.length === 0 ? (
+                <div className="text-center py-8 text-zinc-500 text-sm border-2 border-dashed border-zinc-800 rounded-xl">
+                  No active spotlight posts
+                </div>
+              ) : (
+                featuredPosts.slice(spotlightPage * SPOTLIGHT_PER_PAGE, (spotlightPage + 1) * SPOTLIGHT_PER_PAGE).map(post => (
+                  <div key={post.id} className="group relative bg-zinc-900/80 border border-white/5 rounded-2xl p-3.5 hover:border-rose-500/30 transition-all overflow-hidden">
+                    {/* Faded Background Icon */}
+                    <Star className="absolute -right-4 -bottom-4 h-20 w-20 text-rose-500 opacity-[0.03] -rotate-12 group-hover:scale-110 transition-transform duration-700" />
+
+                    <div className="flex justify-between items-start gap-4 relative z-10">
+                      <div className="flex-1">
+                        <h4 className="font-bold text-zinc-200 text-sm line-clamp-2 leading-tight mb-1.5 group-hover:text-rose-400 transition-colors">{post.title}</h4>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-zinc-500 font-medium">{format(new Date(post.updatedAt), 'MMM dd, yyyy')}</span>
+                          <span className="h-1 w-1 rounded-full bg-zinc-700" />
+                          <span className="text-[10px] text-rose-500 font-bold uppercase tracking-wider">Spotlight</span>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={true}
+                        onCheckedChange={() => toggleFeatured(post.id, false)}
+                        className="scale-75 data-[state=checked]:bg-rose-500"
+                      />
                     </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                    {post.coverImage && (
+                      <div className="mt-4 aspect-[21/9] w-full rounded-xl bg-zinc-800 overflow-hidden relative border border-white/5">
+                        <img src={post.coverImage} className="object-cover w-full h-full opacity-40 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700" alt="" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/80 via-transparent to-transparent opacity-60" />
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+
+          <div className="p-5 rounded-3xl bg-zinc-900/40 border border-white/5 space-y-3">
+            <h3 className="text-zinc-400 text-sm font-medium">Quick Stats</h3>
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs">
+                <span className="text-zinc-500">Draft Rate</span>
+                <span className="text-zinc-300">{stats.totalPosts > 0 ? Math.round((stats.draftPosts / stats.totalPosts) * 100) : 0}%</span>
+              </div>
+              <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden">
+                <div className="h-full bg-zinc-600 rounded-full" style={{ width: `${stats.totalPosts > 0 ? (stats.draftPosts / stats.totalPosts) * 100 : 0}%` }} />
+              </div>
+            </div>
+          </div>
         </div>
-      )}
+      </div>
+    </div>
+  )
+}
+
+// Sub-components
+
+
+function KPITile({ label, value, icon: Icon, color, subValue }: any) {
+  const colors: any = {
+    blue: "from-blue-600 to-cyan-500 shadow-blue-500/20",
+    emerald: "from-emerald-600 to-teal-500 shadow-emerald-500/20",
+    amber: "from-orange-500 to-amber-500 shadow-orange-500/20",
+    rose: "from-rose-600 to-pink-500 shadow-rose-500/20",
+    purple: "from-purple-600 to-indigo-600 shadow-purple-500/20",
+  }
+
+  const selectedColor = colors[color] || colors.blue
+
+  return (
+    <div className={cn(
+      "relative p-6 rounded-[2rem] border-none bg-gradient-to-br shadow-xl overflow-hidden transition-all duration-300 hover:scale-[1.05] hover:-translate-y-1 group",
+      selectedColor
+    )}>
+      {/* Background Icon */}
+      <Icon className="absolute -right-4 -bottom-4 h-24 w-24 text-white opacity-[0.08] -rotate-12 group-hover:scale-110 transition-transform duration-700" />
+
+      <div className="relative z-10 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="h-12 w-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-lg">
+            <Icon className="h-6 w-6 text-white" />
+          </div>
+        </div>
+        <div className="space-y-1">
+          <p className="text-4xl font-black text-white tracking-tighter">{value}</p>
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/80">{label}</p>
+            {subValue && <span className="text-[10px] font-medium text-white/90 bg-black/10 px-2 py-0.5 rounded-full backdrop-blur-sm border border-white/10">{subValue}</span>}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
