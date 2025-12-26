@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/api/require-admin'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
 
 /**
  * Ensure a user profile exists in the database.
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Use service role client to ensure profile
-    const supabase = await createClient(true)
+    const supabase = createAdminClient()
 
     // Check if profile exists
     const { data: existingProfile } = await supabase
@@ -82,3 +82,4 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+

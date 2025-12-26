@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server'
 
 import { requireAdmin } from '@/lib/api/require-admin'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
+
 
 const ALLOWED_STATUSES = new Set(['draft', 'published', 'archived'])
 const ALLOWED_VISIBILITY = new Set(['public', 'private'])
@@ -97,23 +98,23 @@ const sanitizePayload = (raw: RawEventPayload, opts: { isUpdate?: boolean } = {}
     registration_url: typeof raw.registration_url === 'string' && raw.registration_url.trim().length > 0
       ? raw.registration_url.trim()
       : typeof raw.registrationUrl === 'string' && raw.registrationUrl.trim().length > 0
-      ? raw.registrationUrl.trim()
-      : null,
+        ? raw.registrationUrl.trim()
+        : null,
     registration_label: typeof raw.registration_label === 'string' && raw.registration_label.trim().length > 0
       ? raw.registration_label.trim()
       : 'Register',
     featured_image_url: typeof raw.featured_image_url === 'string' && raw.featured_image_url.trim().length > 0
       ? raw.featured_image_url.trim()
       : typeof raw.featuredImageUrl === 'string' && raw.featuredImageUrl.trim().length > 0
-      ? raw.featuredImageUrl.trim()
-      : null,
+        ? raw.featuredImageUrl.trim()
+        : null,
     gallery: Array.isArray(raw.gallery) ? raw.gallery : [],
     tags: Array.isArray(raw.tags) ? raw.tags.filter(tag => typeof tag === 'string').map(tag => tag.trim()).filter(Boolean) : [],
     capacity: typeof raw.capacity === 'number' && Number.isFinite(raw.capacity)
       ? Math.trunc(raw.capacity)
       : typeof raw.capacity === 'string' && raw.capacity.trim().length > 0 && !Number.isNaN(Number(raw.capacity))
-      ? Math.trunc(Number(raw.capacity))
-      : null,
+        ? Math.trunc(Number(raw.capacity))
+        : null,
     status: normalizedStatus,
     visibility: normalizedVisibility,
     is_featured: toBoolean(raw.is_featured ?? raw.isFeatured, false),
@@ -130,7 +131,7 @@ const toJsonResponse = (payload: unknown, status = 200) =>
   })
 
 export async function GET(req: NextRequest) {
-  const supabase = await createClient(true)
+  const supabase = createAdminClient()
   const searchParams = req.nextUrl.searchParams
   const scope = searchParams.get('scope')
 
@@ -162,7 +163,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as RawEventPayload
     const payload = sanitizePayload(body)
-    const supabase = await createClient(true)
+    const supabase = createAdminClient()
 
     const { data, error } = await supabase
       .from('events')
@@ -197,27 +198,44 @@ export async function PUT(req: NextRequest) {
     }
 
     const payload = sanitizePayload(body, { isUpdate: true })
-    const supabase = await createClient(true)
+    const supabase = createAdminClient()
 
+    // First check if the event exists
+    const { data: existingEvent, error: checkError } = await supabase
+      .from('events')
+      .select('id')
+      .eq('id', id)
+      .maybeSingle()
+
+    if (checkError) {
+      console.error('Error checking event:', checkError)
+      return toJsonResponse({ message: 'Failed to check event', error: checkError.message }, 500)
+    }
+
+    if (!existingEvent) {
+      return toJsonResponse({ message: 'Event not found' }, 404)
+    }
+
+    // Now update the event
     const { data, error } = await supabase
       .from('events')
       .update({ ...payload })
       .eq('id', id)
       .select()
-      .single()
 
     if (error) {
       console.error('Error updating event:', error)
       return toJsonResponse({ message: 'Failed to update event', error: error.message }, 500)
     }
 
-    return toJsonResponse(data)
+    return toJsonResponse(data?.[0] || payload)
   } catch (error) {
     console.error('Error in events PUT:', error)
     const message = error instanceof Error ? error.message : 'Unknown error'
     return toJsonResponse({ message: 'Failed to update event', error: message }, 400)
   }
 }
+
 
 export async function PATCH(req: NextRequest) {
   const adminCheck = await requireAdmin(req);
@@ -232,7 +250,7 @@ export async function PATCH(req: NextRequest) {
       return toJsonResponse({ message: 'Event id is required for partial update' }, 400)
     }
 
-    const supabase = await createClient(true)
+    const supabase = createAdminClient()
 
     const updates: Record<string, unknown> = {}
 
@@ -273,25 +291,43 @@ export async function PATCH(req: NextRequest) {
       return toJsonResponse({ message: 'No valid fields provided for partial update' }, 400)
     }
 
+    // First check if the event exists
+    const { data: existingEvent, error: checkError } = await supabase
+      .from('events')
+      .select('id')
+      .eq('id', id)
+      .maybeSingle()
+
+    if (checkError) {
+      console.error('Error checking event:', checkError)
+      return toJsonResponse({ message: 'Failed to check event', error: checkError.message }, 500)
+    }
+
+    if (!existingEvent) {
+      return toJsonResponse({ message: 'Event not found' }, 404)
+    }
+
+    // Now perform the update
     const { data, error } = await supabase
       .from('events')
       .update(updates)
       .eq('id', id)
       .select()
-      .single()
 
     if (error) {
       console.error('Error patching event:', error)
       return toJsonResponse({ message: 'Failed to update event', error: error.message }, 500)
     }
 
-    return toJsonResponse(data)
+    // Return the first (and should be only) result
+    return toJsonResponse(data?.[0] || { id, ...updates })
   } catch (error) {
     console.error('Error in events PATCH:', error)
     const message = error instanceof Error ? error.message : 'Unknown error'
     return toJsonResponse({ message: 'Failed to update event', error: message }, 400)
   }
 }
+
 
 export async function DELETE(req: NextRequest) {
   const adminCheck = await requireAdmin(req);
@@ -306,7 +342,25 @@ export async function DELETE(req: NextRequest) {
       return toJsonResponse({ message: 'Event id is required for deletion' }, 400)
     }
 
-    const supabase = await createClient(true)
+    const supabase = createAdminClient()
+
+    // First check if the event exists
+    const { data: existingEvent, error: checkError } = await supabase
+      .from('events')
+      .select('id, title')
+      .eq('id', id)
+      .maybeSingle()
+
+    if (checkError) {
+      console.error('Error checking event for deletion:', checkError)
+      return toJsonResponse({ message: 'Failed to check event', error: checkError.message }, 500)
+    }
+
+    if (!existingEvent) {
+      return toJsonResponse({ message: 'Event not found', error: 'No event exists with the given ID' }, 404)
+    }
+
+    // Now delete the event
     const { error } = await supabase
       .from('events')
       .delete()
@@ -324,6 +378,7 @@ export async function DELETE(req: NextRequest) {
     return toJsonResponse({ message: 'Failed to delete event', error: message }, 400)
   }
 }
+
 
 
 

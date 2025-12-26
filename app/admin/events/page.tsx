@@ -298,18 +298,21 @@ function AdminEventsPageContent() {
     fetchEvents()
   }, [fetchEvents])
 
-  useEffect(() => {
-    const channel = supabase
-      .channel("admin-events-sync")
-      .on("postgres_changes", { event: "*", schema: "public", table: "events" }, () => {
-        fetchEvents({ withSpinner: false })
-      })
-      .subscribe()
+  // Disabled real-time sync - it was causing issues by reverting local state
+  // after optimistic updates. The fetchEvents call after each operation handles sync.
+  // useEffect(() => {
+  //   const channel = supabase
+  //     .channel("admin-events-sync")
+  //     .on("postgres_changes", { event: "*", schema: "public", table: "events" }, () => {
+  //       fetchEvents({ withSpinner: false })
+  //     })
+  //     .subscribe()
+  //
+  //   return () => {
+  //     supabase.removeChannel(channel)
+  //   }
+  // }, [fetchEvents])
 
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [fetchEvents])
 
   const openCreateDialog = () => {
     setMode("create")
@@ -371,10 +374,14 @@ function AdminEventsPageContent() {
 
       if (!response.ok && response.status !== 204) {
         const detail = await response.json().catch(() => ({}))
-        throw new Error(detail?.error ?? "Failed to delete event")
+        throw new Error(detail?.error ?? detail?.message ?? "Failed to delete event")
       }
 
+      // Immediately remove from local state
+      setEvents(prev => prev.filter(e => e.id !== id))
       toast.success("Event deleted")
+
+      // Also refresh from server to ensure sync
       fetchEvents({ withSpinner: false })
     } catch (error) {
       console.error("Failed to delete event", error)
@@ -384,8 +391,16 @@ function AdminEventsPageContent() {
     }
   }
 
+
   const toggleStatus = async (event: AdminEvent) => {
     const nextStatus = event.status === "published" ? "draft" : "published"
+
+    // Immediately update local state for instant UI feedback
+    setEvents(prev => prev.map(e =>
+      e.id === event.id
+        ? { ...e, status: nextStatus, is_featured: nextStatus === "draft" ? false : e.is_featured }
+        : e
+    ))
 
     try {
       const response = await fetch("/api/events", {
@@ -396,12 +411,25 @@ function AdminEventsPageContent() {
 
       if (!response.ok) {
         const detail = await response.json().catch(() => ({}))
-        throw new Error(detail?.error ?? "Failed to update status")
+        throw new Error(detail?.error ?? detail?.message ?? "Failed to update status")
+      }
+
+      // If unpublishing, also remove featured status
+      if (nextStatus === "draft" && event.is_featured) {
+        await fetch("/api/events", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: event.id, is_featured: false }),
+        })
       }
 
       toast.success(`Event ${nextStatus === "published" ? "published" : "unpublished"}`)
       fetchEvents({ withSpinner: false })
     } catch (error) {
+      // Revert on error
+      setEvents(prev => prev.map(e =>
+        e.id === event.id ? { ...e, status: event.status, is_featured: event.is_featured } : e
+      ))
       console.error("Error updating status", error)
       toast.error(error instanceof Error ? error.message : "Failed to update status")
     }
@@ -409,6 +437,11 @@ function AdminEventsPageContent() {
 
   const toggleVisibility = async (event: AdminEvent) => {
     const nextVisibility = event.visibility === "public" ? "private" : "public"
+
+    // Immediately update local state
+    setEvents(prev => prev.map(e =>
+      e.id === event.id ? { ...e, visibility: nextVisibility } : e
+    ))
 
     try {
       const response = await fetch("/api/events", {
@@ -419,37 +452,53 @@ function AdminEventsPageContent() {
 
       if (!response.ok) {
         const detail = await response.json().catch(() => ({}))
-        throw new Error(detail?.error ?? "Failed to update visibility")
+        throw new Error(detail?.error ?? detail?.message ?? "Failed to update visibility")
       }
 
       toast.success(`Event is now ${nextVisibility}`)
       fetchEvents({ withSpinner: false })
     } catch (error) {
+      // Revert on error
+      setEvents(prev => prev.map(e =>
+        e.id === event.id ? { ...e, visibility: event.visibility } : e
+      ))
       console.error("Error updating visibility", error)
       toast.error(error instanceof Error ? error.message : "Failed to update visibility")
     }
   }
 
   const toggleFeatured = async (event: AdminEvent) => {
+    const nextFeatured = !event.is_featured
+
+    // Immediately update local state
+    setEvents(prev => prev.map(e =>
+      e.id === event.id ? { ...e, is_featured: nextFeatured } : e
+    ))
+
     try {
       const response = await fetch("/api/events", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: event.id, is_featured: !event.is_featured }),
+        body: JSON.stringify({ id: event.id, is_featured: nextFeatured }),
       })
 
       if (!response.ok) {
         const detail = await response.json().catch(() => ({}))
-        throw new Error(detail?.error ?? "Failed to update featured state")
+        throw new Error(detail?.error ?? detail?.message ?? "Failed to update featured state")
       }
 
-      toast.success(!event.is_featured ? "Event marked as featured" : "Event removed from featured")
+      toast.success(nextFeatured ? "Event marked as featured" : "Event removed from featured")
       fetchEvents({ withSpinner: false })
     } catch (error) {
+      // Revert on error
+      setEvents(prev => prev.map(e =>
+        e.id === event.id ? { ...e, is_featured: event.is_featured } : e
+      ))
       console.error("Error updating featured state", error)
       toast.error(error instanceof Error ? error.message : "Failed to update featured state")
     }
   }
+
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pt-20 lg:pt-0">

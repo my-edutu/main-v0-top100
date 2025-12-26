@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/api/require-admin'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
 
 export async function GET(req: NextRequest) {
   const adminCheck = await requireAdmin(req)
@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const supabase = await createClient(true)
+    const supabase = createAdminClient()
 
     // Fetch all users from profiles table
     const { data: profiles, error } = await supabase
@@ -57,7 +57,7 @@ export async function PUT(req: NextRequest) {
   }
 
   try {
-    const supabase = await createClient(true)
+    const supabase = createAdminClient()
     const body = await req.json()
     const { id, role, status, full_name, email, bio, location, headline } = body
 
@@ -144,7 +144,7 @@ export async function DELETE(req: NextRequest) {
   }
 
   try {
-    const supabase = await createClient(true)
+    const supabase = createAdminClient()
     const { searchParams } = new URL(req.url)
     const id = searchParams.get('id')
 
@@ -187,3 +187,4 @@ export async function DELETE(req: NextRequest) {
     )
   }
 }
+

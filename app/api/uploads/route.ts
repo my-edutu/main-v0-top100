@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 import { requireAdmin } from '@/lib/api/require-admin'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
 
 const BUCKET_NAME = process.env.SUPABASE_UPLOADS_BUCKET ?? 'uploads'
 
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
 
-    const supabase = await createClient(true)
+    const supabase = createAdminClient()
 
     const filePath = createFileName(file)
     const arrayBuffer = await file.arrayBuffer()
@@ -66,3 +66,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unexpected error occurred while uploading asset' }, { status: 500 })
   }
 }
+

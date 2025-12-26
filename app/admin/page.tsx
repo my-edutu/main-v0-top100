@@ -131,15 +131,18 @@ export default function AdminDashboard() {
       if (withSpinner) setLoading(true)
 
       const awardeesResponse = await fetch('/api/awardees')
-      const eventsResponse = await fetch('/api/events')
-      const postsResponse = await fetch('/api/posts')
+      const eventsResponse = await fetch('/api/events?scope=admin')
+      const postsResponse = await fetch('/api/posts?scope=admin')
       const youtubeResponse = await fetch('/api/youtube')
+      const usersResponse = await fetch('/api/users')
 
       const rawAwardees = awardeesResponse.ok ? await awardeesResponse.json() : []
       const events = eventsResponse.ok ? await eventsResponse.json() : []
       const posts = postsResponse.ok ? await postsResponse.json() : []
       const youtubeData = youtubeResponse.ok ? await youtubeResponse.json() : []
+      const usersData = usersResponse.ok ? await usersResponse.json() : { users: [] }
       const youtubeVideos = Array.isArray(youtubeData) ? youtubeData : []
+      const users = Array.isArray(usersData.users) ? usersData.users : (Array.isArray(usersData) ? usersData : [])
 
       const normalizedAwardees = Array.isArray(rawAwardees) ? rawAwardees : []
       const totalAwardees = normalizedAwardees.length
@@ -156,10 +159,21 @@ export default function AdminDashboard() {
       const totalYouTubeVideos = Array.isArray(youtubeVideos) ? youtubeVideos.length : 0
       const totalEvents = Array.isArray(events) ? events.length : 0
 
-      // Simulated metrics
-      const activeUsers = 245
-      const engagementRate = 78.3
-      const pendingApprovals = 7
+      // Real metrics from actual data
+      const activeUsers = users.length
+
+      // Calculate engagement rate from posts (featured/published ratio)
+      const publishedPosts = Array.isArray(posts)
+        ? posts.filter((post: any) => post.status === 'published').length
+        : 0
+      const engagementRate = totalPosts > 0
+        ? Math.round((publishedPosts / totalPosts) * 100 * 10) / 10
+        : 0
+
+      // Count draft posts as pending approvals
+      const pendingApprovals = Array.isArray(posts)
+        ? posts.filter((post: any) => post.status === 'draft').length
+        : 0
 
       setStats({
         totalAwardees,
@@ -167,12 +181,22 @@ export default function AdminDashboard() {
         totalPosts,
         totalFeaturedPosts,
         totalYouTubeVideos,
-        recentAwardees: 0,
+        recentAwardees: normalizedAwardees.filter((a: any) => {
+          const created = new Date(a.created_at)
+          const weekAgo = new Date()
+          weekAgo.setDate(weekAgo.getDate() - 7)
+          return created > weekAgo
+        }).length,
         totalEvents,
         activeUsers,
         engagementRate,
         pendingApprovals,
-        recentVideos: 0
+        recentVideos: youtubeVideos.filter((v: any) => {
+          const created = new Date(v.created_at)
+          const weekAgo = new Date()
+          weekAgo.setDate(weekAgo.getDate() - 7)
+          return created > weekAgo
+        }).length
       })
 
     } catch (error) {

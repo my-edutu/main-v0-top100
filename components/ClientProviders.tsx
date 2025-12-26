@@ -9,8 +9,9 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
     return (
         <>
             {children}
-            {/* Push Notification Prompt - shows after 5 seconds */}
-            <PushNotificationPrompt delay={5000} position="bottom-left" />
+            {/* Minimal push notification prompt - shows once per user */}
+            <PushNotificationPrompt />
         </>
     );
 }
+

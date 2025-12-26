@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/api/require-admin'
 
 // GET - Fetch homepage sections
 export async function GET(req: NextRequest) {
   try {
     const scope = req.nextUrl.searchParams.get('scope') ?? 'public'
-    const supabase = await createClient(scope === 'admin')
+    const supabase = createAdminClient()
 
     let query = supabase
       .from('homepage_sections')
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const supabase = await createClient(true)
+    const supabase = createAdminClient()
     const body = await req.json()
 
     const {
@@ -116,7 +116,7 @@ export async function PUT(req: NextRequest) {
   }
 
   try {
-    const supabase = await createClient(true)
+    const supabase = createAdminClient()
     const body = await req.json()
 
     const { id, ...updates } = body
@@ -189,7 +189,7 @@ export async function PATCH(req: NextRequest) {
   }
 
   try {
-    const supabase = await createClient(true)
+    const supabase = createAdminClient()
     const body = await req.json()
 
     const { id, is_active, visibility, order_position } = body
@@ -255,7 +255,7 @@ export async function DELETE(req: NextRequest) {
   }
 
   try {
-    const supabase = await createClient(true)
+    const supabase = createAdminClient()
     const { id } = await req.json()
 
     if (!id) {
@@ -287,3 +287,4 @@ export async function DELETE(req: NextRequest) {
     )
   }
 }
+

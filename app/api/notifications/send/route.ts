@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/api/require-admin';
 
 // Send push notification to all subscribers (Admin only)
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
             return Response.json({ error: 'Title and body are required' }, { status: 400 });
         }
 
-        const supabase = await createClient(true); // Use service role
+        const supabase = createAdminClient(); // Use service role
 
         // Get all subscriptions
         const { data: subscriptions, error: fetchError } = await supabase
@@ -116,7 +116,7 @@ export async function GET(req: NextRequest) {
     }
 
     try {
-        const supabase = await createClient(true);
+        const supabase = createAdminClient();
 
         const { data, error } = await supabase
             .from('notification_history')
@@ -135,3 +135,4 @@ export async function GET(req: NextRequest) {
         return Response.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
+

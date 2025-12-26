@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { requireAdmin } from '@/lib/api/require-admin';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 
 export async function POST(request: NextRequest) {
   // Check if user is admin
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Use service role client for storage operations
-    const supabase = await createClient(true);
+    const supabase = createAdminClient();
 
     // Generate a unique filename
     const fileExt = imageFile.name.split('.').pop();
@@ -64,3 +64,4 @@ export async function POST(request: NextRequest) {
     }, { status: 500 });
   }
 }
+

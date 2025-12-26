@@ -4,7 +4,8 @@ import { revalidatePath, revalidateTag } from 'next/cache'
 import { requireAdmin } from '@/lib/api/require-admin'
 import { getHomepagePosts, getPostBySlug, getPublishedPosts, selectHomepagePosts } from '@/lib/posts/server'
 import { mapSupabaseRecord } from '@/lib/posts'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
+
 
 const normalizeTags = (raw: unknown): string[] => {
   if (Array.isArray(raw)) {
@@ -33,7 +34,7 @@ export async function GET(req: NextRequest) {
         return adminCheck.error
       }
 
-      const supabase = await createClient(true)
+      const supabase = createAdminClient()
 
       if (id) {
         const { data, error } = await supabase.from('posts').select('*').eq('id', id).maybeSingle()
@@ -86,7 +87,7 @@ export async function GET(req: NextRequest) {
 
     if (scope === 'homepage') {
       // Direct query to avoid caching issues
-      const supabase = await createClient()
+      const supabase = createAdminClient()
       const { data, error } = await supabase
         .from('posts')
         .select('*')
@@ -106,7 +107,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(selectedPosts)
     }
 
-    const supabase = await createClient()
+    const supabase = createAdminClient()
     const { data, error } = await supabase
       .from('posts')
       .select('*')
@@ -136,7 +137,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const supabase = await createClient(true)
+    const supabase = createAdminClient()
     const body = await req.json()
     const {
       title,
@@ -275,7 +276,7 @@ export async function PUT(req: NextRequest) {
   console.log('[PUT /api/posts] Admin check passed')
 
   try {
-    const supabase = await createClient(true)
+    const supabase = createAdminClient()
     const body = await req.json()
 
     console.log('[PUT /api/posts] Request body keys:', Object.keys(body))
@@ -333,8 +334,8 @@ export async function PUT(req: NextRequest) {
       typeof read_time === 'number'
         ? read_time
         : typeof readTime === 'number'
-        ? readTime
-        : null
+          ? readTime
+          : null
 
     if (suppliedReadTime) {
       updates.read_time = Math.max(1, Math.round(suppliedReadTime))
@@ -443,7 +444,7 @@ export async function PATCH(req: NextRequest) {
   }
 
   try {
-    const supabase = await createClient(true)
+    const supabase = createAdminClient()
     const body = await req.json()
     const { id, is_featured, isFeatured, status, visibility, scheduled_at, scheduledAt } = body
 
@@ -506,7 +507,7 @@ export async function DELETE(req: NextRequest) {
   }
 
   try {
-    const supabase = await createClient(true)
+    const supabase = createAdminClient()
     const { id } = await req.json()
 
     if (!id) {

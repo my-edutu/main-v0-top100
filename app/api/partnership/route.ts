@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
 import { sendEmail } from "@/lib/email/brevo";
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, createRateLimitResponse } from "@/lib/rate-limit";
 
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
         const validatedData = partnershipFormSchema.parse(body);
 
         // Create Supabase client
-        const supabase = await createClient();
+        const supabase = createAdminClient();
 
         // Save to messages table in Supabase
         const { data: messageData, error: dbError } = await supabase
@@ -121,3 +121,4 @@ export async function POST(req: NextRequest) {
         }, { status: 500 });
     }
 }
+

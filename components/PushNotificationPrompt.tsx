@@ -1,93 +1,72 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Bell, X, Check } from 'lucide-react';
+import { Bell, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-interface PushNotificationPromptProps {
-    /** Delay before showing the popup (ms) */
-    delay?: number;
-    /** Position of the popup */
-    position?: 'bottom-left' | 'bottom-right';
-}
-
 /**
- * Push Notification Permission Prompt
+ * Minimal Push Notification Permission Prompt
  * 
- * Shows a friendly popup in the corner asking users to enable push notifications.
- * Only shows if:
- * - Browser supports push notifications
- * - User hasn't already granted/denied permission
- * - User hasn't dismissed the prompt recently
+ * Shows a small, unobtrusive popup in the corner asking users to enable notifications.
+ * Only shows ONCE per user (persisted indefinitely in localStorage).
  */
-export function PushNotificationPrompt({
-    delay = 5000,
-    position = 'bottom-left'
-}: PushNotificationPromptProps) {
+export function PushNotificationPrompt() {
     const [isVisible, setIsVisible] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
-        // Check if we should show the prompt
-        const shouldShow = async () => {
+        const shouldShow = () => {
             // Check if push notifications are supported
             if (!('Notification' in window) || !('serviceWorker' in navigator)) {
-                console.log('[Push] Push notifications not supported');
                 return false;
             }
 
             // Check if already granted or denied
             if (Notification.permission !== 'default') {
-                console.log('[Push] Permission already:', Notification.permission);
                 return false;
             }
 
-            // Check if user dismissed recently (don't show again for 7 days)
-            const dismissedAt = localStorage.getItem('push-prompt-dismissed');
-            if (dismissedAt) {
-                const dismissedTime = parseInt(dismissedAt, 10);
-                const sevenDays = 7 * 24 * 60 * 60 * 1000;
-                if (Date.now() - dismissedTime < sevenDays) {
-                    console.log('[Push] User dismissed recently, waiting...');
-                    return false;
-                }
+            // Check if user has EVER seen this popup (one-time only)
+            const hasSeenPopup = localStorage.getItem('push-popup-shown');
+            if (hasSeenPopup === 'true') {
+                return false;
             }
 
             return true;
         };
 
-        const timer = setTimeout(async () => {
-            const show = await shouldShow();
-            if (show) {
+        // Show after 8 seconds of browsing
+        const timer = setTimeout(() => {
+            if (shouldShow()) {
                 setIsVisible(true);
+                // Mark as shown immediately
+                localStorage.setItem('push-popup-shown', 'true');
             }
-        }, delay);
+        }, 8000);
 
         return () => clearTimeout(timer);
-    }, [delay]);
+    }, []);
 
     const handleEnable = async () => {
         setIsLoading(true);
 
         try {
-            // Register service worker first
+            // Register service worker
             const registration = await navigator.serviceWorker.register('/sw.js');
-            console.log('[Push] Service Worker registered:', registration);
 
-            // Request notification permission
+            // Request permission
             const permission = await Notification.requestPermission();
-            console.log('[Push] Permission result:', permission);
 
             if (permission === 'granted') {
-                // Show a test notification
-                new Notification('Notifications Enabled! 🎉', {
-                    body: 'You will now receive updates from Top100 Africa Future Leaders.',
+                // Show confirmation notification
+                new Notification('🔔 Notifications enabled!', {
+                    body: 'You\'ll receive updates from Top100 AFL.',
                     icon: '/Top100 Africa Future leaders Logo .png',
+                    silent: true,
                 });
 
-                // Save subscription to database
+                // Try to save subscription
                 try {
-                    // Create a basic subscription record
                     const subscriptionData = {
                         subscription: {
                             endpoint: `browser-${Date.now()}-${Math.random().toString(36).substring(7)}`,
@@ -96,123 +75,76 @@ export function PushNotificationPrompt({
                         userAgent: navigator.userAgent,
                     };
 
-                    // Try to get actual push subscription if possible
                     try {
                         const pushSubscription = await registration.pushManager.subscribe({
                             userVisibleOnly: true,
                         });
                         subscriptionData.subscription = pushSubscription.toJSON() as any;
                     } catch (e) {
-                        console.log('[Push] Using fallback subscription (VAPID not configured)');
+                        // VAPID not configured, use fallback
                     }
 
-                    // Save to database
                     await fetch('/api/notifications/subscribe', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(subscriptionData),
                     });
-
-                    console.log('[Push] Subscription saved to database');
-                } catch (subError) {
-                    console.log('[Push] Error saving subscription:', subError);
+                } catch (e) {
+                    console.log('[Push] Subscription save failed:', e);
                 }
             }
 
             setIsVisible(false);
         } catch (error) {
-            console.error('[Push] Error enabling notifications:', error);
+            console.error('[Push] Error:', error);
+            setIsVisible(false);
         } finally {
             setIsLoading(false);
         }
     };
 
-
     const handleDismiss = () => {
-        // Remember that user dismissed
-        localStorage.setItem('push-prompt-dismissed', Date.now().toString());
         setIsVisible(false);
     };
-
-    const handleNotNow = () => {
-        // Shorter wait time for "Not Now" (1 day)
-        const oneDayAgo = Date.now() - (6 * 24 * 60 * 60 * 1000); // Will show again in 1 day
-        localStorage.setItem('push-prompt-dismissed', oneDayAgo.toString());
-        setIsVisible(false);
-    };
-
-    const positionClasses = position === 'bottom-right'
-        ? 'right-4 sm:right-6'
-        : 'left-4 sm:left-6';
 
     return (
         <AnimatePresence>
             {isVisible && (
                 <motion.div
-                    initial={{ opacity: 0, y: 50, scale: 0.95 }}
+                    initial={{ opacity: 0, y: 20, scale: 0.9 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                    transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                    className={`fixed bottom-4 sm:bottom-6 ${positionClasses} z-50 max-w-sm w-[calc(100%-2rem)] sm:w-auto`}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    transition={{ type: 'spring', damping: 30, stiffness: 400 }}
+                    className="fixed bottom-4 left-4 z-50 max-w-[280px]"
                 >
-                    <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
-                        {/* Header with close button */}
-                        <div className="relative bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-3">
-                            <button
-                                onClick={handleDismiss}
-                                className="absolute top-2 right-2 p-1 rounded-full hover:bg-white/20 transition-colors"
-                                aria-label="Close"
-                            >
-                                <X className="h-4 w-4 text-white" />
-                            </button>
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                                    <Bell className="h-5 w-5 text-white" />
-                                </div>
-                                <div>
-                                    <h3 className="text-white font-bold text-sm">Stay Updated!</h3>
-                                    <p className="text-white/80 text-xs">Get the latest news & updates</p>
-                                </div>
-                            </div>
+                    <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-3 flex items-center gap-3">
+                        {/* Icon */}
+                        <div className="w-9 h-9 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
+                            <Bell className="h-4 w-4 text-orange-600" />
                         </div>
 
                         {/* Content */}
-                        <div className="p-4">
-                            <p className="text-gray-600 text-sm mb-4">
-                                Enable notifications to receive updates about new awardees, events, and opportunities from Top100 Africa Future Leaders.
-                            </p>
-
-                            {/* Buttons */}
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={handleNotNow}
-                                    disabled={isLoading}
-                                    className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
-                                >
-                                    Not Now
-                                </button>
-                                <button
-                                    onClick={handleEnable}
-                                    disabled={isLoading}
-                                    className="flex-1 px-4 py-2.5 text-sm font-bold text-white bg-orange-500 hover:bg-orange-600 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                                >
-                                    {isLoading ? (
-                                        <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                                    ) : (
-                                        <>
-                                            <Check className="h-4 w-4" />
-                                            Enable
-                                        </>
-                                    )}
-                                </button>
-                            </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-gray-900">Get notified</p>
+                            <p className="text-[10px] text-gray-500">Updates on events & news</p>
                         </div>
 
-                        {/* Footer */}
-                        <div className="px-4 py-2 bg-gray-50 border-t border-gray-100">
-                            <p className="text-[10px] text-gray-400 text-center">
-                                You can disable notifications anytime in your browser settings
-                            </p>
+                        {/* Actions */}
+                        <div className="flex items-center gap-1 shrink-0">
+                            <button
+                                onClick={handleEnable}
+                                disabled={isLoading}
+                                className="px-2.5 py-1.5 text-[11px] font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg transition-colors disabled:opacity-50"
+                            >
+                                {isLoading ? '...' : 'Yes'}
+                            </button>
+                            <button
+                                onClick={handleDismiss}
+                                className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"
+                                aria-label="Close"
+                            >
+                                <X className="h-3.5 w-3.5" />
+                            </button>
                         </div>
                     </div>
                 </motion.div>
@@ -222,7 +154,7 @@ export function PushNotificationPrompt({
 }
 
 /**
- * Hook to manage push notifications
+ * Hook to manage push notifications programmatically
  */
 export function usePushNotifications() {
     const [permission, setPermission] = useState<NotificationPermission | 'unsupported'>('default');
@@ -236,7 +168,6 @@ export function usePushNotifications() {
 
         setPermission(Notification.permission);
 
-        // Check subscription status
         if ('serviceWorker' in navigator && Notification.permission === 'granted') {
             navigator.serviceWorker.ready.then((registration) => {
                 registration.pushManager.getSubscription().then((subscription) => {
@@ -258,7 +189,6 @@ export function usePushNotifications() {
 
     const showNotification = (title: string, options?: NotificationOptions) => {
         if (permission !== 'granted') {
-            console.warn('[Push] Cannot show notification, permission:', permission);
             return null;
         }
 
@@ -275,4 +205,21 @@ export function usePushNotifications() {
         requestPermission,
         showNotification,
     };
+}
+
+/**
+ * Helper to verify CAPTCHA (kept for compatibility)
+ */
+export async function verifyCaptcha(token: string): Promise<boolean> {
+    try {
+        const response = await fetch('/api/verify-captcha', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token }),
+        });
+        const data = await response.json();
+        return data.success === true;
+    } catch {
+        return false;
+    }
 }

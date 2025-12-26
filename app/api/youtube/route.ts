@@ -2,11 +2,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { requireAdmin } from '@/lib/api/require-admin';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     const { data, error, status } = await supabase
       .from('youtube_videos')
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const supabase = await createClient(true);
+    const supabase = createAdminClient();
 
     const { data, error } = await supabase
       .from('youtube_videos')
@@ -144,7 +144,7 @@ export async function PUT(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const supabase = await createClient(true);
+    const supabase = createAdminClient();
 
     const { data, error } = await supabase
       .from('youtube_videos')
@@ -199,7 +199,7 @@ export async function DELETE(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const supabase = await createClient(true);
+    const supabase = createAdminClient();
 
     const { error } = await supabase
       .from('youtube_videos')

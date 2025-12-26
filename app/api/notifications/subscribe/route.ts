@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, createRateLimitResponse } from '@/lib/rate-limit';
 
 // Subscribe to push notifications
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
             return Response.json({ error: 'Invalid subscription' }, { status: 400 });
         }
 
-        const supabase = await createClient();
+        const supabase = createAdminClient();
 
         // Store the subscription
         const { data, error } = await supabase
@@ -61,7 +61,7 @@ export async function DELETE(req: NextRequest) {
             return Response.json({ error: 'Endpoint required' }, { status: 400 });
         }
 
-        const supabase = await createClient();
+        const supabase = createAdminClient();
 
         const { error } = await supabase
             .from('push_subscriptions')
@@ -89,7 +89,7 @@ export async function GET(req: NextRequest) {
             return Response.json({ error: 'Endpoint required' }, { status: 400 });
         }
 
-        const supabase = await createClient();
+        const supabase = createAdminClient();
 
         const { data } = await supabase
             .from('push_subscriptions')
@@ -105,3 +105,4 @@ export async function GET(req: NextRequest) {
         return Response.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
+

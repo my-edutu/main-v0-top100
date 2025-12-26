@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/api/require-admin'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
 
 type SiteSettings = {
   id?: string
@@ -148,7 +148,7 @@ const DEFAULT_SETTINGS: Partial<SiteSettings> = {
 
 export async function GET(req: NextRequest) {
   try {
-    const supabase = await createClient(true)
+    const supabase = createAdminClient()
 
     // Try to fetch settings
     const { data, error } = await supabase
@@ -193,7 +193,7 @@ export async function PUT(req: NextRequest) {
   }
 
   try {
-    const supabase = await createClient(true)
+    const supabase = createAdminClient()
     const body = await req.json()
 
     // Validate required fields
@@ -353,3 +353,4 @@ export async function PUT(req: NextRequest) {
     )
   }
 }
+

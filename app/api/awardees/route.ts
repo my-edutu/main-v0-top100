@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
       // If there's an image file, upload it to Supabase storage
       let imageUrl = null;
       if (body.image && body.image.size > 0) {
-        const supabase = await createClient(true); // Use service role for admin operations
+        const supabase = createAdminClient(); // Use service role for admin operations
 
         // Generate a unique filename
         const fileName = `${Date.now()}-${body.image.name}`;
@@ -164,7 +164,7 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      const supabase = await createClient(true); // Use service role for admin operations
+      const supabase = createAdminClient(); // Use service role for admin operations
       
       // Check if an awardee with the same slug already exists
       const { data: existingAwardee } = await supabase
@@ -237,7 +237,7 @@ export async function POST(request: NextRequest) {
         }, { status: 400 });
       }
 
-      const supabase = await createClient(true); // Use service role for admin operations
+      const supabase = createAdminClient(); // Use service role for admin operations
 
       // Check if an awardee with the same slug already exists
       const { data: existingAwardee } = await supabase
@@ -445,7 +445,7 @@ export async function DELETE(request: NextRequest) {
       }, { status: 400 });
     }
     
-    const supabase = await createClient(true); // Use service role for admin operations
+    const supabase = createAdminClient(); // Use service role for admin operations
 
     const { error } = await supabase
       .from('awardees')
@@ -482,7 +482,7 @@ export async function DELETE(request: NextRequest) {
 // Initialize awardees from the Excel file
 async function initializeAwardeesFromExcel() {
   try {
-    const supabase = await createClient(true); // Use service role for admin operations
+    const supabase = createAdminClient(); // Use service role for admin operations
 
     // Try to fetch the Excel file from public directory
     // If running in development, fetch using a relative path
@@ -578,3 +578,4 @@ function generateSlug(name: string): string {
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-');
 }
+

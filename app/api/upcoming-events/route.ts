@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/api/require-admin'
 
 // GET - Fetch upcoming events
@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
     const scope = req.nextUrl.searchParams.get('scope') ?? 'public'
     const limit = req.nextUrl.searchParams.get('limit')
     const featured = req.nextUrl.searchParams.get('featured')
-    const supabase = await createClient(scope === 'admin')
+    const supabase = createAdminClient()
 
     let query = supabase
       .from('upcoming_events')
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const supabase = await createClient(true)
+    const supabase = createAdminClient()
     const body = await req.json()
 
     const {
@@ -138,7 +138,7 @@ export async function PUT(req: NextRequest) {
   }
 
   try {
-    const supabase = await createClient(true)
+    const supabase = createAdminClient()
     const body = await req.json()
 
     const { id, ...updates } = body
@@ -215,7 +215,7 @@ export async function PATCH(req: NextRequest) {
   }
 
   try {
-    const supabase = await createClient(true)
+    const supabase = createAdminClient()
     const body = await req.json()
 
     const { id, is_active, is_featured, order_position } = body
@@ -281,7 +281,7 @@ export async function DELETE(req: NextRequest) {
   }
 
   try {
-    const supabase = await createClient(true)
+    const supabase = createAdminClient()
     const { id } = await req.json()
 
     if (!id) {
@@ -313,3 +313,4 @@ export async function DELETE(req: NextRequest) {
     )
   }
 }
+

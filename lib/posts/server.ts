@@ -2,7 +2,7 @@ import { cache } from "react"
 import { unstable_cache } from 'next/cache'
 
 import { blogPosts } from "@/content/data/blog-posts"
-import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/server"
 
 import { mapStaticPost, mapSupabaseRecord, mergePosts, ResolvedPost, selectHomepagePosts } from "../posts"
 
@@ -10,8 +10,8 @@ export { selectHomepagePosts } from "../posts"
 
 const fetchSupabasePosts = async (): Promise<ResolvedPost[]> => {
   try {
-    const supabase = await createClient()
-    const { data, error } = await supabase.from("posts").select("*").order("created_at", { ascending: false })
+    const supabase = createAdminClient()
+    const { data, error } = await supabase.from("posts").select("*").eq("status", "published").order("created_at", { ascending: false })
 
     if (error || !data) {
       if (error) {
@@ -29,8 +29,8 @@ const fetchSupabasePosts = async (): Promise<ResolvedPost[]> => {
 
 const fetchSupabasePostBySlug = async (slug: string): Promise<ResolvedPost | null> => {
   try {
-    const supabase = await createClient()
-    const { data, error } = await supabase.from("posts").select("*").eq("slug", slug).maybeSingle()
+    const supabase = createAdminClient()
+    const { data, error } = await supabase.from("posts").select("*").eq("slug", slug).eq("status", "published").maybeSingle()
 
     if (error || !data) {
       return null
