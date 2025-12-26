@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import NewsletterForm from '@/app/components/NewsletterForm';
 
 export default function Project100Page() {
   return (
@@ -42,7 +43,7 @@ export default function Project100Page() {
             <div className="max-w-4xl mx-auto text-center mb-12">
               <h2 className="text-3xl font-bold text-gray-900 mb-4">About Project100 Scholarship</h2>
               <p className="text-gray-700 text-lg">
-                Project100 Scholarship is an initiative of Top100 Africa Future Leaders dedicated to sending disadvantaged children and undergraduates back to school. 
+                Project100 Scholarship is an initiative of Top100 Africa Future Leaders dedicated to sending disadvantaged children and undergraduates back to school.
                 Our mission is to provide educational opportunities to those who need them most, breaking the cycle of poverty through knowledge and empowerment.
               </p>
               <div className="mt-6">
@@ -116,7 +117,7 @@ export default function Project100Page() {
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">Disadvantaged Children</h3>
                 <p className="text-gray-700">Children from impoverished backgrounds who lack access to quality education and basic resources.</p>
               </div>
-              
+
               <div className="bg-gray-50 p-6 rounded-xl shadow-sm border border-gray-100">
                 <div className="text-yellow-600 mb-4">
                   <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -126,7 +127,7 @@ export default function Project100Page() {
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">Mission-Driven Undergraduates</h3>
                 <p className="text-gray-700">University students with a passion for social impact but limited financial resources.</p>
               </div>
-              
+
               <div className="bg-gray-50 p-6 rounded-xl shadow-sm border border-gray-100">
                 <div className="text-yellow-600 mb-4">
                   <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -157,7 +158,7 @@ export default function Project100Page() {
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">Identification</h3>
                 <p className="text-gray-700">We identify disadvantaged children and students in need through our network of community leaders and educators.</p>
               </div>
-              
+
               <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-center">
                 <div className="w-16 h-16 rounded-full bg-yellow-100 flex items-center justify-center mx-auto mb-4">
                   <span className="text-2xl font-bold text-yellow-600">2</span>
@@ -165,7 +166,7 @@ export default function Project100Page() {
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">Selection</h3>
                 <p className="text-gray-700">Our committee carefully selects candidates based on need, merit, and potential for leadership.</p>
               </div>
-              
+
               <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-center">
                 <div className="w-16 h-16 rounded-full bg-yellow-100 flex items-center justify-center mx-auto mb-4">
                   <span className="text-2xl font-bold text-yellow-600">3</span>
@@ -173,7 +174,7 @@ export default function Project100Page() {
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">Scholarship Support</h3>
                 <p className="text-gray-700">We provide comprehensive support including tuition, books, uniforms, and basic necessities.</p>
               </div>
-              
+
               <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-center">
                 <div className="w-16 h-16 rounded-full bg-yellow-100 flex items-center justify-center mx-auto mb-4">
                   <span className="text-2xl font-bold text-yellow-600">4</span>
@@ -199,17 +200,17 @@ export default function Project100Page() {
                 <div className="text-4xl font-bold mb-2">16+</div>
                 <p className="text-white/90">Nigerian States</p>
               </div>
-              
+
               <div className="text-center">
                 <div className="text-4xl font-bold mb-2">50+</div>
                 <p className="text-white/90">Already Back to School</p>
               </div>
-              
+
               <div className="text-center">
                 <div className="text-4xl font-bold mb-2">500+</div>
                 <p className="text-white/90">Identified for Support</p>
               </div>
-              
+
               <div className="text-center">
                 <div className="text-4xl font-bold mb-2">400+</div>
                 <p className="text-white/90">Awardees Backing</p>
@@ -224,16 +225,16 @@ export default function Project100Page() {
             <div className="max-w-4xl mx-auto text-center">
               <h2 className="text-3xl font-bold text-gray-900 mb-6">Why It Matters</h2>
               <p className="text-gray-700 text-lg mb-8">
-                Education is the greatest equalizer, unlocking the potential of every child regardless of their background. 
-                When we invest in a child's education, we're not just changing one life — we're creating a ripple effect that 
-                transforms entire communities. Every scholar we support becomes a beacon of hope, demonstrating that with 
-                the right opportunity, anyone can rise above their circumstances and achieve greatness. 
+                Education is the greatest equalizer, unlocking the potential of every child regardless of their background.
+                When we invest in a child's education, we're not just changing one life — we're creating a ripple effect that
+                transforms entire communities. Every scholar we support becomes a beacon of hope, demonstrating that with
+                the right opportunity, anyone can rise above their circumstances and achieve greatness.
                 Education restores dignity, builds confidence, and opens doors to possibilities that once seemed impossible.
               </p>
               <div className="relative h-64 rounded-xl overflow-hidden max-w-2xl mx-auto">
-                <Image 
-                  src="https://placehold.co/600x400?text=Education+Transforming+Lives" 
-                  alt="Children in a classroom receiving educational support" 
+                <Image
+                  src="https://placehold.co/600x400?text=Education+Transforming+Lives"
+                  alt="Children in a classroom receiving educational support"
                   fill
                   className="object-cover opacity-80"
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -267,7 +268,7 @@ export default function Project100Page() {
                   </Link>
                 </div>
               </div>
-              
+
               <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 text-center">
                 <div className="text-yellow-500 mb-4">
                   <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -287,7 +288,7 @@ export default function Project100Page() {
                   </Link>
                 </div>
               </div>
-              
+
               <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 text-center">
                 <div className="text-yellow-500 mb-4">
                   <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -318,9 +319,9 @@ export default function Project100Page() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
               <div className="bg-gray-50 rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="h-48 bg-gray-200 relative">
-                  <Image 
-                    src="https://placehold.co/600x300?text=Aisha%27s+Journey" 
-                    alt="Scholar story" 
+                  <Image
+                    src="https://placehold.co/600x300?text=Aisha%27s+Journey"
+                    alt="Scholar story"
                     layout="fill"
                     objectFit="cover"
                   />
@@ -335,12 +336,12 @@ export default function Project100Page() {
                   </button>
                 </div>
               </div>
-              
+
               <div className="bg-gray-50 rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="h-48 bg-gray-200 relative">
-                  <Image 
-                    src="https://placehold.co/600x300?text=David%27s+Achievement" 
-                    alt="Scholar story" 
+                  <Image
+                    src="https://placehold.co/600x300?text=David%27s+Achievement"
+                    alt="Scholar story"
                     layout="fill"
                     objectFit="cover"
                   />
@@ -355,12 +356,12 @@ export default function Project100Page() {
                   </button>
                 </div>
               </div>
-              
+
               <div className="bg-gray-50 rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="h-48 bg-gray-200 relative">
-                  <Image 
-                    src="https://placehold.co/600x300?text=Fatima%27s+Leadership" 
-                    alt="Scholar story" 
+                  <Image
+                    src="https://placehold.co/600x300?text=Fatima%27s+Leadership"
+                    alt="Scholar story"
                     layout="fill"
                     objectFit="cover"
                   />
@@ -375,12 +376,12 @@ export default function Project100Page() {
                   </button>
                 </div>
               </div>
-              
+
               <div className="bg-gray-50 rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="h-48 bg-gray-200 relative">
-                  <Image 
-                    src="https://placehold.co/600x300?text=Samuel%27s+Success" 
-                    alt="Scholar story" 
+                  <Image
+                    src="https://placehold.co/600x300?text=Samuel%27s+Success"
+                    alt="Scholar story"
                     layout="fill"
                     objectFit="cover"
                   />
@@ -395,12 +396,12 @@ export default function Project100Page() {
                   </button>
                 </div>
               </div>
-              
+
               <div className="bg-gray-50 rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="h-48 bg-gray-200 relative">
-                  <Image 
-                    src="https://placehold.co/600x300?text=Grace%27s+Journey" 
-                    alt="Scholar story" 
+                  <Image
+                    src="https://placehold.co/600x300?text=Grace%27s+Journey"
+                    alt="Scholar story"
                     layout="fill"
                     objectFit="cover"
                   />
@@ -415,12 +416,12 @@ export default function Project100Page() {
                   </button>
                 </div>
               </div>
-              
+
               <div className="bg-gray-50 rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="h-48 bg-gray-200 relative">
-                  <Image 
-                    src="https://placehold.co/600x300?text=Kofi%27s+Transformation" 
-                    alt="Scholar story" 
+                  <Image
+                    src="https://placehold.co/600x300?text=Kofi%27s+Transformation"
+                    alt="Scholar story"
                     layout="fill"
                     objectFit="cover"
                   />
@@ -448,9 +449,9 @@ export default function Project100Page() {
                 Subscribe to our newsletter to receive updates on our scholarship program and success stories.
               </p>
               <div className="flex flex-col sm:flex-row gap-2 max-w-md mx-auto">
-                <input 
-                  type="email" 
-                  placeholder="Your email address" 
+                <input
+                  type="email"
+                  placeholder="Your email address"
                   className="flex-grow px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
                 />
                 <button className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-medium py-3 px-6 rounded-lg transition duration-300 whitespace-nowrap">

@@ -9,7 +9,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { useSearchParams } from 'next/navigation';
-import { Eye, EyeOff, Shield, Clock, AlertTriangle } from 'lucide-react';
+import { Eye, EyeOff, Shield, Clock, AlertTriangle, Loader2 } from 'lucide-react';
+import Image from 'next/image'
+import { cn } from '@/lib/utils'
+import { TurnstileCaptcha, verifyCaptcha } from '@/components/ui/turnstile'
 
 export default function SignInContent() {
   const [email, setEmail] = useState('')
@@ -17,6 +20,8 @@ export default function SignInContent() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [captchaToken, setCaptchaToken] = useState('')
+  const [captchaError, setCaptchaError] = useState(false)
   const [securityMessage, setSecurityMessage] = useState<{
     type: 'warning' | 'info'
     message: string
@@ -49,17 +54,28 @@ export default function SignInContent() {
       })
     }
   }, [reason])
-  
+
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword)
   }
-  
+
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setIsLoading(true)
 
     try {
+      // Verify CAPTCHA first (if configured)
+      if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && captchaToken) {
+        const captchaValid = await verifyCaptcha(captchaToken)
+        if (!captchaValid) {
+          setError('CAPTCHA verification failed. Please try again.')
+          setCaptchaError(true)
+          setIsLoading(false)
+          return
+        }
+      }
+
       console.log('Starting sign-in process for:', email)
 
       const { error: signInError } = await supabase.auth.signInWithPassword({
@@ -180,103 +196,150 @@ export default function SignInContent() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-primary-50 to-secondary-50 dark:from-primary-900/20 dark:to-secondary-900/20">
-      <div className="absolute inset-0 bg-grid-pattern opacity-5 dark:opacity-10 pointer-events-none"></div>
-      <div className="relative z-10 flex min-h-screen items-center justify-center p-4">
-        <div className="w-full max-w-md">
-          <div className="mb-8 text-center">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/20">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-              </div>
-            </div>
-            <h1 className="mt-4 text-2xl font-bold tracking-tight text-foreground">Top100 Awardee Portal</h1>
-            <p className="mt-2 text-sm text-muted-foreground">Sign in to access your profile and dashboard</p>
+    <div className="relative min-h-screen flex items-center justify-center p-4 bg-[#fdfdfd] overflow-hidden">
+      {/* Background Decorative Elements */}
+      <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
+        <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-orange-50 rounded-full blur-[120px] opacity-60 animate-pulse" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-amber-50 rounded-full blur-[120px] opacity-60 animate-pulse" />
+      </div>
+
+      <div className="relative z-10 w-full max-w-[420px] animate-in fade-in zoom-in duration-500">
+        {/* Logo Section */}
+        <div className="mb-10 flex flex-col items-center gap-4">
+          <div className="relative group">
+            <div className="absolute -inset-4 bg-orange-100/50 rounded-full blur-2xl group-hover:bg-orange-200/50 transition-all duration-700" />
+            <Image
+              src="/Top100 Africa Future leaders Logo .png"
+              alt="Logo"
+              width={100}
+              height={100}
+              className="relative object-contain drop-shadow-sm group-hover:scale-105 transition-transform duration-500"
+              priority
+            />
           </div>
-          
-          <Card className="border-0 bg-background/80 backdrop-blur-sm shadow-xl">
-            <CardContent className="p-6">
-              <form onSubmit={handleSignIn} className="space-y-4">
-                {securityMessage && (
-                  <div className={`rounded-lg px-4 py-3 text-sm border flex items-start gap-3 ${
-                    securityMessage.type === 'warning'
-                      ? 'bg-amber-50 text-amber-900 border-amber-200 dark:bg-amber-900/20 dark:text-amber-200 dark:border-amber-800'
-                      : 'bg-blue-50 text-blue-900 border-blue-200 dark:bg-blue-900/20 dark:text-blue-200 dark:border-blue-800'
-                  }`}>
-                    <span className="flex-shrink-0 mt-0.5">{securityMessage.icon}</span>
-                    <span>{securityMessage.message}</span>
-                  </div>
-                )}
-                {error && (
-                  <div className="rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive border border-destructive/30">
-                    {error}
-                  </div>
-                )}
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-sm font-medium text-foreground">Email</Label>
+          <div className="text-center space-y-1">
+            <h1 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Awardee Portal</h1>
+            <p className="text-zinc-400 text-xs font-medium tracking-wide">Enter your credentials to access the workspace</p>
+          </div>
+        </div>
+
+        {/* Form Card */}
+        <div className="bg-white/70 backdrop-blur-xl border border-zinc-100 rounded-[2.5rem] p-8 sm:p-10 shadow-[0_20px_50px_-12px_rgba(249,115,22,0.1)]">
+          <form onSubmit={handleSignIn} className="space-y-6">
+            {securityMessage && (
+              <div className={cn(
+                "rounded-2xl px-4 py-3 text-[11px] font-bold uppercase tracking-wider border flex items-center gap-3 animate-in slide-in-from-top-2",
+                securityMessage.type === 'warning'
+                  ? 'bg-amber-50/50 text-amber-700 border-amber-100'
+                  : 'bg-orange-50/50 text-orange-700 border-orange-100'
+              )}>
+                <span className="flex-shrink-0">{securityMessage.icon}</span>
+                <span>{securityMessage.message}</span>
+              </div>
+            )}
+
+            {error && (
+              <div className="rounded-2xl bg-rose-50/50 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-rose-600 border border-rose-100 animate-in shake-200 duration-500">
+                {error}
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <div className="space-y-1.5 px-1">
+                <Label htmlFor="email" className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Business Email</Label>
+                <div className="relative group">
                   <Input
                     id="email"
                     type="email"
-                    placeholder="yourname@top100afl.com"
+                    placeholder="name@top100afl.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="h-11"
+                    className="h-12 bg-white/50 border-zinc-100 rounded-2xl px-4 text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500/50 transition-all duration-300"
                     required
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="text-sm font-medium text-foreground">Password</Label>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="h-11 pr-10 text-lg tracking-widest"
-                      required
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                      onClick={togglePasswordVisibility}
-                      aria-label={showPassword ? "Hide password" : "Show password"}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <Eye className="h-4 w-4 text-muted-foreground" />
-                      )}
-                    </Button>
-                  </div>
+              </div>
+
+              <div className="space-y-1.5 px-1">
+                <div className="flex items-center justify-between ml-1">
+                  <Label htmlFor="password" className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Security Key</Label>
+                  <Link href="/auth/forgot-password" title="Coming soon!" className="text-[10px] font-black uppercase tracking-widest text-orange-500/60 hover:text-orange-500 transition-colors pointer-events-none">Lost Key?</Link>
                 </div>
-                <Button
-                  type="submit"
-                  className="w-full h-11 bg-primary hover:bg-primary/90 transition-all duration-200 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <div className="flex items-center gap-2">
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent" />
-                      <span>Signing in...</span>
-                    </div>
-                  ) : (
-                    'Sign In'
-                  )}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-          
-          <div className="mt-6 text-center text-sm text-muted-foreground">
-            <p>Access exclusive to Top100 Africa Future Leaders awardees</p>
+                <div className="relative group">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="h-12 bg-white/50 border-zinc-100 rounded-2xl px-4 text-sm tracking-widest focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500/50 transition-all duration-300"
+                    required
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 p-0 hover:bg-zinc-50 rounded-lg transition-colors"
+                    onClick={togglePasswordVisibility}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4 text-zinc-300" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-zinc-300" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* CAPTCHA */}
+            <div className="pt-2">
+              <TurnstileCaptcha
+                onVerify={(token) => {
+                  setCaptchaToken(token)
+                  setCaptchaError(false)
+                }}
+                onError={() => setCaptchaError(true)}
+                onExpire={() => setCaptchaToken('')}
+              />
+              {captchaError && (
+                <p className="text-xs text-rose-500 text-center mt-2">CAPTCHA verification required</p>
+              )}
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full h-14 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-orange-200 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 group overflow-hidden"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <div className="flex items-center gap-3">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Authenticating...</span>
+                </div>
+              ) : (
+                <span className="flex items-center gap-2">
+                  Access Portal
+                  <svg className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                </span>
+              )}
+            </Button>
+          </form>
+        </div>
+
+        {/* Footer Info */}
+        <div className="mt-8 text-center space-y-4">
+          <div className="flex items-center justify-center gap-3 text-[10px] font-bold uppercase tracking-widest text-zinc-300">
+            <span className="h-px w-8 bg-zinc-100" />
+            Security Shield Active
+            <span className="h-px w-8 bg-zinc-100" />
           </div>
+          <p className="text-[10px] text-zinc-400 font-medium max-w-[280px] mx-auto leading-relaxed">
+            Authorized access only. All sessions are monitored for security and compliance.
+          </p>
         </div>
       </div>
     </div>
   )
 }
+

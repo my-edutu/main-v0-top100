@@ -2,6 +2,7 @@
 
 import { Mail, Users, Globe, Video, Send, MessageCircle, Instagram, Youtube, Linkedin, Calendar, GraduationCap } from 'lucide-react';
 import Link from 'next/link';
+import NewsletterForm from '@/app/components/NewsletterForm';
 
 export default function Talk100Live() {
   return (
@@ -21,7 +22,7 @@ export default function Talk100Live() {
             </div>
             <div className="mt-8">
               <Link
-                href="/#newsletter"
+                href="#newsletter"
                 className="inline-block bg-white text-yellow-600 font-bold py-4 px-10 rounded-lg text-lg transition duration-300 hover:bg-gray-100"
               >
                 Stay Updated
@@ -113,7 +114,7 @@ export default function Talk100Live() {
               Season 1 of Talk 100 will launch soon. Stay tuned for our first lineup of extraordinary leaders.
             </p>
             <Link
-              href="/#newsletter"
+              href="#newsletter"
               className="inline-block bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-medium py-3 px-8 rounded-lg transition duration-300"
             >
               Notify Me
@@ -124,26 +125,16 @@ export default function Talk100Live() {
 
       {/* Newsletter Section */}
       <section id="newsletter" className="py-16 bg-gray-50">
-        <div className="container mx-auto px-4 max-w-3xl">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Get Updates on Talk 100</h2>
-            <p className="text-gray-700 mb-6">
+        <div className="container mx-auto px-4 max-w-2xl">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-3">Get Updates on Talk 100</h2>
+            <p className="text-gray-700">
               Subscribe to our newsletter to receive the latest updates on Talk 100 directly in your inbox.
             </p>
-            <div className="flex flex-col sm:flex-row gap-2 max-w-md mx-auto">
-              <input
-                type="email"
-                placeholder="Your email address"
-                className="flex-grow px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <button className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-medium py-3 px-6 rounded-lg transition duration-300 whitespace-nowrap">
-                Subscribe
-              </button>
-            </div>
           </div>
+          <NewsletterForm />
         </div>
       </section>
-
 
     </div>
   );

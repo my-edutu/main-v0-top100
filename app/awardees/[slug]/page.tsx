@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { Calendar, ExternalLink, Globe, Instagram, Linkedin, Mail, MapPin, PenSquare, Trophy, Twitter, Users2, Youtube, GraduationCap, ArrowLeft } from 'lucide-react'
+import { Calendar, ExternalLink, Globe, Instagram, Linkedin, Mail, MapPin, PenSquare, Trophy, Twitter, Users2, Youtube, GraduationCap, ArrowLeft, Quote, Award, Briefcase } from 'lucide-react'
 import type { Metadata } from 'next'
 
 import { Badge } from '@/components/ui/badge'
@@ -9,7 +9,7 @@ import { normalizeAwardeeEntry } from '@/lib/awardees'
 import { fetchAwardeeBySlug } from '@/lib/dashboard/profile-service'
 import { AvatarSVG, flagEmoji } from '@/lib/avatars'
 import type { Achievement, GalleryItem, SocialLinks } from '@/types/profile'
-import ContactCardClient from './ContactCardClient'
+import ConnectButton from './ConnectButton'
 import StructuredData from '@/components/StructuredData'
 
 export const runtime = 'nodejs'
@@ -104,9 +104,11 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
 
   if (!raw || raw.is_public === false) {
     return (
-      <div className="container mx-auto px-4 py-12">
-        <p className="text-zinc-300">Awardee not found.</p>
-        <Link href="/awardees" className="text-orange-400 underline">Back to awardees</Link>
+      <div className="min-h-screen bg-white flex items-center justify-center p-4">
+        <div className="text-center space-y-4">
+          <p className="text-gray-500">Awardee not found.</p>
+          <Link href="/awardees" className="text-red-600 hover:underline text-sm font-medium">Back to awardees</Link>
+        </div>
       </div>
     )
   }
@@ -123,11 +125,8 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
     .eq('is_public', true)
     .limit(20)
 
-  // Randomly select 3 from the fetched awardees
   const randomAwardees = otherAwardees
-    ? otherAwardees
-        .sort(() => Math.random() - 0.5)
-        .slice(0, 3)
+    ? otherAwardees.sort(() => Math.random() - 0.5).slice(0, 4)
     : []
 
   if (!awardee.slug) {
@@ -168,368 +167,328 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
       "@type": "Organization",
       "name": "Top100 Africa Future Leaders"
     },
-    ...(awardee.email && {
-      "email": awardee.email
-    }),
-    ...(awardee.interests && awardee.interests.length > 0 && {
-      "knowsAbout": awardee.interests
-    })
+    ...(awardee.email && { "email": awardee.email }),
+    ...(awardee.interests && awardee.interests.length > 0 && { "knowsAbout": awardee.interests })
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-white to-orange-50 dark:from-black dark:via-zinc-950 dark:to-zinc-900">
+    <div className="min-h-screen bg-white">
       <StructuredData data={personSchema} />
-      {/* Hero Section with Full-Width Image */}
-      <div className="relative h-[500px] w-full overflow-hidden">
-        {awardee.cover_image_url || awardee.avatar_url ? (
-          <>
-            <img
-              src={awardee.cover_image_url || awardee.avatar_url || ''}
-              alt={`${awardee.name}`}
-              className="h-full w-full object-cover object-center"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/20 dark:from-black/95 dark:via-black/60 dark:to-black/30" />
-          </>
-        ) : (
-          <div className="h-full w-full bg-gradient-to-br from-orange-500 via-amber-500 to-orange-600">
-            <div className="flex h-full items-center justify-center">
-              <AvatarSVG name={awardee.name} size={200} />
-            </div>
-          </div>
-        )}
 
-        {/* Back Button - Positioned on the gradient */}
-        <div className="absolute top-4 left-4 z-10">
+      {/* Forbes-Style Hero */}
+      <article className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Breadcrumb */}
+        <nav className="pt-8 pb-6 border-b border-gray-200">
           <Link
-            href="/"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-zinc-900 shadow-lg border border-zinc-200 dark:border-zinc-800 hover:scale-105 transition-all duration-300 group hover:shadow-xl hover:bg-zinc-50 dark:hover:bg-zinc-800"
+            href="/awardees"
+            className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 transition-colors"
           >
-            <ArrowLeft className="h-4 w-4 text-zinc-700 dark:text-zinc-300 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors" />
-            <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">back</span>
+            <ArrowLeft className="h-4 w-4" />
+            <span>Back to Leaders</span>
           </Link>
-        </div>
+        </nav>
 
-        {/* Hero Content Overlay */}
-        <div className="absolute bottom-0 left-0 right-0 p-8 md:p-12">
-          <div className="container mx-auto max-w-6xl">
-            <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 drop-shadow-2xl">
-              {awardee.name}
-            </h1>
-            {heroSubtitle && (
-              <p className="text-lg md:text-xl text-white/90 max-w-2xl drop-shadow-lg">
-                {heroSubtitle}
-              </p>
-            )}
+        {/* Header Section */}
+        <header className="py-10 sm:py-16 border-b border-gray-100">
+          <div className="flex flex-col md:flex-row gap-8 md:gap-12">
+            {/* Photo */}
+            <div className="shrink-0 mx-auto md:mx-0">
+              <div className="relative w-48 h-48 sm:w-56 sm:h-56 md:w-64 md:h-64">
+                {awardee.avatar_url || awardee.cover_image_url ? (
+                  <img
+                    src={awardee.avatar_url || awardee.cover_image_url || ''}
+                    alt={awardee.name}
+                    className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-500"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                    <AvatarSVG name={awardee.name} size={150} />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Info */}
+            <div className="flex-1 text-center md:text-left">
+              {/* Category Tag */}
+              <div className="mb-4">
+                <span className="inline-block text-xs font-bold uppercase tracking-[0.2em] text-red-600 border-b-2 border-red-600 pb-1">
+                  {spotlightLabel}
+                </span>
+              </div>
+
+              {/* Name */}
+              <h1 className="text-4xl sm:text-5xl md:text-6xl font-serif font-bold text-gray-900 leading-tight tracking-tight">
+                {awardee.name}
+              </h1>
+
+              {/* Tagline - Shortened */}
+              {heroSubtitle && (
+                <p className="mt-4 text-lg sm:text-xl text-gray-600 font-light leading-relaxed max-w-xl line-clamp-2">
+                  {heroSubtitle.length > 80 ? heroSubtitle.substring(0, 80) + '...' : heroSubtitle}
+                </p>
+              )}
+
+              {/* Quick Meta */}
+              <div className="mt-6 flex flex-wrap justify-center md:justify-start gap-4 text-sm text-gray-500">
+                {awardee.country && (
+                  <span className="inline-flex items-center gap-1.5">
+                    <MapPin className="h-4 w-4" />
+                    {awardee.country}
+                  </span>
+                )}
+                {awardee.current_school && (
+                  <span className="inline-flex items-center gap-1.5">
+                    <GraduationCap className="h-4 w-4" />
+                    {awardee.current_school}
+                  </span>
+                )}
+                {awardee.year && (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Calendar className="h-4 w-4" />
+                    Class of {awardee.year}
+                  </span>
+                )}
+                {awardee.cgpa && (
+                  <span className="inline-flex items-center gap-1.5 font-semibold text-gray-900">
+                    <Award className="h-4 w-4 text-red-600" />
+                    {awardee.cgpa} CGPA
+                  </span>
+                )}
+              </div>
+
+              {/* Actions Row - Social Links + Connect Button */}
+              <div className="mt-6 flex flex-wrap justify-center md:justify-start items-center gap-3">
+                {/* Social Links */}
+                {socialEntries.map(([key, value]) => {
+                  const Icon = socialIconMap[key] ?? Globe
+                  return (
+                    <Link
+                      key={key}
+                      href={value}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="h-10 w-10 rounded-full bg-gray-100 hover:bg-orange-500 hover:text-white flex items-center justify-center text-gray-600 transition-all duration-300"
+                    >
+                      <Icon className="h-4 w-4" />
+                    </Link>
+                  )
+                })}
+
+                {/* Connect Button with Popup */}
+                <ConnectButton
+                  email={awardee.email}
+                  personalEmail={awardee.personal_email}
+                  linkedin={awardee.social_links?.linkedin}
+                  twitter={awardee.social_links?.twitter}
+                  facebook={awardee.social_links?.facebook}
+                  name={awardee.name}
+                />
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        </header>
 
-      {/* Main Content */}
-      <div className="container mx-auto max-w-6xl px-4 py-12">
-
-        {/* Quick Info Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-12 -mt-8 relative z-10">
-          {awardee.cgpa && (
-            <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-md border border-zinc-200 dark:border-zinc-800 hover:shadow-lg transition-all duration-300 hover:scale-105">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-purple-100 dark:bg-purple-500/20 rounded-xl">
-                  <Trophy className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+        {/* Main Content */}
+        <div className="py-10 sm:py-16">
+          {/* Impact Stats - Forbes Style */}
+          {(awardee.impact_projects || awardee.lives_impacted || awardee.awards_received) && (
+            <div className="grid grid-cols-3 gap-6 pb-10 border-b border-gray-100 mb-10">
+              {awardee.impact_projects && (
+                <div className="text-center">
+                  <p className="text-3xl sm:text-4xl font-serif font-bold text-gray-900">{awardee.impact_projects}</p>
+                  <p className="text-xs uppercase tracking-wider text-gray-500 mt-1">Projects</p>
                 </div>
-                <div>
-                  <p className="text-sm font-semibold text-zinc-900 dark:text-white">{awardee.cgpa} CGPA</p>
+              )}
+              {awardee.lives_impacted && (
+                <div className="text-center">
+                  <p className="text-3xl sm:text-4xl font-serif font-bold text-gray-900">{awardee.lives_impacted}</p>
+                  <p className="text-xs uppercase tracking-wider text-gray-500 mt-1">Lives Impacted</p>
                 </div>
-              </div>
+              )}
+              {awardee.awards_received && (
+                <div className="text-center">
+                  <p className="text-3xl sm:text-4xl font-serif font-bold text-gray-900">{awardee.awards_received}</p>
+                  <p className="text-xs uppercase tracking-wider text-gray-500 mt-1">Awards</p>
+                </div>
+              )}
             </div>
           )}
-          {awardee.country && (
-            <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-md border border-zinc-200 dark:border-zinc-800 hover:shadow-lg transition-all duration-300 hover:scale-105">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-orange-100 dark:bg-orange-500/20 rounded-xl">
-                  <MapPin className="h-6 w-6 text-orange-600 dark:text-orange-400" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-zinc-900 dark:text-white">{awardee.country}</p>
-                </div>
-              </div>
-            </div>
-          )}
-          {awardee.current_school && (
-            <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-md border border-zinc-200 dark:border-zinc-800 hover:shadow-lg transition-all duration-300 hover:scale-105">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-blue-100 dark:bg-blue-500/20 rounded-xl">
-                  <GraduationCap className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-zinc-900 dark:text-white break-words leading-tight">{awardee.current_school}</p>
-                </div>
-              </div>
-            </div>
-          )}
-          {awardee.year && (
-            <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-md border border-zinc-200 dark:border-zinc-800 hover:shadow-lg transition-all duration-300 hover:scale-105">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-amber-100 dark:bg-amber-500/20 rounded-xl">
-                  <Calendar className="h-6 w-6 text-amber-600 dark:text-amber-400" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-zinc-900 dark:text-white">Class of {awardee.year}</p>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
 
-        {/* Impact Metrics Row */}
-        {(awardee.impact_projects || awardee.lives_impacted || awardee.awards_received) && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            {awardee.impact_projects && (
-              <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-lg border border-zinc-200 dark:border-zinc-800">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-green-100 dark:bg-green-500/20 rounded-xl">
-                    <Trophy className="h-6 w-6 text-green-600 dark:text-green-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400">Projects</p>
-                    <p className="text-lg font-bold text-zinc-900 dark:text-white">{awardee.impact_projects}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-            {awardee.lives_impacted && (
-              <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-lg border border-zinc-200 dark:border-zinc-800">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-blue-100 dark:bg-blue-500/20 rounded-xl">
-                    <Users2 className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400">Lives Impacted</p>
-                    <p className="text-lg font-bold text-zinc-900 dark:text-white">{awardee.lives_impacted}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-            {awardee.awards_received && (
-              <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-lg border border-zinc-200 dark:border-zinc-800">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-amber-100 dark:bg-amber-500/20 rounded-xl">
-                    <Trophy className="h-6 w-6 text-amber-600 dark:text-amber-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400">Awards</p>
-                    <p className="text-lg font-bold text-zinc-900 dark:text-white">{awardee.awards_received}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Two Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content - Left Side */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Biography Section */}
-            {awardee.bio && (
-              <section className="bg-white dark:bg-zinc-900 rounded-3xl p-8 shadow-lg border border-zinc-200 dark:border-zinc-800">
-                <h2 className="text-2xl font-bold text-zinc-900 dark:text-white mb-4 flex items-center gap-2">
-                  <div className="h-1 w-8 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full"></div>
-                  About
-                </h2>
-                <p className="text-zinc-700 dark:text-zinc-300 leading-relaxed whitespace-pre-line text-base">
+          {/* Biography - Magazine Style */}
+          {awardee.bio && (
+            <section className="mb-12">
+              {/* Drop Cap First Paragraph Style */}
+              <div className="prose prose-lg max-w-none">
+                <p className="text-lg sm:text-xl text-gray-700 leading-relaxed first-letter:text-6xl first-letter:font-serif first-letter:font-bold first-letter:float-left first-letter:mr-3 first-letter:mt-1 first-letter:text-gray-900">
                   {awardee.bio}
                 </p>
-              </section>
-            )}
+              </div>
+            </section>
+          )}
 
-            {/* Focus Areas */}
-            {awardee.interests && awardee.interests.length > 0 && (
-              <section className="bg-white dark:bg-zinc-900 rounded-3xl p-8 shadow-lg border border-zinc-200 dark:border-zinc-800">
-                <h2 className="text-2xl font-bold text-zinc-900 dark:text-white mb-4 flex items-center gap-2">
-                  <div className="h-1 w-8 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full"></div>
-                  Focus Areas
-                </h2>
-                <div className="flex flex-wrap gap-2">
-                  {awardee.interests.map((interest) => (
-                    <Badge
-                      key={interest}
-                      className="bg-gradient-to-r from-orange-100 to-amber-100 dark:from-orange-500/20 dark:to-amber-500/20 text-orange-800 dark:text-orange-300 border-0 px-4 py-2 text-sm hover:from-orange-200 hover:to-amber-200 dark:hover:from-orange-500/30 dark:hover:to-amber-500/30 transition-all"
-                    >
-                      {interest}
-                    </Badge>
-                  ))}
-                </div>
-              </section>
-            )}
+          {/* Focus Areas */}
+          {awardee.interests && awardee.interests.length > 0 && (
+            <section className="mb-12 pb-12 border-b border-gray-100">
+              <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400 mb-4">Areas of Focus</h2>
+              <div className="flex flex-wrap gap-2">
+                {awardee.interests.map((interest) => (
+                  <span
+                    key={interest}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+                  >
+                    {interest}
+                  </span>
+                ))}
+              </div>
+            </section>
+          )}
 
-            {/* Achievements Section */}
-            {hasAchievements(achievements) && (
-              <section className="bg-white dark:bg-zinc-900 rounded-3xl p-8 shadow-lg border border-zinc-200 dark:border-zinc-800">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold text-zinc-900 dark:text-white flex items-center gap-2">
-                    <div className="h-1 w-8 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full"></div>
-                    Achievements
-                  </h2>
-                  <Badge className="bg-orange-100 dark:bg-orange-500/20 text-orange-800 dark:text-orange-300 border-0">
-                    {achievements.length} {achievements.length > 1 ? 'highlights' : 'highlight'}
-                  </Badge>
-                </div>
-                <div className="space-y-4">
-                  {achievements.map((achievement, index) => (
-                    <div
-                      key={achievement.id ?? `${achievement.title}-${index}`}
-                      className="p-5 rounded-2xl bg-gradient-to-br from-zinc-50 to-orange-50/30 dark:from-zinc-800/50 dark:to-orange-900/10 border border-zinc-200 dark:border-zinc-700 hover:shadow-md transition-all group"
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <div className="p-2 bg-orange-500 rounded-lg group-hover:scale-110 transition-transform">
-                              <Trophy className="h-4 w-4 text-white" />
-                            </div>
-                            <h3 className="font-semibold text-zinc-900 dark:text-white">{achievement.title}</h3>
-                          </div>
-                          {achievement.organization && (
-                            <p className="text-sm text-zinc-600 dark:text-zinc-400">{achievement.organization}</p>
-                          )}
-                        </div>
-                        {achievement.recognition_date && (
-                          <Badge variant="outline" className="text-xs border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300">
-                            {achievement.recognition_date}
-                          </Badge>
-                        )}
-                      </div>
+          {/* Achievements - Editorial List */}
+          {hasAchievements(achievements) && (
+            <section className="mb-12 pb-12 border-b border-gray-100">
+              <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400 mb-6">Recognition & Achievements</h2>
+              <div className="space-y-6">
+                {achievements.map((achievement, index) => (
+                  <div
+                    key={achievement.id ?? `${achievement.title}-${index}`}
+                    className="flex gap-4 group"
+                  >
+                    <div className="shrink-0 w-12 h-12 bg-red-600 flex items-center justify-center">
+                      <Trophy className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="flex-1 pt-1">
+                      <h3 className="font-bold text-gray-900 group-hover:text-red-600 transition-colors">
+                        {achievement.title}
+                      </h3>
+                      {achievement.organization && (
+                        <p className="text-sm text-gray-500 mt-0.5">{achievement.organization}</p>
+                      )}
                       {achievement.description && (
-                        <p className="mt-3 text-sm text-zinc-700 dark:text-zinc-400">{achievement.description}</p>
+                        <p className="text-sm text-gray-600 mt-2 leading-relaxed">{achievement.description}</p>
                       )}
                       {achievement.link && (
-                        <Button asChild variant="link" className="mt-2 h-auto p-0 text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300">
-                          <Link href={achievement.link} target="_blank" rel="noopener noreferrer">
-                            View reference
-                            <ExternalLink className="ml-1 h-4 w-4" />
-                          </Link>
-                        </Button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* Gallery Section */}
-            {hasGallery(gallery) && (
-              <section className="bg-white dark:bg-zinc-900 rounded-3xl p-8 shadow-lg border border-zinc-200 dark:border-zinc-800">
-                <h2 className="text-2xl font-bold text-zinc-900 dark:text-white mb-6 flex items-center gap-2">
-                  <div className="h-1 w-8 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full"></div>
-                  Gallery
-                </h2>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {gallery.map((item, index) => (
-                    <figure
-                      key={item.id ?? `${item.url}-${index}`}
-                      className="group overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-700 hover:shadow-xl transition-all"
-                    >
-                      <div className="relative overflow-hidden">
-                        <img
-                          src={item.url}
-                          alt={item.caption ?? awardee.name}
-                          className="h-56 w-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      </div>
-                      {item.caption && (
-                        <figcaption className="px-4 py-3 text-sm text-zinc-700 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800/50">
-                          {item.caption}
-                        </figcaption>
-                      )}
-                    </figure>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* YouTube Video Section */}
-            {awardee.youtube_video_url && (
-              <section className="bg-white dark:bg-zinc-900 rounded-3xl p-8 shadow-lg border border-zinc-200 dark:border-zinc-800">
-                <h2 className="text-2xl font-bold text-zinc-900 dark:text-white mb-6 flex items-center gap-2">
-                  <div className="h-1 w-8 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full"></div>
-                  Featured Interview
-                </h2>
-                <div className="aspect-video rounded-2xl overflow-hidden shadow-md">
-                  <iframe
-                    src={`https://www.youtube.com/embed/${awardee.youtube_video_url}`}
-                    title="Featured Interview"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    className="w-full h-full"
-                  ></iframe>
-                </div>
-              </section>
-            )}
-          </div>
-
-          {/* Sidebar - Right Side */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* Contact Card */}
-            {(awardee.email || awardee.personal_email) && (
-              <ContactCardClient 
-                email={awardee.email} 
-                personalEmail={awardee.personal_email} 
-                name={awardee.name} 
-              />
-            )}
-
-            {/* Social Links Card */}
-            {socialEntries.length > 0 && (
-              <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 shadow-lg border border-zinc-200 dark:border-zinc-800">
-                <h3 className="text-lg font-bold text-zinc-900 dark:text-white mb-4">Connect</h3>
-                <div className="space-y-2">
-                  {socialEntries.map(([key, value]) => {
-                    const Icon = socialIconMap[key] ?? Globe
-                    const label = fallbackSocialLabel[key] ?? key
-                    return (
-                      <Button
-                        key={key}
-                        asChild
-                        variant="outline"
-                        className="w-full justify-start border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-orange-50 dark:hover:bg-orange-500/10 hover:text-orange-600 dark:hover:text-orange-400 hover:border-orange-300 dark:hover:border-orange-600 transition-all"
-                      >
-                        <Link href={value} target="_blank" rel="noopener noreferrer">
-                          <Icon className="h-4 w-4" />
-                          <span className="flex-1">{label}</span>
+                        <Link
+                          href={achievement.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-sm text-red-600 hover:underline font-medium mt-2"
+                        >
+                          Learn more
                           <ExternalLink className="h-3 w-3" />
                         </Link>
-                      </Button>
-                    )
-                  })}
-                </div>
+                      )}
+                    </div>
+                    {achievement.recognition_date && (
+                      <span className="shrink-0 text-xs text-gray-400 font-medium pt-1">
+                        {achievement.recognition_date}
+                      </span>
+                    )}
+                  </div>
+                ))}
               </div>
-            )}
+            </section>
+          )}
 
-            {/* Mentor Card */}
-            {awardee.mentor && (
-              <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 shadow-lg border border-zinc-200 dark:border-zinc-800">
-                <div className="flex items-center gap-2 text-orange-600 dark:text-orange-400 mb-2">
-                  <Users2 className="h-5 w-5" />
-                  <h3 className="text-sm font-semibold uppercase tracking-wide">Mentor</h3>
-                </div>
-                <p className="text-zinc-900 dark:text-white font-medium">{awardee.mentor}</p>
+          {/* Gallery - Magazine Grid */}
+          {hasGallery(gallery) && (
+            <section className="mb-12 pb-12 border-b border-gray-100">
+              <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400 mb-6">Photo Gallery</h2>
+              <div className="grid gap-4 grid-cols-2 md:grid-cols-3">
+                {gallery.map((item, index) => (
+                  <figure
+                    key={item.id ?? `${item.url}-${index}`}
+                    className="group overflow-hidden bg-gray-100"
+                  >
+                    <div className="relative aspect-square overflow-hidden">
+                      <img
+                        src={item.url}
+                        alt={item.caption ?? awardee.name}
+                        className="h-full w-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-500"
+                      />
+                    </div>
+                    {item.caption && (
+                      <figcaption className="px-3 py-2 text-xs text-gray-500 italic">
+                        {item.caption}
+                      </figcaption>
+                    )}
+                  </figure>
+                ))}
               </div>
-            )}
-          </div>
-        </div>
+            </section>
+          )}
 
+          {/* YouTube Video */}
+          {awardee.youtube_video_url && (
+            <section className="mb-12 pb-12 border-b border-gray-100">
+              <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400 mb-6">Featured Video</h2>
+              <div className="aspect-video bg-gray-900">
+                <iframe
+                  src={`https://www.youtube.com/embed/${awardee.youtube_video_url}`}
+                  title="Featured Interview"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="w-full h-full"
+                ></iframe>
+              </div>
+            </section>
+          )}
 
+          {/* Mentor */}
+          {awardee.mentor && (
+            <section className="mb-12">
+              <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400 mb-4">Mentor</h2>
+              <div className="flex items-center gap-4 p-4 bg-gray-50">
+                <Briefcase className="h-6 w-6 text-gray-400" />
+                <p className="font-medium text-gray-900">{awardee.mentor}</p>
+              </div>
+            </section>
+          )}
 
-        {/* Footer Info */}
-        {awardee.location && (
-          <div className="mt-12 p-6 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-lg">
-            <div className="text-sm text-zinc-600 dark:text-zinc-400 text-center">
-              <p className="flex items-center gap-2 justify-center">
+          {/* Location */}
+          {awardee.location && (
+            <div className="py-6 border-t border-gray-100">
+              <p className="text-sm text-gray-400 flex items-center gap-2">
                 <MapPin className="h-4 w-4" />
                 {awardee.location}
               </p>
             </div>
-          </div>
+          )}
+        </div>
+
+        {/* Related Leaders - Forbes "More From" Section */}
+        {randomAwardees.length > 0 && (
+          <section className="py-8 border-t border-gray-200">
+            <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400 mb-4">More Future Leaders</h2>
+            <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-4 sm:gap-4 sm:overflow-visible">
+              {randomAwardees.map((other: any) => (
+                <Link
+                  key={other.slug}
+                  href={`/awardees/${other.slug}`}
+                  className="group flex-shrink-0 w-28 sm:w-auto"
+                >
+                  <div className="aspect-square bg-gray-100 overflow-hidden mb-2 rounded">
+                    {other.avatar_url || other.cover_image_url ? (
+                      <img
+                        src={other.avatar_url || other.cover_image_url}
+                        alt={other.name}
+                        className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-300"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <AvatarSVG name={other.name} size={60} />
+                      </div>
+                    )}
+                  </div>
+                  <h3 className="font-bold text-xs sm:text-sm text-gray-900 group-hover:text-orange-500 transition-colors line-clamp-1">
+                    {other.name}
+                  </h3>
+                </Link>
+              ))}
+            </div>
+          </section>
         )}
-      </div>
+      </article>
     </div>
   )
 }

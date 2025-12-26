@@ -71,23 +71,39 @@ const nextConfig = {
             // Disable unnecessary browser features
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()'
+          },
+          {
+            // Content Security Policy - protects against XSS and injection attacks
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              // Scripts: self, inline (for Next.js), eval (for dev), and Turnstile CAPTCHA
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://challenges.cloudflare.com",
+              // Styles: self and inline (for styled components)
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              // Images: allow all sources, data URIs, and blobs (for uploaded images)
+              "img-src * data: blob:",
+              // Fonts: self, data URIs, and Google Fonts
+              "font-src 'self' data: https://fonts.gstatic.com",
+              // Connections: self, Supabase, Brevo API, Turnstile verification
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.brevo.com https://challenges.cloudflare.com",
+              // Frames: Turnstile CAPTCHA widget
+              "frame-src https://challenges.cloudflare.com",
+              // Media: self and external sources
+              "media-src 'self' https: data:",
+              // Object: none (no plugins)
+              "object-src 'none'",
+              // Base URI: self only
+              "base-uri 'self'",
+              // Form action: self only
+              "form-action 'self'",
+              // Frame ancestors: prevent embedding
+              "frame-ancestors 'none'"
+            ].join('; ')
           }
-          // CSP TEMPORARILY DISABLED - Was blocking images
-          // Re-enable after confirming images work, then tune the policy
-          // {
-          //   key: 'Content-Security-Policy',
-          //   value: [
-          //     "default-src 'self'",
-          //     "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
-          //     "style-src 'self' 'unsafe-inline'",
-          //     "img-src * data: blob:",
-          //     "font-src 'self' data:",
-          //     "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
-          //     "media-src 'self' https: data:"
-          //   ].join('; ')
-          // }
         ]
       },
+
       {
         // API routes - additional security headers
         source: '/api/:path*',

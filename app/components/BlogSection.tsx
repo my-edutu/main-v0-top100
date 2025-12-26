@@ -56,7 +56,7 @@ export default function BlogSection() {
           </p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
           {posts.map((post, index) => (
             <motion.div
               key={post.id}
@@ -67,42 +67,45 @@ export default function BlogSection() {
             >
               <Link
                 href={`/blog/${post.slug}`}
-                className={`group flex h-full overflow-hidden rounded-[28px] border border-border/60 shadow-md transition hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg ${
-                  index % 4 === 0
-                    ? "bg-blue-50/80 dark:bg-blue-950/20"
+                className={`group flex h-full overflow-hidden rounded-3xl border border-border/60 shadow-md transition hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl ${index % 4 === 0
+                    ? "bg-gradient-to-br from-blue-50 to-indigo-50/50 dark:from-blue-950/30 dark:to-indigo-950/20"
                     : index % 4 === 1
-                    ? "bg-purple-50/80 dark:bg-purple-950/20"
-                    : index % 4 === 2
-                    ? "bg-amber-50/80 dark:bg-amber-950/20"
-                    : "bg-emerald-50/80 dark:bg-emerald-950/20"
-                } flex-row gap-4 p-4 md:flex-col md:gap-0 md:p-0`}
+                      ? "bg-gradient-to-br from-purple-50 to-pink-50/50 dark:from-purple-950/30 dark:to-pink-950/20"
+                      : index % 4 === 2
+                        ? "bg-gradient-to-br from-amber-50 to-orange-50/50 dark:from-amber-950/30 dark:to-orange-950/20"
+                        : "bg-gradient-to-br from-emerald-50 to-teal-50/50 dark:from-emerald-950/30 dark:to-teal-950/20"
+                  } flex-col`}
               >
-                {/* Mobile: Small image on left | Desktop: Large image on top */}
-                <div className="relative w-24 h-24 flex-shrink-0 rounded-xl overflow-hidden md:w-full md:h-auto md:aspect-[4/3] md:rounded-none">
+                {/* Image - Full width on all devices */}
+                <div className="relative w-full aspect-[16/10] sm:aspect-[4/3] overflow-hidden">
                   <Image
                     src={post.coverImage || "/placeholder.svg"}
                     alt={post.title}
                     fill
                     className="object-cover transition duration-500 group-hover:scale-105"
-                    sizes="(max-width: 768px) 96px, (max-width: 1200px) 50vw, 33vw"
+                    sizes="(max-width: 640px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   />
+                  {/* Gradient overlay for text readability */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 </div>
 
                 {/* Content */}
-                <div className="flex flex-1 flex-col gap-2 md:gap-5 md:p-6">
-                  {/* Date and reading time are hidden on all devices */}
-                  <div className="space-y-1 md:space-y-3">
-                    <h3 className="text-base md:text-lg font-semibold leading-tight transition-colors group-hover:text-primary line-clamp-2 md:line-clamp-none">
+                <div className="flex flex-1 flex-col gap-3 p-5 sm:p-6">
+                  <div className="space-y-2">
+                    <h3 className="text-lg sm:text-xl font-bold leading-tight transition-colors group-hover:text-primary line-clamp-2">
                       {post.title}
                     </h3>
-                    <p className="hidden md:block line-clamp-3 text-sm text-muted-foreground">{post.excerpt}</p>
-                    <p className="md:hidden text-sm text-muted-foreground line-clamp-2">{post.excerpt}</p>
+                    <p className="text-sm text-muted-foreground line-clamp-2 sm:line-clamp-3 leading-relaxed">
+                      {post.excerpt}
+                    </p>
                   </div>
-                  <div className="mt-auto flex items-center justify-between text-xs md:text-sm font-medium text-muted-foreground">
-                    <span className="text-[0.65rem] md:text-sm">&nbsp;</span>
-                    <span className="inline-flex items-center gap-1 md:gap-2 text-primary transition group-hover:text-primary/80">
-                      <span className="text-[0.65rem] md:text-sm whitespace-nowrap">Read more</span>
-                      <ArrowRight className="h-3 w-3 md:h-4 md:w-4 text-primary transition-transform duration-200 group-hover:translate-x-1" />
+                  <div className="mt-auto pt-3 flex items-center justify-between border-t border-border/30">
+                    <span className="text-xs font-medium text-muted-foreground/70">
+                      {post.createdAt ? new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 text-sm font-bold text-primary transition group-hover:text-primary/80">
+                      Read story
+                      <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
                     </span>
                   </div>
                 </div>

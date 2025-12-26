@@ -4,35 +4,55 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { 
-  Handshake, 
-  Users, 
-  Star, 
-  Award, 
-  Building2, 
-  DollarSign, 
-  Globe, 
+import {
+  Handshake,
+  Users,
+  Star,
+  Globe,
   Lightbulb,
-  CheckCircle,
-  Target
+  Target,
+  Award,
+  Loader2,
+  CheckCircle2,
+  AlertCircle
 } from "lucide-react";
 
 export default function PartnershipPage() {
-  const [email, setEmail] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    organization: "",
+    message: ""
+  });
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    
-    // Simulate form submission
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setIsSubmitted(true);
-      setEmail("");
-    }, 1500);
+    setStatus('loading');
+    setErrorMessage("");
+
+    try {
+      const response = await fetch('/api/partnership', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to submit');
+      }
+
+      setStatus('success');
+      setFormData({ name: "", email: "", organization: "", message: "" });
+    } catch (error) {
+      setStatus('error');
+      setErrorMessage(error instanceof Error ? error.message : 'Something went wrong');
+    }
   };
 
   const partnershipBenefits = [
@@ -52,144 +72,87 @@ export default function PartnershipPage() {
       description: "Elevate your brand through our events, content, and digital platforms."
     },
     {
-      icon: <Target className="w-6 h-6" />,
-      title: "Strategic Alignment",
-      description: "Align with a mission focused on youth empowerment and continental impact."
-    },
-    {
-      icon: <Lightbulb className="w-6 h-6" />,
-      title: "Innovation Pipeline",
-      description: "Engage with cutting-edge ideas and solutions from Africa's future leaders."
-    },
-    {
       icon: <Award className="w-6 h-6" />,
       title: "Social Impact",
       description: "Be part of a movement creating positive change across the African continent."
     }
   ];
 
-  const partnershipTiers = [
-    {
-      name: "Supporter",
-      price: "",
-      description: "For organizations looking to support our mission",
-      features: [
-        "Logo placement on official materials",
-        "Recognition at events",
-        "Access to partnership updates"
-      ],
-      cta: "Contact Us",
-      popular: false
-    },
-    {
-      name: "Partner",
-      price: "",
-      description: "For strategic collaborations",
-      features: [
-        "Prominent brand visibility",
-        "Direct engagement with awardees",
-        "Custom project collaboration",
-        "Quarterly impact reports"
-      ],
-      cta: "Contact Us",
-      popular: true
-    },
-    {
-      name: "Alliance",
-      price: "",
-      description: "For deep strategic partnerships",
-      features: [
-        "Executive-level engagement",
-        "Joint program development",
-        "Annual impact report",
-        "Named event sponsorships",
-        "Custom recognition opportunities"
-      ],
-      cta: "Contact Us",
-      popular: false
-    }
-  ];
-
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-zinc-100 dark:from-zinc-950 dark:to-slate-900 text-slate-900 dark:text-slate-100">
+    <div className="min-h-screen bg-white">
       {/* Hero Section */}
-      <section className="relative py-20 md:py-28 overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-orange-400/20 via-transparent to-transparent" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-emerald-400/20 via-transparent to-transparent" />
-        
+      <section className="relative py-16 sm:py-24 overflow-hidden border-b border-gray-100">
+        <div className="absolute inset-0 bg-gradient-to-br from-orange-50 via-white to-white" />
+
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-4xl mx-auto text-center">
             <div className="inline-flex items-center gap-2 mb-4">
               <Handshake className="w-5 h-5 text-orange-500" />
-              <span className="text-sm font-medium text-orange-600 dark:text-orange-400 uppercase tracking-[0.2em]">PARTNERSHIPS</span>
+              <span className="text-sm font-medium text-orange-600 uppercase tracking-[0.2em]">PARTNERSHIPS</span>
             </div>
-            <h1 className="text-4xl md:text-6xl font-bold mb-6 text-slate-800 dark:text-white">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif font-bold mb-6 text-gray-900">
               Partner with Africa's Future
             </h1>
-            <p className="text-xl text-slate-600 dark:text-slate-300 mb-8 max-w-2xl mx-auto">
+            <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
               Collaborate with us to empower the next generation of African leaders, innovators, and changemakers shaping our continent's future.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <a 
-                href="mailto:partnership@top100afl.com?subject=Partnership%20Inquiry&body=Hello,%0A%0AI%20would%20love%20to%20get%20more%20information%20on%20the%20partnership%20plan.%0A%0AThank%20you."
+            <a href="#contact-form">
+              <Button
+                size="lg"
+                className="bg-orange-500 hover:bg-orange-600 text-white rounded-lg px-8 py-6 text-lg"
               >
-                <Button 
-                  size="lg" 
-                  className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-full px-8 py-6 text-lg"
-                >
-                  Become a Partner
-                </Button>
-              </a>
-            </div>
+                Become a Partner
+              </Button>
+            </a>
           </div>
         </div>
       </section>
 
       {/* Stats Section */}
-      <section className="py-16 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
+      <section className="py-12 bg-gray-50">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             <div>
-              <div className="text-3xl md:text-4xl font-bold text-orange-600 dark:text-orange-400 mb-2">20+</div>
-              <div className="text-slate-600 dark:text-slate-400">Countries</div>
+              <div className="text-3xl md:text-4xl font-bold text-orange-600 mb-2">20+</div>
+              <div className="text-gray-600">Countries</div>
             </div>
             <div>
-              <div className="text-3xl md:text-4xl font-bold text-emerald-600 dark:text-emerald-400 mb-2">400+</div>
-              <div className="text-slate-600 dark:text-slate-400">Awardees</div>
+              <div className="text-3xl md:text-4xl font-bold text-orange-600 mb-2">400+</div>
+              <div className="text-gray-600">Awardees</div>
             </div>
             <div>
-              <div className="text-3xl md:text-4xl font-bold text-purple-600 dark:text-purple-400 mb-2">28</div>
-              <div className="text-slate-600 dark:text-slate-400">Universities</div>
+              <div className="text-3xl md:text-4xl font-bold text-orange-600 mb-2">28</div>
+              <div className="text-gray-600">Universities</div>
             </div>
             <div>
-              <div className="text-3xl md:text-4xl font-bold text-blue-600 dark:text-blue-400 mb-2">150+</div>
-              <div className="text-slate-600 dark:text-slate-400">Opportunities</div>
+              <div className="text-3xl md:text-4xl font-bold text-orange-600 mb-2">150+</div>
+              <div className="text-gray-600">Opportunities</div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Partnership Benefits */}
-      <section className="py-20">
+      <section className="py-16 sm:py-20">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Why Partner With Us</h2>
-            <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl sm:text-3xl font-serif font-bold mb-4 text-gray-900">Why Partner With Us</h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">
               Join a select network of organizations committed to Africa's development through youth empowerment
             </p>
           </div>
-          
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-4xl mx-auto">
             {partnershipBenefits.map((benefit, index) => (
-              <Card key={index} className="group hover:shadow-xl transition-all duration-300 border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm">
+              <Card key={index} className="group hover:shadow-lg transition-all duration-300 border-gray-100 bg-white">
                 <CardHeader>
-                  <div className="w-12 h-12 rounded-full bg-orange-100 dark:bg-orange-900/50 flex items-center justify-center text-orange-600 dark:text-orange-400 mb-4 group-hover:bg-orange-500 group-hover:text-white transition-colors">
+                  <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 mb-4 group-hover:bg-orange-500 group-hover:text-white transition-colors">
                     {benefit.icon}
                   </div>
-                  <CardTitle className="text-xl">{benefit.title}</CardTitle>
+                  <CardTitle className="text-lg">{benefit.title}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <CardDescription className="text-slate-600 dark:text-slate-400">
+                  <CardDescription className="text-gray-600">
                     {benefit.description}
                   </CardDescription>
                 </CardContent>
@@ -199,151 +162,126 @@ export default function PartnershipPage() {
         </div>
       </section>
 
-      {/* Partnership Tiers */}
-      <section className="py-20 bg-slate-50 dark:bg-slate-900/30">
+      {/* Contact Form Section */}
+      <section id="contact-form" className="py-16 sm:py-20 bg-gray-50">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Partnership Opportunities</h2>
-            <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-              Choose the partnership level that aligns with your organization's goals and impact objectives
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {partnershipTiers.map((tier, index) => (
-              <Card 
-                key={index} 
-                className={`relative overflow-hidden border-2 ${tier.popular ? 'border-orange-500 dark:border-orange-400 ring-2 ring-orange-500/20 dark:ring-orange-400/20' : 'border-slate-200 dark:border-slate-800'}`}
-              >
-                {tier.popular && (
-                  <div className="absolute top-0 right-0 bg-orange-500 text-white text-xs font-bold px-4 py-1 rounded-bl-lg">
-                    MOST POPULAR
-                  </div>
-                )}
-                <CardHeader className="text-center pb-6 pt-8">
-                  <CardTitle className="text-2xl">{tier.name}</CardTitle>
-                  <div className="text-3xl font-bold text-orange-600 dark:text-orange-400">{tier.price}</div>
-                  <CardDescription className="text-slate-600 dark:text-slate-400">
-                    {tier.description}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="pb-8">
-                  <ul className="space-y-3 mb-8">
-                    {tier.features.map((feature, idx) => (
-                      <li key={idx} className="flex items-start">
-                        <CheckCircle className="w-5 h-5 text-emerald-500 mt-0.5 mr-2 flex-shrink-0" />
-                        <span className="text-slate-700 dark:text-slate-300">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <Button 
-                    asChild
-                    className={`w-full ${tier.popular 
-                      ? 'bg-orange-500 hover:bg-orange-600' 
-                      : tier.name === 'Supporter' 
-                        ? 'bg-purple-600 hover:bg-purple-700' 
-                        : 'bg-emerald-600 hover:bg-emerald-700'} text-white`}
-                  >
-                    <a 
-                      href={`mailto:partnership@top100afl.com?subject=Partnership%20Inquiry%20-%20${tier.name}&body=Hello,%0A%0AI%20would%20love%20to%20get%20more%20information%20on%20this%20${tier.name}%20plan.%0A%0AThank%20you.`}
-                    >
-                      <span className="font-bold">{tier.cta}</span>
-                    </a>
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
+          <div className="max-w-2xl mx-auto">
+            <div className="text-center mb-10">
+              <h2 className="text-2xl sm:text-3xl font-serif font-bold mb-4 text-gray-900">
+                Ready to Make an Impact?
+              </h2>
+              <p className="text-gray-600">
+                Join us in empowering Africa's future leaders and be part of a movement that's transforming the continent.
+              </p>
+            </div>
 
-      {/* CTA Section */}
-      <section className="py-20">
-        <div className="container mx-auto px-4">
-          <Card className="bg-gradient-to-r from-slate-100 to-slate-200 text-white overflow-hidden dark:bg-gradient-to-r dark:from-slate-800 dark:to-slate-900 dark:text-white">
-            <div className="p-8 md:p-12">
-              <div className="max-w-3xl mx-auto text-center">
-                <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">Ready to Make an Impact?</h2>
-                <p className="text-lg mb-8 opacity-90 text-white">
-                  Join us in empowering Africa's future leaders and be part of a movement that's transforming the continent.
-                </p>
-                
-                {isSubmitted ? (
-                  <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 max-w-md mx-auto dark:bg-slate-800/80">
-                    <h3 className="text-xl font-semibold mb-2 text-slate-800 dark:text-white">Thank You!</h3>
-                    <p className="mb-4 text-slate-600 dark:text-slate-300">We've received your interest and will contact you shortly.</p>
-                    <Button 
-                      variant="secondary" 
-                      onClick={() => setIsSubmitted(false)}
-                      className="bg-slate-800 text-white hover:bg-slate-900 dark:bg-orange-500 dark:text-slate-900 dark:hover:bg-orange-600"
+            <Card className="border-gray-100 shadow-lg">
+              <CardContent className="p-6 sm:p-8">
+                {status === 'success' ? (
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-100 flex items-center justify-center">
+                      <CheckCircle2 className="w-8 h-8 text-green-600" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">Thank You!</h3>
+                    <p className="text-gray-600 mb-6">
+                      We've received your partnership inquiry and will get back to you soon.
+                    </p>
+                    <Button
+                      variant="outline"
+                      onClick={() => setStatus('idle')}
+                      className="border-gray-300"
                     >
-                      Submit Another Request
+                      Submit Another Inquiry
                     </Button>
                   </div>
                 ) : (
-                  <form 
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      const formData = new FormData(e.target as HTMLFormElement);
-                      const name = formData.get('name') as string;
-                      const email = formData.get('email') as string;
-                      const message = formData.get('message') as string;
-                      
-                      const subject = "Partnership Inquiry";
-                      const body = `Hello,\n\nName: ${name}\nEmail: ${email}\n\nMessage: ${message}\n\nI would love to get more information on the partnership plan.\n\nThank you.`;
-                      
-                      window.location.href = `mailto:partnership@top100afl.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-                      setIsSubmitted(true);
-                    }}
-                    className="max-w-md mx-auto space-y-4"
-                  >
+                  <form onSubmit={handleSubmit} className="space-y-5">
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                          Name <span className="text-red-500">*</span>
+                        </label>
+                        <Input
+                          id="name"
+                          type="text"
+                          required
+                          value={formData.name}
+                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                          placeholder="Your name"
+                          className="border-gray-200 focus:ring-orange-500 focus:border-orange-500"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                          Email <span className="text-red-500">*</span>
+                        </label>
+                        <Input
+                          id="email"
+                          type="email"
+                          required
+                          value={formData.email}
+                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                          placeholder="your.email@example.com"
+                          className="border-gray-200 focus:ring-orange-500 focus:border-orange-500"
+                        />
+                      </div>
+                    </div>
+
                     <div className="space-y-2">
-                      <label htmlFor="name" className="block text-left">Name</label>
+                      <label htmlFor="organization" className="block text-sm font-medium text-gray-700">
+                        Organization (optional)
+                      </label>
                       <Input
-                        id="name"
-                        name="name"
+                        id="organization"
                         type="text"
-                        required
-                        placeholder="Your name"
-                        className="bg-white border-slate-300 text-slate-900 placeholder:text-slate-500 focus:ring-orange-500 focus:ring-2 w-full dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:placeholder:text-slate-400"
+                        value={formData.organization}
+                        onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
+                        placeholder="Your organization or company"
+                        className="border-gray-200 focus:ring-orange-500 focus:border-orange-500"
                       />
                     </div>
-                    
+
                     <div className="space-y-2">
-                      <label htmlFor="email" className="block text-left">Email</label>
-                      <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        required
-                        placeholder="your.email@example.com"
-                        className="bg-white border-slate-300 text-slate-900 placeholder:text-slate-500 focus:ring-orange-500 focus:ring-2 w-full dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:placeholder:text-slate-400"
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <label htmlFor="message" className="block text-left">Message</label>
+                      <label htmlFor="message" className="block text-sm font-medium text-gray-700">
+                        Message <span className="text-red-500">*</span>
+                      </label>
                       <textarea
                         id="message"
-                        name="message"
                         required
                         rows={5}
-                        placeholder="Tell us about your interest in partnering..."
-                        className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:placeholder:text-slate-400"
+                        value={formData.message}
+                        onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                        placeholder="Tell us about your interest in partnering with us..."
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                       ></textarea>
                     </div>
-                    
-                    <Button 
+
+                    {status === 'error' && (
+                      <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 p-3 rounded-lg">
+                        <AlertCircle className="w-4 h-4" />
+                        <span>{errorMessage || 'Something went wrong. Please try again.'}</span>
+                      </div>
+                    )}
+
+                    <Button
                       type="submit"
-                      className="w-full bg-slate-800 text-white hover:bg-slate-900 dark:bg-orange-500 dark:text-slate-900 dark:hover:bg-orange-600"
+                      disabled={status === 'loading'}
+                      className="w-full bg-orange-500 hover:bg-orange-600 text-white py-6"
                     >
-                      Submit
+                      {status === 'loading' ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Submitting...
+                        </>
+                      ) : (
+                        'Submit Partnership Inquiry'
+                      )}
                     </Button>
                   </form>
                 )}
-              </div>
-            </div>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </section>
     </div>

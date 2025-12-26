@@ -153,7 +153,20 @@ export const RATE_LIMITS = {
     maxRequests: 50,
     windowSeconds: 60, // 50 requests per minute
   },
+
+  // Newsletter subscription - prevent spam
+  NEWSLETTER: {
+    maxRequests: 3,
+    windowSeconds: 60, // 3 subscriptions per minute per IP
+  },
+
+  // Contact/Partnership forms - prevent spam
+  CONTACT: {
+    maxRequests: 5,
+    windowSeconds: 300, // 5 messages per 5 minutes
+  },
 } as const;
+
 
 /**
  * Get client identifier from request (IP address)

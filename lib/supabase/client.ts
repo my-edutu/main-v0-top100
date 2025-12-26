@@ -7,6 +7,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables')
 }
 
+// Helper to check if we're in the browser
+const isBrowser = typeof window !== 'undefined' && typeof document !== 'undefined'
+
 // Use SSR-compatible browser client that stores auth in cookies
 // This ensures middleware can read the session
 export const supabase = createBrowserClient(
@@ -15,6 +18,7 @@ export const supabase = createBrowserClient(
   {
     cookies: {
       get(name: string) {
+        if (!isBrowser) return null
         // Get cookie from document.cookie
         const value = document.cookie
           .split('; ')
@@ -23,6 +27,7 @@ export const supabase = createBrowserClient(
         return value ? decodeURIComponent(value) : null
       },
       set(name: string, value: string, options: any) {
+        if (!isBrowser) return
         // Set cookie to document.cookie
         let cookie = `${name}=${encodeURIComponent(value)}`
 
@@ -45,13 +50,17 @@ export const supabase = createBrowserClient(
         }
 
         document.cookie = cookie
-        console.log('🍪 [Supabase Client] Set cookie:', name, 'Value length:', value.length)
       },
       remove(name: string, options: any) {
+        if (!isBrowser) return
         // Remove cookie by setting expired date
         document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`
-        console.log('🍪 [Supabase Client] Removed cookie:', name)
       },
     },
   }
 )
+
+// Also export a function to create client for use in components
+export function createClient() {
+  return supabase
+}
