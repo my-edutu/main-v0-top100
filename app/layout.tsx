@@ -118,7 +118,6 @@ export default function RootLayout({
           id="brevo-sdk"
           src="https://cdn.brevo.com/js/sdk-loader.js"
           strategy="afterInteractive"
-          onError={() => console.error('Brevo SDK failed to load')}
         />
         <Script
           id="brevo-init"
@@ -133,7 +132,6 @@ export default function RootLayout({
               }
             `,
           }}
-          onError={() => console.error('Brevo initialization failed')}
         />
       </head>
       <body
