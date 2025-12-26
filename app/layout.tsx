@@ -10,6 +10,8 @@ import Header from "./components/Header"
 import Footer from "./components/Footer"
 import Script from "next/script"
 import StructuredData from "@/components/StructuredData"
+import { ClientProviders } from "@/components/ClientProviders"
+
 
 const urbanist = Urbanist({ subsets: ["latin"], variable: "--font-sans" })
 
@@ -116,7 +118,7 @@ export default function RootLayout({
           id="brevo-sdk"
           src="https://cdn.brevo.com/js/sdk-loader.js"
           strategy="afterInteractive"
-          onError={`console.error('Brevo SDK failed to load');`}
+          onError={() => console.error('Brevo SDK failed to load')}
         />
         <Script
           id="brevo-init"
@@ -131,7 +133,7 @@ export default function RootLayout({
               }
             `,
           }}
-          onError={`console.error('Brevo initialization failed');`}
+          onError={() => console.error('Brevo initialization failed')}
         />
       </head>
       <body
@@ -146,11 +148,14 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <ConditionalLayout>
-            {children}
-          </ConditionalLayout>
+          <ClientProviders>
+            <ConditionalLayout>
+              {children}
+            </ConditionalLayout>
+          </ClientProviders>
           <Toaster />
         </ThemeProvider>
+
       </body>
     </html>
   )
