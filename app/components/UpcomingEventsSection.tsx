@@ -28,7 +28,7 @@ const UpcomingEventsSection = () => {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const response = await fetch('/api/upcoming-events?limit=3')
+        const response = await fetch('/api/upcoming-events?limit=3', { cache: 'no-store' })
         if (response.ok) {
           const data = await response.json()
           setEvents(data)

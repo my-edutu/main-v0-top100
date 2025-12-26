@@ -4,6 +4,10 @@ import { ArrowRight } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+
+// Force dynamic rendering to prevent stale cached data
+export const dynamic = 'force-dynamic'
+
 import HomePageHeroSection from "./components/HomePageHeroSection"
 import AwardeesSection from "./components/AwardeesSection"
 import HomeFeaturedAwardeesSection from "./components/HomeFeaturedAwardeesSection"
@@ -254,9 +258,8 @@ export default function HomePage() {
                 return (
                   <div
                     key={member.name}
-                    className={`w-full rounded-[12px] sm:rounded-[16px] lg:rounded-[24px] border border-border/60 bg-card shadow-lg transition hover:-translate-y-1 hover:shadow-xl flex-shrink-0 ${
-                      member.linkedIn ? 'cursor-pointer hover:scale-[1.02]' : ''
-                    }`}
+                    className={`w-full rounded-[12px] sm:rounded-[16px] lg:rounded-[24px] border border-border/60 bg-card shadow-lg transition hover:-translate-y-1 hover:shadow-xl flex-shrink-0 ${member.linkedIn ? 'cursor-pointer hover:scale-[1.02]' : ''
+                      }`}
                   >
                     {member.linkedIn ? (
                       <a

@@ -33,6 +33,16 @@ export default function MagazineSection() {
           >
 
             <div className="rounded-[24px] border border-border/60 bg-card p-6 mb-8 shadow-sm">
+              <div className="relative w-full h-64 rounded-xl overflow-hidden mb-6">
+                <Image
+                  src="/top100-africa-future-leaders-magazine-cover-2025.jpg"
+                  alt="Africa Future Leaders Magazine 2025 Cover"
+                  fill
+                  className="object-cover object-center"
+                  priority
+                  sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
+                />
+              </div>
               <div className="flex items-center mb-4">
                 <FileText className="w-6 h-6 text-primary mr-3" />
                 <div>
@@ -54,9 +64,9 @@ export default function MagazineSection() {
                 className="w-full sm:w-auto"
                 asChild
               >
-                <a href="https://drive.google.com/file/d/1WDdJnROclQ57fUm_g6Eeu0enKC_DJELS/view?usp=sharing" target="_blank" rel="noopener noreferrer">
+                <a href="/top100-africa-future-leaders-magazine-cover-2025.jpg" download target="_blank" rel="noopener noreferrer">
                   <Download className="w-5 h-5 mr-2" />
-                  Download the 2024 Magazine (PDF)
+                  Download the 2025 Magazine (PDF)
                 </a>
               </Button>
             </motion.div>

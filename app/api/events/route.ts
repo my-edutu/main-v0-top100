@@ -1,7 +1,9 @@
 import { NextRequest } from 'next/server'
+import { revalidatePath, revalidateTag } from 'next/cache'
 
 import { requireAdmin } from '@/lib/api/require-admin'
 import { createAdminClient } from '@/lib/supabase/server'
+
 
 
 const ALLOWED_STATUSES = new Set(['draft', 'published', 'archived'])
@@ -176,6 +178,17 @@ export async function POST(req: NextRequest) {
       return toJsonResponse({ message: 'Failed to create event', error: error.message }, 500)
     }
 
+    // Clear Next.js cache for homepage and events pages
+    try {
+      revalidatePath('/')
+      revalidatePath('/events')
+      revalidatePath('/programs')
+      revalidateTag('events')
+      revalidateTag('homepage')
+    } catch (revalidationError) {
+      console.warn('Error during cache revalidation:', revalidationError)
+    }
+
     return toJsonResponse(data, 201)
   } catch (error) {
     console.error('Error in events POST:', error)
@@ -226,6 +239,17 @@ export async function PUT(req: NextRequest) {
     if (error) {
       console.error('Error updating event:', error)
       return toJsonResponse({ message: 'Failed to update event', error: error.message }, 500)
+    }
+
+    // Clear Next.js cache for homepage and events pages
+    try {
+      revalidatePath('/')
+      revalidatePath('/events')
+      revalidatePath('/programs')
+      revalidateTag('events')
+      revalidateTag('homepage')
+    } catch (revalidationError) {
+      console.warn('Error during cache revalidation:', revalidationError)
     }
 
     return toJsonResponse(data?.[0] || payload)
@@ -319,6 +343,17 @@ export async function PATCH(req: NextRequest) {
       return toJsonResponse({ message: 'Failed to update event', error: error.message }, 500)
     }
 
+    // Clear Next.js cache for homepage and events pages
+    try {
+      revalidatePath('/')
+      revalidatePath('/events')
+      revalidatePath('/programs')
+      revalidateTag('events')
+      revalidateTag('homepage')
+    } catch (revalidationError) {
+      console.warn('Error during cache revalidation:', revalidationError)
+    }
+
     // Return the first (and should be only) result
     return toJsonResponse(data?.[0] || { id, ...updates })
   } catch (error) {
@@ -371,6 +406,17 @@ export async function DELETE(req: NextRequest) {
       return toJsonResponse({ message: 'Failed to delete event', error: error.message }, 500)
     }
 
+    // Clear Next.js cache for homepage and events pages
+    try {
+      revalidatePath('/')
+      revalidatePath('/events')
+      revalidatePath('/programs')
+      revalidateTag('events')
+      revalidateTag('homepage')
+    } catch (revalidationError) {
+      console.warn('Error during cache revalidation:', revalidationError)
+    }
+
     return new Response(null, { status: 204 })
   } catch (error) {
     console.error('Error in events DELETE:', error)
@@ -378,6 +424,7 @@ export async function DELETE(req: NextRequest) {
     return toJsonResponse({ message: 'Failed to delete event', error: message }, 400)
   }
 }
+
 
 
 

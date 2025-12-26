@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidatePath, revalidateTag } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/api/require-admin'
+
 
 // GET - Fetch upcoming events
 export async function GET(req: NextRequest) {
@@ -120,6 +122,16 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // Clear Next.js cache for homepage
+    try {
+      revalidatePath('/')
+      revalidatePath('/events')
+      revalidateTag('events')
+      revalidateTag('homepage')
+    } catch (revalidationError) {
+      console.warn('Error during cache revalidation:', revalidationError)
+    }
+
     return NextResponse.json(data, { status: 201 })
   } catch (error) {
     console.error('Error in upcoming-events POST:', error)
@@ -197,6 +209,16 @@ export async function PUT(req: NextRequest) {
       )
     }
 
+    // Clear Next.js cache for homepage
+    try {
+      revalidatePath('/')
+      revalidatePath('/events')
+      revalidateTag('events')
+      revalidateTag('homepage')
+    } catch (revalidationError) {
+      console.warn('Error during cache revalidation:', revalidationError)
+    }
+
     return NextResponse.json(data)
   } catch (error) {
     console.error('Error in upcoming-events PUT:', error)
@@ -263,6 +285,16 @@ export async function PATCH(req: NextRequest) {
       )
     }
 
+    // Clear Next.js cache for homepage
+    try {
+      revalidatePath('/')
+      revalidatePath('/events')
+      revalidateTag('events')
+      revalidateTag('homepage')
+    } catch (revalidationError) {
+      console.warn('Error during cache revalidation:', revalidationError)
+    }
+
     return NextResponse.json(data)
   } catch (error) {
     console.error('Error in upcoming-events PATCH:', error)
@@ -302,6 +334,16 @@ export async function DELETE(req: NextRequest) {
         { message: 'Failed to delete upcoming event', error: error.message },
         { status: 500 }
       )
+    }
+
+    // Clear Next.js cache for homepage
+    try {
+      revalidatePath('/')
+      revalidatePath('/events')
+      revalidateTag('events')
+      revalidateTag('homepage')
+    } catch (revalidationError) {
+      console.warn('Error during cache revalidation:', revalidationError)
     }
 
     return new NextResponse(null, { status: 204 })
