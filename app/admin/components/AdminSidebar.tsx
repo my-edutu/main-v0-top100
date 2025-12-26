@@ -93,8 +93,8 @@ export default function AdminSidebar() {
                     <Image
                         src="/Top100 Africa Future leaders Logo .png"
                         alt="Logo"
-                        width={72}
-                        height={72}
+                        width={96}
+                        height={96}
                         className="object-contain drop-shadow-xl"
                         priority
                     />

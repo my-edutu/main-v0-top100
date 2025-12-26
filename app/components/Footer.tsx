@@ -22,13 +22,14 @@ export default function Footer() {
       <div className="container">
         {/* Logo and Description - Full width at the top */}
         <div className="text-center mb-8">
-          <div className="h-20 w-[184px] mx-auto mb-4">
+          <div className="h-24 w-[280px] mx-auto mb-4">
             <Image
               src="/Top100 Africa Future leaders Logo .png"
               alt="Top100 Africa Future Leaders Logo"
-              width={230}
+              width={280}
               height={100}
               className="h-full w-full object-contain"
+              priority
             />
           </div>
           <p className="text-sm leading-relaxed text-white/90 max-w-2xl mx-auto">

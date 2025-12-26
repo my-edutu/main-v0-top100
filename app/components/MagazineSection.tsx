@@ -33,14 +33,14 @@ export default function MagazineSection() {
           >
 
             <div className="rounded-[24px] border border-border/60 bg-card p-6 mb-8 shadow-sm">
-              <div className="relative w-full h-64 rounded-xl overflow-hidden mb-6">
+              <div className="relative w-full aspect-[3/4] max-w-md mx-auto rounded-xl overflow-hidden mb-6 bg-zinc-100">
                 <Image
-                  src="/top100-africa-future-leaders-magazine-cover-2025.jpg"
+                  src="/magazine-cover-2025.jpg"
                   alt="Africa Future Leaders Magazine 2025 Cover"
                   fill
-                  className="object-cover object-center"
+                  className="object-contain"
                   priority
-                  sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
+                  sizes="(max-width: 640px) 100vw, 400px"
                 />
               </div>
               <div className="flex items-center mb-4">

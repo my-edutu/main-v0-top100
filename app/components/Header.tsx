@@ -60,13 +60,14 @@ export default function Header() {
     >
       <div className="container flex h-16 items-center justify-between">
         <Link href="/" className="flex items-center gap-2 text-lg font-semibold tracking-tight">
-          <div className="h-12 w-24">
+          <div className="h-14 w-44">
             <Image
               src="/Top100 Africa Future leaders Logo .png"
               alt="Top100 Africa Future Leaders Logo"
-              width={96}
-              height={48}
+              width={180}
+              height={60}
               className="h-full w-full object-contain"
+              priority
             />
           </div>
         </Link>
@@ -110,12 +111,12 @@ export default function Header() {
                 <div className="flex flex-col h-full pt-6">
                   {/* Logo in Sheet */}
                   <div className="px-6 pb-6 flex items-center justify-center border-b border-white/20">
-                    <div className="h-12 w-20">
+                    <div className="h-14 w-36">
                       <Image
                         src="/Top100 Africa Future leaders Logo .png"
                         alt="Top100 Africa Future Leaders Logo"
-                        width={80}
-                        height={48}
+                        width={144}
+                        height={56}
                         className="h-full w-full object-contain"
                       />
                     </div>

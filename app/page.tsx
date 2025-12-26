@@ -305,21 +305,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="py-6">
-          <div className="container space-y-6 sm:space-y-8">
-            <div className="text-center">
-              <h2 className="text-2xl sm:text-3xl md:text-[2rem] font-semibold font-sans">Africa Future Leaders Summit 2026</h2>
-              <p className="mt-4 text-lg sm:text-xl text-slate-900 font-sans leading-relaxed tracking-wide">
-                Join us in co-creating a gathering that accelerates Africa&apos;s next generation of changemakers.
-              </p>
-            </div>
-            <div className="flex justify-center">
-              <Button asChild className="bg-yellow-500 text-black hover:bg-yellow-400">
-                <Link href="/initiatives/summit" className="text-base sm:text-lg">Learn More</Link>
-              </Button>
-            </div>
-          </div>
-        </section>
+
 
         <FAQSection />
 

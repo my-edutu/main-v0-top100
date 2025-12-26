@@ -125,10 +125,10 @@ export default function AdminHeader() {
       {isPending && (
         <div className="absolute top-0 left-0 right-0 h-1 bg-white/20 overflow-hidden">
           <div className="h-full bg-white animate-[loading_1s_ease-in-out_infinite]"
-               style={{
-                 width: '40%',
-                 animation: 'loading 1s ease-in-out infinite'
-               }}
+            style={{
+              width: '40%',
+              animation: 'loading 1s ease-in-out infinite'
+            }}
           />
         </div>
       )}
@@ -155,12 +155,12 @@ export default function AdminHeader() {
                 <div className="flex flex-col h-full pt-6">
                   {/* Logo in Sheet */}
                   <div className="px-6 pb-6 flex items-center space-x-3 border-b border-white/20">
-                    <div className="h-12 w-20">
+                    <div className="h-14 w-36">
                       <Image
                         src="/Top100 Africa Future leaders Logo .png"
                         alt="Top100 Africa Future Leaders Logo"
-                        width={80}
-                        height={48}
+                        width={144}
+                        height={56}
                         className="h-full w-full object-contain"
                       />
                     </div>
@@ -183,11 +183,10 @@ export default function AdminHeader() {
                             }
                             setIsSheetOpen(false);
                           }}
-                          className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
-                            active
+                          className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${active
                               ? 'bg-white text-orange-600 shadow-md'
                               : 'text-white hover:bg-white/20'
-                          } ${isPending ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
+                            } ${isPending ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
                         >
                           {isPending && navigatingTo === item.href ? (
                             <Loader2 className="h-5 w-5 animate-spin" />
@@ -217,12 +216,12 @@ export default function AdminHeader() {
           </div>
 
           {/* Logo & Brand */}
-          <div className="h-12 w-20">
+          <div className="h-14 w-36">
             <Image
               src="/Top100 Africa Future leaders Logo .png"
               alt="Top100 Africa Future Leaders Logo"
-              width={80}
-              height={48}
+              width={144}
+              height={56}
               className="h-full w-full object-contain"
             />
           </div>

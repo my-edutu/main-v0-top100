@@ -211,8 +211,8 @@ export default function SignInContent() {
             <Image
               src="/Top100 Africa Future leaders Logo .png"
               alt="Logo"
-              width={100}
-              height={100}
+              width={160}
+              height={160}
               className="relative object-contain drop-shadow-sm group-hover:scale-105 transition-transform duration-500"
               priority
             />
