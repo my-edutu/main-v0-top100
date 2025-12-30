@@ -1,13 +1,15 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
-import type { ProofAwardee } from '@/lib/awardees'
+import Link from 'next/link'
+import type { ProofAwardee, Awardee } from '@/lib/awardees'
 
 interface AwardeesListClientProps {
     awardees: ProofAwardee[]
+    featuredAwardees?: Awardee[]
 }
 
-export default function AwardeesListClient({ awardees }: AwardeesListClientProps) {
+export default function AwardeesListClient({ awardees, featuredAwardees = [] }: AwardeesListClientProps) {
     const [searchQuery, setSearchQuery] = useState('')
     const [currentPage, setCurrentPage] = useState(1)
     const [isMobile, setIsMobile] = useState(false)
@@ -47,6 +49,16 @@ export default function AwardeesListClient({ awardees }: AwardeesListClientProps
         const endIndex = startIndex + itemsPerPage
         return filteredAwardees.slice(startIndex, endIndex)
     }, [filteredAwardees, currentPage, itemsPerPage])
+
+    // Generate slug from name
+    const generateSlug = (name: string) => {
+        return name
+            .toLowerCase()
+            .replace(/[^a-z0-9\s-]/g, '')
+            .replace(/\s+/g, '-')
+            .replace(/-+/g, '-')
+            .trim()
+    }
 
     return (
         <main style={{
@@ -207,6 +219,154 @@ export default function AwardeesListClient({ awardees }: AwardeesListClientProps
                     </button>
                 </div>
             )}
+
+            {/* Featured Awardees - Forbes Style Cards */}
+            {featuredAwardees.length > 0 && (
+                <section style={{
+                    marginTop: '32px',
+                    paddingTop: '16px'
+                }}>
+                    {/* Scrollable Cards Container */}
+                    <div style={{
+                        display: 'flex',
+                        overflowX: 'auto',
+                        gap: '16px',
+                        padding: '8px 0 20px',
+                        scrollSnapType: 'x mandatory',
+                        WebkitOverflowScrolling: 'touch'
+                    }}>
+                        {featuredAwardees.map((awardee) => (
+                            <Link
+                                key={awardee.id}
+                                href={`/awardees/${generateSlug(awardee.name)}`}
+                                style={{
+                                    flexShrink: 0,
+                                    width: '220px',
+                                    scrollSnapAlign: 'start',
+                                    textDecoration: 'none',
+                                    color: 'inherit'
+                                }}
+                            >
+                                {/* Forbes-Style Dark Card */}
+                                <div style={{
+                                    background: 'rgba(0, 0, 0, 0.85)',
+                                    backdropFilter: 'blur(12px)',
+                                    borderRadius: '16px',
+                                    padding: '20px',
+                                    border: '1px solid rgba(251, 146, 60, 0.2)',
+                                    transition: 'all 0.3s ease',
+                                    height: '100%',
+                                    display: 'flex',
+                                    flexDirection: 'column'
+                                }}>
+                                    {/* Header with Avatar and Name */}
+                                    <div style={{
+                                        display: 'flex',
+                                        alignItems: 'flex-start',
+                                        gap: '12px'
+                                    }}>
+                                        {/* Avatar */}
+                                        <div style={{
+                                            width: '56px',
+                                            height: '56px',
+                                            borderRadius: '50%',
+                                            overflow: 'hidden',
+                                            flexShrink: 0,
+                                            background: awardee.avatar_url ? 'transparent' : 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            border: '2px solid rgba(255, 255, 255, 0.1)'
+                                        }}>
+                                            {awardee.avatar_url ? (
+                                                <img
+                                                    src={awardee.avatar_url}
+                                                    alt={awardee.name}
+                                                    style={{
+                                                        width: '100%',
+                                                        height: '100%',
+                                                        objectFit: 'cover'
+                                                    }}
+                                                />
+                                            ) : (
+                                                <span style={{
+                                                    color: '#fff',
+                                                    fontSize: '20px',
+                                                    fontWeight: 'bold'
+                                                }}>
+                                                    {awardee.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {/* Name and Country */}
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <h3 style={{
+                                                fontSize: '15px',
+                                                fontWeight: '600',
+                                                color: '#fff',
+                                                margin: 0,
+                                                lineHeight: '1.3',
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis',
+                                                display: '-webkit-box',
+                                                WebkitLineClamp: 2,
+                                                WebkitBoxOrient: 'vertical'
+                                            }}>
+                                                {awardee.name}
+                                            </h3>
+                                            <p style={{
+                                                fontSize: '13px',
+                                                color: '#fb923c',
+                                                margin: '4px 0 0 0'
+                                            }}>
+                                                {awardee.country}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Field Badge */}
+                                    {(awardee.cohort || awardee.field_of_study) && (
+                                        <div style={{ marginTop: '12px' }}>
+                                            <span style={{
+                                                display: 'inline-block',
+                                                padding: '4px 12px',
+                                                borderRadius: '20px',
+                                                background: 'rgba(251, 146, 60, 0.15)',
+                                                color: '#fed7aa',
+                                                fontSize: '11px',
+                                                fontWeight: '500',
+                                                textTransform: 'uppercase',
+                                                letterSpacing: '0.5px'
+                                            }}>
+                                                {awardee.cohort || awardee.field_of_study}
+                                            </span>
+                                        </div>
+                                    )}
+
+                                    {/* Bio snippet if available */}
+                                    {awardee.bio && (
+                                        <p style={{
+                                            marginTop: '12px',
+                                            fontSize: '12px',
+                                            color: 'rgba(161, 161, 170, 1)',
+                                            lineHeight: '1.5',
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            display: '-webkit-box',
+                                            WebkitLineClamp: 2,
+                                            WebkitBoxOrient: 'vertical'
+                                        }}>
+                                            {awardee.bio}
+                                        </p>
+                                    )}
+                                </div>
+                            </Link>
+                        ))}
+                    </div>
+                </section>
+            )}
         </main>
     )
 }
+
