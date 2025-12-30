@@ -200,7 +200,7 @@ async function readSeedJSON(): Promise<StaticAwardeeRecord[] | undefined> {
   if (typeof window !== 'undefined') {
     return undefined;
   }
-  
+
   // For server-side, we would need to implement a different approach
   // For now, we'll return undefined to prevent the fs import
   return undefined;
@@ -219,4 +219,91 @@ function normalizeYear(year: StaticAwardeeRecord['year']): number | null {
   }
 
   return 2024
+}
+
+// Type for proof page awardees (minimal data)
+export type ProofAwardee = {
+  id: string
+  name: string
+  cgpa: string | null
+  country: string | null
+  year: number | null
+}
+
+// Fetch ALL awardees for the proof/merit list page
+// This reads directly from the static Excel file to show the full 400+ list
+// Completely independent of database - admin controls don't affect this
+export async function getAllAwardeesForProof(): Promise<ProofAwardee[]> {
+  try {
+    // Import required modules for reading Excel file
+    const { promises: fs } = await import('fs')
+    const path = await import('path')
+    const xlsx = await import('xlsx')
+
+    const excelPath = path.join(process.cwd(), 'public', 'top100 Africa future Leaders 2025.xlsx')
+
+    let buffer: Buffer
+    try {
+      buffer = await fs.readFile(excelPath)
+    } catch (fileError) {
+      console.error('Excel file not found:', excelPath)
+      return []
+    }
+
+    const workbook = xlsx.read(buffer, { type: 'buffer' })
+    const firstSheetName = workbook.SheetNames[0]
+    const worksheet = workbook.Sheets[firstSheetName]
+    const jsonData = xlsx.utils.sheet_to_json(worksheet)
+
+    if (!jsonData || jsonData.length === 0) {
+      console.warn('Excel file is empty')
+      return []
+    }
+
+    // Helper function to normalize keys
+    const normalizeKey = (obj: any, keyVariants: string[]): any => {
+      for (const variant of keyVariants) {
+        const foundKey = Object.keys(obj).find((k) =>
+          k.toLowerCase().replace(/\s+/g, '').includes(variant.toLowerCase().replace(/\s+/g, '')),
+        )
+        if (foundKey && obj[foundKey]) {
+          return obj[foundKey]
+        }
+      }
+      return null
+    }
+
+    // Parse and return all awardees from Excel
+    return jsonData.map((row: any, index: number) => {
+      const rawName = normalizeKey(row, ['name', 'fullname', 'awardee'])
+      const name = typeof rawName === 'string' ? rawName.trim() : `Awardee ${index + 1}`
+
+      let country = normalizeKey(row, ['country', 'nationality']) || ''
+      if (country && typeof country === 'string' && country.includes(' ')) {
+        const parts = country.split(' ')
+        if (parts.length >= 2 && parts[0].length === 2) {
+          country = parts.slice(1).join(' ')
+        }
+      }
+
+      const rawCgpa = normalizeKey(row, ['cgpa', 'gpa', 'grade'])
+      const cgpa = rawCgpa !== null && rawCgpa !== undefined ? rawCgpa.toString().trim() : null
+
+      let year = normalizeKey(row, ['year', 'batch'])
+      if (typeof year === 'string') {
+        year = parseInt(year)
+      }
+
+      return {
+        id: `proof-${index + 1}`,
+        name,
+        cgpa,
+        country: country ? country.toString().trim() : null,
+        year: typeof year === 'number' ? year : null,
+      }
+    })
+  } catch (error) {
+    console.error('Error in getAllAwardeesForProof:', error)
+    return []
+  }
 }

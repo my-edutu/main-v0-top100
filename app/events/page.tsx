@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { format } from "date-fns"
 import { supabase } from "@/lib/supabase/client"
@@ -74,15 +73,10 @@ const sortUpcoming = (a: PublicEvent, b: PublicEvent) => new Date(a.start_at).ge
 const sortPast = (a: PublicEvent, b: PublicEvent) => new Date(b.start_at).getTime() - new Date(a.start_at).getTime()
 
 export default function EventsPage() {
-  const router = useRouter()
   const [events, setEvents] = useState<PublicEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedEvent, setSelectedEvent] = useState<PublicEvent | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
-
-  const handleNavigateToSummit = () => {
-    router.push('/initiatives/summit')
-  }
 
   const fetchEvents = useCallback(async () => {
     try {
@@ -308,50 +302,17 @@ export default function EventsPage() {
                   <p className="text-sm sm:text-base text-zinc-300">Reserve your spot before capacity fills up.</p>
                 </div>
                 <Badge className="bg-white/10 text-orange-200">
-                  {upcomingEvents.length + 1} upcoming
+                  {upcomingEvents.length} upcoming
                 </Badge>
               </div>
               <div className="grid gap-6 md:grid-cols-2">
-                {/* Africa Future Leaders Summit 2026 */}
-                <div
-                  className="group cursor-pointer relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:border-orange-400/70 hover:bg-white/10 hover:shadow-xl backdrop-blur"
-                  onClick={handleNavigateToSummit}
-                >
-                  <div className="absolute inset-0 bg-orange-400/10 opacity-0 transition-opacity duration-300 hover:opacity-100" />
-                  <div className="relative z-10 flex flex-col gap-4">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="flex items-center gap-2 text-sm text-orange-300">
-                          <CalendarDays className="h-4 w-4" />
-                          <span>2026</span>
-                        </div>
-                        <h3 className="mt-2 text-2xl font-semibold text-white">
-                          Africa Future Leaders Summit 2026
-                        </h3>
-                      </div>
-                      <div className="flex flex-col items-center justify-center rounded-xl bg-white/10 px-3 py-2 text-white">
-                        <span className="text-xs tracking-[0.2em] uppercase">2026</span>
-                        <span className="text-xl font-bold">TBD</span>
-                      </div>
-                    </div>
-                    <p className="text-sm leading-relaxed text-zinc-300 line-clamp-3">
-                      Join us in co-creating a gathering that accelerates Africa's next generation of changemakers.
-                    </p>
-                    <div className="flex flex-wrap items-center gap-3 text-sm text-zinc-300">
-                      <div className="flex items-center gap-2">
-                        <Globe2 className="h-4 w-4" />
-                        <span>Hybrid experience</span>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Badge className="bg-orange-500/20 text-orange-200">
-                        Registration opening soon
-                      </Badge>
-                    </div>
+                {upcomingEvents.length === 0 ? (
+                  <div className="col-span-2 rounded-2xl border border-white/10 bg-white/5 p-10 text-center text-zinc-300">
+                    No upcoming events scheduled. Check back soon!
                   </div>
-                </div>
-
-                {upcomingEvents.map((event) => renderEventCard(event, "upcoming"))}
+                ) : (
+                  upcomingEvents.map((event) => renderEventCard(event, "upcoming"))
+                )}
               </div>
             </section>
 
@@ -361,82 +322,14 @@ export default function EventsPage() {
                   <h2 className="text-2xl sm:text-3xl font-semibold text-white">Past Highlights</h2>
                   <p className="text-sm sm:text-base text-zinc-300">Relive the moments that have shaped our network.</p>
                 </div>
-                <Badge className="bg-white/10 text-zinc-200">{pastEvents.length + 2} recorded</Badge>
+                <Badge className="bg-white/10 text-zinc-200">{pastEvents.length} recorded</Badge>
               </div>
-              {(pastEvents.length === 0 && upcomingEvents.length > 0) ? (
+              {pastEvents.length === 0 ? (
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-10 text-center text-zinc-300">
-                  Our timeline is just getting started. Check back for recaps from recent programs.
+                  No past events yet. Check back for recaps from recent programs.
                 </div>
               ) : (
                 <div className="grid gap-6 md:grid-cols-3">
-                  {/* Africa Future Leaders Summit 2025 - Past Event */}
-                  <div
-                    className="group cursor-pointer relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:border-orange-400/70 hover:bg-white/10 hover:shadow-xl backdrop-blur"
-                    onClick={handleNavigateToSummit}
-                  >
-                    <div className="absolute inset-0 bg-orange-400/10 opacity-0 transition-opacity duration-300 hover:opacity-100" />
-                    <div className="relative z-10 flex flex-col gap-4">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="flex items-center gap-2 text-sm text-orange-300">
-                            <CalendarDays className="h-4 w-4" />
-                            <span>2025</span>
-                          </div>
-                          <h3 className="mt-2 text-xl font-semibold text-white">
-                            Africa Future Leaders Summit 2025
-                          </h3>
-                        </div>
-                        <div className="flex flex-col items-center justify-center rounded-xl bg-white/10 px-3 py-2 text-white">
-                          <span className="text-xs tracking-[0.2em] uppercase">2025</span>
-                          <span className="text-lg font-bold">TBD</span>
-                        </div>
-                      </div>
-                      <p className="text-sm leading-relaxed text-zinc-300 line-clamp-3">
-                        Join us in co-creating a gathering that accelerates Africa's next generation of changemakers.
-                      </p>
-                      <div className="flex flex-wrap items-center gap-3 text-sm text-zinc-300">
-                        <div className="flex items-center gap-2">
-                          <Globe2 className="h-4 w-4" />
-                          <span>Hybrid experience</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Africa Future Leaders Summit 2024 - Past Event */}
-                  <div
-                    className="group cursor-pointer relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:border-orange-400/70 hover:bg-white/10 hover:shadow-xl backdrop-blur"
-                    onClick={handleNavigateToSummit}
-                  >
-                    <div className="absolute inset-0 bg-orange-400/10 opacity-0 transition-opacity duration-300 hover:opacity-100" />
-                    <div className="relative z-10 flex flex-col gap-4">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="flex items-center gap-2 text-sm text-orange-300">
-                            <CalendarDays className="h-4 w-4" />
-                            <span>2024</span>
-                          </div>
-                          <h3 className="mt-2 text-xl font-semibold text-white">
-                            Africa Future Leaders Summit 2024
-                          </h3>
-                        </div>
-                        <div className="flex flex-col items-center justify-center rounded-xl bg-white/10 px-3 py-2 text-white">
-                          <span className="text-xs tracking-[0.2em] uppercase">2024</span>
-                          <span className="text-lg font-bold">TBD</span>
-                        </div>
-                      </div>
-                      <p className="text-sm leading-relaxed text-zinc-300 line-clamp-3">
-                        Empowering Africa's Future Leaders - Recap of the groundbreaking summit.
-                      </p>
-                      <div className="flex flex-wrap items-center gap-3 text-sm text-zinc-300">
-                        <div className="flex items-center gap-2">
-                          <Globe2 className="h-4 w-4" />
-                          <span>Hybrid experience</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
                   {pastEvents.map((event) => renderEventCard(event, "past"))}
                 </div>
               )}
@@ -446,27 +339,27 @@ export default function EventsPage() {
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto border border-white/10 bg-zinc-950/95 text-white backdrop-blur-xl">
+        <DialogContent className="max-h-[90vh] overflow-y-auto border border-zinc-200 bg-white text-zinc-900 shadow-xl">
           {selectedEvent && (
             <>
               <DialogHeader className="space-y-2">
-                <DialogTitle className="text-3xl font-semibold">{selectedEvent.title}</DialogTitle>
-                {selectedEvent.subtitle && <DialogDescription className="text-base sm:text-lg text-zinc-300">{selectedEvent.subtitle}</DialogDescription>}
-                <div className="flex flex-wrap items-center gap-3 text-sm md:text-base text-zinc-300">
+                <DialogTitle className="text-2xl sm:text-3xl font-semibold text-zinc-900">{selectedEvent.title}</DialogTitle>
+                {selectedEvent.subtitle && <DialogDescription className="text-base sm:text-lg text-zinc-600">{selectedEvent.subtitle}</DialogDescription>}
+                <div className="flex flex-wrap items-center gap-3 text-sm md:text-base text-zinc-600">
                   <div className="flex items-center gap-2">
-                    <CalendarDays className="h-4 w-4 text-orange-300" />
+                    <CalendarDays className="h-4 w-4 text-orange-500" />
                     <span>{formatRange(selectedEvent.start_at, selectedEvent.end_at)}</span>
                   </div>
-                  <Separator orientation="vertical" className="h-4 bg-white/10" />
+                  <Separator orientation="vertical" className="h-4 bg-zinc-300" />
                   <div className="flex items-center gap-2">
                     {selectedEvent.is_virtual ? (
                       <>
-                        <Globe2 className="h-4 w-4 text-orange-300" />
+                        <Globe2 className="h-4 w-4 text-orange-500" />
                         <span>Virtual</span>
                       </>
                     ) : (
                       <>
-                        <MapPin className="h-4 w-4 text-orange-300" />
+                        <MapPin className="h-4 w-4 text-orange-500" />
                         <span>{selectedEvent.location || [selectedEvent.city, selectedEvent.country].filter(Boolean).join(", ") || "Onsite venue"}</span>
                       </>
                     )}
@@ -475,7 +368,7 @@ export default function EventsPage() {
               </DialogHeader>
               <div className="space-y-6 py-4">
                 {selectedEvent.featured_image_url && (
-                  <div className="overflow-hidden rounded-2xl border border-white/10">
+                  <div className="overflow-hidden rounded-2xl border border-zinc-200">
                     <img
                       src={selectedEvent.featured_image_url}
                       alt={selectedEvent.title}
@@ -483,7 +376,7 @@ export default function EventsPage() {
                     />
                   </div>
                 )}
-                <div className="space-y-4 text-sm sm:text-base leading-relaxed text-zinc-200">
+                <div className="space-y-4 text-sm sm:text-base leading-relaxed text-zinc-700">
                   {selectedEvent.description ? (
                     <p className="whitespace-pre-line">{selectedEvent.description}</p>
                   ) : selectedEvent.summary ? (
@@ -494,30 +387,30 @@ export default function EventsPage() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {selectedEvent.tags?.map((tag) => (
-                    <Badge key={`detail-${tag}`} variant="outline" className="border-white/20 text-white">
+                    <Badge key={`detail-${tag}`} variant="outline" className="border-zinc-300 text-zinc-700">
                       {tag}
                     </Badge>
                   ))}
                 </div>
               </div>
               <DialogFooter className="flex flex-col gap-3 sm:flex-row sm:justify-between">
-                <div className="text-xs sm:text-sm uppercase tracking-[0.3em] text-zinc-400">
+                <div className="text-xs sm:text-sm uppercase tracking-[0.2em] text-zinc-500">
                   Last updated {format(new Date(selectedEvent.updated_at), "MMM d, yyyy")}
                 </div>
                 <div className="flex flex-wrap gap-3">
                   {selectedEvent.registration_url ? (
-                    <Button asChild className="bg-yellow-500 text-black hover:bg-yellow-400">
+                    <Button asChild className="bg-orange-500 text-white hover:bg-orange-600">
                       <a href={selectedEvent.registration_url} target="_blank" rel="noopener noreferrer">
                         {selectedEvent.registration_label || "Register"}
                         <ExternalLink className="ml-2 h-4 w-4" />
                       </a>
                     </Button>
                   ) : (
-                    <Button disabled variant="outline" className="border-white/30 text-white">
+                    <Button disabled variant="outline" className="border-zinc-300 text-zinc-500">
                       Registration unavailable
                     </Button>
                   )}
-                  <Button variant="outline" className="border-white/30 text-white" onClick={closeDialog}>
+                  <Button variant="outline" className="border-zinc-300 text-zinc-700 hover:bg-zinc-100" onClick={closeDialog}>
                     Close
                   </Button>
                 </div>

@@ -8,17 +8,21 @@ import { Calendar, MapPin, Clock, Users, ArrowRight, ExternalLink } from "lucide
 interface UpcomingEvent {
   id: string
   title: string
+  summary: string | null
   description: string | null
-  event_date: string
-  end_date: string | null
+  start_at: string
+  end_at: string | null
   location: string | null
-  event_type: string
-  image_url: string | null
+  city: string | null
+  country: string | null
+  is_virtual: boolean
+  featured_image_url: string | null
   registration_url: string | null
   is_featured: boolean
-  max_attendees: number | null
-  current_attendees: number
+  capacity: number | null
   tags: string[]
+  status: string
+  visibility: string
 }
 
 const UpcomingEventsSection = () => {
@@ -28,15 +32,27 @@ const UpcomingEventsSection = () => {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const response = await fetch('/api/upcoming-events?limit=3', { cache: 'no-store' })
+        // Fetch from the same API as admin uses - the events table
+        const response = await fetch('/api/events', { cache: 'no-store' })
         if (response.ok) {
           const data = await response.json()
-          setEvents(data)
+          // Filter to only show upcoming events (start_at > now) and limit to 3
+          const now = new Date()
+          const upcomingEvents = data
+            .filter((event: UpcomingEvent) => {
+              const startDate = new Date(event.start_at)
+              return startDate > now && event.status === 'published' && event.visibility === 'public'
+            })
+            .sort((a: UpcomingEvent, b: UpcomingEvent) =>
+              new Date(a.start_at).getTime() - new Date(b.start_at).getTime()
+            )
+            .slice(0, 3)
+          setEvents(upcomingEvents)
         } else {
-          console.error('Failed to fetch upcoming events:', response.status)
+          console.error('Failed to fetch events:', response.status)
         }
       } catch (error) {
-        console.error('Error fetching upcoming events:', error)
+        console.error('Error fetching events:', error)
       } finally {
         setLoading(false)
       }
@@ -63,16 +79,12 @@ const UpcomingEventsSection = () => {
     })
   }
 
-  const getEventTypeColor = (type: string) => {
-    const colors: Record<string, string> = {
-      conference: 'bg-blue-100 text-blue-700',
-      workshop: 'bg-green-100 text-green-700',
-      webinar: 'bg-purple-100 text-purple-700',
-      summit: 'bg-orange-100 text-orange-700',
-      networking: 'bg-pink-100 text-pink-700',
-      other: 'bg-gray-100 text-gray-700'
-    }
-    return colors[type] || colors.other
+  const getEventLocation = (event: UpcomingEvent) => {
+    if (event.is_virtual) return 'Virtual Event'
+    if (event.city && event.country) return `${event.city}, ${event.country}`
+    if (event.city) return event.city
+    if (event.location) return event.location
+    return 'Location TBD'
   }
 
   if (loading) {
@@ -125,10 +137,10 @@ const UpcomingEventsSection = () => {
               className="group overflow-hidden rounded-[24px] border border-border/60 bg-card shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
             >
               {/* Event Image */}
-              {event.image_url ? (
+              {event.featured_image_url ? (
                 <div className="relative h-48 overflow-hidden">
                   <img
-                    src={event.image_url}
+                    src={event.featured_image_url}
                     alt={event.title}
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />
@@ -156,22 +168,15 @@ const UpcomingEventsSection = () => {
 
               {/* Event Details */}
               <div className="p-6 space-y-4">
-                {/* Event Type Badge */}
-                <div className="flex items-center justify-between">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase ${getEventTypeColor(event.event_type)}`}>
-                    {event.event_type}
-                  </span>
-                </div>
-
                 {/* Event Title */}
                 <h3 className="text-lg font-semibold line-clamp-2 group-hover:text-orange-500 transition-colors">
                   {event.title}
                 </h3>
 
                 {/* Event Description */}
-                {event.description && (
+                {(event.summary || event.description) && (
                   <p className="text-sm text-slate-900 line-clamp-2">
-                    {event.description}
+                    {event.summary || event.description}
                   </p>
                 )}
 
@@ -181,10 +186,10 @@ const UpcomingEventsSection = () => {
                   <div className="flex items-start gap-2">
                     <Calendar className="h-4 w-4 mt-0.5 flex-shrink-0 text-orange-500" />
                     <div>
-                      <div className="font-medium">{formatDate(event.event_date)}</div>
-                      {event.end_date && event.end_date !== event.event_date && (
+                      <div className="font-medium">{formatDate(event.start_at)}</div>
+                      {event.end_at && event.end_at !== event.start_at && (
                         <div className="text-xs text-slate-900">
-                          to {formatDate(event.end_date)}
+                          to {formatDate(event.end_at)}
                         </div>
                       )}
                     </div>
@@ -193,24 +198,20 @@ const UpcomingEventsSection = () => {
                   {/* Time */}
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 flex-shrink-0 text-orange-500" />
-                    <span>{formatTime(event.event_date)}</span>
+                    <span>{formatTime(event.start_at)}</span>
                   </div>
 
                   {/* Location */}
-                  {event.location && (
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 flex-shrink-0 text-orange-500" />
-                      <span className="line-clamp-1">{event.location}</span>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4 flex-shrink-0 text-orange-500" />
+                    <span className="line-clamp-1">{getEventLocation(event)}</span>
+                  </div>
 
-                  {/* Attendees */}
-                  {event.max_attendees && (
+                  {/* Capacity */}
+                  {event.capacity && (
                     <div className="flex items-center gap-2">
                       <Users className="h-4 w-4 flex-shrink-0 text-orange-500" />
-                      <span>
-                        {event.current_attendees} / {event.max_attendees} attendees
-                      </span>
+                      <span>{event.capacity} spots available</span>
                     </div>
                   )}
                 </div>
@@ -260,3 +261,4 @@ const UpcomingEventsSection = () => {
 }
 
 export default UpcomingEventsSection
+
