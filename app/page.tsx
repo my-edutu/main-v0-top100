@@ -291,7 +291,7 @@ export default function HomePage() {
                 </div>
                 <div className="flex justify-center">
                   <Button asChild size="lg">
-                    <Link href="/join" className="text-base sm:text-lg flex items-center gap-2">
+                    <Link href="/partners" className="text-base sm:text-lg flex items-center gap-2">
                       <span className="block sm:hidden">Learn more</span>
                       <span className="hidden sm:block">Learn more about partnership opportunities</span>
                       <span className="block sm:hidden">

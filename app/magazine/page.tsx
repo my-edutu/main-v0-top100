@@ -1,6 +1,5 @@
-import Link from 'next/link'
 import Image from 'next/image'
-import { Download, BookOpen } from 'lucide-react'
+import { Download } from 'lucide-react'
 import type { Metadata } from 'next'
 import NewsletterForm from '@/app/components/NewsletterForm'
 
@@ -19,9 +18,8 @@ const magazines = [
         year: 2025,
         title: 'Africa Future Leaders Magazine 2025',
         subtitle: 'The New Generation of Changemakers',
-        cover: '/top100 magazine.webp',
-        pageLink: '/magazine/afl2025',
-        downloadLink: '#',
+        cover: '/magazine-cover-2025.jpg',
+        downloadLink: 'https://drive.google.com/file/d/1oolBjSOMgFOnyFlDv24cID-VD33BBWru/view?usp=sharing',
         isLatest: true,
         description: 'Discover the inspiring stories of the 2025 cohort of Top100 Africa Future Leaders shaping the continent\'s future.',
     },
@@ -29,9 +27,8 @@ const magazines = [
         year: 2024,
         title: 'Africa Future Leaders Magazine 2024',
         subtitle: 'Celebrating Excellence & Innovation',
-        cover: '/top100-africa-future-leaders-2024-magazine-cover-w.jpg',
-        pageLink: '/magazine/africa future leaders magazine 2024',
-        downloadLink: '#',
+        cover: '/top100 magazine.webp',
+        downloadLink: 'https://drive.google.com/file/d/1WDdJnROclQ57fUm_g6Eeu0enKC_DJELS/view',
         isLatest: false,
         description: 'Explore the achievements and journeys of the 2024 Top100 Africa Future Leaders cohort.',
     },
@@ -97,16 +94,11 @@ export default function MagazinePage() {
 
                                 {/* Actions */}
                                 <div className="flex gap-2 pt-2">
-                                    <Link
-                                        href={magazine.pageLink}
-                                        className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white hover:bg-gray-50 text-gray-900 text-xs font-bold uppercase tracking-wider transition-colors rounded-lg border border-gray-200"
-                                    >
-                                        <BookOpen className="h-4 w-4" />
-                                        Read Online
-                                    </Link>
                                     <a
                                         href={magazine.downloadLink}
-                                        className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold uppercase tracking-wider transition-colors rounded-lg"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold uppercase tracking-wider transition-colors rounded-lg bg-orange-500 hover:bg-orange-600 text-white"
                                     >
                                         <Download className="h-4 w-4" />
                                         Download

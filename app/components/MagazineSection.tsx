@@ -3,7 +3,7 @@
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
-import { Download, FileText } from "lucide-react"
+import { FileText } from "lucide-react"
 
 export default function MagazineSection() {
   return (
@@ -58,19 +58,19 @@ export default function MagazineSection() {
               </ul>
             </div>
 
-            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex justify-center">
               <Button
                 size="lg"
                 className="w-full sm:w-auto"
                 asChild
               >
-                <a href="/top100-africa-future-leaders-magazine-cover-2025.jpg" download target="_blank" rel="noopener noreferrer">
-                  <Download className="w-5 h-5 mr-2" />
-                  Download the 2025 Magazine (PDF)
+                <a href="/magazine">
+                  <FileText className="w-5 h-5 mr-2" />
+                  Learn More
                 </a>
               </Button>
             </motion.div>
-            <p className="text-xs text-muted-foreground mt-3">File size: 12 MB</p>
+            <p className="text-xs text-muted-foreground mt-3 text-center">Explore all magazine editions</p>
           </motion.div>
         </div>
       </div>
