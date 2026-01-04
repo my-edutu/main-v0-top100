@@ -1,22 +1,29 @@
 // app/api/awardees/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/api/require-admin'
 
 // GET - Retrieve specific awardee by ID
+// Public access allowed for self-service editing (returns limited data)
+// Admin access returns full data
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const adminCheck = await requireAdmin(request)
-  if ('error' in adminCheck) {
-    return adminCheck.error
-  }
-
   try {
     const id = params.id
+    const { searchParams } = new URL(request.url)
+    const adminMode = searchParams.get('admin') === 'true'
 
-    const supabase = await createClient(true) // Use service role
+    // If admin mode, require admin auth
+    if (adminMode) {
+      const adminCheck = await requireAdmin(request)
+      if ('error' in adminCheck) {
+        return adminCheck.error
+      }
+    }
+
+    const supabase = createAdminClient()
 
     const { data, error } = await supabase
       .from('awardees')
@@ -37,6 +44,13 @@ export async function GET(
         { message: 'Awardee not found' },
         { status: 404 }
       )
+    }
+
+    // For non-admin requests, mask sensitive data
+    // We allow fetching even if is_public is false for self-service editing
+    if (!adminMode) {
+      const { email, personal_email, ...safeData } = data
+      return NextResponse.json(safeData)
     }
 
     return NextResponse.json(data)

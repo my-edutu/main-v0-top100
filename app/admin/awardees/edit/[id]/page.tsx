@@ -8,12 +8,12 @@ import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
 } from '@/components/ui/card';
 import { toast } from 'sonner';
 import {
@@ -45,6 +45,7 @@ interface Awardee {
   social_links?: Record<string, string>;
   achievements?: string[];
   avatar_url?: string;
+  linkedin_post_url?: string;
 }
 
 const awardeeSchema = z.object({
@@ -63,6 +64,7 @@ const awardeeSchema = z.object({
   twitter: z.string().optional(),
   github: z.string().optional(),
   website: z.string().optional(),
+  linkedin_post_url: z.string().optional(),
 });
 
 type AwardeeFormValues = z.infer<typeof awardeeSchema>
@@ -92,6 +94,7 @@ export default function EditAwardeePage({ params }: { params: Promise<{ id: stri
       twitter: '',
       github: '',
       website: '',
+      linkedin_post_url: '',
     }
   });
 
@@ -121,6 +124,7 @@ export default function EditAwardeePage({ params }: { params: Promise<{ id: stri
       setValue('twitter', awardee.social_links?.twitter || '');
       setValue('github', awardee.social_links?.github || '');
       setValue('website', awardee.social_links?.website || '');
+      setValue('linkedin_post_url', awardee.linkedin_post_url || '');
     }
   }, [awardee, setValue]);
 
@@ -194,6 +198,7 @@ export default function EditAwardeePage({ params }: { params: Promise<{ id: stri
         featured: data.featured || false,
         headline: data.headline || null,
         tagline: data.tagline || null,
+        linkedin_post_url: data.linkedin_post_url || null,
         social_links: {
           linkedin: data.linkedin || '',
           twitter: data.twitter || '',
@@ -252,9 +257,9 @@ export default function EditAwardeePage({ params }: { params: Promise<{ id: stri
       <Card className="max-w-3xl mx-auto">
         <CardHeader>
           <div className="flex items-center mb-2">
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => router.push('/admin/awardees')}
               className="p-0 mr-2"
             >
@@ -360,9 +365,9 @@ export default function EditAwardeePage({ params }: { params: Promise<{ id: stri
                   <div className="flex flex-col items-center">
                     {watch('image_url') ? (
                       <div className="relative mb-2">
-                        <img 
-                          src={watch('image_url')} 
-                          alt="Awardee preview" 
+                        <img
+                          src={watch('image_url')}
+                          alt="Awardee preview"
                           className="w-32 h-32 object-cover rounded-full border-2 border-gray-200"
                         />
                         <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-30 transition-all duration-300 rounded-full flex items-center justify-center">
@@ -478,9 +483,24 @@ export default function EditAwardeePage({ params }: { params: Promise<{ id: stri
               </div>
             </div>
 
+            {/* Featured Post */}
+            <div className="border-t pt-6">
+              <h3 className="text-lg font-semibold mb-4">Featured Post</h3>
+              <div>
+                <label className="text-sm font-medium mb-1 block">Post URL</label>
+                <Input
+                  {...register('linkedin_post_url')}
+                  placeholder="https://linkedin.com/posts/... or https://medium.com/..."
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Paste a public post URL from LinkedIn, Medium, Twitter/X, a news article, or any other platform. This will appear as a featured post card on the awardee's profile.
+                </p>
+              </div>
+            </div>
+
             <div className="flex justify-end space-x-4 pt-4">
-              <Button 
-                type="button" 
+              <Button
+                type="button"
                 variant="outline"
                 onClick={() => router.push('/admin/awardees')}
                 disabled={isSubmitting}

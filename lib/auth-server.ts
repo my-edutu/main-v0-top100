@@ -1,5 +1,5 @@
-// @lib/auth-server.ts  (REPLACE existing / duplicate files with this single canonical file)
 import { cache } from "react";
+import { headers as nextHeaders } from "next/headers";
 import type { Role } from "./types/roles";
 import { extractUserFromJWTPayload } from "./auth-utils";
 import { createClient } from "./supabase/server";
@@ -108,6 +108,13 @@ export async function getServerSession(req?: Request | { headers?: Headers } | a
       } else if (req?.headers) {
         headers = new Headers(req.headers as any);
         cookieHeader = headers.get("cookie");
+      }
+    } else {
+      try {
+        headers = await nextHeaders();
+        cookieHeader = headers.get("cookie");
+      } catch (e) {
+        // Not in a request context (e.g. build time or outside Next.js)
       }
     }
 

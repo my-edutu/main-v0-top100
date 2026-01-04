@@ -10,6 +10,7 @@ import { fetchAwardeeBySlug } from '@/lib/dashboard/profile-service'
 import { AvatarSVG, flagEmoji } from '@/lib/avatars'
 import type { Achievement, GalleryItem, SocialLinks } from '@/types/profile'
 import ConnectButton from './ConnectButton'
+import LinkedInPostCard from './LinkedInPostCard'
 import StructuredData from '@/components/StructuredData'
 
 export const runtime = 'nodejs'
@@ -167,7 +168,6 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
       "@type": "Organization",
       "name": "Top100 Africa Future Leaders"
     },
-    ...(awardee.email && { "email": awardee.email }),
     ...(awardee.interests && awardee.interests.length > 0 && { "knowsAbout": awardee.interests })
   }
 
@@ -277,8 +277,6 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
 
                 {/* Connect Button with Popup */}
                 <ConnectButton
-                  email={awardee.email}
-                  personalEmail={awardee.personal_email}
                   linkedin={awardee.social_links?.linkedin}
                   twitter={awardee.social_links?.twitter}
                   facebook={awardee.social_links?.facebook}
@@ -291,29 +289,6 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
 
         {/* Main Content */}
         <div className="py-10 sm:py-16">
-          {/* Impact Stats - Forbes Style */}
-          {(awardee.impact_projects || awardee.lives_impacted || awardee.awards_received) && (
-            <div className="grid grid-cols-3 gap-6 pb-10 border-b border-gray-100 mb-10">
-              {awardee.impact_projects && (
-                <div className="text-center">
-                  <p className="text-3xl sm:text-4xl font-serif font-bold text-gray-900">{awardee.impact_projects}</p>
-                  <p className="text-xs uppercase tracking-wider text-gray-500 mt-1">Projects</p>
-                </div>
-              )}
-              {awardee.lives_impacted && (
-                <div className="text-center">
-                  <p className="text-3xl sm:text-4xl font-serif font-bold text-gray-900">{awardee.lives_impacted}</p>
-                  <p className="text-xs uppercase tracking-wider text-gray-500 mt-1">Lives Impacted</p>
-                </div>
-              )}
-              {awardee.awards_received && (
-                <div className="text-center">
-                  <p className="text-3xl sm:text-4xl font-serif font-bold text-gray-900">{awardee.awards_received}</p>
-                  <p className="text-xs uppercase tracking-wider text-gray-500 mt-1">Awards</p>
-                </div>
-              )}
-            </div>
-          )}
 
           {/* Biography - Magazine Style */}
           {awardee.bio && (
@@ -325,6 +300,14 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
                 </p>
               </div>
             </section>
+          )}
+
+          {/* Featured LinkedIn Post */}
+          {awardee.linkedin_post_url && (
+            <LinkedInPostCard
+              postUrl={awardee.linkedin_post_url}
+              name={awardee.name}
+            />
           )}
 
           {/* Focus Areas */}

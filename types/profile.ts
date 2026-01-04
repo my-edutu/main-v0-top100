@@ -50,6 +50,15 @@ export type UserProfile = {
   cohort?: string | null;
   slug?: string | null;
   is_public: boolean;
+
+  // New Awardee Fields
+  cgpa?: string | null;
+  year?: string | null;
+  impact_projects?: number | null;
+  lives_impacted?: number | null;
+  awards_received?: number | null;
+  youtube_video_url?: string | null;
+
   metadata?: Record<string, unknown> | null;
   last_seen_at?: string | null;
   created_at?: string | null;

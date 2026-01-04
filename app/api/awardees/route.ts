@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase
       .from('awardees')
       .select('*')
-      .order('name', { ascending: true });
+      .order('updated_at', { ascending: false, nullsFirst: false });
 
     if (error) {
       console.error('Error fetching awardees:', error);
@@ -103,11 +103,11 @@ export async function POST(request: NextRequest) {
   try {
     let body;
     const contentType = request.headers.get('content-type');
-    
+
     if (contentType && contentType.includes('multipart/form-data')) {
       // Handle file upload via FormData
       const formData = await request.formData();
-      
+
       body = {
         name: formData.get('name') as string,
         email: formData.get('email') as string,
@@ -119,15 +119,15 @@ export async function POST(request: NextRequest) {
         image: formData.get('image') as File | null,
         slug: formData.get('slug') as string,
       };
-      
+
       // Validate required fields
       if (!body.name) {
-        return Response.json({ 
-          success: false, 
-          message: 'Name is required' 
+        return Response.json({
+          success: false,
+          message: 'Name is required'
         }, { status: 400 });
       }
-      
+
       // If there's an image file, upload it to Supabase storage
       let imageUrl = null;
       if (body.image && body.image.size > 0) {
@@ -165,21 +165,21 @@ export async function POST(request: NextRequest) {
       }
 
       const supabase = createAdminClient(); // Use service role for admin operations
-      
+
       // Check if an awardee with the same slug already exists
       const { data: existingAwardee } = await supabase
         .from('awardees')
         .select('id')
         .eq('slug', body.slug)
         .single();
-      
+
       if (existingAwardee) {
-        return Response.json({ 
-          success: false, 
-          message: 'An awardee with this name already exists' 
+        return Response.json({
+          success: false,
+          message: 'An awardee with this name already exists'
         }, { status: 409 }); // 409 Conflict
       }
-      
+
       const { data, error } = await supabase
         .from('awardees')
         .insert([{
@@ -228,12 +228,12 @@ export async function POST(request: NextRequest) {
     } else {
       // Handle JSON request (for requests without files)
       body = await request.json();
-      
+
       // Validate required fields
       if (!body.name) {
-        return Response.json({ 
-          success: false, 
-          message: 'Name is required' 
+        return Response.json({
+          success: false,
+          message: 'Name is required'
         }, { status: 400 });
       }
 
@@ -297,8 +297,8 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     console.error('Error in awardees POST:', error);
-    return Response.json({ 
-      success: false, 
+    return Response.json({
+      success: false,
       message: 'Failed to add awardee',
       error: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
@@ -319,7 +319,7 @@ export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
     console.log('[PUT /api/awardees] Request body:', { id: body.id, fields: Object.keys(body) });
-    
+
     if (!body.id) {
       return Response.json({
         success: false,
@@ -349,6 +349,7 @@ export async function PUT(request: NextRequest) {
     if (body.achievements !== undefined) updateData.achievements = body.achievements || [];
     if (body.interests !== undefined) updateData.interests = body.interests || [];
     if (body.featured !== undefined) updateData.featured = body.featured;
+    if (body.linkedin_post_url !== undefined) updateData.linkedin_post_url = body.linkedin_post_url || null;
 
     console.log('[PUT /api/awardees] Update data:', updateData);
 
@@ -420,8 +421,8 @@ export async function PUT(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error in awardees PUT:', error);
-    return Response.json({ 
-      success: false, 
+    return Response.json({
+      success: false,
       message: 'Failed to update awardee',
       error: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
@@ -437,14 +438,14 @@ export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
-    
+
     if (!id) {
-      return Response.json({ 
-        success: false, 
-        message: 'Awardee ID is required' 
+      return Response.json({
+        success: false,
+        message: 'Awardee ID is required'
       }, { status: 400 });
     }
-    
+
     const supabase = createAdminClient(); // Use service role for admin operations
 
     const { error } = await supabase
@@ -471,8 +472,8 @@ export async function DELETE(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error in awardees DELETE:', error);
-    return Response.json({ 
-      success: false, 
+    return Response.json({
+      success: false,
       message: 'Failed to delete awardee',
       error: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });

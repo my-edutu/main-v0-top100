@@ -90,6 +90,7 @@ type FormData = {
   eventsEnabled: boolean
   awardeesDirectoryEnabled: boolean
   contactFormEnabled: boolean
+  selfServiceProfileEditEnabled: boolean
 
   // System
   maintenanceMode: boolean
@@ -192,6 +193,7 @@ export default function SettingsPage() {
     eventsEnabled: true,
     awardeesDirectoryEnabled: true,
     contactFormEnabled: true,
+    selfServiceProfileEditEnabled: true,
     maintenanceMode: false,
     maintenanceMessage: '',
     allowPublicProfiles: true,
@@ -285,6 +287,7 @@ export default function SettingsPage() {
         eventsEnabled: Boolean(data.events_enabled ?? true),
         awardeesDirectoryEnabled: Boolean(data.awardees_directory_enabled ?? true),
         contactFormEnabled: Boolean(data.contact_form_enabled ?? true),
+        selfServiceProfileEditEnabled: Boolean(data.self_service_profile_edit_enabled ?? true),
         maintenanceMode: Boolean(data.maintenance_mode),
         maintenanceMessage: data.maintenance_message || '',
         allowPublicProfiles: Boolean(data.allow_public_profiles ?? true),
@@ -400,6 +403,7 @@ export default function SettingsPage() {
           events_enabled: formData.eventsEnabled,
           awardees_directory_enabled: formData.awardeesDirectoryEnabled,
           contact_form_enabled: formData.contactFormEnabled,
+          self_service_profile_edit_enabled: formData.selfServiceProfileEditEnabled,
           maintenance_mode: formData.maintenanceMode,
           maintenance_message: formData.maintenanceMessage,
           allow_public_profiles: formData.allowPublicProfiles,
@@ -1166,6 +1170,17 @@ export default function SettingsPage() {
                   <Switch
                     checked={formData.contactFormEnabled}
                     onCheckedChange={(checked) => handleInputChange('contactFormEnabled', checked)}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between border-t pt-4">
+                  <div>
+                    <Label>Self-Service Profile Editing</Label>
+                    <p className="text-xs text-muted-foreground">Allow awardees to edit their own profiles via /edit-profile</p>
+                  </div>
+                  <Switch
+                    checked={formData.selfServiceProfileEditEnabled}
+                    onCheckedChange={(checked) => handleInputChange('selfServiceProfileEditEnabled', checked)}
                   />
                 </div>
               </CardContent>

@@ -12,15 +12,15 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 
-const navItems: Array<{ label: string; href?: string; section?: string }> = [
-  { label: "Home", href: "/" },
-  { label: "Meet the Awardees", href: "/awardees" },
-  { label: "Africa Future Leaders", href: "/initiatives/summit" },
-  { label: "Blog", href: "/blog" },
-  { label: "Events", href: "/events" },
-  { label: "Magazine", href: "/magazine" },
-  { label: "Become a Partner", href: "/partners" },
-  { label: "Contact", section: "contact" },
+const navItems: Array<{ label: string; shortLabel: string; href?: string; section?: string }> = [
+  { label: "Home", shortLabel: "Home", href: "/" },
+  { label: "Meet the Awardees", shortLabel: "Awardees", href: "/awardees" },
+  { label: "Africa Future Leaders", shortLabel: "Summit", href: "/initiatives/summit" },
+  { label: "Blog", shortLabel: "Blog", href: "/blog" },
+  { label: "Events", shortLabel: "Events", href: "/events" },
+  { label: "Magazine", shortLabel: "Magazine", href: "/magazine" },
+  { label: "Become a Partner", shortLabel: "Partner", href: "/partners" },
+  { label: "Contact", shortLabel: "Contact", section: "contact" },
 ]
 
 export default function Header() {
@@ -60,7 +60,7 @@ export default function Header() {
     >
       <div className="container flex h-16 items-center justify-between">
         <Link href="/" className="flex items-center gap-2 text-lg font-semibold tracking-tight">
-          <div className="h-14 w-44">
+          <div className="h-14 w-44 lg:w-44 md:w-36">
             <Image
               src="/Top100 Africa Future leaders Logo .png"
               alt="Top100 Africa Future Leaders Logo"
@@ -72,23 +72,28 @@ export default function Header() {
           </div>
         </Link>
 
-        <nav className="hidden items-center gap-4 text-base font-semibold md:gap-6 md:flex">
+        {/* Desktop & Tablet Navigation - hidden on mobile, shown from md breakpoint */}
+        <nav className="hidden items-center gap-1 md:gap-2 lg:gap-4 font-semibold md:flex">
           {navItems.map((item) =>
             item.href ? (
               <Link
                 key={item.label}
                 href={item.href}
-                className="rounded-full px-3 py-2 text-white transition-colors hover:bg-yellow-400/50 hover:text-white text-sm md:text-base"
+                className="rounded-full px-2 lg:px-3 py-1.5 lg:py-2 text-white transition-colors hover:bg-yellow-400/50 hover:text-white text-xs md:text-xs lg:text-sm whitespace-nowrap"
               >
-                {item.label}
+                {/* Short label on tablet (md), full label on desktop (lg+) */}
+                <span className="lg:hidden">{item.shortLabel}</span>
+                <span className="hidden lg:inline">{item.label}</span>
               </Link>
             ) : (
               <button
                 key={item.label}
                 onClick={() => scrollToSection(item.section!)}
-                className="rounded-full px-3 py-2 text-white transition-colors hover:bg-yellow-400/50 hover:text-white text-sm md:text-base"
+                className="rounded-full px-2 lg:px-3 py-1.5 lg:py-2 text-white transition-colors hover:bg-yellow-400/50 hover:text-white text-xs md:text-xs lg:text-sm whitespace-nowrap"
               >
-                {item.label}
+                {/* Short label on tablet (md), full label on desktop (lg+) */}
+                <span className="lg:hidden">{item.shortLabel}</span>
+                <span className="hidden lg:inline">{item.label}</span>
               </button>
             )
           )}

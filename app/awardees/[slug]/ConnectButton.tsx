@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Mail, Linkedin, Twitter, Facebook, X, Share2 } from 'lucide-react'
+import { Linkedin, Twitter, Facebook, Share2 } from 'lucide-react'
 import {
     Dialog,
     DialogContent,
@@ -10,8 +10,6 @@ import {
 } from '@/components/ui/dialog'
 
 interface ConnectButtonProps {
-    email?: string | null
-    personalEmail?: string | null
     linkedin?: string | null
     twitter?: string | null
     facebook?: string | null
@@ -19,8 +17,6 @@ interface ConnectButtonProps {
 }
 
 export default function ConnectButton({
-    email,
-    personalEmail,
     linkedin,
     twitter,
     facebook,
@@ -28,19 +24,11 @@ export default function ConnectButton({
 }: ConnectButtonProps) {
     const [isOpen, setIsOpen] = useState(false)
 
-    const contactEmail = email || personalEmail
-    const hasAnyContact = contactEmail || linkedin || twitter || facebook
+    const hasAnyContact = linkedin || twitter || facebook
 
     if (!hasAnyContact) return null
 
     const contactOptions = [
-        {
-            key: 'email',
-            label: 'Email',
-            icon: Mail,
-            href: contactEmail ? `mailto:${contactEmail}` : null,
-            color: 'bg-gray-900 hover:bg-gray-800 text-white',
-        },
         {
             key: 'linkedin',
             label: 'LinkedIn',
@@ -89,8 +77,8 @@ export default function ConnectButton({
                                 <a
                                     key={option.key}
                                     href={option.href!}
-                                    target={option.key !== 'email' ? '_blank' : undefined}
-                                    rel={option.key !== 'email' ? 'noopener noreferrer' : undefined}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
                                     onClick={() => setIsOpen(false)}
                                     className={`flex items-center gap-3 w-full px-4 py-3 text-white font-medium transition-all rounded ${option.color}`}
                                 >
