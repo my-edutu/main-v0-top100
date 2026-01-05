@@ -9,7 +9,7 @@ export default function ConditionalLayout({ children }: { children: React.ReactN
   const pathname = usePathname()
 
   // Hide header and footer on admin and auth pages
-  const hideLayout = pathname?.startsWith('/admin') || pathname?.startsWith('/auth') || pathname?.startsWith('/dashboard') || pathname?.startsWith('/edit-profile') || pathname?.startsWith('/awardees')
+  const hideLayout = pathname?.startsWith('/admin') || pathname?.startsWith('/auth') || pathname?.startsWith('/dashboard') || pathname?.startsWith('/edit-profile')
 
   // Show magazine popup only on homepage
   const isHomepage = pathname === '/'
