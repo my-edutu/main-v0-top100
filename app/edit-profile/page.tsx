@@ -122,19 +122,21 @@ export default function EditProfilePage() {
             {/* Search Section */}
             <div className="max-w-2xl mx-auto px-4 py-12">
                 <form onSubmit={handleSearch} className="mb-8">
-                    <div className="relative">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                        <input
-                            type="text"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Enter your full name..."
-                            className="w-full pl-12 pr-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent shadow-sm"
-                        />
+                    <div className="flex flex-col md:relative md:flex-row gap-3 md:gap-0">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Enter your full name..."
+                                className="w-full pl-12 pr-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent shadow-sm"
+                            />
+                        </div>
                         <button
                             type="submit"
                             disabled={isSearching || !searchQuery.trim()}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 text-white px-6 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+                            className="md:absolute md:right-2 md:top-1/2 md:-translate-y-1/2 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 text-white px-6 py-4 md:py-2 rounded-xl md:rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
                         >
                             {isSearching ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />

@@ -73,6 +73,7 @@ export default function EditProfileDetailPage({ params }: { params: Promise<{ id
         whatsappNumber: ''
     })
     const [submittingFeatureRequest, setSubmittingFeatureRequest] = useState(false)
+    const [showSuccessModal, setShowSuccessModal] = useState(false)
 
     const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<FormData>()
 
@@ -230,58 +231,15 @@ export default function EditProfileDetailPage({ params }: { params: Promise<{ id
         }
     }
 
-    const handleSubmitFeatureRequest = async () => {
+    const handleSubmitFeatureRequest = () => {
         if (featureRequest.wantsFeatured !== 'yes') {
-            // Skip - go to profile
-            if (awardee?.slug) {
-                router.push(`/awardees/${awardee.slug}`)
-            }
+            // Show success modal for those not interested
+            setShowSuccessModal(true)
             return
         }
 
-        // Validate
-        if (!featureRequest.contactEmail || !featureRequest.whatsappNumber) {
-            toast.error('Please provide your email and WhatsApp number')
-            return
-        }
-
-        if (!featureRequest.hasArticle && !featureRequest.articleContent.trim()) {
-            // They want us to write the article, which is fine
-        }
-
-        setSubmittingFeatureRequest(true)
-
-        try {
-            const response = await fetch('/api/feature-requests', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    awardee_id: awardee?.id,
-                    awardee_name: awardee?.name,
-                    has_own_article: featureRequest.hasArticle,
-                    article_content: featureRequest.hasArticle ? featureRequest.articleContent : null,
-                    needs_article_written: !featureRequest.hasArticle,
-                    contact_email: featureRequest.contactEmail,
-                    whatsapp_number: featureRequest.whatsappNumber,
-                    amount: 40000,
-                    currency: 'NGN',
-                    status: 'pending'
-                })
-            })
-
-            if (response.ok) {
-                toast.success('Feature request submitted! Our team will contact you shortly.')
-                if (awardee?.slug) {
-                    router.push(`/awardees/${awardee.slug}`)
-                }
-            } else {
-                toast.error('Failed to submit request. Please try again.')
-            }
-        } catch (error) {
-            toast.error('Failed to submit request')
-        } finally {
-            setSubmittingFeatureRequest(false)
-        }
+        // Redirect directly to payment page
+        window.location.href = 'https://selfany.com/TKZOWYMOCG'
     }
 
     // Mask email for display
@@ -321,12 +279,14 @@ export default function EditProfileDetailPage({ params }: { params: Promise<{ id
             {/* Header */}
             <div className="bg-gradient-to-r from-yellow-500 to-orange-500 py-8 px-4">
                 <div className="max-w-2xl mx-auto">
-                    <Link
-                        href="/edit-profile"
-                        className="inline-flex items-center gap-2 text-white/80 hover:text-white mb-4 text-sm"
-                    >
-                        <ArrowLeft className="h-4 w-4" />
-                        Back to search
+                    <Link href="/" className="inline-block mb-6">
+                        <Image
+                            src="/Top100 Africa Future leaders Logo .png"
+                            alt="Top100 Africa Future Leaders"
+                            width={160}
+                            height={50}
+                            className="h-10 w-auto"
+                        />
                     </Link>
 
                     {/* Only show profile details after verification */}
@@ -348,17 +308,7 @@ export default function EditProfileDetailPage({ params }: { params: Promise<{ id
                                 <p className="text-white/80 text-sm">{awardee.country}</p>
                             </div>
                         </div>
-                    ) : (
-                        <div className="flex items-center gap-4">
-                            <div className="h-12 w-12 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-lg">
-                                <Lock className="h-5 w-5 text-white" />
-                            </div>
-                            <div>
-                                <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight">Edit Your Profile</h1>
-                                <p className="text-white/80 text-sm font-medium">Verify your identity to continue</p>
-                            </div>
-                        </div>
-                    )}
+                    ) : null}
 
                     {/* Step Indicator - only show after verification */}
                     {isVerified && (
@@ -444,7 +394,7 @@ export default function EditProfileDetailPage({ params }: { params: Promise<{ id
                         {isVerified && (
                             <form onSubmit={handleSubmit(onSubmitProfile)} className="space-y-6">
                                 {/* Profile Picture */}
-                                <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                                <div className="mb-6">
                                     <h3 className="font-semibold text-gray-900 mb-4">Profile Picture</h3>
 
                                     <div className="flex items-center gap-6">
@@ -477,7 +427,7 @@ export default function EditProfileDetailPage({ params }: { params: Promise<{ id
                                     </div>
                                 </div>
 
-                                <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                                <div className="mb-6">
                                     <h3 className="font-semibold text-gray-900 mb-4">Profile Details</h3>
 
                                     <div className="space-y-4">
@@ -514,7 +464,7 @@ export default function EditProfileDetailPage({ params }: { params: Promise<{ id
                                     </div>
                                 </div>
 
-                                <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                                <div className="mb-6">
                                     <h3 className="font-semibold text-gray-900 mb-4">Social Links</h3>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -556,8 +506,11 @@ export default function EditProfileDetailPage({ params }: { params: Promise<{ id
                                     </div>
                                 </div>
 
-                                <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-                                    <h3 className="font-semibold text-gray-900 mb-4">Featured Post</h3>
+                                <div className="mb-6">
+                                    <h3 className="font-semibold text-gray-900 mb-2">Featured Post</h3>
+                                    <p className="text-sm text-gray-500 mb-4">
+                                        Share a link to your best work, article, or social media post that showcases your achievements, thought leadership, or impact. This will be displayed prominently on your profile.
+                                    </p>
 
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Post URL</label>
@@ -597,12 +550,9 @@ export default function EditProfileDetailPage({ params }: { params: Promise<{ id
                 {/* STEP 2: Feature Request (Optional) */}
                 {currentStep === 2 && (
                     <div className="space-y-6">
-                        <div className="bg-gradient-to-r from-purple-500 to-indigo-600 rounded-xl p-6 text-white">
-                            <div className="flex items-center gap-3 mb-3">
-                                <Newspaper className="h-8 w-8" />
-                                <h2 className="text-xl font-bold">Get Featured in Major News Outlets!</h2>
-                            </div>
-                            <p className="text-white/90 text-sm">
+                        <div className="bg-white border border-gray-200 rounded-xl p-6 text-left shadow-sm">
+                            <h2 className="text-xl font-bold text-gray-900 mb-2">Get Featured in Major News Outlets!</h2>
+                            <p className="text-gray-600 text-sm leading-relaxed">
                                 Boost your visibility by getting featured in reputable local and international news channels
                                 like Vanguard, Punch, Guardian, and more.
                             </p>
@@ -769,12 +719,12 @@ export default function EditProfileDetailPage({ params }: { params: Promise<{ id
                                     <Loader2 className="h-5 w-5 animate-spin" />
                                 ) : featureRequest.wantsFeatured === 'yes' ? (
                                     <>
-                                        Submit Feature Request
+                                        Proceed to payment
                                         <ArrowRight className="h-5 w-5" />
                                     </>
                                 ) : (
                                     <>
-                                        Skip & View Profile
+                                        Submit
                                         <ArrowRight className="h-5 w-5" />
                                     </>
                                 )}
@@ -788,6 +738,29 @@ export default function EditProfileDetailPage({ params }: { params: Promise<{ id
                     Need help? Contact the admin team for assistance.
                 </p>
             </div>
+
+            {/* Success Modal */}
+            {showSuccessModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-2xl p-8 max-w-md w-full text-center shadow-2xl animate-in zoom-in-95 duration-300">
+                        <div className="h-20 w-20 mx-auto mb-6 rounded-full bg-green-100 flex items-center justify-center">
+                            <CheckCircle className="h-10 w-10 text-green-600" />
+                        </div>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-3">
+                            Congratulations! 🎉
+                        </h2>
+                        <p className="text-gray-600 mb-6 leading-relaxed">
+                            Your profile has been submitted for features. You would be featured soon!
+                        </p>
+                        <button
+                            onClick={() => router.push('/')}
+                            className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-xl font-semibold transition-colors"
+                        >
+                            Return to Homepage
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
