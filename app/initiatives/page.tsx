@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Top100 Africa Future Leaders Initiatives",
     description: "Unlock mentorship, funding, and opportunities through our initiatives: Project100 Scholarship, Future Leaders Summit, Talk100 Live, and Opportunities Hub.",
-    images: ['/top100-africa-future-leaders-2024-magazine-cover-w.jpg'],
+    images: ['/magazine-cover-2025.jpg'],
     url: "https://www.top100afl.org/initiatives",
   },
 };
@@ -83,17 +83,16 @@ export default function InitiativesPage() {
             <Link
               key={initiative.title}
               href={initiative.href}
-              className={`group rounded-[28px] border border-transparent p-1 shadow-lg transition-all hover:-translate-y-1 hover:shadow-xl flex flex-col h-full ${
-                initiative.title === "Project100 Scholarship"
+              className={`group rounded-[28px] border border-transparent p-1 shadow-lg transition-all hover:-translate-y-1 hover:shadow-xl flex flex-col h-full ${initiative.title === "Project100 Scholarship"
                   ? "bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30"
                   : initiative.title === "Talk100 Live"
-                  ? "bg-gradient-to-br from-purple-100 to-fuchsia-100 dark:from-purple-900/30 dark:to-fuchsia-900/30"
-                  : initiative.title === "Future Leaders Summit 2025"
-                  ? "bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30"
-                  : initiative.title === "African Future Leaders Magazine"
-                  ? "bg-gradient-to-br from-rose-100 to-pink-100 dark:from-rose-900/30 dark:to-pink-900/30"
-                  : "bg-gradient-to-br from-emerald-100 to-green-100 dark:from-emerald-900/30 dark:to-green-900/30"
-              }`}
+                    ? "bg-gradient-to-br from-purple-100 to-fuchsia-100 dark:from-purple-900/30 dark:to-fuchsia-900/30"
+                    : initiative.title === "Future Leaders Summit 2025"
+                      ? "bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30"
+                      : initiative.title === "African Future Leaders Magazine"
+                        ? "bg-gradient-to-br from-rose-100 to-pink-100 dark:from-rose-900/30 dark:to-pink-900/30"
+                        : "bg-gradient-to-br from-emerald-100 to-green-100 dark:from-emerald-900/30 dark:to-green-900/30"
+                }`}
             >
               <div className="rounded-[27px] bg-white/90 dark:bg-background/90 p-6 flex flex-col h-full">
                 <div className="flex-1">

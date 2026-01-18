@@ -20,7 +20,8 @@ import {
     Plus,
     Mail,
     Bell,
-    Newspaper
+    Newspaper,
+    Megaphone
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -36,6 +37,7 @@ const navItems = [
     { label: 'Editorial', href: '/admin/blog', icon: FileText },
     { label: 'Programs', href: '/admin/events', icon: Calendar },
     { label: 'Channel', href: '/admin/youtube', icon: Youtube },
+    { label: 'Announcements', href: '/admin/announcements', icon: Megaphone },
     { label: 'Insights', href: '/admin/analytics', icon: BarChart3 },
     { label: 'Settings', href: '/admin/settings', icon: Settings },
 ]

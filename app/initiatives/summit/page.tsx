@@ -304,7 +304,7 @@ export default function FutureLeadersSummitPage() {
         <h1 className="text-4xl md:text-5xl font-semibold leading-tight text-white text-left">
           Africa Future Leaders Summit 2025
         </h1>
-        
+
         <Gallery />
 
         <section className="space-y-6 rounded-3xl border border-white/10 bg-white/5 p-10 shadow-sm">
@@ -331,7 +331,7 @@ export default function FutureLeadersSummitPage() {
                 <h2 className="text-lg font-semibold text-slate-800 dark:text-white mr-2">Keynotes Topic from Global Leaders</h2>
                 <p className="text-slate-600 dark:text-slate-300 hidden md:block">Key themes and sessions designed for collaboration.</p>
               </div>
-              <button 
+              <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setIsKeynotesExpanded(!isKeynotesExpanded);
@@ -339,11 +339,11 @@ export default function FutureLeadersSummitPage() {
                 className="p-1 rounded-full bg-blue-200 dark:bg-slate-700 hover:bg-blue-300 dark:hover:bg-slate-600 transition-colors"
                 aria-label={isKeynotesExpanded ? 'Collapse' : 'Expand'}
               >
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  className={`h-5 w-5 text-blue-700 dark:text-slate-300 transition-transform ${isKeynotesExpanded ? 'rotate-180' : ''}`} 
-                  fill="none" 
-                  viewBox="0 0 24 24" 
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className={`h-5 w-5 text-blue-700 dark:text-slate-300 transition-transform ${isKeynotesExpanded ? 'rotate-180' : ''}`}
+                  fill="none"
+                  viewBox="0 0 24 24"
                   stroke="currentColor"
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -351,23 +351,22 @@ export default function FutureLeadersSummitPage() {
               </button>
             </div>
           </div>
-          
+
           {isKeynotesExpanded && (
             <div className="space-y-4 pt-4">
               {[
                 ...dayOneAgenda.map((slot, idx) => ({ ...slot, id: `day1-${idx}`, type: 'day1' })),
                 ...dayTwoAgenda.map((slot, idx) => ({ ...slot, id: `day2-${idx}`, type: 'day2' }))
-              ].filter(slot => 
-                slot.title !== "Who Are Africa's Future Leaders?" && 
+              ].filter(slot =>
+                slot.title !== "Who Are Africa's Future Leaders?" &&
                 slot.title !== "Closing Ceremony"
               ).map((slot, index) => (
-                <div 
-                  key={slot.id} 
-                  className={`rounded-xl border border-blue-200 dark:border-slate-600 p-4 shadow-sm transition-all duration-300 ${
-                    index % 2 === 0 
-                      ? 'bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30' 
+                <div
+                  key={slot.id}
+                  className={`rounded-xl border border-blue-200 dark:border-slate-600 p-4 shadow-sm transition-all duration-300 ${index % 2 === 0
+                      ? 'bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30'
                       : 'bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/30 dark:to-purple-900/30'
-                  }`}
+                    }`}
                 >
                   <p className="text-base font-medium text-slate-800 dark:text-white">{slot.title}</p>
                   <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-slate-300">{slot.description}</p>
@@ -384,7 +383,7 @@ export default function FutureLeadersSummitPage() {
                 <h2 className="text-lg font-semibold text-slate-800 dark:text-white mr-2">Speakers & Mentors</h2>
                 <p className="text-slate-600 dark:text-slate-300 hidden md:block">Global shapers, sector leaders, and coaches committed to multiplying Top100 impact.</p>
               </div>
-              <button 
+              <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setIsSpeakersExpanded(!isSpeakersExpanded);
@@ -392,11 +391,11 @@ export default function FutureLeadersSummitPage() {
                 className="p-1 rounded-full bg-emerald-200 dark:bg-slate-700 hover:bg-emerald-300 dark:hover:bg-slate-600 transition-colors"
                 aria-label={isSpeakersExpanded ? 'Collapse' : 'Expand'}
               >
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  className={`h-5 w-5 text-emerald-700 dark:text-slate-300 transition-transform ${isSpeakersExpanded ? 'rotate-180' : ''}`} 
-                  fill="none" 
-                  viewBox="0 0 24 24" 
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className={`h-5 w-5 text-emerald-700 dark:text-slate-300 transition-transform ${isSpeakersExpanded ? 'rotate-180' : ''}`}
+                  fill="none"
+                  viewBox="0 0 24 24"
                   stroke="currentColor"
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -404,7 +403,7 @@ export default function FutureLeadersSummitPage() {
               </button>
             </div>
           </div>
-          
+
           {isSpeakersExpanded && (
             <div className="pt-2">
               <div className="grid gap-6 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -421,11 +420,10 @@ export default function FutureLeadersSummitPage() {
                     </>
                   );
 
-                  const cardClassName = `rounded-2xl border border-emerald-200 dark:border-slate-600 p-4 shadow-sm transition hover:border-emerald-400/40 ${
-                    index % 2 === 0
+                  const cardClassName = `rounded-2xl border border-emerald-200 dark:border-slate-600 p-4 shadow-sm transition hover:border-emerald-400/40 ${index % 2 === 0
                       ? 'bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30'
                       : 'bg-gradient-to-br from-teal-50 to-cyan-50 dark:from-teal-900/30 dark:to-cyan-900/30'
-                  }${speaker.linkedIn ? ' cursor-pointer hover:scale-105' : ''}`;
+                    }${speaker.linkedIn ? ' cursor-pointer hover:scale-105' : ''}`;
 
                   return speaker.linkedIn ? (
                     <a
@@ -455,7 +453,7 @@ export default function FutureLeadersSummitPage() {
                 <h2 className="text-lg font-semibold text-slate-800 dark:text-white mr-2">Meet the Summit Team</h2>
                 <p className="text-slate-600 dark:text-slate-300 hidden md:block">The core team crafting the experiences, partnerships, and storytelling behind the Africa Future Leaders Summit 2025.</p>
               </div>
-              <button 
+              <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setIsTeamExpanded(!isTeamExpanded);
@@ -463,11 +461,11 @@ export default function FutureLeadersSummitPage() {
                 className="p-1 rounded-full bg-amber-200 dark:bg-slate-700 hover:bg-amber-300 dark:hover:bg-slate-600 transition-colors"
                 aria-label={isTeamExpanded ? 'Collapse' : 'Expand'}
               >
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  className={`h-5 w-5 text-amber-700 dark:text-slate-300 transition-transform ${isTeamExpanded ? 'rotate-180' : ''}`} 
-                  fill="none" 
-                  viewBox="0 0 24 24" 
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className={`h-5 w-5 text-amber-700 dark:text-slate-300 transition-transform ${isTeamExpanded ? 'rotate-180' : ''}`}
+                  fill="none"
+                  viewBox="0 0 24 24"
                   stroke="currentColor"
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -475,54 +473,53 @@ export default function FutureLeadersSummitPage() {
               </button>
             </div>
           </div>
-          
+
           {isTeamExpanded && (
             <div className="pt-2">
               <div className="grid gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-4">
                 {teamMembers.map((member, index) => (
                   <div
                     key={member.name}
-                    className={`group relative rounded-xl overflow-hidden border border-amber-200 dark:border-slate-600 shadow-sm transition-all duration-300 hover:shadow-md ${
-                      index % 2 === 0 
-                        ? 'bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/30' 
+                    className={`group relative rounded-xl overflow-hidden border border-amber-200 dark:border-slate-600 shadow-sm transition-all duration-300 hover:shadow-md ${index % 2 === 0
+                        ? 'bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/30'
                         : 'bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/30 dark:to-amber-900/30'
-                    }`}
+                      }`}
                   >
                     <div className="relative h-40 w-full overflow-hidden rounded-t-xl">
                       {index === 0 && (
-                        <Image 
-                          src="/team/emmanuella igboafu.jpg" 
-                          alt={member.name} 
-                          fill 
-                          className="object-cover transition-transform duration-500 group-hover:scale-105" 
-                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" 
+                        <Image
+                          src="/team/emmanuella igboafu.jpg"
+                          alt={member.name}
+                          fill
+                          className="object-cover transition-transform duration-500 group-hover:scale-105"
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         />
                       )}
                       {index === 1 && (
-                        <Image 
-                          src="/team/chinedu daniel.jpg.png" 
-                          alt={member.name} 
-                          fill 
-                          className="object-cover transition-transform duration-500 group-hover:scale-105" 
-                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" 
+                        <Image
+                          src="/team/chinedu daniel.jpg.png"
+                          alt={member.name}
+                          fill
+                          className="object-cover transition-transform duration-500 group-hover:scale-105"
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         />
                       )}
                       {index === 2 && (
-                        <Image 
-                          src="/team/irechukwu Goodness.jpeg" 
-                          alt={member.name} 
-                          fill 
-                          className="object-cover transition-transform duration-500 group-hover:scale-105" 
-                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" 
+                        <Image
+                          src="/team/irechukwu Goodness.jpeg"
+                          alt={member.name}
+                          fill
+                          className="object-cover transition-transform duration-500 group-hover:scale-105"
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         />
                       )}
                       {index === 3 && (
-                        <Image 
-                          src="/team/stephen igboasia.jpeg" 
-                          alt={member.name} 
-                          fill 
-                          className="object-cover transition-transform duration-500 group-hover:scale-105" 
-                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" 
+                        <Image
+                          src="/team/stephen igboasia.jpeg"
+                          alt={member.name}
+                          fill
+                          className="object-cover transition-transform duration-500 group-hover:scale-105"
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         />
                       )}
                     </div>
@@ -552,7 +549,7 @@ export default function FutureLeadersSummitPage() {
                 <h2 className="text-lg font-semibold text-slate-800 dark:text-white mr-2">Frequently Asked Questions</h2>
                 <p className="text-slate-600 dark:text-slate-300 hidden md:block">Everything you need to know about participating, partnering, or showcasing at the summit.</p>
               </div>
-              <button 
+              <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setIsFaqExpanded(!isFaqExpanded);
@@ -560,11 +557,11 @@ export default function FutureLeadersSummitPage() {
                 className="p-1 rounded-full bg-purple-200 dark:bg-slate-700 hover:bg-purple-300 dark:hover:bg-slate-600 transition-colors"
                 aria-label={isFaqExpanded ? 'Collapse' : 'Expand'}
               >
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  className={`h-5 w-5 text-purple-700 dark:text-slate-300 transition-transform ${isFaqExpanded ? 'rotate-180' : ''}`} 
-                  fill="none" 
-                  viewBox="0 0 24 24" 
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className={`h-5 w-5 text-purple-700 dark:text-slate-300 transition-transform ${isFaqExpanded ? 'rotate-180' : ''}`}
+                  fill="none"
+                  viewBox="0 0 24 24"
                   stroke="currentColor"
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -572,7 +569,7 @@ export default function FutureLeadersSummitPage() {
               </button>
             </div>
           </div>
-          
+
           {isFaqExpanded && (
             <Accordion type="single" collapsible className="space-y-4 pt-4">
               {faqs.map((faq, index) => (
@@ -594,7 +591,7 @@ export default function FutureLeadersSummitPage() {
         </section>
 
         <section className="rounded-3xl border border-orange-400/20 bg-gradient-to-r from-orange-500/30 via-orange-500/10 to-transparent p-10 text-center shadow-lg">
-          <h2 className="text-3xl font-semibold text-white">Be Part of the Africa Future Leaders Summit 2026 Experience</h2>
+          <h2 className="text-3xl font-semibold text-white">Be Part of the Africa Future Leaders Summit 2025 Experience</h2>
           <p className="mt-4 text-lg text-zinc-300 dark:text-orange-100">
             Join us in co-creating a gathering that accelerates Africa&apos;s next generation of changemakers.
           </p>

@@ -3,18 +3,25 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { Award, GraduationCap, MapPin, Users, ArrowRight } from 'lucide-react'
+import { Award, GraduationCap, MapPin, Users, ArrowRight, Search, Filter } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import type { Awardee } from '@/lib/awardees'
 import { normalizeAwardeeEntry } from '@/lib/awardees'
 import { supabase } from '@/lib/supabase/client'
 import { AvatarSVG } from '@/lib/avatars'
 import type { AwardeeDirectoryEntry } from '@/types/profile'
 
-const itemsPerPage = 30
+const itemsPerPage = 18
 
 const formatExcerpt = (input?: string | null, length = 160) => {
   if (!input) return ''
@@ -48,6 +55,7 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
     [...initialPeople].sort((a, b) => a.name.localeCompare(b.name)),
   )
   const [searchTerm, setSearchTerm] = useState(initialSearchParams?.search ?? '')
+  const [selectedYear, setSelectedYear] = useState<number | 'all'>(2025)
 
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -96,9 +104,20 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
   }, [createQueryParams, pathname, router, searchParams, searchTerm])
 
   const filteredPeople = useMemo(() => {
-    if (!searchTerm) return people
+    let result = people
+
+    // Filter by year
+    if (selectedYear !== 'all') {
+      result = result.filter(a => {
+        if (!a.year) return false;
+        return Number(a.year) === Number(selectedYear);
+      })
+    }
+
+    if (!searchTerm) return result
+
     const term = searchTerm.toLowerCase()
-    return people.filter((awardee) => {
+    return result.filter((awardee) => {
       const haystack = [
         awardee.name,
         awardee.country ?? '',
@@ -115,7 +134,7 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
         .toLowerCase()
       return haystack.includes(term)
     })
-  }, [people, searchTerm])
+  }, [people, searchTerm, selectedYear])
 
   const totalItems = filteredPeople.length
   const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage))
@@ -188,12 +207,12 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
         { event: '*', schema: 'public', table: 'profiles' },
         async (payload) => {
           if (payload.eventType === 'DELETE') {
-            removeAwardeeBySlug(payload.old?.slug ?? null, null)
+            removeAwardeeBySlug((payload.old as any)?.slug ?? null, null)
             return
           }
           const entry = await fetchLatestEntry({
-            slug: payload.new?.slug ?? payload.old?.slug,
-            profileId: payload.new?.id ?? payload.old?.id,
+            slug: (payload.new as any)?.slug ?? (payload.old as any)?.slug,
+            profileId: (payload.new as any)?.id ?? (payload.old as any)?.id,
           })
           if (entry) {
             upsertAwardee(entry)
@@ -205,12 +224,12 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
         { event: '*', schema: 'public', table: 'awardees' },
         async (payload) => {
           if (payload.eventType === 'DELETE') {
-            removeAwardeeBySlug(payload.old?.slug ?? null, payload.old?.id ?? null)
+            removeAwardeeBySlug((payload.old as any)?.slug ?? null, (payload.old as any)?.id ?? null)
             return
           }
           const entry = await fetchLatestEntry({
-            slug: payload.new?.slug ?? payload.old?.slug,
-            awardeeId: payload.new?.id ?? payload.old?.id,
+            slug: (payload.new as any)?.slug ?? (payload.old as any)?.slug,
+            awardeeId: (payload.new as any)?.id ?? (payload.old as any)?.id,
           })
           if (entry) {
             upsertAwardee(entry)
@@ -229,25 +248,65 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
       <div className="container mx-auto px-4">
         <header className="mb-12 text-center">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white to-orange-300">
-            Meet the Awardees
+            {selectedYear === 'all' ? 'All Africa Future Leaders' : `Top 100 Africa Future Leaders ${selectedYear}`}
           </h1>
           <p className="text-xl sm:text-2xl text-zinc-400 max-w-3xl mx-auto text-balance">
             Discover Africa's emerging leaders, innovators, and community builders.
           </p>
         </header>
 
-        <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex-1">
-            <input
-              type="text"
-              placeholder="Search by name, country, field, or interest"
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-3 text-base sm:text-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-            />
+        <div className="mb-8 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col sm:flex-row gap-4 flex-1">
+            <div className="relative flex-1 group">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 group-focus-within:text-orange-500 transition-colors" />
+              <input
+                type="text"
+                placeholder="Search by name, country, field..."
+                className="w-full rounded-2xl border border-zinc-700 bg-zinc-900/50 backdrop-blur-sm pl-10 pr-12 py-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 transition-all shadow-xl"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+              />
+              <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={cn(
+                        "h-9 w-9 rounded-xl transition-all",
+                        selectedYear !== 'all' ? "bg-orange-500/10 text-orange-500 hover:bg-orange-500/20" : "text-zinc-500 hover:bg-zinc-800"
+                      )}
+                    >
+                      <Filter className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56 bg-zinc-900 border-zinc-800 text-zinc-300 rounded-2xl p-2 shadow-2xl">
+                    <div className="px-2 py-1.5 text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">Select Cohort</div>
+                    <DropdownMenuItem
+                      onClick={() => setSelectedYear('all')}
+                      className={cn("rounded-xl cursor-pointer", selectedYear === 'all' && "bg-orange-500/10 text-orange-500 font-bold")}
+                    >
+                      View All Years
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setSelectedYear(2025)}
+                      className={cn("rounded-xl cursor-pointer", selectedYear === 2025 && "bg-orange-500/10 text-orange-500 font-bold")}
+                    >
+                      2025 Cohort
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setSelectedYear(2024)}
+                      className={cn("rounded-xl cursor-pointer", selectedYear === 2024 && "bg-orange-500/10 text-orange-500 font-bold")}
+                    >
+                      2024 Cohort
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center text-sm sm:text-base text-zinc-400">
-            Showing {currentPeople.length} of {filteredPeople.length} awardees
+          <div className="flex items-center text-xs font-bold text-zinc-500 uppercase tracking-widest">
+            Showing {currentPeople.length} Leaders
           </div>
         </div>
 
@@ -256,136 +315,101 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
             No awardees match your search yet. Try a different phrase.
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+          <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3">
             {currentPeople.map((person) => {
               const displayTagline =
                 person.tagline && person.tagline.trim().length > 0
                   ? person.tagline
                   : person.headline && person.headline.trim().length > 0
-                  ? person.headline
-                  : person.field_of_study || person.course || ''
+                    ? person.headline
+                    : person.field_of_study || person.course || ''
 
               return (
                 <Link key={person.slug} href={`/awardees/${person.slug}`} className="group block">
-                  <div className="bg-white rounded-md border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden flex flex-col h-full">
+                  <div className="bg-white rounded-xl border border-zinc-200 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col h-full active:scale-95">
                     {/* Image container */}
-                    <div className="w-full aspect-square overflow-hidden bg-gray-100">
+                    <div className="w-full aspect-square overflow-hidden bg-zinc-50 relative">
                       {(person.cover_image_url || person.avatar_url) ? (
                         <img
                           src={person.cover_image_url || person.avatar_url || ''}
                           alt={person.name}
-                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                         />
                       ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-blue-50 to-gray-100 flex items-center justify-center">
-                          <AvatarSVG name={person.name} size={32} />
+                        <div className="w-full h-full bg-gradient-to-br from-orange-50 to-zinc-100 flex items-center justify-center">
+                          <AvatarSVG name={person.name} size={24} />
                         </div>
                       )}
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300" />
                     </div>
 
-                    {/* Content area with minimal padding */}
-                    <div className="p-2 flex flex-col flex-grow">
-                      <div className="flex-grow">
-                        <h3 className="text-xs font-semibold text-gray-900 group-hover:text-blue-600 transition-colors mb-0.5 line-clamp-1">
+                    {/* Content area */}
+                    <div className="p-2 sm:p-3 flex flex-col flex-grow">
+                      <div className="flex-grow space-y-1">
+                        <h3 className="text-[0.7rem] sm:text-xs font-bold text-zinc-900 group-hover:text-orange-600 transition-colors line-clamp-1 leading-tight">
                           {person.name}
                         </h3>
 
                         {displayTagline && (
-                          <p className="text-[0.6rem] text-gray-600 mb-1 line-clamp-1">
+                          <p className="text-[0.55rem] sm:text-[0.65rem] text-zinc-500 line-clamp-1 font-medium">
                             {displayTagline}
                           </p>
                         )}
 
-                        {/* Prominently display CGPA */}
                         {person.cgpa && (
-                          <div className="mb-1">
-                            <span className="text-[0.7rem] font-bold text-gray-900">
-                              {person.cgpa}
-                            </span>
+                          <div className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-orange-50 text-orange-700 text-[0.5rem] sm:text-[0.6rem] font-bold">
+                            {person.cgpa}
                           </div>
                         )}
-
-                        <div className="space-y-0.5">
-                          {person.country && (
-                            <div className="flex items-center gap-0.5 text-[0.6rem] text-gray-500">
-                              <MapPin className="h-2 w-2" />
-                              <span>{person.country}</span>
-                            </div>
-                          )}
-
-                          {person.course && (
-                            <div className="flex items-center gap-0.5 text-[0.6rem] text-gray-500">
-                              <GraduationCap className="h-2 w-2" />
-                              <span className="line-clamp-1">{person.course}</span>
-                            </div>
-                          )}
-                        </div>
                       </div>
 
-                      {person.interests && person.interests.length > 0 && (
-                        <div className="mt-1 flex flex-wrap gap-0.5 pt-1 border-t border-gray-100">
-                          {pickInterests(person.interests, 2).map((interest) => (
-                            <span
-                              key={interest}
-                              className="text-[0.5rem] px-1 py-0.5 rounded-full bg-gray-100 text-gray-700"
-                            >
-                              {interest}
-                            </span>
-                          ))}
-                        </div>
-                      )}
+                      <div className="mt-1.5 pt-1.5 border-t border-zinc-100 flex items-center justify-between">
+                        {person.country && (
+                          <div className="flex items-center gap-0.5 text-[0.5rem] sm:text-[0.6rem] text-zinc-400 font-bold">
+                            <MapPin className="h-2 w-2" />
+                            <span>{person.country}</span>
+                          </div>
+                        )}
+                        <ArrowRight className="h-2 w-2 text-zinc-300 group-hover:text-orange-500 group-hover:translate-x-0.5 transition-all" />
+                      </div>
                     </div>
                   </div>
                 </Link>
               )
             })}
-
-            {/* Magazine CTA Card */}
-            <Link
-              href="/magazine"
-              className="group block"
-            >
-              <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-md shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col h-full items-center justify-center p-6">
-                <Award className="h-12 w-12 text-orange-500 mb-3" />
-                <div className="text-center mb-3">
-                  <p className="text-base font-bold text-gray-900 leading-tight">
-                    Get magazine
-                  </p>
-                  <p className="text-base font-bold text-gray-900 leading-tight">
-                    to see full list
-                  </p>
-                </div>
-                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-orange-200 group-hover:bg-orange-300 transition-colors">
-                  <ArrowRight className="h-5 w-5 text-orange-600" />
-                </div>
-              </div>
-            </Link>
           </div>
         )}
 
-        <div className="mt-10 flex items-center justify-between text-sm sm:text-base text-zinc-400">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => updatePage(currentPage - 1)}
-            disabled={currentPage <= 1}
-            className="border-zinc-700 text-white hover:border-orange-400 hover:text-orange-300"
-          >
-            Previous
-          </Button>
-          <span>
-            Page {currentPage} of {totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => updatePage(currentPage + 1)}
-            disabled={currentPage >= totalPages}
-            className="border-zinc-700 text-white hover:border-orange-400 hover:text-orange-300"
-          >
-            Next
-          </Button>
-        </div>
+        {totalPages > 1 && (
+          <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-6 py-8 border-t border-zinc-900">
+            <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest order-2 sm:order-1">
+              Page {currentPage} of {totalPages}
+            </div>
+            
+            <div className="flex items-center gap-3 order-1 sm:order-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => updatePage(currentPage - 1)}
+                disabled={currentPage <= 1}
+                className="h-10 px-6 rounded-xl border-zinc-800 bg-zinc-900/50 text-white hover:bg-zinc-800 hover:border-zinc-700 disabled:opacity-30 disabled:hover:bg-zinc-900/50 transition-all font-bold"
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => updatePage(currentPage + 1)}
+                disabled={currentPage >= totalPages}
+                className="h-10 px-6 rounded-xl border-zinc-800 bg-zinc-900/50 text-white hover:bg-zinc-800 hover:border-zinc-700 disabled:opacity-30 disabled:hover:bg-zinc-900/50 transition-all font-bold"
+              >
+                Next
+              </Button>
+            </div>
+            
+            <div className="hidden sm:block w-32 order-3" />
+          </div>
+        )}
       </div>
     </div>
   )

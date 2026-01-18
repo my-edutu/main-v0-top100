@@ -21,6 +21,8 @@ import NewsletterForm from "./components/NewsletterForm"
 import TypeEffect from "@/components/TypeEffect"
 import Counter from "@/components/Counter"
 import FAQSection from "./components/FAQSection"
+import AnnouncementsSection from "./components/AnnouncementsSection"
+import EventsHubSection from "./components/EventsHubSection"
 
 type Initiative = {
   title: string
@@ -195,11 +197,10 @@ export default function HomePage() {
           </div>
         </section>
 
+        <EventsHubSection />
         <BlogSection />
         <HomeFeaturedAwardeesSection />
         <MagazineSection />
-        <UpcomingEventsSection />
-        <RecentEventsSection />
 
         <section className="py-2">
           <div className="container space-y-4">

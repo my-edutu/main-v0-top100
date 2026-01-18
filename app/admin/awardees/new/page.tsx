@@ -8,17 +8,17 @@ import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
 } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { 
-  ArrowLeft, 
-  Loader2, 
+import {
+  ArrowLeft,
+  Loader2,
   Image as ImageIcon,
   Upload
 } from 'lucide-react';
@@ -50,7 +50,7 @@ export default function CreateAwardeePage() {
       cgpa: '',
       course: '',
       bio: '',
-      year: 2024,
+      year: 2025,
       image_url: '',
     }
   });
@@ -59,7 +59,7 @@ export default function CreateAwardeePage() {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setImageFile(file);
-      
+
       // Create a preview URL for the image
       const imageUrl = URL.createObjectURL(file);
       setValue('image_url', imageUrl);
@@ -80,7 +80,7 @@ export default function CreateAwardeePage() {
         formData.append('cgpa', data.cgpa || '');
         formData.append('course', data.course || '');
         formData.append('bio', data.bio || '');
-        formData.append('year', data.year?.toString() || '2024');
+        formData.append('year', data.year?.toString() || '2025');
         formData.append('image', imageFile);
         formData.append('slug', generateSlug(data.name));
 
@@ -106,14 +106,14 @@ export default function CreateAwardeePage() {
           cgpa: data.cgpa || null,
           course: data.course || null,
           bio: data.bio || null,
-          year: data.year || 2024,
+          year: data.year || 2025,
           image_url: data.image_url || null, // Remove the temporary preview URL
           slug: generateSlug(data.name)
         };
 
         const response = await fetch('/api/awardees', {
           method: 'POST',
-          headers: { 
+          headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(createData),
@@ -150,9 +150,9 @@ export default function CreateAwardeePage() {
       <Card className="max-w-3xl mx-auto">
         <CardHeader>
           <div className="flex items-center mb-2">
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => router.push('/admin/awardees')}
               className="p-0 mr-2"
             >
@@ -258,9 +258,9 @@ export default function CreateAwardeePage() {
                   <div className="flex flex-col items-center">
                     {watch('image_url') ? (
                       <div className="relative mb-2">
-                        <img 
-                          src={watch('image_url')} 
-                          alt="Awardee preview" 
+                        <img
+                          src={watch('image_url')}
+                          alt="Awardee preview"
                           className="w-32 h-32 object-cover rounded-full border-2 border-gray-200"
                         />
                         <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-30 transition-all duration-300 rounded-full flex items-center justify-center">
@@ -289,8 +289,8 @@ export default function CreateAwardeePage() {
             </div>
 
             <div className="flex justify-end space-x-4 pt-4">
-              <Button 
-                type="button" 
+              <Button
+                type="button"
                 variant="outline"
                 onClick={() => router.push('/admin/awardees')}
                 disabled={isSubmitting}

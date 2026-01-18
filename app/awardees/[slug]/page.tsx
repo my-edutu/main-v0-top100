@@ -28,7 +28,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
 
   const awardee = normalizeAwardeeEntry(raw)
-  const showcaseYear = typeof awardee.year === 'number' && Number.isFinite(awardee.year) ? awardee.year : new Date().getFullYear()
+  const showcaseYear = typeof awardee.year === 'number' && Number.isFinite(awardee.year) ? awardee.year : 2025
   const cohortLabel = awardee.cohort && awardee.cohort.trim().length > 0 ? awardee.cohort : `Top100 Africa Future Leader ${showcaseYear}`
 
   const title = `${awardee.name} - ${awardee.headline || cohortLabel}`
@@ -45,7 +45,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     cohortLabel
   ]
 
-  const imageUrl = awardee.cover_image_url || awardee.avatar_url || '/top100-africa-future-leaders-2024-magazine-cover-w.jpg'
+  const imageUrl = awardee.cover_image_url || awardee.avatar_url || '/magazine-cover-2025.jpg'
 
   return {
     title,
@@ -142,7 +142,7 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
   const showcaseYear =
     typeof awardee.year === 'number' && Number.isFinite(awardee.year)
       ? awardee.year
-      : new Date().getFullYear()
+      : 2025
   const spotlightLabel =
     awardee.cohort && awardee.cohort.trim().length > 0
       ? awardee.cohort

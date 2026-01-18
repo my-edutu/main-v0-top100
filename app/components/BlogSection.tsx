@@ -68,16 +68,16 @@ export default function BlogSection() {
               <Link
                 href={`/blog/${post.slug}`}
                 className={`group flex h-full overflow-hidden rounded-3xl border border-border/60 shadow-md transition hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl ${index % 4 === 0
-                    ? "bg-gradient-to-br from-blue-50 to-indigo-50/50 dark:from-blue-950/30 dark:to-indigo-950/20"
-                    : index % 4 === 1
-                      ? "bg-gradient-to-br from-purple-50 to-pink-50/50 dark:from-purple-950/30 dark:to-pink-950/20"
-                      : index % 4 === 2
-                        ? "bg-gradient-to-br from-amber-50 to-orange-50/50 dark:from-amber-950/30 dark:to-orange-950/20"
-                        : "bg-gradient-to-br from-emerald-50 to-teal-50/50 dark:from-emerald-950/30 dark:to-teal-950/20"
+                  ? "bg-gradient-to-br from-blue-50 to-indigo-50/50 dark:from-blue-950/30 dark:to-indigo-950/20"
+                  : index % 4 === 1
+                    ? "bg-gradient-to-br from-purple-50 to-pink-50/50 dark:from-purple-950/30 dark:to-pink-950/20"
+                    : index % 4 === 2
+                      ? "bg-gradient-to-br from-amber-50 to-orange-50/50 dark:from-amber-950/30 dark:to-orange-950/20"
+                      : "bg-gradient-to-br from-emerald-50 to-teal-50/50 dark:from-emerald-950/30 dark:to-teal-950/20"
                   } flex-col`}
               >
-                {/* Image - Full width on all devices */}
-                <div className="relative w-full aspect-[16/10] sm:aspect-[4/3] overflow-hidden">
+                {/* Image - Portrait on mobile, optimized on desktop */}
+                <div className="relative w-full aspect-[3/4] sm:aspect-[16/10] overflow-hidden">
                   <Image
                     src={post.coverImage || "/placeholder.svg"}
                     alt={post.title}

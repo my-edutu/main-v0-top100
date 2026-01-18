@@ -85,7 +85,7 @@ export default function EditAwardeePage({ params }: { params: Promise<{ id: stri
       cgpa: '',
       course: '',
       bio: '',
-      year: 2024,
+      year: 2025,
       image_url: '',
       featured: false,
       headline: '',
@@ -115,7 +115,7 @@ export default function EditAwardeePage({ params }: { params: Promise<{ id: stri
       setValue('cgpa', awardee.cgpa?.toString() || '');
       setValue('course', awardee.course || '');
       setValue('bio', awardee.bio || '');
-      setValue('year', awardee.year || 2024);
+      setValue('year', awardee.year || 2025);
       setValue('image_url', awardee.image_url || awardee.avatar_url || '');
       setValue('featured', awardee.featured || false);
       setValue('headline', awardee.headline || '');
@@ -191,7 +191,7 @@ export default function EditAwardeePage({ params }: { params: Promise<{ id: stri
         cgpa: data.cgpa || null,
         course: data.course || null,
         bio: data.bio || null,
-        year: data.year || 2024,
+        year: data.year || 2025,
         image_url: imageUrl || null,
         avatar_url: imageUrl || null,
         slug: generateSlug(data.name),

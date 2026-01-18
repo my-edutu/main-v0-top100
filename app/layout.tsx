@@ -51,14 +51,7 @@ export const metadata: Metadata = {
       "Discover 10,000+ exceptional African youth leaders, innovators, and changemakers. Access scholarships, leadership summits, and opportunities across the continent.",
     url: "https://www.top100afl.org",
     siteName: "Top100 Africa Future Leaders",
-    images: [
-      {
-        url: "/top100-africa-future-leaders-2024-magazine-cover-w.jpg",
-        width: 1200,
-        height: 630,
-        alt: "Top100 Africa Future Leaders - Celebrating exceptional African youth leaders and changemakers",
-      },
-    ],
+    images: ["/magazine-cover-2025.jpg"],
     locale: "en_US",
     type: "website",
   },
@@ -67,7 +60,7 @@ export const metadata: Metadata = {
     title: "Top100 Africa Future Leaders | Celebrating Africa's Youth Innovation & Leadership",
     description:
       "Discover 10,000+ exceptional African youth leaders, innovators, and changemakers. Access scholarships, leadership summits, and opportunities across the continent.",
-    images: ["/top100-africa-future-leaders-2024-magazine-cover-w.jpg"],
+    images: ["/magazine-cover-2025.jpg"],
   },
   icons: {
     icon: "/Top100 Africa Future leaders Logo .png",

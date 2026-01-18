@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     openGraph: {
         title: 'Magazine | Top100 Africa Future Leaders',
         description: 'Download and read the official Top100 Africa Future Leaders magazine editions.',
-        images: ['/top100-africa-future-leaders-2024-magazine-cover-w.jpg'],
+        images: ['/magazine-cover-2025.jpg'],
     },
 }
 

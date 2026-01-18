@@ -12,7 +12,8 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const imageFile = formData.get('image') as File | null;
-    const awardeeId = formData.get('awardee_id') as string;
+    const resourceId = formData.get('resource_id') as string || 'generic';
+    const bucket = formData.get('bucket') as string || 'uploads';
 
     if (!imageFile || imageFile.size === 0) {
       return Response.json({
@@ -26,14 +27,14 @@ export async function POST(request: NextRequest) {
 
     // Generate a unique filename
     const fileExt = imageFile.name.split('.').pop();
-    const fileName = `${awardeeId}-${Date.now()}.${fileExt}`;
+    const fileName = `${resourceId}-${Date.now()}.${fileExt}`;
 
     // Upload to Supabase storage
     const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('awardees')
+      .from(bucket)
       .upload(fileName, imageFile, {
         cacheControl: '3600',
-        upsert: true // Overwrite if exists
+        upsert: true
       });
 
     if (uploadError) {
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
 
     // Get the public URL
     const { data: publicUrlData } = supabase.storage
-      .from('awardees')
+      .from(bucket)
       .getPublicUrl(uploadData.path);
 
     return Response.json({

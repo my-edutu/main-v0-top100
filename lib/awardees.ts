@@ -161,7 +161,7 @@ async function initializeAwardeesFromExcel() {
         course: normalizeTextValue(normalizeKey(row, ['course', 'program', 'department', 'institution'])) || null,
         bio:
           normalizeTextValue(normalizeKey(row, ['bio', 'description', 'about', 'leadership', 'bio30'])) || null,
-        year: year ? parseInt(year.toString()) : 2024,
+        year: year ? parseInt(year.toString()) : 2025,
         slug: generateSlug(name),
         featured,
       }
@@ -218,7 +218,7 @@ function normalizeYear(year: StaticAwardeeRecord['year']): number | null {
     }
   }
 
-  return 2024
+  return 2025
 }
 
 // Type for proof page awardees (minimal data)

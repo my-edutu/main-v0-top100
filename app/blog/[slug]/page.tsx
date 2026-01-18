@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     };
   }
 
-  const imageUrl = post.coverImage || '/top100-africa-future-leaders-2024-magazine-cover-w.jpg';
+  const imageUrl = post.coverImage || '/magazine-cover-2025.jpg';
 
   return {
     title: `${post.title} | Top100 Africa Future Leaders`,
@@ -65,7 +65,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     "@context": "https://schema.org",
     "@type": "BlogPosting",
     "headline": post.title,
-    "image": post.coverImage || '/top100-africa-future-leaders-2024-magazine-cover-w.jpg',
+    "image": post.coverImage || '/magazine-cover-2025.jpg',
     "datePublished": post.createdAt,
     "dateModified": post.updatedAt || post.createdAt,
     "description": post.excerpt,

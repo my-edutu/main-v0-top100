@@ -25,26 +25,26 @@ import {
   Sparkles,
 } from "lucide-react"
 
-interface PublicEvent {
+interface CombinedItem {
   id: string
-  slug: string
+  type: 'event' | 'announcement'
   title: string
-  subtitle: string | null
-  summary: string | null
-  description: string | null
-  location: string | null
-  city: string | null
-  country: string | null
-  is_virtual: boolean
-  start_at: string
-  end_at: string | null
-  registration_url: string | null
-  registration_label: string
-  featured_image_url: string | null
-  tags: string[]
-  is_featured: boolean
-  created_at: string
-  updated_at: string
+  subtitle?: string | null
+  summary?: string | null
+  description?: string | null
+  location?: string | null
+  city?: string | null
+  country?: string | null
+  is_virtual?: boolean
+  start_at?: string
+  end_at?: string | null
+  registration_url?: string | null
+  registration_label?: string
+  featured_image_url?: string | null
+  tags?: string[]
+  is_featured?: boolean
+  created_at?: string
+  updated_at?: string
 }
 
 const formatRange = (startAt: string, endAt: string | null) => {
@@ -63,60 +63,95 @@ const formatRange = (startAt: string, endAt: string | null) => {
   }
 }
 
-const isUpcoming = (event: PublicEvent) => {
-  const now = new Date()
-  const start = new Date(event.start_at)
-  return start.getTime() >= now.getTime()
-}
-
-const sortUpcoming = (a: PublicEvent, b: PublicEvent) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime()
-const sortPast = (a: PublicEvent, b: PublicEvent) => new Date(b.start_at).getTime() - new Date(a.start_at).getTime()
-
 export default function EventsPage() {
-  const [events, setEvents] = useState<PublicEvent[]>([])
+  const [items, setItems] = useState<CombinedItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedEvent, setSelectedEvent] = useState<PublicEvent | null>(null)
+  const [selectedItem, setSelectedItem] = useState<CombinedItem | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
 
-  const fetchEvents = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true)
-      const response = await fetch("/api/events", { cache: "no-store" })
-      if (!response.ok) {
-        throw new Error("Failed to fetch events")
+      const [eventsRes, announcementsRes] = await Promise.all([
+        fetch("/api/events", { cache: "no-store" }),
+        fetch("/api/announcements", { cache: "no-store" })
+      ])
+
+      let combined: CombinedItem[] = []
+
+      if (eventsRes.ok) {
+        const events = await eventsRes.json()
+        combined = [...combined, ...events.map((e: any) => ({ ...e, type: 'event' }))]
       }
-      const data = (await response.json()) as PublicEvent[]
-      setEvents(Array.isArray(data) ? data : [])
+
+      if (announcementsRes.ok) {
+        const announcements = await announcementsRes.json()
+        combined = [...combined, ...announcements.map((a: any) => ({
+          ...a,
+          type: 'announcement',
+          summary: a.content,
+          featured_image_url: a.image_url,
+          registration_url: a.cta_url,
+          registration_label: a.cta_label,
+          start_at: a.scheduled_at || a.created_at, // Use scheduling/creation date as the primary date for display
+          is_featured: true // Treat all active announcements as featured for the events hub
+        }))]
+      }
+
+      setItems(combined)
     } catch (error) {
-      console.error("Error loading events", error)
+      console.error("Error loading events/announcements", error)
     } finally {
       setLoading(false)
     }
   }, [])
 
   useEffect(() => {
-    fetchEvents()
-  }, [fetchEvents])
+    fetchData()
+  }, [fetchData])
 
   useEffect(() => {
     const channel = supabase
-      .channel("public-events-feed")
-      .on("postgres_changes", { event: "*", schema: "public", table: "events" }, () => {
-        fetchEvents()
-      })
+      .channel("public-feed")
+      .on("postgres_changes", { event: "*", schema: "public", table: "events" }, () => fetchData())
+      .on("postgres_changes", { event: "*", schema: "public", table: "announcements" }, () => fetchData())
       .subscribe()
 
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [fetchEvents])
+  }, [fetchData])
 
-  const upcomingEvents = useMemo(() => events.filter(isUpcoming).sort(sortUpcoming), [events])
-  const pastEvents = useMemo(() => events.filter((event) => !isUpcoming(event)).sort(sortPast), [events])
-  const featuredEvent = useMemo(() => upcomingEvents.find((event) => event.is_featured) ?? upcomingEvents[0] ?? null, [upcomingEvents])
+  const upcomingItems = useMemo(() => {
+    return items
+      .filter(item => {
+        if (item.type === 'announcement') return true // Show all active announcements as "current/upcoming"
+        const now = new Date()
+        const start = new Date(item.start_at || 0)
+        return start.getTime() >= now.getTime()
+      })
+      .sort((a, b) => {
+        if (a.is_featured && !b.is_featured) return -1
+        if (!a.is_featured && b.is_featured) return 1
+        return new Date(a.start_at || 0).getTime() - new Date(b.start_at || 0).getTime()
+      })
+  }, [items])
 
-  const openEventDetail = (event: PublicEvent) => {
-    setSelectedEvent(event)
+  const pastItems = useMemo(() => {
+    return items
+      .filter(item => {
+        if (item.type === 'announcement') return false // Announcements are either active or not, don't show in past list
+        const now = new Date()
+        const start = new Date(item.start_at || 0)
+        return start.getTime() < now.getTime()
+      })
+      .sort((a, b) => new Date(b.start_at || 0).getTime() - new Date(a.start_at || 0).getTime())
+  }, [items])
+
+  const featuredItem = useMemo(() => upcomingItems.find((item) => item.is_featured) ?? upcomingItems[0] ?? null, [upcomingItems])
+
+  const openDetail = (item: CombinedItem) => {
+    setSelectedItem(item)
     setDialogOpen(true)
   }
 
@@ -124,27 +159,80 @@ export default function EventsPage() {
     setDialogOpen(false)
   }
 
-  const renderEventCard = (event: PublicEvent, variant: "upcoming" | "past") => {
-    const start = new Date(event.start_at)
+  const renderCard = (item: CombinedItem, variant: "upcoming" | "past") => {
+    const start = new Date(item.start_at || 0)
     const month = format(start, "MMM")
     const day = format(start, "dd")
 
+    if (item.type === 'announcement') {
+      return (
+        <Link
+          key={`${item.type}-${item.id}`}
+          href={`/announcements/${item.id}`}
+          className={`relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:border-orange-400/70 hover:bg-white/10 hover:shadow-xl ${variant === "upcoming" ? "backdrop-blur" : "backdrop-blur-sm"} block`}
+        >
+          <div className="absolute inset-0 bg-orange-400/10 opacity-0 transition-opacity duration-300 hover:opacity-100" />
+          <div className="relative z-10 flex flex-col gap-4">
+            {/* Same content structure */}
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 text-sm md:text-base text-orange-300">
+                  <CalendarDays className="h-4 w-4" />
+                  <span>Latest Update</span>
+                </div>
+                <h3 className="mt-2 text-2xl font-semibold text-white">
+                  {item.title}
+                </h3>
+              </div>
+              <div className="flex flex-col items-center justify-center rounded-xl bg-white/10 px-3 py-2 text-white">
+                <span className="text-xs md:text-sm tracking-[0.2em] uppercase">NEW</span>
+                <span className="text-xl font-bold">!</span>
+              </div>
+            </div>
+            {item.summary && (
+              <p className="text-sm md:text-base leading-relaxed text-zinc-300 line-clamp-3">
+                {item.summary}
+              </p>
+            )}
+            <div className="flex flex-wrap items-center gap-3 text-sm md:text-base text-zinc-300">
+              <div className="flex items-center gap-2 font-bold text-orange-400">
+                <Sparkles className="h-4 w-4" />
+                <span>Featured Announcement</span>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {item.tags?.slice(0, 3).map((tag) => (
+                <Badge key={`${item.id}-${tag}`} variant="outline" className="border-white/20 text-white">
+                  {tag}
+                </Badge>
+              ))}
+              {variant === "upcoming" && (
+                <Badge className="bg-orange-500/20 text-orange-200">
+                  Learn more
+                </Badge>
+              )}
+            </div>
+          </div>
+        </Link>
+      )
+    }
+
     return (
       <button
-        key={event.id}
-        onClick={() => openEventDetail(event)}
+        key={`${item.type}-${item.id}`}
+        onClick={() => openDetail(item)}
         className={`relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:border-orange-400/70 hover:bg-white/10 hover:shadow-xl ${variant === "upcoming" ? "backdrop-blur" : "backdrop-blur-sm"}`}
       >
         <div className="absolute inset-0 bg-orange-400/10 opacity-0 transition-opacity duration-300 hover:opacity-100" />
         <div className="relative z-10 flex flex-col gap-4">
           <div className="flex items-start justify-between">
-            <div>
+            <div className="flex-1">
               <div className="flex items-center gap-2 text-sm md:text-base text-orange-300">
                 <CalendarDays className="h-4 w-4" />
                 <span>{format(start, "EEEE, MMMM d")}</span>
               </div>
               <h3 className="mt-2 text-2xl font-semibold text-white">
-                {event.title}
+                {item.title}
               </h3>
             </div>
             <div className="flex flex-col items-center justify-center rounded-xl bg-white/10 px-3 py-2 text-white">
@@ -152,38 +240,40 @@ export default function EventsPage() {
               <span className="text-xl font-bold">{day}</span>
             </div>
           </div>
-          {event.summary && (
+          {item.summary && (
             <p className="text-sm md:text-base leading-relaxed text-zinc-300 line-clamp-3">
-              {event.summary}
+              {item.summary}
             </p>
           )}
           <div className="flex flex-wrap items-center gap-3 text-sm md:text-base text-zinc-300">
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              <span>{format(start, "h:mm a")}</span>
-            </div>
-            <Separator orientation="vertical" className="h-4 bg-white/10" />
-            <div className="flex items-center gap-2">
-              {event.is_virtual ? (
-                <>
-                  <Globe2 className="h-4 w-4" />
-                  <span>Virtual experience</span>
-                </>
-              ) : (
-                <>
-                  <MapPin className="h-4 w-4" />
-                  <span>{event.city || event.location || "Onsite"}</span>
-                </>
-              )}
-            </div>
+            <>
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                <span>{format(start, "h:mm a")}</span>
+              </div>
+              <Separator orientation="vertical" className="h-4 bg-white/10" />
+              <div className="flex items-center gap-2">
+                {item.is_virtual ? (
+                  <>
+                    <Globe2 className="h-4 w-4" />
+                    <span>Virtual experience</span>
+                  </>
+                ) : (
+                  <>
+                    <MapPin className="h-4 w-4" />
+                    <span>{item.city || item.location || "Onsite"}</span>
+                  </>
+                )}
+              </div>
+            </>
           </div>
           <div className="flex flex-wrap gap-2">
-            {event.tags?.slice(0, 3).map((tag) => (
-              <Badge key={`${event.id}-${tag}`} variant="outline" className="border-white/20 text-white">
+            {item.tags?.slice(0, 3).map((tag) => (
+              <Badge key={`${item.id}-${tag}`} variant="outline" className="border-white/20 text-white">
                 {tag}
               </Badge>
             ))}
-            {variant === "upcoming" && event.registration_url && (
+            {variant === "upcoming" && (item.registration_url) && (
               <Badge className="bg-orange-500/20 text-orange-200">
                 Registration open
               </Badge>
@@ -209,79 +299,96 @@ export default function EventsPage() {
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-20 text-lg text-zinc-400">Loading events...</div>
+          <div className="flex justify-center py-20 text-lg text-zinc-400">Loading ecosystem updates...</div>
         ) : (
           <div className="space-y-16">
-            {featuredEvent && (
+            {featuredItem && (
               <section className="space-y-6">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div className="flex items-center gap-2 text-sm sm:text-base uppercase tracking-[0.3em] text-orange-300">
                     <Sparkles className="h-4 w-4" />
-                    Featured Experience
+                    {featuredItem.type === 'announcement' ? 'Latest Spotlight' : 'Featured Experience'}
                   </div>
-                  <Link href="#past-events" className="text-sm sm:text-base text-orange-200 hover:text-orange-100">
-                    Jump to past highlights →
-                  </Link>
                 </div>
                 <Card className="overflow-hidden border border-orange-500/40 bg-white/10 backdrop-blur">
-                  <CardContent className="grid gap-8 p-8 md:grid-cols-[2fr_3fr]">
-                    <div className="space-y-4">
-                      <div className="inline-flex items-center gap-2 rounded-full bg-orange-500/20 px-3 py-1 text-xs sm:text-sm font-semibold uppercase tracking-wide text-orange-100">
-                        Upcoming spotlight
+                  <CardContent className="grid gap-8 p-8 md:grid-cols-2 items-stretch">
+                    <div className="space-y-4 flex flex-col justify-center">
+                      <div className="inline-flex items-center gap-2 rounded-full bg-orange-500/20 px-3 py-1 text-xs sm:text-sm font-semibold uppercase tracking-wide text-orange-100 w-fit">
+                        {featuredItem.type === 'announcement' ? 'Community update' : 'Upcoming spotlight'}
                       </div>
-                      <h2 className="text-3xl font-semibold text-white md:text-4xl">{featuredEvent.title}</h2>
+                      <h2 className="text-3xl font-semibold text-white md:text-4xl">{featuredItem.title}</h2>
                       <p className="text-sm leading-relaxed text-zinc-200 md:text-base lg:text-lg">
-                        {featuredEvent.summary ?? "Join us for a transformational gathering designed to accelerate changemakers across the continent."}
+                        {featuredItem.summary ?? "Join us for a transformational gathering designed to accelerate changemakers across the continent."}
                       </p>
                       <dl className="space-y-3 text-sm md:text-base text-zinc-200">
                         <div className="flex items-center gap-3">
                           <CalendarDays className="h-5 w-5 text-orange-300" />
-                          <span>{formatRange(featuredEvent.start_at, featuredEvent.end_at)}</span>
+                          <span>{featuredItem.type === 'announcement' ? `Published ${format(new Date(featuredItem.start_at || 0), "PPP")}` : formatRange(featuredItem.start_at || '', featuredItem.end_at || null)}</span>
                         </div>
-                        <div className="flex items-center gap-3">
-                          {featuredEvent.is_virtual ? (
-                            <>
-                              <Globe2 className="h-5 w-5 text-orange-300" />
-                              <span>Virtual experience</span>
-                            </>
-                          ) : (
-                            <>
-                              <MapPin className="h-5 w-5 text-orange-300" />
-                              <span>{featuredEvent.location || [featuredEvent.city, featuredEvent.country].filter(Boolean).join(", ") || "Onsite venue"}</span>
-                            </>
-                          )}
-                        </div>
+                        {featuredItem.type === 'event' && (
+                          <div className="flex items-center gap-3">
+                            {featuredItem.is_virtual ? (
+                              <>
+                                <Globe2 className="h-5 w-5 text-orange-300" />
+                                <span>Virtual experience</span>
+                              </>
+                            ) : (
+                              <>
+                                <MapPin className="h-5 w-5 text-orange-300" />
+                                <span>{featuredItem.location || [featuredItem.city, featuredItem.country].filter(Boolean).join(", ") || "Onsite venue"}</span>
+                              </>
+                            )}
+                          </div>
+                        )}
                       </dl>
                       <div className="flex flex-wrap gap-2">
-                        {featuredEvent.tags?.slice(0, 4).map((tag) => (
+                        {featuredItem.tags?.slice(0, 4).map((tag) => (
                           <Badge key={`featured-${tag}`} variant="outline" className="border-white/25 text-white">
                             {tag}
                           </Badge>
                         ))}
                       </div>
                       <div className="flex flex-wrap gap-3 pt-2">
-                        {featuredEvent.registration_url ? (
-                          <Button asChild className="bg-yellow-500 text-black hover:bg-yellow-400">
-                            <a href={featuredEvent.registration_url} target="_blank" rel="noopener noreferrer">
-                              {featuredEvent.registration_label || "Register"}
-                              <ExternalLink className="ml-2 h-4 w-4" />
-                            </a>
-                          </Button>
+                        {featuredItem.type === 'announcement' ? (
+                          <div className="flex flex-wrap gap-3">
+                            <Button asChild className="bg-yellow-500 text-black hover:bg-yellow-400">
+                              <Link href={featuredItem.registration_url || `/announcements/${featuredItem.id}`}>
+                                {featuredItem.registration_label || "Learn More"}
+                                <ExternalLink className="ml-2 h-4 w-4" />
+                              </Link>
+                            </Button>
+                            <Button asChild variant="outline" className="border-white/30 text-white">
+                              <Link href={`/announcements/${featuredItem.id}`}>
+                                Explore details
+                              </Link>
+                            </Button>
+                          </div>
                         ) : (
-                          <Button disabled variant="outline" className="border-white/30 text-white">
-                            Registration coming soon
-                          </Button>
+                          <>
+                            {featuredItem.registration_url ? (
+                              <Button asChild className="bg-yellow-500 text-black hover:bg-yellow-400">
+                                <a href={featuredItem.registration_url} target="_blank" rel="noopener noreferrer">
+                                  {featuredItem.registration_label || "Register"}
+                                  <ExternalLink className="ml-2 h-4 w-4" />
+                                </a>
+                              </Button>
+                            ) : (
+                              <Button disabled variant="outline" className="border-white/30 text-white">
+                                Registration coming soon
+                              </Button>
+                            )}
+                            <Button variant="outline" className="border-white/30 text-white" onClick={() => openDetail(featuredItem)}>
+                              Explore details
+                            </Button>
+                          </>
                         )}
-                        <Button variant="outline" className="border-white/30 text-white" onClick={() => openEventDetail(featuredEvent)}>
-                          Explore details
-                        </Button>
                       </div>
                     </div>
-                    <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/40">
-                      {featuredEvent.featured_image_url ? (
+                    <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/40 aspect-square md:aspect-auto md:max-h-[400px]">
+                      {featuredItem.featured_image_url ? (
                         <img
-                          src={featuredEvent.featured_image_url}
-                          alt={featuredEvent.title}
+                          src={featuredItem.featured_image_url}
+                          alt={featuredItem.title}
                           className="h-full w-full object-cover opacity-100"
                         />
                       ) : (
@@ -294,99 +401,63 @@ export default function EventsPage() {
                 </Card>
               </section>
             )}
-
-            <section className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl sm:text-3xl font-semibold text-white">Upcoming Gatherings</h2>
-                  <p className="text-sm sm:text-base text-zinc-300">Reserve your spot before capacity fills up.</p>
-                </div>
-                <Badge className="bg-white/10 text-orange-200">
-                  {upcomingEvents.length} upcoming
-                </Badge>
-              </div>
-              <div className="grid gap-6 md:grid-cols-2">
-                {upcomingEvents.length === 0 ? (
-                  <div className="col-span-2 rounded-2xl border border-white/10 bg-white/5 p-10 text-center text-zinc-300">
-                    No upcoming events scheduled. Check back soon!
-                  </div>
-                ) : (
-                  upcomingEvents.map((event) => renderEventCard(event, "upcoming"))
-                )}
-              </div>
-            </section>
-
-            <section id="past-events" className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl sm:text-3xl font-semibold text-white">Past Highlights</h2>
-                  <p className="text-sm sm:text-base text-zinc-300">Relive the moments that have shaped our network.</p>
-                </div>
-                <Badge className="bg-white/10 text-zinc-200">{pastEvents.length} recorded</Badge>
-              </div>
-              {pastEvents.length === 0 ? (
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-10 text-center text-zinc-300">
-                  No past events yet. Check back for recaps from recent programs.
-                </div>
-              ) : (
-                <div className="grid gap-6 md:grid-cols-3">
-                  {pastEvents.map((event) => renderEventCard(event, "past"))}
-                </div>
-              )}
-            </section>
           </div>
         )}
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto border border-zinc-200 bg-white text-zinc-900 shadow-xl">
-          {selectedEvent && (
+          {selectedItem && (
             <>
               <DialogHeader className="space-y-2">
-                <DialogTitle className="text-2xl sm:text-3xl font-semibold text-zinc-900">{selectedEvent.title}</DialogTitle>
-                {selectedEvent.subtitle && <DialogDescription className="text-base sm:text-lg text-zinc-600">{selectedEvent.subtitle}</DialogDescription>}
+                <DialogTitle className="text-2xl sm:text-3xl font-semibold text-zinc-900">{selectedItem.title}</DialogTitle>
+                {selectedItem.subtitle && <DialogDescription className="text-base sm:text-lg text-zinc-600">{selectedItem.subtitle}</DialogDescription>}
                 <div className="flex flex-wrap items-center gap-3 text-sm md:text-base text-zinc-600">
                   <div className="flex items-center gap-2">
                     <CalendarDays className="h-4 w-4 text-orange-500" />
-                    <span>{formatRange(selectedEvent.start_at, selectedEvent.end_at)}</span>
+                    <span>{selectedItem.type === 'announcement' ? `Updated ${format(new Date(selectedItem.start_at || 0), "PPP")}` : formatRange(selectedItem.start_at || '', selectedItem.end_at || null)}</span>
                   </div>
-                  <Separator orientation="vertical" className="h-4 bg-zinc-300" />
-                  <div className="flex items-center gap-2">
-                    {selectedEvent.is_virtual ? (
-                      <>
-                        <Globe2 className="h-4 w-4 text-orange-500" />
-                        <span>Virtual</span>
-                      </>
-                    ) : (
-                      <>
-                        <MapPin className="h-4 w-4 text-orange-500" />
-                        <span>{selectedEvent.location || [selectedEvent.city, selectedEvent.country].filter(Boolean).join(", ") || "Onsite venue"}</span>
-                      </>
-                    )}
-                  </div>
+                  {selectedItem.type === 'event' && (
+                    <>
+                      <Separator orientation="vertical" className="h-4 bg-zinc-300" />
+                      <div className="flex items-center gap-2">
+                        {selectedItem.is_virtual ? (
+                          <>
+                            <Globe2 className="h-4 w-4 text-orange-500" />
+                            <span>Virtual</span>
+                          </>
+                        ) : (
+                          <>
+                            <MapPin className="h-4 w-4 text-orange-500" />
+                            <span>{selectedItem.location || [selectedItem.city, selectedItem.country].filter(Boolean).join(", ") || "Onsite venue"}</span>
+                          </>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
               </DialogHeader>
               <div className="space-y-6 py-4">
-                {selectedEvent.featured_image_url && (
+                {selectedItem.featured_image_url && (
                   <div className="overflow-hidden rounded-2xl border border-zinc-200">
                     <img
-                      src={selectedEvent.featured_image_url}
-                      alt={selectedEvent.title}
+                      src={selectedItem.featured_image_url}
+                      alt={selectedItem.title}
                       className="h-full w-full object-cover"
                     />
                   </div>
                 )}
                 <div className="space-y-4 text-sm sm:text-base leading-relaxed text-zinc-700">
-                  {selectedEvent.description ? (
-                    <p className="whitespace-pre-line">{selectedEvent.description}</p>
-                  ) : selectedEvent.summary ? (
-                    <p>{selectedEvent.summary}</p>
+                  {selectedItem.description ? (
+                    <p className="whitespace-pre-line">{selectedItem.description}</p>
+                  ) : selectedItem.summary ? (
+                    <p>{selectedItem.summary}</p>
                   ) : (
                     <p>Stay tuned for more details about this experience.</p>
                   )}
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {selectedEvent.tags?.map((tag) => (
+                  {selectedItem.tags?.map((tag) => (
                     <Badge key={`detail-${tag}`} variant="outline" className="border-zinc-300 text-zinc-700">
                       {tag}
                     </Badge>
@@ -395,17 +466,24 @@ export default function EventsPage() {
               </div>
               <DialogFooter className="flex flex-col gap-3 sm:flex-row sm:justify-between">
                 <div className="text-xs sm:text-sm uppercase tracking-[0.2em] text-zinc-500">
-                  Last updated {format(new Date(selectedEvent.updated_at), "MMM d, yyyy")}
+                  Last updated {format(new Date(selectedItem.updated_at || selectedItem.created_at || new Date()), "MMM d, yyyy")}
                 </div>
                 <div className="flex flex-wrap gap-3">
-                  {selectedEvent.registration_url ? (
+                  {selectedItem.registration_url ? (
                     <Button asChild className="bg-orange-500 text-white hover:bg-orange-600">
-                      <a href={selectedEvent.registration_url} target="_blank" rel="noopener noreferrer">
-                        {selectedEvent.registration_label || "Register"}
-                        <ExternalLink className="ml-2 h-4 w-4" />
-                      </a>
+                      {selectedItem.type === 'announcement' ? (
+                        <Link href={selectedItem.registration_url}>
+                          {selectedItem.registration_label || "Learn More"}
+                          <ExternalLink className="ml-2 h-4 w-4" />
+                        </Link>
+                      ) : (
+                        <a href={selectedItem.registration_url} target="_blank" rel="noopener noreferrer">
+                          {selectedItem.registration_label || "Register"}
+                          <ExternalLink className="ml-2 h-4 w-4" />
+                        </a>
+                      )}
                     </Button>
-                  ) : (
+                  ) : selectedItem.type === 'event' && (
                     <Button disabled variant="outline" className="border-zinc-300 text-zinc-500">
                       Registration unavailable
                     </Button>
