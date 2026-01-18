@@ -3,17 +3,48 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, Calendar, Share2, ExternalLink } from "lucide-react";
+import { Calendar, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Metadata } from 'next';
+
+async function getAnnouncement(id: string) {
+    const supabase = createAdminClient();
+    return supabase.from("announcements").select("*").eq("id", id).single();
+}
+
+export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+    const { data: announcement } = await getAnnouncement(params.id);
+
+    if (!announcement) {
+        return {
+            title: 'Announcement Not Found',
+        }
+    }
+
+    // Strip HTML for description
+    const plainTextContent = announcement.content?.replace(/<[^>]*>?/gm, '') || '';
+    const description = plainTextContent.substring(0, 160) + (plainTextContent.length > 160 ? '...' : '');
+
+    return {
+        title: announcement.title,
+        description: description,
+        openGraph: {
+            title: announcement.title,
+            description: description,
+            images: announcement.image_url ? [{ url: announcement.image_url }] : [],
+            type: 'article',
+        },
+        twitter: {
+            card: 'summary_large_image',
+            title: announcement.title,
+            description: description,
+            images: announcement.image_url ? [announcement.image_url] : [],
+        }
+    }
+}
 
 export default async function AnnouncementPage({ params }: { params: { id: string } }) {
-    const supabase = createAdminClient();
-
-    const { data: announcement, error } = await supabase
-        .from("announcements")
-        .select("*")
-        .eq("id", params.id)
-        .single();
+    const { data: announcement, error } = await getAnnouncement(params.id);
 
     if (error || !announcement) {
         notFound();
@@ -24,8 +55,6 @@ export default async function AnnouncementPage({ params }: { params: { id: strin
 
     return (
         <div className="min-h-screen bg-white">
-            {/* Navigation */}
-
             <main className="container py-12 lg:py-20">
                 <div className="max-w-4xl mx-auto space-y-12">
                     {/* Header */}

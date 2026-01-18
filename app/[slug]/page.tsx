@@ -3,24 +3,58 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, Calendar, Share2, ExternalLink } from "lucide-react";
+import { Calendar, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Metadata } from 'next';
 
-export default async function AnnouncementSlugPage({ params }: { params: { slug: string } }) {
+async function getAnnouncement(slug: string) {
     const supabase = createAdminClient();
-
-    // Determine if the slug is a UUID or a custom slug
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(params.slug);
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
 
     let query = supabase.from("announcements").select("*");
 
     if (isUuid) {
-        query = query.eq("id", params.slug);
+        query = query.eq("id", slug);
     } else {
-        query = query.eq("slug", params.slug);
+        query = query.eq("slug", slug);
     }
 
-    const { data: announcement, error } = await query.single();
+    return query.single();
+}
+
+export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+    const { data: announcement } = await getAnnouncement(params.slug);
+
+    if (!announcement) {
+        return {
+            title: 'Announcement Not Found',
+        }
+    }
+
+    // Strip HTML for description
+    const plainTextContent = announcement.content?.replace(/<[^>]*>?/gm, '') || '';
+    const description = plainTextContent.substring(0, 160) + (plainTextContent.length > 160 ? '...' : '');
+
+    return {
+        title: announcement.title,
+        description: description,
+        openGraph: {
+            title: announcement.title,
+            description: description,
+            images: announcement.image_url ? [{ url: announcement.image_url }] : [],
+            type: 'article',
+        },
+        twitter: {
+            card: 'summary_large_image',
+            title: announcement.title,
+            description: description,
+            images: announcement.image_url ? [announcement.image_url] : [],
+        }
+    }
+}
+
+export default async function AnnouncementSlugPage({ params }: { params: { slug: string } }) {
+    const { data: announcement, error } = await getAnnouncement(params.slug);
 
     if (error || !announcement) {
         notFound();
@@ -31,8 +65,6 @@ export default async function AnnouncementSlugPage({ params }: { params: { slug:
 
     return (
         <div className="min-h-screen bg-white">
-            {/* Navigation */}
-
             <main className="container py-12 lg:py-20">
                 <div className="max-w-4xl mx-auto space-y-12">
                     {/* Header */}
