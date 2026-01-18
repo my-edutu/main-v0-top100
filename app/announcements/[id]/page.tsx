@@ -25,19 +25,6 @@ export default async function AnnouncementPage({ params }: { params: { id: strin
     return (
         <div className="min-h-screen bg-white">
             {/* Navigation */}
-            <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-zinc-100">
-                <div className="container h-16 flex items-center justify-between">
-                    <Link href="/" className="flex items-center gap-2 text-zinc-600 hover:text-orange-600 transition-colors">
-                        <ArrowLeft className="h-4 w-4" />
-                        <span className="font-bold">Back to Home</span>
-                    </Link>
-                    <div className="flex items-center gap-4">
-                        <Button variant="ghost" size="icon" className="rounded-full">
-                            <Share2 className="h-5 w-5" />
-                        </Button>
-                    </div>
-                </div>
-            </nav>
 
             <main className="container py-12 lg:py-20">
                 <div className="max-w-4xl mx-auto space-y-12">
