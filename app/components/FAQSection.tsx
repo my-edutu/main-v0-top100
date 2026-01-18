@@ -33,7 +33,7 @@ const faqs: FAQ[] = [
   {
     question: "Is Top100 a registered organization?",
     answer:
-      "Yes. Top100 is in the process of being registered as an NGO with the Corporate Affairs Commission (CAC) in Nigeria, with expansion plans to partner with youth organizations, universities, and government agencies across Africa.",
+      "Yes, they are registered under the Elevate Youth Leaders Initiative Lagos, and are eligible for international, national partnership and collaborations.",
   },
   {
     question: "What is the Africa Future Leaders Summit?",
