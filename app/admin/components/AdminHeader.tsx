@@ -26,6 +26,7 @@ import {
   SheetContent,
   SheetTrigger,
   SheetTitle,
+  SheetDescription,
 } from "@/components/ui/sheet"
 import { createClient } from '@/utils/supabase/client'
 
@@ -152,6 +153,9 @@ export default function AdminHeader() {
               </SheetTrigger>
               <SheetContent side="left" className="w-64 bg-gradient-to-b from-orange-500 to-amber-500 p-0">
                 <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+                <SheetDescription className="sr-only">
+                  Admin panel navigation links and settings.
+                </SheetDescription>
                 <div className="flex flex-col h-full pt-6">
                   {/* Logo in Sheet */}
                   <div className="px-6 pb-6 flex items-center space-x-3 border-b border-white/20">
@@ -184,8 +188,8 @@ export default function AdminHeader() {
                             setIsSheetOpen(false);
                           }}
                           className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${active
-                              ? 'bg-white text-orange-600 shadow-md'
-                              : 'text-white hover:bg-white/20'
+                            ? 'bg-white text-orange-600 shadow-md'
+                            : 'text-white hover:bg-white/20'
                             } ${isPending ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
                         >
                           {isPending && navigatingTo === item.href ? (

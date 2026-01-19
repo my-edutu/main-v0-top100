@@ -456,10 +456,15 @@ export default function EditProfileDetailPage({ params }: { params: Promise<{ id
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
                                             <textarea
                                                 {...register('bio')}
-                                                placeholder="Tell your story - your achievements, leadership experiences, and vision..."
-                                                rows={6}
+                                                placeholder="Tell your story - your achievements, leadership experiences, and vision...
+
+Use blank lines between paragraphs for better readability."
+                                                rows={8}
                                                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                                             />
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                💡 Tip: Press Enter twice to create a new paragraph. This will add visual spacing between your paragraphs when displayed.
+                                            </p>
                                         </div>
                                     </div>
                                 </div>

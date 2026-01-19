@@ -236,27 +236,6 @@ export default function HomeFeaturedAwardees({ awardees }: Props) {
                         </div>
                       </Link>
                     ))}
-
-                    {/* Magazine CTA Card - appears twice for seamless loop */}
-                    {[1, 2].map((instance) => (
-                      <Link
-                        key={`magazine-cta-${instance}`}
-                        href="/magazine"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-shrink-0 w-[150px] flex flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-primary/40 bg-gradient-to-br from-primary/5 to-primary/10 shadow-sm hover:border-primary/60 hover:shadow-md transition-all"
-                      >
-                        <div className="flex flex-col items-center justify-center p-4 text-center space-y-2">
-                          <Award className="h-8 w-8 text-primary" />
-                          <p className="text-xs font-semibold text-foreground leading-tight">
-                            Get magazine to see full list
-                          </p>
-                          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/20 transition hover:bg-primary/30">
-                            <ArrowRight className="h-4 w-4 text-primary" />
-                          </div>
-                        </div>
-                      </Link>
-                    ))}
                   </div>
                 </div>
               ) : (
@@ -275,35 +254,48 @@ export default function HomeFeaturedAwardees({ awardees }: Props) {
                       viewport={{ once: true, amount: 0.35 }}
                       className="flex-shrink-0 w-52 flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm shadow-primary/5 transition hover:border-primary/40 hover:scale-105 hover:shadow-lg"
                     >
-                    <div className="relative h-48 w-full overflow-hidden bg-muted">
-                      {awardee.avatar_url && !imageErrors.has(awardee.slug) ? (
-                        <Image
-                          src={awardee.avatar_url}
-                          alt={awardee.name}
-                          fill
-                          className="object-cover"
-                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                          onError={() => {
-                            setImageErrors(prev => new Set(prev).add(awardee.slug));
-                          }}
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/20 via-primary/10 to-transparent text-primary">
-                          <AvatarSVG name={awardee.name} size={48} />
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex flex-1 flex-col gap-3 p-4">
-                      <div>
-                        <h3 className="text-lg font-semibold capitalize">{awardee.name}</h3>
+                      <div className="relative h-48 w-full overflow-hidden bg-muted">
+                        {awardee.avatar_url && !imageErrors.has(awardee.slug) ? (
+                          <Image
+                            src={awardee.avatar_url}
+                            alt={awardee.name}
+                            fill
+                            className="object-cover"
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                            onError={() => {
+                              setImageErrors(prev => new Set(prev).add(awardee.slug));
+                            }}
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/20 via-primary/10 to-transparent text-primary">
+                            <AvatarSVG name={awardee.name} size={48} />
+                          </div>
+                        )}
                       </div>
-                      <div className="flex flex-1 flex-col justify-center">
-                        {awardee.cgpa && (
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <span className="text-xs text-muted-foreground">CGPA</span>
-                              <div className="font-bold text-primary">{awardee.cgpa}</div>
+                      <div className="flex flex-1 flex-col gap-3 p-4">
+                        <div>
+                          <h3 className="text-lg font-semibold capitalize">{awardee.name}</h3>
+                        </div>
+                        <div className="flex flex-1 flex-col justify-center">
+                          {awardee.cgpa && (
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <span className="text-xs text-muted-foreground">CGPA</span>
+                                <div className="font-bold text-primary">{awardee.cgpa}</div>
+                              </div>
+                              <Link
+                                href={`/awardees/${awardee.slug}`}
+                                className="inline-flex items-center gap-1 text-primary transition group-hover:text-primary/80"
+                                aria-label={`View ${awardee.name}'s profile`}
+                              >
+                                <span className="text-xs whitespace-nowrap">Read more</span>
+                                <ArrowRight className="h-4 w-4 text-primary transition-transform duration-200 group-hover:translate-x-1" />
+                              </Link>
                             </div>
+                          )}
+                        </div>
+                        {!awardee.cgpa && (
+                          <div className="flex justify-end">
                             <Link
                               href={`/awardees/${awardee.slug}`}
                               className="inline-flex items-center gap-1 text-primary transition group-hover:text-primary/80"
@@ -315,45 +307,8 @@ export default function HomeFeaturedAwardees({ awardees }: Props) {
                           </div>
                         )}
                       </div>
-                      {!awardee.cgpa && (
-                        <div className="flex justify-end">
-                          <Link
-                            href={`/awardees/${awardee.slug}`}
-                            className="inline-flex items-center gap-1 text-primary transition group-hover:text-primary/80"
-                            aria-label={`View ${awardee.name}'s profile`}
-                          >
-                            <span className="text-xs whitespace-nowrap">Read more</span>
-                            <ArrowRight className="h-4 w-4 text-primary transition-transform duration-200 group-hover:translate-x-1" />
-                          </Link>
-                        </div>
-                      )}
-                    </div>
-                  </motion.article>
-                ))}
-
-                {/* Magazine CTA Card */}
-                <motion.div
-                  layout
-                  initial={{ opacity: 0, x: 24 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.45, delay: safeAwardees.length * 0.05, ease: "easeOut" }}
-                  viewport={{ once: true, amount: 0.35 }}
-                >
-                  <Link
-                    href="/magazine"
-                    className="flex-shrink-0 w-52 h-full flex flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-primary/40 bg-gradient-to-br from-primary/5 to-primary/10 shadow-sm hover:border-primary/60 hover:shadow-lg hover:scale-105 transition-all"
-                  >
-                    <div className="flex flex-col items-center justify-center p-6 text-center space-y-4">
-                      <Award className="h-16 w-16 text-primary" />
-                      <p className="text-base font-semibold text-foreground leading-tight">
-                        Get magazine to see full list
-                      </p>
-                      <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/20 transition hover:bg-primary/30">
-                        <ArrowRight className="h-6 w-6 text-primary" />
-                      </div>
-                    </div>
-                  </Link>
-                </motion.div>
+                    </motion.article>
+                  ))}
                 </motion.div>
               )}
             </>

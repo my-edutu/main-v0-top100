@@ -68,17 +68,23 @@ export default function EventsHubSection() {
                     const announcements = await announcementsRes.json()
                     hubItems = [
                         ...hubItems,
-                        ...announcements.map((a: any) => ({
-                            id: a.id,
-                            type: 'announcement' as const,
-                            title: a.title,
-                            subtitle: a.content,
-                            image_url: a.image_url,
-                            cta_url: a.cta_url || `/announcements/${a.id}`,
-                            cta_label: a.cta_label || 'Learn More',
-                            is_featured: true,
-                            created_at: a.created_at
-                        }))
+                        ...announcements.map((a: any) => {
+                            // Strip HTML tags from content for plain text subtitle
+                            const plainTextContent = a.content
+                                ? a.content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()
+                                : null
+                            return {
+                                id: a.id,
+                                type: 'announcement' as const,
+                                title: a.title,
+                                subtitle: plainTextContent,
+                                image_url: a.image_url,
+                                cta_url: a.cta_url || `/announcements/${a.id}`,
+                                cta_label: a.cta_label || 'Learn More',
+                                is_featured: true,
+                                created_at: a.created_at
+                            }
+                        })
                     ]
                 }
 
@@ -114,29 +120,27 @@ export default function EventsHubSection() {
     return (
         <section className="py-16 bg-white overflow-hidden">
             <div className="container">
-                <div className="flex flex-col items-center text-center gap-6 mb-12">
+                <div className="flex flex-col items-center text-center gap-4 mb-8 md:mb-12">
                     <div className="space-y-2">
-                        <h2 className="text-4xl md:text-5xl font-semibold text-zinc-900 tracking-tight">
+                        <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold text-zinc-900 tracking-tight">
                             Events & <span className="text-orange-600">Announcements</span>
                         </h2>
-                        <p className="text-lg text-zinc-500 font-medium">
+                        <p className="text-sm md:text-lg text-zinc-500 font-medium">
                             Featured events and announcements from across our community.
                         </p>
                     </div>
-                    <Button asChild variant="outline" className="rounded-full border-zinc-200 font-bold hover:bg-zinc-50">
-                        <Link href="/events">View All Calendar</Link>
-                    </Button>
                 </div>
 
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {/* Horizontally scrollable for multiple items */}
+                <div className="flex gap-6 overflow-x-auto pb-4 -mx-4 px-4 lg:justify-center lg:overflow-visible snap-x snap-mandatory">
                     {items.map((item) => (
                         <Link
                             key={`${item.type}-${item.id}`}
                             href={item.type === 'announcement' ? `/announcements/${item.id}` : (item.cta_url || '#')}
-                            className="group relative flex flex-col bg-zinc-50 rounded-[2rem] overflow-hidden border border-zinc-100 transition-all duration-300 hover:shadow-2xl hover:shadow-orange-500/10 hover:-translate-y-1"
+                            className="group relative flex flex-col md:flex-row bg-zinc-50 rounded-[2rem] overflow-hidden border border-zinc-100 transition-all duration-300 hover:shadow-2xl hover:shadow-orange-500/10 hover:-translate-y-1 snap-center flex-shrink-0 w-[85vw] sm:w-[400px] md:w-[700px] lg:w-[800px] max-w-4xl"
                         >
                             {/* Image Container */}
-                            <div className="relative aspect-[16/10] overflow-hidden">
+                            <div className="relative aspect-[16/10] md:aspect-auto md:w-2/5 overflow-hidden flex-shrink-0">
                                 {item.image_url ? (
                                     <Image
                                         src={item.image_url}
@@ -145,7 +149,7 @@ export default function EventsHubSection() {
                                         className="object-cover transition-transform duration-500 group-hover:scale-105"
                                     />
                                 ) : (
-                                    <div className="w-full h-full bg-orange-50 flex items-center justify-center">
+                                    <div className="w-full h-full min-h-[200px] bg-orange-50 flex items-center justify-center">
                                         {item.type === 'event' ? <Calendar className="h-12 w-12 text-orange-200" /> : <Megaphone className="h-12 w-12 text-orange-200" />}
                                     </div>
                                 )}
@@ -167,13 +171,13 @@ export default function EventsHubSection() {
                             </div>
 
                             {/* Content */}
-                            <div className="flex-1 p-6 sm:p-8 flex flex-col space-y-4">
+                            <div className="flex-1 p-6 sm:p-8 flex flex-col justify-center space-y-4">
                                 <div className="space-y-2">
                                     <h3 className="text-xl sm:text-2xl font-black text-zinc-900 leading-tight line-clamp-2 transition-colors group-hover:text-orange-600">
                                         {item.title}
                                     </h3>
                                     {item.subtitle && (
-                                        <p className="text-sm text-zinc-500 font-medium line-clamp-2">
+                                        <p className="text-sm text-zinc-500 font-medium line-clamp-3">
                                             {item.subtitle}
                                         </p>
                                     )}

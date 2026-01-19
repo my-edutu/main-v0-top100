@@ -15,8 +15,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import type { Awardee } from '@/lib/awardees'
-import { normalizeAwardeeEntry } from '@/lib/awardees'
+import type { Awardee } from '@/lib/awardees-shared'
+import { normalizeAwardeeEntry } from '@/lib/awardees-shared'
 import { supabase } from '@/lib/supabase/client'
 import { AvatarSVG } from '@/lib/avatars'
 import type { AwardeeDirectoryEntry } from '@/types/profile'
@@ -385,7 +385,7 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
             <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest order-2 sm:order-1">
               Page {currentPage} of {totalPages}
             </div>
-            
+
             <div className="flex items-center gap-3 order-1 sm:order-2">
               <Button
                 variant="outline"
@@ -406,7 +406,7 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
                 Next
               </Button>
             </div>
-            
+
             <div className="hidden sm:block w-32 order-3" />
           </div>
         )}

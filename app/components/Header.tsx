@@ -9,6 +9,8 @@ import { cn } from "@/lib/utils"
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
+  SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
 
@@ -113,6 +115,10 @@ export default function Header() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="right" className="w-64 bg-gradient-to-b from-yellow-500 to-orange-500 p-0">
+                <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+                <SheetDescription className="sr-only">
+                  Access site navigation links and sections.
+                </SheetDescription>
                 <div className="flex flex-col h-full pt-6">
                   {/* Logo in Sheet */}
                   <div className="px-6 pb-6 flex items-center justify-center border-b border-white/20">

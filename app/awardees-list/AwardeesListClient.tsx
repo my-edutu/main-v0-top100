@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
-import type { ProofAwardee, Awardee } from '@/lib/awardees'
+import type { ProofAwardee, Awardee } from '@/lib/awardees-shared'
 
 interface AwardeesListClientProps {
     awardees: ProofAwardee[]

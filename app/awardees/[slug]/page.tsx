@@ -5,7 +5,7 @@ import type { Metadata } from 'next'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { normalizeAwardeeEntry } from '@/lib/awardees'
+import { normalizeAwardeeEntry } from '@/lib/awardees-shared'
 import { fetchAwardeeBySlug } from '@/lib/dashboard/profile-service'
 import { AvatarSVG, flagEmoji } from '@/lib/avatars'
 import type { Achievement, GalleryItem, SocialLinks } from '@/types/profile'
@@ -257,7 +257,7 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
                 )}
               </div>
 
-              {/* Actions Row - Social Links + Connect Button */}
+              {/* Actions Row - Social Links */}
               <div className="mt-6 flex flex-wrap justify-center md:justify-start items-center gap-3">
                 {/* Social Links */}
                 {socialEntries.map(([key, value]) => {
@@ -274,14 +274,6 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
                     </Link>
                   )
                 })}
-
-                {/* Connect Button with Popup */}
-                <ConnectButton
-                  linkedin={awardee.social_links?.linkedin}
-                  twitter={awardee.social_links?.twitter}
-                  facebook={awardee.social_links?.facebook}
-                  name={awardee.name}
-                />
               </div>
             </div>
           </div>
@@ -294,10 +286,18 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
           {awardee.bio && (
             <section className="mb-12">
               {/* Drop Cap First Paragraph Style */}
-              <div className="prose prose-lg max-w-none">
-                <p className="text-lg sm:text-xl text-gray-700 leading-relaxed first-letter:text-6xl first-letter:font-serif first-letter:font-bold first-letter:float-left first-letter:mr-3 first-letter:mt-1 first-letter:text-gray-900">
-                  {awardee.bio}
-                </p>
+              <div className="prose prose-lg max-w-none space-y-4">
+                {awardee.bio.split(/\n\n+/).map((paragraph, index) => (
+                  <p
+                    key={index}
+                    className={`text-lg sm:text-xl text-gray-700 leading-relaxed ${index === 0
+                      ? 'first-letter:text-6xl first-letter:font-serif first-letter:font-bold first-letter:float-left first-letter:mr-3 first-letter:mt-1 first-letter:text-gray-900'
+                      : ''
+                      }`}
+                  >
+                    {paragraph.trim()}
+                  </p>
+                ))}
               </div>
             </section>
           )}
