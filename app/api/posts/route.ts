@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { revalidatePath, revalidateTag } from 'next/cache'
 
 import { requireAdmin } from '@/lib/api/require-admin'
-import { getHomepagePosts, getPostBySlug, getPublishedPosts, selectHomepagePosts } from '@/lib/posts/server'
-import { mapSupabaseRecord } from '@/lib/posts'
+import { getHomepagePosts, getPostBySlug, getPublishedPosts } from '@/lib/posts/server'
 import { createAdminClient } from '@/lib/supabase/server'
 
 
@@ -86,40 +85,11 @@ export async function GET(req: NextRequest) {
     }
 
     if (scope === 'homepage') {
-      // Direct query to avoid caching issues
-      const supabase = createAdminClient()
-      const { data, error } = await supabase
-        .from('posts')
-        .select('*')
-        .eq('status', 'published')
-        .or('is_featured.eq.true')
-        .order('created_at', { ascending: false })
-
-      if (error) {
-        console.error('Error fetching homepage posts:', error)
-        return NextResponse.json({ message: 'Error fetching homepage posts', error: error.message }, { status: 500 })
-      }
-
-      // Map the raw Supabase records to ResolvedPost objects
-      const homepagePosts = data.map(mapSupabaseRecord)
-      const selectedPosts = selectHomepagePosts(homepagePosts)
-
-      return NextResponse.json(selectedPosts)
+      const homepagePosts = await getHomepagePosts()
+      return NextResponse.json(homepagePosts)
     }
 
-    const supabase = createAdminClient()
-    const { data, error } = await supabase
-      .from('posts')
-      .select('*')
-      .eq('status', 'published')
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      console.error('Error fetching published posts:', error)
-      return NextResponse.json({ message: 'Error fetching posts', error: error.message }, { status: 500 })
-    }
-
-    const posts = data.map(mapSupabaseRecord)
+    const posts = await getPublishedPosts()
     return NextResponse.json(posts)
   } catch (error) {
     console.error('Error in posts GET:', error)
@@ -242,6 +212,7 @@ export async function POST(req: NextRequest) {
       // Revalidate the homepage which contains the blog section
       revalidatePath('/');
       revalidatePath('/blog');
+      revalidateTag('posts');
       revalidateTag('homepage-posts');
       revalidateTag('published-posts');
     } catch (revalidationError) {
@@ -418,6 +389,7 @@ export async function PUT(req: NextRequest) {
     try {
       revalidatePath('/')
       revalidatePath('/blog')
+      revalidateTag('posts')
       revalidateTag('homepage-posts')
       revalidateTag('published-posts')
     } catch (revalidationError) {
@@ -484,6 +456,7 @@ export async function PATCH(req: NextRequest) {
       // Revalidate the homepage which contains the blog section
       revalidatePath('/');
       revalidatePath('/blog');
+      revalidateTag('posts');
       revalidateTag('homepage-posts');
       revalidateTag('published-posts');
     } catch (revalidationError) {
@@ -526,6 +499,7 @@ export async function DELETE(req: NextRequest) {
       // Revalidate the homepage which contains the blog section
       revalidatePath('/');
       revalidatePath('/blog');
+      revalidateTag('posts');
       revalidateTag('homepage-posts');
       revalidateTag('published-posts');
     } catch (revalidationError) {

@@ -78,6 +78,8 @@ export async function POST(req: NextRequest) {
         try {
             revalidatePath('/')
             revalidatePath('/events')
+            revalidateTag('homepage-feed')
+            revalidateTag('announcements')
             revalidateTag('homepage')
         } catch (e) {
             console.warn('Revalidation failed', e)
@@ -119,6 +121,8 @@ export async function PUT(req: NextRequest) {
         try {
             revalidatePath('/')
             revalidatePath('/events')
+            revalidateTag('homepage-feed')
+            revalidateTag('announcements')
             revalidateTag('homepage')
         } catch (e) {
             console.warn('Revalidation failed', e)
@@ -156,6 +160,8 @@ export async function PATCH(req: NextRequest) {
         try {
             revalidatePath('/')
             revalidatePath('/events')
+            revalidateTag('homepage-feed')
+            revalidateTag('announcements')
             revalidateTag('homepage')
         } catch (e) {
             console.warn('Revalidation failed', e)
@@ -189,6 +195,8 @@ export async function DELETE(req: NextRequest) {
         try {
             revalidatePath('/')
             revalidatePath('/events')
+            revalidateTag('homepage-feed')
+            revalidateTag('announcements')
             revalidateTag('homepage')
         } catch (e) {
             console.warn('Revalidation failed', e)

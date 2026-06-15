@@ -1,6 +1,9 @@
 
 import { Metadata } from 'next'
+import { getHomepageAnnouncements, getHomepageEvents } from '@/lib/homepage-feed'
 import EventsPageClient from './EventsPageClient'
+
+export const revalidate = 300
 
 export const metadata: Metadata = {
     title: 'Events & Summits | Top100 Africa Future Leaders',
@@ -19,6 +22,11 @@ export const metadata: Metadata = {
     }
 }
 
-export default function EventsPage() {
-    return <EventsPageClient />
+export default async function EventsPage() {
+    const [initialEvents, initialAnnouncements] = await Promise.all([
+        getHomepageEvents(),
+        getHomepageAnnouncements(),
+    ])
+
+    return <EventsPageClient initialEvents={initialEvents} initialAnnouncements={initialAnnouncements} />
 }

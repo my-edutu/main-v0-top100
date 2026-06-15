@@ -71,7 +71,7 @@ export default function ScholarshipPage() {
                 <p className="text-gray-700 mb-4">
                   Are you a talented student facing financial challenges? Apply for our scholarship to continue your education.
                 </p>
-                <Link href="/apply" className="text-blue-600 font-medium hover:underline">
+                <Link href="/apply/awardee" className="text-blue-600 font-medium hover:underline">
                   Apply Now →
                 </Link>
               </div>

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { format } from "date-fns"
 import { supabase } from "@/lib/supabase/client"
+import type { HomepageAnnouncement, HomepageEvent } from "@/lib/homepage-feed"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -47,6 +48,15 @@ interface CombinedItem {
   updated_at?: string
 }
 
+type EventsPageProps = {
+  initialEvents?: HomepageEvent[]
+  initialAnnouncements?: HomepageAnnouncement[]
+}
+
+const hasLiveSupabaseKey =
+  Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL) &&
+  Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.startsWith("eyJ"))
+
 const formatRange = (startAt: string, endAt: string | null) => {
   try {
     const start = new Date(startAt)
@@ -63,58 +73,85 @@ const formatRange = (startAt: string, endAt: string | null) => {
   }
 }
 
-export default function EventsPage() {
-  const [items, setItems] = useState<CombinedItem[]>([])
-  const [loading, setLoading] = useState(true)
+const buildCombinedItems = (events: HomepageEvent[], announcements: HomepageAnnouncement[]) => {
+  const combined: CombinedItem[] = [
+    ...events.map((event) => ({
+      ...event,
+      type: 'event' as const,
+    })),
+    ...announcements.map((announcement) => ({
+      ...announcement,
+      type: 'announcement' as const,
+      summary: announcement.content,
+      featured_image_url: announcement.image_url,
+      registration_url: announcement.cta_url,
+      registration_label: announcement.cta_label,
+      start_at: announcement.scheduled_at || announcement.created_at || new Date().toISOString(),
+      is_featured: true,
+    })),
+  ]
+
+  return combined
+}
+
+export default function EventsPage({ initialEvents, initialAnnouncements }: EventsPageProps) {
+  const hasInitialData = initialEvents !== undefined && initialAnnouncements !== undefined
+  const [items, setItems] = useState<CombinedItem[]>(() => buildCombinedItems(initialEvents ?? [], initialAnnouncements ?? []))
+  const [loading, setLoading] = useState(!hasInitialData)
   const [selectedItem, setSelectedItem] = useState<CombinedItem | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async ({ withSpinner = true }: { withSpinner?: boolean } = {}) => {
     try {
-      setLoading(true)
+      if (withSpinner) {
+        setLoading(true)
+      }
+
       const [eventsRes, announcementsRes] = await Promise.all([
         fetch("/api/events", { cache: "no-store" }),
         fetch("/api/announcements", { cache: "no-store" })
       ])
 
-      let combined: CombinedItem[] = []
+      let events: HomepageEvent[] = []
+      let announcements: HomepageAnnouncement[] = []
 
       if (eventsRes.ok) {
-        const events = await eventsRes.json()
-        combined = [...combined, ...events.map((e: any) => ({ ...e, type: 'event' }))]
+        const payload = await eventsRes.json()
+        events = Array.isArray(payload) ? payload : []
       }
 
       if (announcementsRes.ok) {
-        const announcements = await announcementsRes.json()
-        combined = [...combined, ...announcements.map((a: any) => ({
-          ...a,
-          type: 'announcement',
-          summary: a.content,
-          featured_image_url: a.image_url,
-          registration_url: a.cta_url,
-          registration_label: a.cta_label,
-          start_at: a.scheduled_at || a.created_at, // Use scheduling/creation date as the primary date for display
-          is_featured: true // Treat all active announcements as featured for the events hub
-        }))]
+        const payload = await announcementsRes.json()
+        announcements = Array.isArray(payload) ? payload : []
       }
 
-      setItems(combined)
+      setItems(buildCombinedItems(events, announcements))
     } catch (error) {
       console.error("Error loading events/announcements", error)
     } finally {
-      setLoading(false)
+      if (withSpinner) {
+        setLoading(false)
+      }
     }
   }, [])
 
   useEffect(() => {
+    if (hasInitialData) {
+      return
+    }
+
     fetchData()
-  }, [fetchData])
+  }, [fetchData, hasInitialData])
 
   useEffect(() => {
+    if (!hasLiveSupabaseKey) {
+      return
+    }
+
     const channel = supabase
       .channel("public-feed")
-      .on("postgres_changes", { event: "*", schema: "public", table: "events" }, () => fetchData())
-      .on("postgres_changes", { event: "*", schema: "public", table: "announcements" }, () => fetchData())
+      .on("postgres_changes", { event: "*", schema: "public", table: "events" }, () => fetchData({ withSpinner: false }))
+      .on("postgres_changes", { event: "*", schema: "public", table: "announcements" }, () => fetchData({ withSpinner: false }))
       .subscribe()
 
     return () => {

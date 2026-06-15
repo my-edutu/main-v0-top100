@@ -1,5 +1,5 @@
 import { cache } from "react"
-import { unstable_cache } from 'next/cache'
+import { unstable_cache } from "next/cache"
 
 import { blogPosts } from "@/content/data/blog-posts"
 import { createAdminClient } from "@/lib/supabase/server"
@@ -9,6 +9,10 @@ import { mapStaticPost, mapSupabaseRecord, mergePosts, ResolvedPost, selectHomep
 export { selectHomepagePosts } from "../posts"
 
 const fetchSupabasePosts = async (): Promise<ResolvedPost[]> => {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return []
+  }
+
   try {
     const supabase = createAdminClient()
     const { data, error } = await supabase.from("posts").select("*").eq("status", "published").order("created_at", { ascending: false })
@@ -28,6 +32,10 @@ const fetchSupabasePosts = async (): Promise<ResolvedPost[]> => {
 }
 
 const fetchSupabasePostBySlug = async (slug: string): Promise<ResolvedPost | null> => {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return null
+  }
+
   try {
     const supabase = createAdminClient()
     const { data, error } = await supabase.from("posts").select("*").eq("slug", slug).eq("status", "published").maybeSingle()
@@ -45,10 +53,16 @@ const fetchSupabasePostBySlug = async (slug: string): Promise<ResolvedPost | nul
 
 const staticPosts = blogPosts.map(mapStaticPost)
 
-export const getAllResolvedPosts = cache(async (): Promise<ResolvedPost[]> => {
-  const supabasePosts = await fetchSupabasePosts()
-  return mergePosts(supabasePosts, staticPosts)
-})
+const getAllResolvedPostsCached = unstable_cache(
+  async (): Promise<ResolvedPost[]> => {
+    const supabasePosts = await fetchSupabasePosts()
+    return mergePosts(supabasePosts, staticPosts)
+  },
+  ["resolved-posts"],
+  { revalidate: 300, tags: ["posts"] },
+)
+
+export const getAllResolvedPosts = cache(async (): Promise<ResolvedPost[]> => getAllResolvedPostsCached())
 
 export const getPublishedPosts = cache(async (): Promise<ResolvedPost[]> => {
   const posts = await getAllResolvedPosts()
@@ -60,15 +74,21 @@ export const getHomepagePosts = cache(async (): Promise<ResolvedPost[]> => {
   return selectHomepagePosts(posts)
 })
 
-export const getPostBySlug = cache(async (slug: string): Promise<ResolvedPost | null> => {
-  const supabasePost = await fetchSupabasePostBySlug(slug)
-  if (supabasePost) {
-    return supabasePost
-  }
+const getPostBySlugCached = unstable_cache(
+  async (slug: string): Promise<ResolvedPost | null> => {
+    const supabasePost = await fetchSupabasePostBySlug(slug)
+    if (supabasePost) {
+      return supabasePost
+    }
 
-  const fallback = staticPosts.find((post) => post.slug === slug)
-  return fallback ?? null
-})
+    const fallback = staticPosts.find((post) => post.slug === slug)
+    return fallback ?? null
+  },
+  ["resolved-post-by-slug"],
+  { revalidate: 300, tags: ["posts"] },
+)
+
+export const getPostBySlug = cache(async (slug: string): Promise<ResolvedPost | null> => getPostBySlugCached(slug))
 
 export const getRelatedPosts = cache(async (slug: string, limit: number = 2): Promise<ResolvedPost[]> => {
   const posts = await getPublishedPosts()

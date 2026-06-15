@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { revalidatePath, revalidateTag } from 'next/cache'
 
 import { requireAdmin } from '@/lib/api/require-admin'
+import { getHomepageEvents } from '@/lib/homepage-feed'
 import { createAdminClient } from '@/lib/supabase/server'
 
 
@@ -150,7 +151,7 @@ export async function GET(req: NextRequest) {
 
   if (error) {
     console.error('Error fetching events:', error)
-    return toJsonResponse({ message: 'Failed to fetch events', error: error.message }, 500)
+    return toJsonResponse(await getHomepageEvents())
   }
 
   return toJsonResponse(data ?? [])
@@ -183,6 +184,7 @@ export async function POST(req: NextRequest) {
       revalidatePath('/')
       revalidatePath('/events')
       revalidatePath('/programs')
+      revalidateTag('homepage-feed')
       revalidateTag('events')
       revalidateTag('homepage')
     } catch (revalidationError) {
@@ -246,6 +248,7 @@ export async function PUT(req: NextRequest) {
       revalidatePath('/')
       revalidatePath('/events')
       revalidatePath('/programs')
+      revalidateTag('homepage-feed')
       revalidateTag('events')
       revalidateTag('homepage')
     } catch (revalidationError) {
@@ -348,6 +351,7 @@ export async function PATCH(req: NextRequest) {
       revalidatePath('/')
       revalidatePath('/events')
       revalidatePath('/programs')
+      revalidateTag('homepage-feed')
       revalidateTag('events')
       revalidateTag('homepage')
     } catch (revalidationError) {
@@ -411,6 +415,7 @@ export async function DELETE(req: NextRequest) {
       revalidatePath('/')
       revalidatePath('/events')
       revalidatePath('/programs')
+      revalidateTag('homepage-feed')
       revalidateTag('events')
       revalidateTag('homepage')
     } catch (revalidationError) {
@@ -424,8 +429,6 @@ export async function DELETE(req: NextRequest) {
     return toJsonResponse({ message: 'Failed to delete event', error: message }, 400)
   }
 }
-
-
 
 
 

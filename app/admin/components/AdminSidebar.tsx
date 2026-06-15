@@ -31,6 +31,7 @@ import { toast } from 'sonner'
 const navItems = [
     { label: 'Overview', href: '/admin', icon: LayoutDashboard },
     { label: 'Awardees', href: '/admin/awardees', icon: Users },
+    { label: 'Member Hub', href: '/admin/member-hub', icon: Bell },
     { label: 'Feature Requests', href: '/admin/feature-requests', icon: Newspaper },
     { label: 'Messages', href: '/admin/messages', icon: Mail },
     { label: 'Notifications', href: '/admin/notifications', icon: Bell },

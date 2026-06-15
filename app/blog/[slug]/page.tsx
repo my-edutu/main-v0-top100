@@ -1,13 +1,11 @@
-import Image from "next/image";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Calendar, Clock } from "lucide-react";
 
+import BlogCover from "@/components/BlogCover";
 import { getPostBySlug, getRelatedPosts } from "@/lib/posts/server";
 import { SimpleBlogCard } from "../SimpleBlogCard";
 import StructuredData from "@/components/StructuredData";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -104,12 +102,12 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
           {/* Image section */}
           <div className="relative h-80 w-full overflow-hidden md:h-96">
-            <Image
-              src={post.coverImage || "/placeholder.svg"}
-              alt={post.title}
-              fill
-              className="object-cover"
+            <BlogCover
+              imageUrl={post.coverImage}
+              title={post.title}
+              className="h-full w-full"
               priority
+              variant="hero"
             />
           </div>
 

@@ -1,6 +1,30 @@
 import { NextRequest } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag } from 'next/cache'
+
+type ExistingAwardee = {
+    id: string
+    slug: string | null
+    headline: string | null
+    tagline: string | null
+    bio: string | null
+    linkedin_post_url?: string | null
+    avatar_url: string | null
+    image_url: string | null
+    social_links: Record<string, unknown> | null
+    metadata: Record<string, unknown> | null
+}
+
+const BIO_UPDATE_LIMIT = 2
+
+function getBioUpdateCount(metadata: Record<string, unknown> | null) {
+    const rawCount = metadata?.bioUpdateCount
+    return typeof rawCount === 'number' && Number.isFinite(rawCount) ? rawCount : 0
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
 
 // Self-service update endpoint - allows awardees to update their own profiles
 // Only specific fields are allowed to be updated
@@ -21,7 +45,7 @@ export async function PUT(request: NextRequest) {
         // First verify the awardee exists
         const { data: existing, error: checkError } = await supabase
             .from('awardees')
-            .select('id, slug')
+            .select('id, slug, headline, tagline, bio, linkedin_post_url, avatar_url, image_url, social_links, metadata')
             .eq('id', id)
             .single()
 
@@ -32,8 +56,31 @@ export async function PUT(request: NextRequest) {
             }, { status: 404 })
         }
 
+        const currentAwardee = existing as ExistingAwardee
+        const hasProfileChange = [
+            headline !== undefined && headline !== currentAwardee.headline,
+            tagline !== undefined && tagline !== currentAwardee.tagline,
+            bio !== undefined && bio !== currentAwardee.bio,
+            linkedin_post_url !== undefined && linkedin_post_url !== currentAwardee.linkedin_post_url,
+            avatar_url !== undefined && avatar_url !== currentAwardee.avatar_url,
+            image_url !== undefined && image_url !== currentAwardee.image_url,
+            social_links !== undefined && JSON.stringify(social_links || {}) !== JSON.stringify(currentAwardee.social_links || {}),
+        ].some(Boolean)
+
+        const existingMetadata = isRecord(currentAwardee.metadata) ? currentAwardee.metadata : {}
+        const bioUpdateCount = getBioUpdateCount(existingMetadata)
+
+        if (hasProfileChange && bioUpdateCount >= BIO_UPDATE_LIMIT) {
+            return Response.json({
+                success: false,
+                message: 'BIO update limit reached. Ask admin to reset your update access.',
+                limit: BIO_UPDATE_LIMIT,
+                used: bioUpdateCount,
+            }, { status: 429 })
+        }
+
         // Only allow updating specific fields (not visibility, featured status, etc.)
-        const updateData: any = {}
+        const updateData: Record<string, unknown> = {}
 
         if (headline !== undefined) updateData.headline = headline
         if (tagline !== undefined) updateData.tagline = tagline
@@ -53,6 +100,12 @@ export async function PUT(request: NextRequest) {
 
         // Add updated_at timestamp
         updateData.updated_at = new Date().toISOString()
+        updateData.metadata = {
+            ...existingMetadata,
+            bioUpdateCount: hasProfileChange ? bioUpdateCount + 1 : bioUpdateCount,
+            bioUpdateLimit: BIO_UPDATE_LIMIT,
+            bioUpdateLastAt: hasProfileChange ? updateData.updated_at : existingMetadata.bioUpdateLastAt,
+        }
 
         // Perform the update
         const { data: updatedAwardee, error: updateError } = await supabase
@@ -71,10 +124,11 @@ export async function PUT(request: NextRequest) {
         }
 
         // Revalidate the awardee's profile page
-        if (existing.slug) {
-            revalidatePath(`/awardees/${existing.slug}`)
+        if (currentAwardee.slug) {
+            revalidatePath(`/awardees/${currentAwardee.slug}`)
         }
         revalidatePath('/awardees')
+        revalidateTag('awardees')
 
         return Response.json({
             success: true,

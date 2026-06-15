@@ -16,10 +16,13 @@ import {
     Filter,
     RefreshCw,
     MailOpen,
-    Building2,
     User,
     Calendar,
-    ExternalLink
+    ExternalLink,
+    Award,
+    Megaphone,
+    Handshake,
+    HeartHandshake
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { toast } from 'sonner';
@@ -31,7 +34,7 @@ interface Message {
     email: string;
     subject: string;
     message: string;
-    type: 'partnership' | 'contact' | 'general';
+    type: 'awardee' | 'ambassador' | 'partnership' | 'volunteer' | 'contact' | 'general';
     status: 'unread' | 'read' | 'replied';
     created_at: string;
     updated_at?: string;
@@ -43,6 +46,7 @@ export default function AdminMessagesPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | 'unread' | 'read' | 'replied'>('all');
+    const [typeFilter, setTypeFilter] = useState<'all' | Message['type']>('all');
 
     const fetchMessages = async () => {
         setIsLoading(true);
@@ -123,16 +127,24 @@ export default function AdminMessagesPage() {
             msg.message.toLowerCase().includes(searchQuery.toLowerCase());
 
         const matchesStatus = statusFilter === 'all' || msg.status === statusFilter;
+        const matchesType = typeFilter === 'all' || msg.type === typeFilter;
 
-        return matchesSearch && matchesStatus;
+        return matchesSearch && matchesStatus && matchesType;
     });
 
     const unreadCount = messages.filter(m => m.status === 'unread').length;
+    const applicationCount = messages.filter(m => ['awardee', 'ambassador', 'partnership', 'volunteer'].includes(m.type)).length;
 
     const getTypeIcon = (type: string) => {
         switch (type) {
+            case 'awardee':
+                return <Award className="h-4 w-4 text-amber-500" />;
+            case 'ambassador':
+                return <Megaphone className="h-4 w-4 text-rose-500" />;
             case 'partnership':
-                return <Building2 className="h-4 w-4 text-orange-500" />;
+                return <Handshake className="h-4 w-4 text-orange-500" />;
+            case 'volunteer':
+                return <HeartHandshake className="h-4 w-4 text-emerald-500" />;
             case 'contact':
                 return <User className="h-4 w-4 text-blue-500" />;
             default:
@@ -142,12 +154,35 @@ export default function AdminMessagesPage() {
 
     const getTypeLabel = (type: string) => {
         switch (type) {
+            case 'awardee':
+                return 'Awardee Application';
+            case 'ambassador':
+                return 'Ambassador Application';
             case 'partnership':
-                return 'Partnership';
+                return 'Partnership Inquiry';
+            case 'volunteer':
+                return 'Volunteer Interest';
             case 'contact':
                 return 'Contact';
             default:
                 return 'General';
+        }
+    };
+
+    const getTypeTone = (type: string) => {
+        switch (type) {
+            case 'awardee':
+                return 'bg-amber-100 text-amber-800';
+            case 'ambassador':
+                return 'bg-rose-100 text-rose-800';
+            case 'partnership':
+                return 'bg-orange-100 text-orange-700';
+            case 'volunteer':
+                return 'bg-emerald-100 text-emerald-800';
+            case 'contact':
+                return 'bg-blue-100 text-blue-700';
+            default:
+                return 'bg-gray-100 text-gray-700';
         }
     };
 
@@ -158,7 +193,7 @@ export default function AdminMessagesPage() {
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
                         <Mail className="h-6 w-6 text-orange-500" />
-                        Messages
+                        Applications & Messages
                         {unreadCount > 0 && (
                             <span className="bg-orange-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
                                 {unreadCount} new
@@ -166,7 +201,7 @@ export default function AdminMessagesPage() {
                         )}
                     </h1>
                     <p className="text-gray-500 text-sm mt-1">
-                        Partnership inquiries and contact messages
+                        Awardee, ambassador, partnership, volunteer, and contact submissions
                     </p>
                 </div>
                 <Button
@@ -217,16 +252,16 @@ export default function AdminMessagesPage() {
                         </div>
                     </CardContent>
                 </Card>
-                <Card className="border-blue-100 bg-blue-50/50">
+                <Card className="border-amber-100 bg-amber-50/50">
                     <CardContent className="p-4 flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                            <Building2 className="h-5 w-5 text-blue-600" />
+                        <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center">
+                            <Award className="h-5 w-5 text-amber-600" />
                         </div>
                         <div>
-                            <p className="text-2xl font-bold text-blue-600">
-                                {messages.filter(m => m.type === 'partnership').length}
+                            <p className="text-2xl font-bold text-amber-600">
+                                {applicationCount}
                             </p>
-                            <p className="text-xs text-gray-500">Partnership</p>
+                            <p className="text-xs text-gray-500">Applications</p>
                         </div>
                     </CardContent>
                 </Card>
@@ -246,6 +281,19 @@ export default function AdminMessagesPage() {
                                 className="pl-9"
                             />
                         </div>
+                        <select
+                            value={typeFilter}
+                            onChange={(e) => setTypeFilter(e.target.value as typeof typeFilter)}
+                            className="px-3 py-2 border rounded-lg text-sm bg-white"
+                        >
+                            <option value="all">All types</option>
+                            <option value="awardee">Awardee</option>
+                            <option value="ambassador">Ambassador</option>
+                            <option value="partnership">Partnership</option>
+                            <option value="volunteer">Volunteer</option>
+                            <option value="contact">Contact</option>
+                            <option value="general">General</option>
+                        </select>
                         <select
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
@@ -320,10 +368,7 @@ export default function AdminMessagesPage() {
                                 <div className="flex items-start justify-between">
                                     <div>
                                         <div className="flex items-center gap-2 mb-2">
-                                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${selectedMessage.type === 'partnership'
-                                                    ? 'bg-orange-100 text-orange-700'
-                                                    : 'bg-blue-100 text-blue-700'
-                                                }`}>
+                                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${getTypeTone(selectedMessage.type)}`}>
                                                 {getTypeLabel(selectedMessage.type)}
                                             </span>
                                             <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${selectedMessage.status === 'unread'

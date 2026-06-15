@@ -6,6 +6,7 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Calendar, MapPin, Clock, ArrowRight, Megaphone, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import type { HomepageAnnouncement, HomepageEvent } from "@/lib/homepage-feed"
 
 interface HubItem {
     id: string
@@ -25,11 +26,70 @@ interface HubItem {
     created_at?: string
 }
 
-export default function EventsHubSection() {
-    const [items, setItems] = useState<HubItem[]>([])
-    const [loading, setLoading] = useState(true)
+type EventsHubSectionProps = {
+    initialEvents?: HomepageEvent[]
+    initialAnnouncements?: HomepageAnnouncement[]
+}
+
+const stripHtml = (value?: string | null) =>
+    value
+        ? value.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim()
+        : null
+
+const buildHubItems = (events: HomepageEvent[], announcements: HomepageAnnouncement[]): HubItem[] => {
+    const hubItems: HubItem[] = [
+        ...events.map((event) => ({
+            id: event.id,
+            type: "event" as const,
+            title: event.title,
+            subtitle: event.summary ?? event.subtitle,
+            content: event.description,
+            start_at: event.start_at,
+            image_url: event.featured_image_url,
+            cta_url: event.registration_url,
+            cta_label: event.registration_label,
+            is_featured: event.is_featured,
+            is_virtual: event.is_virtual,
+            city: event.city,
+            country: event.country,
+            location: event.location,
+            created_at: event.created_at ?? undefined,
+        })),
+        ...announcements.map((announcement) => ({
+            id: announcement.id,
+            type: "announcement" as const,
+            title: announcement.title,
+            subtitle: stripHtml(announcement.content),
+            image_url: announcement.image_url,
+            cta_url: announcement.cta_url || `/announcements/${announcement.id}`,
+            cta_label: announcement.cta_label || "Learn More",
+            is_featured: true,
+            created_at: announcement.created_at ?? undefined,
+        })),
+    ]
+
+    hubItems.sort((a, b) => {
+        if (a.is_featured && !b.is_featured) return -1
+        if (!a.is_featured && b.is_featured) return 1
+
+        const dateA = new Date(a.start_at || a.created_at || 0).getTime()
+        const dateB = new Date(b.start_at || b.created_at || 0).getTime()
+        return dateB - dateA
+    })
+
+    return hubItems.slice(0, 6)
+}
+
+export default function EventsHubSection({ initialEvents, initialAnnouncements }: EventsHubSectionProps) {
+    const hasInitialData = initialEvents !== undefined && initialAnnouncements !== undefined
+    const [items, setItems] = useState<HubItem[]>(() => buildHubItems(initialEvents ?? [], initialAnnouncements ?? []))
+    const [loading, setLoading] = useState(!hasInitialData)
 
     useEffect(() => {
+        if (hasInitialData) {
+            return
+        }
+
         async function fetchData() {
             try {
                 const [eventsRes, announcementsRes] = await Promise.all([
@@ -37,68 +97,20 @@ export default function EventsHubSection() {
                     fetch('/api/announcements', { cache: 'no-store' })
                 ])
 
-                let hubItems: HubItem[] = []
+                let events: HomepageEvent[] = []
+                let announcements: HomepageAnnouncement[] = []
 
                 if (eventsRes.ok) {
-                    const events = await eventsRes.json()
-                    hubItems = [
-                        ...hubItems,
-                        ...events
-                            .filter((e: any) => e.status === 'published' && e.visibility === 'public')
-                            .map((e: any) => ({
-                                id: e.id,
-                                type: 'event' as const,
-                                title: e.title,
-                                subtitle: e.summary,
-                                content: e.description,
-                                start_at: e.start_at,
-                                image_url: e.featured_image_url,
-                                cta_url: e.registration_url,
-                                cta_label: 'Register Now',
-                                is_featured: e.is_featured,
-                                is_virtual: e.is_virtual,
-                                city: e.city,
-                                country: e.country,
-                                location: e.location
-                            }))
-                    ]
+                    const payload = await eventsRes.json()
+                    events = Array.isArray(payload) ? payload : []
                 }
 
                 if (announcementsRes.ok) {
-                    const announcements = await announcementsRes.json()
-                    hubItems = [
-                        ...hubItems,
-                        ...announcements.map((a: any) => {
-                            // Strip HTML tags from content for plain text subtitle
-                            const plainTextContent = a.content
-                                ? a.content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()
-                                : null
-                            return {
-                                id: a.id,
-                                type: 'announcement' as const,
-                                title: a.title,
-                                subtitle: plainTextContent,
-                                image_url: a.image_url,
-                                cta_url: a.cta_url || `/announcements/${a.id}`,
-                                cta_label: a.cta_label || 'Learn More',
-                                is_featured: true,
-                                created_at: a.created_at
-                            }
-                        })
-                    ]
+                    const payload = await announcementsRes.json()
+                    announcements = Array.isArray(payload) ? payload : []
                 }
 
-                // Sort items: Featured first, then by date (upcoming events or recent announcements)
-                hubItems.sort((a, b) => {
-                    if (a.is_featured && !b.is_featured) return -1
-                    if (!a.is_featured && b.is_featured) return 1
-
-                    const dateA = new Date(a.start_at || a.created_at || 0).getTime()
-                    const dateB = new Date(b.start_at || b.created_at || 0).getTime()
-                    return dateB - dateA // Most recent first for mixed hub
-                })
-
-                setItems(hubItems.slice(0, 6)) // Limit to 6 items
+                setItems(buildHubItems(events, announcements))
             } catch (error) {
                 console.error('Error fetching hub data:', error)
             } finally {
@@ -107,7 +119,7 @@ export default function EventsHubSection() {
         }
 
         fetchData()
-    }, [])
+    }, [hasInitialData])
 
     if (loading) return (
         <div className="container py-20 flex justify-center">

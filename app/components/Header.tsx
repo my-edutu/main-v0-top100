@@ -1,11 +1,19 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import Link from "next/link"
+import { useState } from "react"
 import Image from "next/image"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { ChevronDown, Menu } from "lucide-react"
+
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Button } from "@/components/ui/button"
-import { Menu } from "lucide-react"
-import { cn } from "@/lib/utils"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
   Sheet,
   SheetContent,
@@ -13,56 +21,253 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
+import { cn } from "@/lib/utils"
 
-const navItems: Array<{ label: string; shortLabel: string; href?: string; section?: string }> = [
-  { label: "Home", shortLabel: "Home", href: "/" },
-  { label: "Meet the Awardees", shortLabel: "Awardees", href: "/awardees" },
-  { label: "Africa Future Leaders", shortLabel: "Summit", href: "/initiatives/summit" },
-  { label: "Blog", shortLabel: "Blog", href: "/blog" },
-  { label: "Events", shortLabel: "Events", href: "/events" },
-  { label: "Magazine", shortLabel: "Magazine", href: "/magazine" },
-  { label: "Become a Partner", shortLabel: "Partner", href: "/partners" },
-  { label: "Contact", shortLabel: "Contact", section: "contact" },
+type NavItem = {
+  label: string
+  href: string
+}
+
+type NavGroup = {
+  label: string
+  items: NavItem[]
+  tone?: "default" | "cta"
+}
+
+const summitItems: NavItem[] = [
+  {
+    label: "2024 Archive",
+    href: "/initiatives/summit/2024",
+  },
+  {
+    label: "2025 Summit",
+    href: "/initiatives/summit/2025",
+  },
+  {
+    label: "2026 Summit",
+    href: "/initiatives/summit/2026",
+  },
+  {
+    label: "All Initiatives",
+    href: "/initiatives",
+  },
 ]
 
-export default function Header() {
-  const [isScrolled, setIsScrolled] = useState(false)
-  const [isSheetOpen, setIsSheetOpen] = useState(false)
+const eventItems: NavItem[] = [
+  {
+    label: "Events Hub",
+    href: "/events",
+  },
+  {
+    label: "Talk100 Live",
+    href: "/initiatives/talk100-live",
+  },
+  {
+    label: "Opportunities Hub",
+    href: "/initiatives/opportunities",
+  },
+]
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 16)
-    }
+const magazineItems: NavItem[] = [
+  {
+    label: "2024 Edition",
+    href: "/magazine/africa future leaders magazine 2024",
+  },
+  {
+    label: "2025 Edition",
+    href: "/magazine/afl2025",
+  },
+  {
+    label: "All Editions",
+    href: "/magazine",
+  },
+]
 
-    window.addEventListener("scroll", handleScroll)
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
+const partnerItems: NavItem[] = [
+  {
+    label: "Become a Partner",
+    href: "/apply/partnership",
+  },
+  {
+    label: "Join the Network",
+    href: "/join",
+  },
+  {
+    label: "Contact Us",
+    href: "/#contact",
+  },
+]
 
-  const scrollToSection = (sectionId: string) => {
-    const element = document.getElementById(sectionId)
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth" })
-    }
-    setIsSheetOpen(false)
+const isActivePath = (pathname: string, href: string) => {
+  if (href === "/") {
+    return pathname === "/"
   }
 
-  const handleNavigation = (href?: string, section?: string) => {
-    if (section) {
-      scrollToSection(section)
-    }
-    setIsSheetOpen(false)
-  }
+  return pathname === href || pathname.startsWith(`${href}/`)
+}
+
+const groupHasActiveItem = (pathname: string, items: NavItem[]) =>
+  items.some((item) => isActivePath(pathname, item.href))
+
+function DesktopLink({ label, href, pathname }: { label: string; href: string; pathname: string }) {
+  const active = isActivePath(pathname, href)
 
   return (
-    <header
+    <Link
+      href={href}
+      aria-current={active ? "page" : undefined}
       className={cn(
-        "sticky inset-x-0 top-0 z-50 border-b border-transparent transition-all duration-300",
-        isScrolled ? "backdrop-blur-lg bg-gradient-to-r from-yellow-500 to-orange-500 border-yellow-600/60" : "bg-gradient-to-r from-yellow-500 to-orange-500"
+        "inline-flex items-center rounded-full px-3.5 py-2 text-sm font-medium tracking-tight transition-colors",
+        active
+          ? "bg-white/18 text-white"
+          : "text-white/90 hover:bg-white/12 hover:text-white",
       )}
     >
-      <div className="container flex h-16 items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 text-lg font-semibold tracking-tight">
-          <div className="h-14 w-44 lg:w-44 md:w-36">
+      {label}
+    </Link>
+  )
+}
+
+function DesktopDropdown({
+  group,
+  pathname,
+}: {
+  group: NavGroup
+  pathname: string
+}) {
+  const active = groupHasActiveItem(pathname, group.items)
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className={cn(
+            "group inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium tracking-tight transition-colors",
+            active
+              ? "bg-white/18 text-white"
+              : "text-white/90 hover:bg-white/12 hover:text-white",
+          )}
+        >
+          {group.label}
+          <ChevronDown
+            className={cn(
+              "h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180",
+              "text-current",
+            )}
+          />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align="start"
+        sideOffset={10}
+        className="w-52 rounded-[22px] border border-orange-100 bg-white/95 p-1 shadow-[0_20px_45px_-24px_rgba(15,23,42,0.35)] backdrop-blur-md"
+      >
+        {group.items.map((item) => (
+          <DropdownMenuItem key={item.href} asChild className="rounded-xl px-0 py-0 focus:bg-orange-50">
+            <Link href={item.href} className="flex w-full items-center rounded-xl px-3 py-2.5 text-sm font-medium text-slate-900">
+              <span>{item.label}</span>
+            </Link>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+function MobileLink({
+  label,
+  href,
+  pathname,
+  onNavigate,
+}: {
+  label: string
+  href: string
+  pathname: string
+  onNavigate: () => void
+}) {
+  const active = isActivePath(pathname, href)
+
+  return (
+    <Link
+      href={href}
+      onClick={onNavigate}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "block rounded-xl px-4 py-3 text-base font-medium transition-colors",
+        active ? "bg-orange-100 text-orange-700" : "text-slate-800 hover:bg-orange-50 hover:text-orange-700",
+      )}
+    >
+      {label}
+    </Link>
+  )
+}
+
+function MobileAccordionGroup({
+  group,
+  pathname,
+  onNavigate,
+}: {
+  group: NavGroup
+  pathname: string
+  onNavigate: () => void
+}) {
+  const active = groupHasActiveItem(pathname, group.items)
+
+  return (
+    <AccordionItem value={group.label.toLowerCase()}>
+      <AccordionTrigger
+        className={cn(
+          "px-4 py-4 text-base font-medium no-underline hover:no-underline",
+          active ? "text-orange-700" : "text-slate-900",
+        )}
+      >
+        {group.label}
+      </AccordionTrigger>
+      <AccordionContent className="px-2">
+        <div className="space-y-1">
+          {group.items.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={onNavigate}
+              className="block rounded-xl px-4 py-3 transition-colors hover:bg-orange-50"
+            >
+              <div className="text-sm font-medium text-slate-900">{item.label}</div>
+            </Link>
+          ))}
+        </div>
+      </AccordionContent>
+    </AccordionItem>
+  )
+}
+
+export default function Header() {
+  const [isSheetOpen, setIsSheetOpen] = useState(false)
+  const pathname = usePathname()
+
+  const closeSheet = () => setIsSheetOpen(false)
+
+  const desktopGroups: NavGroup[] = [
+    { label: "Summit", items: summitItems },
+    { label: "Events", items: eventItems },
+    { label: "Magazine", items: magazineItems },
+    { label: "Partner", items: partnerItems, tone: "cta" },
+  ]
+
+  const mobileGroups: NavGroup[] = [
+    { label: "Summit", items: summitItems },
+    { label: "Events", items: eventItems },
+    { label: "Magazine", items: magazineItems },
+    { label: "Partner", items: partnerItems },
+  ]
+
+  return (
+    <header className="sticky inset-x-0 top-0 z-50 border-b border-orange-200/50 bg-[linear-gradient(90deg,#f97316_0%,#fb923c_52%,#f59e0b_100%)] text-white shadow-[0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl">
+      <div className="absolute inset-x-0 top-0 h-[2px] bg-white/20" />
+      <div className="container grid h-[4.5rem] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4">
+        <Link href="/" className="flex shrink-0 items-center gap-2">
+          <div className="h-12 w-[9.25rem] sm:w-[10.75rem]">
             <Image
               src="/Top100 Africa Future leaders Logo .png"
               alt="Top100 Africa Future Leaders Logo"
@@ -74,88 +279,73 @@ export default function Header() {
           </div>
         </Link>
 
-        {/* Desktop & Tablet Navigation - hidden on mobile, shown from md breakpoint */}
-        <nav className="hidden items-center gap-1 md:gap-2 lg:gap-4 font-semibold md:flex">
-          {navItems.map((item) =>
-            item.href ? (
-              <Link
-                key={item.label}
-                href={item.href}
-                className="rounded-full px-2 lg:px-3 py-1.5 lg:py-2 text-white transition-colors hover:bg-yellow-400/50 hover:text-white text-xs md:text-xs lg:text-sm whitespace-nowrap"
-              >
-                {/* Short label on tablet (md), full label on desktop (lg+) */}
-                <span className="lg:hidden">{item.shortLabel}</span>
-                <span className="hidden lg:inline">{item.label}</span>
-              </Link>
-            ) : (
-              <button
-                key={item.label}
-                onClick={() => scrollToSection(item.section!)}
-                className="rounded-full px-2 lg:px-3 py-1.5 lg:py-2 text-white transition-colors hover:bg-yellow-400/50 hover:text-white text-xs md:text-xs lg:text-sm whitespace-nowrap"
-              >
-                {/* Short label on tablet (md), full label on desktop (lg+) */}
-                <span className="lg:hidden">{item.shortLabel}</span>
-                <span className="hidden lg:inline">{item.label}</span>
-              </button>
-            )
-          )}
+        <nav className="hidden min-w-0 items-center justify-center gap-1 lg:flex">
+          <DesktopLink label="Home" href="/" pathname={pathname} />
+          <DesktopLink label="Awardees" href="/awardees" pathname={pathname} />
+          {desktopGroups.map((group) => (
+            <DesktopDropdown key={group.label} group={group} pathname={pathname} />
+          ))}
         </nav>
 
-        <div className="flex items-center gap-2">
-          <div className="md:hidden">
+        <div className="ml-auto flex items-center gap-2">
+          <Button
+            asChild
+            className="rounded-full bg-white px-4 py-2 text-xs font-semibold text-orange-700 shadow-none hover:bg-orange-50 sm:px-5 sm:text-sm"
+          >
+            <Link href="/get-started">Get Started</Link>
+          </Button>
+          <div className="lg:hidden">
             <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
               <SheetTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="rounded-2xl border border-yellow-600/80 bg-yellow-200/50 text-white shadow-sm"
-                  aria-label="Toggle navigation menu"
+                  className="rounded-2xl border border-white/20 bg-white/15 text-white shadow-none hover:bg-white/20"
+                  aria-label="Open site navigation"
                 >
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-64 bg-gradient-to-b from-yellow-500 to-orange-500 p-0">
-                <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+              <SheetContent side="right" className="w-[320px] border-orange-100 bg-white p-0 sm:w-[380px]">
+                <SheetTitle className="sr-only">Site Navigation</SheetTitle>
                 <SheetDescription className="sr-only">
-                  Access site navigation links and sections.
+                  Browse the Top100 Africa Future Leaders website sections.
                 </SheetDescription>
-                <div className="flex flex-col h-full pt-6">
-                  {/* Logo in Sheet */}
-                  <div className="px-6 pb-6 flex items-center justify-center border-b border-white/20">
-                    <div className="h-14 w-36">
+                <div className="flex h-full flex-col">
+                  <div className="border-b border-orange-100 bg-gradient-to-r from-orange-50 to-white px-5 py-5">
+                    <div className="h-12 w-44">
                       <Image
                         src="/Top100 Africa Future leaders Logo .png"
                         alt="Top100 Africa Future Leaders Logo"
-                        width={144}
-                        height={56}
+                        width={180}
+                        height={60}
                         className="h-full w-full object-contain"
                       />
                     </div>
+                    <Button asChild className="mt-4 w-full rounded-full bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-3 text-sm font-semibold text-white shadow-none hover:opacity-95">
+                      <Link href="/get-started" onClick={closeSheet}>
+                        Get Started
+                      </Link>
+                    </Button>
                   </div>
 
-                  {/* Navigation Items */}
-                  <nav className="flex flex-col space-y-2 px-4 py-6 flex-grow">
-                    {navItems.map((item) => (
-                      item.href ? (
-                        <Link
-                          key={item.label}
-                          href={item.href}
-                          onClick={() => handleNavigation(item.href, item.section)}
-                          className="flex items-center px-4 py-3 rounded-lg text-base md:text-lg font-medium text-white hover:bg-white/20 transition-all"
-                        >
-                          {item.label}
-                        </Link>
-                      ) : (
-                        <button
-                          key={item.label}
-                          onClick={() => handleNavigation(item.href, item.section)}
-                          className="flex items-center px-4 py-3 rounded-lg text-base md:text-lg font-medium text-white hover:bg-white/20 transition-all text-left"
-                        >
-                          {item.label}
-                        </button>
-                      )
-                    ))}
-                  </nav>
+                  <div className="flex-1 overflow-y-auto px-3 py-4">
+                    <div className="space-y-2">
+                      <MobileLink label="Home" href="/" pathname={pathname} onNavigate={closeSheet} />
+                      <MobileLink label="Awardees" href="/awardees" pathname={pathname} onNavigate={closeSheet} />
+
+                      <Accordion type="multiple" className="w-full">
+                        {mobileGroups.map((group) => (
+                          <MobileAccordionGroup
+                            key={group.label}
+                            group={group}
+                            pathname={pathname}
+                            onNavigate={closeSheet}
+                          />
+                        ))}
+                      </Accordion>
+                    </div>
+                  </div>
                 </div>
               </SheetContent>
             </Sheet>

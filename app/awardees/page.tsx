@@ -1,4 +1,5 @@
 export const runtime = "nodejs";
+export const revalidate = 300;
 import AwardeesPageClient from "./AwardeesPageClient";
 import { getAwardees } from "@/lib/awardees";
 
@@ -8,6 +9,7 @@ export default async function AwardeesPage({
   searchParams?: { 
     page?: string;
     search?: string;
+    year?: string;
   } 
 }) {
   const awardees = await getAwardees();

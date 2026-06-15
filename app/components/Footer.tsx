@@ -42,7 +42,7 @@ export default function Footer() {
               <ul className="space-y-2 md:space-y-3 text-sm">
                 <li><Link href="/africa-future-leaders" className="hover:text-orange-500 transition">About</Link></li>
                 <li><Link href="/contact" className="hover:text-orange-500 transition">Contact</Link></li>
-                <li><Link href="/partners" className="hover:text-orange-500 transition">Partner</Link></li>
+                <li><Link href="/apply/partnership" className="hover:text-orange-500 transition">Partner</Link></li>
               </ul>
             </div>
             <div className="col-span-2 sm:col-span-1">

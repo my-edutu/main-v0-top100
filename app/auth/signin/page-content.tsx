@@ -29,7 +29,7 @@ export default function SignInContent() {
   } | null>(null)
   const router = useRouter()
   const searchParams = useSearchParams()
-  const redirectTo = searchParams.get('from') || searchParams.get('redirect') || '/'
+  const redirectTo = searchParams.get('from') || searchParams.get('redirect') || '/dashboard'
   const reason = searchParams.get('reason')
 
   // Display security messages based on redirect reason
@@ -342,4 +342,3 @@ export default function SignInContent() {
     </div>
   )
 }
-

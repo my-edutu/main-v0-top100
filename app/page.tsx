@@ -3,25 +3,19 @@ import Image from "next/image"
 import { ArrowRight } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-
-// Force dynamic rendering to prevent stale cached data
-export const dynamic = 'force-dynamic'
+import { getHomepagePosts } from "@/lib/posts/server"
+import { getHomepageAnnouncements, getHomepageEvents } from "@/lib/homepage-feed"
 
 import HomePageHeroSection from "./components/HomePageHeroSection"
-import AwardeesSection from "./components/AwardeesSection"
 import HomeFeaturedAwardeesSection from "./components/HomeFeaturedAwardeesSection"
 import BlogSection from "./components/BlogSection"
 import MagazineSection from "./components/MagazineSection"
-import RecentEventsSection from "./components/RecentEventsSection"
-import UpcomingEventsSection from "./components/UpcomingEventsSection"
 import ImpactSection from "./components/ImpactSection"
 import InitiativeCards from "@/components/InitiativeCards"
 import NewsletterForm from "./components/NewsletterForm"
 import TypeEffect from "@/components/TypeEffect"
 import Counter from "@/components/Counter"
 import FAQSection from "./components/FAQSection"
-import AnnouncementsSection from "./components/AnnouncementsSection"
 import EventsHubSection from "./components/EventsHubSection"
 
 type Initiative = {
@@ -77,7 +71,15 @@ const teamMembers: TeamMember[] = [
   },
 ]
 
-export default function HomePage() {
+export const revalidate = 300
+
+export default async function HomePage() {
+  const [homepagePosts, homepageEvents, homepageAnnouncements] = await Promise.all([
+    getHomepagePosts(),
+    getHomepageEvents(),
+    getHomepageAnnouncements(),
+  ])
+
   return (
     <div className="bg-background text-foreground">
       <div className="flex flex-col pb-16 [--section-gap:clamp(1.5rem,5vw,2.5rem)] sm:[--section-gap:clamp(1.75rem,4vw,3rem)] lg:[--section-gap:clamp(2rem,3vw,3.5rem)] xl:[--section-gap:clamp(2rem,2vw,4rem)] gap-[var(--section-gap)]">
@@ -197,8 +199,8 @@ export default function HomePage() {
           </div>
         </section>
 
-        <EventsHubSection />
-        <BlogSection />
+        <EventsHubSection initialEvents={homepageEvents} initialAnnouncements={homepageAnnouncements} />
+        <BlogSection initialPosts={homepagePosts} />
         <HomeFeaturedAwardeesSection />
         <MagazineSection />
 
@@ -292,7 +294,7 @@ export default function HomePage() {
                 </div>
                 <div className="flex justify-center">
                   <Button asChild size="lg">
-                    <Link href="/partners" className="text-base sm:text-lg flex items-center gap-2">
+                    <Link href="/apply/partnership" className="text-base sm:text-lg flex items-center gap-2">
                       <span className="block sm:hidden">Learn more</span>
                       <span className="hidden sm:block">Learn more about partnership opportunities</span>
                       <span className="block sm:hidden">

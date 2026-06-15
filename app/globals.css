@@ -221,6 +221,37 @@ html.light .from-orange-300 {
   animation: glow 4s ease-in-out infinite alternate;
 }
 
+.animate-awardee-marquee {
+  animation: awardee-marquee 24s linear infinite;
+}
+
+.animate-awardee-marquee-reverse {
+  animation: awardee-marquee-reverse 28s linear infinite;
+}
+
+.animate-awardee-marquee:hover,
+.animate-awardee-marquee-reverse:hover {
+  animation-play-state: paused;
+}
+
+@keyframes awardee-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-25%);
+  }
+}
+
+@keyframes awardee-marquee-reverse {
+  from {
+    transform: translateX(-25%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
 @keyframes glow {
   from {
     box-shadow: 0 0 0px white;

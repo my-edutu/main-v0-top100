@@ -1,5 +1,6 @@
 // app/api/awardees/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidatePath, revalidateTag } from 'next/cache'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/api/require-admin'
 
@@ -112,6 +113,10 @@ export async function PATCH(
         { status: 500 }
       )
     }
+
+    revalidatePath('/awardees')
+    revalidatePath(`/awardees/${id}`)
+    revalidateTag('awardees')
 
     return NextResponse.json(data)
   } catch (error) {

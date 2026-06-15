@@ -22,6 +22,9 @@ import { AvatarSVG } from '@/lib/avatars'
 import type { AwardeeDirectoryEntry } from '@/types/profile'
 
 const itemsPerPage = 18
+const hasLiveSupabaseKey =
+  Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL) &&
+  Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.startsWith('eyJ'))
 
 const formatExcerpt = (input?: string | null, length = 160) => {
   if (!input) return ''
@@ -39,6 +42,7 @@ type AwardeesPageProps = {
   initialSearchParams?: {
     page?: string
     search?: string
+    year?: string
   }
 }
 
@@ -48,6 +52,13 @@ const fallbackAvatar = (name: string) => (
   </div>
 )
 
+const parseYearParam = (year?: string | null): number | 'all' => {
+  if (year === 'all') return 'all'
+  if (!year) return 2025
+  const parsed = Number.parseInt(year, 10)
+  return [2024, 2025, 2026].includes(parsed) ? parsed : 2025
+}
+
 
 
 export default function AwardeesPageClient({ initialPeople, initialSearchParams }: AwardeesPageProps) {
@@ -55,7 +66,7 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
     [...initialPeople].sort((a, b) => a.name.localeCompare(b.name)),
   )
   const [searchTerm, setSearchTerm] = useState(initialSearchParams?.search ?? '')
-  const [selectedYear, setSelectedYear] = useState<number | 'all'>(2025)
+  const [selectedYear, setSelectedYear] = useState<number | 'all'>(() => parseYearParam(initialSearchParams?.year))
 
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -64,10 +75,15 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
   const currentPageFromUrl = Number(searchParams.get('page')) || 1
 
   const searchValue = searchParams.get('search') || ''
+  const yearValue = searchParams.get('year')
 
   useEffect(() => {
     setSearchTerm(searchValue)
   }, [searchValue])
+
+  useEffect(() => {
+    setSelectedYear(parseYearParam(yearValue))
+  }, [yearValue])
 
   const updatePage = useCallback(
     (newPage: number) => {
@@ -86,6 +102,24 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
   const createQueryParams = useCallback(() => {
     return new URLSearchParams(Array.from(searchParams.entries()))
   }, [searchParams])
+
+  const updateYear = useCallback(
+    (year: number | 'all') => {
+      setSelectedYear(year)
+      const params = createQueryParams()
+      params.delete('page')
+
+      if (year === 'all') {
+        params.set('year', 'all')
+      } else {
+        params.set('year', year.toString())
+      }
+
+      const query = params.toString()
+      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false })
+    },
+    [createQueryParams, pathname, router],
+  )
 
   useEffect(() => {
     const params = createQueryParams()
@@ -200,6 +234,10 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
   }, [])
 
   useEffect(() => {
+    if (!hasLiveSupabaseKey) {
+      return
+    }
+
     const channel = supabase
       .channel('awardee-directory-stream')
       .on(
@@ -241,7 +279,7 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [fetchLatestEntry, removeAwardeeBySlug, upsertAwardee])
+  }, [fetchLatestEntry, removeAwardeeBySlug, upsertAwardee, hasLiveSupabaseKey])
 
   return (
     <div className="min-h-screen bg-black py-12">
@@ -251,18 +289,18 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
             {selectedYear === 'all' ? 'All Africa Future Leaders' : `Top 100 Africa Future Leaders ${selectedYear}`}
           </h1>
           <p className="text-xl sm:text-2xl text-zinc-400 max-w-3xl mx-auto text-balance">
-            Discover Africa's emerging leaders, innovators, and community builders.
+            Discover Africa&apos;s emerging leaders, innovators, and community builders.
           </p>
         </header>
 
-        <div className="mb-8 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-          <div className="flex flex-col sm:flex-row gap-4 flex-1">
-            <div className="relative flex-1 group">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 group-focus-within:text-orange-500 transition-colors" />
+        <div className="mx-auto mb-8 w-full max-w-5xl px-1 sm:px-0">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center">
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 transition-colors duration-200" />
               <input
                 type="text"
                 placeholder="Search by name, country, field..."
-                className="w-full rounded-2xl border border-zinc-700 bg-zinc-900/50 backdrop-blur-sm pl-10 pr-12 py-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 transition-all shadow-xl"
+                className="h-12 w-full rounded-full border border-zinc-200 bg-white pl-11 pr-16 text-[0.95rem] text-zinc-900 shadow-none transition placeholder:text-zinc-400 focus:border-orange-300 focus:outline-none focus:ring-0"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
               />
@@ -273,30 +311,40 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
                       variant="ghost"
                       size="icon"
                       className={cn(
-                        "h-9 w-9 rounded-xl transition-all",
-                        selectedYear !== 'all' ? "bg-orange-500/10 text-orange-500 hover:bg-orange-500/20" : "text-zinc-500 hover:bg-zinc-800"
+                        "h-8 w-8 rounded-full border border-zinc-200 bg-zinc-50 text-zinc-500 shadow-none transition-colors",
+                        selectedYear !== 'all'
+                          ? "border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-100"
+                          : "hover:bg-zinc-100 hover:text-zinc-700",
                       )}
                     >
-                      <Filter className="h-4 w-4" />
+                      <Filter className="h-3.5 w-3.5" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56 bg-zinc-900 border-zinc-800 text-zinc-300 rounded-2xl p-2 shadow-2xl">
-                    <div className="px-2 py-1.5 text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">Select Cohort</div>
+                  <DropdownMenuContent align="end" className="w-52 rounded-2xl border-zinc-200 bg-white p-2 text-zinc-700 shadow-none">
+                    <div className="px-2 py-1.5 text-[10px] font-black uppercase tracking-[0.28em] text-zinc-400 mb-1">
+                      Select Cohort
+                    </div>
                     <DropdownMenuItem
-                      onClick={() => setSelectedYear('all')}
-                      className={cn("rounded-xl cursor-pointer", selectedYear === 'all' && "bg-orange-500/10 text-orange-500 font-bold")}
+                      onClick={() => updateYear('all')}
+                      className={cn("rounded-xl cursor-pointer", selectedYear === 'all' && "bg-orange-50 text-orange-700 font-semibold")}
                     >
                       View All Years
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      onClick={() => setSelectedYear(2025)}
-                      className={cn("rounded-xl cursor-pointer", selectedYear === 2025 && "bg-orange-500/10 text-orange-500 font-bold")}
+                      onClick={() => updateYear(2026)}
+                      className={cn("rounded-xl cursor-pointer", selectedYear === 2026 && "bg-orange-50 text-orange-700 font-semibold")}
+                    >
+                      2026 Cohort
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => updateYear(2025)}
+                      className={cn("rounded-xl cursor-pointer", selectedYear === 2025 && "bg-orange-50 text-orange-700 font-semibold")}
                     >
                       2025 Cohort
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      onClick={() => setSelectedYear(2024)}
-                      className={cn("rounded-xl cursor-pointer", selectedYear === 2024 && "bg-orange-500/10 text-orange-500 font-bold")}
+                      onClick={() => updateYear(2024)}
+                      className={cn("rounded-xl cursor-pointer", selectedYear === 2024 && "bg-orange-50 text-orange-700 font-semibold")}
                     >
                       2024 Cohort
                     </DropdownMenuItem>
@@ -304,9 +352,9 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
                 </DropdownMenu>
               </div>
             </div>
-          </div>
-          <div className="flex items-center text-xs font-bold text-zinc-500 uppercase tracking-widest">
-            Showing {currentPeople.length} Leaders
+            <div className="flex shrink-0 justify-center text-center text-[10px] font-bold uppercase tracking-[0.32em] text-zinc-500 md:min-w-36 md:justify-end md:text-right">
+              Showing {currentPeople.length} Leaders
+            </div>
           </div>
         </div>
 

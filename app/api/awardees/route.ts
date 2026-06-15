@@ -1,11 +1,12 @@
 // app/api/awardees/route.ts
 import { NextRequest } from 'next/server';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 
 import { promises as fs } from 'fs';
 import path from 'path';
 
 import { requireAdmin } from '@/lib/api/require-admin';
+import { getAwardees } from '@/lib/awardees';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { read, utils } from 'xlsx';
 
@@ -86,6 +87,10 @@ export async function GET(request: NextRequest) {
     return Response.json(data);
   } catch (error) {
     console.error('Error in awardees GET:', error);
+    const fallbackAwardees = await getAwardees();
+    if (fallbackAwardees.length > 0) {
+      return Response.json(fallbackAwardees);
+    }
     return Response.json({
       success: false,
       message: 'Failed to fetch awardees',
@@ -219,6 +224,7 @@ export async function POST(request: NextRequest) {
       // Revalidate pages that display awardee data
       revalidatePath('/');
       revalidatePath('/awardees');
+      revalidateTag('awardees');
 
       return Response.json({
         success: true,
@@ -288,6 +294,7 @@ export async function POST(request: NextRequest) {
       // Revalidate pages that display awardee data
       revalidatePath('/');
       revalidatePath('/awardees');
+      revalidateTag('awardees');
 
       return Response.json({
         success: true,
@@ -410,6 +417,7 @@ export async function PUT(request: NextRequest) {
     // Revalidate pages that display awardee data
     revalidatePath('/');
     revalidatePath('/awardees');
+    revalidateTag('awardees');
     if (updatedAwardee.slug) {
       revalidatePath(`/awardees/${updatedAwardee.slug}`);
     }
@@ -465,6 +473,7 @@ export async function DELETE(request: NextRequest) {
     // Revalidate pages that display awardee data
     revalidatePath('/');
     revalidatePath('/awardees');
+    revalidateTag('awardees');
 
     return Response.json({
       success: true,
@@ -579,4 +588,3 @@ function generateSlug(name: string): string {
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-');
 }
-

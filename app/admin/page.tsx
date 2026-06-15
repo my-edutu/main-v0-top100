@@ -22,7 +22,8 @@ import {
   Eye,
   Star,
   Zap,
-  ArrowUpRight
+  KeyRound,
+  Bell
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -53,6 +54,24 @@ const navigationCards = [
     color: 'orange',
     stats: 'totalAwardees',
     statsLabel: 'Leaders'
+  },
+  {
+    title: 'Invites',
+    description: 'Generate awardee codes and approve member access',
+    href: '/admin/invites',
+    icon: KeyRound,
+    color: 'orange',
+    stats: 'pendingApprovals',
+    statsLabel: 'Pending'
+  },
+  {
+    title: 'Member Hub',
+    description: 'Send dashboard notifications and review member submissions',
+    href: '/admin/member-hub',
+    icon: Bell,
+    color: 'orange',
+    stats: null,
+    statsLabel: 'Hub'
   },
   {
     title: 'Editorial',

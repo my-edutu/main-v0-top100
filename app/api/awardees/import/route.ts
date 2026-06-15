@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidatePath, revalidateTag } from 'next/cache'
 
 import { requireAdmin } from '@/lib/api/require-admin'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
@@ -294,6 +295,10 @@ export async function POST(request: NextRequest) {
 
     const totalProcessed = imported + updated
     const message = `Successfully processed ${totalProcessed} awardee${totalProcessed === 1 ? '' : 's'} (${imported} new, ${updated} updated)`
+
+    revalidatePath('/')
+    revalidatePath('/awardees')
+    revalidateTag('awardees')
 
     return NextResponse.json({
       success: true,

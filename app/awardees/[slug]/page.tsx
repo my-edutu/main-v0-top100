@@ -5,6 +5,7 @@ import type { Metadata } from 'next'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { getAwardees } from '@/lib/awardees'
 import { normalizeAwardeeEntry } from '@/lib/awardees-shared'
 import { fetchAwardeeBySlug } from '@/lib/dashboard/profile-service'
 import { AvatarSVG, flagEmoji } from '@/lib/avatars'
@@ -14,7 +15,7 @@ import LinkedInPostCard from './LinkedInPostCard'
 import StructuredData from '@/components/StructuredData'
 
 export const runtime = 'nodejs'
-export const revalidate = 0
+export const revalidate = 300
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -117,18 +118,10 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
   const awardee = normalizeAwardeeEntry(raw)
 
   // Fetch random other awardees for suggestions
-  const { createClient } = await import('@/lib/supabase/server')
-  const supabase = await createClient(true)
-  const { data: otherAwardees } = await supabase
-    .from('awardee_directory')
-    .select('slug, name, avatar_url, cover_image_url, headline, country')
-    .neq('slug', slug)
-    .eq('is_public', true)
-    .limit(20)
-
-  const randomAwardees = otherAwardees
-    ? otherAwardees.sort(() => Math.random() - 0.5).slice(0, 4)
-    : []
+  const randomAwardees = (await getAwardees())
+    .filter((entry) => entry.slug !== slug && entry.is_public !== false)
+    .sort(() => Math.random() - 0.5)
+    .slice(0, 4)
 
   if (!awardee.slug) {
     notFound()

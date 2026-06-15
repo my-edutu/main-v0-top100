@@ -5,33 +5,13 @@ import Image from 'next/image'
 import { Download } from 'lucide-react'
 import MagazineDownloadModal from '@/app/components/MagazineDownloadModal'
 import NewsletterForm from '@/app/components/NewsletterForm'
-
-const magazines = [
-    {
-        year: 2025,
-        title: 'Africa Future Leaders Magazine 2025',
-        subtitle: 'The New Generation of Changemakers',
-        cover: '/magazine-cover-2025.jpg',
-        downloadLink: 'https://drive.google.com/file/d/1oolBjSOMgFOnyFlDv24cID-VD33BBWru/view?usp=sharing',
-        isLatest: true,
-        description: 'Discover the inspiring stories of the 2025 cohort of Top100 Africa Future Leaders shaping the continent\'s future.',
-    },
-    {
-        year: 2024,
-        title: 'Africa Future Leaders Magazine 2024',
-        subtitle: 'Celebrating Excellence & Innovation',
-        cover: '/top100 magazine.webp',
-        downloadLink: 'https://drive.google.com/file/d/1WDdJnROclQ57fUm_g6Eeu0enKC_DJELS/view',
-        isLatest: false,
-        description: 'Explore the achievements and journeys of the 2024 Top100 Africa Future Leaders cohort.',
-    },
-]
+import { magazineEditions } from '@/lib/magazines'
 
 export default function MagazineClient() {
-    const [selectedMagazine, setSelectedMagazine] = useState<typeof magazines[0] | null>(null)
+    const [selectedMagazine, setSelectedMagazine] = useState<typeof magazineEditions[0] | null>(null)
     const [isModalOpen, setIsModalOpen] = useState(false)
 
-    const handleDownloadClick = (magazine: typeof magazines[0]) => {
+    const handleDownloadClick = (magazine: typeof magazineEditions[0]) => {
         setSelectedMagazine(magazine)
         setIsModalOpen(true)
     }
@@ -52,7 +32,7 @@ export default function MagazineClient() {
                         <span className="text-orange-500">Magazine</span>
                     </h1>
                     <p className="mt-4 text-base sm:text-lg text-gray-600 max-w-xl mx-auto leading-relaxed">
-                        Stories, insights, and profiles of Africa's brightest young minds shaping the future of the continent.
+                        Stories, insights, and profiles of Africa&apos;s brightest young minds shaping the future of the continent.
                     </p>
                 </div>
             </section>
@@ -60,7 +40,7 @@ export default function MagazineClient() {
             {/* All Editions */}
             <section className="max-w-5xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
                 <div className="grid sm:grid-cols-2 gap-8">
-                    {magazines.map((magazine) => (
+                    {magazineEditions.map((magazine) => (
                         <div
                             key={magazine.year}
                             className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100"

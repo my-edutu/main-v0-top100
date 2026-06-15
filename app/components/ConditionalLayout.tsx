@@ -9,7 +9,12 @@ export default function ConditionalLayout({ children }: { children: React.ReactN
   const pathname = usePathname()
 
   // Hide header and footer on admin and auth pages
-  const hideLayout = pathname?.startsWith('/admin') || pathname?.startsWith('/auth') || pathname?.startsWith('/dashboard') || pathname?.startsWith('/edit-profile')
+  const hideLayout =
+    pathname?.startsWith('/admin') ||
+    pathname?.startsWith('/auth') ||
+    pathname?.startsWith('/dashboard') ||
+    pathname?.startsWith('/edit-profile')
+  const hideFooter = hideLayout || pathname?.startsWith('/dashboard')
 
   // Show magazine popup only on homepage
   const isHomepage = pathname === '/'
@@ -20,7 +25,7 @@ export default function ConditionalLayout({ children }: { children: React.ReactN
       <main className="min-h-screen transition-colors duration-300">
         {children}
       </main>
-      {!hideLayout && <Footer />}
+      {!hideFooter && <Footer />}
       {isHomepage && <MagazinePopup />}
     </>
   )

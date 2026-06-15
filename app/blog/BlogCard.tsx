@@ -1,8 +1,6 @@
 import Link from "next/link";
-import Image from "next/image";
-import { Calendar, User } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
+import BlogCover from "@/components/BlogCover";
 import type { ResolvedPost } from "@/lib/posts";
 
 interface BlogCardProps {
@@ -16,11 +14,10 @@ export function BlogCard({ post }: BlogCardProps) {
         <div className="flex flex-col md:flex-row gap-6 p-6">
           {/* Small Image */}
           <div className="relative flex-shrink-0 w-full md:w-48 h-40 md:h-32 rounded-xl overflow-hidden">
-            <Image
-              src={post.coverImage || "/placeholder.svg"}
-              alt={post.title}
-              fill
-              className="object-cover group-hover:scale-105 transition-transform duration-300"
+            <BlogCover
+              imageUrl={post.coverImage}
+              title={post.title}
+              className="transition-transform duration-300 group-hover:scale-105"
               sizes="(max-width: 768px) 100vw, 192px"
             />
           </div>

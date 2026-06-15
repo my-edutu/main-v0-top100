@@ -1,10 +1,10 @@
 "use client"
 
-// Force rebuild to fix module loading issue
 import { useEffect, useMemo, useState, useRef } from "react"
+import Image from "next/image"
+import Link from "next/link"
 import { motion, useMotionValue, useSpring } from "framer-motion"
-import { Button } from "@/components/ui/button"
-import { GraduationCap, Users, Globe } from "lucide-react"
+import { Users, Globe } from "lucide-react"
 
 type FloatingParticleProps = {
   delay: number
@@ -46,7 +46,7 @@ function HomePageHeroSection() {
   const [isHovered, setIsHovered] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
   const [animationClass, setAnimationClass] = useState('')
-  const ref = useRef(null)
+  const ref = useRef<HTMLHeadingElement | null>(null)
 
   useEffect(() => {
     setIsMounted(true)
@@ -72,29 +72,22 @@ function HomePageHeroSection() {
       { threshold: 0.5 } // Trigger when 50% of the element is visible
     )
 
-    if (ref.current) {
-      observer.observe(ref.current)
+    const headingNode = ref.current
+
+    if (headingNode) {
+      observer.observe(headingNode)
     }
 
     return () => {
-      if (ref.current) {
-        observer.unobserve(ref.current)
+      if (headingNode) {
+        observer.unobserve(headingNode)
       }
       clearTimeout(timer)
     }
   }, [])
 
-  const scrollToSection = (sectionId: string) => {
-    if (typeof document !== 'undefined') {
-      const element = document.getElementById(sectionId)
-      if (element) {
-        element.scrollIntoView({ behavior: "smooth" })
-      }
-    }
-  }
-
   return (
-    <section className="relative min-h-[80vh] sm:min-h-[90vh] flex items-center justify-center overflow-hidden bg-white text-slate-900 transition-colors duration-300 dark:bg-slate-950 dark:text-white">
+    <section className="relative flex min-h-[620px] items-center justify-center overflow-hidden bg-white text-slate-900 transition-colors duration-300 sm:min-h-[680px] md:min-h-[720px] lg:min-h-[760px] xl:min-h-[720px] dark:bg-slate-950 dark:text-white">
       <div className="absolute inset-0 overflow-hidden">
         {/* Subtle grid pattern */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
@@ -105,56 +98,47 @@ function HomePageHeroSection() {
         ))}
       </div>
 
-      <motion.div
-        className="relative px-4 py-12 sm:py-16 sm:px-6 md:px-8 z-10 w-full"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.8 }}
-      >
+      <div className="relative z-10 w-full px-4 pb-36 pt-20 sm:px-6 sm:pb-40 sm:pt-24 md:px-8 lg:pb-44 lg:pt-28">
         <div className="mx-auto max-w-6xl md:max-w-7xl">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="mb-12 space-y-8 text-center md:mb-16"
-          >
-            <div className="max-w-4xl mx-auto">
+          <div className="mx-auto max-w-5xl space-y-7 text-center">
+            <div className="mx-auto max-w-5xl space-y-4 sm:space-y-5">
+              <p className="mx-auto w-fit rounded-full border border-orange-200 bg-white/80 px-4 py-2 text-[10px] font-semibold uppercase text-orange-700 shadow-sm backdrop-blur dark:border-white/15 dark:bg-white/10 dark:text-white/80">
+                2026 applications open
+              </p>
+
               <div className="relative overflow-hidden">
                 <h1
                   ref={ref}
-                  className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold leading-tight tracking-tight text-slate-900"
+                  className="text-balance text-4xl font-semibold leading-[0.98] text-slate-950 sm:text-5xl md:text-6xl lg:text-7xl dark:text-white"
                 >
-                  <span className="block relative z-10">
-                    Celebrating Africa&apos;s
-                  </span>
-                  <span className="block mt-1 sm:mt-2 text-slate-900 relative z-10">
-                    Future Leaders
+                  <span className="relative z-10">
+                    Apply for Africa Future Leaders 2026
                   </span>
                 </h1>
                 <span className={`absolute top-0 left-0 w-full h-full bg-gradient-to-r from-orange-500 via-yellow-500 to-orange-500 hero-highlight ${animationClass}`}></span>
               </div>
 
-              <p className="mx-auto mt-4 max-w-3xl text-lg sm:text-xl md:text-2xl leading-relaxed text-slate-900">
-                Top100 Africa Future Leaders identifies, celebrates, and empowers Africa's brightest young leaders across diverse fields and countries.
+              <p className="mx-auto max-w-3xl text-base leading-7 text-slate-700 sm:text-lg sm:leading-8 md:text-xl dark:text-slate-200">
+                For first-class graduates creating measurable impact across Africa. Join a continent-wide network of leaders,
+                mentors, and opportunities across 31 countries.
               </p>
             </div>
             
-            <div className="mt-6 sm:mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+            <div className="mx-auto flex w-full max-w-xl flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center sm:gap-4">
               <motion.div
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="relative w-full sm:w-auto"
+                className="relative w-full sm:w-[230px] md:w-[260px]"
               >
-                <Button
-                  size="sm"
-                  className="group relative overflow-hidden rounded-[10px] bg-gradient-to-r from-orange-500 to-yellow-500 px-4 py-4 text-sm sm:px-16 sm:py-[18px] sm:text-base text-white transition-all hover:from-orange-600 hover:to-yellow-600 w-full sm:w-auto h-12"
+                <Link
+                  href="/apply"
+                  className="group relative flex h-12 w-full items-center justify-center overflow-hidden rounded-[10px] bg-gradient-to-r from-orange-500 to-yellow-500 px-5 text-sm font-semibold text-white transition-all hover:from-orange-600 hover:to-yellow-600 sm:h-14 sm:text-base"
                   onMouseEnter={() => setIsHovered(true)}
                   onMouseLeave={() => setIsHovered(false)}
-                  onClick={() => scrollToSection("awardees")}
                 >
-                  <span className="relative z-10 flex items-center gap-1 sm:gap-2">
-                    <Users className="h-4 w-4 sm:h-4 sm:w-4" />
-                    <span className="text-sm sm:text-lg">Meet the Awardees</span>
+                  <span className="relative z-10 flex items-center justify-center gap-2">
+                    <Users className="h-4 w-4" />
+                    <span>Apply now</span>
                   </span>
                   <motion.span
                     className="absolute inset-0 bg-gradient-to-r from-orange-600 to-yellow-600"
@@ -162,25 +146,21 @@ function HomePageHeroSection() {
                     animate={{ x: isHovered ? "100%" : "-100%" }}
                     transition={{ duration: 0.5 }}
                   />
-                </Button>
+                </Link>
               </motion.div>
 
-              <Button
-                variant="outline"
-                size="sm"
-                className="rounded-[10px] border border-primary px-4 py-4 text-sm sm:px-16 sm:py-[18px] sm:text-base text-primary hover:bg-primary hover:text-primary-foreground w-full sm:w-auto h-12"
-                onClick={() => scrollToSection("magazine")}
+              <Link
+                href="/apply/partnership"
+                className="flex h-12 w-full items-center justify-center gap-2 rounded-[10px] border border-primary px-5 text-sm font-semibold text-primary transition-colors hover:bg-primary hover:text-primary-foreground sm:h-14 sm:w-[230px] sm:text-base md:w-[260px]"
               >
-                <span className="flex items-center gap-1 sm:gap-2">
-                  <GraduationCap className="h-4 w-4 sm:h-4 sm:w-4" />
-                  <span className="text-sm sm:text-lg">View 2025 Magazine</span>
-                </span>
-              </Button>
+                <Globe className="h-4 w-4" />
+                <span>Partner with us</span>
+              </Link>
             </div>
 
-          </motion.div>
+          </div>
         </div>
-      </motion.div>
+      </div>
 
       {/* Animated Flag Slider */}
       <div className="absolute bottom-0 left-0 right-0 z-20">
@@ -233,9 +213,11 @@ function HomePageHeroSection() {
                   className="flex flex-col items-center justify-center mx-6 flex-shrink-0"
                 >
                   <div className="w-8 h-5 mb-1 rounded-sm overflow-hidden border border-gray-200">
-                    <img
+                    <Image
                       src={`https://flagcdn.com/w40/${country.code}.png`}
                       alt={`${country.name} flag`}
+                      width={40}
+                      height={25}
                       className="w-full h-full object-cover"
                     />
                   </div>
@@ -282,9 +264,11 @@ function HomePageHeroSection() {
                   className="flex flex-col items-center justify-center mx-6 flex-shrink-0"
                 >
                   <div className="w-8 h-5 mb-1 rounded-sm overflow-hidden border border-gray-200">
-                    <img
+                    <Image
                       src={`https://flagcdn.com/w40/${country.code}.png`}
                       alt={`${country.name} flag`}
+                      width={40}
+                      height={25}
                       className="w-full h-full object-cover"
                     />
                   </div>
