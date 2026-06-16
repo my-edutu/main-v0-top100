@@ -11,6 +11,7 @@ import HomeFeaturedAwardeesSection from "./components/HomeFeaturedAwardeesSectio
 import BlogSection from "./components/BlogSection"
 import MagazineSection from "./components/MagazineSection"
 import ImpactSection from "./components/ImpactSection"
+import PartnershipHeroSection from "./components/PartnershipHeroSection"
 import InitiativeCards from "@/components/InitiativeCards"
 import NewsletterForm from "./components/NewsletterForm"
 import TypeEffect from "@/components/TypeEffect"
@@ -282,31 +283,7 @@ export default async function HomePage() {
           </div>
         </section>
 
-        <section id="magazine" className="py-3">
-          <div className="container">
-            <div className="grid gap-6 rounded-[32px] border border-border/60 bg-card p-6 sm:p-8 shadow-lg shadow-primary/10">
-              <div className="space-y-4 text-center max-w-3xl mx-auto">
-                <h2 className="text-2xl font-semibold leading-tight sm:text-3xl md:text-[2.25rem] lg:text-[2.5rem] font-sans">
-                  Partner With Us to Empower Africa's Future Leaders
-                </h2>
-                <div className="space-y-4 text-sm text-slate-900 sm:text-base md:text-lg text-center inline-block font-sans leading-relaxed tracking-wide">
-                  <p>Top100 connects brilliant young Africans to life-changing opportunities, scholarships, and leadership development. We're looking to collaborate with organizations that believe in supporting talent, education, and innovation across the continent.</p>
-                </div>
-                <div className="flex justify-center">
-                  <Button asChild size="lg">
-                    <Link href="/apply/partnership" className="text-base sm:text-lg flex items-center gap-2">
-                      <span className="block sm:hidden">Learn more</span>
-                      <span className="hidden sm:block">Learn more about partnership opportunities</span>
-                      <span className="block sm:hidden">
-                        <ArrowRight className="h-4 w-4" />
-                      </span>
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
+        <PartnershipHeroSection />
 
 
 

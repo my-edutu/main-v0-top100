@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { ArrowRight, CheckCircle2 } from 'lucide-react'
 
 import ApplicationForm from '../_components/application-form'
@@ -9,9 +9,6 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { applicationOrder, applicationPrograms, getApplicationProgram, type ApplicationFormProgram } from '@/lib/applications'
 import { cn } from '@/lib/utils'
-
-const PARTNERSHIP_GOOGLE_FORM_URL =
-  process.env.NEXT_PUBLIC_PARTNERSHIP_GOOGLE_FORM_URL || 'https://docs.google.com/forms'
 
 export const generateStaticParams = async () => applicationOrder.map((type) => ({ type }))
 
@@ -30,9 +27,6 @@ export const generateMetadata = async ({ params }: { params: Promise<{ type: str
     description: program.description,
   }
 }
-
-const PARTNERSHIP_BACKGROUND_VIDEO_URL =
-  'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260418_115655_b4d9cd77-feed-43cd-a198-af78ebdf1f7a.mp4'
 
 export default async function ApplicationPage({ params }: { params: Promise<{ type: string }> }) {
   const { type } = await params
@@ -66,40 +60,7 @@ export default async function ApplicationPage({ params }: { params: Promise<{ ty
   }
 
   if (program.type === 'partnership') {
-    return (
-      <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.14),transparent_25%),linear-gradient(180deg,#fffaf4_0%,#ffffff_48%,#f6efe4_100%)]">
-        <section className="container py-14 sm:py-16 lg:py-20">
-          <div className="mx-auto max-w-5xl space-y-10">
-            <div className="relative flex min-h-[360px] items-center justify-center overflow-hidden rounded-[28px] px-4 text-center sm:min-h-[400px] sm:px-6 lg:min-h-[430px]">
-              <video
-                autoPlay
-                muted
-                loop
-                playsInline
-                className="pointer-events-none absolute inset-0 h-full w-full object-cover"
-                aria-hidden="true"
-                preload="metadata"
-              >
-                <source src={PARTNERSHIP_BACKGROUND_VIDEO_URL} type="video/mp4" />
-              </video>
-              <div className="absolute inset-0 bg-black/55" />
-              <div className="relative z-10 flex flex-col items-center gap-8 px-4">
-              <h1 className="max-w-4xl text-balance text-4xl font-semibold tracking-tight text-[#fff] drop-shadow-lg sm:text-5xl lg:text-6xl">
-                {program.title}
-              </h1>
-
-              <Button asChild className={cn('h-14 rounded-full bg-gradient-to-r px-8 text-[#fff] shadow-none hover:opacity-95', program.accent)}>
-                <a href={PARTNERSHIP_GOOGLE_FORM_URL} target="_blank" rel="noreferrer">
-                  Start application
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </a>
-              </Button>
-              </div>
-            </div>
-          </div>
-        </section>
-      </div>
-    )
+    redirect('/#partner-with-us')
   }
 
   return (

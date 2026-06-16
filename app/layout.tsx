@@ -110,11 +110,11 @@ export default function RootLayout({
         <Script
           id="brevo-sdk"
           src="https://cdn.brevo.com/js/sdk-loader.js"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
         />
         <Script
           id="brevo-init"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
           dangerouslySetInnerHTML={{
             __html: `
               if (typeof window !== 'undefined' && window.Brevo) {

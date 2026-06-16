@@ -1,10 +1,10 @@
 "use client"
 
 import { useEffect, useMemo, useState, useRef } from "react"
-import Image from "next/image"
 import Link from "next/link"
 import { motion, useMotionValue, useSpring } from "framer-motion"
 import { Users, Globe } from "lucide-react"
+import { flagEmoji } from "@/lib/avatars"
 
 type FloatingParticleProps = {
   delay: number
@@ -93,7 +93,7 @@ function HomePageHeroSection() {
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
 
         {/* Floating particles - only render on client to avoid hydration mismatch */}
-        {isMounted && [...Array(30)].map((_, index) => (
+        {isMounted && [...Array(18)].map((_, index) => (
           <FloatingParticle key={index} delay={index * 150} />
         ))}
       </div>
@@ -212,14 +212,8 @@ function HomePageHeroSection() {
                   key={index}
                   className="flex flex-col items-center justify-center mx-6 flex-shrink-0"
                 >
-                  <div className="w-8 h-5 mb-1 rounded-sm overflow-hidden border border-gray-200">
-                    <Image
-                      src={`https://flagcdn.com/w40/${country.code}.png`}
-                      alt={`${country.name} flag`}
-                      width={40}
-                      height={25}
-                      className="w-full h-full object-cover"
-                    />
+                  <div className="mb-1 flex h-5 w-8 items-center justify-center rounded-sm border border-gray-200 bg-white text-[14px] leading-none">
+                    <span aria-hidden>{flagEmoji(country.name)}</span>
                   </div>
                   <span className="text-[0.6rem] leading-tight text-slate-700 dark:text-slate-300 text-center max-w-[60px] truncate">
                     {country.name}
@@ -263,14 +257,8 @@ function HomePageHeroSection() {
                   key={`duplicate-${index}`}
                   className="flex flex-col items-center justify-center mx-6 flex-shrink-0"
                 >
-                  <div className="w-8 h-5 mb-1 rounded-sm overflow-hidden border border-gray-200">
-                    <Image
-                      src={`https://flagcdn.com/w40/${country.code}.png`}
-                      alt={`${country.name} flag`}
-                      width={40}
-                      height={25}
-                      className="w-full h-full object-cover"
-                    />
+                  <div className="mb-1 flex h-5 w-8 items-center justify-center rounded-sm border border-gray-200 bg-white text-[14px] leading-none">
+                    <span aria-hidden>{flagEmoji(country.name)}</span>
                   </div>
                   <span className="text-[0.6rem] leading-tight text-slate-700 dark:text-slate-300 text-center max-w-[60px] truncate">
                     {country.name}

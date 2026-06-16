@@ -239,13 +239,13 @@ html.light .from-orange-300 {
     transform: translateX(0);
   }
   to {
-    transform: translateX(-25%);
+    transform: translateX(-50%);
   }
 }
 
 @keyframes awardee-marquee-reverse {
   from {
-    transform: translateX(-25%);
+    transform: translateX(-50%);
   }
   to {
     transform: translateX(0);

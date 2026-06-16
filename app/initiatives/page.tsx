@@ -105,22 +105,24 @@ export default function InitiativesPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 max-w-6xl mx-auto">
-          {initiatives.map((initiative) => (
+        <div className="mx-auto max-w-6xl space-y-6">
+          {initiatives.map((initiative, index) => {
+            const imageFirst = index % 2 === 0
+            return (
             <Link
               key={initiative.title}
               href={initiative.href}
               className={cn(
-                "group relative isolate overflow-hidden rounded-[30px] border border-white/10 bg-slate-950 text-white shadow-[0_20px_70px_-35px_rgba(15,23,42,0.42)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_26px_85px_-36px_rgba(15,23,42,0.52)]",
-                initiative.wide && "md:col-span-2",
+                "group grid overflow-hidden rounded-[32px] border border-orange-100 bg-white shadow-[0_24px_70px_-42px_rgba(15,23,42,0.2)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_28px_85px_-40px_rgba(15,23,42,0.25)]",
+                "lg:grid-cols-[0.96fr_1.04fr]",
               )}
             >
-              <div className="absolute inset-0">
+              <div className={cn("relative min-h-[280px] overflow-hidden bg-slate-950 lg:min-h-[320px]", imageFirst ? "lg:order-1" : "lg:order-2")}>
                 <Image
                   src={initiative.image}
                   alt={initiative.alt}
                   fill
-                  sizes={initiative.wide ? "(max-width: 768px) 100vw, 100vw" : "(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"}
+                  sizes="(max-width: 768px) 100vw, 50vw"
                   className="object-cover transition duration-700 group-hover:scale-[1.04]"
                   style={{ objectPosition: initiative.imagePosition ?? "center" }}
                   priority={initiative.title === "Project100 Scholarship"}
@@ -130,31 +132,34 @@ export default function InitiativesPage() {
                 <div className="absolute inset-x-0 bottom-0 h-[60%] bg-gradient-to-t from-black via-black/80 to-transparent" />
               </div>
 
-              <div className="relative flex min-h-[300px] flex-col justify-between p-6 sm:p-7">
+              <div className={cn("flex min-h-[280px] flex-col justify-between gap-6 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(250,246,238,0.96))] p-6 sm:p-8 lg:min-h-[320px] lg:p-10", imageFirst ? "lg:order-2" : "lg:order-1")}>
                 <div className="flex items-start justify-between gap-4">
-                  <span className="inline-flex rounded-full border border-white/15 bg-black/30 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-white/90 backdrop-blur-md">
+                  <span className="inline-flex rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-orange-700">
                     {initiative.badge}
                   </span>
-                  <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/15 bg-black/30 text-white/90 backdrop-blur-md transition group-hover:bg-white/15">
+                  <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-orange-100 bg-white text-orange-600 shadow-sm transition group-hover:bg-orange-50">
                     <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
                   </span>
                 </div>
 
-                <div className="max-w-xl space-y-3 rounded-[26px] border border-white/10 bg-black/35 p-5 shadow-[0_16px_45px_rgba(0,0,0,0.38)] backdrop-blur-md sm:max-w-lg">
-                  <h2 className="text-2xl font-semibold tracking-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)] sm:text-[2rem]">
+                <div className="space-y-3">
+                  <h2 className="max-w-xl text-2xl font-semibold tracking-tight text-slate-950 sm:text-[2rem]">
                     {initiative.title}
                   </h2>
-                  <p className="max-w-lg text-sm leading-7 text-white/80 sm:text-[0.98rem]">
+                  <p className="max-w-xl text-sm leading-7 text-slate-600 sm:text-[0.98rem]">
                     {initiative.description}
                   </p>
-                  <span className="inline-flex items-center gap-2 text-sm font-semibold text-white/95 underline decoration-white/45 underline-offset-4">
+                </div>
+
+                <div className="flex items-center justify-between gap-3 border-t border-slate-200 pt-5">
+                  <span className="inline-flex items-center gap-2 text-sm font-semibold text-orange-700 underline decoration-orange-200 underline-offset-4">
                     Learn more
                     <ArrowRight className="h-4 w-4" />
                   </span>
                 </div>
               </div>
             </Link>
-          ))}
+          )})}
         </div>
 
 
