@@ -1,44 +1,43 @@
+import { Skeleton } from '@/components/ui/skeleton'
+
 export default function SettingsLoading() {
   return (
-    <div className="space-y-6">
-      {/* Page Header Skeleton */}
-      <div>
-        <div className="h-9 w-48 bg-gray-300 rounded-lg animate-pulse"></div>
-        <div className="h-4 w-64 bg-gray-200 rounded mt-2 animate-pulse"></div>
+    <div
+      className="space-y-6 pt-20 lg:pt-0"
+      aria-busy="true"
+      aria-label="Loading settings"
+    >
+      {/* Header */}
+      <div className="space-y-2">
+        <Skeleton className="h-9 w-48 rounded-lg bg-zinc-200" />
+        <Skeleton className="h-4 w-72 max-w-full rounded bg-zinc-200/70" />
       </div>
 
-      {/* Settings Sections Skeleton */}
+      {/* Tab bar */}
+      <div className="grid grid-cols-4 lg:grid-cols-10 gap-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-9 rounded-lg bg-zinc-200" />
+        ))}
+      </div>
+
+      {/* Settings sections */}
       <div className="space-y-6">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="bg-white rounded-lg shadow p-6">
-            <div className="h-6 w-40 bg-gray-200 rounded mb-4 animate-pulse"></div>
+          <div key={i} className="rounded-xl border border-zinc-200 bg-white p-6 space-y-4">
+            <Skeleton className="h-6 w-40 rounded bg-zinc-200" />
             <div className="space-y-4">
               {Array.from({ length: 3 }).map((_, j) => (
-                <div key={j} className="flex justify-between items-center">
-                  <div className="space-y-2 flex-1">
-                    <div className="h-5 w-48 bg-gray-200 rounded animate-pulse"></div>
-                    <div className="h-4 w-64 bg-gray-200 rounded animate-pulse"></div>
+                <div key={j} className="flex items-center justify-between gap-4">
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-5 w-48 max-w-full rounded bg-zinc-100" />
+                    <Skeleton className="h-4 w-64 max-w-full rounded bg-zinc-100" />
                   </div>
-                  <div className="h-6 w-12 bg-gray-200 rounded-full animate-pulse"></div>
+                  <Skeleton className="h-6 w-12 rounded-full bg-zinc-100 shrink-0" />
                 </div>
               ))}
             </div>
           </div>
         ))}
-      </div>
-
-      {/* Loading Overlay */}
-      <div className="fixed inset-0 bg-black/10 backdrop-blur-sm flex items-center justify-center z-50">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 flex flex-col items-center space-y-4">
-          <div className="relative">
-            <div className="h-16 w-16 border-4 border-gray-200 rounded-full"></div>
-            <div className="h-16 w-16 border-4 border-gray-500 rounded-full border-t-transparent animate-spin absolute top-0 left-0"></div>
-          </div>
-          <div className="text-center">
-            <p className="text-lg font-semibold text-gray-900">Loading Settings...</p>
-            <p className="text-sm text-gray-500 mt-1">Please wait</p>
-          </div>
-        </div>
       </div>
     </div>
   )

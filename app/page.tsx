@@ -126,8 +126,8 @@ export default async function HomePage() {
           {/* Content */}
           <div className="container relative z-10">
             <div className="flex flex-col items-center justify-center text-center text-white">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-extrabold drop-shadow-2xl" style={{ color: '#ffffff', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
+              <div className="flex items-center gap-3 sm:gap-4 mb-4">
+                <div className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-extrabold drop-shadow-2xl" style={{ color: '#ffffff', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
                   10,000
                 </div>
                 <div className="flex flex-col items-start justify-center">
@@ -156,7 +156,7 @@ export default async function HomePage() {
                 These partners amplify our mission, unlocking opportunities and resources for Africa's boldest innovators.
               </p>
             </div>
-            <div className="grid grid-cols-3 gap-6">
+            <div className="grid grid-cols-3 gap-3 sm:gap-6">
               {[
                 { name: "One Young World West & Central Africa", logo: "/3.png", alt: "One Young World West and Central Africa logo" },
                 { name: "ALX Nigeria", logo: "/7.png", alt: "ALX Nigeria logo" },
@@ -164,9 +164,9 @@ export default async function HomePage() {
               ].map((partner, index) => (
                 <div
                   key={index}
-                  className="flex flex-col items-center justify-center p-4 rounded-2xl border border-border/60 bg-card shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+                  className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-2xl border border-border/60 bg-card shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
                 >
-                  <div className="w-full h-24 flex items-center justify-center mb-3">
+                  <div className="w-full h-16 sm:h-24 flex items-center justify-center mb-2 sm:mb-3">
                     <Image
                       src={partner.logo}
                       alt={partner.alt}
@@ -270,6 +270,8 @@ export default async function HomePage() {
                         href={member.linkedIn}
                         target="_blank"
                         rel="noopener noreferrer"
+                        aria-label={`${member.name} on LinkedIn (opens in a new tab)`}
+                        className="block rounded-[12px] sm:rounded-[16px] lg:rounded-[24px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                       >
                         {cardContent}
                       </a>

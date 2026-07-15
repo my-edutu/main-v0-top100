@@ -5,6 +5,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import {
     Mail,
     Inbox,
     CheckCircle2,
@@ -93,8 +104,6 @@ export default function AdminMessagesPage() {
     };
 
     const deleteMessage = async (messageId: string) => {
-        if (!confirm('Are you sure you want to delete this message?')) return;
-
         try {
             const supabase = createClient();
             const { error } = await supabase
@@ -187,7 +196,7 @@ export default function AdminMessagesPage() {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 pt-20 lg:pt-0">
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
@@ -271,7 +280,7 @@ export default function AdminMessagesPage() {
                 {/* Message List */}
                 <div className="lg:col-span-1 space-y-4">
                     {/* Search & Filter */}
-                    <div className="flex gap-2">
+                    <div className="flex flex-col gap-2 sm:flex-row">
                         <div className="relative flex-1">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                             <Input
@@ -279,12 +288,14 @@ export default function AdminMessagesPage() {
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 className="pl-9"
+                                aria-label="Search messages"
                             />
                         </div>
                         <select
+                            aria-label="Filter by type"
                             value={typeFilter}
                             onChange={(e) => setTypeFilter(e.target.value as typeof typeFilter)}
-                            className="px-3 py-2 border rounded-lg text-sm bg-white"
+                            className="flex-1 px-3 py-2 border rounded-lg text-sm bg-white sm:flex-none"
                         >
                             <option value="all">All types</option>
                             <option value="awardee">Awardee</option>
@@ -295,9 +306,10 @@ export default function AdminMessagesPage() {
                             <option value="general">General</option>
                         </select>
                         <select
+                            aria-label="Filter by status"
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-                            className="px-3 py-2 border rounded-lg text-sm bg-white"
+                            className="flex-1 px-3 py-2 border rounded-lg text-sm bg-white sm:flex-none"
                         >
                             <option value="all">All</option>
                             <option value="unread">Unread</option>
@@ -397,14 +409,35 @@ export default function AdminMessagesPage() {
                                             <Reply className="h-4 w-4" />
                                             Reply
                                         </Button>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => deleteMessage(selectedMessage.id)}
-                                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    aria-label="Delete message"
+                                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Delete this message?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        This will permanently remove the message from {selectedMessage.name}. This action cannot be undone.
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                    <AlertDialogAction
+                                                        onClick={() => deleteMessage(selectedMessage.id)}
+                                                        className="bg-red-600 text-white hover:bg-red-700"
+                                                    >
+                                                        Delete
+                                                    </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">

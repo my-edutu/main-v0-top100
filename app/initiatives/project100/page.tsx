@@ -300,9 +300,9 @@ export default function Project100Page() {
                   Collaborate with us to expand our reach and impact in transforming lives through education.
                 </p>
                 <div className="space-y-3">
-                  <button className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-medium py-2 px-6 rounded-lg transition duration-300">
+                  <Link href="/partnership" className="block w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-medium py-2 px-6 rounded-lg transition duration-300 text-center">
                     Partner With Us
-                  </button>
+                  </Link>
                   <Link href="/initiatives/opportunities/scholarships" className="block w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-6 rounded-lg transition duration-300 text-center">
                     Learn More
                   </Link>
@@ -451,6 +451,7 @@ export default function Project100Page() {
               <div className="flex flex-col sm:flex-row gap-2 max-w-md mx-auto">
                 <input
                   type="email"
+                  aria-label="Your email address"
                   placeholder="Your email address"
                   className="flex-grow px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
                 />

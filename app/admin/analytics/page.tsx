@@ -190,9 +190,25 @@ export default function AnalyticsDashboard() {
       </div>
 
       {loading && !data ? (
-        <div className="flex flex-col items-center justify-center py-20 text-zinc-500">
-          <Loader2 className="h-10 w-10 animate-spin text-emerald-500 mb-4" />
-          <p>Loading analytics...</p>
+        <div className="space-y-6 sm:space-y-8" aria-busy="true" aria-label="Loading analytics">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="h-32 rounded-[2rem] bg-white/5 border border-white/5 animate-pulse" />
+            ))}
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="rounded-3xl bg-zinc-900/40 border border-white/5 overflow-hidden">
+                <div className="border-b border-white/5 px-6 py-4 space-y-2">
+                  <div className="h-4 w-40 rounded bg-white/10 animate-pulse" />
+                  <div className="h-3 w-28 rounded bg-white/5 animate-pulse" />
+                </div>
+                <div className="p-6">
+                  <div className="h-[280px] rounded-2xl bg-white/5 animate-pulse" />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       ) : (
         <>

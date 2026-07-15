@@ -20,6 +20,7 @@ export function BottomNav() {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: "easeOut" }}
+      aria-label="Primary"
       className="fixed inset-x-0 bottom-4 z-40 mx-auto flex max-w-md items-center justify-between rounded-3xl border border-border/80 bg-surface/95 px-3 py-2 shadow-lg shadow-primary/10 backdrop-blur-xl md:hidden"
     >
       {navItems.map((item) => {
@@ -33,7 +34,8 @@ export function BottomNav() {
           <Link
             key={item.href}
             href={item.href}
-            className="flex flex-1 flex-col items-center gap-1 rounded-2xl px-2 py-1 text-[0.7rem] font-semibold tracking-wide text-muted-foreground transition-colors hover:text-primary"
+            aria-current={isActive ? "page" : undefined}
+            className="flex flex-1 flex-col items-center gap-1 rounded-2xl px-2 py-1 text-[0.7rem] font-semibold tracking-wide text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           >
             <span
               className={`flex h-10 w-10 items-center justify-center rounded-2xl text-sm transition-colors ${

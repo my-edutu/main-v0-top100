@@ -186,13 +186,20 @@ export default function EditProfileDetailPage({ params }: { params: Promise<{ id
                     body: formData,
                 })
 
-                if (uploadResponse.ok) {
-                    const uploadResult = await uploadResponse.json()
-                    imageUrl = uploadResult.imageUrl
-                } else {
-                    console.error('Image upload failed')
-                }
                 setUploadingImage(false)
+
+                if (!uploadResponse.ok) {
+                    // Saving the rest anyway would quietly keep the old photo
+                    // while reporting success — the awardee would never know
+                    // their new one was dropped.
+                    const uploadError = await uploadResponse.json().catch(() => null)
+                    toast.error(uploadError?.message || 'Could not upload your photo. Please try again.')
+                    setIsSubmitting(false)
+                    return
+                }
+
+                const uploadResult = await uploadResponse.json()
+                imageUrl = uploadResult.imageUrl
             }
 
             const response = await fetch('/api/awardees/self-update', {

@@ -255,15 +255,18 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
                 {/* Social Links */}
                 {socialEntries.map(([key, value]) => {
                   const Icon = socialIconMap[key] ?? Globe
+                  const label = fallbackSocialLabel[key] ?? key
                   return (
                     <Link
                       key={key}
                       href={value}
                       target="_blank"
                       rel="noopener noreferrer"
+                      aria-label={`${awardee.name} on ${label}`}
+                      title={label}
                       className="h-10 w-10 rounded-full bg-gray-100 hover:bg-orange-500 hover:text-white flex items-center justify-center text-gray-600 transition-all duration-300"
                     >
-                      <Icon className="h-4 w-4" />
+                      <Icon className="h-4 w-4" aria-hidden="true" />
                     </Link>
                   )
                 })}

@@ -42,15 +42,15 @@ export default function Footer() {
               <ul className="space-y-2 md:space-y-3 text-sm">
                 <li><Link href="/africa-future-leaders" className="hover:text-orange-500 transition">About</Link></li>
                 <li><Link href="/contact" className="hover:text-orange-500 transition">Contact</Link></li>
-                <li><Link href="/apply/partnership" className="hover:text-orange-500 transition">Partner</Link></li>
+                <li><Link href="/partnership" className="hover:text-orange-500 transition">Partner</Link></li>
               </ul>
             </div>
             <div className="col-span-2 sm:col-span-1">
               <h3 className="text-xs font-bold uppercase tracking-widest text-gray-900 mb-3 md:mb-5">Follow</h3>
-              <div className="flex gap-5">
-                <a href="#" className="text-gray-400 hover:text-orange-500 transition p-2 bg-gray-50 rounded-full hover:bg-orange-50"><Instagram className="h-5 w-5" /></a>
-                <a href="#" className="text-gray-400 hover:text-orange-500 transition p-2 bg-gray-50 rounded-full hover:bg-orange-50"><Twitter className="h-5 w-5" /></a>
-                <a href="#" className="text-gray-400 hover:text-orange-500 transition p-2 bg-gray-50 rounded-full hover:bg-orange-50"><Linkedin className="h-5 w-5" /></a>
+              <div className="flex gap-4">
+                <a href="#" aria-label="Follow us on Instagram" className="inline-flex h-10 w-10 items-center justify-center text-gray-400 hover:text-orange-500 transition bg-gray-50 rounded-full hover:bg-orange-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"><Instagram className="h-5 w-5" aria-hidden="true" /></a>
+                <a href="#" aria-label="Follow us on Twitter" className="inline-flex h-10 w-10 items-center justify-center text-gray-400 hover:text-orange-500 transition bg-gray-50 rounded-full hover:bg-orange-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"><Twitter className="h-5 w-5" aria-hidden="true" /></a>
+                <a href="#" aria-label="Follow us on LinkedIn" className="inline-flex h-10 w-10 items-center justify-center text-gray-400 hover:text-orange-500 transition bg-gray-50 rounded-full hover:bg-orange-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"><Linkedin className="h-5 w-5" aria-hidden="true" /></a>
               </div>
             </div>
           </div>

@@ -1,11 +1,9 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import type { Metadata } from 'next'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, ArrowUpRight, Check } from 'lucide-react'
 
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
 import { applicationEntryCards } from '@/lib/applications'
 
 export const metadata: Metadata = {
@@ -14,149 +12,216 @@ export const metadata: Metadata = {
     'Explore the 2026 application, review flow, and entry routes for the Top100 Africa Future Leaders programme.',
 }
 
+const focusRing =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fcf9f4]'
+
+const heroStats = [
+  { value: '31', label: 'Countries in the network' },
+  { value: '04', label: 'Ways to enter' },
+  { value: '2026', label: 'Cohort now open' },
+]
+
+const reviewSteps = [
+  {
+    title: 'Complete the form',
+    description: 'Pick your route and finish the application in one sitting — profile, story, and contact details.',
+  },
+  {
+    title: 'Team review',
+    description: 'Every submission lands in the Top100 review queue and is checked for fit, context, and completeness.',
+  },
+  {
+    title: 'Hear back',
+    description: 'Approved applicants get onboarding and member access. Partners get a direct reply, not a form receipt.',
+  },
+]
+
 export default function GetStartedPage() {
+  const [featured, ...otherRoutes] = applicationEntryCards
+
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.16),transparent_26%),linear-gradient(180deg,#fffaf4_0%,#ffffff_42%,#f7f3ec_100%)]">
-      <section className="container px-4 py-8 sm:py-12 lg:py-14">
-        <div className="mx-auto max-w-7xl space-y-10">
-          <section className="relative overflow-hidden rounded-[34px] border border-orange-100 bg-white">
-            <div className="absolute inset-0">
-              <div className="pointer-events-none absolute -left-24 top-8 hidden h-56 w-56 rounded-full bg-orange-200/40 blur-3xl sm:block" />
-              <div className="pointer-events-none absolute -right-20 bottom-2 hidden h-64 w-64 rounded-full bg-amber-200/35 blur-3xl sm:block" />
-              <Image
-                src="/african-students-celebrating-achievement-at-gradua.jpg"
-                alt="Top100 Africa Future Leaders magazine cover"
-                fill
-                priority
-                className="object-cover object-center opacity-65 mix-blend-multiply"
-                sizes="100vw"
-              />
-              <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.82)_0%,rgba(255,255,255,0.76)_35%,rgba(247,241,232,0.9)_100%)]" />
+    <div className="min-h-dvh bg-[#fcf9f4] bg-[radial-gradient(70rem_32rem_at_85%_-6rem,rgba(249,115,22,0.10),transparent)]">
+      <div className="container pb-20 pt-10 sm:pb-28 sm:pt-16">
+        <div className="mx-auto max-w-6xl">
+          {/* Hero */}
+          <section className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
+            <div>
+              <p className="inline-flex items-center gap-2.5 text-sm font-semibold text-orange-800">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-500 opacity-60" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-orange-600" />
+                </span>
+                2026 applications are open
+              </p>
+              <h1 className="mt-6 max-w-xl text-balance text-[2.6rem] font-bold leading-[1.05] tracking-[-0.02em] text-slate-950 sm:text-6xl">
+                Start your Top100 application.
+              </h1>
+              <p className="mt-5 max-w-lg text-lg leading-8 text-slate-600">
+                Four routes into a network of young leaders across 31 countries — the awardee cohort, ambassadorship,
+                partnership, and volunteering. Every application is reviewed by a real team.
+              </p>
+
+              <div className="mt-8 flex flex-wrap items-center gap-x-7 gap-y-4">
+                <Button
+                  asChild
+                  className="rounded-full bg-orange-600 px-7 text-white shadow-lg shadow-orange-600/25 hover:bg-orange-700 hover:shadow-orange-700/25"
+                >
+                  <Link href="/apply/awardee">
+                    Apply as an awardee
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+                <Link
+                  href="/partnership"
+                  className={`group inline-flex items-center gap-1.5 rounded-md text-base font-semibold text-slate-900 underline decoration-orange-300 underline-offset-4 transition-colors hover:text-orange-700 ${focusRing}`}
+                >
+                  Partner with us
+                  <ArrowUpRight className="h-4 w-4 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                </Link>
+              </div>
+
+              <dl className="mt-12 grid max-w-md grid-cols-3 gap-6 border-t border-orange-900/10 pt-7">
+                {heroStats.map((stat) => (
+                  <div key={stat.label} className="flex flex-col-reverse">
+                    <dt className="mt-1.5 text-[13px] leading-5 text-slate-500">{stat.label}</dt>
+                    <dd className="text-3xl font-bold tabular-nums tracking-tight text-slate-950">{stat.value}</dd>
+                  </div>
+                ))}
+              </dl>
             </div>
 
-            <div className="relative flex min-h-[420px] items-center px-6 py-10 sm:px-10 sm:py-12 lg:min-h-[460px] lg:px-12 lg:py-14">
-              <div className="mx-auto max-w-4xl space-y-6 text-center">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.34em] text-orange-700">
-                  2026 application open
+            <div className="relative lg:pl-4">
+              <div className="relative overflow-hidden rounded-[2rem] border border-orange-900/10 shadow-[0_32px_80px_-36px_rgba(124,45,18,0.4)]">
+                <Image
+                  src="/african-students-celebrating-achievement-at-gradua.jpg"
+                  alt="Top100 awardees celebrating at a graduation ceremony"
+                  width={1040}
+                  height={780}
+                  priority
+                  sizes="(max-width: 1024px) 100vw, 45vw"
+                  className="aspect-[4/3] w-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-orange-950/40 via-transparent to-transparent" />
+              </div>
+              <div className="absolute -bottom-7 -left-3 hidden max-w-[17rem] rounded-2xl border border-orange-100 bg-white p-5 shadow-xl shadow-orange-900/10 md:block lg:-left-8">
+                <p className="text-2xl font-bold tabular-nums tracking-tight text-slate-950">10,000 by 2030</p>
+                <p className="mt-1.5 text-[13px] leading-5 text-slate-600">
+                  The goal behind the network: ten thousand celebrated young leaders across Africa.
                 </p>
-                <div className="space-y-4">
-                  <h1 className="mx-auto max-w-4xl text-4xl font-semibold leading-[1.03] tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">
-                    The 2026 Top100 Africa Future Leaders application is now open.
-                  </h1>
-                  <p className="mx-auto max-w-2xl text-base leading-8 text-slate-700 sm:text-lg">
-                    Apply to the awardee cohort, complete your BIO, and step into a network that spans 31 countries.
-                    Partners can also join the movement with visibility, funding, and collaboration.
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap justify-center gap-3">
-                  <Button asChild className="h-14 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-6 text-[#fff] shadow-none hover:opacity-95">
-                    <Link href="/apply/awardee">
-                      Apply now
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
-                  </Button>
-                  <Button
-                    asChild
-                    variant="outline"
-                    className="h-14 rounded-full border-orange-200 bg-white px-6 py-6 text-orange-700 hover:bg-orange-50"
-                  >
-                    <Link href="/apply/partnership">Partner with us</Link>
-                  </Button>
-                </div>
               </div>
             </div>
           </section>
 
-          <section className="space-y-7 rounded-[30px] border border-orange-100 bg-white p-6 sm:p-8 lg:p-10">
-            <div className="grid gap-5 border-b border-orange-100 pb-7 lg:grid-cols-[0.82fr_1.18fr] lg:items-end">
-              <div className="space-y-3">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.34em] text-orange-700">Application routes</p>
-                <h2 className="text-balance text-3xl font-semibold leading-[1.05] tracking-tight text-slate-950 sm:text-4xl lg:text-[3.15rem]">
-                  Choose the route that fits how you want to enter Top100.
-                </h2>
-              </div>
-              <p className="max-w-2xl text-sm leading-7 text-slate-600 sm:text-base lg:justify-self-end">
-                A quick view of each route, with image and text side by side so the right path is easier to spot fast.
+          {/* Routes */}
+          <section className="mt-20 sm:mt-28" aria-labelledby="routes-heading">
+            <div className="max-w-2xl">
+              <p className="text-sm font-semibold text-orange-700">Application routes</p>
+              <h2
+                id="routes-heading"
+                className="mt-3 text-balance text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl"
+              >
+                Four ways in. Pick yours.
+              </h2>
+              <p className="mt-3 text-base leading-7 text-slate-600">
+                Most people apply for the awardee cohort — but the network also runs on ambassadors, partners, and
+                volunteers.
               </p>
             </div>
 
-            <div className="grid gap-6">
-              {applicationEntryCards.map((program, index) => {
-                const Icon = program.icon
-                const imageFirst = index % 2 === 0
-                return (
-                  <Link
-                    key={program.type}
-                    href={program.href}
-                    className={cn(
-                      'group grid overflow-hidden rounded-[28px] border border-orange-100 bg-white shadow-[0_24px_70px_-40px_rgba(15,23,42,0.18)] transition-transform duration-300 hover:-translate-y-1',
-                      'lg:grid-cols-[0.95fr_1.05fr]',
-                    )}
-                  >
-                    <div
-                      className={cn('relative min-h-[260px] overflow-hidden bg-slate-950', imageFirst ? 'lg:order-1' : 'lg:order-2')}
+            <Link
+              href={featured.href}
+              className={`group mt-10 grid overflow-hidden rounded-[2rem] border border-orange-900/10 bg-white shadow-sm transition-shadow duration-300 hover:shadow-xl hover:shadow-orange-900/10 lg:grid-cols-[1.1fr_1fr] ${focusRing}`}
+            >
+              <div className="flex flex-col p-7 sm:p-10 lg:p-12">
+                <p className="text-sm font-semibold text-orange-700">Route 01 · {featured.badge}</p>
+                <h3 className="mt-4 max-w-md text-balance text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
+                  {featured.title}
+                </h3>
+                <p className="mt-3 max-w-lg text-base leading-7 text-slate-600">{featured.summary}</p>
+                <ul className="mt-7 space-y-3">
+                  {featured.highlights.map((highlight) => (
+                    <li key={highlight.title} className="flex gap-3 text-sm leading-6 text-slate-600">
+                      <span className="mt-0.5 inline-flex h-5 w-5 flex-none items-center justify-center">
+                        <Check className="h-4 w-4 text-orange-600" strokeWidth={2.5} />
+                      </span>
+                      <span>
+                        <span className="font-semibold text-slate-900">{highlight.title}.</span> {highlight.description}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <span className="mt-8 inline-flex items-center gap-2 text-base font-semibold text-orange-700 lg:mt-auto lg:pt-8">
+                  Apply as an awardee
+                  <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
+                </span>
+              </div>
+              <div className="relative order-first min-h-[16rem] lg:order-none lg:min-h-full">
+                <Image
+                  src={featured.image}
+                  alt={featured.title}
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 45vw"
+                  className="object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+                  style={{ objectPosition: featured.imagePosition }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-orange-950/30 via-transparent to-transparent" />
+                <span className="absolute left-5 top-5 rounded-full bg-white/95 px-3.5 py-1.5 text-xs font-semibold text-orange-800 shadow-sm">
+                  Most applicants start here
+                </span>
+              </div>
+            </Link>
+
+            <div className="mt-6 overflow-hidden rounded-[2rem] border border-orange-900/10 bg-white">
+              <ul className="divide-y divide-orange-900/[0.07]">
+                {otherRoutes.map((program, index) => (
+                  <li key={program.type}>
+                    <Link
+                      href={program.href}
+                      className={`group grid gap-x-6 gap-y-3 p-6 transition-colors duration-200 hover:bg-orange-50/60 sm:grid-cols-[3rem_1fr_auto] sm:items-center sm:p-7 lg:px-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-orange-500/60`}
                     >
-                      <Image
-                        src={program.image}
-                        alt={program.title}
-                        fill
-                        sizes="(max-width: 768px) 100vw, 50vw"
-                        className="object-cover transition duration-700 group-hover:scale-[1.04]"
-                        style={{ objectPosition: program.imagePosition }}
-                        priority={index === 0}
-                      />
-                      <div className={`absolute inset-0 bg-gradient-to-br ${program.accent} opacity-35`} />
-                      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(15,23,42,0.06),rgba(15,23,42,0.28)_48%,rgba(2,6,23,0.92)_100%)]" />
-                      <div className="absolute inset-x-0 bottom-0 p-5">
-                        <span className="inline-flex rounded-full border border-white/15 bg-black/30 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-white/90 backdrop-blur-md">
-                          {program.badge}
-                        </span>
+                      <span className="text-sm font-semibold tabular-nums text-orange-700/50">
+                        0{index + 2}
+                      </span>
+                      <div>
+                        <h3 className="text-lg font-bold tracking-tight text-slate-950">{program.badge}</h3>
+                        <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">{program.summary}</p>
+                        <p className="mt-2 text-[13px] font-medium text-slate-500">{program.showcase.join(' · ')}</p>
                       </div>
-                    </div>
+                      <span className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-orange-900/10 text-orange-700 transition-colors duration-200 group-hover:border-orange-600 group-hover:bg-orange-600 group-hover:text-white">
+                        <ArrowRight className="h-4 w-4" />
+                        <span className="sr-only">Open the {program.badge} application</span>
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </section>
 
-                    <div
-                      className={cn('flex flex-col justify-between gap-6 p-6 sm:p-8 lg:p-10', imageFirst ? 'lg:order-2' : 'lg:order-1')}
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <Badge className="border-orange-200 bg-orange-50 text-orange-700">{program.badge}</Badge>
-                        <span className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-orange-100 bg-white text-orange-600 shadow-sm transition group-hover:bg-orange-50">
-                          <Icon className="h-4 w-4" />
-                        </span>
-                      </div>
-
-                      <div className="space-y-3">
-                        <h3 className="max-w-2xl text-2xl font-semibold tracking-tight text-slate-950 sm:text-[2rem]">
-                          {program.title}
-                        </h3>
-                        <p className="max-w-xl text-sm leading-7 text-slate-600 sm:text-[0.98rem]">{program.summary}</p>
-                        <div className="flex flex-wrap gap-2 pt-1">
-                          {program.showcase.map((item) => (
-                            <span
-                              key={item}
-                              className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-700"
-                            >
-                              {item}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between gap-3 border-t border-black/5 pt-5">
-                        <p className="max-w-xl text-sm leading-6 text-slate-600">Open the route and jump straight to the next step.</p>
-                        <span className="inline-flex items-center gap-2 text-sm font-semibold text-orange-700 underline decoration-orange-200 underline-offset-4 transition group-hover:underline-offset-8">
-                          Start here
-                          <ArrowRight className="h-4 w-4" />
-                        </span>
-                      </div>
-                    </div>
-                  </Link>
-                )
-              })}
+          {/* What happens next */}
+          <section className="mt-20 border-t border-orange-900/10 pt-12 sm:mt-24 sm:pt-14" aria-labelledby="steps-heading">
+            <div className="grid gap-10 lg:grid-cols-[0.9fr_2fr] lg:gap-16">
+              <div>
+                <h2 id="steps-heading" className="text-balance text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
+                  What happens after you submit
+                </h2>
+                <p className="mt-3 text-base leading-7 text-slate-600">
+                  No black box. Each route follows the same three-step review.
+                </p>
+              </div>
+              <ol className="grid gap-8 sm:grid-cols-3">
+                {reviewSteps.map((step, index) => (
+                  <li key={step.title}>
+                    <p className="text-sm font-semibold tabular-nums text-orange-700">Step {index + 1}</p>
+                    <h3 className="mt-2 text-base font-bold tracking-tight text-slate-950">{step.title}</h3>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">{step.description}</p>
+                  </li>
+                ))}
+              </ol>
             </div>
           </section>
         </div>
-      </section>
+      </div>
     </div>
   )
 }

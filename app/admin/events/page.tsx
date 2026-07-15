@@ -17,6 +17,16 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
@@ -242,6 +252,7 @@ function AdminEventsPageContent() {
   const [formState, setFormState] = useState<EventFormState>(defaultForm)
   const [submitting, setSubmitting] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [eventToDelete, setEventToDelete] = useState<AdminEvent | null>(null)
   const [mode, setMode] = useState<"create" | "edit">("create")
   const createFlag = searchParams.get("create")
 
@@ -359,10 +370,8 @@ function AdminEventsPageContent() {
     }
   }
 
-  const handleDelete = async (id: string, title: string) => {
+  const handleDelete = async (id: string) => {
     if (deletingId) return
-    const confirmed = window.confirm(`Delete event "${title}"?`)
-    if (!confirmed) return
 
     try {
       setDeletingId(id)
@@ -388,6 +397,7 @@ function AdminEventsPageContent() {
       toast.error(error instanceof Error ? error.message : "Failed to delete event")
     } finally {
       setDeletingId(null)
+      setEventToDelete(null)
     }
   }
 
@@ -578,8 +588,18 @@ function AdminEventsPageContent() {
               <p>Loading schedule...</p>
             </div>
           ) : events.length === 0 ? (
-            <div className="py-20 text-center text-zinc-500 border-2 border-dashed border-zinc-800 m-8 rounded-2xl">
-              <p>No events scheduled. Launch your first program to get started.</p>
+            <div className="flex flex-col items-center justify-center gap-4 py-16 sm:py-20 text-center text-zinc-500 border-2 border-dashed border-zinc-800 m-4 sm:m-8 rounded-2xl px-6">
+              <div className="h-14 w-14 rounded-2xl bg-amber-500/10 flex items-center justify-center">
+                <CalendarDays className="h-7 w-7 text-amber-500" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-base font-semibold text-zinc-300">No events scheduled yet</p>
+                <p className="text-sm text-zinc-500">Launch your first program to get started.</p>
+              </div>
+              <Button onClick={openCreateDialog} size="sm" className="bg-amber-500 hover:bg-amber-600 text-black font-bold rounded-xl h-10 px-4">
+                <Plus className="mr-1 h-4 w-4" />
+                Create Event
+              </Button>
             </div>
           ) : (
             <div className="relative">
@@ -651,7 +671,7 @@ function AdminEventsPageContent() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right pr-6">
-                          <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex items-center justify-end gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 lg:focus-within:opacity-100 transition-opacity">
                             <Button
                               variant="ghost"
                               size="sm"
@@ -664,6 +684,8 @@ function AdminEventsPageContent() {
                               variant="ghost"
                               size="icon"
                               onClick={() => toggleFeatured(event)}
+                              aria-label={event.is_featured ? `Remove ${event.title} from featured` : `Mark ${event.title} as featured`}
+                              aria-pressed={event.is_featured}
                               className={`h-8 w-8 rounded-lg ${event.is_featured ? 'text-amber-400 bg-amber-400/10' : 'text-zinc-600 hover:text-amber-400'}`}
                             >
                               <Star className={`h-4 w-4 ${event.is_featured ? "fill-current" : ""}`} />
@@ -672,6 +694,7 @@ function AdminEventsPageContent() {
                               variant="ghost"
                               size="icon"
                               onClick={() => openEditDialog(event)}
+                              aria-label={`Edit ${event.title}`}
                               className="h-8 w-8 text-zinc-400 hover:text-white hover:bg-white/10 rounded-lg"
                             >
                               <Edit2 className="h-3.5 w-3.5" />
@@ -679,8 +702,9 @@ function AdminEventsPageContent() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => handleDelete(event.id, event.title)}
+                              onClick={() => setEventToDelete(event)}
                               disabled={deletingId === event.id}
+                              aria-label={`Delete ${event.title}`}
                               className="h-8 w-8 text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg"
                             >
                               {deletingId === event.id ? (
@@ -765,14 +789,16 @@ function AdminEventsPageContent() {
                           variant="ghost"
                           size="icon"
                           onClick={() => toggleFeatured(event)}
-                          className={cn("h-8 w-8 rounded-full", event.is_featured ? "bg-amber-500/20 text-amber-500" : "bg-white/5 text-zinc-600")}
+                          aria-label={event.is_featured ? `Remove ${event.title} from featured` : `Mark ${event.title} as featured`}
+                          aria-pressed={event.is_featured}
+                          className={cn("h-10 w-10 rounded-full", event.is_featured ? "bg-amber-500/20 text-amber-500" : "bg-white/5 text-zinc-600")}
                         >
                           <Star className={cn("h-4 w-4", event.is_featured && "fill-current")} />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => openEditDialog(event)} className="h-8 w-8 rounded-full bg-white/5 text-zinc-400">
+                        <Button variant="ghost" size="icon" onClick={() => openEditDialog(event)} aria-label={`Edit ${event.title}`} className="h-10 w-10 rounded-full bg-white/5 text-zinc-400">
                           <Edit2 className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(event.id, event.title)} disabled={deletingId === event.id} className="h-8 w-8 rounded-full bg-rose-500/10 text-rose-500">
+                        <Button variant="ghost" size="icon" onClick={() => setEventToDelete(event)} disabled={deletingId === event.id} aria-label={`Delete ${event.title}`} className="h-10 w-10 rounded-full bg-rose-500/10 text-rose-500">
                           {deletingId === event.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                         </Button>
                       </div>
@@ -1019,8 +1045,8 @@ function AdminEventsPageContent() {
 
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="ghost" onClick={closeDialog} className="text-zinc-400 hover:text-white hover:bg-white/5">Cancel</Button>
+          <DialogFooter className="gap-2 sm:gap-0 sticky bottom-0 -mx-6 -mb-6 px-6 py-4 bg-zinc-950/95 backdrop-blur-sm border-t border-white/10">
+            <Button variant="ghost" onClick={closeDialog} disabled={submitting} className="text-zinc-400 hover:text-white hover:bg-white/5">Cancel</Button>
             <Button onClick={handleSubmit} disabled={submitting} className="bg-amber-500 hover:bg-amber-600 text-black font-semibold">
               {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {mode === "create" ? "Create Event" : "Save Changes"}
@@ -1028,6 +1054,32 @@ function AdminEventsPageContent() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!eventToDelete} onOpenChange={(open) => { if (!open) setEventToDelete(null) }}>
+        <AlertDialogContent className="bg-zinc-950 border-white/10 text-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">Delete this event?</AlertDialogTitle>
+            <AlertDialogDescription className="text-zinc-400">
+              {eventToDelete
+                ? `"${eventToDelete.title}" will be permanently removed. This action cannot be undone.`
+                : "This action cannot be undone."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-transparent border-white/10 text-zinc-300 hover:bg-white/5 hover:text-white">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { if (eventToDelete) handleDelete(eventToDelete.id) }}
+              disabled={!!deletingId}
+              className="bg-rose-500 hover:bg-rose-600 text-white"
+            >
+              {deletingId ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Delete Event
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

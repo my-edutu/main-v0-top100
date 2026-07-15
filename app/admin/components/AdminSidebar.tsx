@@ -44,9 +44,13 @@ const navItems = [
 ]
 
 
-export default function AdminSidebar() {
+interface AdminSidebarProps {
+    collapsed: boolean
+    onCollapsedChange: (collapsed: boolean) => void
+}
+
+export default function AdminSidebar({ collapsed, onCollapsedChange }: AdminSidebarProps) {
     const pathname = usePathname()
-    const [collapsed, setCollapsed] = useState(false)
     const [mobileOpen, setMobileOpen] = useState(false)
     const [mounted, setMounted] = useState(false)
     const [navLoading, setNavLoading] = useState(false)
@@ -64,12 +68,12 @@ export default function AdminSidebar() {
         const handleEscape = (e: KeyboardEvent) => {
             if (e.key === 'Escape') {
                 if (mobileOpen) setMobileOpen(false)
-                else setCollapsed(true)
+                else onCollapsedChange(true)
             }
         }
         window.addEventListener('keydown', handleEscape)
         return () => window.removeEventListener('keydown', handleEscape)
-    }, [mobileOpen])
+    }, [mobileOpen, onCollapsedChange])
 
     const handleLogout = async () => {
         const supabase = createClient()
@@ -109,6 +113,7 @@ export default function AdminSidebar() {
             {/* Mobile Floating Action Button */}
             <Link
                 href="/admin/awardees/new"
+                aria-label="Add awardee"
                 className="lg:hidden fixed bottom-6 right-6 z-[60] h-14 w-14 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white shadow-xl shadow-orange-300/50 active:scale-95 transition-all hover:scale-105"
             >
                 <Plus className="h-7 w-7" />
@@ -137,27 +142,32 @@ export default function AdminSidebar() {
             >
                 <div className="flex flex-col h-full p-4">
                     {/* Navigation - starts at top */}
-                    <nav className="flex-1 space-y-1 pt-2">
+                    <nav aria-label="Admin" className="flex-1 space-y-1 pt-2 overflow-y-auto overflow-x-hidden">
                         {navItems.map((item) => {
                             const isActive = pathname === item.href || (item.href !== '/admin' && pathname?.startsWith(item.href))
                             const Icon = item.icon
+                            const showLabel = !collapsed || mobileOpen
 
                             return (
                                 <Link
                                     key={item.href}
                                     href={item.href}
+                                    aria-current={isActive ? 'page' : undefined}
+                                    aria-label={showLabel ? undefined : item.label}
+                                    title={showLabel ? undefined : item.label}
                                     onClick={() => {
                                         if (pathname !== item.href) setNavLoading(true)
                                     }}
                                     className={cn(
                                         "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative",
+                                        collapsed && !mobileOpen && "lg:justify-center",
                                         isActive
                                             ? "bg-orange-50 text-orange-600 font-semibold"
                                             : "hover:bg-orange-50/50 hover:text-orange-600"
                                     )}
                                 >
                                     <Icon className={cn("h-5 w-5 shrink-0", isActive ? "text-orange-500" : "text-zinc-400 group-hover:text-orange-500")} />
-                                    {(!collapsed || mobileOpen) && <span className="text-sm truncate">{item.label}</span>}
+                                    {showLabel && <span className="text-sm truncate">{item.label}</span>}
                                     {isActive && (
                                         <div className="absolute left-0 w-1 h-6 bg-orange-500 rounded-r-full" />
                                     )}
@@ -182,7 +192,8 @@ export default function AdminSidebar() {
                     <div className="pt-4 border-t border-orange-100 space-y-1">
                         {/* Collapse Button - Desktop Only */}
                         <button
-                            onClick={() => setCollapsed(!collapsed)}
+                            onClick={() => onCollapsedChange(!collapsed)}
+                            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                             className="hidden lg:flex w-full items-center justify-between px-3 py-2.5 hover:bg-orange-50 text-zinc-500 hover:text-orange-600 transition-colors rounded-xl group"
                         >
                             <div className="flex items-center gap-3">
@@ -194,7 +205,12 @@ export default function AdminSidebar() {
 
                         <button
                             onClick={handleLogout}
-                            className="w-full flex items-center gap-3 px-3 py-2.5 text-rose-500 hover:bg-rose-50 hover:text-rose-600 transition-colors rounded-xl"
+                            aria-label="Log Out"
+                            title={collapsed && !mobileOpen ? 'Log Out' : undefined}
+                            className={cn(
+                                "w-full flex items-center gap-3 px-3 py-2.5 text-rose-500 hover:bg-rose-50 hover:text-rose-600 transition-colors rounded-xl",
+                                collapsed && !mobileOpen && "lg:justify-center"
+                            )}
                         >
                             <LogOut className="h-5 w-5 shrink-0" />
                             {(!collapsed || mobileOpen) && <span className="text-sm">Log Out</span>}

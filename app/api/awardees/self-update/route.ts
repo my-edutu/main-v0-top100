@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
 import { revalidatePath, revalidateTag } from 'next/cache'
+import { getAwardeeSession } from '@/lib/api/awardee-session'
 
 type ExistingAwardee = {
     id: string
@@ -27,18 +28,23 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 // Self-service update endpoint - allows awardees to update their own profiles
-// Only specific fields are allowed to be updated
+// Only specific fields are allowed to be updated.
+//
+// Requires the signed session cookie issued by /api/awardees/verify-email. The
+// awardee id comes from that token and never from the request body, so a
+// verified awardee can only edit their own profile.
 export async function PUT(request: NextRequest) {
     try {
-        const body = await request.json()
-        const { id, headline, tagline, bio, social_links, linkedin_post_url, avatar_url, image_url } = body
-
+        const id = getAwardeeSession(request)
         if (!id) {
             return Response.json({
                 success: false,
-                message: 'Awardee ID is required'
-            }, { status: 400 })
+                message: 'Please verify your email before updating your profile.'
+            }, { status: 401 })
         }
+
+        const body = await request.json()
+        const { headline, tagline, bio, social_links, linkedin_post_url, avatar_url, image_url } = body
 
         const supabase = createAdminClient()
 

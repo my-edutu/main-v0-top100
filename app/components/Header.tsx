@@ -45,7 +45,7 @@ const summitItems: NavItem[] = [
   },
   {
     label: "2026 Summit",
-    href: "/initiatives/summit/2026",
+    href: "/afl2026",
   },
   {
     label: "All Initiatives",
@@ -86,7 +86,7 @@ const magazineItems: NavItem[] = [
 const partnerItems: NavItem[] = [
   {
     label: "Become a Partner",
-    href: "/apply/partnership",
+    href: "/partnership",
   },
   {
     label: "Join the Network",
@@ -117,7 +117,7 @@ function DesktopLink({ label, href, pathname }: { label: string; href: string; p
       href={href}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "inline-flex items-center rounded-full px-3.5 py-2 text-sm font-medium tracking-tight transition-colors",
+        "inline-flex items-center rounded-full px-3.5 py-2 text-sm font-medium tracking-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-orange-500",
         active
           ? "bg-white/18 text-white"
           : "text-white/90 hover:bg-white/12 hover:text-white",
@@ -143,7 +143,7 @@ function DesktopDropdown({
         <button
           type="button"
           className={cn(
-            "group inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium tracking-tight transition-colors",
+            "group inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium tracking-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-orange-500",
             active
               ? "bg-white/18 text-white"
               : "text-white/90 hover:bg-white/12 hover:text-white",
@@ -194,7 +194,7 @@ function MobileLink({
       onClick={onNavigate}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "block rounded-xl px-4 py-3 text-base font-medium transition-colors",
+        "block rounded-xl px-4 py-3 text-base font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2",
         active ? "bg-orange-100 text-orange-700" : "text-slate-800 hover:bg-orange-50 hover:text-orange-700",
       )}
     >
@@ -231,7 +231,7 @@ function MobileAccordionGroup({
               key={item.href}
               href={item.href}
               onClick={onNavigate}
-              className="block rounded-xl px-4 py-3 transition-colors hover:bg-orange-50"
+              className="block rounded-xl px-4 py-3 transition-colors hover:bg-orange-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
             >
               <div className="text-sm font-medium text-slate-900">{item.label}</div>
             </Link>

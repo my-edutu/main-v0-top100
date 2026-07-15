@@ -96,6 +96,7 @@ export default function AwardeesListClient({ awardees, featuredAwardees = [] }: 
             <div style={{ marginBottom: '16px' }}>
                 <input
                     type="text"
+                    aria-label="Search awardees by name, country, or CGPA"
                     placeholder="Search by name, country, or CGPA..."
                     value={searchQuery}
                     onChange={(e) => {

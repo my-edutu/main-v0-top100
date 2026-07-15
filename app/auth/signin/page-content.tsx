@@ -239,7 +239,7 @@ export default function SignInContent() {
             )}
 
             {error && (
-              <div className="rounded-2xl bg-rose-50/50 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-rose-600 border border-rose-100 animate-in shake-200 duration-500">
+              <div role="alert" className="rounded-2xl bg-rose-50/50 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-rose-600 border border-rose-100 animate-in shake-200 duration-500">
                 {error}
               </div>
             )}
@@ -254,6 +254,7 @@ export default function SignInContent() {
                     placeholder="name@top100afl.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    autoComplete="email"
                     className="h-12 bg-white/50 border-zinc-100 rounded-2xl px-4 text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500/50 transition-all duration-300"
                     required
                   />
@@ -272,6 +273,7 @@ export default function SignInContent() {
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    autoComplete="current-password"
                     className="h-12 bg-white/50 border-zinc-100 rounded-2xl px-4 text-sm tracking-widest focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500/50 transition-all duration-300"
                     required
                   />
@@ -279,6 +281,7 @@ export default function SignInContent() {
                     type="button"
                     variant="ghost"
                     size="sm"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
                     className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 p-0 hover:bg-zinc-50 rounded-lg transition-colors"
                     onClick={togglePasswordVisibility}
                   >

@@ -150,7 +150,7 @@ function HomePageHeroSection() {
               </motion.div>
 
               <Link
-                href="/apply/partnership"
+                href="/partnership"
                 className="flex h-12 w-full items-center justify-center gap-2 rounded-[10px] border border-primary px-5 text-sm font-semibold text-primary transition-colors hover:bg-primary hover:text-primary-foreground sm:h-14 sm:w-[230px] sm:text-base md:w-[260px]"
               >
                 <Globe className="h-4 w-4" />
@@ -165,10 +165,10 @@ function HomePageHeroSection() {
       {/* Animated Flag Slider */}
       <div className="absolute bottom-0 left-0 right-0 z-20">
         <div className="bg-white/80 dark:bg-slate-950/80 backdrop-blur-sm w-full">
-          <div className="text-center py-3">
-            <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 font-medium">impact across 31 countries worldwide</p>
+          <div className="text-center py-4">
+            <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 font-medium">impact across 31 countries worldwide</p>
           </div>
-          <div className="relative overflow-hidden w-full pt-2">
+          <div className="relative overflow-hidden w-full pt-2 pb-4">
             <div
               className="flex whitespace-nowrap"
               style={{
@@ -210,12 +210,12 @@ function HomePageHeroSection() {
               ].map((country, index) => (
                 <div
                   key={index}
-                  className="flex flex-col items-center justify-center mx-6 flex-shrink-0"
+                  className="flex flex-col items-center justify-center mx-8 flex-shrink-0"
                 >
-                  <div className="mb-1 flex h-5 w-8 items-center justify-center rounded-sm border border-gray-200 bg-white text-[14px] leading-none">
-                    <span aria-hidden>{flagEmoji(country.name)}</span>
-                  </div>
-                  <span className="text-[0.6rem] leading-tight text-slate-700 dark:text-slate-300 text-center max-w-[60px] truncate">
+                  <span aria-hidden className="mb-1.5 text-3xl sm:text-4xl leading-none">
+                    {flagEmoji(country.name)}
+                  </span>
+                  <span className="text-xs sm:text-sm leading-tight text-slate-700 dark:text-slate-300 text-center max-w-[100px] truncate">
                     {country.name}
                   </span>
                 </div>
@@ -255,12 +255,12 @@ function HomePageHeroSection() {
               ].map((country, index) => (
                 <div
                   key={`duplicate-${index}`}
-                  className="flex flex-col items-center justify-center mx-6 flex-shrink-0"
+                  className="flex flex-col items-center justify-center mx-8 flex-shrink-0"
                 >
-                  <div className="mb-1 flex h-5 w-8 items-center justify-center rounded-sm border border-gray-200 bg-white text-[14px] leading-none">
-                    <span aria-hidden>{flagEmoji(country.name)}</span>
-                  </div>
-                  <span className="text-[0.6rem] leading-tight text-slate-700 dark:text-slate-300 text-center max-w-[60px] truncate">
+                  <span aria-hidden className="mb-1.5 text-3xl sm:text-4xl leading-none">
+                    {flagEmoji(country.name)}
+                  </span>
+                  <span className="text-xs sm:text-sm leading-tight text-slate-700 dark:text-slate-300 text-center max-w-[100px] truncate">
                     {country.name}
                   </span>
                 </div>

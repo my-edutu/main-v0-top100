@@ -1,52 +1,45 @@
+import { Skeleton } from '@/components/ui/skeleton'
+
 export default function AwardeesLoading() {
   return (
-    <div className="space-y-6">
-      {/* Page Header Skeleton */}
-      <div className="flex justify-between items-center">
-        <div>
-          <div className="h-9 w-48 bg-gray-300 rounded-lg animate-pulse"></div>
-          <div className="h-4 w-64 bg-gray-200 rounded mt-2 animate-pulse"></div>
+    <div
+      className="space-y-6 sm:space-y-8 pt-20 lg:pt-0"
+      aria-busy="true"
+      aria-label="Loading awardees"
+    >
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        <div className="space-y-2">
+          <Skeleton className="h-3 w-40 rounded bg-zinc-200/70" />
+          <Skeleton className="h-9 w-64 rounded-lg bg-zinc-200" />
+          <Skeleton className="h-4 w-72 max-w-full rounded bg-zinc-200/70" />
         </div>
-        <div className="flex gap-2">
-          <div className="h-10 w-32 bg-gray-200 rounded-lg animate-pulse"></div>
-          <div className="h-10 w-32 bg-gray-200 rounded-lg animate-pulse"></div>
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-9 w-24 rounded-xl bg-zinc-200" />
+          <Skeleton className="h-9 w-24 rounded-xl bg-zinc-200" />
         </div>
       </div>
 
-      {/* Stats Cards Skeleton */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="h-24 bg-white rounded-lg shadow animate-pulse"></div>
+      {/* KPI tiles */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-28 rounded-2xl bg-zinc-200" />
         ))}
       </div>
 
-      {/* Table Skeleton */}
-      <div className="bg-white rounded-lg shadow">
+      {/* Table / list */}
+      <div className="rounded-xl border border-zinc-200 bg-white overflow-hidden">
         <div className="p-6 space-y-4">
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="flex items-center space-x-4">
-              <div className="h-12 w-12 bg-gray-200 rounded-full animate-pulse"></div>
+            <div key={i} className="flex items-center gap-4">
+              <Skeleton className="h-12 w-12 rounded-full bg-zinc-100 shrink-0" />
               <div className="flex-1 space-y-2">
-                <div className="h-4 bg-gray-200 rounded w-1/4 animate-pulse"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/2 animate-pulse"></div>
+                <Skeleton className="h-4 w-1/4 min-w-24 rounded bg-zinc-100" />
+                <Skeleton className="h-3 w-1/2 rounded bg-zinc-100" />
               </div>
-              <div className="h-8 w-24 bg-gray-200 rounded animate-pulse"></div>
+              <Skeleton className="h-8 w-20 rounded-lg bg-zinc-100 hidden sm:block" />
             </div>
           ))}
-        </div>
-      </div>
-
-      {/* Loading Overlay */}
-      <div className="fixed inset-0 bg-black/10 backdrop-blur-sm flex items-center justify-center z-50">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 flex flex-col items-center space-y-4">
-          <div className="relative">
-            <div className="h-16 w-16 border-4 border-blue-200 rounded-full"></div>
-            <div className="h-16 w-16 border-4 border-blue-500 rounded-full border-t-transparent animate-spin absolute top-0 left-0"></div>
-          </div>
-          <div className="text-center">
-            <p className="text-lg font-semibold text-gray-900">Loading Awardees...</p>
-            <p className="text-sm text-gray-500 mt-1">Please wait</p>
-          </div>
         </div>
       </div>
     </div>

@@ -172,7 +172,7 @@ export const applicationPrograms: Record<ApplicationType, ApplicationProgram> = 
     summary: 'We work with brands, institutions, and impact teams that want to back Africa’s next generation of leaders.',
     description:
       'Use this form to share your partnership idea, sponsorship interest, or collaboration brief. The admin team reviews every inquiry and replies directly.',
-    href: '/apply/partnership',
+    href: '/partnership',
     image: '/Africa Future leaders festival.png',
     imagePosition: 'center center',
     icon: Handshake,

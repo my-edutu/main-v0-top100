@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -121,27 +120,6 @@ const navigationCards = [
 ]
 
 export default function AdminDashboard() {
-  const router = useRouter()
-
-  if (!ADMIN_ENABLED) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-white px-6 text-center">
-        <div className="max-w-xl space-y-4">
-          <h1 className="text-2xl font-semibold text-zinc-800">Admin console offline</h1>
-          <p className="text-sm text-zinc-500">
-            Internal tooling is paused while we prepare the public launch.
-          </p>
-          <a
-            href="/"
-            className="inline-flex items-center justify-center rounded-full bg-orange-500 px-6 py-3 text-sm font-semibold text-white transition hover:bg-orange-600"
-          >
-            Back to homepage
-          </a>
-        </div>
-      </div>
-    )
-  }
-
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<Stats | null>(null)
 
@@ -231,6 +209,25 @@ export default function AdminDashboard() {
     const interval = setInterval(() => fetchStats({ withSpinner: false }), 30000)
     return () => clearInterval(interval)
   }, [fetchStats])
+
+  if (!ADMIN_ENABLED) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-white px-6 text-center">
+        <div className="max-w-xl space-y-4">
+          <h1 className="text-2xl font-semibold text-zinc-800">Admin console offline</h1>
+          <p className="text-sm text-zinc-500">
+            Internal tooling is paused while we prepare the public launch.
+          </p>
+          <a
+            href="/"
+            className="inline-flex items-center justify-center rounded-full bg-orange-500 px-6 py-3 text-sm font-semibold text-white transition hover:bg-orange-600"
+          >
+            Back to homepage
+          </a>
+        </div>
+      </div>
+    )
+  }
 
   const getColorClasses = (color: string) => {
     const colors: Record<string, { card: string; iconBg: string; icon: string; badge: string; border: string; text: string; desc: string; hover: string }> = {
@@ -503,35 +500,6 @@ export default function AdminDashboard() {
 }
 
 // Helper Components
-function QuickStat({ label, value, icon: Icon, loading, color }: any) {
-  const colorMap: Record<string, string> = {
-    orange: 'from-orange-500 to-amber-500 text-white shadow-orange-100',
-    blue: 'from-blue-500 to-cyan-500 text-white shadow-blue-100',
-    purple: 'from-purple-500 to-indigo-500 text-white shadow-purple-100',
-    emerald: 'from-emerald-500 to-teal-500 text-white shadow-emerald-100'
-  }
-  const colorClasses = colorMap[color] || colorMap.orange
-
-  return (
-    <div className={cn("bg-gradient-to-br rounded-3xl p-4 shadow-lg transition-transform hover:-translate-y-1 duration-300 relative overflow-hidden group", colorClasses)}>
-      {/* Background Icon */}
-      <div className="absolute -right-2 -bottom-2 opacity-10 transition-transform duration-500 group-hover:scale-110">
-        <Icon className="h-20 w-20" />
-      </div>
-
-      <div className="relative z-10">
-        <div className="bg-white/20 backdrop-blur-md h-10 w-10 rounded-xl flex items-center justify-center mb-3 border border-white/10">
-          <Icon className="h-5 w-5 text-white" />
-        </div>
-        <div className="text-2xl font-bold">
-          {loading ? <div className="h-7 w-12 bg-white/20 rounded animate-pulse" /> : value}
-        </div>
-        <div className="text-[10px] font-bold uppercase tracking-wider opacity-80">{label}</div>
-      </div>
-    </div>
-  )
-}
-
 function ActivityItem({ title, description, time, icon: Icon, color }: any) {
   const colorMap: Record<string, string> = {
     orange: 'bg-orange-50 text-orange-500',

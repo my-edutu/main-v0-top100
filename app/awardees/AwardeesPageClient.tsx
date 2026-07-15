@@ -297,7 +297,11 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
           <div className="flex flex-col gap-3 md:flex-row md:items-center">
             <div className="relative flex-1">
               <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 transition-colors duration-200" />
+              <label htmlFor="awardee-search" className="sr-only">
+                Search awardees by name, country, or field
+              </label>
               <input
+                id="awardee-search"
                 type="text"
                 placeholder="Search by name, country, field..."
                 className="h-12 w-full rounded-full border border-zinc-200 bg-white pl-11 pr-16 text-[0.95rem] text-zinc-900 shadow-none transition placeholder:text-zinc-400 focus:border-orange-300 focus:outline-none focus:ring-0"
@@ -310,6 +314,7 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
                     <Button
                       variant="ghost"
                       size="icon"
+                      aria-label={`Filter by cohort${selectedYear !== 'all' ? ` (${selectedYear})` : ''}`}
                       className={cn(
                         "h-8 w-8 rounded-full border border-zinc-200 bg-zinc-50 text-zinc-500 shadow-none transition-colors",
                         selectedYear !== 'all'

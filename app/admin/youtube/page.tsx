@@ -21,19 +21,32 @@ import {
   CardTitle 
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { 
-  Plus, 
-  Edit, 
-  Trash2, 
-  ExternalLink, 
-  Calendar, 
+import {
+  Plus,
+  Edit,
+  Trash2,
+  ExternalLink,
+  Calendar,
   Loader2,
   Play,
   BarChart3,
   TrendingUp,
   Clock,
-  Eye
+  Eye,
+  Youtube as YoutubeIcon
 } from 'lucide-react';
 
 interface YouTubeVideo {
@@ -65,6 +78,8 @@ export default function YouTubeManagement() {
   });
   const [isAdding, setIsAdding] = useState(false);
   const [stats, setStats] = useState<Stats | null>(null);
+  const [videoToDelete, setVideoToDelete] = useState<YouTubeVideo | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchYouTubeVideos();
@@ -179,19 +194,18 @@ export default function YouTubeManagement() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this YouTube video?')) return;
-
     try {
+      setDeletingId(id);
       toast.loading('Deleting YouTube video...', { id: `delete-${id}` });
-      
+
       const response = await fetch(`/api/youtube?id=${id}`, {
         method: 'DELETE'
       });
-      
+
       if (!response.ok) throw new Error('Failed to delete video');
-      
+
       const result = await response.json();
-      
+
       if (result.success) {
         // Refresh the video list
         await fetchYouTubeVideos();
@@ -202,6 +216,9 @@ export default function YouTubeManagement() {
     } catch (error) {
       console.error('Error deleting YouTube video:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to delete YouTube video', { id: `delete-${id}` });
+    } finally {
+      setDeletingId(null);
+      setVideoToDelete(null);
     }
   };
 
@@ -228,16 +245,16 @@ export default function YouTubeManagement() {
   // In production, implement proper auth check
 
   return (
-    <div className="container mx-auto py-10">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-red-500 to-orange-500 bg-clip-text text-transparent">
+    <div className="container mx-auto py-6 sm:py-10 pt-20 lg:pt-6 space-y-8">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-red-500 to-orange-500 bg-clip-text text-transparent">
           YouTube Management
         </h1>
-        <p className="text-muted-foreground">Manage YouTube links displayed on the site</p>
+        <p className="text-sm text-muted-foreground">Manage YouTube links displayed on the site</p>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card className="bg-gradient-to-br from-red-500 to-red-600 text-white hover:shadow-lg transition-shadow">
           <CardHeader className="pb-2">
             <div className="flex items-center">
@@ -319,61 +336,133 @@ export default function YouTubeManagement() {
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="flex justify-center items-center py-10">
-                <Loader2 className="h-8 w-8 animate-spin" />
+              <div className="space-y-3">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-4 rounded-lg border p-3">
+                    <Skeleton className="h-12 w-20 shrink-0 rounded" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-3 w-1/3" />
+                    </div>
+                    <Skeleton className="h-8 w-16 shrink-0 rounded" />
+                  </div>
+                ))}
+              </div>
+            ) : videos.length === 0 ? (
+              <div className="flex flex-col items-center justify-center gap-3 py-14 text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500/10">
+                  <YoutubeIcon className="h-7 w-7 text-red-500" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-base font-semibold">No videos yet</p>
+                  <p className="text-sm text-muted-foreground">Add your first YouTube video using the form.</p>
+                </div>
               </div>
             ) : (
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Thumbnail</TableHead>
-                      <TableHead>Title</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Views</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {videos.map((video) => (
-                      <TableRow key={video.id}>
-                        <TableCell>
-                          <img 
-                            src={getYouTubeThumbnail(video.videoId)} 
-                            alt={video.title} 
-                            className="w-16 h-12 object-cover rounded"
-                          />
-                        </TableCell>
-                        <TableCell className="font-medium">{video.title}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">{video.date}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          {video.views?.toLocaleString() || 'N/A'}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex space-x-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => window.open(`https://www.youtube.com/watch?v=${video.videoId}`, '_blank')}
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleDelete(video.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
+              <>
+                {/* Desktop Table */}
+                <div className="hidden md:block rounded-md border overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Thumbnail</TableHead>
+                        <TableHead>Title</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Views</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {videos.map((video) => (
+                        <TableRow key={video.id}>
+                          <TableCell>
+                            <img
+                              src={getYouTubeThumbnail(video.videoId)}
+                              alt={`Thumbnail for ${video.title}`}
+                              loading="lazy"
+                              width={64}
+                              height={48}
+                              className="w-16 h-12 object-cover rounded"
+                            />
+                          </TableCell>
+                          <TableCell className="font-medium max-w-[240px] truncate">{video.title}</TableCell>
+                          <TableCell>
+                            <Badge variant="secondary">{video.date || '—'}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            {video.views?.toLocaleString() || 'N/A'}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                aria-label={`Open ${video.title} on YouTube`}
+                                onClick={() => window.open(`https://www.youtube.com/watch?v=${video.videoId}`, '_blank')}
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                aria-label={`Delete ${video.title}`}
+                                disabled={deletingId === video.id}
+                                onClick={() => setVideoToDelete(video)}
+                              >
+                                {deletingId === video.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Mobile Cards */}
+                <div className="md:hidden space-y-3">
+                  {videos.map((video) => (
+                    <div key={video.id} className="flex gap-3 rounded-xl border p-3">
+                      <img
+                        src={getYouTubeThumbnail(video.videoId)}
+                        alt={`Thumbnail for ${video.title}`}
+                        loading="lazy"
+                        width={112}
+                        height={84}
+                        className="h-16 w-28 shrink-0 rounded-lg object-cover"
+                      />
+                      <div className="flex flex-1 flex-col gap-1.5 min-w-0">
+                        <p className="font-semibold text-sm leading-snug line-clamp-2">{video.title}</p>
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                          <Badge variant="secondary" className="text-[10px]">{video.date || '—'}</Badge>
+                          <span className="inline-flex items-center gap-1"><Eye className="h-3 w-3" />{video.views?.toLocaleString() || 'N/A'}</span>
+                        </div>
+                        <div className="mt-1 flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-9 flex-1"
+                            aria-label={`Open ${video.title} on YouTube`}
+                            onClick={() => window.open(`https://www.youtube.com/watch?v=${video.videoId}`, '_blank')}
+                          >
+                            <ExternalLink className="h-4 w-4 mr-1" /> Open
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            className="h-9"
+                            aria-label={`Delete ${video.title}`}
+                            disabled={deletingId === video.id}
+                            onClick={() => setVideoToDelete(video)}
+                          >
+                            {deletingId === video.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
@@ -387,39 +476,43 @@ export default function YouTubeManagement() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium mb-1 block">Title *</label>
+              <div className="space-y-1.5">
+                <Label htmlFor="yt-title">Title *</Label>
                 <Input
+                  id="yt-title"
                   value={newVideo.title}
                   onChange={(e) => setNewVideo({...newVideo, title: e.target.value})}
                   placeholder="Video title"
                 />
               </div>
-              
-              <div>
-                <label className="text-sm font-medium mb-1 block">YouTube URL or Video ID *</label>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="yt-videoId">YouTube URL or Video ID *</Label>
                 <Input
+                  id="yt-videoId"
                   value={newVideo.videoId}
                   onChange={(e) => setNewVideo({...newVideo, videoId: e.target.value})}
                   placeholder="https://www.youtube.com/watch?v=..."
                 />
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-xs text-muted-foreground">
                   Enter the full URL or just the video ID (11 characters)
                 </p>
               </div>
-              
-              <div>
-                <label className="text-sm font-medium mb-1 block">Date</label>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="yt-date">Date</Label>
                 <Input
+                  id="yt-date"
                   value={newVideo.date}
                   onChange={(e) => setNewVideo({...newVideo, date: e.target.value})}
                   placeholder="e.g., March 2024"
                 />
               </div>
-              
-              <div>
-                <label className="text-sm font-medium mb-1 block">Description</label>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="yt-description">Description</Label>
                 <Input
+                  id="yt-description"
                   value={newVideo.description}
                   onChange={(e) => setNewVideo({...newVideo, description: e.target.value})}
                   placeholder="Video description"
@@ -448,6 +541,30 @@ export default function YouTubeManagement() {
           </CardFooter>
         </Card>
       </div>
+
+      <AlertDialog open={!!videoToDelete} onOpenChange={(open) => { if (!open) setVideoToDelete(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this video?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {videoToDelete
+                ? `"${videoToDelete.title}" will be removed from the site. This action cannot be undone.`
+                : 'This action cannot be undone.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { if (videoToDelete) handleDelete(videoToDelete.id) }}
+              disabled={!!deletingId}
+              className="bg-red-500 hover:bg-red-600 text-white"
+            >
+              {deletingId ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Delete Video
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

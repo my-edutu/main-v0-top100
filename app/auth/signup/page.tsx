@@ -10,32 +10,55 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { registerInviteMember } from '@/lib/member-hub-local'
+import { supabase } from '@/lib/supabase/client'
 
 export default function SignUpPage() {
   const router = useRouter()
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError('')
     setLoading(true)
 
     const form = new FormData(event.currentTarget)
+    const email = String(form.get('email') || '').trim()
+    const password = String(form.get('password') || '')
 
     try {
-      registerInviteMember({
-        name: String(form.get('name') || ''),
-        email: String(form.get('email') || ''),
-        password: String(form.get('password') || ''),
-        inviteCode: String(form.get('inviteCode') || ''),
-        headline: String(form.get('headline') || ''),
+      // 1. Create the account server-side (validates the admin-issued code).
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: String(form.get('name') || ''),
+          email,
+          password,
+          inviteCode: String(form.get('inviteCode') || ''),
+          headline: String(form.get('headline') || ''),
+        }),
       })
+
+      const data = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        setError(data?.message || 'Could not create this account.')
+        setLoading(false)
+        return
+      }
+
+      // 2. Sign in with the new credentials so a real session is established.
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+      if (signInError) {
+        // Account exists but auto sign-in failed — send them to sign in manually.
+        router.push('/auth/signin?from=/dashboard')
+        return
+      }
+
       router.push('/dashboard')
     } catch (signupError) {
       setError(signupError instanceof Error ? signupError.message : 'Could not create this account.')
-    } finally {
       setLoading(false)
     }
   }
@@ -78,11 +101,11 @@ export default function SignUpPage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="name">Full name</Label>
-                  <Input id="name" name="name" required placeholder="Amina Bello" className="rounded-2xl" />
+                  <Input id="name" name="name" required autoComplete="name" placeholder="Amina Bello" className="rounded-2xl" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" name="email" type="email" required placeholder="you@example.com" className="rounded-2xl" />
+                  <Input id="email" name="email" type="email" required autoComplete="email" placeholder="you@example.com" className="rounded-2xl" />
                 </div>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -92,7 +115,7 @@ export default function SignUpPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password">Password</Label>
-                  <Input id="password" name="password" type="password" required minLength={8} placeholder="Minimum 8 characters" className="rounded-2xl" />
+                  <Input id="password" name="password" type="password" required minLength={8} autoComplete="new-password" placeholder="Minimum 8 characters" className="rounded-2xl" />
                 </div>
               </div>
               <div className="space-y-2">
@@ -101,7 +124,7 @@ export default function SignUpPage() {
               </div>
 
               {error ? (
-                <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                <div role="alert" className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
                   {error}
                 </div>
               ) : null}

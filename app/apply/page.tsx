@@ -51,13 +51,16 @@ const faqItems = [
 const APPLY_NEXT_STEP_VIDEO_URL =
   'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260418_115655_b4d9cd77-feed-43cd-a198-af78ebdf1f7a.mp4'
 
+const APPLY_AWARDEE_URL =
+  'https://docs.google.com/forms/d/e/1FAIpQLSdTIAykgX5z6Gj6sRkxyGQs5A43poO7Lo8xmxdLHeJ3nx0EYw/viewform'
+
 export default async function ApplyLandingPage() {
   const awardees = await getAwardees()
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.14),transparent_22%),linear-gradient(180deg,#fffaf4_0%,#ffffff_50%,#f5efe4_100%)]">
-      <section className="relative overflow-hidden px-4 py-20 sm:px-6 sm:py-24 lg:px-8 lg:py-28">
-        <div className="mx-auto flex min-h-[500px] w-full max-w-4xl items-center justify-center text-center sm:min-h-[540px] lg:min-h-[580px]">
+      <section className="relative flex min-h-[70vh] items-center overflow-hidden px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
+        <div className="mx-auto flex w-full max-w-4xl items-center justify-center text-center">
           <div className="flex w-full flex-col items-center justify-center gap-6 sm:gap-7 lg:gap-8">
             <div className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-white/80 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.32em] text-orange-700 shadow-sm backdrop-blur">
               2026 application open
@@ -75,13 +78,13 @@ export default async function ApplyLandingPage() {
 
             <div className="mx-auto flex w-full max-w-xl flex-col items-stretch justify-center gap-4 sm:flex-row sm:items-center">
               <Button asChild className="h-14 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 px-8 text-[#fff] shadow-none hover:opacity-95 sm:w-64">
-                <Link href="/apply/awardee">
+                <a href={APPLY_AWARDEE_URL} target="_blank" rel="noopener noreferrer">
                   Start application
                   <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
+                </a>
               </Button>
               <Button asChild variant="outline" className="h-14 rounded-full border-orange-200 bg-white px-8 text-orange-700 hover:bg-orange-50 sm:w-64">
-                <Link href="/apply/partnership">
+                <Link href="/partnership">
                   Partner with us
                   <Globe2 className="ml-2 h-4 w-4" />
                 </Link>
@@ -176,13 +179,13 @@ export default async function ApplyLandingPage() {
 
             <div className="relative z-10 mt-8 flex flex-col gap-3">
               <Button asChild className="h-14 rounded-full bg-white px-8 text-orange-700 shadow-none hover:bg-orange-50">
-                <Link href="/apply/awardee">
+                <a href={APPLY_AWARDEE_URL} target="_blank" rel="noopener noreferrer">
                   Apply now
                   <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
+                </a>
               </Button>
               <Button asChild variant="outline" className="h-14 rounded-full border-white/60 bg-transparent px-8 text-[#fff] hover:bg-white/15">
-                <Link href="/apply/partnership">
+                <Link href="/partnership">
                   Partner with us
                   <Globe2 className="ml-2 h-4 w-4" />
                 </Link>

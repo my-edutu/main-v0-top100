@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Newspaper } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import type { ResolvedPost } from "@/lib/posts";
@@ -41,21 +42,23 @@ export default async function BlogPage({ searchParams }: { searchParams?: { page
           </p>
         </header>
 
-        <section className="mb-16 space-y-8">
-          <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
-            <div>
-              <h2 className="text-2xl font-semibold text-white md:text-3xl">
-                Featured Stories
-              </h2>
+        {featuredPosts.length > 0 && (
+          <section className="mb-16 space-y-8">
+            <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+              <div>
+                <h2 className="text-2xl font-semibold text-white md:text-3xl">
+                  Featured Stories
+                </h2>
+              </div>
             </div>
-          </div>
 
-          <div className="space-y-6">
-            {featuredPosts.map((post) => (
-              <BlogCard key={post.id} post={post} />
-            ))}
-          </div>
-        </section>
+            <div className="space-y-6">
+              {featuredPosts.map((post) => (
+                <BlogCard key={post.id} post={post} />
+              ))}
+            </div>
+          </section>
+        )}
 
         <section id="all-stories" className="space-y-8">
           <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
@@ -70,8 +73,11 @@ export default async function BlogPage({ searchParams }: { searchParams?: { page
           </div>
 
           {currentPosts.length === 0 ? (
-            <div className="rounded-2xl border border-zinc-800 bg-black/40 p-10 text-center text-zinc-400">
-              <p>No additional stories yet. Check back soon for more updates from the network.</p>
+            <div className="flex flex-col items-center gap-4 rounded-2xl border border-zinc-800 bg-black/40 px-6 py-16 text-center text-zinc-400">
+              <span className="flex h-14 w-14 items-center justify-center rounded-full border border-zinc-800 bg-zinc-900/60">
+                <Newspaper className="h-6 w-6 text-zinc-500" aria-hidden="true" />
+              </span>
+              <p className="max-w-sm">No additional stories yet. Check back soon for more updates from the network.</p>
             </div>
           ) : (
             <div className="space-y-6">
@@ -87,10 +93,13 @@ export default async function BlogPage({ searchParams }: { searchParams?: { page
                 variant="outline"
                 asChild
                 disabled={!hasPreviousPage}
-                className="w-full border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-black md:w-auto"
+                className={`w-full border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-black md:w-auto ${
+                  !hasPreviousPage ? "pointer-events-none opacity-50" : ""
+                }`}
               >
                 <Link
                   aria-disabled={!hasPreviousPage}
+                  tabIndex={!hasPreviousPage ? -1 : undefined}
                   href={`/blog?page=${Math.max(1, currentPage - 1)}`}
                 >
                   Previous Page
@@ -105,10 +114,13 @@ export default async function BlogPage({ searchParams }: { searchParams?: { page
                 variant="outline"
                 asChild
                 disabled={!hasNextPage}
-                className="w-full border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-black md:w-auto"
+                className={`w-full border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-black md:w-auto ${
+                  !hasNextPage ? "pointer-events-none opacity-50" : ""
+                }`}
               >
                 <Link
                   aria-disabled={!hasNextPage}
+                  tabIndex={!hasNextPage ? -1 : undefined}
                   href={`/blog?page=${Math.min(totalPages, currentPage + 1)}`}
                 >
                   Next Page

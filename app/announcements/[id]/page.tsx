@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { Calendar, ExternalLink } from "lucide-react";
+import { ArrowLeft, Calendar, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Metadata } from 'next';
 
@@ -57,6 +57,14 @@ export default async function AnnouncementPage({ params }: { params: { id: strin
         <div className="min-h-screen bg-white">
             <main className="container py-12 lg:py-20">
                 <div className="max-w-4xl mx-auto space-y-12">
+                    <Link
+                        href="/"
+                        className="inline-flex items-center gap-2 text-sm font-medium text-zinc-500 transition-colors hover:text-orange-600"
+                    >
+                        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                        Back to home
+                    </Link>
+
                     {/* Header */}
                     <div className="space-y-6 text-center lg:text-left">
                         <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-orange-100 text-orange-600 rounded-full text-xs font-black uppercase tracking-widest">

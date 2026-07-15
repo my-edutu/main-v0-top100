@@ -16,6 +16,16 @@ import {
     TableRow,
 } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
@@ -81,6 +91,7 @@ function AdminAnnouncementsPageContent() {
     const [formState, setFormState] = useState<AnnouncementFormState>(defaultForm)
     const [submitting, setSubmitting] = useState(false)
     const [deletingId, setDeletingId] = useState<string | null>(null)
+    const [deleteTarget, setDeleteTarget] = useState<Announcement | null>(null)
     const [mode, setMode] = useState<"create" | "edit">("create")
     const [imageFile, setImageFile] = useState<File | null>(null)
     const [imagePreview, setImagePreview] = useState<string | null>(null)
@@ -180,8 +191,6 @@ function AdminAnnouncementsPageContent() {
     }
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure you want to delete this announcement?")) return
-
         try {
             setDeletingId(id)
             const response = await fetch("/api/announcements", {
@@ -198,6 +207,7 @@ function AdminAnnouncementsPageContent() {
             toast.error("Failed to delete")
         } finally {
             setDeletingId(null)
+            setDeleteTarget(null)
         }
     }
 
@@ -242,111 +252,216 @@ function AdminAnnouncementsPageContent() {
                 </CardHeader>
                 <CardContent className="p-0">
                     {loading ? (
-                        <div className="flex flex-col items-center justify-center p-20 space-y-4">
-                            <Loader2 className="h-10 w-10 animate-spin text-orange-600" />
-                            <p className="text-zinc-500">Loading announcements...</p>
+                        <div className="divide-y divide-zinc-100">
+                            {Array.from({ length: 4 }).map((_, i) => (
+                                <div key={i} className="flex items-center gap-4 p-4 animate-pulse">
+                                    <div className="h-12 w-12 rounded-lg bg-zinc-100 shrink-0" />
+                                    <div className="flex-1 space-y-2">
+                                        <div className="h-3.5 w-1/2 rounded bg-zinc-100" />
+                                        <div className="h-2.5 w-2/3 rounded bg-zinc-100" />
+                                    </div>
+                                    <div className="h-6 w-20 rounded-full bg-zinc-100 hidden sm:block" />
+                                    <div className="h-8 w-16 rounded-lg bg-zinc-100" />
+                                </div>
+                            ))}
                         </div>
                     ) : announcements.length === 0 ? (
-                        <div className="py-20 text-center text-zinc-500 border-2 border-dashed border-zinc-100 m-6 rounded-2xl">
-                            <p>No announcements found.</p>
+                        <div className="flex flex-col items-center justify-center gap-3 py-16 px-6 text-center">
+                            <div className="h-14 w-14 rounded-2xl bg-orange-50 flex items-center justify-center">
+                                <Megaphone className="h-7 w-7 text-orange-500" />
+                            </div>
+                            <div className="space-y-1">
+                                <p className="font-bold text-zinc-800">No announcements yet</p>
+                                <p className="text-sm text-zinc-500 max-w-xs">Create your first announcement to feature it on the homepage.</p>
+                            </div>
+                            <Button onClick={openCreateDialog} className="bg-orange-600 hover:bg-orange-700 text-white rounded-xl shadow-md shadow-orange-200">
+                                <Plus className="mr-2 h-4 w-4" />
+                                New Announcement
+                            </Button>
                         </div>
                     ) : (
-                        <div className="overflow-x-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow className="hover:bg-transparent">
-                                        <TableHead className="w-[300px]">Details</TableHead>
-                                        <TableHead>CTA</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead>Visibility</TableHead>
-                                        <TableHead className="text-right">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {announcements.map((a) => (
-                                        <TableRow key={a.id} className="group transition-colors">
-                                            <TableCell>
-                                                <div className="flex items-center gap-4">
-                                                    {a.image_url && (
-                                                        <div className="h-12 w-12 rounded-lg bg-zinc-100 overflow-hidden shrink-0">
-                                                            <img src={a.image_url} alt="" className="h-full w-full object-cover" />
-                                                        </div>
-                                                    )}
-                                                    <div className="space-y-1">
-                                                        <p className="font-bold text-zinc-900">{a.title}</p>
-                                                        <p className="text-xs text-zinc-500 line-clamp-1">{a.content}</p>
-                                                    </div>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="text-sm font-medium text-zinc-700">
-                                                    {a.cta_label}
-                                                    {a.cta_url && (
-                                                        <a href={a.cta_url} target="_blank" className="ml-1 inline-block text-zinc-400 hover:text-orange-600">
-                                                            <ExternalLink className="h-3 w-3" />
-                                                        </a>
-                                                    )}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge
-                                                    variant="outline"
-                                                    className={cn(
-                                                        "rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider",
-                                                        a.status === "published"
-                                                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                                            : "bg-zinc-100 text-zinc-600 border-zinc-200"
-                                                    )}
-                                                >
-                                                    {a.status}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => toggleActive(a)}
-                                                    className={cn(
-                                                        "h-8 gap-2 rounded-full border",
-                                                        a.is_active
-                                                            ? "text-emerald-600 bg-emerald-50 border-emerald-100"
-                                                            : "text-zinc-400 bg-zinc-50 border-zinc-100"
-                                                    )}
-                                                >
-                                                    {a.is_active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                                                    <span className="text-[10px] font-bold uppercase">{a.is_active ? "Visible" : "Hidden"}</span>
-                                                </Button>
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <div className="flex items-center justify-end gap-2">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        onClick={() => openEditDialog(a)}
-                                                        className="h-9 w-9 rounded-xl hover:bg-zinc-100"
-                                                    >
-                                                        <Edit2 className="h-4 w-4 text-zinc-500" />
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        onClick={() => handleDelete(a.id)}
-                                                        disabled={deletingId === a.id}
-                                                        className="h-9 w-9 rounded-xl hover:bg-rose-50 hover:text-rose-600"
-                                                    >
-                                                        {deletingId === a.id ? (
-                                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                                        ) : (
-                                                            <Trash2 className="h-4 w-4 text-zinc-400" />
-                                                        )}
-                                                    </Button>
-                                                </div>
-                                            </TableCell>
+                        <>
+                            {/* Desktop / tablet table */}
+                            <div className="hidden md:block overflow-x-auto">
+                                <Table>
+                                    <TableHeader className="bg-zinc-50/70">
+                                        <TableRow className="hover:bg-transparent">
+                                            <TableHead className="w-[300px]">Details</TableHead>
+                                            <TableHead>CTA</TableHead>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead>Visibility</TableHead>
+                                            <TableHead className="text-right">Actions</TableHead>
                                         </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {announcements.map((a) => (
+                                            <TableRow key={a.id} className="group transition-colors hover:bg-orange-50/40">
+                                                <TableCell>
+                                                    <div className="flex items-center gap-4">
+                                                        {a.image_url && (
+                                                            <div className="h-12 w-12 rounded-lg bg-zinc-100 overflow-hidden shrink-0">
+                                                                <img src={a.image_url} alt={a.title} className="h-full w-full object-cover" />
+                                                            </div>
+                                                        )}
+                                                        <div className="space-y-1 min-w-0">
+                                                            <p className="font-bold text-zinc-900 line-clamp-1">{a.title}</p>
+                                                            <p className="text-xs text-zinc-500 line-clamp-1">{a.content}</p>
+                                                        </div>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="text-sm font-medium text-zinc-700">
+                                                        {a.cta_label}
+                                                        {a.cta_url && (
+                                                            <a href={a.cta_url} target="_blank" rel="noopener noreferrer" aria-label="Open CTA link" className="ml-1 inline-block text-zinc-400 hover:text-orange-600">
+                                                                <ExternalLink className="h-3 w-3" />
+                                                            </a>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge
+                                                        variant="outline"
+                                                        className={cn(
+                                                            "rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider",
+                                                            a.status === "published"
+                                                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                                                : "bg-zinc-100 text-zinc-600 border-zinc-200"
+                                                        )}
+                                                    >
+                                                        {a.status}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => toggleActive(a)}
+                                                        aria-label={a.is_active ? "Hide announcement" : "Show announcement"}
+                                                        className={cn(
+                                                            "h-8 gap-2 rounded-full border",
+                                                            a.is_active
+                                                                ? "text-emerald-600 bg-emerald-50 border-emerald-100"
+                                                                : "text-zinc-400 bg-zinc-50 border-zinc-100"
+                                                        )}
+                                                    >
+                                                        {a.is_active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                                                        <span className="text-[10px] font-bold uppercase">{a.is_active ? "Visible" : "Hidden"}</span>
+                                                    </Button>
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() => openEditDialog(a)}
+                                                            aria-label={`Edit ${a.title}`}
+                                                            className="h-9 w-9 rounded-xl hover:bg-zinc-100"
+                                                        >
+                                                            <Edit2 className="h-4 w-4 text-zinc-500" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() => setDeleteTarget(a)}
+                                                            disabled={deletingId === a.id}
+                                                            aria-label={`Delete ${a.title}`}
+                                                            className="h-9 w-9 rounded-xl hover:bg-rose-50 hover:text-rose-600"
+                                                        >
+                                                            {deletingId === a.id ? (
+                                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                            ) : (
+                                                                <Trash2 className="h-4 w-4 text-zinc-400" />
+                                                            )}
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+
+                            {/* Mobile stacked cards */}
+                            <div className="md:hidden divide-y divide-zinc-100">
+                                {announcements.map((a) => (
+                                    <div key={a.id} className="p-4 space-y-3">
+                                        <div className="flex items-start gap-3">
+                                            {a.image_url && (
+                                                <div className="h-12 w-12 rounded-lg bg-zinc-100 overflow-hidden shrink-0">
+                                                    <img src={a.image_url} alt={a.title} className="h-full w-full object-cover" />
+                                                </div>
+                                            )}
+                                            <div className="min-w-0 flex-1">
+                                                <p className="font-bold text-zinc-900 line-clamp-2 leading-snug">{a.title}</p>
+                                                <p className="text-xs text-zinc-500 line-clamp-1 mt-0.5">{a.content}</p>
+                                            </div>
+                                            <Badge
+                                                variant="outline"
+                                                className={cn(
+                                                    "shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                                                    a.status === "published"
+                                                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                                        : "bg-zinc-100 text-zinc-600 border-zinc-200"
+                                                )}
+                                            >
+                                                {a.status}
+                                            </Badge>
+                                        </div>
+                                        <div className="flex items-center justify-between text-sm text-zinc-600">
+                                            <span className="font-medium truncate">
+                                                {a.cta_label}
+                                                {a.cta_url && (
+                                                    <a href={a.cta_url} target="_blank" rel="noopener noreferrer" aria-label="Open CTA link" className="ml-1 inline-block text-zinc-400 hover:text-orange-600">
+                                                        <ExternalLink className="inline h-3 w-3" />
+                                                    </a>
+                                                )}
+                                            </span>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => toggleActive(a)}
+                                                aria-label={a.is_active ? "Hide announcement" : "Show announcement"}
+                                                className={cn(
+                                                    "h-8 gap-2 rounded-full border",
+                                                    a.is_active
+                                                        ? "text-emerald-600 bg-emerald-50 border-emerald-100"
+                                                        : "text-zinc-400 bg-zinc-50 border-zinc-100"
+                                                )}
+                                            >
+                                                {a.is_active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                                                <span className="text-[10px] font-bold uppercase">{a.is_active ? "Visible" : "Hidden"}</span>
+                                            </Button>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => openEditDialog(a)}
+                                                className="flex-1 rounded-xl border-zinc-200 text-zinc-700"
+                                            >
+                                                <Edit2 className="mr-2 h-4 w-4" />
+                                                Edit
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => setDeleteTarget(a)}
+                                                disabled={deletingId === a.id}
+                                                aria-label={`Delete ${a.title}`}
+                                                className="rounded-xl border-zinc-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                                            >
+                                                {deletingId === a.id ? (
+                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                ) : (
+                                                    <Trash2 className="h-4 w-4" />
+                                                )}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </>
                     )}
                 </CardContent>
             </Card>
@@ -524,6 +639,28 @@ function AdminAnnouncementsPageContent() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => { if (!open) setDeleteTarget(null) }}>
+                <AlertDialogContent className="bg-white rounded-2xl">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="text-zinc-900">Delete this announcement?</AlertDialogTitle>
+                        <AlertDialogDescription className="text-zinc-500">
+                            {deleteTarget ? (
+                                <>&ldquo;{deleteTarget.title}&rdquo; will be permanently removed. This action cannot be undone.</>
+                            ) : null}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => { if (deleteTarget) handleDelete(deleteTarget.id) }}
+                            className="rounded-xl bg-rose-600 hover:bg-rose-700 text-white"
+                        >
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     )
 }

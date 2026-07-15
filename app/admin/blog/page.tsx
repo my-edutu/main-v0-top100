@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { Input } from '@/components/ui/input'
 import {
   Table,
   TableBody,
@@ -22,9 +23,26 @@ import {
   CardHeader,
   CardTitle
 } from '@/components/ui/card'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from '@/components/ui/alert-dialog'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
-import { Loader2, Plus, FileText, BarChart3, TrendingUp, Eye, Heart, ChevronLeft, ChevronRight, Star } from 'lucide-react'
+import { Loader2, Plus, FileText, BarChart3, TrendingUp, Eye, Heart, ChevronLeft, ChevronRight, Star, Search, Pencil, Trash2 } from 'lucide-react'
 
 interface AdminPost {
   id: string
@@ -70,11 +88,21 @@ const mapPostRecord = (raw: Record<string, any>): AdminPost => {
   }
 }
 
+const statusBadgeClass = (status: string) =>
+  status === 'published'
+    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+    : status === 'scheduled'
+      ? 'bg-amber-50 text-amber-700 border-amber-200'
+      : 'bg-zinc-100 text-zinc-600 border-zinc-200'
+
 export default function AdminBlogPage() {
   const router = useRouter()
   const [posts, setPosts] = useState<AdminPost[]>([])
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<AdminPost | null>(null)
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'draft' | 'published' | 'scheduled'>('all')
 
   const stats = useMemo<Stats>(() => {
     return {
@@ -85,6 +113,18 @@ export default function AdminBlogPage() {
       scheduledPosts: posts.filter(post => post.status === 'scheduled').length
     }
   }, [posts])
+
+  const filteredPosts = useMemo(() => {
+    const query = search.trim().toLowerCase()
+    return posts.filter(post => {
+      const matchesSearch =
+        !query ||
+        post.title.toLowerCase().includes(query) ||
+        post.slug.toLowerCase().includes(query)
+      const matchesStatus = statusFilter === 'all' || post.status === statusFilter
+      return matchesSearch && matchesStatus
+    })
+  }, [posts, search, statusFilter])
 
   const [spotlightPage, setSpotlightPage] = useState(0)
   const SPOTLIGHT_PER_PAGE = 3
@@ -179,9 +219,7 @@ export default function AdminBlogPage() {
     }
   }
 
-  const deletePost = async (postId: string) => {
-    if (!confirm('Are you sure you want to delete this post?')) return
-
+  const performDelete = async (postId: string) => {
     const toastId = `delete-post-${postId}`
 
     try {
@@ -203,6 +241,7 @@ export default function AdminBlogPage() {
       toast.error('Failed to delete post', { id: toastId })
     } finally {
       setDeleting(null)
+      setDeleteTarget(null)
     }
   }
 
@@ -218,7 +257,7 @@ export default function AdminBlogPage() {
     return value
   }
 
-  // ... existing code ...
+  const hasFilters = search.trim().length > 0 || statusFilter !== 'all'
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pt-20 lg:pt-0">
@@ -226,19 +265,19 @@ export default function AdminBlogPage() {
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2 mb-1">
-            <div className="h-2 w-2 rounded-full bg-purple-500 animate-pulse" />
+            <div className="h-2 w-2 rounded-full bg-orange-500 animate-pulse" />
             <span className="text-[10px] uppercase tracking-widest text-zinc-400 font-bold">Content Engine</span>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white leading-none">
-            Editorial <span className="text-purple-500">Control</span>
+          <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-zinc-900 leading-none">
+            Editorial <span className="text-orange-500">Control</span>
           </h1>
           <p className="text-zinc-500 text-xs sm:text-sm font-medium">
             Orchestrate your content strategy with real-time publishing.
           </p>
         </div>
 
-        <Button onClick={handleAddNewPost} size="sm" className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl h-10 px-4 shadow-lg shadow-purple-500/20 font-bold">
-          <Plus className="mr-1 h-4 w-4" />
+        <Button onClick={handleAddNewPost} className="bg-orange-600 hover:bg-orange-700 text-white rounded-xl h-11 px-6 shadow-lg shadow-orange-200 font-bold shrink-0">
+          <Plus className="mr-2 h-5 w-5" />
           Create Article
         </Button>
       </div>
@@ -247,134 +286,268 @@ export default function AdminBlogPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <KPITile
           label="Total Content"
-          value={stats.totalPosts}
+          value={renderStatsValue(stats.totalPosts)}
           icon={FileText}
           color="blue"
           subValue="Articles"
         />
         <KPITile
           label="Live Now"
-          value={stats.publishedPosts}
+          value={renderStatsValue(stats.publishedPosts)}
           icon={BarChart3}
           color="emerald"
           subValue="Public"
         />
         <KPITile
           label="Spotlight"
-          value={stats.featuredPosts}
+          value={renderStatsValue(stats.featuredPosts)}
           icon={Heart}
           color="rose"
           subValue="Featured"
         />
         <KPITile
           label="Scheduled"
-          value={stats.scheduledPosts}
+          value={renderStatsValue(stats.scheduledPosts)}
           icon={TrendingUp}
           color="amber"
           subValue="Upcoming"
         />
       </div>
 
-      {/* Featured Post Spotlight Section */}
+      {/* Content + Spotlight */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 bg-zinc-900/40 border-white/5 backdrop-blur-sm rounded-3xl overflow-hidden">
-          <CardHeader className="border-b border-white/5 px-6 py-4">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg font-bold text-white flex items-center gap-2">
-                <Eye className="h-4 w-4 text-zinc-400" />
-                Content Library
-              </CardTitle>
+        <Card className="lg:col-span-2 border-zinc-200 shadow-sm rounded-2xl overflow-hidden">
+          <CardHeader className="bg-zinc-50/50 border-b border-zinc-200 px-4 sm:px-6 py-4">
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-between gap-3">
+                <CardTitle className="text-lg font-bold text-zinc-900 flex items-center gap-2">
+                  <Eye className="h-5 w-5 text-orange-600" />
+                  Content Library
+                </CardTitle>
+                {!loading && (
+                  <span className="text-xs font-medium text-zinc-400">
+                    {filteredPosts.length} {filteredPosts.length === 1 ? 'article' : 'articles'}
+                  </span>
+                )}
+              </div>
+
+              {/* Toolbar: search + status filter */}
+              <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                  <Input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search by title or slug..."
+                    aria-label="Search articles"
+                    className="pl-10 h-10 rounded-xl border-zinc-200 bg-white focus:ring-1 focus:ring-orange-300 focus:border-orange-300"
+                  />
+                </div>
+                <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
+                  <SelectTrigger aria-label="Filter by status" className="h-10 w-full sm:w-44 rounded-xl border-zinc-200 bg-white">
+                    <SelectValue placeholder="All statuses" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    <SelectItem value="all">All statuses</SelectItem>
+                    <SelectItem value="published">Published</SelectItem>
+                    <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="scheduled">Scheduled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </CardHeader>
-          {loading ? (
-            <div className="flex justify-center items-center py-20">
-              <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
-            </div>
-          ) : (
-            <div className="p-0">
-              <Table>
-                <TableHeader className="bg-white/5">
-                  <TableRow className="border-white/5 hover:bg-transparent">
-                    <TableHead className="text-zinc-400 pl-6">Title</TableHead>
-                    <TableHead className="text-zinc-400">Date</TableHead>
-                    <TableHead className="text-zinc-400">Status</TableHead>
-                    <TableHead className="text-zinc-400">Featured</TableHead>
-                    <TableHead className="text-zinc-400 text-right pr-6">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {posts.map(post => (
-                    <TableRow key={post.id} className="border-white/5 hover:bg-white/5 transition-colors group">
-                      <TableCell className="font-medium text-zinc-200 pl-6">
-                        <div className="flex flex-col">
-                          <span className="line-clamp-1">{post.title}</span>
-                          {post.scheduledAt && post.status === 'scheduled' && (
-                            <span className="text-[10px] text-amber-500 flex items-center gap-1 mt-1">
-                              <TrendingUp className="h-3 w-3" /> Scheduled
-                            </span>
-                          )}
+
+          <CardContent className="p-0">
+            {loading ? (
+              <div className="divide-y divide-zinc-100">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-4 p-4 animate-pulse">
+                    <div className="flex-1 space-y-2">
+                      <div className="h-3.5 w-2/3 rounded bg-zinc-100" />
+                      <div className="h-2.5 w-1/3 rounded bg-zinc-100" />
+                    </div>
+                    <div className="h-6 w-20 rounded-full bg-zinc-100" />
+                    <div className="h-6 w-10 rounded-full bg-zinc-100 hidden sm:block" />
+                    <div className="h-8 w-16 rounded-lg bg-zinc-100" />
+                  </div>
+                ))}
+              </div>
+            ) : filteredPosts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center gap-3 py-16 px-6 text-center">
+                <div className="h-14 w-14 rounded-2xl bg-orange-50 flex items-center justify-center">
+                  <FileText className="h-7 w-7 text-orange-500" />
+                </div>
+                <div className="space-y-1">
+                  <p className="font-bold text-zinc-800">
+                    {hasFilters ? 'No matching articles' : 'No articles yet'}
+                  </p>
+                  <p className="text-sm text-zinc-500 max-w-xs">
+                    {hasFilters
+                      ? 'Try adjusting your search or status filter.'
+                      : 'Create your first article to start building your content library.'}
+                  </p>
+                </div>
+                {hasFilters ? (
+                  <Button
+                    variant="outline"
+                    onClick={() => { setSearch(''); setStatusFilter('all') }}
+                    className="rounded-xl border-zinc-200"
+                  >
+                    Clear filters
+                  </Button>
+                ) : (
+                  <Button onClick={handleAddNewPost} className="bg-orange-600 hover:bg-orange-700 text-white rounded-xl shadow-md shadow-orange-200">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create Article
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <>
+                {/* Desktop / tablet table */}
+                <div className="hidden md:block overflow-x-auto">
+                  <Table>
+                    <TableHeader className="bg-zinc-50/70">
+                      <TableRow className="hover:bg-transparent border-zinc-200">
+                        <TableHead className="text-zinc-500 pl-6">Title</TableHead>
+                        <TableHead className="text-zinc-500">Date</TableHead>
+                        <TableHead className="text-zinc-500">Status</TableHead>
+                        <TableHead className="text-zinc-500">Featured</TableHead>
+                        <TableHead className="text-zinc-500 text-right pr-6">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredPosts.map(post => (
+                        <TableRow key={post.id} className="border-zinc-100 hover:bg-orange-50/40 transition-colors group">
+                          <TableCell className="font-medium text-zinc-800 pl-6 max-w-[320px]">
+                            <div className="flex flex-col">
+                              <span className="line-clamp-1">{post.title}</span>
+                              <span className="text-[11px] text-zinc-400 line-clamp-1">/{post.slug}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-zinc-500 whitespace-nowrap">
+                            {format(new Date(post.createdAt), 'MMM dd, yyyy')}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className={cn(
+                              "rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider capitalize",
+                              statusBadgeClass(post.status)
+                            )}>
+                              {post.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Switch
+                              checked={post.isFeatured}
+                              onCheckedChange={checked => toggleFeatured(post.id, checked)}
+                              aria-label={`Toggle featured for ${post.title}`}
+                              className="data-[state=checked]:bg-rose-500"
+                            />
+                          </TableCell>
+                          <TableCell className="text-right pr-6">
+                            <div className="flex justify-end items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => router.push(`/admin/blog/edit/${post.id}`)}
+                                aria-label={`Edit ${post.title}`}
+                                className="h-9 w-9 rounded-xl text-zinc-500 hover:text-orange-600 hover:bg-orange-50"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setDeleteTarget(post)}
+                                disabled={deleting === post.id}
+                                aria-label={`Delete ${post.title}`}
+                                className="h-9 w-9 rounded-xl text-zinc-400 hover:text-rose-600 hover:bg-rose-50"
+                              >
+                                {deleting === post.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Mobile stacked cards */}
+                <div className="md:hidden divide-y divide-zinc-100">
+                  {filteredPosts.map(post => (
+                    <div key={post.id} className="p-4 space-y-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-bold text-zinc-800 line-clamp-2 leading-snug">{post.title}</p>
+                          <p className="text-[11px] text-zinc-400 line-clamp-1 mt-0.5">/{post.slug}</p>
                         </div>
-                      </TableCell>
-                      <TableCell className="text-zinc-400">
-                        {format(new Date(post.createdAt), 'MMM dd, yyyy')}
-                      </TableCell>
-                      <TableCell>
                         <Badge variant="outline" className={cn(
-                          "border-0 px-2 py-0.5 rounded-full capitalize",
-                          post.status === 'published' ? "bg-emerald-500/10 text-emerald-400" :
-                            post.status === 'scheduled' ? "bg-amber-500/10 text-amber-400" :
-                              "bg-zinc-700/50 text-zinc-400"
+                          "shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider capitalize",
+                          statusBadgeClass(post.status)
                         )}>
                           {post.status}
                         </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Switch
-                          checked={post.isFeatured}
-                          onCheckedChange={checked => toggleFeatured(post.id, checked)}
-                          className="data-[state=checked]:bg-rose-500"
-                        />
-                      </TableCell>
-                      <TableCell className="text-right pr-6">
-                        <div className="flex justify-end items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => router.push(`/admin/blog/edit/${post.id}`)}
-                            className="h-8 w-8 text-zinc-400 hover:text-white hover:bg-white/10"
-                          >
-                            <FileText className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => deletePost(post.id)}
-                            disabled={deleting === post.id}
-                            className="h-8 w-8 text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10"
-                          >
-                            {deleting === post.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <div className="h-4 w-4">×</div> // Using simple character for delete icon to be safe or Trash icon if imported
-                            )}
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-zinc-500">
+                          {format(new Date(post.createdAt), 'MMM dd, yyyy')}
+                        </span>
+                        <label className="flex items-center gap-2 text-xs text-zinc-500">
+                          <span className="font-medium">Featured</span>
+                          <Switch
+                            checked={post.isFeatured}
+                            onCheckedChange={checked => toggleFeatured(post.id, checked)}
+                            aria-label={`Toggle featured for ${post.title}`}
+                            className="data-[state=checked]:bg-rose-500"
+                          />
+                        </label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => router.push(`/admin/blog/edit/${post.id}`)}
+                          className="flex-1 rounded-xl border-zinc-200 text-zinc-700"
+                        >
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Edit
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setDeleteTarget(post)}
+                          disabled={deleting === post.id}
+                          aria-label={`Delete ${post.title}`}
+                          className="rounded-xl border-zinc-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                        >
+                          {deleting === post.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
                   ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+                </div>
+              </>
+            )}
+          </CardContent>
         </Card>
 
         {/* Right Column: Hero Spotlight Preview */}
         <div className="space-y-6">
-          <Card className="bg-gradient-to-br from-rose-500/10 to-purple-500/10 border-rose-500/20 backdrop-blur-sm rounded-3xl overflow-hidden">
-            <CardHeader className="border-b border-rose-500/10 pb-4">
+          <Card className="border-rose-200 bg-gradient-to-br from-rose-50 to-orange-50/40 shadow-sm rounded-2xl overflow-hidden">
+            <CardHeader className="border-b border-rose-100 pb-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                  <CardTitle className="text-rose-400 text-sm font-bold uppercase tracking-[0.15em] flex items-center gap-2">
+                  <CardTitle className="text-rose-600 text-sm font-bold uppercase tracking-[0.15em] flex items-center gap-2">
                     <Star className="h-4 w-4 fill-current" /> Homepage Spotlight
                   </CardTitle>
                   <CardDescription className="text-zinc-500 text-xs font-medium">
@@ -388,7 +561,8 @@ export default function AdminBlogPage() {
                       size="icon"
                       onClick={() => setSpotlightPage(p => Math.max(0, p - 1))}
                       disabled={spotlightPage === 0}
-                      className="h-7 w-7 rounded-full text-zinc-500 hover:text-white hover:bg-white/5"
+                      aria-label="Previous spotlight page"
+                      className="h-8 w-8 rounded-full text-zinc-400 hover:text-rose-600 hover:bg-rose-100/60"
                     >
                       <ChevronLeft className="h-4 w-4" />
                     </Button>
@@ -397,7 +571,8 @@ export default function AdminBlogPage() {
                       size="icon"
                       onClick={() => setSpotlightPage(p => Math.min(Math.ceil(featuredPosts.length / SPOTLIGHT_PER_PAGE) - 1, p + 1))}
                       disabled={spotlightPage >= Math.ceil(featuredPosts.length / SPOTLIGHT_PER_PAGE) - 1}
-                      className="h-7 w-7 rounded-full text-zinc-500 hover:text-white hover:bg-white/5"
+                      aria-label="Next spotlight page"
+                      className="h-8 w-8 rounded-full text-zinc-400 hover:text-rose-600 hover:bg-rose-100/60"
                     >
                       <ChevronRight className="h-4 w-4" />
                     </Button>
@@ -407,34 +582,31 @@ export default function AdminBlogPage() {
             </CardHeader>
             <CardContent className="p-4 space-y-4">
               {featuredPosts.length === 0 ? (
-                <div className="text-center py-8 text-zinc-500 text-sm border-2 border-dashed border-zinc-800 rounded-xl">
+                <div className="text-center py-8 text-zinc-400 text-sm border-2 border-dashed border-zinc-200 rounded-xl">
                   No active spotlight posts
                 </div>
               ) : (
                 featuredPosts.slice(spotlightPage * SPOTLIGHT_PER_PAGE, (spotlightPage + 1) * SPOTLIGHT_PER_PAGE).map(post => (
-                  <div key={post.id} className="group relative bg-zinc-900/80 border border-white/5 rounded-2xl p-3.5 hover:border-rose-500/30 transition-all overflow-hidden">
-                    {/* Faded Background Icon */}
-                    <Star className="absolute -right-4 -bottom-4 h-20 w-20 text-rose-500 opacity-[0.03] -rotate-12 group-hover:scale-110 transition-transform duration-700" />
-
+                  <div key={post.id} className="group relative bg-white border border-zinc-200 rounded-2xl p-3.5 hover:border-rose-300 hover:shadow-sm transition-all overflow-hidden">
                     <div className="flex justify-between items-start gap-4 relative z-10">
-                      <div className="flex-1">
-                        <h4 className="font-bold text-zinc-200 text-sm line-clamp-2 leading-tight mb-1.5 group-hover:text-rose-400 transition-colors">{post.title}</h4>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-bold text-zinc-800 text-sm line-clamp-2 leading-tight mb-1.5 group-hover:text-rose-600 transition-colors">{post.title}</h4>
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-zinc-500 font-medium">{format(new Date(post.updatedAt), 'MMM dd, yyyy')}</span>
-                          <span className="h-1 w-1 rounded-full bg-zinc-700" />
+                          <span className="text-[10px] text-zinc-400 font-medium">{format(new Date(post.updatedAt), 'MMM dd, yyyy')}</span>
+                          <span className="h-1 w-1 rounded-full bg-zinc-300" />
                           <span className="text-[10px] text-rose-500 font-bold uppercase tracking-wider">Spotlight</span>
                         </div>
                       </div>
                       <Switch
                         checked={true}
                         onCheckedChange={() => toggleFeatured(post.id, false)}
+                        aria-label={`Remove ${post.title} from spotlight`}
                         className="scale-75 data-[state=checked]:bg-rose-500"
                       />
                     </div>
                     {post.coverImage && (
-                      <div className="mt-4 aspect-[21/9] w-full rounded-xl bg-zinc-800 overflow-hidden relative border border-white/5">
-                        <img src={post.coverImage} className="object-cover w-full h-full opacity-40 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700" alt="" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/80 via-transparent to-transparent opacity-60" />
+                      <div className="mt-4 aspect-[21/9] w-full rounded-xl bg-zinc-100 overflow-hidden relative border border-zinc-200">
+                        <img src={post.coverImage} className="object-cover w-full h-full group-hover:scale-105 transition-all duration-700" alt={post.coverImageAlt || post.title} />
                       </div>
                     )}
                   </div>
@@ -443,26 +615,50 @@ export default function AdminBlogPage() {
             </CardContent>
           </Card>
 
-          <div className="p-5 rounded-3xl bg-zinc-900/40 border border-white/5 space-y-3">
-            <h3 className="text-zinc-400 text-sm font-medium">Quick Stats</h3>
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs">
-                <span className="text-zinc-500">Draft Rate</span>
-                <span className="text-zinc-300">{stats.totalPosts > 0 ? Math.round((stats.draftPosts / stats.totalPosts) * 100) : 0}%</span>
+          <Card className="border-zinc-200 shadow-sm rounded-2xl">
+            <CardContent className="p-5 space-y-3">
+              <h3 className="text-zinc-700 text-sm font-bold">Quick Stats</h3>
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs">
+                  <span className="text-zinc-500">Draft Rate</span>
+                  <span className="text-zinc-700 font-medium">{stats.totalPosts > 0 ? Math.round((stats.draftPosts / stats.totalPosts) * 100) : 0}%</span>
+                </div>
+                <div className="h-1.5 w-full bg-zinc-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full transition-all" style={{ width: `${stats.totalPosts > 0 ? (stats.draftPosts / stats.totalPosts) * 100 : 0}%` }} />
+                </div>
               </div>
-              <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden">
-                <div className="h-full bg-zinc-600 rounded-full" style={{ width: `${stats.totalPosts > 0 ? (stats.draftPosts / stats.totalPosts) * 100 : 0}%` }} />
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => { if (!open) setDeleteTarget(null) }}>
+        <AlertDialogContent className="bg-white rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-zinc-900">Delete this article?</AlertDialogTitle>
+            <AlertDialogDescription className="text-zinc-500">
+              {deleteTarget ? (
+                <>&ldquo;{deleteTarget.title}&rdquo; will be permanently removed. This action cannot be undone.</>
+              ) : null}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { if (deleteTarget) performDelete(deleteTarget.id) }}
+              className="rounded-xl bg-rose-600 hover:bg-rose-700 text-white"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
 
 // Sub-components
-
 
 function KPITile({ label, value, icon: Icon, color, subValue }: any) {
   const colors: any = {
@@ -477,7 +673,7 @@ function KPITile({ label, value, icon: Icon, color, subValue }: any) {
 
   return (
     <div className={cn(
-      "relative p-6 rounded-[2rem] border-none bg-gradient-to-br shadow-xl overflow-hidden transition-all duration-300 hover:scale-[1.05] hover:-translate-y-1 group",
+      "relative p-5 sm:p-6 rounded-[2rem] border-none bg-gradient-to-br shadow-xl overflow-hidden transition-all duration-300 hover:scale-[1.03] hover:-translate-y-1 group",
       selectedColor
     )}>
       {/* Background Icon */}
@@ -485,13 +681,13 @@ function KPITile({ label, value, icon: Icon, color, subValue }: any) {
 
       <div className="relative z-10 space-y-4">
         <div className="flex items-center justify-between">
-          <div className="h-12 w-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-lg">
-            <Icon className="h-6 w-6 text-white" />
+          <div className="h-11 w-11 sm:h-12 sm:w-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-lg">
+            <Icon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
           </div>
         </div>
         <div className="space-y-1">
-          <p className="text-4xl font-black text-white tracking-tighter">{value}</p>
-          <div className="flex items-center justify-between">
+          <div className="text-3xl sm:text-4xl font-black text-white tracking-tighter">{value}</div>
+          <div className="flex items-center justify-between gap-2">
             <p className="text-[10px] font-bold uppercase tracking-widest text-white/80">{label}</p>
             {subValue && <span className="text-[10px] font-medium text-white/90 bg-black/10 px-2 py-0.5 rounded-full backdrop-blur-sm border border-white/10">{subValue}</span>}
           </div>

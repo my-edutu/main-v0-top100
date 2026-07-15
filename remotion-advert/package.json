@@ -1,0 +1,25 @@
+{
+  "name": "afl-2026-advert",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Remotion advert for the Africa Future Leaders Summit 2026 application",
+  "scripts": {
+    "dev": "remotion studio",
+    "render": "remotion render AflAdvert out/afl-2026-advert.mp4",
+    "render:square": "remotion render AflAdvertSquare out/afl-2026-advert-square.mp4",
+    "render:wide": "remotion render AflAdvertWide out/afl-2026-advert-wide.mp4",
+    "upgrade": "remotion upgrade"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.0",
+    "@remotion/google-fonts": "^4.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "remotion": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.1",
+    "typescript": "^5.5.0"
+  }
+}

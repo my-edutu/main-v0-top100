@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
     Select,
     SelectContent,
@@ -153,17 +154,28 @@ export default function FeatureRequestsPage() {
 
     if (loading) {
         return (
-            <div className="container mx-auto py-8 flex justify-center items-center min-h-[400px]">
-                <div className="text-center">
-                    <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-                    <p className="text-muted-foreground">Loading feature requests...</p>
+            <div className="container mx-auto py-8 pt-20 lg:pt-8 space-y-8">
+                <div className="space-y-2">
+                    <Skeleton className="h-9 w-56 rounded-xl" />
+                    <Skeleton className="h-4 w-72 rounded-lg" />
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {[0, 1, 2, 3].map((i) => (
+                        <Skeleton key={i} className="h-24 w-full rounded-xl" />
+                    ))}
+                </div>
+                <Skeleton className="h-20 w-full rounded-xl" />
+                <div className="space-y-4">
+                    {[0, 1, 2].map((i) => (
+                        <Skeleton key={i} className="h-32 w-full rounded-xl" />
+                    ))}
                 </div>
             </div>
         )
     }
 
     return (
-        <div className="container mx-auto py-8">
+        <div className="container mx-auto py-8 pt-20 lg:pt-8">
             <div className="mb-8">
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-800 bg-clip-text text-transparent">
                     Feature Requests
@@ -350,7 +362,7 @@ export default function FeatureRequestsPage() {
 
                                                 <div className="space-y-6">
                                                     {/* Contact Info */}
-                                                    <div className="grid grid-cols-2 gap-4">
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                         <div className="p-4 bg-gray-50 rounded-lg">
                                                             <p className="text-xs text-muted-foreground mb-1">Email</p>
                                                             <a href={`mailto:${request.contact_email}`} className="font-medium hover:underline">
@@ -388,7 +400,7 @@ export default function FeatureRequestsPage() {
                                                     {/* Status Update */}
                                                     <div className="border-t pt-4">
                                                         <h4 className="font-medium mb-3">Update Status</h4>
-                                                        <div className="grid grid-cols-2 gap-4 mb-4">
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                                                             <div>
                                                                 <label className="text-sm text-muted-foreground mb-1 block">Request Status</label>
                                                                 <Select

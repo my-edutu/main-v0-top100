@@ -1,7 +1,7 @@
 'use client'
 
 import { AnimatePresence, motion } from 'framer-motion'
-import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
@@ -18,6 +18,7 @@ import {
   Handshake,
   HeartHandshake,
   Home,
+  Loader2,
   LockKeyhole,
   MapPin,
   Menu,
@@ -35,6 +36,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { SparklesIcon } from 'hugeicons-react'
+import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -44,14 +46,14 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import {
-  getMemberHubState,
+  fetchMemberHubState,
   createFeatureSubmission,
   markNotificationRead,
   HubOpportunity,
   MemberHubState,
   MemberProfile,
   updateMemberProfile,
-} from '@/lib/member-hub-local'
+} from '@/lib/member-hub'
 import { magazineEditions } from '@/lib/magazines'
 import type { Awardee } from '@/lib/awardees-shared'
 import { cn } from '@/lib/utils'
@@ -180,23 +182,35 @@ export default function MemberDashboardPage() {
   const [directoryFocus, setDirectoryFocus] = useState<DirectoryFocus>('awardees')
   const [sectionPreview, setSectionPreview] = useState<DashboardSection | null>(null)
   const [saved, setSaved] = useState(false)
+  const [savingProfile, setSavingProfile] = useState(false)
   const [profileError, setProfileError] = useState('')
   const [featureSaved, setFeatureSaved] = useState(false)
   const [featureError, setFeatureError] = useState('')
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  useEffect(() => {
-    setState(getMemberHubState())
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+
+  const refresh = useCallback(async () => {
+    try {
+      const next = await fetchMemberHubState()
+      setState(next)
+      setLoadError('')
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : 'Could not load your workspace.')
+    } finally {
+      setLoading(false)
+    }
   }, [])
+
+  useEffect(() => {
+    refresh()
+  }, [refresh])
 
   const member = useMemo(() => {
     if (!state) return null
     return state.members.find((item) => item.id === state.currentMemberId) || state.members[0] || null
   }, [state])
-
-  function refresh() {
-    setState(getMemberHubState())
-  }
 
   function openSection(section: DashboardSection) {
     setMobileOpen(false)
@@ -265,16 +279,22 @@ export default function MemberDashboardPage() {
 
     try {
       setProfileError('')
-      updateMemberProfile(member.id, patch)
+      setSavingProfile(true)
+      await updateMemberProfile(member.id, patch)
       await syncPublicAwardeeProfile(member, patch)
 
       setSaved(true)
-      refresh()
+      await refresh()
+      toast.success('Saved. Your BIO update is queued for review.')
       window.setTimeout(() => setSaved(false), 2200)
     } catch (error) {
       setSaved(false)
-      setProfileError(error instanceof Error ? error.message : 'Could not save this BIO update.')
-      refresh()
+      const message = error instanceof Error ? error.message : 'Could not save this BIO update.'
+      setProfileError(message)
+      toast.error(message)
+      await refresh()
+    } finally {
+      setSavingProfile(false)
     }
   }
 
@@ -282,7 +302,8 @@ export default function MemberDashboardPage() {
     event.preventDefault()
     if (!member) return
 
-    const form = new FormData(event.currentTarget)
+    const formEl = event.currentTarget
+    const form = new FormData(formEl)
     const title = String(form.get('title') || '').trim()
     const summary = String(form.get('summary') || '').trim()
     const category = String(form.get('category') || 'bio') as 'bio' | 'story' | 'product' | 'project'
@@ -290,12 +311,13 @@ export default function MemberDashboardPage() {
     if (!title || !summary) {
       setFeatureSaved(false)
       setFeatureError('Add a title and short summary before submitting.')
+      toast.error('Add a title and short summary before submitting.')
       return
     }
 
     try {
       setFeatureError('')
-      createFeatureSubmission({
+      await createFeatureSubmission({
         memberId: member.id,
         memberName: member.name,
         title,
@@ -305,19 +327,34 @@ export default function MemberDashboardPage() {
       })
 
       setFeatureSaved(true)
-      refresh()
-      event.currentTarget.reset()
+      await refresh()
+      formEl.reset()
+      toast.success('Sent to the admin team for review.')
       window.setTimeout(() => setFeatureSaved(false), 2400)
     } catch (error) {
       setFeatureSaved(false)
-      setFeatureError(error instanceof Error ? error.message : 'Could not submit this feature request.')
+      const message = error instanceof Error ? error.message : 'Could not submit this feature request.'
+      setFeatureError(message)
+      toast.error(message)
     }
   }
 
-  function handleReadNotification(notificationId: string) {
+  async function handleReadNotification(notificationId: string) {
     if (!member) return
-    markNotificationRead(notificationId, member.id)
-    refresh()
+    await markNotificationRead(notificationId, member.id)
+    await refresh()
+    toast.success('Marked as read.')
+  }
+
+  if (loading) {
+    return (
+      <section className="grid min-h-[100dvh] place-items-center bg-[#fffaf4] px-4">
+        <div className="text-center">
+          <div className="mx-auto mb-3 inline-block h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-orange-500" />
+          <p className="text-sm font-semibold text-black/60">Loading your workspace...</p>
+        </div>
+      </section>
+    )
   }
 
   if (!state || !member) {
@@ -329,7 +366,9 @@ export default function MemberDashboardPage() {
               AF
             </div>
             <h1 className="text-3xl font-bold tracking-tight text-black">Awardee workspace</h1>
-            <p className="text-sm font-semibold text-black/60">Create an invite-only account to continue.</p>
+            <p className="text-sm font-semibold text-black/60">
+              {loadError || 'Create an invite-only account to continue.'}
+            </p>
             <Button asChild className="rounded-full bg-orange-500 px-7 text-[#fffaf0] hover:bg-orange-600">
               <Link href="/auth/signup">Create account</Link>
             </Button>
@@ -358,7 +397,7 @@ export default function MemberDashboardPage() {
           <main className="flex-1 bg-[linear-gradient(180deg,#fffaf4_0%,#ffffff_36%,#fffaf4_100%)] px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
             <div className="mx-auto max-w-6xl">
               {activeSection === 'home' && <HomeSection member={member} onNavigate={openSection} state={state} />}
-              {activeSection === 'profile' && <ProfileSection error={profileError} member={member} onSubmit={handleProfileSubmit} saved={saved} />}
+              {activeSection === 'profile' && <ProfileSection error={profileError} member={member} onSubmit={handleProfileSubmit} saved={saved} saving={savingProfile} />}
               {activeSection === 'directory' && <DirectorySection focus={directoryFocus} />}
               {activeSection === 'messages' && <DirectorySection focus="messages" />}
               {activeSection === 'opportunities' && <OpportunitiesSection state={state} />}
@@ -367,7 +406,7 @@ export default function MemberDashboardPage() {
               {activeSection === 'partnerships' && <PartnershipsSection />}
               {activeSection === 'magazine' && <MagazineSection />}
               {activeSection === 'notifications' && <NotificationsSection member={member} onRead={handleReadNotification} state={state} />}
-              {activeSection === 'settings' && <SettingsSection error={profileError} member={member} onSubmit={handleProfileSubmit} saved={saved} />}
+              {activeSection === 'settings' && <SettingsSection error={profileError} member={member} onSubmit={handleProfileSubmit} saved={saved} saving={savingProfile} />}
             </div>
           </main>
         </div>
@@ -543,11 +582,13 @@ function ProfileSection({
   member,
   onSubmit,
   saved,
+  saving,
 }: {
   error: string
   member: MemberProfile
   onSubmit: (event: FormEvent<HTMLFormElement>) => void | Promise<void>
   saved: boolean
+  saving: boolean
 }) {
   const updatesRemaining = Math.max(0, member.bioUpdateLimit - member.bioUpdateCount)
 
@@ -585,11 +626,18 @@ function ProfileSection({
           <VisibilitySwitch name="emailVisible" label="Show email on profile" defaultChecked={member.emailVisible} />
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <Button disabled={updatesRemaining === 0} className="rounded-full bg-orange-500 px-8 py-6 text-[#fffaf0] hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-orange-200 disabled:text-black/45">
-            Submit BIO
+          <Button disabled={updatesRemaining === 0 || saving} className="rounded-full bg-orange-500 px-8 py-6 text-[#fffaf0] hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-orange-200 disabled:text-black/45">
+            {saving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              'Submit BIO'
+            )}
           </Button>
-          {saved ? <span className="text-sm font-semibold text-black">Saved for review.</span> : null}
-          {error ? <span className="text-sm font-semibold text-orange-700">{error}</span> : null}
+          {saved ? <span className="text-sm font-semibold text-black" role="status">Saved for review.</span> : null}
+          {error ? <span className="text-sm font-semibold text-orange-700" role="alert">{error}</span> : null}
         </div>
       </form>
     </SectionShell>
@@ -676,6 +724,7 @@ function DirectorySection({ focus = 'awardees' }: { focus?: DirectoryFocus }) {
               key={cohort.year}
               type="button"
               onClick={() => setSelectedYear(Number(cohort.year))}
+              aria-pressed={selectedYear === Number(cohort.year)}
               className={cn(
                 'group flex min-h-[122px] flex-col justify-between rounded-[22px] border p-4 text-left text-black transition hover:-translate-y-0.5',
                 cohort.surface,
@@ -702,6 +751,7 @@ function DirectorySection({ focus = 'awardees' }: { focus?: DirectoryFocus }) {
               <button
                 type="button"
                 onClick={() => setSelectedYear('all')}
+                aria-pressed={selectedYear === 'all'}
                 className={cn(
                   'rounded-full px-4 py-2.5 text-sm font-semibold transition',
                   selectedYear === 'all' ? 'bg-[#050505] text-[#fffaf0]' : 'bg-orange-50 text-black hover:bg-orange-100',
@@ -716,6 +766,7 @@ function DirectorySection({ focus = 'awardees' }: { focus?: DirectoryFocus }) {
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
                 placeholder="Search name, country, field..."
+                aria-label="Search awardees by name, country, or field"
                 className="h-12 rounded-full border-black/10 pl-11 text-base text-black placeholder:text-black/35"
               />
             </div>
@@ -970,8 +1021,8 @@ function FeaturedSection({
               Submit to admin
               <Send className="ml-2 h-4 w-4" strokeWidth={2.8} />
             </Button>
-            {saved ? <span className="text-sm font-semibold text-black">Sent to admin.</span> : null}
-            {error ? <span className="text-sm font-semibold text-orange-700">{error}</span> : null}
+            {saved ? <span className="text-sm font-semibold text-black" role="status">Sent to admin.</span> : null}
+            {error ? <span className="text-sm font-semibold text-orange-700" role="alert">{error}</span> : null}
           </div>
         </form>
       </div>
@@ -1149,7 +1200,7 @@ function EventsSection() {
 
 function PartnershipsSection() {
   const partnerRoutes = [
-    { title: 'Become a partner', href: '/apply/partnership', text: 'Sponsor, support, or co-create programs.' },
+    { title: 'Become a partner', href: '/partnership', text: 'Sponsor, support, or co-create programs.' },
     { title: 'View current partners', href: '/', text: 'See the organizations supporting the mission.' },
     { title: 'Volunteer with us', href: '/apply/volunteer', text: 'Join activations, research, and community work.' },
   ]
@@ -1318,7 +1369,7 @@ function MagazineSection() {
               ))}
             </div>
             <Button asChild className="mt-7 rounded-full bg-[#050505] px-7 py-6 text-[#fffaf0] hover:bg-[#171717]">
-              <Link href="/apply/partnership">
+              <Link href="/partnership">
                 Apply to feature
                 <ArrowRight className="ml-2 h-4 w-4" strokeWidth={2.8} />
               </Link>
@@ -1335,11 +1386,13 @@ function SettingsSection({
   member,
   onSubmit,
   saved,
+  saving,
 }: {
   error: string
   member: MemberProfile
   onSubmit: (event: FormEvent<HTMLFormElement>) => void | Promise<void>
   saved: boolean
+  saving: boolean
 }) {
   const updatesRemaining = Math.max(0, member.bioUpdateLimit - member.bioUpdateCount)
 
@@ -1432,13 +1485,20 @@ function SettingsSection({
               <Button asChild variant="outline" className="rounded-full border-orange-200 bg-white px-6 py-6 text-black hover:bg-white">
                 <Link href="/auth/signin?from=/dashboard">Change password</Link>
               </Button>
-              <Button disabled={updatesRemaining === 0} className="rounded-full bg-orange-500 px-8 py-6 text-[#fffaf0] hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-orange-200 disabled:text-black/45">
-                Save settings
+              <Button disabled={updatesRemaining === 0 || saving} className="rounded-full bg-orange-500 px-8 py-6 text-[#fffaf0] hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-orange-200 disabled:text-black/45">
+                {saving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save settings'
+                )}
               </Button>
             </div>
           </div>
-          {saved ? <p className="mt-3 text-sm font-semibold text-black">Settings saved.</p> : null}
-          {error ? <p className="mt-3 text-sm font-semibold text-orange-700">{error}</p> : null}
+          {saved ? <p className="mt-3 text-sm font-semibold text-black" role="status">Settings saved.</p> : null}
+          {error ? <p className="mt-3 text-sm font-semibold text-orange-700" role="alert">{error}</p> : null}
         </div>
       </form>
     </SectionShell>

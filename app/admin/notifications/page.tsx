@@ -143,7 +143,7 @@ export default function AdminNotificationsPage() {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 pt-20 lg:pt-0">
             {/* Header */}
             <div>
                 <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
@@ -224,10 +224,11 @@ export default function AdminNotificationsPage() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-700">
+                            <label htmlFor="notif-title" className="text-sm font-medium text-gray-700">
                                 Title <span className="text-red-500">*</span>
                             </label>
                             <Input
+                                id="notif-title"
                                 placeholder="e.g., New Awardees Announced!"
                                 value={title}
                                 onChange={(e) => setTitle(e.target.value)}
@@ -237,10 +238,11 @@ export default function AdminNotificationsPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-700">
+                            <label htmlFor="notif-body" className="text-sm font-medium text-gray-700">
                                 Message <span className="text-red-500">*</span>
                             </label>
                             <textarea
+                                id="notif-body"
                                 className="w-full border rounded-lg p-3 text-sm resize-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                                 placeholder="Write your notification message..."
                                 value={body}
@@ -252,10 +254,11 @@ export default function AdminNotificationsPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-700">
+                            <label htmlFor="notif-url" className="text-sm font-medium text-gray-700">
                                 Click URL (optional)
                             </label>
                             <Input
+                                id="notif-url"
                                 placeholder="/"
                                 value={url}
                                 onChange={(e) => setUrl(e.target.value)}

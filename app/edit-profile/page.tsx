@@ -130,6 +130,7 @@ export default function EditProfilePage() {
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder="Enter your full name..."
+                                aria-label="Search for your name"
                                 className="w-full pl-12 pr-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent shadow-sm"
                             />
                         </div>

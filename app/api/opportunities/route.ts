@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 
-import type { HubOpportunity } from '@/lib/member-hub-local'
+import type { HubOpportunity } from '@/lib/member-hub'
 
 export const runtime = 'nodejs'
 

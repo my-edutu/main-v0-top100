@@ -240,15 +240,14 @@ export default function CreatePostPage() {
   }
 
   return (
-    <div className="space-y-10 pb-24">
-      <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-emerald-500/15 via-sky-500/10 to-purple-500/15 p-8 shadow-xl">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.25),transparent_55%)]" />
+    <div className="space-y-8 pb-28">
+      <section className="relative overflow-hidden rounded-3xl border border-orange-100 bg-gradient-to-br from-orange-50 via-amber-50/60 to-white p-6 sm:p-8 shadow-sm">
         <div className="relative flex flex-col gap-6">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col-reverse gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p className="text-sm uppercase tracking-[0.45em] text-emerald-200/80">Create Story</p>
-              <h1 className="mt-2 text-4xl font-semibold text-white md:text-5xl">Compose a new spotlight</h1>
-              <p className="mt-3 max-w-2xl text-lg text-emerald-100/80">
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-orange-500">Create Story</p>
+              <h1 className="mt-2 text-3xl font-black tracking-tight text-zinc-900 md:text-4xl">Compose a new spotlight</h1>
+              <p className="mt-3 max-w-2xl text-sm text-zinc-500 sm:text-base">
                 Craft a narrative that celebrates our fellows. Rich formatting, high-res imagery, and SEO-ready metadata
                 all in one place.
               </p>
@@ -256,37 +255,37 @@ export default function CreatePostPage() {
             <Button
               variant="ghost"
               size="sm"
-              className="text-emerald-100 hover:bg-emerald-500/20"
+              className="self-start rounded-xl text-zinc-600 hover:bg-orange-50 hover:text-orange-600"
               onClick={() => router.push("/admin/blog")}
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to blog board
             </Button>
           </div>
-          <div className="flex flex-wrap items-center gap-4 text-sm text-emerald-100/80">
-            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200/40 px-3 py-1">
-              <Sparkles className="h-4 w-4 text-emerald-200" />
+          <div className="flex flex-wrap items-center gap-3 text-sm text-zinc-500">
+            <span className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-white px-3 py-1 font-medium">
+              <Sparkles className="h-4 w-4 text-orange-500" />
               {estimatedReadingTime} min read
             </span>
-            <span className="rounded-full border border-emerald-200/40 px-3 py-1 text-xs uppercase tracking-[0.35em]">
+            <span className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-bold uppercase tracking-wider text-zinc-600">
               Status: {statusValue}
             </span>
           </div>
         </div>
       </section>
 
-      <form id="blog-form" onSubmit={handleSubmit(onSubmit)} className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <Card className="border-white/10 bg-black/40 backdrop-blur">
-          <CardContent className="space-y-10 p-8">
+      <form id="blog-form" onSubmit={handleSubmit(onSubmit)} className="grid gap-6 lg:gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <Card className="border-zinc-200 shadow-sm rounded-2xl">
+          <CardContent className="space-y-8 p-5 sm:p-8">
             <div className="space-y-8">
-              <div className="space-y-3">
-                <Label htmlFor="title" className="text-sm font-semibold text-zinc-100">
+              <div className="space-y-2">
+                <Label htmlFor="title" className="text-sm font-bold text-zinc-700">
                   Headline
                 </Label>
                 <Input
                   id="title"
                   placeholder="Write a headline that sparks curiosity"
-                  className="h-14 border-zinc-700/50 bg-black/40 text-xl font-medium text-white"
+                  className="h-14 rounded-xl border-zinc-200 text-lg font-medium focus:ring-1 focus:ring-orange-300 focus:border-orange-300"
                   ref={titleRef}
                   {...titleRest}
                   onChange={(event) => {
@@ -296,61 +295,60 @@ export default function CreatePostPage() {
                     }
                   }}
                 />
-                {errors.title && <p className="text-sm text-red-500">{errors.title.message}</p>}
+                {errors.title && <p className="text-sm text-rose-600">{errors.title.message}</p>}
               </div>
 
-              <div className="space-y-3">
-                <Label htmlFor="excerpt" className="text-sm font-semibold text-zinc-100">
+              <div className="space-y-2">
+                <Label htmlFor="excerpt" className="text-sm font-bold text-zinc-700">
                   Excerpt
                 </Label>
                 <Input
                   id="excerpt"
                   placeholder="Brief summary of the post content"
-                  className="border-zinc-700/50 bg-black/40 text-white"
+                  className="h-11 rounded-xl border-zinc-200 focus:ring-1 focus:ring-orange-300 focus:border-orange-300"
                   ref={excerptRef}
                   {...excerptRest}
                 />
-                {errors.excerpt && <p className="text-sm text-red-500">{errors.excerpt.message}</p>}
+                {errors.excerpt && <p className="text-sm text-rose-600">{errors.excerpt.message}</p>}
               </div>
 
-              <div className="space-y-3">
-                <Label htmlFor="author" className="text-sm font-semibold text-zinc-100">
+              <div className="space-y-2">
+                <Label htmlFor="author" className="text-sm font-bold text-zinc-700">
                   Author
                 </Label>
                 <Input
                   id="author"
                   placeholder="Author name"
-                  className="border-zinc-700/50 bg-black/40 text-white"
+                  className="h-11 rounded-xl border-zinc-200 focus:ring-1 focus:ring-orange-300 focus:border-orange-300"
                   ref={authorRef}
                   {...authorRest}
                 />
-                {errors.author && <p className="text-sm text-red-500">{errors.author.message}</p>}
+                {errors.author && <p className="text-sm text-rose-600">{errors.author.message}</p>}
               </div>
 
-              <div className="space-y-3">
-                <Label className="text-sm font-semibold text-zinc-100">Cover image</Label>
-                <div className="group relative overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-950/70">
+              <div className="space-y-2">
+                <Label className="text-sm font-bold text-zinc-700">Cover image</Label>
+                <div className="group relative overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-50">
                   {coverImageValue ? (
                     <img
                       src={coverImageValue}
                       alt={coverImageAltValue || "Cover preview"}
-                      className="h-72 w-full object-cover transition duration-500 group-hover:scale-[1.02]"
+                      className="h-64 w-full object-cover transition duration-500 group-hover:scale-[1.02] sm:h-72"
                     />
                   ) : (
-                    <div className="flex h-72 w-full flex-col items-center justify-center gap-3 bg-[radial-gradient(circle_at_center,_rgba(34,197,94,0.15),_transparent_70%)] text-zinc-400">
-                      <ImageIcon className="h-10 w-10 text-emerald-300" />
+                    <div className="flex h-64 w-full flex-col items-center justify-center gap-3 text-zinc-400 sm:h-72">
+                      <ImageIcon className="h-10 w-10 text-orange-400" />
                       <p className="text-sm">Add a hero image that sets the tone</p>
                     </div>
                   )}
-                  <div className="absolute inset-0 flex items-end justify-between bg-gradient-to-t from-black/70 to-transparent p-4 opacity-0 transition group-hover:opacity-100">
-                    <div className="text-xs uppercase tracking-[0.35em] text-white/80">
+                  <div className="absolute inset-0 flex items-end justify-between bg-gradient-to-t from-black/60 to-transparent p-4 opacity-0 transition group-hover:opacity-100">
+                    <div className="text-xs font-bold uppercase tracking-wider text-white/90">
                       {coverImageValue ? "Change cover" : "Add cover"}
                     </div>
                     <Button
                       type="button"
                       size="sm"
-                      variant="secondary"
-                      className="bg-white/90 text-black hover:bg-white"
+                      className="rounded-xl bg-white text-zinc-900 hover:bg-white/90"
                       onClick={() => coverInputRef.current?.click()}
                       disabled={coverUploading}
                     >
@@ -371,24 +369,24 @@ export default function CreatePostPage() {
                     }
                   }}
                 />
-                {errors.coverImage && <p className="text-sm text-red-500">{errors.coverImage.message}</p>}
+                {errors.coverImage && <p className="text-sm text-rose-600">{errors.coverImage.message}</p>}
               </div>
 
-              <div className="space-y-3">
-                <Label htmlFor="coverImageAlt" className="text-sm font-semibold text-zinc-100">
+              <div className="space-y-2">
+                <Label htmlFor="coverImageAlt" className="text-sm font-bold text-zinc-700">
                   Cover Image Alt Text
                 </Label>
                 <Input
                   id="coverImageAlt"
                   placeholder="Describe the cover image for accessibility"
-                  className="border-zinc-700/50 bg-black/40 text-white"
+                  className="h-11 rounded-xl border-zinc-200 focus:ring-1 focus:ring-orange-300 focus:border-orange-300"
                   value={coverImageAltValue}
                   onChange={(e) => setValue("coverImageAlt", e.target.value, { shouldDirty: true })}
                 />
               </div>
 
-              <div className="space-y-3">
-                <Label htmlFor="content" className="text-sm font-semibold text-zinc-100">
+              <div className="space-y-2">
+                <Label htmlFor="content" className="text-sm font-bold text-zinc-700">
                   Story body
                 </Label>
                 <MediumRichEditor
@@ -396,21 +394,21 @@ export default function CreatePostPage() {
                   onChange={(html) => setValue("content", html, { shouldDirty: true })}
                   placeholder="Share a transformative experience, include quotes, embed visuals…"
                 />
-                {errors.content && <p className="text-sm text-red-500">{errors.content.message}</p>}
+                {errors.content && <p className="text-sm text-rose-600">{errors.content.message}</p>}
               </div>
             </div>
           </CardContent>
         </Card>
 
         <div className="space-y-6">
-          <Card className="border-white/10 bg-black/50 backdrop-blur">
-            <CardContent className="space-y-4 p-6">
+          <Card className="border-zinc-200 shadow-sm rounded-2xl">
+            <CardContent className="space-y-4 p-5 sm:p-6">
               <div className="space-y-2">
-                <Label className="text-sm font-semibold text-zinc-100">Slug</Label>
+                <Label htmlFor="slug" className="text-sm font-bold text-zinc-700">Slug</Label>
                 <Input
                   id="slug"
                   placeholder="unique-story-slug"
-                  className="border-zinc-800 bg-black/60"
+                  className="h-11 rounded-xl border-zinc-200 focus:ring-1 focus:ring-orange-300 focus:border-orange-300"
                   ref={slugRef}
                   {...slugRest}
                   onChange={(event) => {
@@ -418,13 +416,14 @@ export default function CreatePostPage() {
                     slugOnChange(event)
                   }}
                 />
-                <p className="text-xs text-zinc-500">Used for the public URL. Auto-generated from the headline.</p>
-                {errors.slug && <p className="text-sm text-red-500">{errors.slug.message}</p>}
+                <p className="text-xs text-zinc-400">Used for the public URL. Auto-generated from the headline.</p>
+                {errors.slug && <p className="text-sm text-rose-600">{errors.slug.message}</p>}
               </div>
 
               <div className="space-y-2">
-                <Label className="text-sm font-semibold text-zinc-100">Status</Label>
+                <Label htmlFor="status" className="text-sm font-bold text-zinc-700">Status</Label>
                 <select
+                  id="status"
                   value={statusValue}
                   onChange={(event) => {
                     setValue("status", event.target.value as "draft" | "published" | "scheduled", { shouldDirty: true })
@@ -432,7 +431,7 @@ export default function CreatePostPage() {
                       setValue("scheduledAt", "", { shouldDirty: true }) // Clear scheduled date if not scheduled
                     }
                   }}
-                  className="w-full rounded-lg border border-zinc-800 bg-black/60 px-3 py-2 text-sm text-zinc-200"
+                  className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-800 focus:outline-none focus:ring-1 focus:ring-orange-300 focus:border-orange-300"
                 >
                   <option value="draft">Draft (hidden)</option>
                   <option value="published">Published</option>
@@ -442,22 +441,23 @@ export default function CreatePostPage() {
 
               {statusValue === 'scheduled' && (
                 <div className="space-y-2">
-                  <Label className="text-sm font-semibold text-zinc-100">Scheduled Date & Time</Label>
+                  <Label htmlFor="scheduledAt" className="text-sm font-bold text-zinc-700">Scheduled Date &amp; Time</Label>
                   <Input
+                    id="scheduledAt"
                     type="datetime-local"
                     value={scheduledDate}
                     onChange={(e) => {
                       setScheduledDate(e.target.value);
                       setValue("scheduledAt", e.target.value, { shouldDirty: true });
                     }}
-                    className="w-full rounded-lg border border-zinc-800 bg-black/60 px-3 py-2 text-sm text-zinc-200"
+                    className="h-11 w-full rounded-xl border-zinc-200 focus:ring-1 focus:ring-orange-300 focus:border-orange-300"
                   />
                 </div>
               )}
 
-              <div className="flex items-center justify-between rounded-2xl border border-zinc-800/70 bg-black/40 px-4 py-3">
-                <div className="space-y-1">
-                  <p className="text-sm font-semibold text-zinc-100">Feature on homepage</p>
+              <div className="flex items-center justify-between rounded-2xl border border-zinc-100 bg-zinc-50 px-4 py-3">
+                <div className="space-y-1 pr-3">
+                  <p className="text-sm font-bold text-zinc-800">Feature on homepage</p>
                   <p className="text-xs text-zinc-500">
                     Highlight this story in the hero carousel and newsletter.
                   </p>
@@ -465,88 +465,89 @@ export default function CreatePostPage() {
                 <Switch
                   checked={isFeatured}
                   onCheckedChange={(checked) => setValue("isFeatured", checked, { shouldDirty: true })}
+                  aria-label="Feature on homepage"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="tags" className="text-sm font-semibold text-zinc-100">
+                <Label htmlFor="tags" className="text-sm font-bold text-zinc-700">
                   Tags
                 </Label>
                 <Input
                   id="tags"
                   placeholder="leadership, climate action, edtech"
-                  className="border-zinc-800 bg-black/60"
+                  className="h-11 rounded-xl border-zinc-200 focus:ring-1 focus:ring-orange-300 focus:border-orange-300"
                   {...register("tags")}
                 />
-                <p className="text-xs text-zinc-500">Comma separated keywords that help SEO and filtering.</p>
+                <p className="text-xs text-zinc-400">Comma separated keywords that help SEO and filtering.</p>
               </div>
             </CardContent>
           </Card>
 
           {/* SEO Section */}
-          <Card className="border-white/10 bg-black/50 backdrop-blur">
-            <CardContent className="space-y-4 p-6">
+          <Card className="border-zinc-200 shadow-sm rounded-2xl">
+            <CardContent className="space-y-4 p-5 sm:p-6">
               <div className="space-y-1">
-                <p className="text-sm font-semibold text-zinc-100 flex items-center gap-2">
-                  <Search className="h-4 w-4" />
+                <p className="text-sm font-bold text-zinc-800 flex items-center gap-2">
+                  <Search className="h-4 w-4 text-orange-500" />
                   SEO Settings
                 </p>
                 <p className="text-xs text-zinc-500">Optimize your post for search engines</p>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="metaTitle" className="text-sm font-semibold text-zinc-100">
+                  <Label htmlFor="metaTitle" className="text-sm font-bold text-zinc-700">
                     Meta Title
                   </Label>
                   <Input
                     id="metaTitle"
                     placeholder="SEO title for search results"
-                    className="border-zinc-800 bg-black/60"
+                    className="h-11 rounded-xl border-zinc-200 focus:ring-1 focus:ring-orange-300 focus:border-orange-300"
                     {...register("metaTitle")}
                   />
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-xs text-zinc-400">
                     {metaTitleValue?.length || 0}/60 characters
                   </p>
-                  {errors.metaTitle && <p className="text-sm text-red-500">{errors.metaTitle.message}</p>}
+                  {errors.metaTitle && <p className="text-sm text-rose-600">{errors.metaTitle.message}</p>}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="metaDescription" className="text-sm font-semibold text-zinc-100">
+                  <Label htmlFor="metaDescription" className="text-sm font-bold text-zinc-700">
                     Meta Description
                   </Label>
                   <textarea
                     id="metaDescription"
                     placeholder="Brief description for search results"
-                    className="w-full rounded-lg border border-zinc-800 bg-black/60 px-3 py-2 text-sm text-zinc-200 min-h-[80px]"
+                    className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 min-h-[80px] focus:outline-none focus:ring-1 focus:ring-orange-300 focus:border-orange-300"
                     {...register("metaDescription")}
                   />
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-xs text-zinc-400">
                     {metaDescriptionValue?.length || 0}/160 characters
                   </p>
-                  {errors.metaDescription && <p className="text-sm text-red-500">{errors.metaDescription.message}</p>}
+                  {errors.metaDescription && <p className="text-sm text-rose-600">{errors.metaDescription.message}</p>}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="metaKeywords" className="text-sm font-semibold text-zinc-100">
+                  <Label htmlFor="metaKeywords" className="text-sm font-bold text-zinc-700">
                     Meta Keywords
                   </Label>
                   <Input
                     id="metaKeywords"
                     placeholder="seo, keywords, comma, separated"
-                    className="border-zinc-800 bg-black/60"
+                    className="h-11 rounded-xl border-zinc-200 focus:ring-1 focus:ring-orange-300 focus:border-orange-300"
                     {...register("metaKeywords")}
                   />
-                  <p className="text-xs text-zinc-500">Comma separated SEO keywords (optional)</p>
+                  <p className="text-xs text-zinc-400">Comma separated SEO keywords (optional)</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-white/10 bg-black/50 backdrop-blur">
-            <CardContent className="space-y-4 p-6 text-sm text-zinc-400">
+          <Card className="border-zinc-200 shadow-sm rounded-2xl">
+            <CardContent className="space-y-4 p-5 sm:p-6 text-sm text-zinc-500">
               <div className="space-y-1">
-                <p className="font-semibold text-zinc-100">Publishing tips</p>
+                <p className="font-bold text-zinc-800">Publishing tips</p>
                 <ul className="space-y-2 text-xs leading-6">
                   <li>• Aim for at least 600 words with vivid examples.</li>
                   <li>• Include at least one compelling quote.</li>
@@ -554,9 +555,9 @@ export default function CreatePostPage() {
                   <li>• Add SEO-friendly title and description.</li>
                 </ul>
               </div>
-              <div className="rounded-xl border border-zinc-800/70 bg-black/40 px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.35em] text-emerald-200/70">Preview</p>
-                <p className="mt-2 text-sm text-zinc-200 line-clamp-3">
+              <div className="rounded-xl border border-zinc-100 bg-zinc-50 px-4 py-3">
+                <p className="text-xs font-bold uppercase tracking-wider text-orange-500">Preview</p>
+                <p className="mt-2 text-sm text-zinc-600 line-clamp-3">
                   {contentValue.replace(/<[^>]+>/g, " ").trim() || "Your story preview will appear here once you start writing."}
                 </p>
               </div>
@@ -565,26 +566,32 @@ export default function CreatePostPage() {
         </div>
       </form>
 
-      <div className="fixed inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/90 via-black/60 to-transparent px-6 py-6">
-        <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/70 px-6 py-4 backdrop-blur">
-          <div className="flex items-center gap-4 text-sm text-zinc-400">
-            <span className="rounded-full border border-zinc-700 px-3 py-1 text-xs uppercase tracking-[0.35em]">
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-zinc-200 bg-white/90 backdrop-blur-md px-4 py-3 lg:pl-64">
+        <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+            <span className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 font-bold uppercase tracking-wider text-zinc-600">
               {statusValue}
             </span>
             <span>{serializeTags(watch("tags")).length || 0} tags</span>
+            <span className="hidden sm:inline">•</span>
             <span>{estimatedReadingTime} min read</span>
           </div>
           <div className="flex items-center gap-3">
             <Button
               type="button"
               variant="ghost"
-              className="text-zinc-300 hover:bg-zinc-800/80"
+              className="rounded-xl text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800"
               onClick={() => router.push("/admin/blog")}
               disabled={isSubmitting}
             >
               Discard
             </Button>
-            <Button type="submit" form="blog-form" disabled={isSubmitting} className="px-6">
+            <Button
+              type="submit"
+              form="blog-form"
+              disabled={isSubmitting}
+              className="rounded-xl bg-orange-600 px-6 font-bold text-white shadow-lg shadow-orange-200 hover:bg-orange-700"
+            >
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -63,8 +63,8 @@ export default function JoinPage() {
               <div className="flex justify-center mb-3 text-orange-500">
                 {stat.icon}
               </div>
-              <div className="text-3xl font-bold text-slate-900 dark:text-white mb-1">{stat.value}</div>
-              <div className="text-sm text-slate-700 dark:text-slate-300">{stat.label}</div>
+              <div className="text-3xl font-bold text-white mb-1">{stat.value}</div>
+              <div className="text-sm text-zinc-300">{stat.label}</div>
             </div>
           ))}
         </div>
@@ -109,9 +109,11 @@ export default function JoinPage() {
         </div>
 
         {/* Brevo Popup */}
-        <div id="brevo-popup" className="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div id="brevo-popup" role="dialog" aria-modal="true" aria-label="Join our community" className="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="relative bg-white rounded-xl overflow-hidden w-full max-w-2xl">
             <button
+              type="button"
+              aria-label="Close"
               onClick={() => document.getElementById('brevo-popup')?.classList.add('hidden')}
               className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-700 hover:bg-gray-300 transition-colors"
             >

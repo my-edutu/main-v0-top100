@@ -15,6 +15,7 @@ export default function AdminLayout({
   children: React.ReactNode
 }) {
   const [scrolled, setScrolled] = useState(false)
+  const [collapsed, setCollapsed] = useState(false)
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20)
@@ -31,40 +32,59 @@ export default function AdminLayout({
         enabled={true}
       />
 
-      <AdminSidebar />
+      <AdminSidebar collapsed={collapsed} onCollapsedChange={setCollapsed} />
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col lg:pl-64 transition-all duration-300">
-        {/* Floating Top Bar */}
+      {/* Main Content Area — left padding tracks the sidebar width on desktop */}
+      <div
+        className={cn(
+          "flex-1 min-w-0 flex flex-col transition-all duration-300",
+          collapsed ? "lg:pl-20" : "lg:pl-64"
+        )}
+      >
+        {/*
+          Floating Top Bar — desktop only. On mobile the sidebar renders its
+          own fixed header, so this stays hidden to avoid overlapping it.
+        */}
         <header
           className={cn(
-            "sticky top-0 z-40 flex h-16 items-center justify-between px-4 lg:px-8 transition-all duration-300",
-            scrolled ? "bg-white/80 backdrop-blur-md border-b border-orange-100 shadow-sm" : "bg-transparent",
-            "pl-16 lg:pl-8" // Account for mobile menu button
+            "sticky top-0 z-40 hidden lg:flex h-16 items-center justify-between gap-4 px-8 transition-all duration-300",
+            scrolled ? "bg-white/80 backdrop-blur-md border-b border-orange-100 shadow-sm" : "bg-transparent"
           )}
         >
           {/* Search Bar */}
-          <div className="flex-1 max-w-md hidden sm:block">
+          <div className="flex-1 max-w-md">
             <div className="relative group">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 group-focus-within:text-orange-500 transition-colors" />
+              <label htmlFor="admin-search" className="sr-only">Search</label>
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 group-focus-within:text-orange-500 transition-colors pointer-events-none" />
               <Input
+                id="admin-search"
+                type="search"
                 placeholder="Search..."
-                className="bg-white border-zinc-200 pl-10 h-10 rounded-xl focus:ring-1 focus:ring-orange-300 focus:border-orange-300 transition-all placeholder:text-zinc-400"
+                className="bg-white border-zinc-200 pl-10 h-10 rounded-xl focus-visible:ring-1 focus-visible:ring-orange-300 focus-visible:border-orange-300 transition-all placeholder:text-zinc-400"
               />
             </div>
           </div>
 
           {/* Action Center */}
-          <div className="flex items-center gap-2 sm:gap-3 ml-auto">
-            <Button variant="ghost" size="icon" className="text-zinc-500 hover:text-orange-600 hover:bg-orange-50 relative rounded-full">
+          <div className="flex items-center gap-3 ml-auto shrink-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Notifications"
+              className="text-zinc-500 hover:text-orange-600 hover:bg-orange-50 relative rounded-full"
+            >
               <Bell className="h-5 w-5" />
               <span className="absolute top-2 right-2 h-2 w-2 bg-orange-500 rounded-full border-2 border-white" />
             </Button>
 
-            <div className="h-4 w-[1px] bg-zinc-200 mx-1 hidden sm:block" />
+            <div className="h-4 w-px bg-zinc-200 mx-1" />
 
-            <Button variant="ghost" className="gap-2 px-2 hover:bg-orange-50 rounded-xl group transition-all">
-              <div className="text-right hidden sm:block">
+            <Button
+              variant="ghost"
+              aria-label="Admin account"
+              className="gap-2 px-2 hover:bg-orange-50 rounded-xl group transition-all"
+            >
+              <div className="text-right">
                 <p className="text-xs font-bold text-zinc-800 leading-none">Admin</p>
                 <p className="text-[10px] text-zinc-500 leading-none mt-0.5">Superuser</p>
               </div>

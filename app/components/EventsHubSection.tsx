@@ -122,8 +122,9 @@ export default function EventsHubSection({ initialEvents, initialAnnouncements }
     }, [hasInitialData])
 
     if (loading) return (
-        <div className="container py-20 flex justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-orange-600" />
+        <div className="container py-20 flex justify-center" role="status" aria-live="polite">
+            <Loader2 className="h-8 w-8 animate-spin text-orange-600" aria-hidden="true" />
+            <span className="sr-only">Loading events and announcements</span>
         </div>
     )
 

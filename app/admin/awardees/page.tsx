@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -19,7 +20,17 @@ import {
   CardHeader,
   CardTitle
 } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase/client';
 import {
@@ -30,15 +41,11 @@ import {
   Download,
   Search,
   Loader2,
-  X,
   Image as ImageIcon,
   Users,
   Globe,
-  GraduationCap,
-  Calendar,
-  Award,
-  Eye,
   EyeOff,
+  Eye,
   Star,
   FileText
 } from 'lucide-react';
@@ -92,6 +99,9 @@ export default function AwardeesManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 100;
   const [loadingStates, setLoadingStates] = useState<Record<string, 'visibility' | 'featured'>>({});
+  // Which delete confirmation is open: an awardee id, 'bulk', or null
+  const [deleteTarget, setDeleteTarget] = useState<string | 'bulk' | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Helper function to handle auth errors
   const handleAuthError = (error: any, toastId: string) => {
@@ -334,8 +344,6 @@ export default function AwardeesManagement() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this awardee?')) return;
-
     try {
       toast.loading('Deleting awardee...', { id: `delete-${id}` });
 
@@ -568,10 +576,6 @@ export default function AwardeesManagement() {
       return;
     }
 
-    if (!confirm(`Are you sure you want to delete ${selectedAwardees.size} awardees? This action cannot be undone.`)) {
-      return;
-    }
-
     try {
       toast.loading(`Deleting ${selectedAwardees.size} awardees...`, { id: 'bulk-delete' });
 
@@ -592,6 +596,22 @@ export default function AwardeesManagement() {
     }
   };
 
+  // Confirm handler for the AlertDialog (single or bulk delete)
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      if (deleteTarget === 'bulk') {
+        await handleBulkDelete();
+      } else {
+        await handleDelete(deleteTarget);
+      }
+    } finally {
+      setDeleting(false);
+      setDeleteTarget(null);
+    }
+  };
+
   // Pagination calculations
   const totalPages = Math.ceil(filteredAwardees.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -603,7 +623,8 @@ export default function AwardeesManagement() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // ... existing code ...
+  const allSelected = selectedAwardees.size === filteredAwardees.length && filteredAwardees.length > 0;
+  const hasNoResults = paginatedAwardees.length === 0;
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pt-20 lg:pt-0">
@@ -611,11 +632,11 @@ export default function AwardeesManagement() {
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2 mb-1">
-            <div className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+            <div className="h-2 w-2 rounded-full bg-orange-500 animate-pulse" />
             <span className="text-[10px] uppercase tracking-widest text-zinc-400 font-bold">Awardee Management</span>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight leading-none">
-            Awardee <span className="text-blue-500">Directory</span>
+          <h1 className="text-3xl sm:text-4xl font-black text-zinc-900 tracking-tight leading-none">
+            Awardee <span className="text-orange-600">Directory</span>
           </h1>
           <p className="text-zinc-500 text-xs sm:text-sm font-medium">
             Manage, verify, and spotlight future leaders of Africa.
@@ -624,12 +645,12 @@ export default function AwardeesManagement() {
 
         <div className="flex items-center gap-2 shrink-0">
           <Link href="/admin/awardees/new">
-            <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-9 px-2 sm:px-4 shadow-lg shadow-blue-900/20 font-bold">
+            <Button size="sm" className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl h-9 px-2 sm:px-4 shadow-lg shadow-orange-200 font-bold">
               <Plus className="h-4 w-4 sm:mr-1" />
               <span className="hidden sm:inline">Add New</span>
             </Button>
           </Link>
-          <Button variant="outline" size="sm" onClick={handleExport} className="bg-zinc-950/50 border-white/10 text-zinc-400 hover:text-white rounded-xl h-9 px-2 sm:px-4 font-bold">
+          <Button variant="outline" size="sm" onClick={handleExport} className="bg-white border-zinc-200 text-zinc-600 hover:text-orange-600 hover:border-orange-200 hover:bg-orange-50 rounded-xl h-9 px-2 sm:px-4 font-bold">
             <Download className="h-4 w-4 sm:mr-1" />
             <span className="hidden sm:inline">Export</span>
           </Button>
@@ -639,59 +660,65 @@ export default function AwardeesManagement() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         <KPITile
           label="Total Leaders"
-          value={stats?.totalAwardees || 0}
+          value={stats?.totalAwardees ?? 0}
           icon={Users}
-          color="blue"
+          color="orange"
           subValue="All time"
+          loading={loading}
         />
         <KPITile
           label="Nations"
-          value={stats?.totalCountries || 0}
+          value={stats?.totalCountries ?? 0}
           icon={Globe}
           color="emerald"
           subValue="Represented"
+          loading={loading}
         />
         <KPITile
           label="Featured"
-          value={stats?.featuredAwardees || 0}
+          value={stats?.featuredAwardees ?? 0}
           icon={Star}
           color="amber"
           subValue="On Homepage"
+          loading={loading}
         />
         <KPITile
           label="Hidden"
-          value={stats?.hiddenAwardees || 0}
+          value={stats?.hiddenAwardees ?? 0}
           icon={EyeOff}
           color="rose"
           subValue="Private Profiles"
+          loading={loading}
         />
       </div>
 
       {/* Operations Bar: Import/Export & Filters */}
-      <Card className="bg-zinc-900/40 border-white/5 backdrop-blur-sm rounded-3xl overflow-hidden">
-        <CardHeader className="border-b border-white/5 px-6 py-4">
+      <Card className="bg-white border border-orange-100 rounded-3xl overflow-hidden shadow-sm">
+        <CardHeader className="border-b border-orange-100 px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg font-bold text-white flex items-center gap-2">
-              <Download className="h-4 w-4 text-zinc-400" />
+            <CardTitle className="text-base sm:text-lg font-bold text-zinc-900 flex items-center gap-2">
+              <Download className="h-4 w-4 text-orange-500" />
               Data Operations
             </CardTitle>
           </div>
         </CardHeader>
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <CardContent className="p-4 sm:p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
             {/* Left: Search & Filters */}
             <div className="space-y-4">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                <label htmlFor="awardee-search" className="sr-only">Search leaders</label>
                 <Input
-                  placeholder="Search leaders..."
+                  id="awardee-search"
+                  placeholder="Search leaders by name, country, course..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-zinc-950/50 border-white/10 text-white h-11 rounded-xl focus:ring-blue-500/50 focus:border-blue-500/50 placeholder:text-zinc-600 w-full"
+                  className="pl-10 bg-white border-zinc-200 text-zinc-900 h-11 rounded-xl focus:ring-1 focus:ring-orange-300 focus:border-orange-300 placeholder:text-zinc-400 w-full"
                 />
               </div>
 
-              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar -mx-2 px-2 pb-1">
+              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar -mx-1 px-1 pb-1">
                 <FilterButton
                   active={filterType === 'all'}
                   onClick={() => setFilterType('all')}
@@ -722,9 +749,9 @@ export default function AwardeesManagement() {
             </div>
 
             {/* Right: Import/Export Actions */}
-            <div className="flex flex-col justify-between p-4 rounded-2xl bg-white/5 border border-white/5">
-              <div className="space-y-2">
-                <h3 className="text-sm font-medium text-zinc-300">Bulk Data Management</h3>
+            <div className="flex flex-col justify-between p-4 rounded-2xl bg-orange-50/60 border border-orange-100">
+              <div className="space-y-1">
+                <h3 className="text-sm font-semibold text-zinc-800">Bulk Data Management</h3>
                 <p className="text-xs text-zinc-500">Import records via Excel or export current view.</p>
               </div>
               <div className="flex flex-wrap gap-2 mt-4">
@@ -740,10 +767,10 @@ export default function AwardeesManagement() {
                     variant="outline"
                     onClick={handleFileUploadClick}
                     disabled={uploading}
-                    className="flex-1 bg-zinc-900 border-white/10 hover:bg-zinc-800 text-zinc-300"
+                    className="flex-1 bg-white border-zinc-200 hover:bg-orange-50 hover:border-orange-200 text-zinc-600 truncate"
                   >
-                    {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                    {file ? file.name : 'Select Excel'}
+                    {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin shrink-0" /> : <Upload className="mr-2 h-4 w-4 shrink-0" />}
+                    <span className="truncate">{file ? file.name : 'Select Excel'}</span>
                   </Button>
                   {file && (
                     <Button onClick={handleImport} disabled={uploading} className="bg-emerald-600 hover:bg-emerald-700 text-white">
@@ -752,11 +779,11 @@ export default function AwardeesManagement() {
                   )}
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" onClick={handleExport} className="bg-zinc-900 border-white/10 hover:bg-zinc-800 text-zinc-300">
+                  <Button variant="outline" onClick={handleExport} className="bg-white border-zinc-200 hover:bg-orange-50 hover:border-orange-200 text-zinc-600">
                     <Download className="mr-2 h-4 w-4" /> Export
                   </Button>
                   <a href="/top100 Africa future Leaders 2025.xlsx" download>
-                    <Button variant="ghost" size="icon" className="text-zinc-500 hover:text-white" title="Download Template">
+                    <Button variant="ghost" size="icon" className="text-zinc-400 hover:text-orange-600 hover:bg-orange-50" aria-label="Download import template" title="Download Template">
                       <FileText className="h-4 w-4" />
                     </Button>
                   </a>
@@ -767,16 +794,16 @@ export default function AwardeesManagement() {
 
           {/* Bulk Selection Actions */}
           {selectedAwardees.size > 0 && (
-            <div className="mt-6 flex items-center justify-between p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl animate-in slide-in-from-top-2">
-              <span className="text-sm font-medium text-blue-200 px-2">
+            <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 bg-orange-50 border border-orange-200 rounded-xl animate-in slide-in-from-top-2">
+              <span className="text-sm font-semibold text-orange-700 px-2">
                 {selectedAwardees.size} items selected
               </span>
-              <div className="flex gap-2">
-                <Button size="sm" variant="ghost" onClick={() => handleBulkFeature(true)} className="text-amber-400 hover:text-amber-300 hover:bg-amber-500/10">Feature</Button>
-                <Button size="sm" variant="ghost" onClick={() => handleBulkVisibility(true)} className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10">Show</Button>
-                <Button size="sm" variant="ghost" onClick={() => handleBulkVisibility(false)} className="text-zinc-400 hover:text-zinc-300 hover:bg-white/5">Hide</Button>
-                <Button size="sm" variant="ghost" onClick={handleBulkDelete} className="text-rose-400 hover:text-rose-300 hover:bg-rose-500/10">Delete</Button>
-                <Button size="sm" variant="ghost" onClick={() => setSelectedAwardees(new Set())} className="text-zinc-500">Cancel</Button>
+              <div className="flex flex-wrap gap-1 sm:gap-2">
+                <Button size="sm" variant="ghost" onClick={() => handleBulkFeature(true)} className="text-amber-600 hover:text-amber-700 hover:bg-amber-100/60">Feature</Button>
+                <Button size="sm" variant="ghost" onClick={() => handleBulkVisibility(true)} className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-100/60">Show</Button>
+                <Button size="sm" variant="ghost" onClick={() => handleBulkVisibility(false)} className="text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100">Hide</Button>
+                <Button size="sm" variant="ghost" onClick={() => setDeleteTarget('bulk')} className="text-rose-600 hover:text-rose-700 hover:bg-rose-100/60">Delete</Button>
+                <Button size="sm" variant="ghost" onClick={() => setSelectedAwardees(new Set())} className="text-zinc-400 hover:text-zinc-600">Cancel</Button>
               </div>
             </div>
           )}
@@ -784,93 +811,104 @@ export default function AwardeesManagement() {
       </Card>
 
       {/* Main Data Table */}
-      <Card className="bg-zinc-900/40 border-white/5 backdrop-blur-sm rounded-3xl overflow-hidden min-h-[500px]">
+      <Card className="bg-white border border-orange-100 rounded-3xl overflow-hidden min-h-[500px] shadow-sm">
         {loading ? (
-          <div className="flex flex-col items-center justify-center p-20 space-y-4 text-zinc-500">
-            <Loader2 className="h-10 w-10 animate-spin text-blue-500" />
-            <p>Accessing secure records...</p>
+          <div className="p-4 sm:p-6 space-y-3">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-4 py-2">
+                <Skeleton className="h-10 w-10 rounded-full shrink-0" />
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-4 w-24 hidden sm:block" />
+                <Skeleton className="h-4 w-32 hidden md:block" />
+                <Skeleton className="h-4 w-16 ml-auto" />
+              </div>
+            ))}
           </div>
         ) : (
           <div className="relative">
             {/* Desktop Table View */}
             <div className="hidden lg:block overflow-x-auto">
               <Table>
-                <TableHeader className="bg-white/5">
-                  <TableRow className="border-white/5 hover:bg-transparent">
-                    <TableHead className="w-12 text-zinc-400 pl-6">
+                <TableHeader className="bg-orange-50/60 sticky top-0">
+                  <TableRow className="border-orange-100 hover:bg-transparent">
+                    <TableHead className="w-12 text-zinc-500 pl-6">
                       <input
                         type="checkbox"
-                        checked={selectedAwardees.size === filteredAwardees.length && filteredAwardees.length > 0}
+                        checked={allSelected}
                         onChange={handleSelectAll}
-                        className="rounded border-zinc-700 bg-zinc-800 text-blue-500 focus:ring-blue-500/20"
+                        aria-label="Select all awardees"
+                        className="h-4 w-4 rounded border-zinc-300 text-orange-500 focus:ring-orange-500/30 cursor-pointer"
                       />
                     </TableHead>
-                    <TableHead className="text-zinc-400">Profile</TableHead>
-                    <TableHead className="text-zinc-400">Name</TableHead>
-                    <TableHead className="text-zinc-400">Country</TableHead>
-                    <TableHead className="text-zinc-400">Education</TableHead>
-                    <TableHead className="text-zinc-400">Year</TableHead>
-                    <TableHead className="text-zinc-400">Status</TableHead>
-                    <TableHead className="text-zinc-400 text-right pr-6">Actions</TableHead>
+                    <TableHead className="text-zinc-500 font-semibold">Profile</TableHead>
+                    <TableHead className="text-zinc-500 font-semibold">Name</TableHead>
+                    <TableHead className="text-zinc-500 font-semibold">Country</TableHead>
+                    <TableHead className="text-zinc-500 font-semibold">Education</TableHead>
+                    <TableHead className="text-zinc-500 font-semibold">Year</TableHead>
+                    <TableHead className="text-zinc-500 font-semibold">Status</TableHead>
+                    <TableHead className="text-zinc-500 font-semibold text-right pr-6">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedAwardees.length === 0 ? (
+                  {hasNoResults ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center py-20 text-zinc-500">
-                        No awardees found matching your criteria.
+                      <TableCell colSpan={8} className="p-0">
+                        <EmptyState searchTerm={searchTerm} onAdd={handleAddNew} />
                       </TableCell>
                     </TableRow>
                   ) : (
                     paginatedAwardees.map((awardee) => (
-                      <TableRow key={awardee.id} className="border-white/5 hover:bg-white/5 transition-colors group">
+                      <TableRow key={awardee.id} className="border-zinc-100 hover:bg-orange-50/40 transition-colors group">
                         <TableCell className="pl-6">
                           <input
                             type="checkbox"
                             checked={selectedAwardees.has(awardee.id)}
                             onChange={() => handleSelectAwardee(awardee.id)}
-                            className="rounded border-zinc-700 bg-zinc-800 text-blue-500 focus:ring-blue-500/20"
+                            aria-label={`Select ${awardee.name}`}
+                            className="h-4 w-4 rounded border-zinc-300 text-orange-500 focus:ring-orange-500/30 cursor-pointer"
                           />
                         </TableCell>
                         <TableCell>
-                          <div className="h-10 w-10 rounded-full overflow-hidden bg-zinc-800 ring-2 ring-white/10 group-hover:ring-blue-500/50 transition-all">
+                          <div className="h-10 w-10 rounded-full overflow-hidden bg-orange-50 ring-2 ring-orange-100 group-hover:ring-orange-300 transition-all">
                             {awardee.image_url ? (
                               <img src={awardee.image_url} alt={awardee.name} className="h-full w-full object-cover" />
                             ) : (
-                              <div className="h-full w-full flex items-center justify-center text-zinc-500">
+                              <div className="h-full w-full flex items-center justify-center text-orange-300">
                                 <ImageIcon className="h-4 w-4" />
                               </div>
                             )}
                           </div>
                         </TableCell>
-                        <TableCell className="font-bold text-zinc-200">{awardee.name}</TableCell>
+                        <TableCell className="font-bold text-zinc-800">{awardee.name}</TableCell>
                         <TableCell>
                           {awardee.country && (
                             <div className="flex items-center gap-2">
-                              <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
-                              <span className="text-zinc-400 text-xs font-medium">{awardee.country}</span>
+                              <div className="h-1.5 w-1.5 rounded-full bg-orange-500" />
+                              <span className="text-zinc-500 text-xs font-medium">{awardee.country}</span>
                             </div>
                           )}
                         </TableCell>
-                        <TableCell className="text-zinc-400 text-xs max-w-[200px] truncate" title={awardee.course || ''}>
+                        <TableCell className="text-zinc-500 text-xs max-w-[200px] truncate" title={awardee.course || ''}>
                           {awardee.course || '—'}
                         </TableCell>
-                        <TableCell className="text-zinc-500 font-mono text-xs">{awardee.year}</TableCell>
+                        <TableCell className="text-zinc-400 font-mono text-xs">{awardee.year}</TableCell>
                         <TableCell>
                           <div className="flex gap-2">
                             <Button
                               variant="ghost"
                               size="icon"
-                              className={`h-8 w-8 rounded-full ${awardee.featured ? 'text-amber-400 bg-amber-400/10' : 'text-zinc-600 hover:text-amber-400 hover:bg-white/5'}`}
+                              aria-label={awardee.featured ? `Unfeature ${awardee.name}` : `Feature ${awardee.name}`}
+                              className={cn('h-8 w-8 rounded-full', awardee.featured ? 'text-amber-500 bg-amber-100/60' : 'text-zinc-300 hover:text-amber-500 hover:bg-amber-50')}
                               onClick={() => handleToggleFeatured(awardee.id, awardee.featured || false)}
                               disabled={loadingStates[awardee.id] === 'featured'}
                             >
-                              {loadingStates[awardee.id] === 'featured' ? <Loader2 className="h-3 w-3 animate-spin" /> : <Star className={`h-4 w-4 ${awardee.featured ? 'fill-current' : ''}`} />}
+                              {loadingStates[awardee.id] === 'featured' ? <Loader2 className="h-3 w-3 animate-spin" /> : <Star className={cn('h-4 w-4', awardee.featured && 'fill-current')} />}
                             </Button>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className={`h-8 w-8 rounded-full ${awardee.is_public !== false ? 'text-emerald-400 bg-emerald-400/10' : 'text-zinc-600 hover:text-emerald-400 hover:bg-white/5'}`}
+                              aria-label={awardee.is_public !== false ? `Hide ${awardee.name}` : `Show ${awardee.name}`}
+                              className={cn('h-8 w-8 rounded-full', awardee.is_public !== false ? 'text-emerald-500 bg-emerald-100/60' : 'text-zinc-300 hover:text-emerald-500 hover:bg-emerald-50')}
                               onClick={() => handleToggleVisibility(awardee.id, awardee.is_public !== false)}
                               disabled={loadingStates[awardee.id] === 'visibility'}
                             >
@@ -879,11 +917,11 @@ export default function AwardeesManagement() {
                           </div>
                         </TableCell>
                         <TableCell className="text-right pr-6">
-                          <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button variant="ghost" size="icon" onClick={() => handleEdit(awardee.id)} className="h-8 w-8 text-zinc-400 hover:text-white hover:bg-white/10 rounded-lg">
+                          <div className="flex items-center justify-end gap-2 lg:opacity-0 lg:group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                            <Button variant="ghost" size="icon" onClick={() => handleEdit(awardee.id)} aria-label={`Edit ${awardee.name}`} className="h-8 w-8 text-zinc-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg">
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleDelete(awardee.id)} className="h-8 w-8 text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg">
+                            <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(awardee.id)} aria-label={`Delete ${awardee.name}`} className="h-8 w-8 text-zinc-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg">
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
@@ -897,72 +935,75 @@ export default function AwardeesManagement() {
 
             {/* Mobile Card View */}
             <div className="lg:hidden p-4 space-y-4">
-              {paginatedAwardees.length === 0 ? (
-                <div className="py-20 text-center text-zinc-500 bg-white/5 rounded-3xl border border-dashed border-white/10">
-                  No awardees found matching your criteria.
-                </div>
+              {hasNoResults ? (
+                <EmptyState searchTerm={searchTerm} onAdd={handleAddNew} />
               ) : (
                 paginatedAwardees.map((awardee) => (
-                  <div key={awardee.id} className="relative bg-zinc-950/40 border border-white/5 rounded-2xl sm:rounded-3xl p-3 sm:p-4 space-y-3 hover:border-blue-500/30 transition-all overflow-hidden group">
+                  <div key={awardee.id} className="relative bg-white border border-zinc-100 rounded-2xl sm:rounded-3xl p-3 sm:p-4 space-y-3 hover:border-orange-200 hover:shadow-sm transition-all overflow-hidden group">
                     {/* Select Checkbox Top Right */}
                     <div className="absolute top-3 right-3 z-10">
                       <input
                         type="checkbox"
                         checked={selectedAwardees.has(awardee.id)}
                         onChange={() => handleSelectAwardee(awardee.id)}
-                        className="h-4 w-4 sm:h-5 sm:w-5 rounded border-zinc-700 bg-zinc-800 text-blue-500 focus:ring-blue-500/20"
+                        aria-label={`Select ${awardee.name}`}
+                        className="h-4 w-4 sm:h-5 sm:w-5 rounded border-zinc-300 text-orange-500 focus:ring-orange-500/30 cursor-pointer"
                       />
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl sm:rounded-2xl overflow-hidden bg-zinc-900 border border-white/10 shrink-0">
+                      <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl sm:rounded-2xl overflow-hidden bg-orange-50 border border-orange-100 shrink-0">
                         {awardee.image_url ? (
                           <img src={awardee.image_url} alt={awardee.name} className="h-full w-full object-cover" />
                         ) : (
-                          <div className="h-full w-full flex items-center justify-center text-zinc-600">
+                          <div className="h-full w-full flex items-center justify-center text-orange-300">
                             <ImageIcon className="h-5 w-5" />
                           </div>
                         )}
                       </div>
                       <div className="flex-1 min-w-0 pr-6">
-                        <h3 className="text-sm sm:text-base font-bold text-white truncate">{awardee.name}</h3>
+                        <h3 className="text-sm sm:text-base font-bold text-zinc-900 truncate">{awardee.name}</h3>
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-zinc-500 text-[10px] sm:text-xs font-mono">{awardee.year}</span>
-                          <span className="h-0.5 w-0.5 rounded-full bg-zinc-700" />
-                          <span className="text-blue-400 text-[10px] sm:text-xs font-bold uppercase tracking-wider truncate">{awardee.country}</span>
+                          <span className="text-zinc-400 text-[10px] sm:text-xs font-mono">{awardee.year}</span>
+                          {awardee.country && <span className="h-0.5 w-0.5 rounded-full bg-zinc-300" />}
+                          <span className="text-orange-600 text-[10px] sm:text-xs font-bold uppercase tracking-wider truncate">{awardee.country}</span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="space-y-2 bg-white/5 rounded-xl p-2 sm:p-3 border border-white/5">
+                    <div className="space-y-2 bg-orange-50/50 rounded-xl p-2 sm:p-3 border border-orange-100">
                       <div className="flex justify-between items-center text-[10px] sm:text-xs">
-                        <span className="text-zinc-500">Education</span>
-                        <span className="text-white font-medium truncate max-w-[120px] sm:max-w-[150px]">{awardee.course || '—'}</span>
+                        <span className="text-zinc-400">Education</span>
+                        <span className="text-zinc-700 font-medium truncate max-w-[120px] sm:max-w-[150px]">{awardee.course || '—'}</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-zinc-600 text-[9px] sm:text-[10px] uppercase font-bold tracking-wider">Actions</span>
+                        <span className="text-zinc-400 text-[9px] sm:text-[10px] uppercase font-bold tracking-wider">Actions</span>
                         <div className="flex gap-1">
                           <Button
                             variant="ghost"
                             size="icon"
+                            aria-label={awardee.featured ? `Unfeature ${awardee.name}` : `Feature ${awardee.name}`}
                             onClick={() => handleToggleFeatured(awardee.id, awardee.featured || false)}
-                            className={cn("h-7 w-7 sm:h-8 sm:w-8 rounded-full", awardee.featured ? "bg-amber-500/20 text-amber-500" : "bg-white/5 text-zinc-600")}
+                            disabled={loadingStates[awardee.id] === 'featured'}
+                            className={cn('h-8 w-8 rounded-full', awardee.featured ? 'bg-amber-100 text-amber-600' : 'bg-zinc-50 text-zinc-400')}
                           >
-                            <Star className={cn("h-3.5 w-3.5 sm:h-4 sm:w-4", awardee.featured && "fill-current")} />
+                            {loadingStates[awardee.id] === 'featured' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Star className={cn('h-4 w-4', awardee.featured && 'fill-current')} />}
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
+                            aria-label={awardee.is_public !== false ? `Hide ${awardee.name}` : `Show ${awardee.name}`}
                             onClick={() => handleToggleVisibility(awardee.id, awardee.is_public !== false)}
-                            className={cn("h-7 w-7 sm:h-8 sm:w-8 rounded-full", awardee.is_public !== false ? "bg-emerald-500/20 text-emerald-500" : "bg-white/5 text-zinc-600")}
+                            disabled={loadingStates[awardee.id] === 'visibility'}
+                            className={cn('h-8 w-8 rounded-full', awardee.is_public !== false ? 'bg-emerald-100 text-emerald-600' : 'bg-zinc-50 text-zinc-400')}
                           >
-                            <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                            {loadingStates[awardee.id] === 'visibility' ? <Loader2 className="h-4 w-4 animate-spin" /> : (awardee.is_public !== false ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />)}
                           </Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleEdit(awardee.id)} className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-white/5 text-zinc-400">
-                            <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                          <Button variant="ghost" size="icon" onClick={() => handleEdit(awardee.id)} aria-label={`Edit ${awardee.name}`} className="h-8 w-8 rounded-full bg-zinc-50 text-zinc-500 hover:text-orange-600 hover:bg-orange-50">
+                            <Edit className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleDelete(awardee.id)} className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-rose-500/10 text-rose-500">
-                            <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                          <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(awardee.id)} aria-label={`Delete ${awardee.name}`} className="h-8 w-8 rounded-full bg-rose-50 text-rose-600 hover:bg-rose-100">
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </div>
@@ -976,71 +1017,121 @@ export default function AwardeesManagement() {
 
         {/* Pagination Footer */}
         {!loading && filteredAwardees.length > ITEMS_PER_PAGE && (
-          <div className="border-t border-white/5 p-4 flex items-center justify-between">
+          <div className="border-t border-orange-100 p-4 flex items-center justify-between">
             <p className="text-xs text-zinc-500">
               {startIndex + 1}-{Math.min(endIndex, filteredAwardees.length)} of {filteredAwardees.length} records
             </p>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="bg-transparent border-white/10 text-zinc-400 hover:text-white">Previous</Button>
-              <Button variant="outline" size="sm" onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className="bg-transparent border-white/10 text-zinc-400 hover:text-white">Next</Button>
+              <Button variant="outline" size="sm" onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="bg-white border-zinc-200 text-zinc-600 hover:text-orange-600 hover:border-orange-200 hover:bg-orange-50">Previous</Button>
+              <Button variant="outline" size="sm" onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className="bg-white border-zinc-200 text-zinc-600 hover:text-orange-600 hover:border-orange-200 hover:bg-orange-50">Next</Button>
             </div>
           </div>
         )}
       </Card>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <AlertDialogContent className="bg-white border-orange-100 rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-zinc-900">
+              {deleteTarget === 'bulk' ? `Delete ${selectedAwardees.size} awardees?` : 'Delete this awardee?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-zinc-500">
+              This action cannot be undone. {deleteTarget === 'bulk' ? 'The selected profiles' : 'The profile'} will be permanently removed from the directory.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting} className="rounded-xl border-zinc-200 text-zinc-600">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={(e) => { e.preventDefault(); confirmDelete(); }} disabled={deleting} className="rounded-xl bg-rose-600 hover:bg-rose-700 text-white">
+              {deleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+              {deleting ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
 
 // Sub-components
-import { cn } from '@/lib/utils';
 
-function KPITile({ label, value, icon: Icon, color, subValue }: any) {
+function EmptyState({ searchTerm, onAdd }: { searchTerm: string; onAdd: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center text-center py-16 px-6 gap-4">
+      <div className="h-16 w-16 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center">
+        <Users className="h-8 w-8 text-orange-400" />
+      </div>
+      <div className="space-y-1">
+        <h3 className="text-base font-bold text-zinc-800">
+          {searchTerm ? 'No matching awardees' : 'No awardees yet'}
+        </h3>
+        <p className="text-sm text-zinc-500 max-w-sm">
+          {searchTerm
+            ? 'Try adjusting your search or filters to find who you are looking for.'
+            : 'Add your first future leader to start building the directory.'}
+        </p>
+      </div>
+      {!searchTerm && (
+        <Button onClick={onAdd} className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl shadow-lg shadow-orange-200 font-bold">
+          <Plus className="h-4 w-4 mr-2" />
+          Add Awardee
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function KPITile({ label, value, icon: Icon, color, subValue, loading }: any) {
   const colors: any = {
-    blue: "from-blue-600 to-indigo-600 shadow-blue-500/20",
-    emerald: "from-emerald-600 to-teal-600 shadow-emerald-500/20",
-    amber: "from-orange-500 to-amber-500 shadow-orange-500/20",
-    rose: "from-rose-600 to-pink-600 shadow-rose-500/20",
-  }
+    orange: 'bg-orange-50 text-orange-600 border-orange-100',
+    emerald: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+    amber: 'bg-amber-50 text-amber-600 border-amber-100',
+    rose: 'bg-rose-50 text-rose-600 border-rose-100',
+  };
 
   return (
-    <div className={cn(
-      "relative p-6 rounded-[2rem] border-none bg-gradient-to-br shadow-xl overflow-hidden transition-all duration-300 hover:scale-[1.05] hover:-translate-y-1 group",
-      colors[color]
-    )}>
-      {/* Background Icon */}
-      <Icon className="absolute -right-4 -bottom-4 h-24 w-24 text-white opacity-[0.08] -rotate-12 group-hover:scale-110 transition-transform duration-700" />
-
-      <div className="relative z-10 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="h-12 w-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-lg">
-            <Icon className="h-6 w-6 text-white" />
-          </div>
+    <div className="relative p-4 sm:p-6 rounded-3xl border border-orange-100 bg-white shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 group">
+      <Icon className="absolute -right-3 -bottom-3 h-20 w-20 text-orange-500 opacity-[0.04] -rotate-12 group-hover:scale-110 transition-transform duration-700" />
+      <div className="relative z-10 space-y-3 sm:space-y-4">
+        <div className={cn('h-10 w-10 sm:h-12 sm:w-12 rounded-2xl flex items-center justify-center border', colors[color] || colors.orange)}>
+          <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
         </div>
         <div className="space-y-1">
-          <p className="text-4xl font-black text-white tracking-tighter">{value}</p>
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-white/80">{label}</p>
-            {subValue && <span className="text-[10px] font-medium text-white/90 bg-black/10 px-2 py-0.5 rounded-full backdrop-blur-sm border border-white/10">{subValue}</span>}
+          {loading ? (
+            <Skeleton className="h-8 w-16" />
+          ) : (
+            <p className="text-3xl sm:text-4xl font-black text-zinc-900 tracking-tighter">{value}</p>
+          )}
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">{label}</p>
+            {subValue && <span className="text-[10px] font-medium text-zinc-500 bg-zinc-50 px-2 py-0.5 rounded-full border border-zinc-100 hidden sm:inline">{subValue}</span>}
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-function FilterButton({ active, onClick, label, icon: Icon, color = "blue" }: any) {
+function FilterButton({ active, onClick, label, icon: Icon, color = 'orange' }: any) {
+  const activeColors: any = {
+    orange: 'bg-orange-50 text-orange-600 border-orange-200',
+    amber: 'bg-amber-50 text-amber-600 border-amber-200',
+    emerald: 'bg-emerald-50 text-emerald-600 border-emerald-200',
+    rose: 'bg-rose-50 text-rose-600 border-rose-200',
+  };
   return (
     <button
       onClick={onClick}
+      aria-pressed={active}
       className={cn(
-        "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 border",
+        'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 border whitespace-nowrap',
         active
-          ? `bg-${color}-500/10 text-${color}-400 border-${color}-500/50`
-          : "bg-white/5 text-zinc-400 border-transparent hover:bg-white/10 hover:text-zinc-200"
+          ? activeColors[color] || activeColors.orange
+          : 'bg-white text-zinc-500 border-zinc-200 hover:bg-orange-50/60 hover:text-orange-600 hover:border-orange-100'
       )}
     >
       {Icon && <Icon className="h-3.5 w-3.5" />}
       {label}
     </button>
-  )
+  );
 }

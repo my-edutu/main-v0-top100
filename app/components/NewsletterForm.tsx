@@ -57,10 +57,12 @@ export default function NewsletterForm() {
     <div className="space-y-3">
       <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:flex-row">
         <div className="relative flex-1">
-          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400" />
+          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400" aria-hidden="true" />
           <Input
             type="email"
             placeholder="Enter your email"
+            aria-label="Email address"
+            aria-invalid={status === 'error'}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             disabled={status === 'loading' || status === 'success'}
@@ -90,12 +92,16 @@ export default function NewsletterForm() {
 
       {/* Status Message */}
       {message && (
-        <div className={`flex items-center gap-2 text-sm font-medium animate-in fade-in slide-in-from-top-2 ${status === 'success' ? 'text-emerald-600' : 'text-rose-500'
-          }`}>
+        <div
+          role="status"
+          aria-live="polite"
+          className={`flex items-center gap-2 text-sm font-medium animate-in fade-in slide-in-from-top-2 ${status === 'success' ? 'text-emerald-600' : 'text-rose-500'
+          }`}
+        >
           {status === 'success' ? (
-            <CheckCircle className="h-4 w-4" />
+            <CheckCircle className="h-4 w-4" aria-hidden="true" />
           ) : (
-            <AlertCircle className="h-4 w-4" />
+            <AlertCircle className="h-4 w-4" aria-hidden="true" />
           )}
           {message}
         </div>

@@ -4,11 +4,23 @@ import { revalidatePath, revalidateTag } from 'next/cache';
 
 import { promises as fs } from 'fs';
 import path from 'path';
+import { randomUUID } from 'crypto';
 
 import { requireAdmin } from '@/lib/api/require-admin';
 import { getAwardees } from '@/lib/awardees';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { read, utils } from 'xlsx';
+
+const AWARDEE_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
+const AWARDEE_IMAGE_EXTENSIONS: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/gif': 'gif',
+};
+
+const AWARDEE_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 
 type AwardeeRecord = {
   id: string;
@@ -138,8 +150,23 @@ export async function POST(request: NextRequest) {
       if (body.image && body.image.size > 0) {
         const supabase = createAdminClient(); // Use service role for admin operations
 
-        // Generate a unique filename
-        const fileName = `${Date.now()}-${body.image.name}`;
+        if (!AWARDEE_IMAGE_TYPES.includes(body.image.type)) {
+          return Response.json({
+            success: false,
+            message: 'Invalid image type. Please upload JPG, PNG, WebP, or GIF.'
+          }, { status: 400 });
+        }
+
+        if (body.image.size > AWARDEE_IMAGE_MAX_BYTES) {
+          return Response.json({
+            success: false,
+            message: 'Image too large. Maximum size is 5MB.'
+          }, { status: 400 });
+        }
+
+        // The extension is derived from the validated MIME type; the client's
+        // filename must never reach a storage path.
+        const fileName = `${Date.now()}-${randomUUID()}.${AWARDEE_IMAGE_EXTENSIONS[body.image.type]}`;
 
         try {
           // Upload to Supabase storage
@@ -151,21 +178,28 @@ export async function POST(request: NextRequest) {
             });
 
           if (uploadError) {
+            // Creating the awardee anyway would silently drop the image the
+            // admin chose and report success — they'd have no idea it was lost.
             console.error('Error uploading image:', uploadError);
-            // Don't fail the entire request if image upload fails, just continue without image
-            console.warn('Image upload failed, proceeding without image:', uploadError.message);
-          } else {
-            // Get the public URL of the uploaded image
-            const { data: publicUrlData } = supabase.storage
-              .from('awardees')
-              .getPublicUrl(uploadData.path);
-
-            imageUrl = publicUrlData.publicUrl;
+            return Response.json({
+              success: false,
+              message: 'Failed to upload the image. The awardee was not created.',
+              error: uploadError.message
+            }, { status: 500 });
           }
+
+          // Get the public URL of the uploaded image
+          const { data: publicUrlData } = supabase.storage
+            .from('awardees')
+            .getPublicUrl(uploadData.path);
+
+          imageUrl = publicUrlData.publicUrl;
         } catch (storageError) {
           console.error('Unexpected error during image upload:', storageError);
-          // Don't fail the entire request if image upload fails
-          console.warn('Image upload failed due to unexpected error, proceeding without image');
+          return Response.json({
+            success: false,
+            message: 'Failed to upload the image. The awardee was not created.'
+          }, { status: 500 });
         }
       }
 

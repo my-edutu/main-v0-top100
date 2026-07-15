@@ -24,6 +24,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { toast } from 'sonner'
 import {
   Plus,
@@ -62,6 +72,8 @@ export default function HomepageManagementPage() {
   const [editingSection, setEditingSection] = useState<HomepageSection | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [sectionToDelete, setSectionToDelete] = useState<HomepageSection | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // Form state
   const [formData, setFormData] = useState<Partial<HomepageSection>>({
@@ -152,9 +164,8 @@ export default function HomepageManagementPage() {
   }
 
   const handleDeleteSection = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this section?')) return
-
     try {
+      setIsDeleting(true)
       const response = await fetch('/api/homepage-sections', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
@@ -168,6 +179,9 @@ export default function HomepageManagementPage() {
     } catch (error) {
       console.error('Error deleting section:', error)
       toast.error('Failed to delete section')
+    } finally {
+      setIsDeleting(false)
+      setSectionToDelete(null)
     }
   }
 
@@ -234,19 +248,19 @@ export default function HomepageManagementPage() {
   }
 
   return (
-    <div className="container mx-auto py-10 space-y-8">
+    <div className="container mx-auto py-6 sm:py-10 pt-20 lg:pt-6 space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent flex items-center gap-2">
-            <Home className="h-8 w-8 text-orange-500" />
+          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent flex items-center gap-2">
+            <Home className="h-7 w-7 sm:h-8 sm:w-8 text-orange-500 shrink-0" />
             Homepage Management
           </h1>
-          <p className="text-muted-foreground mt-2">
+          <p className="text-sm text-muted-foreground mt-2">
             Manage homepage content sections, order, and visibility
           </p>
         </div>
-        <Button onClick={handleCreateNew} className="bg-orange-500 hover:bg-orange-600">
+        <Button onClick={handleCreateNew} className="bg-orange-500 hover:bg-orange-600 w-full sm:w-auto shrink-0">
           <Plus className="mr-2 h-4 w-4" />
           Add Section
         </Button>
@@ -258,14 +272,28 @@ export default function HomepageManagementPage() {
           <Loader2 className="h-8 w-8 animate-spin" />
           <span className="ml-2">Loading sections...</span>
         </div>
+      ) : sections.length === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed py-16 text-center px-6">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-500/10">
+            <Home className="h-7 w-7 text-orange-500" />
+          </div>
+          <div className="space-y-1">
+            <p className="text-base font-semibold">No homepage sections yet</p>
+            <p className="text-sm text-muted-foreground">Add your first section to start building the homepage.</p>
+          </div>
+          <Button onClick={handleCreateNew} className="bg-orange-500 hover:bg-orange-600">
+            <Plus className="mr-2 h-4 w-4" />
+            Add Section
+          </Button>
+        </div>
       ) : (
         <div className="grid gap-4">
           {sections.map((section, index) => (
             <Card key={section.id} className={!section.is_active ? 'opacity-50' : ''}>
               <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="outline" className="text-xs">
                         Position {section.order_position}
                       </Badge>
@@ -276,18 +304,20 @@ export default function HomepageManagementPage() {
                         {section.visibility}
                       </Badge>
                     </div>
-                    <CardTitle className="mt-2 text-xl">
+                    <CardTitle className="mt-2 text-lg sm:text-xl break-words">
                       {section.title || section.section_key}
                     </CardTitle>
                     {section.subtitle && (
-                      <CardDescription>{section.subtitle}</CardDescription>
+                      <CardDescription className="break-words">{section.subtitle}</CardDescription>
                     )}
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 shrink-0 self-start">
                     {/* Reorder buttons */}
                     <Button
                       variant="ghost"
-                      size="sm"
+                      size="icon"
+                      className="h-10 w-10"
+                      aria-label="Move section up"
                       onClick={() => handleReorder(section, 'up')}
                       disabled={index === 0}
                     >
@@ -295,7 +325,9 @@ export default function HomepageManagementPage() {
                     </Button>
                     <Button
                       variant="ghost"
-                      size="sm"
+                      size="icon"
+                      className="h-10 w-10"
+                      aria-label="Move section down"
                       onClick={() => handleReorder(section, 'down')}
                       disabled={index === sections.length - 1}
                     >
@@ -305,7 +337,9 @@ export default function HomepageManagementPage() {
                     {/* Toggle visibility */}
                     <Button
                       variant="ghost"
-                      size="sm"
+                      size="icon"
+                      className="h-10 w-10"
+                      aria-label={section.is_active ? 'Hide section' : 'Show section'}
                       onClick={() => handleToggleActive(section)}
                     >
                       {section.is_active ? (
@@ -318,7 +352,9 @@ export default function HomepageManagementPage() {
                     {/* Edit */}
                     <Button
                       variant="ghost"
-                      size="sm"
+                      size="icon"
+                      className="h-10 w-10"
+                      aria-label="Edit section"
                       onClick={() => handleEditSection(section)}
                     >
                       <Edit className="h-4 w-4" />
@@ -327,8 +363,10 @@ export default function HomepageManagementPage() {
                     {/* Delete */}
                     <Button
                       variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeleteSection(section.id)}
+                      size="icon"
+                      className="h-10 w-10"
+                      aria-label="Delete section"
+                      onClick={() => setSectionToDelete(section)}
                     >
                       <Trash2 className="h-4 w-4 text-red-500" />
                     </Button>
@@ -510,6 +548,30 @@ export default function HomepageManagementPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!sectionToDelete} onOpenChange={(open) => { if (!open) setSectionToDelete(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this section?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {sectionToDelete
+                ? `"${sectionToDelete.title || sectionToDelete.section_key}" will be permanently removed from the homepage. This action cannot be undone.`
+                : 'This action cannot be undone.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { if (sectionToDelete) handleDeleteSection(sectionToDelete.id) }}
+              disabled={isDeleting}
+              className="bg-red-500 hover:bg-red-600 text-white"
+            >
+              {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Delete Section
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

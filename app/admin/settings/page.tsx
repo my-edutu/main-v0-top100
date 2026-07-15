@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
 import {
   Settings, Globe, Mail, Lock, Shield, Users, Database, Server, Loader2,
@@ -451,64 +452,83 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto py-8 flex justify-center items-center min-h-[400px]">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading settings...</p>
+      <div className="py-6 sm:py-8 pt-20 lg:pt-6 space-y-6">
+        <div className="space-y-3">
+          <Skeleton className="h-9 w-48 rounded-xl" />
+          <Skeleton className="h-4 w-72 rounded-lg" />
+        </div>
+        <Skeleton className="h-12 w-full rounded-xl" />
+        <div className="space-y-6">
+          {[0, 1].map((i) => (
+            <Card key={i} className="rounded-2xl border-orange-100/70">
+              <CardHeader>
+                <Skeleton className="h-5 w-40 rounded-lg" />
+                <Skeleton className="h-4 w-64 rounded-lg" />
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {[0, 1, 2].map((j) => (
+                  <div key={j} className="space-y-2">
+                    <Skeleton className="h-4 w-28 rounded" />
+                    <Skeleton className="h-10 w-full rounded-lg" />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </div>
     )
   }
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-600 to-gray-800 bg-clip-text text-transparent">
+    <div className="py-6 sm:py-8 pt-20 lg:pt-6">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-600 to-gray-800 bg-clip-text text-transparent">
           Site Settings
         </h1>
-        <p className="text-muted-foreground">Configure your platform settings and preferences</p>
+        <p className="text-muted-foreground text-sm">Configure your platform settings and preferences</p>
       </div>
 
       <form onSubmit={handleSubmit}>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-10 gap-2">
-            <TabsTrigger value="general" className="flex items-center gap-1">
+          <TabsList className="sticky top-16 z-20 grid h-auto w-full grid-cols-4 sm:grid-cols-5 lg:grid-cols-10 gap-1.5 rounded-2xl border border-orange-100 bg-white/95 p-1.5 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-white/80">
+            <TabsTrigger value="general" className="flex items-center justify-center gap-1.5 rounded-xl px-2 py-2 text-xs font-medium data-[state=active]:bg-orange-50 data-[state=active]:text-orange-600 data-[state=active]:shadow-none">
               <Globe className="h-4 w-4" />
               <span className="hidden md:inline">General</span>
             </TabsTrigger>
-            <TabsTrigger value="seo" className="flex items-center gap-1">
+            <TabsTrigger value="seo" className="flex items-center justify-center gap-1.5 rounded-xl px-2 py-2 text-xs font-medium data-[state=active]:bg-orange-50 data-[state=active]:text-orange-600 data-[state=active]:shadow-none">
               <Search className="h-4 w-4" />
               <span className="hidden md:inline">SEO</span>
             </TabsTrigger>
-            <TabsTrigger value="branding" className="flex items-center gap-1">
+            <TabsTrigger value="branding" className="flex items-center justify-center gap-1.5 rounded-xl px-2 py-2 text-xs font-medium data-[state=active]:bg-orange-50 data-[state=active]:text-orange-600 data-[state=active]:shadow-none">
               <Palette className="h-4 w-4" />
               <span className="hidden md:inline">Branding</span>
             </TabsTrigger>
-            <TabsTrigger value="homepage" className="flex items-center gap-1">
+            <TabsTrigger value="homepage" className="flex items-center justify-center gap-1.5 rounded-xl px-2 py-2 text-xs font-medium data-[state=active]:bg-orange-50 data-[state=active]:text-orange-600 data-[state=active]:shadow-none">
               <Layout className="h-4 w-4" />
               <span className="hidden md:inline">Homepage</span>
             </TabsTrigger>
-            <TabsTrigger value="footer" className="flex items-center gap-1">
+            <TabsTrigger value="footer" className="flex items-center justify-center gap-1.5 rounded-xl px-2 py-2 text-xs font-medium data-[state=active]:bg-orange-50 data-[state=active]:text-orange-600 data-[state=active]:shadow-none">
               <FileText className="h-4 w-4" />
               <span className="hidden md:inline">Footer</span>
             </TabsTrigger>
-            <TabsTrigger value="features" className="flex items-center gap-1">
+            <TabsTrigger value="features" className="flex items-center justify-center gap-1.5 rounded-xl px-2 py-2 text-xs font-medium data-[state=active]:bg-orange-50 data-[state=active]:text-orange-600 data-[state=active]:shadow-none">
               <Shield className="h-4 w-4" />
               <span className="hidden md:inline">Features</span>
             </TabsTrigger>
-            <TabsTrigger value="email" className="flex items-center gap-1">
+            <TabsTrigger value="email" className="flex items-center justify-center gap-1.5 rounded-xl px-2 py-2 text-xs font-medium data-[state=active]:bg-orange-50 data-[state=active]:text-orange-600 data-[state=active]:shadow-none">
               <Mail className="h-4 w-4" />
               <span className="hidden md:inline">Email</span>
             </TabsTrigger>
-            <TabsTrigger value="integrations" className="flex items-center gap-1">
+            <TabsTrigger value="integrations" className="flex items-center justify-center gap-1.5 rounded-xl px-2 py-2 text-xs font-medium data-[state=active]:bg-orange-50 data-[state=active]:text-orange-600 data-[state=active]:shadow-none">
               <Key className="h-4 w-4" />
               <span className="hidden md:inline">APIs</span>
             </TabsTrigger>
-            <TabsTrigger value="notifications" className="flex items-center gap-1">
+            <TabsTrigger value="notifications" className="flex items-center justify-center gap-1.5 rounded-xl px-2 py-2 text-xs font-medium data-[state=active]:bg-orange-50 data-[state=active]:text-orange-600 data-[state=active]:shadow-none">
               <Bell className="h-4 w-4" />
               <span className="hidden md:inline">Alerts</span>
             </TabsTrigger>
-            <TabsTrigger value="advanced" className="flex items-center gap-1">
+            <TabsTrigger value="advanced" className="flex items-center justify-center gap-1.5 rounded-xl px-2 py-2 text-xs font-medium data-[state=active]:bg-orange-50 data-[state=active]:text-orange-600 data-[state=active]:shadow-none">
               <Code className="h-4 w-4" />
               <span className="hidden md:inline">Advanced</span>
             </TabsTrigger>
@@ -1582,9 +1602,17 @@ export default function SettingsPage() {
           </TabsContent>
         </Tabs>
 
-        {/* Save Button */}
-        <div className="flex justify-end pt-6 border-t">
-          <Button type="submit" size="lg" disabled={saving || loading}>
+        {/* Sticky Save Bar */}
+        <div className="sticky bottom-0 z-20 mt-8 flex flex-col-reverse gap-3 rounded-2xl border border-orange-100 bg-white/95 p-4 shadow-lg shadow-orange-100/40 backdrop-blur supports-[backdrop-filter]:bg-white/80 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-muted-foreground">
+            Changes apply across the public site once saved.
+          </p>
+          <Button
+            type="submit"
+            size="lg"
+            disabled={saving || loading}
+            className="w-full rounded-xl bg-orange-500 text-white hover:bg-orange-600 sm:w-auto"
+          >
             {saving ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

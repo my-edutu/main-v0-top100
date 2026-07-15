@@ -1,47 +1,40 @@
+import { Skeleton } from '@/components/ui/skeleton'
+
 export default function EventsLoading() {
   return (
-    <div className="space-y-6">
-      {/* Page Header Skeleton */}
-      <div className="flex justify-between items-center">
-        <div>
-          <div className="h-9 w-48 bg-gray-300 rounded-lg animate-pulse"></div>
-          <div className="h-4 w-64 bg-gray-200 rounded mt-2 animate-pulse"></div>
+    <div
+      className="space-y-6 sm:space-y-8 pt-20 lg:pt-0"
+      aria-busy="true"
+      aria-label="Loading programs"
+    >
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        <div className="space-y-2">
+          <Skeleton className="h-3 w-32 rounded bg-zinc-200/70" />
+          <Skeleton className="h-9 w-56 rounded-lg bg-zinc-200" />
+          <Skeleton className="h-4 w-72 max-w-full rounded bg-zinc-200/70" />
         </div>
-        <div className="h-10 w-32 bg-gray-200 rounded-lg animate-pulse"></div>
+        <Skeleton className="h-9 w-32 rounded-xl bg-zinc-200" />
       </div>
 
-      {/* Events List Skeleton */}
+      {/* Event rows */}
       <div className="space-y-4">
         {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="bg-white rounded-lg shadow p-6">
-            <div className="flex gap-6">
-              <div className="h-32 w-32 bg-gray-300 rounded-lg animate-pulse flex-shrink-0"></div>
+          <div key={i} className="rounded-xl border border-zinc-200 bg-white p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
+              <Skeleton className="h-40 w-full sm:h-32 sm:w-32 rounded-lg bg-zinc-200 shrink-0" />
               <div className="flex-1 space-y-3">
-                <div className="h-6 bg-gray-200 rounded w-3/4 animate-pulse"></div>
-                <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
-                <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
-                <div className="flex gap-2">
-                  <div className="h-8 w-24 bg-gray-200 rounded animate-pulse"></div>
-                  <div className="h-8 w-24 bg-gray-200 rounded animate-pulse"></div>
+                <Skeleton className="h-6 w-3/4 rounded bg-zinc-100" />
+                <Skeleton className="h-4 w-1/2 rounded bg-zinc-100" />
+                <Skeleton className="h-4 w-full rounded bg-zinc-100" />
+                <div className="flex gap-2 pt-1">
+                  <Skeleton className="h-8 w-24 rounded-lg bg-zinc-100" />
+                  <Skeleton className="h-8 w-24 rounded-lg bg-zinc-100" />
                 </div>
               </div>
             </div>
           </div>
         ))}
-      </div>
-
-      {/* Loading Overlay */}
-      <div className="fixed inset-0 bg-black/10 backdrop-blur-sm flex items-center justify-center z-50">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 flex flex-col items-center space-y-4">
-          <div className="relative">
-            <div className="h-16 w-16 border-4 border-orange-200 rounded-full"></div>
-            <div className="h-16 w-16 border-4 border-orange-500 rounded-full border-t-transparent animate-spin absolute top-0 left-0"></div>
-          </div>
-          <div className="text-center">
-            <p className="text-lg font-semibold text-gray-900">Loading Events...</p>
-            <p className="text-sm text-gray-500 mt-1">Please wait</p>
-          </div>
-        </div>
       </div>
     </div>
   )

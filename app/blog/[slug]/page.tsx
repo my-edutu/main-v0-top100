@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ArrowLeft, CalendarDays, Clock } from "lucide-react";
 
 import BlogCover from "@/components/BlogCover";
 import { getPostBySlug, getRelatedPosts } from "@/lib/posts/server";
@@ -92,12 +94,38 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     <div className="min-h-screen bg-black py-16">
       <StructuredData data={blogPostingSchema} />
       <div className="container mx-auto max-w-5xl px-4">
+        <Link
+          href="/blog"
+          className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-zinc-400 transition-colors hover:text-orange-300"
+        >
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          Back to stories
+        </Link>
+
         <article className="overflow-hidden rounded-3xl border border-zinc-800 bg-black/50 backdrop-blur-xl">
           {/* Header section */}
           <div className="p-8 md:p-10 pb-4">
-            <h1 className="text-3xl font-semibold text-white md:text-4xl mb-2">
+            <h1 className="text-3xl font-semibold text-white md:text-4xl mb-3">
               {post.title}
             </h1>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-zinc-400">
+              {post.createdAt && (
+                <span className="inline-flex items-center gap-1.5">
+                  <CalendarDays className="h-4 w-4" aria-hidden="true" />
+                  {new Date(post.createdAt).toLocaleDateString("en-US", {
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </span>
+              )}
+              {post.readTime ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <Clock className="h-4 w-4" aria-hidden="true" />
+                  {post.readTime} min read
+                </span>
+              ) : null}
+            </div>
           </div>
 
           {/* Image section */}
