@@ -8,6 +8,13 @@ import {
 
 export type ApplicationType = 'awardee' | 'ambassador' | 'partnership' | 'volunteer'
 
+/**
+ * The awardee cohort is collected in Google Forms, not the in-app form. Any
+ * awardee entry point must send people here; /apply/awardee only redirects.
+ */
+export const APPLY_AWARDEE_FORM_URL =
+  'https://docs.google.com/forms/d/e/1FAIpQLSdTIAykgX5z6Gj6sRkxyGQs5A43poO7Lo8xmxdLHeJ3nx0EYw/viewform'
+
 export type ApplicationFieldType = 'text' | 'email' | 'tel' | 'url' | 'textarea'
 
 export type ApplicationField = {
@@ -29,6 +36,8 @@ export type ApplicationProgram = {
   summary: string
   description: string
   href: string
+  /** Set when the route is collected off-site; `href` then only redirects here. */
+  externalFormUrl?: string
   image: string
   imagePosition: string
   icon: LucideIcon
@@ -63,6 +72,7 @@ export const applicationPrograms: Record<ApplicationType, ApplicationProgram> = 
     description:
       'This pathway is for students and early-career leaders with measurable community impact. Every submission lands in the admin review queue for selection, follow-up, and approval.',
     href: '/apply/awardee',
+    externalFormUrl: APPLY_AWARDEE_FORM_URL,
     image: '/top100 magazine.webp',
     imagePosition: 'center 22%',
     icon: Award,

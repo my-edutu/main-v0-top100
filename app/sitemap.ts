@@ -75,12 +75,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly',
       priority: 0.8,
     },
-    {
-      url: `${baseUrl}/apply/awardee`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.7,
-    },
+    // /apply/awardee is intentionally absent: it now redirects to the awardee
+    // Google Form, and search engines drop redirecting URLs listed in a sitemap.
+    // /get-started and /apply are the indexable awardee entry points.
     {
       url: `${baseUrl}/apply/ambassador`,
       lastModified: new Date(),

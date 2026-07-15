@@ -4,7 +4,7 @@ import type { Metadata } from 'next'
 import { ArrowRight, ArrowUpRight, Check } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { applicationEntryCards } from '@/lib/applications'
+import { applicationEntryCards, type ApplicationProgram } from '@/lib/applications'
 
 export const metadata: Metadata = {
   title: 'Apply for Top100 Africa Future Leaders 2026',
@@ -20,6 +20,13 @@ const heroStats = [
   { value: '04', label: 'Ways to enter' },
   { value: '2026', label: 'Cohort now open' },
 ]
+
+// Routes collected off-site (the awardee Google Form) open in a new tab; in-app
+// routes stay client-side. Keeps every entry point pointing at one destination.
+const routeLinkProps = (program: ApplicationProgram) =>
+  program.externalFormUrl
+    ? { href: program.externalFormUrl, target: '_blank' as const, rel: 'noopener noreferrer' }
+    : { href: program.href }
 
 const reviewSteps = [
   {
@@ -66,10 +73,10 @@ export default function GetStartedPage() {
                   asChild
                   className="rounded-full bg-orange-600 px-7 text-white shadow-lg shadow-orange-600/25 hover:bg-orange-700 hover:shadow-orange-700/25"
                 >
-                  <Link href="/apply/awardee">
+                  <a {...routeLinkProps(featured)}>
                     Apply as an awardee
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
+                    <ArrowUpRight className="h-4 w-4" />
+                  </a>
                 </Button>
                 <Link
                   href="/partnership"
@@ -128,8 +135,8 @@ export default function GetStartedPage() {
               </p>
             </div>
 
-            <Link
-              href={featured.href}
+            <a
+              {...routeLinkProps(featured)}
               className={`group mt-10 grid overflow-hidden rounded-[2rem] border border-orange-900/10 bg-white shadow-sm transition-shadow duration-300 hover:shadow-xl hover:shadow-orange-900/10 lg:grid-cols-[1.1fr_1fr] ${focusRing}`}
             >
               <div className="flex flex-col p-7 sm:p-10 lg:p-12">
@@ -152,7 +159,7 @@ export default function GetStartedPage() {
                 </ul>
                 <span className="mt-8 inline-flex items-center gap-2 text-base font-semibold text-orange-700 lg:mt-auto lg:pt-8">
                   Apply as an awardee
-                  <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
+                  <ArrowUpRight className="h-4 w-4 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
                 </span>
               </div>
               <div className="relative order-first min-h-[16rem] lg:order-none lg:min-h-full">
@@ -169,7 +176,7 @@ export default function GetStartedPage() {
                   Most applicants start here
                 </span>
               </div>
-            </Link>
+            </a>
 
             <div className="mt-6 overflow-hidden rounded-[2rem] border border-orange-900/10 bg-white">
               <ul className="divide-y divide-orange-900/[0.07]">

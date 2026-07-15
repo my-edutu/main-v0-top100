@@ -11,6 +11,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import { Button } from "@/components/ui/button"
+import { APPLY_AWARDEE_FORM_URL } from "@/lib/applications"
 import { getAwardees } from "@/lib/awardees"
 
 export const metadata: Metadata = {
@@ -51,9 +52,6 @@ const faqItems = [
 const APPLY_NEXT_STEP_VIDEO_URL =
   'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260418_115655_b4d9cd77-feed-43cd-a198-af78ebdf1f7a.mp4'
 
-const APPLY_AWARDEE_URL =
-  'https://docs.google.com/forms/d/e/1FAIpQLSdTIAykgX5z6Gj6sRkxyGQs5A43poO7Lo8xmxdLHeJ3nx0EYw/viewform'
-
 export default async function ApplyLandingPage() {
   const awardees = await getAwardees()
 
@@ -78,7 +76,7 @@ export default async function ApplyLandingPage() {
 
             <div className="mx-auto flex w-full max-w-xl flex-col items-stretch justify-center gap-4 sm:flex-row sm:items-center">
               <Button asChild className="h-14 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 px-8 text-[#fff] shadow-none hover:opacity-95 sm:w-64">
-                <a href={APPLY_AWARDEE_URL} target="_blank" rel="noopener noreferrer">
+                <a href={APPLY_AWARDEE_FORM_URL} target="_blank" rel="noopener noreferrer">
                   Start application
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </a>
@@ -179,7 +177,7 @@ export default async function ApplyLandingPage() {
 
             <div className="relative z-10 mt-8 flex flex-col gap-3">
               <Button asChild className="h-14 rounded-full bg-white px-8 text-orange-700 shadow-none hover:bg-orange-50">
-                <a href={APPLY_AWARDEE_URL} target="_blank" rel="noopener noreferrer">
+                <a href={APPLY_AWARDEE_FORM_URL} target="_blank" rel="noopener noreferrer">
                   Apply now
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </a>

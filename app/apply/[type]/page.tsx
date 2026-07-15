@@ -7,7 +7,7 @@ import ApplicationForm from '../_components/application-form'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { applicationOrder, applicationPrograms, getApplicationProgram, type ApplicationFormProgram } from '@/lib/applications'
+import { APPLY_AWARDEE_FORM_URL, applicationOrder, applicationPrograms, getApplicationProgram, type ApplicationFormProgram } from '@/lib/applications'
 import { cn } from '@/lib/utils'
 
 export const generateStaticParams = async () => applicationOrder.map((type) => ({ type }))
@@ -48,15 +48,7 @@ export default async function ApplicationPage({ params }: { params: Promise<{ ty
   }
 
   if (program.type === 'awardee') {
-    return (
-      <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.14),transparent_25%),linear-gradient(180deg,#fffaf4_0%,#ffffff_48%,#f6efe4_100%)]">
-        <section className="container py-10 sm:py-14 lg:py-16">
-          <div id="application-form" className="mx-auto w-full" style={{ maxWidth: '56rem' }}>
-            <ApplicationForm program={formProgram} />
-          </div>
-        </section>
-      </div>
-    )
+    redirect(APPLY_AWARDEE_FORM_URL)
   }
 
   if (program.type === 'partnership') {
