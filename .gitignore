@@ -2,7 +2,9 @@
 
 # dependencies
 /node_modules
-/package-lock.json
+# package-lock.json is intentionally committed: without it every deploy
+# re-resolves dependencies from scratch, so a transitive bump can break
+# production with no code change.
 
 # next.js
 /.next/
