@@ -23,15 +23,14 @@ export function normalizeRole(role: any): Role | null {
 
 /**
  * Extract role from a Supabase session object.
- * Checks multiple possible locations where role might be stored:
- * 1. user.role (direct property)
- * 2. user.user_metadata.role (most common for Supabase)
- * 3. user.app_metadata.role (for app-level metadata)
- * 4. user['custom:role'] (custom claim pattern)
+ * Checks the trusted locations where role might be stored:
+ * 1. user.app_metadata.role (service-role writable only)
+ * 2. user['custom:role'] (custom claim pattern, set by the auth server)
  *
- * BUG FIX: This function addresses the "can view but cannot act" bug by
- * centralizing role extraction logic. Previously, different parts of the
- * codebase checked different properties, leading to inconsistencies.
+ * SECURITY: `user_metadata` is NOT a role source. Supabase lets any user write
+ * their own `user_metadata` with the anon key (`auth.updateUser({ data })`), so
+ * trusting it here would let any signed-up user mint themselves an admin role.
+ * `user.role` is Postgres' role ("authenticated"), not an app role.
  */
 export function extractRoleFromSession(session: Session | null): Role | null {
   if (!session?.user) {
@@ -41,10 +40,7 @@ export function extractRoleFromSession(session: Session | null): Role | null {
 
   const user = session.user
 
-  // Check all possible locations for role
   const possibleRoles = [
-    user.role,
-    user.user_metadata?.role,
     user.app_metadata?.role,
     (user as any)['custom:role'],
   ]
@@ -53,7 +49,6 @@ export function extractRoleFromSession(session: Session | null): Role | null {
     userId: user.id,
     email: user.email,
     possibleRoles,
-    userMetadata: user.user_metadata,
     appMetadata: user.app_metadata,
   })
 
@@ -73,6 +68,9 @@ export function extractRoleFromSession(session: Session | null): Role | null {
 /**
  * Extract role from a raw decoded JWT payload.
  * Used when we decode the JWT directly without going through Supabase client.
+ *
+ * SECURITY: see extractRoleFromSession — `user_metadata` is self-writable by
+ * the user and must never be trusted as a role source.
  */
 export function extractRoleFromJWTPayload(payload: any): Role | null {
   if (!payload) {
@@ -81,12 +79,8 @@ export function extractRoleFromJWTPayload(payload: any): Role | null {
   }
 
   const possibleRoles = [
-    payload.role,
-    payload.user_metadata?.role,
     payload.app_metadata?.role,
     payload['custom:role'],
-    // Supabase stores user in 'user_metadata' at top level sometimes
-    payload.user_metadata?.role,
   ]
 
   console.log('[auth-utils] Checking role from JWT payload:', {
