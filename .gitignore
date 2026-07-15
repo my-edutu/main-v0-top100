@@ -27,3 +27,13 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 /lib/generated/prisma
+
+# remotion-advert is a nested project with its own install + render output
+/remotion-advert/node_modules
+/remotion-advert/out
+
+# local agent tooling (machine-specific paths + runtime state)
+/.labx
+
+# macOS
+.DS_Store
