@@ -1,26 +1,12 @@
 "use client";
 
-import { useState, useActionState } from "react";
 import Link from "next/link";
 import { Users, GraduationCap, Globe, Award } from "lucide-react";
-import { handleJoinSubmission } from "@/app/actions/join";
+import { APPLY_AWARDEE_FORM_URL } from "@/lib/applications";
+
+const WHATSAPP_CHANNEL_URL = "https://whatsapp.com/channel/0029Vb8lUNm96H4bB5keg402";
 
 export default function JoinPage() {
-  const [email, setEmail] = useState("");
-  const [state, formAction, isPending] = useActionState(handleJoinSubmission, null);
-  const [isSubmitted, setIsSubmitted] = useState(false);
-
-  // Reset form and show success when submission succeeds
-  if (state?.success && !isSubmitted) {
-    setIsSubmitted(true);
-    setEmail("");
-
-    // Reset submitted state after 5 seconds
-    setTimeout(() => {
-      setIsSubmitted(false);
-    }, 5000);
-  }
-
   // Mock statistics data
   const stats = [
     { value: "400+", label: "Current Members", icon: <Users className="w-6 h-6" /> },
@@ -41,15 +27,22 @@ export default function JoinPage() {
           </p>
 
           <div className="flex flex-col sm:flex-row justify-center gap-4 mb-12">
-            <button
-              onClick={() => document.getElementById('brevo-popup')?.classList.remove('hidden')}
+            <a
+              href={WHATSAPP_CHANNEL_URL}
+              target="_blank"
+              rel="noopener noreferrer"
               className="px-8 py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all duration-300"
             >
               Join Community
-            </button>
-            <button className="px-8 py-4 bg-white/10 backdrop-blur-sm text-white font-semibold rounded-lg border border-white/20 hover:bg-white/20 transition-all duration-300">
+            </a>
+            <a
+              href={APPLY_AWARDEE_FORM_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-8 py-4 bg-white/10 backdrop-blur-sm text-white font-semibold rounded-lg border border-white/20 hover:bg-white/20 transition-all duration-300"
+            >
               Become an Africa Future Leader
-            </button>
+            </a>
           </div>
         </div>
 
@@ -94,40 +87,6 @@ export default function JoinPage() {
                 Get access to funding opportunities, educational resources, and tools to amplify your impact in your community.
               </p>
             </div>
-          </div>
-        </div>
-
-        {/* Brevo Popup Trigger */}
-        <div className="max-w-2xl mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-6">Join Our Community</h2>
-          <button
-            onClick={() => document.getElementById('brevo-popup')?.classList.remove('hidden')}
-            className="px-8 py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all duration-300"
-          >
-            Join Community
-          </button>
-        </div>
-
-        {/* Brevo Popup */}
-        <div id="brevo-popup" role="dialog" aria-modal="true" aria-label="Join our community" className="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="relative bg-white rounded-xl overflow-hidden w-full max-w-2xl">
-            <button
-              type="button"
-              aria-label="Close"
-              onClick={() => document.getElementById('brevo-popup')?.classList.add('hidden')}
-              className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-700 hover:bg-gray-300 transition-colors"
-            >
-              &times;
-            </button>
-            <iframe
-              width="100%"
-              height="500"
-              src="https://f0aba197.sibforms.com/serve/MUIFAPFMTsu3W4IE9dWRYrekyRkTG0WUdiF38Omu9oEJo63I6kqyigl5z-v1sh47KF01MGsjEw6M_U1FlY7FXP_UVKSfmjOKhFsB44yNYJEi64EfYyOENi6jZpUT25B_IogmtPZeJwZyeoOS7-2daQZMcg3gFrwhBfAj-gznoXyDkf8bGq9xeL8_T1_H3rKwo_3mrcKY9TZtcv23"
-              frameBorder="0"
-              scrolling="auto"
-              allowFullScreen
-              className="min-h-[500px]"
-            ></iframe>
           </div>
         </div>
 
