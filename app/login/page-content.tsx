@@ -12,6 +12,8 @@ import { Eye, EyeOff, Shield, Clock, AlertTriangle, Loader2 } from 'lucide-react
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
 import { TurnstileCaptcha, verifyCaptcha } from '@/components/ui/turnstile'
+import { Role, isAdminRole } from '@/lib/types/roles'
+import { normalizeRole } from '@/lib/auth-utils'
 
 export default function SignInContent() {
   const [email, setEmail] = useState('')
@@ -28,7 +30,11 @@ export default function SignInContent() {
   } | null>(null)
   const router = useRouter()
   const searchParams = useSearchParams()
-  const redirectTo = searchParams.get('from') || searchParams.get('redirect') || '/dashboard'
+  // No default here — when no explicit destination is requested, the redirect
+  // is decided by role after sign-in (admin -> /admin, member -> /dashboard).
+  const requestedPath = searchParams.get('from') || searchParams.get('redirect') || ''
+  // Only allow same-site relative paths (prevents open redirects)
+  const redirectTo = requestedPath.startsWith('/') && !requestedPath.startsWith('//') ? requestedPath : ''
   const reason = searchParams.get('reason')
 
   // Display security messages based on redirect reason
@@ -130,8 +136,8 @@ export default function SignInContent() {
         const { profile } = await response.json()
         console.log('Profile loaded:', profile)
 
-        // This check is now redundant since API already validates role, but keeping for clarity
-        if (profile.role !== 'admin' && profile.role !== 'user') {
+        const role = normalizeRole(profile.role)
+        if (!role || role === Role.GUEST) {
           console.error('Invalid role:', profile.role)
           setError('Access denied. This account does not have Top100 Awardee privileges.')
           // Sign out unauthorized user
@@ -143,13 +149,13 @@ export default function SignInContent() {
         // Redirect based on user role
         let redirectPath = redirectTo
 
-        console.log('📍 Redirect decision - Role:', profile.role, 'From:', redirectTo)
+        console.log('📍 Redirect decision - Role:', role, 'From:', redirectTo)
 
         if (!redirectTo || redirectTo === '/') {
           // Default redirect based on role
-          redirectPath = profile.role === 'admin' ? '/admin' : '/dashboard'
+          redirectPath = isAdminRole(role) ? '/admin' : '/dashboard'
           console.log('📍 No redirect specified, using default for role:', redirectPath)
-        } else if (redirectTo.startsWith('/admin') && profile.role !== 'admin') {
+        } else if (redirectTo.startsWith('/admin') && !isAdminRole(role)) {
           // Non-admin trying to access admin area
           redirectPath = '/dashboard'
           console.log('📍 Non-admin trying admin area, redirecting to dashboard')
@@ -172,7 +178,7 @@ export default function SignInContent() {
         }
 
         // For admin users, wait longer to ensure cookies are fully set
-        const waitTime = profile.role === 'admin' ? 1500 : 1000
+        const waitTime = isAdminRole(role) ? 1500 : 1000
         console.log(`⏳ Waiting ${waitTime}ms for session cookies to be set...`)
         await new Promise(resolve => setTimeout(resolve, waitTime))
 
@@ -393,7 +399,7 @@ export default function SignInContent() {
           <p className="mt-8 text-sm text-zinc-500">
             Don&apos;t have an account?{' '}
             <Link
-              href="/auth/signup"
+              href="/signup"
               className="font-medium text-orange-600 underline-offset-4 transition-colors hover:text-orange-700 hover:underline"
             >
               Sign up

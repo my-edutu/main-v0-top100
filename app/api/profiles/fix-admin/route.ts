@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     if (!existingProfile) {
       return NextResponse.json({
         error: 'No profile found with this email',
-        message: 'Please create an account first at /auth/signup'
+        message: 'Please create an account first at /signup'
       }, { status: 404 })
     }
 

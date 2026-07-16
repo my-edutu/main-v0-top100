@@ -68,6 +68,34 @@ export type MemberNotification = {
   status: 'sent' | 'draft'
   createdAt: string
   readBy: string[]
+  category: string
+  ctaLabel: string | null
+  ctaUrl: string | null
+}
+
+export type ConversationSummary = {
+  id: string
+  otherMember: {
+    id: string
+    name: string
+    headline: string
+    slug: string | null
+    avatarUrl: string | null
+    initials: string
+  }
+  lastMessage: { body: string; mine: boolean; createdAt: string } | null
+  unreadCount: number
+  lastMessageAt: string
+}
+
+export type DirectMessage = {
+  id: string
+  conversationId: string
+  senderId: string
+  mine: boolean
+  body: string
+  createdAt: string
+  readAt: string | null
 }
 
 export type MemberHubState = {
@@ -151,4 +179,82 @@ export async function markNotificationRead(notificationId: string, _memberId?: s
     body: JSON.stringify({ notificationId }),
   })
   await jsonOrThrow(res)
+}
+
+/** Mark every notification for the authenticated user as read. */
+export async function markAllNotificationsRead(): Promise<void> {
+  const res = await fetch('/api/member/notifications', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ all: true }),
+  })
+  await jsonOrThrow(res)
+}
+
+// ---------------------------------------------------------------------------
+// Direct messages
+// ---------------------------------------------------------------------------
+
+export type ConversationListResult = {
+  conversations: ConversationSummary[]
+  unreadTotal: number
+}
+
+export class MessagingSetupRequiredError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'MessagingSetupRequiredError'
+  }
+}
+
+async function dmJsonOrThrow(res: Response) {
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    const message = data?.message || 'Request failed. Please try again.'
+    if (res.status === 503 && data?.setupRequired) throw new MessagingSetupRequiredError(message)
+    throw new Error(message)
+  }
+  return data
+}
+
+export async function fetchConversations(): Promise<ConversationListResult> {
+  const res = await fetch('/api/member/conversations', { cache: 'no-store' })
+  const data = await dmJsonOrThrow(res)
+  return {
+    conversations: (data.conversations ?? []) as ConversationSummary[],
+    unreadTotal: Number(data.unreadTotal ?? 0),
+  }
+}
+
+export async function fetchConversation(conversationId: string): Promise<{
+  conversation: ConversationSummary
+  messages: DirectMessage[]
+}> {
+  const res = await fetch(`/api/member/conversations/${conversationId}`, { cache: 'no-store' })
+  const data = await dmJsonOrThrow(res)
+  return {
+    conversation: data.conversation as ConversationSummary,
+    messages: (data.messages ?? []) as DirectMessage[],
+  }
+}
+
+/** Start (or reuse) a conversation with another member. Returns its id. */
+export async function startConversation(recipientProfileId: string, body: string): Promise<string> {
+  const res = await fetch('/api/member/conversations', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ recipientProfileId, body }),
+  })
+  const data = await dmJsonOrThrow(res)
+  return String(data.conversationId)
+}
+
+export async function sendMessage(conversationId: string, body: string): Promise<DirectMessage> {
+  const res = await fetch(`/api/member/conversations/${conversationId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ body }),
+  })
+  const data = await dmJsonOrThrow(res)
+  return data.message as DirectMessage
 }

@@ -81,7 +81,7 @@ export default function AdminSidebar({ collapsed, onCollapsedChange }: AdminSide
         if (error) {
             toast.error('Logout failed')
         } else {
-            window.location.href = '/auth/signin'
+            window.location.href = '/admin/login'
         }
     }
 

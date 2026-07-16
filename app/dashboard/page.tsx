@@ -1,7 +1,7 @@
 'use client'
 
 import { AnimatePresence, motion } from 'framer-motion'
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
@@ -21,7 +21,6 @@ import {
   Loader2,
   LockKeyhole,
   MapPin,
-  Menu,
   Megaphone,
   MessageCircle,
   Newspaper,
@@ -42,14 +41,16 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import {
   fetchMemberHubState,
+  fetchConversations,
   createFeatureSubmission,
   markNotificationRead,
+  markAllNotificationsRead,
   HubOpportunity,
+  MemberFeatureSubmission,
   MemberHubState,
   MemberProfile,
   updateMemberProfile,
@@ -57,9 +58,11 @@ import {
 import { magazineEditions } from '@/lib/magazines'
 import type { Awardee } from '@/lib/awardees-shared'
 import { cn } from '@/lib/utils'
+import WelcomeBalloons from '@/app/components/WelcomeBalloons'
+import DashboardHeader, { SignOutControl } from './dashboard-header'
+import MessagesSection, { type MessageRecipient } from './messages-section'
 
 type DashboardSection = 'home' | 'profile' | 'directory' | 'messages' | 'opportunities' | 'featured' | 'events' | 'partnerships' | 'magazine' | 'notifications' | 'settings'
-type DirectoryFocus = 'awardees' | 'messages'
 
 type NavItem = {
   id: DashboardSection
@@ -179,7 +182,6 @@ const dashboardCardStyles: Record<DashboardSection, {
 export default function MemberDashboardPage() {
   const [state, setState] = useState<MemberHubState | null>(null)
   const [activeSection, setActiveSection] = useState<DashboardSection>('home')
-  const [directoryFocus, setDirectoryFocus] = useState<DirectoryFocus>('awardees')
   const [sectionPreview, setSectionPreview] = useState<DashboardSection | null>(null)
   const [saved, setSaved] = useState(false)
   const [savingProfile, setSavingProfile] = useState(false)
@@ -187,9 +189,36 @@ export default function MemberDashboardPage() {
   const [featureSaved, setFeatureSaved] = useState(false)
   const [featureError, setFeatureError] = useState('')
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [pendingRecipient, setPendingRecipient] = useState<MessageRecipient | null>(null)
+  const [unreadMessages, setUnreadMessages] = useState(0)
 
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
+
+  // First visit after claiming an account: /signup sets ?welcome=1 plus the
+  // name in localStorage. Consume both immediately so the celebration only
+  // ever plays once, even across refreshes.
+  const [welcomePending, setWelcomePending] = useState(false)
+  const [welcomeName, setWelcomeName] = useState('')
+
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search)
+      const storedName = window.localStorage.getItem('afl:welcome-name')
+      if (params.get('welcome') === '1' || storedName) {
+        setWelcomePending(true)
+        if (storedName) setWelcomeName(storedName)
+        window.localStorage.removeItem('afl:welcome-name')
+        if (params.get('welcome')) {
+          params.delete('welcome')
+          const qs = params.toString()
+          window.history.replaceState(null, '', window.location.pathname + (qs ? `?${qs}` : ''))
+        }
+      }
+    } catch {
+      // storage/history unavailable — skip the celebration rather than crash
+    }
+  }, [])
 
   const refresh = useCallback(async () => {
     try {
@@ -207,10 +236,36 @@ export default function MemberDashboardPage() {
     refresh()
   }, [refresh])
 
+  // Header/nav badge: unread direct messages (best-effort; the Messages
+  // section keeps this fresh while it is open).
+  useEffect(() => {
+    let cancelled = false
+    fetchConversations()
+      .then((result) => {
+        if (!cancelled) setUnreadMessages(result.unreadTotal)
+      })
+      .catch(() => {
+        // Messaging may not be set up yet — the section explains it.
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const member = useMemo(() => {
     if (!state) return null
     return state.members.find((item) => item.id === state.currentMemberId) || state.members[0] || null
   }, [state])
+
+  const unreadNotifications = useMemo(() => {
+    if (!state || !member) return 0
+    return state.notifications.filter(
+      (notification) =>
+        notification.status === 'sent' &&
+        (notification.audience === 'all' || member.status === 'approved') &&
+        !notification.readBy.includes(member.id),
+    ).length
+  }, [state, member])
 
   function openSection(section: DashboardSection) {
     setMobileOpen(false)
@@ -221,36 +276,21 @@ export default function MemberDashboardPage() {
     }
 
     setSectionPreview(null)
-
-    if (section === 'messages') {
-      setActiveSection('messages')
-      setDirectoryFocus('messages')
-      return
-    }
-
-    setDirectoryFocus('awardees')
     setActiveSection(section)
   }
 
-  async function syncPublicAwardeeProfile(member: MemberProfile, patch: Partial<MemberProfile>) {
-    if (!member.awardeeId) return
-
-    const response = await fetch('/api/awardees/self-update', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id: member.awardeeId,
-        headline: patch.headline,
-        tagline: patch.field,
-        bio: patch.bio,
-      }),
-    })
-
-    const result = await response.json().catch(() => null)
-
-    if (!response.ok) {
-      throw new Error(result?.message || 'Could not update the public awardee BIO.')
+  function handleMessageAwardee(awardee: Awardee) {
+    if (!awardee.profile_id) {
+      toast.info(`${awardee.name} has not joined the member platform yet.`)
+      return
     }
+    if (member && awardee.profile_id === member.id) {
+      toast.info('That is your own profile.')
+      return
+    }
+    setPendingRecipient({ profileId: awardee.profile_id, name: awardee.name })
+    setSectionPreview(null)
+    setActiveSection('messages')
   }
 
   async function handleProfileSubmit(event: FormEvent<HTMLFormElement>) {
@@ -281,7 +321,6 @@ export default function MemberDashboardPage() {
       setProfileError('')
       setSavingProfile(true)
       await updateMemberProfile(member.id, patch)
-      await syncPublicAwardeeProfile(member, patch)
 
       setSaved(true)
       await refresh()
@@ -341,9 +380,23 @@ export default function MemberDashboardPage() {
 
   async function handleReadNotification(notificationId: string) {
     if (!member) return
-    await markNotificationRead(notificationId, member.id)
-    await refresh()
-    toast.success('Marked as read.')
+    try {
+      await markNotificationRead(notificationId, member.id)
+      await refresh()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not mark this notification as read.')
+    }
+  }
+
+  async function handleMarkAllNotificationsRead() {
+    if (!member) return
+    try {
+      await markAllNotificationsRead()
+      await refresh()
+      toast.success('All notifications marked as read.')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not mark notifications as read.')
+    }
   }
 
   if (loading) {
@@ -370,7 +423,7 @@ export default function MemberDashboardPage() {
               {loadError || 'Create an invite-only account to continue.'}
             </p>
             <Button asChild className="rounded-full bg-orange-500 px-7 text-[#fffaf0] hover:bg-orange-600">
-              <Link href="/auth/signup">Create account</Link>
+              <Link href="/signup">Create account</Link>
             </Button>
           </CardContent>
         </Card>
@@ -378,38 +431,65 @@ export default function MemberDashboardPage() {
     )
   }
 
+  const sidebar = (
+    <DashboardSidebar
+      activeSection={activeSection}
+      member={member}
+      onNavigate={openSection}
+      unreadMessages={unreadMessages}
+      unreadNotifications={unreadNotifications}
+    />
+  )
+
   return (
     <section className="min-h-[100dvh] bg-[#fffaf4] text-black">
-      <div className="grid min-h-[100dvh] lg:grid-cols-[264px_1fr]">
-        <aside className="hidden border-r border-orange-100 bg-white lg:block">
-          <DashboardSidebar activeSection={activeSection} member={member} onNavigate={openSection} />
+      {welcomePending && (
+        <WelcomeBalloons
+          name={welcomeName || member.name}
+          onDone={() => setWelcomePending(false)}
+        />
+      )}
+      <DashboardHeader
+        memberName={member.name}
+        memberInitials={member.avatarInitials}
+        unreadNotifications={unreadNotifications}
+        unreadMessages={unreadMessages}
+        onOpenNotifications={() => openSection('notifications')}
+        onOpenMessages={() => openSection('messages')}
+        mobileNav={sidebar}
+        mobileNavOpen={mobileOpen}
+        onMobileNavOpenChange={setMobileOpen}
+      />
+
+      <div className="grid lg:grid-cols-[264px_minmax(0,1fr)]">
+        <aside className="hidden border-r border-orange-100 bg-white lg:sticky lg:top-16 lg:block lg:h-[calc(100dvh-4rem)] lg:self-start lg:overflow-y-auto">
+          {sidebar}
         </aside>
 
-        <div className="flex min-w-0 flex-col">
-          <MobileDashboardBar
-            activeSection={activeSection}
-            member={member}
-            onNavigate={openSection}
-            onOpenChange={setMobileOpen}
-            open={mobileOpen}
-          />
-
-          <main className="flex-1 bg-[linear-gradient(180deg,#fffaf4_0%,#ffffff_36%,#fffaf4_100%)] px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
-            <div className="mx-auto max-w-6xl">
-              {activeSection === 'home' && <HomeSection member={member} onNavigate={openSection} state={state} />}
-              {activeSection === 'profile' && <ProfileSection error={profileError} member={member} onSubmit={handleProfileSubmit} saved={saved} saving={savingProfile} />}
-              {activeSection === 'directory' && <DirectorySection focus={directoryFocus} />}
-              {activeSection === 'messages' && <DirectorySection focus="messages" />}
-              {activeSection === 'opportunities' && <OpportunitiesSection state={state} />}
-              {activeSection === 'featured' && <FeaturedSection error={featureError} onSubmit={handleFeatureSubmit} saved={featureSaved} />}
-              {activeSection === 'events' && <EventsSection />}
-              {activeSection === 'partnerships' && <PartnershipsSection />}
-              {activeSection === 'magazine' && <MagazineSection />}
-              {activeSection === 'notifications' && <NotificationsSection member={member} onRead={handleReadNotification} state={state} />}
-              {activeSection === 'settings' && <SettingsSection error={profileError} member={member} onSubmit={handleProfileSubmit} saved={saved} saving={savingProfile} />}
-            </div>
-          </main>
-        </div>
+        <main className="min-h-[calc(100dvh-4rem)] bg-[linear-gradient(180deg,#fffaf4_0%,#ffffff_36%,#fffaf4_100%)] px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
+          <div className="mx-auto max-w-6xl space-y-5">
+            <MembershipStatusBanner member={member} />
+            {activeSection === 'home' && <HomeSection member={member} onNavigate={openSection} state={state} unreadMessages={unreadMessages} unreadNotifications={unreadNotifications} />}
+            {activeSection === 'profile' && <ProfileSection error={profileError} member={member} onSubmit={handleProfileSubmit} saved={saved} saving={savingProfile} />}
+            {activeSection === 'directory' && <DirectorySection onMessage={handleMessageAwardee} />}
+            {activeSection === 'messages' && (
+              <MessagesSection
+                member={member}
+                pendingRecipient={pendingRecipient}
+                onRecipientConsumed={() => setPendingRecipient(null)}
+                onUnreadChange={setUnreadMessages}
+                onBrowseDirectory={() => openSection('directory')}
+              />
+            )}
+            {activeSection === 'opportunities' && <OpportunitiesSection state={state} />}
+            {activeSection === 'featured' && <FeaturedSection error={featureError} onSubmit={handleFeatureSubmit} saved={featureSaved} submissions={state.featureSubmissions} />}
+            {activeSection === 'events' && <EventsSection />}
+            {activeSection === 'partnerships' && <PartnershipsSection member={member} />}
+            {activeSection === 'magazine' && <MagazineSection onNavigate={openSection} />}
+            {activeSection === 'notifications' && <NotificationsSection member={member} onRead={handleReadNotification} onMarkAll={handleMarkAllNotificationsRead} state={state} />}
+            {activeSection === 'settings' && <SettingsSection error={profileError} member={member} onSubmit={handleProfileSubmit} saved={saved} saving={savingProfile} />}
+          </div>
+        </main>
       </div>
       <FeaturedPreviewModal
         open={sectionPreview === 'featured'}
@@ -422,83 +502,86 @@ export default function MemberDashboardPage() {
   )
 }
 
+function MembershipStatusBanner({ member }: { member: MemberProfile }) {
+  if (member.status === 'approved') return null
+
+  const copy: Record<string, { title: string; body: string; tone: string }> = {
+    pending: {
+      title: 'Your awardee account is pending review',
+      body: 'An admin approves every new account. You can already complete your BIO and browse the network — approved-only broadcasts unlock once you are approved. You will get a notification here when that happens.',
+      tone: 'border-amber-200 bg-amber-50 text-amber-900',
+    },
+    rejected: {
+      title: 'Your account application was not approved',
+      body: 'Contact the admin team at info@top100afl.com if you believe this is a mistake.',
+      tone: 'border-red-200 bg-red-50 text-red-900',
+    },
+    suspended: {
+      title: 'Your account is suspended',
+      body: 'Some features, including messaging, are disabled. Contact the admin team to resolve this.',
+      tone: 'border-red-200 bg-red-50 text-red-900',
+    },
+  }
+
+  const banner = copy[member.status]
+  if (!banner) return null
+
+  return (
+    <div role="status" className={cn('rounded-[24px] border px-5 py-4', banner.tone)}>
+      <p className="text-sm font-bold">{banner.title}</p>
+      <p className="mt-1 text-sm font-medium leading-6 opacity-80">{banner.body}</p>
+    </div>
+  )
+}
+
 function DashboardSidebar({
   activeSection,
   member,
   onNavigate,
+  unreadMessages,
+  unreadNotifications,
 }: {
   activeSection: DashboardSection
   member: MemberProfile
   onNavigate: (section: DashboardSection) => void
+  unreadMessages: number
+  unreadNotifications: number
 }) {
+  const badges: Partial<Record<DashboardSection, number>> = {
+    messages: unreadMessages,
+    notifications: unreadNotifications,
+  }
+
   return (
     <div className="flex h-full flex-col p-4">
-      <div className="rounded-[24px] border border-orange-100 bg-white p-3">
-        <Image
-          src="/Top100 Africa Future leaders Logo .png"
-          alt="Top100 Africa Future Leaders"
-          width={136}
-          height={44}
-          className="h-11 w-auto object-contain"
-          priority
-        />
-      </div>
-
-      <div className="mt-4 rounded-[24px] bg-orange-50 p-4">
+      <div className="rounded-[24px] bg-orange-50 p-4">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-500 text-base font-bold text-[#fffaf0]">
             {member.avatarInitials}
           </div>
           <div className="min-w-0">
             <h2 className="truncate text-lg font-semibold text-black">{member.name}</h2>
-            <p className="truncate text-xs font-medium text-black/50">{member.status}</p>
+            <p className="truncate text-xs font-medium capitalize text-black/50">{member.status} member</p>
           </div>
         </div>
       </div>
 
       <nav className="mt-5 space-y-1.5">
         {dashboardNav.map((item) => (
-          <SideNavButton key={item.id} active={activeSection === item.id} item={item} onClick={() => onNavigate(item.id)} />
+          <SideNavButton
+            key={item.id}
+            active={activeSection === item.id}
+            badge={badges[item.id] ?? 0}
+            item={item}
+            onClick={() => onNavigate(item.id)}
+          />
         ))}
       </nav>
-    </div>
-  )
-}
 
-function MobileDashboardBar({
-  activeSection,
-  member,
-  onNavigate,
-  onOpenChange,
-  open,
-}: {
-  activeSection: DashboardSection
-  member: MemberProfile
-  onNavigate: (section: DashboardSection) => void
-  onOpenChange: (open: boolean) => void
-  open: boolean
-}) {
-  const active = dashboardNav.find((item) => item.id === activeSection)
-
-  return (
-    <header className="flex h-[74px] items-center justify-between border-b border-orange-100 bg-white px-4 lg:hidden">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-orange-600">Dashboard</p>
-        <h1 className="text-xl font-bold text-black">{active?.title || 'Home'}</h1>
+      <div className="mt-6 border-t border-orange-100 pt-4">
+        <SignOutControl />
       </div>
-
-      <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetTrigger asChild>
-          <Button aria-label="Open dashboard navigation" className="h-12 w-12 rounded-2xl bg-[#050505] p-0 text-[#fffaf0] hover:bg-[#171717]">
-            <Menu className="h-6 w-6" strokeWidth={2.8} />
-          </Button>
-        </SheetTrigger>
-        <SheetContent side="left" className="w-[86vw] max-w-sm border-r border-orange-100 bg-white p-0 text-black">
-          <h2 className="sr-only">Dashboard navigation</h2>
-          <DashboardSidebar activeSection={activeSection} member={member} onNavigate={onNavigate} />
-        </SheetContent>
-      </Sheet>
-    </header>
+    </div>
   )
 }
 
@@ -506,12 +589,20 @@ function HomeSection({
   member,
   onNavigate,
   state,
+  unreadMessages,
+  unreadNotifications,
 }: {
   member: MemberProfile
   onNavigate: (section: DashboardSection) => void
   state: MemberHubState
+  unreadMessages: number
+  unreadNotifications: number
 }) {
   const visibleCards = dashboardNav.filter((item) => !['home', 'profile', 'settings'].includes(item.id))
+  const cardBadges: Partial<Record<DashboardSection, number>> = {
+    messages: unreadMessages,
+    notifications: unreadNotifications,
+  }
   const latestNotifications = state.notifications
     .filter((notification) => notification.status === 'sent' && (notification.audience === 'all' || member.status === 'approved'))
     .slice(0, 3)
@@ -534,7 +625,7 @@ function HomeSection({
 
       <section className="grid auto-rows-[190px] gap-4 md:grid-cols-2 xl:grid-cols-4">
         {visibleCards.map((item) => (
-          <DashboardActionCard key={item.id} item={item} onClick={() => onNavigate(item.id)} />
+          <DashboardActionCard key={item.id} badge={cardBadges[item.id] ?? 0} item={item} onClick={() => onNavigate(item.id)} />
         ))}
       </section>
 
@@ -644,25 +735,30 @@ function ProfileSection({
   )
 }
 
-function DirectorySection({ focus = 'awardees' }: { focus?: DirectoryFocus }) {
+function DirectorySection({ onMessage }: { onMessage: (awardee: Awardee) => void }) {
   const [awardees, setAwardees] = useState<Awardee[]>([])
   const [selectedYear, setSelectedYear] = useState<number | 'all'>('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
-  const inboxRef = useRef<HTMLDivElement | null>(null)
+  const [loadFailed, setLoadFailed] = useState(false)
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     let cancelled = false
 
     async function loadAwardees() {
+      setLoading(true)
+      setLoadFailed(false)
       try {
         const response = await fetch('/api/awardees', { cache: 'no-store' })
-        const payload = response.ok ? await response.json() : []
-        if (!cancelled) {
-          setAwardees(Array.isArray(payload) ? payload : [])
-        }
+        if (!response.ok) throw new Error('Directory request failed')
+        const payload = await response.json()
+        if (!cancelled) setAwardees(Array.isArray(payload) ? payload : [])
       } catch {
-        if (!cancelled) setAwardees([])
+        if (!cancelled) {
+          setAwardees([])
+          setLoadFailed(true)
+        }
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -672,15 +768,7 @@ function DirectorySection({ focus = 'awardees' }: { focus?: DirectoryFocus }) {
     return () => {
       cancelled = true
     }
-  }, [])
-
-  useEffect(() => {
-    if (focus === 'messages') {
-      window.requestAnimationFrame(() => {
-        inboxRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      })
-    }
-  }, [focus])
+  }, [reloadKey])
 
   const filteredAwardees = useMemo(() => {
     const term = searchTerm.trim().toLowerCase()
@@ -805,17 +893,55 @@ function DirectorySection({ focus = 'awardees' }: { focus?: DirectoryFocus }) {
                       View BIO
                     </Link>
                   </Button>
-                  <Button asChild variant="outline" className="h-10 rounded-full border border-black/10 bg-white px-4 text-sm font-semibold text-black/75 shadow-none hover:bg-[#fafafa]">
-                    <Link href="/dashboard#directory-mail" prefetch={false}>
-                      Message
-                    </Link>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={!awardee.profile_id}
+                    title={awardee.profile_id ? `Message ${awardee.name}` : 'Not on the member platform yet'}
+                    onClick={() => onMessage(awardee)}
+                    className="h-10 rounded-full border border-black/10 bg-white px-4 text-sm font-semibold text-black/75 shadow-none hover:bg-[#fafafa] disabled:opacity-50"
+                  >
+                    <MessageCircle className="mr-1.5 h-4 w-4" strokeWidth={2.6} />
+                    Message
                   </Button>
                 </div>
               </article>
             ))}
           </div>
 
-          {!loading && visibleAwardees.length === 0 ? (
+          {loading ? (
+            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3" aria-hidden>
+              {[0, 1, 2].map((row) => (
+                <div key={row} className="animate-pulse rounded-[22px] border border-black/5 bg-white p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="h-12 w-12 rounded-2xl bg-orange-100/70" />
+                    <div className="flex-1 space-y-2 pt-1">
+                      <div className="h-3.5 w-1/2 rounded-full bg-orange-100/70" />
+                      <div className="h-3 w-4/5 rounded-full bg-orange-50" />
+                    </div>
+                  </div>
+                  <div className="mt-5 h-9 rounded-full bg-orange-50" />
+                </div>
+              ))}
+            </div>
+          ) : null}
+
+          {!loading && loadFailed ? (
+            <div className="mt-4 rounded-[22px] border border-orange-100 bg-white p-8 text-center">
+              <p className="text-sm font-semibold text-orange-700">Could not load the awardee directory.</p>
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-4 rounded-full border-orange-200 bg-white text-black hover:bg-orange-50"
+                onClick={() => setReloadKey((key) => key + 1)}
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Try again
+              </Button>
+            </div>
+          ) : null}
+
+          {!loading && !loadFailed && visibleAwardees.length === 0 ? (
             <div className="mt-4 rounded-[22px] border border-dashed border-black/10 bg-white p-8 text-center text-sm font-semibold text-black/50">
               No awardees match this filter yet.
             </div>
@@ -826,58 +952,6 @@ function DirectorySection({ focus = 'awardees' }: { focus?: DirectoryFocus }) {
               Showing first {visibleAwardees.length} of {filteredAwardees.length}. Search to narrow the list.
             </p>
           ) : null}
-        </div>
-
-        <div ref={inboxRef} id="directory-mail" className="rounded-[28px] border border-orange-100 bg-white p-5 sm:p-6">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-600">Direct contact</p>
-              <h3 className="mt-2 text-2xl font-bold tracking-tight text-black">Recent conversations</h3>
-              <p className="mt-2 max-w-xl text-sm font-medium leading-6 text-black/60">
-                Messages now live inside the directory so you can browse awardees and open conversations in the same place.
-              </p>
-            </div>
-            <Button asChild variant="outline" className="rounded-full border-orange-200 bg-white text-black hover:bg-orange-50">
-              <Link href="/dashboard#directory-mail">Open inbox</Link>
-            </Button>
-          </div>
-
-          <div className="mt-5 grid gap-3 lg:grid-cols-[1.15fr_0.85fr]">
-            <div className="space-y-3">
-              {[
-                { name: 'Samuel Adebayo', note: 'Direct member thread', initials: 'SA' },
-                { name: 'Zainab Bello', note: 'Direct member thread', initials: 'ZB' },
-                { name: 'Africa Future Leaders Team', note: 'Network updates and admin notices', initials: 'AF' },
-              ].map((thread) => (
-                <div key={thread.name} className="flex items-center gap-3 rounded-2xl border border-black/5 bg-[#fffaf4] p-3">
-                  <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#050505] text-sm font-semibold text-[#fffaf0]">
-                    {thread.initials}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-semibold text-black">{thread.name}</span>
-                    <span className="block truncate text-xs font-medium text-black/50">{thread.note}</span>
-                  </span>
-                  <ArrowRight className="h-4 w-4 text-black/35" strokeWidth={2.4} />
-                </div>
-              ))}
-            </div>
-
-            <div className="rounded-[24px] border border-orange-100 bg-[#fffaf4] p-4">
-              <div className="rounded-[20px] border border-dashed border-orange-200 bg-white p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-orange-600">Quick route</p>
-                <h4 className="mt-2 text-lg font-bold tracking-tight text-black">Browse, then message.</h4>
-                <p className="mt-2 text-sm font-medium leading-6 text-black/55">
-                  Open a profile from the awardee list and jump back here to continue the conversation.
-                </p>
-              </div>
-              <Button asChild className="mt-4 w-full rounded-full bg-[#050505] px-7 py-5 text-[#fffaf0] hover:bg-[#171717]">
-                <Link href="/dashboard#top-awardee-list">
-                  Back to awardees
-                  <ArrowRight className="ml-2 h-4 w-4" strokeWidth={2.8} />
-                </Link>
-              </Button>
-            </div>
-          </div>
         </div>
       </div>
     </SectionShell>
@@ -972,14 +1046,23 @@ function OpportunitiesSection({ state }: { state: MemberHubState }) {
   )
 }
 
+const FEATURE_STATUS_STYLES: Record<MemberFeatureSubmission['status'], string> = {
+  pending: 'bg-amber-100 text-amber-800',
+  reviewing: 'bg-sky-100 text-sky-800',
+  approved: 'bg-emerald-100 text-emerald-800',
+  published: 'bg-orange-500 text-white',
+}
+
 function FeaturedSection({
   error,
   onSubmit,
   saved,
+  submissions,
 }: {
   error: string
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
   saved: boolean
+  submissions: MemberFeatureSubmission[]
 }) {
   return (
     <SectionShell icon={Sparkles} title="Get featured">
@@ -1025,6 +1108,33 @@ function FeaturedSection({
             {error ? <span className="text-sm font-semibold text-orange-700" role="alert">{error}</span> : null}
           </div>
         </form>
+
+        <div className="mt-5 rounded-[28px] border border-orange-100 bg-white p-5 sm:p-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-600">Your submissions</p>
+          <h3 className="mt-2 text-2xl font-bold tracking-tight text-black">Track your feature requests.</h3>
+          {submissions.length === 0 ? (
+            <p className="mt-4 rounded-2xl border border-dashed border-orange-200 bg-[#fffaf4] p-4 text-sm font-semibold text-black/50">
+              Nothing submitted yet — your requests and their review status will appear here.
+            </p>
+          ) : (
+            <div className="mt-4 grid gap-3">
+              {submissions.map((submission) => (
+                <div key={submission.id} className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-orange-100 bg-[#fffaf4] p-4">
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-orange-600">
+                      {formatDashboardDate(submission.createdAt)} · {submission.category}
+                    </p>
+                    <h4 className="mt-1 text-base font-bold text-black">{submission.title}</h4>
+                    <p className="mt-1 line-clamp-2 text-sm font-medium leading-6 text-black/55">{submission.summary}</p>
+                  </div>
+                  <span className={cn('rounded-full px-3 py-1.5 text-xs font-bold capitalize', FEATURE_STATUS_STYLES[submission.status])}>
+                    {submission.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </SectionShell>
   )
@@ -1097,17 +1207,25 @@ type DashboardEvent = {
 function EventsSection() {
   const [events, setEvents] = useState<DashboardEvent[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadFailed, setLoadFailed] = useState(false)
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     let cancelled = false
 
     async function loadEvents() {
+      setLoading(true)
+      setLoadFailed(false)
       try {
         const response = await fetch('/api/events', { cache: 'no-store' })
-        const payload = response.ok ? await response.json() : []
+        if (!response.ok) throw new Error('Events request failed')
+        const payload = await response.json()
         if (!cancelled) setEvents(Array.isArray(payload) ? payload.slice(0, 6) : [])
       } catch {
-        if (!cancelled) setEvents([])
+        if (!cancelled) {
+          setEvents([])
+          setLoadFailed(true)
+        }
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -1117,29 +1235,8 @@ function EventsSection() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [reloadKey])
 
-  const fallbackEvents: DashboardEvent[] = [
-    {
-      id: 'event-fallback-1',
-      title: 'Talk100 Live',
-      summary: 'Monthly conversations with African future leaders and partners.',
-      start_at: '2026-07-12T18:00:00.000Z',
-      registration_url: '/events',
-      registration_label: 'Join program',
-      cover: '/top100-africa-future-leaders-2024-magazine-cover-w.jpg',
-    },
-    {
-      id: 'event-fallback-2',
-      title: 'Future Leaders Summit',
-      summary: 'Leadership, capital, media, and collaboration sessions for awardees.',
-      start_at: '2026-09-20T10:00:00.000Z',
-      registration_url: '/events',
-      registration_label: 'View details',
-      cover: '/magazine-cover-2025.jpg',
-    },
-  ]
-  const visibleEvents = events.length > 0 ? events : fallbackEvents
   const fallbackCovers = ['/top100-africa-future-leaders-2024-magazine-cover-w.jpg', '/magazine-cover-2025.jpg', '/young-african-man-business-leader.jpg']
 
   return (
@@ -1160,74 +1257,186 @@ function EventsSection() {
           </Button>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          {visibleEvents.map((event, index) => (
-            <article key={event.id} className="relative min-h-[250px] overflow-hidden rounded-[28px] border border-orange-100 bg-black p-6 text-white">
-              <Image
-                src={event.cover || fallbackCovers[index % fallbackCovers.length]}
-                alt={event.title}
-                fill
-                sizes="(max-width: 768px) 100vw, 50vw"
-                className="object-cover"
-                priority={index === 0}
-              />
-              <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(0,0,0,0.84)_0%,rgba(0,0,0,0.58)_46%,rgba(0,0,0,0.82)_100%)]" />
-              <div className="relative z-10 flex h-full min-h-[250px] flex-col justify-between">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/70">{formatDashboardDate(event.start_at)}</p>
-                  <h4 className="mt-4 text-2xl font-bold tracking-tight">{event.title}</h4>
-                  <p className="mt-2 max-w-md text-sm font-medium leading-6 text-white/72">
-                    {event.summary || 'Program details from the Africa Future Leaders events hub.'}
-                  </p>
+        {loading ? (
+          <div className="grid gap-4 md:grid-cols-2" aria-hidden>
+            {[0, 1].map((row) => (
+              <div key={row} className="min-h-[250px] animate-pulse rounded-[28px] border border-orange-100 bg-orange-50/60" />
+            ))}
+          </div>
+        ) : loadFailed ? (
+          <div className="rounded-[28px] border border-orange-100 bg-white p-8 text-center">
+            <p className="text-sm font-semibold text-orange-700">Could not load events right now.</p>
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-4 rounded-full border-orange-200 bg-white text-black hover:bg-orange-50"
+              onClick={() => setReloadKey((key) => key + 1)}
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Try again
+            </Button>
+          </div>
+        ) : events.length === 0 ? (
+          <div className="rounded-[28px] border border-dashed border-orange-200 bg-[#fffaf4] p-8 text-center">
+            <CalendarDays className="mx-auto h-8 w-8 text-orange-400" strokeWidth={2.2} />
+            <h4 className="mt-3 text-lg font-bold text-black">No events scheduled yet</h4>
+            <p className="mx-auto mt-2 max-w-sm text-sm font-medium leading-6 text-black/55">
+              New summits, live sessions, and programs will show up here as soon as they are announced.
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2">
+            {events.map((event, index) => (
+              <article key={event.id} className="relative min-h-[250px] overflow-hidden rounded-[28px] border border-orange-100 bg-black p-6 text-white">
+                <Image
+                  src={event.cover || fallbackCovers[index % fallbackCovers.length]}
+                  alt={event.title}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                  className="object-cover"
+                  priority={index === 0}
+                />
+                <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(0,0,0,0.84)_0%,rgba(0,0,0,0.58)_46%,rgba(0,0,0,0.82)_100%)]" />
+                <div className="relative z-10 flex h-full min-h-[250px] flex-col justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/70">{formatDashboardDate(event.start_at)}</p>
+                    <h4 className="mt-4 text-2xl font-bold tracking-tight">{event.title}</h4>
+                    <p className="mt-2 max-w-md text-sm font-medium leading-6 text-white/72">
+                      {event.summary || 'Program details from the Africa Future Leaders events hub.'}
+                    </p>
+                  </div>
+                  <div className="mt-6">
+                    <Button asChild className="rounded-full bg-white px-6 py-5 text-black hover:bg-white/90">
+                      <Link href={event.registration_url || '/events'}>
+                        {event.registration_label || 'Join event'}
+                        <ArrowRight className="ml-2 h-4 w-4" strokeWidth={2.8} />
+                      </Link>
+                    </Button>
+                  </div>
                 </div>
-                <div className="mt-6">
-                  <Button asChild className="rounded-full bg-white px-6 py-5 text-black hover:bg-white/90">
-                    <Link href={event.registration_url || '/events'}>
-                      {event.registration_label || 'Join event'}
-                      <ArrowRight className="ml-2 h-4 w-4" strokeWidth={2.8} />
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
-        {loading ? <p className="text-sm font-semibold text-black/50">Loading live events...</p> : null}
+              </article>
+            ))}
+          </div>
+        )}
       </div>
     </SectionShell>
   )
 }
 
-function PartnershipsSection() {
+function PartnershipsSection({ member }: { member: MemberProfile }) {
+  const [submitting, setSubmitting] = useState(false)
+  const [sent, setSent] = useState(false)
+
   const partnerRoutes = [
-    { title: 'Become a partner', href: '/partnership', text: 'Sponsor, support, or co-create programs.' },
-    { title: 'View current partners', href: '/', text: 'See the organizations supporting the mission.' },
+    { title: 'Explore current partners', href: '/partnership', text: 'See the organizations supporting the mission.' },
     { title: 'Volunteer with us', href: '/apply/volunteer', text: 'Join activations, research, and community work.' },
   ]
+
+  async function handlePartnershipSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const formEl = event.currentTarget
+    const form = new FormData(formEl)
+    const payload = {
+      name: String(form.get('name') || '').trim(),
+      email: String(form.get('email') || '').trim(),
+      organization: String(form.get('organization') || '').trim(),
+      message: String(form.get('message') || '').trim(),
+    }
+
+    if (!payload.name || !payload.email || !payload.organization || !payload.message) {
+      toast.error('Fill in every field before sending your inquiry.')
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      const response = await fetch('/api/partnership', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      const result = await response.json().catch(() => null)
+      if (!response.ok) {
+        throw new Error(result?.message || result?.error || 'Could not send your inquiry.')
+      }
+      setSent(true)
+      formEl.reset()
+      toast.success('Partnership inquiry sent. The team will reach out by email.')
+      window.setTimeout(() => setSent(false), 3000)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not send your inquiry.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   return (
     <SectionShell icon={Handshake} title="Partnerships">
       <div className="grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">
-        <div className="rounded-[28px] bg-orange-500 p-6 text-black">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-black/60">Partner pathway</p>
-          <h3 className="mt-3 text-3xl font-bold tracking-tight">Join the ecosystem.</h3>
-          <p className="mt-2 text-sm font-medium leading-6 text-black/65">
-            Awardees can introduce partners, apply as collaborators, or explore current Africa Future Leaders partnerships.
-          </p>
-        </div>
-        <div className="grid gap-3">
-          {partnerRoutes.map((route) => (
-            <Link key={route.title} href={route.href} className="group rounded-[24px] border border-orange-100 bg-white p-5 transition hover:border-orange-300">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <h4 className="text-xl font-bold tracking-tight text-black">{route.title}</h4>
-                  <p className="mt-1 text-sm font-medium text-black/55">{route.text}</p>
+        <div className="space-y-4">
+          <div className="rounded-[28px] bg-orange-500 p-6 text-black">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-black/60">Partner pathway</p>
+            <h3 className="mt-3 text-3xl font-bold tracking-tight">Join the ecosystem.</h3>
+            <p className="mt-2 text-sm font-medium leading-6 text-black/65">
+              Introduce a partner, apply as a collaborator, or explore current Africa Future Leaders partnerships.
+            </p>
+          </div>
+          <div className="grid gap-3">
+            {partnerRoutes.map((route) => (
+              <Link key={route.title} href={route.href} className="group rounded-[24px] border border-orange-100 bg-white p-5 transition hover:border-orange-300">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h4 className="text-xl font-bold tracking-tight text-black">{route.title}</h4>
+                    <p className="mt-1 text-sm font-medium text-black/55">{route.text}</p>
+                  </div>
+                  <ArrowRight className="h-5 w-5 shrink-0 transition group-hover:translate-x-1" strokeWidth={2.8} />
                 </div>
-                <ArrowRight className="h-5 w-5 shrink-0 transition group-hover:translate-x-1" strokeWidth={2.8} />
-              </div>
-            </Link>
-          ))}
+              </Link>
+            ))}
+          </div>
         </div>
+
+        <form onSubmit={handlePartnershipSubmit} className="rounded-[28px] border border-orange-100 bg-white p-5 sm:p-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-600">Partnership inquiry</p>
+          <h3 className="mt-2 text-2xl font-bold tracking-tight text-black">Introduce a partner or propose a collaboration.</h3>
+          <p className="mt-2 text-sm font-medium leading-6 text-black/60">
+            Your inquiry goes straight to the partnerships team inbox.
+          </p>
+
+          <div className="mt-5 grid gap-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Your name" name="name" defaultValue={member.name} placeholder="Full name" />
+              <Field label="Email" name="email" defaultValue={member.email} placeholder="you@example.com" />
+            </div>
+            <Field label="Organization" name="organization" defaultValue={member.organization} placeholder="Company, NGO, or institution" />
+            <div className="space-y-2">
+              <Label htmlFor="partnership-message" className="font-semibold text-black">Message</Label>
+              <Textarea
+                id="partnership-message"
+                name="message"
+                placeholder="Tell the team about the partnership or collaboration you have in mind."
+                className="min-h-32 rounded-3xl border-orange-100 text-black placeholder:text-black/40"
+              />
+            </div>
+          </div>
+
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <Button disabled={submitting} className="rounded-full bg-orange-500 px-8 py-6 text-[#fffaf0] hover:bg-orange-600 disabled:bg-orange-200">
+              {submitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  Send inquiry
+                  <Send className="ml-2 h-4 w-4" strokeWidth={2.8} />
+                </>
+              )}
+            </Button>
+            {sent ? <span className="text-sm font-semibold text-black" role="status">Sent to the partnerships team.</span> : null}
+          </div>
+        </form>
       </div>
     </SectionShell>
   )
@@ -1236,37 +1445,70 @@ function PartnershipsSection() {
 function NotificationsSection({
   member,
   onRead,
+  onMarkAll,
   state,
 }: {
   member: MemberProfile
   onRead: (notificationId: string) => void
+  onMarkAll: () => void
   state: MemberHubState
 }) {
   const notifications = state.notifications.filter((notification) =>
     notification.status === 'sent' && (notification.audience === 'all' || member.status === 'approved'),
   )
+  const unreadCount = notifications.filter((notification) => !notification.readBy.includes(member.id)).length
 
   return (
     <SectionShell icon={Megaphone} title="Notifications">
       <div className="space-y-4">
         <div className="rounded-[28px] bg-orange-500 p-6 text-black">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-black/60">Admin broadcast</p>
-          <h3 className="mt-3 text-3xl font-bold tracking-tight">Updates from the AFL team.</h3>
-          <p className="mt-2 text-sm font-medium leading-6 text-black/65">
-            Admin can send announcements, deadlines, event reminders, and magazine calls directly to awardees.
-          </p>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-black/60">Admin broadcast</p>
+              <h3 className="mt-3 text-3xl font-bold tracking-tight">Updates from the AFL team.</h3>
+              <p className="mt-2 text-sm font-medium leading-6 text-black/65">
+                Announcements, deadlines, event reminders, and magazine calls — sent directly to awardees.
+              </p>
+            </div>
+            {unreadCount > 0 ? (
+              <Button
+                type="button"
+                onClick={onMarkAll}
+                className="rounded-full bg-[#050505] px-6 text-[#fffaf0] hover:bg-[#171717]"
+              >
+                Mark all {unreadCount} read
+              </Button>
+            ) : null}
+          </div>
         </div>
 
         <div className="grid gap-3">
           {notifications.length > 0 ? notifications.map((notification) => {
             const read = notification.readBy.includes(member.id)
             return (
-              <div key={notification.id} className="rounded-[24px] border border-orange-100 bg-white p-5">
+              <div
+                key={notification.id}
+                className={cn(
+                  'rounded-[24px] border p-5',
+                  read ? 'border-orange-100 bg-white' : 'border-orange-300 bg-[#fffaf4]',
+                )}
+              >
                 <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-600">{formatDashboardDate(notification.createdAt)}</p>
+                  <div className="min-w-0">
+                    <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-orange-600">
+                      {!read ? <span className="h-2 w-2 rounded-full bg-orange-500" aria-label="Unread" /> : null}
+                      {formatDashboardDate(notification.createdAt)}
+                    </p>
                     <h4 className="mt-2 text-xl font-bold tracking-tight text-black">{notification.title}</h4>
                     <p className="mt-2 text-sm font-medium leading-6 text-black/60">{notification.message}</p>
+                    {notification.ctaUrl ? (
+                      <Button asChild className="mt-3 h-9 rounded-full bg-orange-500 px-5 text-sm text-white hover:bg-orange-600">
+                        <Link href={notification.ctaUrl}>
+                          {notification.ctaLabel || 'Open'}
+                          <ArrowRight className="ml-2 h-4 w-4" strokeWidth={2.8} />
+                        </Link>
+                      </Button>
+                    ) : null}
                   </div>
                   <Button
                     type="button"
@@ -1281,8 +1523,12 @@ function NotificationsSection({
               </div>
             )
           }) : (
-            <div className="rounded-[24px] border border-orange-100 bg-white p-5 text-sm font-semibold text-black/55">
-              No admin notifications yet.
+            <div className="rounded-[24px] border border-dashed border-orange-200 bg-[#fffaf4] p-8 text-center">
+              <BellRing className="mx-auto h-8 w-8 text-orange-400" strokeWidth={2.2} />
+              <h4 className="mt-3 text-lg font-bold text-black">No notifications yet</h4>
+              <p className="mx-auto mt-2 max-w-sm text-sm font-medium leading-6 text-black/55">
+                Updates from the AFL admin team will land here.
+              </p>
             </div>
           )}
         </div>
@@ -1291,7 +1537,7 @@ function NotificationsSection({
   )
 }
 
-function MagazineSection() {
+function MagazineSection({ onNavigate }: { onNavigate: (section: DashboardSection) => void }) {
   return (
     <SectionShell icon={Newspaper} title="Magazine">
       <div className="space-y-5">
@@ -1368,11 +1614,13 @@ function MagazineSection() {
                 </div>
               ))}
             </div>
-            <Button asChild className="mt-7 rounded-full bg-[#050505] px-7 py-6 text-[#fffaf0] hover:bg-[#171717]">
-              <Link href="/partnership">
-                Apply to feature
-                <ArrowRight className="ml-2 h-4 w-4" strokeWidth={2.8} />
-              </Link>
+            <Button
+              type="button"
+              onClick={() => onNavigate('featured')}
+              className="mt-7 rounded-full bg-[#050505] px-7 py-6 text-[#fffaf0] hover:bg-[#171717]"
+            >
+              Apply to feature
+              <ArrowRight className="ml-2 h-4 w-4" strokeWidth={2.8} />
             </Button>
           </div>
         </div>
@@ -1483,7 +1731,7 @@ function SettingsSection({
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <Button asChild variant="outline" className="rounded-full border-orange-200 bg-white px-6 py-6 text-black hover:bg-white">
-                <Link href="/auth/signin?from=/dashboard">Change password</Link>
+                <Link href="/login?from=/dashboard">Change password</Link>
               </Button>
               <Button disabled={updatesRemaining === 0 || saving} className="rounded-full bg-orange-500 px-8 py-6 text-[#fffaf0] hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-orange-200 disabled:text-black/45">
                 {saving ? (
@@ -1507,10 +1755,12 @@ function SettingsSection({
 
 function SideNavButton({
   active,
+  badge = 0,
   item,
   onClick,
 }: {
   active: boolean
+  badge?: number
   item: NavItem
   onClick: () => void
 }) {
@@ -1528,15 +1778,25 @@ function SideNavButton({
       <span className={cn('flex h-10 w-10 items-center justify-center rounded-xl', active ? 'bg-[#050505] text-[#fffaf0]' : 'bg-orange-50 text-black')}>
         <Icon className="h-5 w-5" strokeWidth={2.8} />
       </span>
-      <span className="min-w-0">
+      <span className="min-w-0 flex-1">
         <span className="block text-sm font-semibold">{item.title}</span>
         <span className={cn('block truncate text-xs font-medium', active ? 'text-black/70' : 'text-black/45')}>{item.label}</span>
       </span>
+      {badge > 0 ? (
+        <span
+          className={cn(
+            'flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full px-1.5 text-xs font-bold',
+            active ? 'bg-[#050505] text-[#fffaf0]' : 'bg-orange-500 text-white',
+          )}
+        >
+          {badge > 99 ? '99+' : badge}
+        </span>
+      ) : null}
     </button>
   )
 }
 
-function DashboardActionCard({ item, onClick }: { item: NavItem; onClick: () => void }) {
+function DashboardActionCard({ badge = 0, item, onClick }: { badge?: number; item: NavItem; onClick: () => void }) {
   const Icon = item.icon
   const style = dashboardCardStyles[item.id]
 
@@ -1551,7 +1811,14 @@ function DashboardActionCard({ item, onClick }: { item: NavItem; onClick: () => 
       )}
     >
       <ArrowRight className={cn('absolute right-5 top-5 h-4 w-4 transition group-hover:translate-x-1', style.arrow)} strokeWidth={2.4} />
-      <Icon className={cn('h-7 w-7', style.icon)} strokeWidth={2.1} />
+      <div className="flex items-center gap-2">
+        <Icon className={cn('h-7 w-7', style.icon)} strokeWidth={2.1} />
+        {badge > 0 ? (
+          <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-orange-500 px-1.5 text-xs font-bold text-white">
+            {badge > 99 ? '99+' : badge}
+          </span>
+        ) : null}
+      </div>
       <h3 className="mt-auto text-xl font-bold tracking-tight">{item.title}</h3>
       <p className={cn('mt-1 text-sm font-medium', style.detail)}>{item.label}</p>
     </button>

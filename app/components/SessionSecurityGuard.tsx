@@ -158,8 +158,9 @@ export default function SessionSecurityGuard({
 
   const handleAcknowledgeLogout = () => {
     setShowLogoutNotification(false)
-    // Redirect to sign-in page
-    window.location.href = `/auth/signin?reason=${logoutReason}`
+    // Redirect to the sign-in page for the area we were in
+    const signInPath = window.location.pathname.startsWith('/admin') ? '/admin/login' : '/login'
+    window.location.href = `${signInPath}?reason=${logoutReason}`
   }
 
   const formatTime = (seconds: number): string => {

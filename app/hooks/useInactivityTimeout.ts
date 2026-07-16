@@ -113,12 +113,20 @@ export function useInactivityTimeout(options: UseInactivityTimeoutOptions = {}) 
       // Call callback if provided
       onLogout?.()
 
-      // Redirect to sign-in page
-      router.push(`/auth/signin?reason=${reason}`)
+      // Redirect to the sign-in page for the area we were in
+      const signInPath =
+        typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')
+          ? '/admin/login'
+          : '/login'
+      router.push(`${signInPath}?reason=${reason}`)
     } catch (error) {
       console.error('[Security] Error during logout:', error)
       // Force redirect anyway for security
-      router.push(`/auth/signin?reason=${reason}`)
+      const signInPath =
+        typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')
+          ? '/admin/login'
+          : '/login'
+      router.push(`${signInPath}?reason=${reason}`)
     }
   }, [router, onLogout])
 

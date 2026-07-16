@@ -78,7 +78,7 @@ export default function AdminSetupPage() {
 
         setSuccess(true)
         setTimeout(() => {
-          router.push('/auth/signin')
+          router.push('/admin/login')
         }, 2000)
       }
 
@@ -156,7 +156,7 @@ export default function AdminSetupPage() {
             </Button>
             <div className="text-center text-sm text-muted-foreground">
               Already have an account?{' '}
-              <a href="/auth/signin" className="text-primary hover:underline">
+              <a href="/admin/login" className="text-primary hover:underline">
                 Sign in
               </a>
             </div>

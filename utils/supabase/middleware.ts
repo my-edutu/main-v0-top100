@@ -1,5 +1,34 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { isAdminRole, parseRole } from '@/lib/types/roles'
+
+/**
+ * Look up the user's app role in the profiles table using the service role key.
+ * Used only for /admin route protection; bypasses RLS so the answer is
+ * authoritative regardless of row-level policies.
+ */
+async function getRoleFromDatabase(userId: string): Promise<string | null> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !serviceKey || !userId) return null
+
+  try {
+    const res = await fetch(
+      `${url}/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=role`,
+      {
+        headers: {
+          apikey: serviceKey,
+          Authorization: `Bearer ${serviceKey}`,
+        },
+      }
+    )
+    if (!res.ok) return null
+    const rows = await res.json()
+    return rows?.[0]?.role ?? null
+  } catch {
+    return null
+  }
+}
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -57,9 +86,9 @@ export async function updateSession(request: NextRequest) {
           // Clear session
           await supabase.auth.signOut()
 
-          // Redirect to sign-in
+          // Redirect to the sign-in page matching the area they were in
           const url = request.nextUrl.clone()
-          url.pathname = '/auth/signin'
+          url.pathname = request.nextUrl.pathname.startsWith('/admin') ? '/admin/login' : '/login'
           url.searchParams.set('reason', 'expired')
           url.searchParams.set('redirect', request.nextUrl.pathname)
           return NextResponse.redirect(url)
@@ -71,27 +100,37 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
-  // Protect admin routes - redirect to sign-in if not authenticated
-  if (request.nextUrl.pathname.startsWith('/admin')) {
+  // Protect admin routes: require authentication AND an admin role.
+  // /admin/login is exempt — it only forwards to the admin sign-in screen.
+  const pathname = request.nextUrl.pathname
+  if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
     if (!user) {
       const url = request.nextUrl.clone()
-      url.pathname = '/auth/signin'
-      url.searchParams.set('redirect', request.nextUrl.pathname)
+      url.pathname = '/admin/login'
+      url.search = ''
+      url.searchParams.set('redirect', pathname)
+      return NextResponse.redirect(url)
+    }
+
+    // Role check: trust the JWT claim (app_metadata is service-role writable
+    // only), fall back to the profiles table when the claim is absent.
+    let role = parseRole((user as any).app_metadata?.role)
+    if (!isAdminRole(role)) {
+      role = parseRole(await getRoleFromDatabase((user as any).sub))
+    }
+
+    if (!isAdminRole(role)) {
+      console.warn('[Security] Non-admin user attempted to access', pathname)
+      const url = request.nextUrl.clone()
+      url.pathname = '/dashboard'
+      url.search = ''
       return NextResponse.redirect(url)
     }
   }
 
-  // Only protect specific routes for unauthenticated users
-  if (!user && request.nextUrl.pathname.startsWith('/admin')) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/auth/signin'
-    url.searchParams.set('redirect', request.nextUrl.pathname)
-    return NextResponse.redirect(url)
-  }
-
   if (!user && request.nextUrl.pathname.startsWith('/dashboard') && !isDemoAuthMode) {
     const url = request.nextUrl.clone()
-    url.pathname = '/auth/signin'
+    url.pathname = '/login'
     url.searchParams.set('redirect', request.nextUrl.pathname)
     return NextResponse.redirect(url)
   }

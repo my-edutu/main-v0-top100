@@ -91,6 +91,9 @@ export function mapNotification(row: any): MemberNotification {
     status: 'sent',
     createdAt: row?.delivered_at ?? row?.created_at ?? new Date(0).toISOString(),
     readBy: row?.read_at ? [row.user_id] : [],
+    category: row?.category ?? 'general',
+    ctaLabel: row?.cta_label ?? null,
+    ctaUrl: row?.cta_url ?? null,
   }
 }
 

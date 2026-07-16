@@ -20,71 +20,17 @@ export interface ServerSession {
 }
 
 /**
- * Robust helper: try to extract a token from:
- * 1) Authorization header
- * 2) `cookie` header (many cookie name patterns checked)
- *
- * Returns token string or null.
+ * Extract an explicit bearer token from the Authorization header, if present.
+ * Cookie-based sessions are handled by @supabase/ssr (which understands the
+ * base64-encoded and chunked sb-*-auth-token cookie format) — never parse
+ * session cookies by hand here.
  */
-function getTokenFromHeaders(headers?: Headers): string | null {
+function getBearerToken(headers?: Headers): string | null {
   if (!headers) return null;
-
-  // 1) Authorization
   const authHeader = headers.get("authorization") || headers.get("Authorization");
   if (authHeader && authHeader.startsWith("Bearer ")) {
     return authHeader.substring(7);
   }
-
-  // 2) Cookie header (server-side)
-  const cookieHeader = headers.get("cookie");
-  if (!cookieHeader) return null;
-
-  // parse cookie string into map
-  const cookiePairs = cookieHeader.split(";").map((c) => c.trim());
-  const cookies: Record<string, string> = {};
-  for (const pair of cookiePairs) {
-    const eq = pair.indexOf("=");
-    if (eq > -1) {
-      const k = pair.substring(0, eq);
-      const v = pair.substring(eq + 1);
-      cookies[k] = decodeURIComponent(v);
-    }
-  }
-
-  // list of likely Supabase cookie names / patterns to check:
-  const candidates = [
-    // new supabase auth helpers
-    "sb:token", // sometimes used
-    // cookies that look like sb-<project-ref>-auth-token or sb-<project-ref>-session
-    ...Object.keys(cookies).filter((n) => n.startsWith("sb-") && (n.endsWith("-auth-token") || n.endsWith("-session"))),
-    // historic names
-    "supabase-auth-token",
-    "sb-access-token",
-    "sb-refresh-token",
-    // fallback: any cookie that contains "session" or "auth" in name
-    ...Object.keys(cookies).filter((n) => /session|auth/i.test(n)),
-  ];
-
-  for (const name of candidates) {
-    const val = cookies[name];
-    if (!val) continue;
-
-    // Supabase sometimes stores a JSON string containing access_token / refresh_token
-    try {
-      if (val.startsWith("{") || val.startsWith("%7B")) {
-        // try decode JSON
-        const parsed = JSON.parse(decodeURIComponent(val));
-        if (parsed?.access_token) return parsed.access_token;
-        if (parsed?.token) return parsed.token;
-      }
-    } catch (e) {
-      // not JSON — proceed to check if value looks like a JWT (three dot-separated parts)
-    }
-
-    // if the cookie value itself looks like JWT — return it
-    if (val.split(".").length === 3) return val;
-  }
-
   return null;
 }
 
@@ -101,10 +47,10 @@ export async function getServerSession(req?: Request | { headers?: Headers } | a
       // NextRequest passes headers directly; Node Request may have headers property
       if ("headers" in req && req.headers instanceof Headers) {
         headers = req.headers;
-        cookieHeader = headers.get("cookie");
+        cookieHeader = req.headers.get("cookie");
       } else if (req.headers && typeof req.headers.get === "function") {
-        headers = req.headers;
-        cookieHeader = headers.get("cookie");
+        headers = req.headers as Headers;
+        cookieHeader = (req.headers as Headers).get("cookie");
       } else if (req?.headers) {
         headers = new Headers(req.headers as any);
         cookieHeader = headers.get("cookie");
@@ -118,21 +64,22 @@ export async function getServerSession(req?: Request | { headers?: Headers } | a
       }
     }
 
-    const token = getTokenFromHeaders(headers ?? (req && req.headers) ?? new Headers());
+    const bearerToken = getBearerToken(headers);
 
-    if (!token) {
+    if (!bearerToken && !cookieHeader) {
       if (process.env.NODE_ENV === 'development') {
-        console.log("[getServerSession] No token found in request");
+        console.log("[getServerSession] No token or cookies found in request");
       }
       return null;
     }
 
-    // SECURITY FIX: Use Supabase to verify JWT signature
-    // This ensures the token is valid and signed by Supabase
+    // Let @supabase/ssr read the session from cookies; getUser() verifies the
+    // JWT signature against Supabase (works for both cookie and bearer auth).
     const supabase = await createClient(false, cookieHeader);
 
-    // getUser() verifies the JWT signature using Supabase's secret
-    const { data: { user: supabaseUser }, error } = await supabase.auth.getUser(token);
+    const { data: { user: supabaseUser }, error } = bearerToken
+      ? await supabase.auth.getUser(bearerToken)
+      : await supabase.auth.getUser();
 
     if (error || !supabaseUser) {
       if (process.env.NODE_ENV === 'development') {
@@ -141,20 +88,16 @@ export async function getServerSession(req?: Request | { headers?: Headers } | a
       return null;
     }
 
-    // Verify token expiration
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError || !session) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log("[getServerSession] Session invalid or expired");
-      }
-      return null;
+    // Resolve the access token for the ServerSession shape
+    let token = bearerToken;
+    if (!token) {
+      const { data: { session } } = await supabase.auth.getSession();
+      token = session?.access_token ?? null;
     }
 
-    // Check if token is expired
-    const expiresAt = session.expires_at;
-    if (expiresAt && expiresAt * 1000 < Date.now()) {
+    if (!token) {
       if (process.env.NODE_ENV === 'development') {
-        console.log("[getServerSession] Token expired");
+        console.log("[getServerSession] Verified user but no access token available");
       }
       return null;
     }

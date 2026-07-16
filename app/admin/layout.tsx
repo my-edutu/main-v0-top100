@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import AdminSidebar from './components/AdminSidebar'
 import AdminFooter from './components/AdminFooter'
 import SessionSecurityGuard from '@/app/components/SessionSecurityGuard'
@@ -14,6 +15,7 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode
 }) {
+  const pathname = usePathname()
   const [scrolled, setScrolled] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
 
@@ -22,6 +24,12 @@ export default function AdminLayout({
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
+
+  // The sign-in screen is public and renders without the console chrome
+  // (no sidebar, no session guard — there is no session yet).
+  if (pathname === '/admin/login') {
+    return <>{children}</>
+  }
 
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900 flex font-sans selection:bg-orange-200 selection:text-orange-800">

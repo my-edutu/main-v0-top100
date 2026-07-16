@@ -46,7 +46,7 @@ export default function FixAdminPage() {
 
       // Redirect to sign in after 2 seconds
       setTimeout(() => {
-        router.push('/auth/signin?message=admin-updated')
+        router.push('/admin/login')
       }, 2000)
 
     } catch (err) {
@@ -131,7 +131,7 @@ export default function FixAdminPage() {
 
             <div className="text-center text-sm text-gray-600">
               Don't have an account?{' '}
-              <a href="/auth/signup" className="text-orange-600 hover:underline font-medium">
+              <a href="/signup" className="text-orange-600 hover:underline font-medium">
                 Sign up first
               </a>
             </div>

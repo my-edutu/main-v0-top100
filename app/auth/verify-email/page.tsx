@@ -33,7 +33,7 @@ export default function VerifyEmailPage() {
               <div className="text-center text-sm text-muted-foreground">
                 <p className="mb-4">Are you a Top100 Awardee with credentials?</p>
                 <Button asChild variant="outline" className="w-full">
-                  <Link href="/auth/signin">Sign In to Your Profile</Link>
+                  <Link href="/login">Sign In to Your Profile</Link>
                 </Button>
               </div>
               <p className="text-xs text-center text-muted-foreground">

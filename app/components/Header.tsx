@@ -263,7 +263,7 @@ export default function Header() {
   ]
 
   return (
-    <header className="sticky inset-x-0 top-0 z-50 border-b border-orange-200/50 bg-[linear-gradient(90deg,#f97316_0%,#fb923c_52%,#f59e0b_100%)] text-white shadow-[0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl">
+    <header className="site-header sticky inset-x-0 top-0 z-50 border-b border-orange-200/50 bg-[linear-gradient(90deg,#f97316_0%,#fb923c_52%,#f59e0b_100%)] text-white shadow-[0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl">
       <div className="absolute inset-x-0 top-0 h-[2px] bg-white/20" />
       <div className="container grid h-[4.5rem] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4">
         <Link href="/" className="flex shrink-0 items-center gap-2">

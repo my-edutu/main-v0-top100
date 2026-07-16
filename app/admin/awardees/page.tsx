@@ -108,7 +108,7 @@ export default function AwardeesManagement() {
     if (error.message?.includes('Authentication required') || error.message?.includes('Admin access required')) {
       toast.error('Your session has expired. Please sign in again.', { id: toastId });
       setTimeout(() => {
-        router.push('/auth/signin?redirect=/admin/awardees');
+        router.push('/admin/login?redirect=/admin/awardees');
       }, 2000);
     } else {
       toast.error(error instanceof Error ? error.message : 'An error occurred', { id: toastId });

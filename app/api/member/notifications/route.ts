@@ -17,18 +17,28 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ message: 'Invalid request body.' }, { status: 400 })
   }
 
+  const markAll = body.all === true
   const notificationId = String(body.notificationId ?? '')
-  if (!notificationId) return NextResponse.json({ message: 'notificationId is required.' }, { status: 400 })
+  if (!markAll && !notificationId) {
+    return NextResponse.json({ message: 'notificationId is required.' }, { status: 400 })
+  }
 
   const supabase = createAdminClient()
-  // Scope the update to the caller's own notification row.
-  const { error } = await supabase
+  // Scope the update to the caller's own notification rows.
+  let query = supabase
     .from('user_notifications')
     .update({ read_at: new Date().toISOString() })
-    .eq('id', notificationId)
     .eq('user_id', user.id)
+  query = markAll ? query.is('read_at', null) : query.eq('id', notificationId)
+  const { error } = await query
 
   if (error) {
+    if (error.code === '42P01' || error.code === 'PGRST205' || /schema cache|does not exist/i.test(error.message ?? '')) {
+      return NextResponse.json(
+        { message: 'Notifications are not set up yet. Ask the admin to run supabase/SETUP-MEMBER-HUB.sql.' },
+        { status: 503 },
+      )
+    }
     return NextResponse.json({ message: 'Could not mark this notification as read.' }, { status: 500 })
   }
 

@@ -16,11 +16,11 @@ export default function SignOutButton() {
 
     try {
       await supabase.auth.signOut()
-      router.push("/auth/signin")
+      router.push("/login")
       router.refresh()
     } catch (error) {
       console.error("Failed to sign out:", error)
-      router.push("/auth/signin")
+      router.push("/login")
       router.refresh()
     } finally {
       setIsLoading(false)

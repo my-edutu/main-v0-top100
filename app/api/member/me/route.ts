@@ -3,6 +3,7 @@
 //   GET   -> profile + notifications + feature submissions
 //   PATCH -> update own profile / preferences (enforces bio_update_limit)
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidatePath, revalidateTag } from 'next/cache'
 import { getCurrentUser } from '@/lib/auth-server'
 import { createAdminClient } from '@/lib/supabase/server'
 import {
@@ -40,7 +41,8 @@ export async function GET() {
       .from('user_notifications')
       .select('*')
       .eq('user_id', user.id)
-      .order('delivered_at', { ascending: false }),
+      .order('delivered_at', { ascending: false })
+      .limit(50),
     supabase
       .from('member_features')
       .select('*')
@@ -106,9 +108,39 @@ export async function PATCH(request: NextRequest) {
     .single()
 
   if (updateError) {
+    // Missing membership columns => supabase/SETUP-MEMBER-HUB.sql has not been
+    // run against this database yet. Surface that instead of a generic error.
+    if (updateError.code === 'PGRST204' || /column .* does not exist|schema cache/i.test(updateError.message ?? '')) {
+      return NextResponse.json(
+        { message: 'The member hub database is not fully set up yet. Ask the admin to run supabase/SETUP-MEMBER-HUB.sql.' },
+        { status: 503 },
+      )
+    }
     return NextResponse.json({ message: 'Could not save your update.' }, { status: 500 })
   }
 
   const awardeeId = await loadLinkedAwardeeId(supabase, user.id)
+
+  // Keep the public awardee record in sync with dashboard BIO edits. This runs
+  // server-side with the service role — the dashboard session has no awardee
+  // cookie, so it must never call /api/awardees/self-update itself.
+  if (awardeeId && bioChanged) {
+    const awardeePatch: Record<string, unknown> = { updated_at: new Date().toISOString() }
+    if (typeof columns.headline === 'string') awardeePatch.headline = columns.headline
+    if (typeof columns.field === 'string') awardeePatch.tagline = columns.field
+    if (typeof columns.bio === 'string') awardeePatch.bio = columns.bio
+
+    const { data: awardee } = await supabase
+      .from('awardees')
+      .update(awardeePatch)
+      .eq('id', awardeeId)
+      .select('slug')
+      .maybeSingle()
+
+    if (awardee?.slug) revalidatePath(`/awardees/${awardee.slug}`)
+    revalidatePath('/awardees')
+    revalidateTag('awardees')
+  }
+
   return NextResponse.json({ member: mapProfileToMember(updated, awardeeId) })
 }

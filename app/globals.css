@@ -171,6 +171,19 @@ html.light .from-orange-300 {
   --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(194, 65, 12, 0));
 }
 
+/*
+ * Exemptions from the light-theme dark-utility rewrites above.
+ * The site header keeps genuinely white text on its orange gradient in every
+ * theme — without this, the `html.light .text-white` rule flips its text to
+ * near-black on orange. Higher specificity wins over the rewrite rules.
+ */
+html.light .site-header,
+html.light .site-header .text-white,
+html.light .site-header .text-zinc-100,
+html.light .site-header .text-zinc-200 {
+  color: #ffffff !important;
+}
+
 @layer base {
   * {
     @apply border-border;
