@@ -1,4 +1,5 @@
 import { MetadataRoute } from 'next'
+import { SITE_URL } from '@/lib/site'
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -25,6 +26,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ['/api/', '/admin/', '/auth/'],
       },
     ],
-    sitemap: 'https://www.top100afl.org/sitemap.xml',
+    sitemap: `${SITE_URL}/sitemap.xml`,
   }
 }

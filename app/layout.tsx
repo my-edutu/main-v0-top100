@@ -11,6 +11,7 @@ import Footer from "./components/Footer"
 import Script from "next/script"
 import StructuredData from "@/components/StructuredData"
 import { ClientProviders } from "@/components/ClientProviders"
+import { SITE_URL } from "@/lib/site"
 
 
 const urbanist = Urbanist({ subsets: ["latin"], variable: "--font-sans" })
@@ -43,13 +44,12 @@ export const metadata: Metadata = {
     "African awards",
     "Youth empowerment Africa"
   ],
-  generator: 'v0.app',
-  metadataBase: new URL('https://www.top100afl.org'),
+  metadataBase: new URL(SITE_URL),
   openGraph: {
     title: "Top100 Africa Future Leaders | Celebrating Africa's Youth Innovation & Leadership",
     description:
       "Discover 10,000+ exceptional African youth leaders, innovators, and changemakers. Access scholarships, leadership summits, and opportunities across the continent.",
-    url: "https://www.top100afl.org",
+    url: SITE_URL,
     siteName: "Top100 Africa Future Leaders",
     images: ["/magazine-cover-2025.jpg"],
     locale: "en_US",
@@ -83,8 +83,8 @@ export default function RootLayout({
     "@type": "Organization",
     "name": "Top100 Africa Future Leaders",
     "alternateName": "Top100 AFL",
-    "url": "https://www.top100afl.org",
-    "logo": "https://www.top100afl.org/Top100 Africa Future leaders Logo .png",
+    "url": SITE_URL,
+    "logo": `${SITE_URL}/${encodeURIComponent("Top100 Africa Future leaders Logo .png")}`,
     "description": "Celebrating Africa's Future Leaders - identifying, empowering, and celebrating 10,000 youth leaders across Africa by 2030. We spotlight exceptional students turning ideas into impact across the continent.",
     "foundingDate": "2024",
     "keywords": "African youth leaders, African scholarships, leadership development Africa, African innovation, student leadership, youth empowerment",

@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     title: "Top100 Africa Future Leaders Initiatives",
     description: "Unlock mentorship, funding, and opportunities through our initiatives: Project100 Scholarship, Future Leaders Summit, Talk100 Live, and Opportunities Hub.",
     images: ['/magazine-cover-2025.jpg'],
-    url: "https://www.top100afl.org/initiatives",
+    url: "https://www.top100afl.com/initiatives",
   },
 };
 

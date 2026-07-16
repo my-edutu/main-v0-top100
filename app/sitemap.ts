@@ -1,11 +1,14 @@
 import { MetadataRoute } from 'next'
 import { createClient } from '@supabase/supabase-js'
 
+import { getPublishedPosts } from '@/lib/posts/server'
+import { SITE_URL } from '@/lib/site'
+
 export const dynamic = 'force-static'
 export const revalidate = 3600 // Revalidate every hour
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = 'https://www.top100afl.org'
+  const baseUrl = SITE_URL
 
   // Create a direct Supabase client (no cookies needed at build time)
   const supabase = createClient(
@@ -130,16 +133,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }))
 
-  // Fetch all blog posts
-  const { data: posts } = await supabase
-    .from('posts')
-    .select('slug, updated_at')
-    .eq('published', true)
-    .order('updated_at', { ascending: false })
+  // getPublishedPosts merges Supabase posts with the static seed posts in
+  // content/data — querying Supabase directly here used to leave the static
+  // posts out of the sitemap entirely.
+  const posts = await getPublishedPosts()
 
-  const blogRoutes: MetadataRoute.Sitemap = (posts || []).map((post) => ({
+  const blogRoutes: MetadataRoute.Sitemap = posts.map((post) => ({
     url: `${baseUrl}/blog/${post.slug}`,
-    lastModified: post.updated_at ? new Date(post.updated_at) : new Date(),
+    lastModified: new Date(post.updatedAt || post.createdAt),
     changeFrequency: 'monthly' as const,
     priority: 0.7,
   }))

@@ -64,7 +64,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
         }
       ],
       type: 'profile',
-      url: `https://www.top100afl.org/awardees/${awardee.slug}`,
+      url: `https://www.top100afl.com/awardees/${awardee.slug}`,
     },
     twitter: {
       card: 'summary_large_image',
