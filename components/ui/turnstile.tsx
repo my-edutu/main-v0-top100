@@ -30,14 +30,12 @@ export function TurnstileCaptcha({ onVerify, onError, onExpire }: TurnstileProps
         onVerify(token);
     }, [onVerify]);
 
-    // If no site key configured, show placeholder in development
+    // Without a site key there is nothing to render. Warn the developer in the
+    // console rather than putting env-var instructions on screen.
     if (!siteKey) {
         if (process.env.NODE_ENV === 'development') {
-            return (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800">
-                    <p className="font-medium">CAPTCHA not configured</p>
-                    <p className="text-xs mt-1">Add NEXT_PUBLIC_TURNSTILE_SITE_KEY to your .env file</p>
-                </div>
+            console.warn(
+                '[Turnstile] CAPTCHA disabled: set NEXT_PUBLIC_TURNSTILE_SITE_KEY in .env to enable it.'
             );
         }
         return null;
