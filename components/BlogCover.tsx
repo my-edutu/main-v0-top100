@@ -12,6 +12,13 @@ type BlogCoverProps = {
   variant?: "card" | "hero"
 }
 
+/**
+ * Seeded posts point at `/placeholder.svg`, which loads fine but renders as a
+ * grey stock box. Treat it as "no cover" so the branded fallback shows instead.
+ */
+const hasRealCover = (url?: string | null) =>
+  Boolean(url) && !url!.startsWith("/placeholder.svg")
+
 export default function BlogCover({
   imageUrl,
   title,
@@ -20,17 +27,23 @@ export default function BlogCover({
   sizes,
   variant = "card",
 }: BlogCoverProps) {
+  const showImage = hasRealCover(imageUrl)
+
   return (
+    // The brand gradient is set inline: globals.css rewrites `from-zinc-950`
+    // to a near-white under html.light, which used to leave the fallback cover
+    // rendering white-on-white.
     <div
-      className={cn(
-        "relative isolate overflow-hidden bg-gradient-to-br from-zinc-950 via-orange-950 to-rose-700",
-        className,
-      )}
+      className={cn("relative isolate overflow-hidden", className)}
+      style={{
+        backgroundImage:
+          "linear-gradient(135deg, #7c2d12 0%, #ea580c 55%, #e11d48 100%)",
+      }}
       aria-label={title}
     >
-      {imageUrl ? (
+      {showImage ? (
         <Image
-          src={imageUrl}
+          src={imageUrl!}
           alt={title}
           fill
           className="object-cover"
@@ -46,7 +59,7 @@ export default function BlogCover({
             <div className="max-w-[90%] space-y-3">
               <div
                 className={cn(
-                  "mx-auto inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.35em] text-white/80",
+                  "mx-auto inline-flex items-center gap-2 rounded-full border border-[#ffffff33] bg-[#ffffff1f] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.35em] text-[#ffffffcc]",
                   variant === "hero" && "px-4 py-2 text-[11px]",
                 )}
               >
@@ -55,7 +68,7 @@ export default function BlogCover({
               </div>
               <p
                 className={cn(
-                  "font-semibold text-white/95",
+                  "font-semibold text-[#fff]",
                   variant === "hero"
                     ? "text-sm sm:text-lg"
                     : "text-xs leading-relaxed sm:text-sm line-clamp-3",
