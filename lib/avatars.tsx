@@ -49,79 +49,141 @@ export function colorFromName(name: string): string {
   return COLOR_PALETTE[index];
 }
 
-// Helper function to get flag emoji from country
+// Country name -> ISO 3166-1 alpha-2 code. The flag emoji is derived from the
+// code, so adding a country here is a one-line change.
 // Editors: update country mappings here if needed
+const COUNTRY_CODES: { [key: string]: string } = {
+  // Africa
+  'Algeria': 'dz',
+  'Angola': 'ao',
+  'Benin': 'bj',
+  'Botswana': 'bw',
+  'Burkina Faso': 'bf',
+  'Burundi': 'bi',
+  'Cameroon': 'cm',
+  'Cape Verde': 'cv',
+  'Central African Republic': 'cf',
+  'Chad': 'td',
+  'Comoros': 'km',
+  'Democratic Republic of the Congo': 'cd',
+  'Djibouti': 'dj',
+  'Egypt': 'eg',
+  'Equatorial Guinea': 'gq',
+  'Eritrea': 'er',
+  'Eswatini': 'sz',
+  'Ethiopia': 'et',
+  'Gabon': 'ga',
+  'Gambia': 'gm',
+  'Ghana': 'gh',
+  'Guinea': 'gn',
+  'Guinea-Bissau': 'gw',
+  'Ivory Coast': 'ci',
+  'Kenya': 'ke',
+  'Lesotho': 'ls',
+  'Liberia': 'lr',
+  'Libya': 'ly',
+  'Madagascar': 'mg',
+  'Malawi': 'mw',
+  'Mali': 'ml',
+  'Mauritania': 'mr',
+  'Mauritius': 'mu',
+  'Morocco': 'ma',
+  'Mozambique': 'mz',
+  'Namibia': 'na',
+  'Niger': 'ne',
+  'Nigeria': 'ng',
+  'Rwanda': 'rw',
+  'Sao Tome and Principe': 'st',
+  'Senegal': 'sn',
+  'Seychelles': 'sc',
+  'Sierra Leone': 'sl',
+  'Somalia': 'so',
+  'South Africa': 'za',
+  'South Sudan': 'ss',
+  'Sudan': 'sd',
+  'Tanzania': 'tz',
+  'Togo': 'tg',
+  'Tunisia': 'tn',
+  'Uganda': 'ug',
+  'Zambia': 'zm',
+  'Zimbabwe': 'zw',
+  // Rest of the world
+  'Argentina': 'ar',
+  'Armenia': 'am',
+  'Australia': 'au',
+  'Brazil': 'br',
+  'Canada': 'ca',
+  'China': 'cn',
+  'France': 'fr',
+  'Germany': 'de',
+  'India': 'in',
+  'Ireland': 'ie',
+  'Italy': 'it',
+  'Japan': 'jp',
+  'Netherlands': 'nl',
+  'New Zealand': 'nz',
+  'North Macedonia': 'mk',
+  'Pakistan': 'pk',
+  'Portugal': 'pt',
+  'Qatar': 'qa',
+  'Saudi Arabia': 'sa',
+  'Spain': 'es',
+  'Sweden': 'se',
+  'Switzerland': 'ch',
+  'Thailand': 'th',
+  'Turkey': 'tr',
+  'United Arab Emirates': 'ae',
+  'United Kingdom': 'gb',
+  'United States': 'us',
+};
+
+// Alternate spellings that show up in awardee-submitted data.
+const COUNTRY_ALIASES: { [key: string]: string } = {
+  "Cote d'Ivoire": 'Ivory Coast',
+  'Cote dIvoire': 'Ivory Coast',
+  "C\u00f4te d'Ivoire": 'Ivory Coast',
+  'DRC': 'Democratic Republic of the Congo',
+  'DR Congo': 'Democratic Republic of the Congo',
+  'Congo (DRC)': 'Democratic Republic of the Congo',
+  'Swaziland': 'Eswatini',
+  'Cabo Verde': 'Cape Verde',
+  'UK': 'United Kingdom',
+  'U.K.': 'United Kingdom',
+  'Great Britain': 'United Kingdom',
+  'England': 'United Kingdom',
+  'Scotland': 'United Kingdom',
+  'Wales': 'United Kingdom',
+  'USA': 'United States',
+  'U.S.A.': 'United States',
+  'U.S.': 'United States',
+  'US': 'United States',
+  'America': 'United States',
+  'United States of America': 'United States',
+  'UAE': 'United Arab Emirates',
+  'Holland': 'Netherlands',
+  'Macedonia': 'North Macedonia',
+  'Tanzania, United Republic of': 'Tanzania',
+};
+
+/**
+ * Turn an ISO 3166-1 alpha-2 code into its flag emoji by mapping each letter to
+ * its regional indicator symbol. Falls back to the globe for anything invalid.
+ */
+export const flagFromCountryCode = (code: string): string => {
+  const normalized = code?.trim().toUpperCase();
+  if (!normalized || !/^[A-Z]{2}$/.test(normalized)) return '\u{1F30D}';
+  return String.fromCodePoint(
+    ...[...normalized].map((letter) => 0x1f1e6 + letter.charCodeAt(0) - 65)
+  );
+};
+
+// Helper function to get flag emoji from country
 export const flagEmoji = (country: string): string => {
-  const countryMap: { [key: string]: string } = {
-    'Nigeria': '🇳🇬',
-    'Ghana': '🇬🇭',
-    'South Africa': '🇿🇦',
-    'Morocco': '🇲🇦',
-    'Mali': '🇲🇱',
-    'Tanzania': '🇹🇿',
-    'Zimbabwe': '🇿🇼',
-    'Uganda': '🇺🇬',
-    'Gambia': '🇬🇲',
-    'Somalia': '🇸🇴',
-    'Egypt': '🇪🇬',
-    'Ethiopia': '🇪🇹',
-    'Kenya': '🇰🇪',
-    'Uganda': '🇺🇬',
-    'Algeria': '🇩🇿',
-    'Angola': '🇦🇴',
-    'Benin': '🇧🇯',
-    'Botswana': '🇧🇼',
-    'Burkina Faso': '🇧🇫',
-    'Burundi': '🇧🇮',
-    'Cameroon': '🇨🇲',
-    'Cape Verde': '🇨🇻',
-    'Central African Republic': '🇨🇫',
-    'Chad': '🇹🇩',
-    'Comoros': '🇰🇲',
-    'Democratic Republic of the Congo': '🇨🇩',
-    'Djibouti': '🇩🇯',
-    'Equatorial Guinea': '🇬🇶',
-    'Eritrea': '🇪🇷',
-    'Eswatini': '🇸🇿',
-    'Ethiopia': '🇪🇹',
-    'Gabon': '🇬🇦',
-    'Gambia': '🇬🇲',
-    'Ghana': '🇬🇭',
-    'Guinea': '🇬🇳',
-    'Guinea-Bissau': '🇬🇼',
-    'Ivory Coast': '🇨🇮',
-    'Kenya': '🇰🇪',
-    'Lesotho': '🇱🇸',
-    'Liberia': '🇱🇷',
-    'Libya': '🇱🇾',
-    'Madagascar': '🇲🇬',
-    'Malawi': '🇲🇼',
-    'Mali': '🇲🇱',
-    'Mauritania': '🇲🇷',
-    'Mauritius': '🇲🇺',
-    'Morocco': '🇲🇦',
-    'Mozambique': '🇲🇿',
-    'Namibia': '🇳🇦',
-    'Niger': '🇳🇪',
-    'Nigeria': '🇳🇬',
-    'Rwanda': '🇷🇼',
-    'Sao Tome and Principe': '🇸🇹',
-    'Senegal': '🇸🇳',
-    'Seychelles': '🇸🇨',
-    'Sierra Leone': '🇸🇱',
-    'Somalia': '🇸🇴',
-    'South Africa': '🇿🇦',
-    'South Sudan': '🇸🇸',
-    'Sudan': '🇸🇩',
-    'Tanzania': '🇹🇿',
-    'Togo': '🇹🇬',
-    'Tunisia': '🇹🇳',
-    'Uganda': '🇺🇬',
-    'Zambia': '🇿🇲',
-    'Zimbabwe': '🇿🇼',
-  };
-  
-  return countryMap[country] || '🌍'; // Default world emoji for unmapped countries
+  const name = country?.trim();
+  if (!name) return '\u{1F30D}';
+  const canonical = COUNTRY_ALIASES[name] ?? name;
+  const code = COUNTRY_CODES[canonical];
+  return code ? flagFromCountryCode(code) : '\u{1F30D}'; // Default world emoji for unmapped countries
 };
 
 /**

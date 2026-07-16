@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, useRef } from "react"
 import Link from "next/link"
 import { motion, useMotionValue, useSpring } from "framer-motion"
 import { Users, Globe } from "lucide-react"
-import { flagEmoji } from "@/lib/avatars"
+import { flagFromCountryCode } from "@/lib/avatars"
 
 type FloatingParticleProps = {
   delay: number
@@ -213,7 +213,7 @@ function HomePageHeroSection() {
                   className="flex flex-col items-center justify-center mx-8 flex-shrink-0"
                 >
                   <span aria-hidden className="mb-1.5 text-3xl sm:text-4xl leading-none">
-                    {flagEmoji(country.name)}
+                    {flagFromCountryCode(country.code)}
                   </span>
                   <span className="text-xs sm:text-sm leading-tight text-slate-700 dark:text-slate-300 text-center max-w-[100px] truncate">
                     {country.name}
@@ -258,7 +258,7 @@ function HomePageHeroSection() {
                   className="flex flex-col items-center justify-center mx-8 flex-shrink-0"
                 >
                   <span aria-hidden className="mb-1.5 text-3xl sm:text-4xl leading-none">
-                    {flagEmoji(country.name)}
+                    {flagFromCountryCode(country.code)}
                   </span>
                   <span className="text-xs sm:text-sm leading-tight text-slate-700 dark:text-slate-300 text-center max-w-[100px] truncate">
                     {country.name}
