@@ -10,12 +10,19 @@ const DeferredPushNotificationPrompt = dynamic(
     { ssr: false, loading: () => null }
 );
 
+const DeferredCookieConsent = dynamic(
+    () => import('@/app/components/CookieConsent'),
+    { ssr: false, loading: () => null }
+);
+
 export function ClientProviders({ children }: { children: React.ReactNode }) {
     return (
         <>
             {children}
             {/* Minimal push notification prompt - shows once per user */}
             <DeferredPushNotificationPrompt />
+            {/* Cookie notice - shows until the visitor accepts or declines */}
+            <DeferredCookieConsent />
         </>
     );
 }

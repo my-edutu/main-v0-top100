@@ -43,6 +43,7 @@ export default function Footer() {
                 <li><Link href="/africa-future-leaders" className="hover:text-orange-500 transition">About</Link></li>
                 <li><Link href="/contact" className="hover:text-orange-500 transition">Contact</Link></li>
                 <li><Link href="/partnership" className="hover:text-orange-500 transition">Partner</Link></li>
+                <li><Link href="/legal" className="hover:text-orange-500 transition">Legal</Link></li>
               </ul>
             </div>
             <div className="col-span-2 sm:col-span-1">
@@ -60,11 +61,14 @@ export default function Footer() {
           <p className="text-[0.65rem] md:text-xs text-gray-400">
             &copy; 2025 Top100 Africa Future Leaders. All rights reserved.
           </p>
-          {isHomePage && (
-            <div className="flex items-center gap-8">
-              <Link href="/auth/signin?from=/admin" className="text-xs text-gray-400 hover:text-gray-600 transition">Admin Login</Link>
-            </div>
-          )}
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+            <Link href="/legal/terms" className="text-xs text-gray-400 hover:text-gray-600 transition">Terms of Use</Link>
+            <Link href="/legal/privacy" className="text-xs text-gray-400 hover:text-gray-600 transition">Privacy &amp; Data Policy</Link>
+            <Link href="/legal/cookies" className="text-xs text-gray-400 hover:text-gray-600 transition">Cookie Policy</Link>
+            {isHomePage && (
+              <Link href="/admin/login" className="text-xs text-gray-400 hover:text-gray-600 transition">Admin Login</Link>
+            )}
+          </div>
         </div>
       </div>
     </footer>

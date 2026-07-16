@@ -16,6 +16,7 @@ import {
   buildApplicationSubject,
   type ApplicationFormProgram,
 } from '@/lib/applications'
+import LegalConsent from '@/app/components/LegalConsent'
 
 type ApplicationFormProps = {
   program: ApplicationFormProgram
@@ -208,6 +209,8 @@ export default function ApplicationForm({ program }: ApplicationFormProps) {
             {program.adminNote}
           </div>
 
+          <LegalConsent id={`apply-legal-consent-${program.type}`} />
+
           {status === 'error' ? (
             <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
               {message}
@@ -232,7 +235,7 @@ export default function ApplicationForm({ program }: ApplicationFormProps) {
                 </>
               )}
             </Button>
-            <Link href="/auth/signin?from=/get-started" className="text-sm font-medium text-slate-600 underline decoration-orange-200 underline-offset-4 hover:text-slate-950">
+            <Link href="/login?from=/get-started" className="text-sm font-medium text-slate-600 underline decoration-orange-200 underline-offset-4 hover:text-slate-950">
               Already approved? Sign in
             </Link>
           </div>

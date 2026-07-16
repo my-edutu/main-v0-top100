@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Loader2, CheckCircle, AlertCircle, Mail } from 'lucide-react'
+import LegalConsent from '@/app/components/LegalConsent'
 
 export default function NewsletterForm() {
   const [email, setEmail] = useState('')
@@ -55,7 +56,8 @@ export default function NewsletterForm() {
 
   return (
     <div className="space-y-3">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:flex-row">
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <div className="flex flex-col gap-3 sm:flex-row">
         <div className="relative flex-1">
           <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400" aria-hidden="true" />
           <Input
@@ -88,6 +90,12 @@ export default function NewsletterForm() {
             'Subscribe'
           )}
         </Button>
+        </div>
+
+        <LegalConsent
+          id="newsletter-legal-consent"
+          extra="I consent to receiving the newsletter until I unsubscribe."
+        />
       </form>
 
       {/* Status Message */}

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { X, Download, Loader2, CheckCircle, Mail, User } from 'lucide-react'
+import LegalConsent from '@/app/components/LegalConsent'
 
 interface MagazineDownloadModalProps {
     isOpen: boolean
@@ -178,6 +179,11 @@ export default function MagazineDownloadModal({
                                     </div>
                                 </div>
 
+                                <LegalConsent
+                                    id="magazine-legal-consent"
+                                    extra="I agree to receive occasional updates about future magazines and events."
+                                />
+
                                 {/* Error Message */}
                                 {error && (
                                     <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
@@ -203,10 +209,6 @@ export default function MagazineDownloadModal({
                                         </>
                                     )}
                                 </button>
-
-                                <p className="text-xs text-gray-500 text-center">
-                                    By downloading, you agree to receive occasional updates about our magazines and events.
-                                </p>
                             </form>
                         </>
                     )}

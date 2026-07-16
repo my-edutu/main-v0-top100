@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Loader2, Send, CheckCircle, Mail, Phone, MapPin } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/lib/supabase/client"
+import LegalConsent from "@/app/components/LegalConsent"
 
 export default function ContactSection() {
   const [formData, setFormData] = useState({
@@ -46,11 +47,13 @@ export default function ContactSection() {
     setIsSubmitting(true)
 
     try {
-      // First, save the message to the database
-      const { error: dbError } = await supabase.from("contact_messages").insert({
+      // Save the message where the admin inbox (/admin/messages) reads from.
+      const { error: dbError } = await supabase.from("messages").insert({
         name: formData.name,
         email: formData.email,
+        subject: "Website contact form",
         message: formData.message,
+        type: "contact",
       })
 
       if (dbError) {
@@ -218,6 +221,7 @@ export default function ContactSection() {
                   className="bg-white/5 border-zinc-700 text-zinc-200 placeholder-zinc-500 resize-none"
                 />
               </div>
+              <LegalConsent id="contact-legal-consent" variant="dark" />
               <Button
                 type="submit"
                 className="w-full bg-yellow-500 text-white hover:bg-yellow-600 transition-colors h-10"
