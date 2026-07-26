@@ -40,6 +40,22 @@ describe('verifyPaystackSignature', () => {
   it('rejects an empty signature', () => {
     expect(verifyPaystackSignature(BODY, '', SECRET)).toBe(false)
   })
+
+  it('rejects an empty secret, even when the body is "signed" with the same empty secret', () => {
+    expect(verifyPaystackSignature(BODY, sign(BODY, ''), '')).toBe(false)
+  })
+
+  it('rejects a same-length non-hex signature instead of truncating it as hex', () => {
+    // A correctly-hex signature is 128 chars (SHA-512 digest as hex). Swap the
+    // first char for a non-hex one: Buffer.from(sig, 'hex') would silently stop
+    // parsing there and produce a short, wrong buffer instead of failing length
+    // comparison, so this only stays rejected while comparison treats the
+    // signature as UTF-8 text rather than hex.
+    const validSignature = sign(BODY)
+    const nonHexSameLength = `z${validSignature.slice(1)}`
+    expect(nonHexSameLength).toHaveLength(128)
+    expect(verifyPaystackSignature(BODY, nonHexSameLength, SECRET)).toBe(false)
+  })
 })
 
 describe('paidAmountMatches', () => {

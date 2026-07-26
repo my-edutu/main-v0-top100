@@ -36,7 +36,7 @@ export function verifyPaystackSignature(
   signature: string | null,
   secret: string,
 ): boolean {
-  if (!signature) return false
+  if (!signature || !secret) return false
 
   const expected = crypto.createHmac('sha512', secret).update(rawBody, 'utf8').digest('hex')
   const expectedBuffer = Buffer.from(expected, 'utf8')
@@ -88,10 +88,19 @@ export async function initializeTransaction(input: InitInput): Promise<InitResul
     throw new Error(payload?.message || 'Could not start the payment. Please try again.')
   }
 
+  const { authorization_url, access_code, reference } = payload.data ?? {}
+  if (
+    typeof authorization_url !== 'string' ||
+    typeof access_code !== 'string' ||
+    typeof reference !== 'string'
+  ) {
+    throw new Error(payload?.message || 'Could not start the payment. Please try again.')
+  }
+
   return {
-    authorizationUrl: payload.data.authorization_url,
-    accessCode: payload.data.access_code,
-    reference: payload.data.reference,
+    authorizationUrl: authorization_url,
+    accessCode: access_code,
+    reference,
   }
 }
 
@@ -109,5 +118,10 @@ export async function verifyTransaction(reference: string): Promise<{
     throw new Error(payload?.message || 'Could not verify the payment.')
   }
 
-  return { status: payload.data.status, amountKobo: payload.data.amount }
+  const { status, amount } = payload.data ?? {}
+  if (typeof status !== 'string' || typeof amount !== 'number') {
+    throw new Error(payload?.message || 'Could not verify the payment.')
+  }
+
+  return { status, amountKobo: amount }
 }
