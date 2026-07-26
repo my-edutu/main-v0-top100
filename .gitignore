@@ -39,3 +39,6 @@ next-env.d.ts
 
 # macOS
 .DS_Store
+
+# superpowers scratch (progress ledger, task briefs)
+.superpowers/
