@@ -1,6 +1,8 @@
 // app/api/member/award/checkout/route.ts
 // POST -> initialise a Paystack transaction for the member's stored quote.
 // The charged amount comes from the database, never from the request body.
+import crypto from 'node:crypto'
+
 import { NextRequest, NextResponse } from 'next/server'
 
 import { getCurrentUser } from '@/lib/auth-server'
@@ -47,7 +49,10 @@ export async function POST(request: NextRequest) {
 
   // A stale quote must be re-priced before it can be charged.
   if (isQuoteExpired(order.gig_quote_expires_at)) {
-    await supabase.from('award_orders').update({ status: 'quoted' }).eq('id', order.id)
+    const { error: resetError } = await supabase.from('award_orders').update({ status: 'quoted' }).eq('id', order.id)
+    if (resetError) {
+      console.error('[award-checkout] failed to reset expired quote back to "quoted":', resetError)
+    }
     return NextResponse.json(
       { message: 'Your delivery quote expired. Please confirm your address again to get a fresh price.', expired: true },
       { status: 409 },
@@ -78,7 +83,7 @@ export async function POST(request: NextRequest) {
   // stays recoverable as the reference's prefix. Do not "simplify" this back
   // to a bare buildReference(order.id) — see the webhook's fallback match on
   // metadata.orderId, which exists precisely because references churn here.
-  const attemptSuffix = Date.now().toString(36)
+  const attemptSuffix = `${Date.now().toString(36)}-${crypto.randomBytes(4).toString('hex')}`
   const reference = buildReference(order.id, attemptSuffix)
 
   let init
@@ -91,16 +96,39 @@ export async function POST(request: NextRequest) {
       metadata: { orderId: order.id, profileId: user.id, purpose: 'africa-future-leaders-award' },
     })
   } catch (paymentError) {
-    return NextResponse.json(
-      { message: paymentError instanceof Error ? paymentError.message : 'Could not start the payment.' },
-      { status: 502 },
-    )
+    // Never forward the raw error to the member — it can name unset env vars
+    // (e.g. "PAYSTACK_SECRET_KEY is not configured") on a misconfigured
+    // deployment. Log the detail server-side and return a generic message.
+    console.error('[award-checkout] paystack initializeTransaction failed:', paymentError)
+    return NextResponse.json({ message: 'Could not start the payment. Please try again.' }, { status: 502 })
   }
 
-  await supabase
+  // Guard against the order having moved on (e.g. a concurrent request's
+  // update already landed, or a webhook already marked it paid) between the
+  // read above and this write. Only a row still at 'quoted' or
+  // 'awaiting_payment' may be dragged into 'awaiting_payment' here — a paid
+  // order must never be reverted by a slower, racing checkout request.
+  const { data: updatedRows, error: updateError } = await supabase
     .from('award_orders')
     .update({ status: 'awaiting_payment', paystack_reference: init.reference, paystack_status: 'pending' })
     .eq('id', order.id)
+    .in('status', ['quoted', 'awaiting_payment'])
+    .select('id')
+
+  if (updateError || !updatedRows || updatedRows.length === 0) {
+    // At this point Paystack has already issued a transaction, but we could
+    // not record its reference against the order. The member has not been
+    // given the checkout URL yet, so failing here is safe and recoverable —
+    // returning it would let them pay into a reference we never persisted.
+    console.error(
+      '[award-checkout] failed to record paystack reference after init:',
+      updateError ?? 'no row matched (order status changed concurrently)',
+    )
+    return NextResponse.json(
+      { message: 'Could not start the payment. Please try again.' },
+      { status: 502 },
+    )
+  }
 
   return NextResponse.json({ authorizationUrl: init.authorizationUrl, reference: init.reference })
 }
