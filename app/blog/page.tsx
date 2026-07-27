@@ -3,6 +3,8 @@ import { Newspaper } from "lucide-react";
 
 import type { ResolvedPost } from "@/lib/posts";
 import { getPublishedPosts } from "@/lib/posts/server";
+import { ogMetadata } from "@/lib/og";
+import { pageOg } from "@/lib/og-pages";
 import { SITE_URL } from "@/lib/site";
 
 import { BlogCard } from "./BlogCard";
@@ -35,18 +37,9 @@ export async function generateMetadata({ searchParams }: BlogPageProps): Promise
     title,
     description: PAGE_DESCRIPTION,
     alternates: { canonical },
-    openGraph: {
-      type: "website",
-      url: `${SITE_URL}${canonical}`,
-      title,
-      description: PAGE_DESCRIPTION,
-      siteName: "Top100 Africa Future Leaders",
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description: PAGE_DESCRIPTION,
-    },
+    // Spreading the registry card keeps the section hero and eyebrow while
+    // `title` carries the page number, so page 2 gets its own share card.
+    ...ogMetadata({ ...pageOg("/blog"), title }, { url: canonical, description: PAGE_DESCRIPTION }),
   };
 }
 

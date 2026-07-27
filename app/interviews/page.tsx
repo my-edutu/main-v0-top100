@@ -14,17 +14,15 @@ import InterviewsHero from './_components/InterviewsHero'
 
 export const revalidate = 300
 
+import { ogMetadata } from '@/lib/og'
+import { pageOg } from '@/lib/og-pages'
+
 export const metadata: Metadata = {
   title: 'Impact Interviews | Top100 Africa Future Leaders',
   description:
     'Top100 awardees on the work they are doing, the setbacks that shaped it, and the Africa they are building. Watch the series and apply to be interviewed.',
   alternates: { canonical: `${SITE_URL}/interviews` },
-  openGraph: {
-    title: 'Impact Interviews | Top100 Africa Future Leaders',
-    description: 'The stories behind the Top 100, in awardees’ own words.',
-    url: `${SITE_URL}/interviews`,
-    type: 'website',
-  },
+  ...ogMetadata(pageOg('/interviews'), { url: '/interviews' }),
 }
 
 export default async function InterviewsPage() {

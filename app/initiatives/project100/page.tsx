@@ -2,6 +2,16 @@ import Image from 'next/image';
 import Link from 'next/link';
 import NewsletterForm from '@/app/components/NewsletterForm';
 
+import type { Metadata } from 'next';
+import { ogMetadata } from '@/lib/og';
+import { pageOg } from '@/lib/og-pages';
+
+export const metadata: Metadata = {
+  title: pageOg('/initiatives/project100').title,
+  description: 'Project100 backs one hundred young Africans through school and beyond with scholarships and mentorship.',
+  ...ogMetadata(pageOg('/initiatives/project100'), { url: '/initiatives/project100' }),
+};
+
 export default function Project100Page() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">

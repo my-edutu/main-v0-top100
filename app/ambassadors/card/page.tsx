@@ -2,15 +2,14 @@ import type { Metadata } from "next"
 
 import ShareCardStudio from "./ShareCardStudio"
 
+import { ogMetadata } from "@/lib/og"
+import { pageOg } from "@/lib/og-pages"
+
 export const metadata: Metadata = {
   title: "Ambassador Share Card",
   description:
     "Create your personalised Top100 Africa Future Leaders ambassador card. Add your photo, download it, and share it with your community.",
-  openGraph: {
-    title: "Ambassador Share Card | Top100 Africa Future Leaders",
-    description:
-      "Add your photo, download your ambassador card, and share it with your community.",
-  },
+  ...ogMetadata(pageOg("/ambassadors/card"), { url: "/ambassadors/card" }),
 }
 
 export default function AmbassadorCardPage() {

@@ -3,10 +3,14 @@ import Link from 'next/link'
 
 import { LegalSection, LegalShell } from '../_components/LegalShell'
 
+import { ogMetadata } from '@/lib/og'
+import { pageOg } from '@/lib/og-pages'
+
 export const metadata: Metadata = {
   title: 'Terms of Use | Top100 Africa Future Leaders',
   description:
     'The terms that govern your use of the Top100 Africa Future Leaders platform, accounts, applications and the awardee selection process.',
+  ...ogMetadata(pageOg('/legal/terms'), { url: '/legal/terms' }),
 }
 
 export default function TermsPage() {

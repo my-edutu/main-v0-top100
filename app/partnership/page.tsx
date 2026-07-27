@@ -5,16 +5,14 @@ import { ArrowRight, Globe2, Quote } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import LogoMarquee from "./LogoMarquee"
 
+import { ogMetadata } from "@/lib/og"
+import { pageOg } from "@/lib/og-pages"
+
 export const metadata: Metadata = {
   title: "Partner with Top100 Africa Future Leaders",
   description:
     "Partner with Top100 on a shared mission to identify, empower, and celebrate Africa's youth leaders. Join the organizations, institutions, and speakers powering the movement.",
-  openGraph: {
-    title: "Partner with Top100 Africa Future Leaders",
-    description:
-      "Partner with Top100 on a shared mission to identify, empower, and celebrate Africa's youth leaders.",
-    images: ["/african-students-celebrating-achievement-at-gradua.jpg"],
-  },
+  ...ogMetadata(pageOg("/partnership"), { url: "/partnership" }),
 }
 
 // Partner enquiries route to the partnerships inbox.

@@ -4,6 +4,9 @@ import { ArrowRight } from "lucide-react";
 import type { Metadata } from 'next';
 import { cn } from "@/lib/utils";
 
+import { ogMetadata } from '@/lib/og'
+import { pageOg } from '@/lib/og-pages'
+
 export const metadata: Metadata = {
   title: "Our Initiatives - Scholarships, Summits & Opportunities",
   description: "Explore Top100 Africa Future Leaders initiatives: Project100 Scholarship, Future Leaders Summit, Talk100 Live, and the Opportunities Hub. Unlock mentorship, funding, and global opportunities for African youth leaders.",
@@ -18,12 +21,7 @@ export const metadata: Metadata = {
     "career opportunities Africa",
     "youth empowerment initiatives"
   ],
-  openGraph: {
-    title: "Top100 Africa Future Leaders Initiatives",
-    description: "Unlock mentorship, funding, and opportunities through our initiatives: Project100 Scholarship, Future Leaders Summit, Talk100 Live, and Opportunities Hub.",
-    images: ['/magazine-cover-2025.jpg'],
-    url: "https://www.top100afl.com/initiatives",
-  },
+  ...ogMetadata(pageOg('/initiatives'), { url: '/initiatives' }),
 };
 
 // Define the initiative type

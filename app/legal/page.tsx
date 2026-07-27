@@ -2,10 +2,14 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ArrowRight, Cookie, FileText, ShieldCheck } from 'lucide-react'
 
+import { ogMetadata } from '@/lib/og'
+import { pageOg } from '@/lib/og-pages'
+
 export const metadata: Metadata = {
   title: 'Legal | Top100 Africa Future Leaders',
   description:
     'Terms of Use, Privacy & Data Policy and Cookie Policy for the Top100 Africa Future Leaders platform.',
+  ...ogMetadata(pageOg('/legal'), { url: '/legal' }),
 }
 
 const documents = [

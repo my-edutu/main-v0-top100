@@ -3,10 +3,14 @@ import Link from 'next/link'
 
 import { LegalSection, LegalShell } from '../_components/LegalShell'
 
+import { ogMetadata } from '@/lib/og'
+import { pageOg } from '@/lib/og-pages'
+
 export const metadata: Metadata = {
   title: 'Privacy & Data Policy | Top100 Africa Future Leaders',
   description:
     'How Top100 Africa Future Leaders collects, uses, protects and deletes your personal information — including the discard-after-selection policy for applicant data.',
+  ...ogMetadata(pageOg('/legal/privacy'), { url: '/legal/privacy' }),
 }
 
 export default function PrivacyPage() {

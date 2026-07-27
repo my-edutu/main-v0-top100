@@ -3,10 +3,14 @@ import Link from 'next/link'
 
 import { LegalSection, LegalShell } from '../_components/LegalShell'
 
+import { ogMetadata } from '@/lib/og'
+import { pageOg } from '@/lib/og-pages'
+
 export const metadata: Metadata = {
   title: 'Cookie Policy | Top100 Africa Future Leaders',
   description:
     'The cookies and similar technologies used on top100afl.com, what they do, and how to control them.',
+  ...ogMetadata(pageOg('/legal/cookies'), { url: '/legal/cookies' }),
 }
 
 export default function CookiesPage() {

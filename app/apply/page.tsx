@@ -14,16 +14,14 @@ import { Button } from "@/components/ui/button"
 import { APPLY_AWARDEE_FORM_URL } from "@/lib/applications"
 import { getAwardees } from "@/lib/awardees"
 
+import { ogMetadata } from "@/lib/og"
+import { pageOg } from "@/lib/og-pages"
+
 export const metadata: Metadata = {
   title: "Apply for the 2026 Africa Future Leaders Program",
   description:
     "Explore the 2026 Africa Future Leaders Program, its benefits, and the path into the application and partnership flow.",
-  openGraph: {
-    title: "Apply for the 2026 Africa Future Leaders Program",
-    description:
-      "Applications are open for the 2026 Africa Future Leaders cohort. Explore benefits, visibility, and partner opportunities.",
-    images: ["/top100 magazine.webp"],
-  },
+  ...ogMetadata(pageOg("/apply"), { url: "/apply" }),
 }
 
 const faqItems = [

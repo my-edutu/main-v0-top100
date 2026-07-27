@@ -6,10 +6,14 @@ import { ArrowRight, ArrowUpRight, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { applicationEntryCards, type ApplicationProgram } from '@/lib/applications'
 
+import { ogMetadata } from '@/lib/og'
+import { pageOg } from '@/lib/og-pages'
+
 export const metadata: Metadata = {
   title: 'Apply for Top100 Africa Future Leaders 2026',
   description:
     'Explore the 2026 application, review flow, and entry routes for the Top100 Africa Future Leaders programme.',
+  ...ogMetadata(pageOg('/get-started'), { url: '/get-started' }),
 }
 
 const focusRing =

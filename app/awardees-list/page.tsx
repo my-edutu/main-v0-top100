@@ -2,9 +2,13 @@ import { getAllAwardeesForProof, getAwardees } from '@/lib/awardees'
 import { Metadata } from 'next'
 import AwardeesListClient from './AwardeesListClient'
 
+import { ogMetadata } from '@/lib/og'
+import { pageOg } from '@/lib/og-pages'
+
 export const metadata: Metadata = {
     title: 'Top 100 Africa Future Leaders - Full Awardees List',
     description: 'Complete list of all Top 100 Africa Future Leaders awardees with their CGPA and country.',
+    ...ogMetadata(pageOg('/awardees-list'), { url: '/awardees-list' }),
 }
 
 export const revalidate = 3600 // Revalidate every hour (static Excel doesn't change often)

@@ -1,5 +1,15 @@
 import Link from 'next/link';
 
+import type { Metadata } from 'next';
+import { ogMetadata } from '@/lib/og';
+import { pageOg } from '@/lib/og-pages';
+
+export const metadata: Metadata = {
+  title: pageOg('/initiatives/opportunities/scholarships').title,
+  description: 'Scholarship opportunities for African youth, curated by Top100 Africa Future Leaders.',
+  ...ogMetadata(pageOg('/initiatives/opportunities/scholarships'), { url: '/initiatives/opportunities/scholarships' }),
+};
+
 export default function ScholarshipsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-12">

@@ -15,16 +15,14 @@ import {
 
 import { Button } from "@/components/ui/button"
 
+import { ogMetadata } from "@/lib/og"
+import { pageOg } from "@/lib/og-pages"
+
 export const metadata: Metadata = {
   title: "Africa Future Leaders Summit 2026 | AFL 2026",
   description:
     "AFL 2026 — the Africa Future Leaders Summit. Apply for the 2026 cohort, become a speaker, partner with us, and celebrate at the Africa Future Leaders Festival.",
-  openGraph: {
-    title: "Africa Future Leaders Summit 2026 | AFL 2026",
-    description:
-      "Apply for the 2026 cohort, become a speaker, partner with us, and celebrate at the Africa Future Leaders Festival.",
-    images: ["/african-students-celebrating-achievement-at-gradua.jpg"],
-  },
+  ...ogMetadata(pageOg("/afl2026"), { url: "/afl2026" }),
 }
 
 // Speaker and partner enquiries route to the partnerships inbox.
