@@ -19,7 +19,14 @@ export async function GET() {
   if (!rate.success) return createRateLimitResponse(rate, 'Too many tracking requests. Please wait a moment.')
 
   const supabase = createAdminClient()
-  const { order } = await loadOrderForUser(supabase, user.id)
+  const { order, error: loadError } = await loadOrderForUser(supabase, user.id)
+
+  // A read failure must not masquerade as "you have no award order" — that is
+  // indistinguishable from the real thing and leaves nothing to diagnose.
+  if (loadError) {
+    console.error('[award-track] failed to load the order', user.id, loadError)
+    return NextResponse.json({ message: 'Could not load your award order.' }, { status: 500 })
+  }
 
   if (!order) return NextResponse.json({ message: 'No award order found.' }, { status: 404 })
   if (!order.gig_waybill) return NextResponse.json({ order: mapAwardOrder(order) })
