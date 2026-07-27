@@ -9,7 +9,7 @@ import { createAdminClient } from '@/lib/supabase/server'
 import { checkRateLimit, RATE_LIMITS, createRateLimitResponse } from '@/lib/rate-limit'
 import { awardPriceKobo, totalKobo } from '@/lib/awards/money'
 import { quoteExpiresAt } from '@/lib/awards/quote'
-import { getCourier } from '@/lib/courier'
+import { getCourier, type QuoteResult } from '@/lib/courier'
 import {
   AWARD_SETUP_MESSAGE,
   isMissingAwardTable,
@@ -74,7 +74,13 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const quote = await getCourier().quote(details)
+  let quote: QuoteResult
+  try {
+    quote = await getCourier().quote(details)
+  } catch (error) {
+    console.error('[award-track] courier quote threw:', error)
+    quote = { ok: false, reason: 'Our team will contact you about delivery.', raw: null }
+  }
   const award = awardPriceKobo()
 
   const columns: Record<string, unknown> = {
@@ -109,7 +115,7 @@ export async function POST(request: NextRequest) {
   }
 
   const query = existing
-    ? supabase.from('award_orders').update(columns).eq('id', existing.id)
+    ? supabase.from('award_orders').update(columns).eq('id', existing.id).eq('profile_id', user.id)
     : supabase.from('award_orders').insert(columns)
 
   const { data: saved, error: saveError } = await query.select('*').single()
