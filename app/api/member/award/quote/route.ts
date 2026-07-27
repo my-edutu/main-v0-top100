@@ -74,6 +74,24 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  // A live Paystack session is open for this order. Re-quoting here would
+  // write `quoted` or `quote_failed` over `awaiting_payment` — and if the
+  // member then pays that open session, the webhook's
+  // canTransition('quote_failed', 'paid') is false, so the charge is captured
+  // but the order can never legally reach `paid` again short of direct SQL.
+  // The dashboard's totals panel now offers a Pay button at `awaiting_payment`
+  // (see app/dashboard/awards-section.tsx), so nobody is stranded waiting to
+  // re-quote — they can finish or abandon the payment first.
+  if (existing && existing.status === 'awaiting_payment') {
+    return NextResponse.json(
+      {
+        message:
+          'Finish or cancel your current payment before editing your delivery address. Return to the totals panel to pay, or contact the admin team to cancel it.',
+      },
+      { status: 409 },
+    )
+  }
+
   let quote: QuoteResult
   try {
     quote = await getCourier().quote(details)
@@ -114,11 +132,41 @@ export async function POST(request: NextRequest) {
     columns.gig_quote_expires_at = null
   }
 
-  const query = existing
-    ? supabase.from('award_orders').update(columns).eq('id', existing.id).eq('profile_id', user.id)
-    : supabase.from('award_orders').insert(columns)
+  let saved: any = null
+  let saveError: { code?: string; message?: string } | null = null
 
-  const { data: saved, error: saveError } = await query.select('*').single()
+  if (existing) {
+    // Guard against the order having moved on (e.g. a webhook already marked
+    // it paid) during the courier network call above. Only a row still at one
+    // of these statuses may be overwritten — landing this write on a `paid`
+    // order would revert its status and NULL both money columns while leaving
+    // paid_at/paystack_reference behind, which erases the payment record
+    // without erasing the evidence that would normally flag a duplicate
+    // charge. Mirrors the `.in('status', [...])` pattern in checkout/route.ts.
+    const { data: updatedRows, error } = await supabase
+      .from('award_orders')
+      .update(columns)
+      .eq('id', existing.id)
+      .eq('profile_id', user.id)
+      .in('status', ['draft', 'quoted', 'quote_failed', 'awaiting_payment'])
+      .select('id')
+
+    if (error) {
+      saveError = error
+    } else if (!updatedRows || updatedRows.length === 0) {
+      // Zero rows matched is not success — the order changed status under us.
+      return NextResponse.json(
+        { message: 'Your order changed while you were editing it. Please reload the page and try again.' },
+        { status: 409 },
+      )
+    } else {
+      saved = { ...existing, ...columns }
+    }
+  } else {
+    const { data, error } = await supabase.from('award_orders').insert(columns).select('*').single()
+    saved = data
+    saveError = error
+  }
 
   if (saveError) {
     if (isMissingAwardTable(saveError)) {

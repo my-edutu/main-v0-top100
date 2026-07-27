@@ -78,6 +78,21 @@ export async function PATCH(request: NextRequest) {
     if (!Number.isInteger(shippingAmountKobo) || shippingAmountKobo < 0) {
       return NextResponse.json({ message: 'Shipping amount must be a whole number of kobo.' }, { status: 400 })
     }
+
+    // The UI only shows this input at `quote_failed`, but the route is
+    // reachable directly — without this check, overriding the shipping price
+    // on a `paid` or `dispatched` order would revert it to `quoted` and
+    // rewrite its total, re-opening checkout on an order the member already
+    // paid for.
+    try {
+      assertTransition(order.status as AwardStatus, 'quoted')
+    } catch (transitionError) {
+      return NextResponse.json(
+        { message: transitionError instanceof Error ? transitionError.message : 'Illegal status change.' },
+        { status: 409 },
+      )
+    }
+
     columns.shipping_amount_kobo = shippingAmountKobo
     columns.total_amount_kobo = totalKobo(order.award_amount_kobo, shippingAmountKobo)
     columns.status = 'quoted'

@@ -49,7 +49,14 @@ export async function POST(request: NextRequest) {
 
   // A stale quote must be re-priced before it can be charged.
   if (isQuoteExpired(order.gig_quote_expires_at)) {
-    const { error: resetError } = await supabase.from('award_orders').update({ status: 'quoted' }).eq('id', order.id)
+    // Guard against a concurrent webhook marking this order paid while this
+    // request was in flight — only a row still at 'quoted' or
+    // 'awaiting_payment' may be reset back to 'quoted'.
+    const { error: resetError } = await supabase
+      .from('award_orders')
+      .update({ status: 'quoted' })
+      .eq('id', order.id)
+      .in('status', ['quoted', 'awaiting_payment'])
     if (resetError) {
       console.error('[award-checkout] failed to reset expired quote back to "quoted":', resetError)
     }

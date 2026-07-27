@@ -75,6 +75,6 @@ export async function loadOrderForUser(
 /** True when the failure is "the migration has not been run yet". */
 export function isMissingAwardTable(error: { code?: string; message?: string } | null): boolean {
   if (!error) return false
-  if (error.code === 'PGRST204' || error.code === '42P01') return true
+  if (error.code === 'PGRST204' || error.code === 'PGRST205' || error.code === '42P01') return true
   return /relation .*award_orders.* does not exist|schema cache/i.test(error.message ?? '')
 }

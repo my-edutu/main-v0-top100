@@ -298,6 +298,19 @@ export async function POST(request: NextRequest) {
     paid_at: new Date().toISOString(),
   }
   if (reference) paidUpdate.paystack_reference = reference
+
+  // paidAmountMatches accepts paidKobo >= expectedKobo, so anything past an
+  // exact match here is an overpayment. The charge is still accepted — only
+  // silence is the defect: without a note, a wrong quote that got corrected
+  // mid-checkout leaves the member out of pocket with no trace anywhere.
+  const expectedKobo = order.total_amount_kobo
+  if (typeof expectedKobo === 'number' && paidKobo !== expectedKobo) {
+    paidUpdate.admin_note = appendNote(
+      noteSoFar,
+      `OVERPAYMENT: reference ${reference ?? 'unknown'} paid ${paidKobo} kobo, expected ${expectedKobo} kobo. ` +
+        `Charge accepted as paid — refund the difference.`,
+    )
+  }
   if (matchedBy === 'metadata') {
     console.warn('[paystack-webhook] matched order by metadata.orderId, not by reference', {
       orderId: order.id,
@@ -305,7 +318,7 @@ export async function POST(request: NextRequest) {
       storedReference: order.paystack_reference,
     })
     paidUpdate.admin_note = appendNote(
-      noteSoFar,
+      typeof paidUpdate.admin_note === 'string' ? paidUpdate.admin_note : noteSoFar,
       `Matched by metadata.orderId, not by reference: paid reference ${reference ?? 'unknown'} ` +
         `did not match the stored ${order.paystack_reference ?? 'none'} (payment on an earlier checkout session).`,
     )
@@ -366,6 +379,19 @@ export async function POST(request: NextRequest) {
     }
 
     const currentStatus = (current?.status ?? status) as AwardStatus
+
+    // Two concurrent deliveries of the exact same Paystack retry can both
+    // read the order before either has paid it, race to the conditional paid
+    // write, and the loser lands here. If the reference that won is the very
+    // same one this delivery carries, that is not a lost update — the other
+    // delivery already recorded this charge. Acknowledge and write nothing,
+    // rather than falsely warning that the payment was not recorded.
+    const isSameChargeOnReread =
+      !currentError && current && reference && isPaid(currentStatus) && current.paystack_reference === reference
+    if (isSameChargeOnReread) {
+      return acknowledge()
+    }
+
     const isKnownDuplicate =
       !currentError && current && reference && isPaid(currentStatus) && current.paystack_reference !== reference
 

@@ -78,7 +78,10 @@ create index if not exists award_orders_status_idx on public.award_orders (statu
 create index if not exists award_orders_reference_idx on public.award_orders (paystack_reference);
 
 create or replace function public.touch_award_orders_updated_at()
-returns trigger language plpgsql as $$
+returns trigger
+language plpgsql
+set search_path = public
+as $$
 begin
   new.updated_at = now();
   return new;

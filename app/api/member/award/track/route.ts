@@ -39,11 +39,23 @@ export async function GET() {
     return NextResponse.json({ order: mapAwardOrder(order) })
   }
 
-  const columns: Record<string, unknown> = { gig_last_status: tracking.description }
+  const columns: Record<string, unknown> = {}
+
+  // The stub adapter reports 'unknown' with a placeholder description
+  // ("Tracking is unavailable for manually dispatched orders."). Writing that
+  // unconditionally would overwrite a real courier description — including on
+  // a delivered order — every time the member clicks "Refresh status".
+  if (tracking.status !== 'unknown') {
+    columns.gig_last_status = tracking.description
+  }
 
   // Only advance the status — never move an order backwards on a noisy read.
   if (tracking.status !== 'unknown' && canTransition(order.status as AwardStatus, tracking.status as AwardStatus)) {
     columns.status = tracking.status
+  }
+
+  if (Object.keys(columns).length === 0) {
+    return NextResponse.json({ order: mapAwardOrder(order) })
   }
 
   const { data: updated, error } = await supabase
