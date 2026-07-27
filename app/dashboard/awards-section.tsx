@@ -64,6 +64,16 @@ export default function AwardsSection({
         if (!cancelled) {
           applyState(next)
           setLoadError('')
+          // The route that produced quote_failed also sent a message, but
+          // that only ever lived in this component's local `notice` state —
+          // it does not persist server-side. Without this, a member who
+          // reloads mid-quote_failed sees a bare delivery form with no
+          // explanation of what happened or that the team is already on it.
+          if (next.order?.status === 'quote_failed') {
+            setNotice(
+              'We could not price delivery to your address. Our team will be in touch about it — feel free to edit your address below to try again.',
+            )
+          }
         }
       })
       .catch((error) => {
@@ -174,7 +184,15 @@ export default function AwardsSection({
 
   const order = state?.order ?? null
   const showTracking = order ? TRACKING_STATUSES.includes(order.status) : false
-  const showTotals = !editingAddress && order?.status === 'quoted' && order.totalAmountKobo !== null
+  // awaiting_payment is a member who already started checkout — Paystack
+  // deliberately admits both statuses as a legitimate retry (see the checkout
+  // route). Showing the totals panel here again lets them just click Pay,
+  // instead of falling through to the delivery form and re-triggering a live
+  // courier quote at a possibly different price.
+  const showTotals =
+    !editingAddress &&
+    (order?.status === 'quoted' || order?.status === 'awaiting_payment') &&
+    order.totalAmountKobo !== null
 
   return (
     <div className="space-y-5">
@@ -299,6 +317,13 @@ function TotalsPanel({
       <p className="mt-4 text-sm font-medium leading-6 text-black/55">
         Delivering to {order.addressLine1}, {order.city}, {order.country}.
       </p>
+
+      {order.status === 'awaiting_payment' ? (
+        <p className="mt-3 text-sm font-medium leading-6 text-black/55">
+          Looks like you already started a payment. You can carry on from here, or edit your address below if
+          anything has changed.
+        </p>
+      ) : null}
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <Button
