@@ -33,6 +33,7 @@ export default function Footer() {
               <h3 className="text-xs font-bold uppercase tracking-widest text-gray-900 mb-3 md:mb-5">Platform</h3>
               <ul className="space-y-2 md:space-y-3 text-sm">
                 <li><Link href="/awardees" className="hover:text-orange-500 transition">Awardees</Link></li>
+                <li><Link href="/interviews" className="hover:text-orange-500 transition">Impact Interviews</Link></li>
                 <li><Link href="/blog" className="hover:text-orange-500 transition">Blog</Link></li>
                 <li><Link href="/events" className="hover:text-orange-500 transition">Events</Link></li>
               </ul>

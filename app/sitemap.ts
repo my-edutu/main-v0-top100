@@ -2,6 +2,7 @@ import { MetadataRoute } from 'next'
 import { createClient } from '@supabase/supabase-js'
 
 import { getPublishedPosts } from '@/lib/posts/server'
+import { getPublishedSlugs } from '@/lib/interviews/queries'
 import { SITE_URL } from '@/lib/site'
 
 export const dynamic = 'force-static'
@@ -29,6 +30,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(),
       changeFrequency: 'daily',
       priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/interviews`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.8,
     },
     {
       url: `${baseUrl}/blog`,
@@ -169,5 +176,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }))
 
-  return [...staticRoutes, ...awardeeRoutes, ...blogRoutes]
+  const interviewSlugs = await getPublishedSlugs()
+
+  const interviewRoutes: MetadataRoute.Sitemap = interviewSlugs.map((interview) => ({
+    url: `${baseUrl}/interviews/${interview.slug}`,
+    lastModified: interview.published_at ? new Date(interview.published_at) : new Date(),
+    changeFrequency: 'monthly' as const,
+    priority: 0.7,
+  }))
+
+  return [...staticRoutes, ...awardeeRoutes, ...blogRoutes, ...interviewRoutes]
 }
