@@ -58,7 +58,16 @@ export async function PATCH(request: NextRequest) {
   if (!orderId) return NextResponse.json({ message: 'orderId is required.' }, { status: 400 })
 
   const supabase = createAdminClient()
-  const { data: order } = await supabase.from('award_orders').select('*').eq('id', orderId).maybeSingle()
+  const { data: order, error: lookupError } = await supabase
+    .from('award_orders')
+    .select('*')
+    .eq('id', orderId)
+    .maybeSingle()
+
+  if (lookupError) {
+    console.error('[admin-awards] Failed to look up award order:', lookupError)
+    return NextResponse.json({ message: 'Could not look up this order.' }, { status: 500 })
+  }
   if (!order) return NextResponse.json({ message: 'Award order not found.' }, { status: 404 })
 
   const columns: Record<string, unknown> = {}
@@ -76,6 +85,18 @@ export async function PATCH(request: NextRequest) {
   }
 
   if (typeof status === 'string') {
+    // `paid` may only ever be set by the signature-verified Paystack webhook,
+    // which also writes `paid_at`, `paystack_reference` and `paystack_status`
+    // alongside it. This route only ever flips the `status` column, so
+    // allowing `paid` here would let an admin fabricate a paid order — and,
+    // transitively, a dispatch-eligible one — with no real charge behind it.
+    if (status === 'paid') {
+      return NextResponse.json(
+        { message: 'Paid status is set only by the payment webhook and cannot be applied by hand.' },
+        { status: 403 },
+      )
+    }
+
     try {
       assertTransition(order.status as AwardStatus, status as AwardStatus)
     } catch (transitionError) {
