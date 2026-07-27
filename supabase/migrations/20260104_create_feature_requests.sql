@@ -25,20 +25,28 @@ CREATE INDEX IF NOT EXISTS idx_feature_requests_created_at ON feature_requests(c
 -- Add RLS policies
 ALTER TABLE feature_requests ENABLE ROW LEVEL SECURITY;
 
+-- Policies are dropped first so this file can be re-run. Without this it is the
+-- only migration in the tree that fails on a second execution (42710,
+-- "policy already exists"), which would abort supabase/SETUP-ALL.sql partway
+-- through and leave the database half-migrated.
+
 -- Allow service role full access
+DROP POLICY IF EXISTS "Service role has full access to feature_requests" ON feature_requests;
 CREATE POLICY "Service role has full access to feature_requests" ON feature_requests
-    FOR ALL 
+    FOR ALL
     TO service_role
     USING (true)
     WITH CHECK (true);
 
 -- Allow authenticated admins to read
+DROP POLICY IF EXISTS "Admins can view feature_requests" ON feature_requests;
 CREATE POLICY "Admins can view feature_requests" ON feature_requests
     FOR SELECT
     TO authenticated
     USING (true);
 
 -- Allow public insert (for awardees to submit requests)
+DROP POLICY IF EXISTS "Anyone can submit feature_requests" ON feature_requests;
 CREATE POLICY "Anyone can submit feature_requests" ON feature_requests
     FOR INSERT
     TO anon, authenticated

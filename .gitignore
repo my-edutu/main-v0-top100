@@ -42,3 +42,6 @@ next-env.d.ts
 
 # superpowers scratch (progress ledger, task briefs)
 .superpowers/
+
+# agent worktrees (real git worktrees; never commit these)
+.claude/worktrees/
