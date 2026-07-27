@@ -154,7 +154,7 @@ export default function FeatureRequestsPage() {
 
     if (loading) {
         return (
-            <div className="container mx-auto py-8 pt-20 lg:pt-8 space-y-8">
+            <div className="container mx-auto py-8 pt-8 space-y-8">
                 <div className="space-y-2">
                     <Skeleton className="h-9 w-56 rounded-xl" />
                     <Skeleton className="h-4 w-72 rounded-lg" />
@@ -175,7 +175,7 @@ export default function FeatureRequestsPage() {
     }
 
     return (
-        <div className="container mx-auto py-8 pt-20 lg:pt-8">
+        <div className="container mx-auto py-8 pt-8">
             <div className="mb-8">
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-800 bg-clip-text text-transparent">
                     Feature Requests

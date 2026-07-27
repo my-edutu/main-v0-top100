@@ -7,14 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table"
+import { ResponsiveTable } from "@/components/ui/responsive-table"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import {
     AlertDialog,
@@ -280,188 +273,193 @@ function AdminAnnouncementsPageContent() {
                             </Button>
                         </div>
                     ) : (
-                        <>
-                            {/* Desktop / tablet table */}
-                            <div className="hidden md:block overflow-x-auto">
-                                <Table>
-                                    <TableHeader className="bg-zinc-50/70">
-                                        <TableRow className="hover:bg-transparent">
-                                            <TableHead className="w-[300px]">Details</TableHead>
-                                            <TableHead>CTA</TableHead>
-                                            <TableHead>Status</TableHead>
-                                            <TableHead>Visibility</TableHead>
-                                            <TableHead className="text-right">Actions</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {announcements.map((a) => (
-                                            <TableRow key={a.id} className="group transition-colors hover:bg-orange-50/40">
-                                                <TableCell>
-                                                    <div className="flex items-center gap-4">
-                                                        {a.image_url && (
-                                                            <div className="h-12 w-12 rounded-lg bg-zinc-100 overflow-hidden shrink-0">
-                                                                <img src={a.image_url} alt={a.title} className="h-full w-full object-cover" />
-                                                            </div>
-                                                        )}
-                                                        <div className="space-y-1 min-w-0">
-                                                            <p className="font-bold text-zinc-900 line-clamp-1">{a.title}</p>
-                                                            <p className="text-xs text-zinc-500 line-clamp-1">{a.content}</p>
-                                                        </div>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="text-sm font-medium text-zinc-700">
-                                                        {a.cta_label}
-                                                        {a.cta_url && (
-                                                            <a href={a.cta_url} target="_blank" rel="noopener noreferrer" aria-label="Open CTA link" className="ml-1 inline-block text-zinc-400 hover:text-orange-600">
-                                                                <ExternalLink className="h-3 w-3" />
-                                                            </a>
-                                                        )}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Badge
-                                                        variant="outline"
-                                                        className={cn(
-                                                            "rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider",
-                                                            a.status === "published"
-                                                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                                                : "bg-zinc-100 text-zinc-600 border-zinc-200"
-                                                        )}
-                                                    >
-                                                        {a.status}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => toggleActive(a)}
-                                                        aria-label={a.is_active ? "Hide announcement" : "Show announcement"}
-                                                        className={cn(
-                                                            "h-8 gap-2 rounded-full border",
-                                                            a.is_active
-                                                                ? "text-emerald-600 bg-emerald-50 border-emerald-100"
-                                                                : "text-zinc-400 bg-zinc-50 border-zinc-100"
-                                                        )}
-                                                    >
-                                                        {a.is_active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                                                        <span className="text-[10px] font-bold uppercase">{a.is_active ? "Visible" : "Hidden"}</span>
-                                                    </Button>
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    <div className="flex items-center justify-end gap-2">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={() => openEditDialog(a)}
-                                                            aria-label={`Edit ${a.title}`}
-                                                            className="h-9 w-9 rounded-xl hover:bg-zinc-100"
-                                                        >
-                                                            <Edit2 className="h-4 w-4 text-zinc-500" />
-                                                        </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={() => setDeleteTarget(a)}
-                                                            disabled={deletingId === a.id}
-                                                            aria-label={`Delete ${a.title}`}
-                                                            className="h-9 w-9 rounded-xl hover:bg-rose-50 hover:text-rose-600"
-                                                        >
-                                                            {deletingId === a.id ? (
-                                                                <Loader2 className="h-4 w-4 animate-spin" />
-                                                            ) : (
-                                                                <Trash2 className="h-4 w-4 text-zinc-400" />
-                                                            )}
-                                                        </Button>
-                                                    </div>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
-
-                            {/* Mobile stacked cards */}
-                            <div className="md:hidden divide-y divide-zinc-100">
-                                {announcements.map((a) => (
-                                    <div key={a.id} className="p-4 space-y-3">
-                                        <div className="flex items-start gap-3">
+                        <ResponsiveTable
+                            data={announcements}
+                            getRowKey={(a) => a.id}
+                            className="[&>div:first-child]:rounded-none [&>div:first-child]:border-0 [&>div:last-child]:space-y-0 [&>div:last-child]:divide-y [&>div:last-child]:divide-zinc-100"
+                            columns={[
+                                {
+                                    key: 'details',
+                                    header: 'Details',
+                                    className: 'w-[300px]',
+                                    cell: (a) => (
+                                        <div className="flex items-center gap-4">
                                             {a.image_url && (
                                                 <div className="h-12 w-12 rounded-lg bg-zinc-100 overflow-hidden shrink-0">
+                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
                                                     <img src={a.image_url} alt={a.title} className="h-full w-full object-cover" />
                                                 </div>
                                             )}
-                                            <div className="min-w-0 flex-1">
-                                                <p className="font-bold text-zinc-900 line-clamp-2 leading-snug">{a.title}</p>
-                                                <p className="text-xs text-zinc-500 line-clamp-1 mt-0.5">{a.content}</p>
+                                            <div className="space-y-1 min-w-0">
+                                                <p className="font-bold text-zinc-900 line-clamp-1">{a.title}</p>
+                                                <p className="text-xs text-zinc-500 line-clamp-1">{a.content}</p>
                                             </div>
-                                            <Badge
-                                                variant="outline"
-                                                className={cn(
-                                                    "shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
-                                                    a.status === "published"
-                                                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                                        : "bg-zinc-100 text-zinc-600 border-zinc-200"
-                                                )}
-                                            >
-                                                {a.status}
-                                            </Badge>
                                         </div>
-                                        <div className="flex items-center justify-between text-sm text-zinc-600">
-                                            <span className="font-medium truncate">
-                                                {a.cta_label}
-                                                {a.cta_url && (
-                                                    <a href={a.cta_url} target="_blank" rel="noopener noreferrer" aria-label="Open CTA link" className="ml-1 inline-block text-zinc-400 hover:text-orange-600">
-                                                        <ExternalLink className="inline h-3 w-3" />
-                                                    </a>
-                                                )}
-                                            </span>
+                                    ),
+                                },
+                                {
+                                    key: 'cta',
+                                    header: 'CTA',
+                                    cell: (a) => (
+                                        <div className="text-sm font-medium text-zinc-700">
+                                            {a.cta_label}
+                                            {a.cta_url && (
+                                                <a href={a.cta_url} target="_blank" rel="noopener noreferrer" aria-label="Open CTA link" className="ml-1 inline-block text-zinc-400 hover:text-orange-600">
+                                                    <ExternalLink className="h-3 w-3" />
+                                                </a>
+                                            )}
+                                        </div>
+                                    ),
+                                },
+                                {
+                                    key: 'status',
+                                    header: 'Status',
+                                    cell: (a) => (
+                                        <Badge
+                                            variant="outline"
+                                            className={cn(
+                                                "rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider",
+                                                a.status === "published"
+                                                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                                    : "bg-zinc-100 text-zinc-600 border-zinc-200"
+                                            )}
+                                        >
+                                            {a.status}
+                                        </Badge>
+                                    ),
+                                },
+                                {
+                                    key: 'visibility',
+                                    header: 'Visibility',
+                                    cell: (a) => (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => toggleActive(a)}
+                                            aria-label={a.is_active ? "Hide announcement" : "Show announcement"}
+                                            className={cn(
+                                                "h-8 gap-2 rounded-full border",
+                                                a.is_active
+                                                    ? "text-emerald-600 bg-emerald-50 border-emerald-100"
+                                                    : "text-zinc-400 bg-zinc-50 border-zinc-100"
+                                            )}
+                                        >
+                                            {a.is_active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                                            <span className="text-[10px] font-bold uppercase">{a.is_active ? "Visible" : "Hidden"}</span>
+                                        </Button>
+                                    ),
+                                },
+                                {
+                                    key: 'actions',
+                                    header: 'Actions',
+                                    className: 'text-right',
+                                    cell: (a) => (
+                                        <div className="flex items-center justify-end gap-2">
                                             <Button
                                                 variant="ghost"
-                                                size="sm"
-                                                onClick={() => toggleActive(a)}
-                                                aria-label={a.is_active ? "Hide announcement" : "Show announcement"}
-                                                className={cn(
-                                                    "h-8 gap-2 rounded-full border",
-                                                    a.is_active
-                                                        ? "text-emerald-600 bg-emerald-50 border-emerald-100"
-                                                        : "text-zinc-400 bg-zinc-50 border-zinc-100"
-                                                )}
-                                            >
-                                                {a.is_active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                                                <span className="text-[10px] font-bold uppercase">{a.is_active ? "Visible" : "Hidden"}</span>
-                                            </Button>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
+                                                size="icon"
                                                 onClick={() => openEditDialog(a)}
-                                                className="flex-1 rounded-xl border-zinc-200 text-zinc-700"
+                                                aria-label={`Edit ${a.title}`}
+                                                className="h-9 w-9 rounded-xl hover:bg-zinc-100"
                                             >
-                                                <Edit2 className="mr-2 h-4 w-4" />
-                                                Edit
+                                                <Edit2 className="h-4 w-4 text-zinc-500" />
                                             </Button>
                                             <Button
-                                                variant="outline"
-                                                size="sm"
+                                                variant="ghost"
+                                                size="icon"
                                                 onClick={() => setDeleteTarget(a)}
                                                 disabled={deletingId === a.id}
                                                 aria-label={`Delete ${a.title}`}
-                                                className="rounded-xl border-zinc-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                                                className="h-9 w-9 rounded-xl hover:bg-rose-50 hover:text-rose-600"
                                             >
                                                 {deletingId === a.id ? (
                                                     <Loader2 className="h-4 w-4 animate-spin" />
                                                 ) : (
-                                                    <Trash2 className="h-4 w-4" />
+                                                    <Trash2 className="h-4 w-4 text-zinc-400" />
                                                 )}
                                             </Button>
                                         </div>
+                                    ),
+                                },
+                            ]}
+                            renderCard={(a) => (
+                                <div className="p-4 space-y-3">
+                                    <div className="flex items-start gap-3">
+                                        {a.image_url && (
+                                            <div className="h-12 w-12 rounded-lg bg-zinc-100 overflow-hidden shrink-0">
+                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                <img src={a.image_url} alt={a.title} className="h-full w-full object-cover" />
+                                            </div>
+                                        )}
+                                        <div className="min-w-0 flex-1">
+                                            <p className="font-bold text-zinc-900 line-clamp-2 leading-snug">{a.title}</p>
+                                            <p className="text-xs text-zinc-500 line-clamp-1 mt-0.5">{a.content}</p>
+                                        </div>
+                                        <Badge
+                                            variant="outline"
+                                            className={cn(
+                                                "shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                                                a.status === "published"
+                                                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                                    : "bg-zinc-100 text-zinc-600 border-zinc-200"
+                                            )}
+                                        >
+                                            {a.status}
+                                        </Badge>
                                     </div>
-                                ))}
-                            </div>
-                        </>
+                                    <div className="flex items-center justify-between text-sm text-zinc-600">
+                                        <span className="font-medium truncate">
+                                            {a.cta_label}
+                                            {a.cta_url && (
+                                                <a href={a.cta_url} target="_blank" rel="noopener noreferrer" aria-label="Open CTA link" className="ml-1 inline-block text-zinc-400 hover:text-orange-600">
+                                                    <ExternalLink className="inline h-3 w-3" />
+                                                </a>
+                                            )}
+                                        </span>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => toggleActive(a)}
+                                            aria-label={a.is_active ? "Hide announcement" : "Show announcement"}
+                                            className={cn(
+                                                "h-11 gap-2 rounded-full border",
+                                                a.is_active
+                                                    ? "text-emerald-600 bg-emerald-50 border-emerald-100"
+                                                    : "text-zinc-400 bg-zinc-50 border-zinc-100"
+                                            )}
+                                        >
+                                            {a.is_active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                                            <span className="text-[10px] font-bold uppercase">{a.is_active ? "Visible" : "Hidden"}</span>
+                                        </Button>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => openEditDialog(a)}
+                                            className="h-11 flex-1 rounded-xl border-zinc-200 text-zinc-700"
+                                        >
+                                            <Edit2 className="mr-2 h-4 w-4" />
+                                            Edit
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setDeleteTarget(a)}
+                                            disabled={deletingId === a.id}
+                                            aria-label={`Delete ${a.title}`}
+                                            className="h-11 w-11 rounded-xl border-zinc-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                                        >
+                                            {deletingId === a.id ? (
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                            ) : (
+                                                <Trash2 className="h-4 w-4" />
+                                            )}
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+                        />
                     )}
                 </CardContent>
             </Card>

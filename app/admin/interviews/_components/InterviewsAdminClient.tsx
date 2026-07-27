@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ResponsiveTable } from '@/components/ui/responsive-table'
 import type { InterviewRow } from '@/lib/interviews/mappers'
 
 type Application = {
@@ -303,68 +304,78 @@ export default function InterviewsAdminClient() {
             </div>
           ) : null}
 
-          <div className="overflow-x-auto rounded-2xl border border-orange-100">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-orange-50 text-xs uppercase tracking-wider text-orange-800">
-                <tr>
-                  <th className="px-4 py-3">Title</th>
-                  <th className="px-4 py-3">Awardee</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Featured</th>
-                  <th className="px-4 py-3" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-orange-50">
-                {interviews.map((interview) => (
-                  <tr key={interview.id}>
-                    <td className="px-4 py-3 font-medium text-slate-900">{interview.title}</td>
-                    <td className="px-4 py-3 text-slate-600">{interview.awardee_name}</td>
-                    <td className="px-4 py-3">
-                      <select
-                        value={interview.status}
-                        onChange={(event) =>
-                          void updateInterview(interview.id, { status: event.target.value })
-                        }
-                        className="rounded-md border border-slate-200 px-2 py-1 text-xs"
-                        aria-label={`Status for ${interview.title}`}
-                      >
-                        <option value="draft">Draft</option>
-                        <option value="published">Published</option>
-                      </select>
-                    </td>
-                    <td className="px-4 py-3">
-                      <input
-                        type="checkbox"
-                        checked={interview.featured}
-                        onChange={(event) =>
-                          void updateInterview(interview.id, { featured: event.target.checked })
-                        }
-                        className="h-4 w-4 accent-orange-600"
-                        aria-label={`Feature ${interview.title}`}
-                      />
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <a
-                        href={`/interviews/${interview.slug}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-xs font-semibold text-orange-700 hover:underline"
-                      >
-                        View
-                      </a>
-                    </td>
-                  </tr>
-                ))}
-                {interviews.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-4 py-10 text-center text-slate-500">
-                      No interviews yet.
-                    </td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
-          </div>
+          <ResponsiveTable
+            data={interviews}
+            getRowKey={(interview) => interview.id}
+            empty={
+              <div className="rounded-2xl border border-orange-100 px-4 py-10 text-center text-slate-500">
+                No interviews yet.
+              </div>
+            }
+            columns={[
+              {
+                key: 'title',
+                header: 'Title',
+                cell: (interview) => (
+                  <span className="font-medium text-slate-900">{interview.title}</span>
+                ),
+              },
+              {
+                key: 'awardee',
+                header: 'Awardee',
+                cell: (interview) => (
+                  <span className="text-slate-600">{interview.awardee_name}</span>
+                ),
+              },
+              {
+                key: 'status',
+                header: 'Status',
+                cell: (interview) => (
+                  <select
+                    value={interview.status}
+                    onChange={(event) =>
+                      void updateInterview(interview.id, { status: event.target.value })
+                    }
+                    className="rounded-md border border-slate-200 px-2 py-1 text-xs"
+                    aria-label={`Status for ${interview.title}`}
+                  >
+                    <option value="draft">Draft</option>
+                    <option value="published">Published</option>
+                  </select>
+                ),
+              },
+              {
+                key: 'featured',
+                header: 'Featured',
+                cell: (interview) => (
+                  <input
+                    type="checkbox"
+                    checked={interview.featured}
+                    onChange={(event) =>
+                      void updateInterview(interview.id, { featured: event.target.checked })
+                    }
+                    className="h-4 w-4 accent-orange-600"
+                    aria-label={`Feature ${interview.title}`}
+                  />
+                ),
+              },
+              {
+                key: 'actions',
+                header: '',
+                className: 'text-right',
+                cell: (interview) => (
+                  <a
+                    href={`/interviews/${interview.slug}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs font-semibold text-orange-700 hover:underline"
+                  >
+                    View
+                  </a>
+                ),
+              },
+            ]}
+          />
         </TabsContent>
 
         <TabsContent value="applications" className="space-y-4 pt-4">

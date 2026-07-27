@@ -6,14 +6,7 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table';
+import { ResponsiveTable } from '@/components/ui/responsive-table';
 import {
   Card,
   CardContent,
@@ -627,7 +620,7 @@ export default function AwardeesManagement() {
   const hasNoResults = paginatedAwardees.length === 0;
 
   return (
-    <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pt-20 lg:pt-0">
+    <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div className="space-y-1">
@@ -826,192 +819,199 @@ export default function AwardeesManagement() {
           </div>
         ) : (
           <div className="relative">
-            {/* Desktop Table View */}
-            <div className="hidden lg:block overflow-x-auto">
-              <Table>
-                <TableHeader className="bg-orange-50/60 sticky top-0">
-                  <TableRow className="border-orange-100 hover:bg-transparent">
-                    <TableHead className="w-12 text-zinc-500 pl-6">
-                      <input
-                        type="checkbox"
-                        checked={allSelected}
-                        onChange={handleSelectAll}
-                        aria-label="Select all awardees"
-                        className="h-4 w-4 rounded border-zinc-300 text-orange-500 focus:ring-orange-500/30 cursor-pointer"
-                      />
-                    </TableHead>
-                    <TableHead className="text-zinc-500 font-semibold">Profile</TableHead>
-                    <TableHead className="text-zinc-500 font-semibold">Name</TableHead>
-                    <TableHead className="text-zinc-500 font-semibold">Country</TableHead>
-                    <TableHead className="text-zinc-500 font-semibold">Education</TableHead>
-                    <TableHead className="text-zinc-500 font-semibold">Year</TableHead>
-                    <TableHead className="text-zinc-500 font-semibold">Status</TableHead>
-                    <TableHead className="text-zinc-500 font-semibold text-right pr-6">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {hasNoResults ? (
-                    <TableRow>
-                      <TableCell colSpan={8} className="p-0">
-                        <EmptyState searchTerm={searchTerm} onAdd={handleAddNew} />
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    paginatedAwardees.map((awardee) => (
-                      <TableRow key={awardee.id} className="border-zinc-100 hover:bg-orange-50/40 transition-colors group">
-                        <TableCell className="pl-6">
-                          <input
-                            type="checkbox"
-                            checked={selectedAwardees.has(awardee.id)}
-                            onChange={() => handleSelectAwardee(awardee.id)}
-                            aria-label={`Select ${awardee.name}`}
-                            className="h-4 w-4 rounded border-zinc-300 text-orange-500 focus:ring-orange-500/30 cursor-pointer"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <div className="h-10 w-10 rounded-full overflow-hidden bg-orange-50 ring-2 ring-orange-100 group-hover:ring-orange-300 transition-all">
-                            {awardee.image_url ? (
-                              <img src={awardee.image_url} alt={awardee.name} className="h-full w-full object-cover" />
-                            ) : (
-                              <div className="h-full w-full flex items-center justify-center text-orange-300">
-                                <ImageIcon className="h-4 w-4" />
-                              </div>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-bold text-zinc-800">{awardee.name}</TableCell>
-                        <TableCell>
-                          {awardee.country && (
-                            <div className="flex items-center gap-2">
-                              <div className="h-1.5 w-1.5 rounded-full bg-orange-500" />
-                              <span className="text-zinc-500 text-xs font-medium">{awardee.country}</span>
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-zinc-500 text-xs max-w-[200px] truncate" title={awardee.course || ''}>
-                          {awardee.course || '—'}
-                        </TableCell>
-                        <TableCell className="text-zinc-400 font-mono text-xs">{awardee.year}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              aria-label={awardee.featured ? `Unfeature ${awardee.name}` : `Feature ${awardee.name}`}
-                              className={cn('h-8 w-8 rounded-full', awardee.featured ? 'text-amber-500 bg-amber-100/60' : 'text-zinc-300 hover:text-amber-500 hover:bg-amber-50')}
-                              onClick={() => handleToggleFeatured(awardee.id, awardee.featured || false)}
-                              disabled={loadingStates[awardee.id] === 'featured'}
-                            >
-                              {loadingStates[awardee.id] === 'featured' ? <Loader2 className="h-3 w-3 animate-spin" /> : <Star className={cn('h-4 w-4', awardee.featured && 'fill-current')} />}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              aria-label={awardee.is_public !== false ? `Hide ${awardee.name}` : `Show ${awardee.name}`}
-                              className={cn('h-8 w-8 rounded-full', awardee.is_public !== false ? 'text-emerald-500 bg-emerald-100/60' : 'text-zinc-300 hover:text-emerald-500 hover:bg-emerald-50')}
-                              onClick={() => handleToggleVisibility(awardee.id, awardee.is_public !== false)}
-                              disabled={loadingStates[awardee.id] === 'visibility'}
-                            >
-                              {loadingStates[awardee.id] === 'visibility' ? <Loader2 className="h-3 w-3 animate-spin" /> : (awardee.is_public !== false ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />)}
-                            </Button>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right pr-6">
-                          <div className="flex items-center justify-end gap-2 lg:opacity-0 lg:group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                            <Button variant="ghost" size="icon" onClick={() => handleEdit(awardee.id)} aria-label={`Edit ${awardee.name}`} className="h-8 w-8 text-zinc-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(awardee.id)} aria-label={`Delete ${awardee.name}`} className="h-8 w-8 text-zinc-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-
-            {/* Mobile Card View */}
-            <div className="lg:hidden p-4 space-y-4">
-              {hasNoResults ? (
-                <EmptyState searchTerm={searchTerm} onAdd={handleAddNew} />
-              ) : (
-                paginatedAwardees.map((awardee) => (
-                  <div key={awardee.id} className="relative bg-white border border-zinc-100 rounded-2xl sm:rounded-3xl p-3 sm:p-4 space-y-3 hover:border-orange-200 hover:shadow-sm transition-all overflow-hidden group">
-                    {/* Select Checkbox Top Right */}
-                    <div className="absolute top-3 right-3 z-10">
-                      <input
-                        type="checkbox"
-                        checked={selectedAwardees.has(awardee.id)}
-                        onChange={() => handleSelectAwardee(awardee.id)}
-                        aria-label={`Select ${awardee.name}`}
-                        className="h-4 w-4 sm:h-5 sm:w-5 rounded border-zinc-300 text-orange-500 focus:ring-orange-500/30 cursor-pointer"
-                      />
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl sm:rounded-2xl overflow-hidden bg-orange-50 border border-orange-100 shrink-0">
-                        {awardee.image_url ? (
-                          <img src={awardee.image_url} alt={awardee.name} className="h-full w-full object-cover" />
-                        ) : (
-                          <div className="h-full w-full flex items-center justify-center text-orange-300">
-                            <ImageIcon className="h-5 w-5" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0 pr-6">
-                        <h3 className="text-sm sm:text-base font-bold text-zinc-900 truncate">{awardee.name}</h3>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-zinc-400 text-[10px] sm:text-xs font-mono">{awardee.year}</span>
-                          {awardee.country && <span className="h-0.5 w-0.5 rounded-full bg-zinc-300" />}
-                          <span className="text-orange-600 text-[10px] sm:text-xs font-bold uppercase tracking-wider truncate">{awardee.country}</span>
+            <ResponsiveTable
+              data={paginatedAwardees}
+              getRowKey={(awardee) => awardee.id}
+              breakpoint="lg"
+              empty={hasNoResults ? <EmptyState searchTerm={searchTerm} onAdd={handleAddNew} /> : undefined}
+              className="[&>div:first-child]:rounded-none [&>div:first-child]:border-0 [&>div:last-child]:p-4 [&>div:last-child]:space-y-4"
+              columns={[
+                {
+                  key: 'select',
+                  hideOnMobile: true,
+                  className: 'w-12 pl-6',
+                  header: (
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      onChange={handleSelectAll}
+                      aria-label="Select all awardees"
+                      className="h-4 w-4 rounded border-zinc-300 text-orange-500 focus:ring-orange-500/30 cursor-pointer"
+                    />
+                  ),
+                  cell: (awardee) => (
+                    <input
+                      type="checkbox"
+                      checked={selectedAwardees.has(awardee.id)}
+                      onChange={() => handleSelectAwardee(awardee.id)}
+                      aria-label={`Select ${awardee.name}`}
+                      className="h-4 w-4 rounded border-zinc-300 text-orange-500 focus:ring-orange-500/30 cursor-pointer"
+                    />
+                  ),
+                },
+                {
+                  key: 'profile',
+                  header: 'Profile',
+                  cell: (awardee) => (
+                    <div className="h-10 w-10 rounded-full overflow-hidden bg-orange-50 ring-2 ring-orange-100 transition-all">
+                      {awardee.image_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={awardee.image_url} alt={awardee.name} className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="h-full w-full flex items-center justify-center text-orange-300">
+                          <ImageIcon className="h-4 w-4" />
                         </div>
-                      </div>
+                      )}
                     </div>
-
-                    <div className="space-y-2 bg-orange-50/50 rounded-xl p-2 sm:p-3 border border-orange-100">
-                      <div className="flex justify-between items-center text-[10px] sm:text-xs">
-                        <span className="text-zinc-400">Education</span>
-                        <span className="text-zinc-700 font-medium truncate max-w-[120px] sm:max-w-[150px]">{awardee.course || '—'}</span>
+                  ),
+                },
+                {
+                  key: 'name',
+                  header: 'Name',
+                  className: 'font-bold text-zinc-800',
+                  cell: (awardee) => awardee.name,
+                },
+                {
+                  key: 'country',
+                  header: 'Country',
+                  cell: (awardee) =>
+                    awardee.country ? (
+                      <div className="flex items-center gap-2">
+                        <div className="h-1.5 w-1.5 rounded-full bg-orange-500" />
+                        <span className="text-zinc-500 text-xs font-medium">{awardee.country}</span>
                       </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-zinc-400 text-[9px] sm:text-[10px] uppercase font-bold tracking-wider">Actions</span>
-                        <div className="flex gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            aria-label={awardee.featured ? `Unfeature ${awardee.name}` : `Feature ${awardee.name}`}
-                            onClick={() => handleToggleFeatured(awardee.id, awardee.featured || false)}
-                            disabled={loadingStates[awardee.id] === 'featured'}
-                            className={cn('h-8 w-8 rounded-full', awardee.featured ? 'bg-amber-100 text-amber-600' : 'bg-zinc-50 text-zinc-400')}
-                          >
-                            {loadingStates[awardee.id] === 'featured' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Star className={cn('h-4 w-4', awardee.featured && 'fill-current')} />}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            aria-label={awardee.is_public !== false ? `Hide ${awardee.name}` : `Show ${awardee.name}`}
-                            onClick={() => handleToggleVisibility(awardee.id, awardee.is_public !== false)}
-                            disabled={loadingStates[awardee.id] === 'visibility'}
-                            className={cn('h-8 w-8 rounded-full', awardee.is_public !== false ? 'bg-emerald-100 text-emerald-600' : 'bg-zinc-50 text-zinc-400')}
-                          >
-                            {loadingStates[awardee.id] === 'visibility' ? <Loader2 className="h-4 w-4 animate-spin" /> : (awardee.is_public !== false ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />)}
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleEdit(awardee.id)} aria-label={`Edit ${awardee.name}`} className="h-8 w-8 rounded-full bg-zinc-50 text-zinc-500 hover:text-orange-600 hover:bg-orange-50">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(awardee.id)} aria-label={`Delete ${awardee.name}`} className="h-8 w-8 rounded-full bg-rose-50 text-rose-600 hover:bg-rose-100">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                    ) : null,
+                },
+                {
+                  key: 'education',
+                  header: 'Education',
+                  className: 'text-zinc-500 text-xs max-w-[200px] truncate',
+                  cell: (awardee) => awardee.course || '\u2014',
+                },
+                {
+                  key: 'year',
+                  header: 'Year',
+                  className: 'text-zinc-400 font-mono text-xs',
+                  cell: (awardee) => awardee.year,
+                },
+                {
+                  key: 'status',
+                  header: 'Status',
+                  cell: (awardee) => (
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={awardee.featured ? `Unfeature ${awardee.name}` : `Feature ${awardee.name}`}
+                        className={cn('h-8 w-8 rounded-full', awardee.featured ? 'text-amber-500 bg-amber-100/60' : 'text-zinc-300 hover:text-amber-500 hover:bg-amber-50')}
+                        onClick={() => handleToggleFeatured(awardee.id, awardee.featured || false)}
+                        disabled={loadingStates[awardee.id] === 'featured'}
+                      >
+                        {loadingStates[awardee.id] === 'featured' ? <Loader2 className="h-3 w-3 animate-spin" /> : <Star className={cn('h-4 w-4', awardee.featured && 'fill-current')} />}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={awardee.is_public !== false ? `Hide ${awardee.name}` : `Show ${awardee.name}`}
+                        className={cn('h-8 w-8 rounded-full', awardee.is_public !== false ? 'text-emerald-500 bg-emerald-100/60' : 'text-zinc-300 hover:text-emerald-500 hover:bg-emerald-50')}
+                        onClick={() => handleToggleVisibility(awardee.id, awardee.is_public !== false)}
+                        disabled={loadingStates[awardee.id] === 'visibility'}
+                      >
+                        {loadingStates[awardee.id] === 'visibility' ? <Loader2 className="h-3 w-3 animate-spin" /> : (awardee.is_public !== false ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />)}
+                      </Button>
+                    </div>
+                  ),
+                },
+                {
+                  key: 'actions',
+                  header: 'Actions',
+                  className: 'text-right pr-6',
+                  cell: (awardee) => (
+                    <div className="flex items-center justify-end gap-2">
+                      <Button variant="ghost" size="icon" onClick={() => handleEdit(awardee.id)} aria-label={`Edit ${awardee.name}`} className="h-8 w-8 text-zinc-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg">
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(awardee.id)} aria-label={`Delete ${awardee.name}`} className="h-8 w-8 text-zinc-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ),
+                },
+              ]}
+              renderCard={(awardee) => (
+                <div className="relative bg-white border border-zinc-100 rounded-2xl sm:rounded-3xl p-3 sm:p-4 space-y-3 hover:border-orange-200 hover:shadow-sm transition-all overflow-hidden">
+                  <div className="absolute top-3 right-3 z-10">
+                    <input
+                      type="checkbox"
+                      checked={selectedAwardees.has(awardee.id)}
+                      onChange={() => handleSelectAwardee(awardee.id)}
+                      aria-label={`Select ${awardee.name}`}
+                      className="h-4 w-4 sm:h-5 sm:w-5 rounded border-zinc-300 text-orange-500 focus:ring-orange-500/30 cursor-pointer"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl sm:rounded-2xl overflow-hidden bg-orange-50 border border-orange-100 shrink-0">
+                      {awardee.image_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={awardee.image_url} alt={awardee.name} className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="h-full w-full flex items-center justify-center text-orange-300">
+                          <ImageIcon className="h-5 w-5" />
                         </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0 pr-6">
+                      <h3 className="text-sm sm:text-base font-bold text-zinc-900 truncate">{awardee.name}</h3>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className="text-zinc-400 text-[10px] sm:text-xs font-mono">{awardee.year}</span>
+                        {awardee.country && <span className="h-0.5 w-0.5 rounded-full bg-zinc-300" />}
+                        <span className="text-orange-600 text-[10px] sm:text-xs font-bold uppercase tracking-wider truncate">{awardee.country}</span>
                       </div>
                     </div>
                   </div>
-                ))
+
+                  <div className="space-y-2 bg-orange-50/50 rounded-xl p-2 sm:p-3 border border-orange-100">
+                    <div className="flex justify-between items-center text-[10px] sm:text-xs">
+                      <span className="text-zinc-400">Education</span>
+                      <span className="text-zinc-700 font-medium truncate max-w-[120px] sm:max-w-[150px]">{awardee.course || '\u2014'}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-zinc-400 text-[9px] sm:text-[10px] uppercase font-bold tracking-wider">Actions</span>
+                      {/* 44px targets — these were 32px, below the minimum for touch. */}
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={awardee.featured ? `Unfeature ${awardee.name}` : `Feature ${awardee.name}`}
+                          onClick={() => handleToggleFeatured(awardee.id, awardee.featured || false)}
+                          disabled={loadingStates[awardee.id] === 'featured'}
+                          className={cn('h-11 w-11 rounded-full', awardee.featured ? 'bg-amber-100 text-amber-600' : 'bg-zinc-50 text-zinc-400')}
+                        >
+                          {loadingStates[awardee.id] === 'featured' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Star className={cn('h-4 w-4', awardee.featured && 'fill-current')} />}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={awardee.is_public !== false ? `Hide ${awardee.name}` : `Show ${awardee.name}`}
+                          onClick={() => handleToggleVisibility(awardee.id, awardee.is_public !== false)}
+                          disabled={loadingStates[awardee.id] === 'visibility'}
+                          className={cn('h-11 w-11 rounded-full', awardee.is_public !== false ? 'bg-emerald-100 text-emerald-600' : 'bg-zinc-50 text-zinc-400')}
+                        >
+                          {loadingStates[awardee.id] === 'visibility' ? <Loader2 className="h-4 w-4 animate-spin" /> : (awardee.is_public !== false ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />)}
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleEdit(awardee.id)} aria-label={`Edit ${awardee.name}`} className="h-11 w-11 rounded-full bg-zinc-50 text-zinc-500 hover:text-orange-600 hover:bg-orange-50">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(awardee.id)} aria-label={`Delete ${awardee.name}`} className="h-11 w-11 rounded-full bg-rose-50 text-rose-600 hover:bg-rose-100">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               )}
-            </div>
+            />
           </div>
         )}
 

@@ -1,117 +1,15 @@
-'use client'
+import { cookies } from 'next/headers'
+import AdminShell from './components/AdminShell'
 
-import { useState, useEffect } from 'react'
-import { usePathname } from 'next/navigation'
-import AdminSidebar from './components/AdminSidebar'
-import AdminFooter from './components/AdminFooter'
-import SessionSecurityGuard from '@/app/components/SessionSecurityGuard'
-import { Bell, Search, User } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { cn } from '@/lib/utils'
-
-export default function AdminLayout({
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const pathname = usePathname()
-  const [scrolled, setScrolled] = useState(false)
-  const [collapsed, setCollapsed] = useState(false)
+  // Read the sidebar's persisted state on the server so the first paint already
+  // has the right width — reading it on the client would flash the wrong one.
+  const cookieStore = await cookies()
+  const defaultOpen = cookieStore.get('sidebar:state')?.value !== 'false'
 
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20)
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
-
-  // The sign-in screen is public and renders without the console chrome
-  // (no sidebar, no session guard — there is no session yet).
-  if (pathname === '/admin/login') {
-    return <>{children}</>
-  }
-
-  return (
-    <div className="min-h-screen bg-zinc-50 text-zinc-900 flex font-sans selection:bg-orange-200 selection:text-orange-800">
-      {/* Session Security */}
-      <SessionSecurityGuard
-        timeoutMinutes={30}
-        warningMinutes={2}
-        enabled={true}
-      />
-
-      <AdminSidebar collapsed={collapsed} onCollapsedChange={setCollapsed} />
-
-      {/* Main Content Area — left padding tracks the sidebar width on desktop */}
-      <div
-        className={cn(
-          "flex-1 min-w-0 flex flex-col transition-all duration-300",
-          collapsed ? "lg:pl-20" : "lg:pl-64"
-        )}
-      >
-        {/*
-          Floating Top Bar — desktop only. On mobile the sidebar renders its
-          own fixed header, so this stays hidden to avoid overlapping it.
-        */}
-        <header
-          className={cn(
-            "sticky top-0 z-40 hidden lg:flex h-16 items-center justify-between gap-4 px-8 transition-all duration-300",
-            scrolled ? "bg-white/80 backdrop-blur-md border-b border-orange-100 shadow-sm" : "bg-transparent"
-          )}
-        >
-          {/* Search Bar */}
-          <div className="flex-1 max-w-md">
-            <div className="relative group">
-              <label htmlFor="admin-search" className="sr-only">Search</label>
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 group-focus-within:text-orange-500 transition-colors pointer-events-none" />
-              <Input
-                id="admin-search"
-                type="search"
-                placeholder="Search..."
-                className="bg-white border-zinc-200 pl-10 h-10 rounded-xl focus-visible:ring-1 focus-visible:ring-orange-300 focus-visible:border-orange-300 transition-all placeholder:text-zinc-400"
-              />
-            </div>
-          </div>
-
-          {/* Action Center */}
-          <div className="flex items-center gap-3 ml-auto shrink-0">
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label="Notifications"
-              className="text-zinc-500 hover:text-orange-600 hover:bg-orange-50 relative rounded-full"
-            >
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-2 right-2 h-2 w-2 bg-orange-500 rounded-full border-2 border-white" />
-            </Button>
-
-            <div className="h-4 w-px bg-zinc-200 mx-1" />
-
-            <Button
-              variant="ghost"
-              aria-label="Admin account"
-              className="gap-2 px-2 hover:bg-orange-50 rounded-xl group transition-all"
-            >
-              <div className="text-right">
-                <p className="text-xs font-bold text-zinc-800 leading-none">Admin</p>
-                <p className="text-[10px] text-zinc-500 leading-none mt-0.5">Superuser</p>
-              </div>
-              <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-orange-500 to-amber-500 p-[2px] shadow-md shadow-orange-100">
-                <div className="h-full w-full rounded-full bg-white flex items-center justify-center">
-                  <User className="h-5 w-5 text-orange-500" />
-                </div>
-              </div>
-            </Button>
-          </div>
-        </header>
-
-        {/* Dynamic Canvas Area */}
-        <main className="flex-grow px-4 lg:px-8 pb-12 pt-4 max-w-[1600px] mx-auto w-full">
-          {children}
-        </main>
-
-        <AdminFooter />
-      </div>
-    </div>
-  )
+  return <AdminShell defaultOpen={defaultOpen}>{children}</AdminShell>
 }

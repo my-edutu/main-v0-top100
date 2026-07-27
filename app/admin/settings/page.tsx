@@ -452,7 +452,7 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <div className="py-6 sm:py-8 pt-20 lg:pt-6 space-y-6">
+      <div className="py-6 sm:py-8 pt-6 space-y-6">
         <div className="space-y-3">
           <Skeleton className="h-9 w-48 rounded-xl" />
           <Skeleton className="h-4 w-72 rounded-lg" />
@@ -481,7 +481,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="py-6 sm:py-8 pt-20 lg:pt-6">
+    <div className="py-6 sm:py-8 pt-6">
       <div className="mb-6 sm:mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-600 to-gray-800 bg-clip-text text-transparent">
           Site Settings
@@ -491,7 +491,7 @@ export default function SettingsPage() {
 
       <form onSubmit={handleSubmit}>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="sticky top-16 z-20 grid h-auto w-full grid-cols-4 sm:grid-cols-5 lg:grid-cols-10 gap-1.5 rounded-2xl border border-orange-100 bg-white/95 p-1.5 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-white/80">
+          <TabsList className="sticky top-14 z-20 grid h-auto md:top-0 w-full grid-cols-4 sm:grid-cols-5 lg:grid-cols-10 gap-1.5 rounded-2xl border border-orange-100 bg-white/95 p-1.5 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-white/80">
             <TabsTrigger value="general" className="flex items-center justify-center gap-1.5 rounded-xl px-2 py-2 text-xs font-medium data-[state=active]:bg-orange-50 data-[state=active]:text-orange-600 data-[state=active]:shadow-none">
               <Globe className="h-4 w-4" />
               <span className="hidden md:inline">General</span>

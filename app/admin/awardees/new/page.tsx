@@ -147,7 +147,7 @@ export default function CreateAwardeePage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto py-6 sm:py-8 pt-20 lg:pt-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="max-w-4xl mx-auto py-6 sm:py-8 pt-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Header */}
       <div className="mb-6">
         <Button

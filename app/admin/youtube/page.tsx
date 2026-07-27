@@ -4,14 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
+import { ResponsiveTable } from '@/components/ui/responsive-table';
 import { 
   Card, 
   CardContent, 
@@ -245,7 +238,7 @@ export default function YouTubeManagement() {
   // In production, implement proper auth check
 
   return (
-    <div className="container mx-auto py-6 sm:py-10 pt-20 lg:pt-6 space-y-8">
+    <div className="container mx-auto py-6 sm:py-10 pt-6 space-y-8">
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-red-500 to-orange-500 bg-clip-text text-transparent">
           YouTube Management
@@ -359,110 +352,111 @@ export default function YouTubeManagement() {
                 </div>
               </div>
             ) : (
-              <>
-                {/* Desktop Table */}
-                <div className="hidden md:block rounded-md border overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Thumbnail</TableHead>
-                        <TableHead>Title</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Views</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {videos.map((video) => (
-                        <TableRow key={video.id}>
-                          <TableCell>
-                            <img
-                              src={getYouTubeThumbnail(video.videoId)}
-                              alt={`Thumbnail for ${video.title}`}
-                              loading="lazy"
-                              width={64}
-                              height={48}
-                              className="w-16 h-12 object-cover rounded"
-                            />
-                          </TableCell>
-                          <TableCell className="font-medium max-w-[240px] truncate">{video.title}</TableCell>
-                          <TableCell>
-                            <Badge variant="secondary">{video.date || '—'}</Badge>
-                          </TableCell>
-                          <TableCell>
-                            {video.views?.toLocaleString() || 'N/A'}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex justify-end gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                aria-label={`Open ${video.title} on YouTube`}
-                                onClick={() => window.open(`https://www.youtube.com/watch?v=${video.videoId}`, '_blank')}
-                              >
-                                <ExternalLink className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                aria-label={`Delete ${video.title}`}
-                                disabled={deletingId === video.id}
-                                onClick={() => setVideoToDelete(video)}
-                              >
-                                {deletingId === video.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-
-                {/* Mobile Cards */}
-                <div className="md:hidden space-y-3">
-                  {videos.map((video) => (
-                    <div key={video.id} className="flex gap-3 rounded-xl border p-3">
+              <ResponsiveTable
+                data={videos}
+                getRowKey={(video) => video.id}
+                className="[&>div:first-child]:rounded-md"
+                columns={[
+                  {
+                    key: 'thumbnail',
+                    header: 'Thumbnail',
+                    cell: (video) => (
+                      // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={getYouTubeThumbnail(video.videoId)}
                         alt={`Thumbnail for ${video.title}`}
                         loading="lazy"
-                        width={112}
-                        height={84}
-                        className="h-16 w-28 shrink-0 rounded-lg object-cover"
+                        width={64}
+                        height={48}
+                        className="w-16 h-12 object-cover rounded"
                       />
-                      <div className="flex flex-1 flex-col gap-1.5 min-w-0">
-                        <p className="font-semibold text-sm leading-snug line-clamp-2">{video.title}</p>
-                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                          <Badge variant="secondary" className="text-[10px]">{video.date || '—'}</Badge>
-                          <span className="inline-flex items-center gap-1"><Eye className="h-3 w-3" />{video.views?.toLocaleString() || 'N/A'}</span>
-                        </div>
-                        <div className="mt-1 flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-9 flex-1"
-                            aria-label={`Open ${video.title} on YouTube`}
-                            onClick={() => window.open(`https://www.youtube.com/watch?v=${video.videoId}`, '_blank')}
-                          >
-                            <ExternalLink className="h-4 w-4 mr-1" /> Open
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            className="h-9"
-                            aria-label={`Delete ${video.title}`}
-                            disabled={deletingId === video.id}
-                            onClick={() => setVideoToDelete(video)}
-                          >
-                            {deletingId === video.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                          </Button>
-                        </div>
+                    ),
+                  },
+                  {
+                    key: 'title',
+                    header: 'Title',
+                    className: 'font-medium max-w-[240px] truncate',
+                    cell: (video) => video.title,
+                  },
+                  {
+                    key: 'date',
+                    header: 'Date',
+                    cell: (video) => <Badge variant="secondary">{video.date || '—'}</Badge>,
+                  },
+                  {
+                    key: 'views',
+                    header: 'Views',
+                    cell: (video) => video.views?.toLocaleString() || 'N/A',
+                  },
+                  {
+                    key: 'actions',
+                    header: 'Actions',
+                    className: 'text-right',
+                    cell: (video) => (
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          aria-label={`Open ${video.title} on YouTube`}
+                          onClick={() => window.open(`https://www.youtube.com/watch?v=${video.videoId}`, '_blank')}
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          aria-label={`Delete ${video.title}`}
+                          disabled={deletingId === video.id}
+                          onClick={() => setVideoToDelete(video)}
+                        >
+                          {deletingId === video.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    ),
+                  },
+                ]}
+                renderCard={(video) => (
+                  <div className="flex gap-3 rounded-xl border p-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={getYouTubeThumbnail(video.videoId)}
+                      alt={`Thumbnail for ${video.title}`}
+                      loading="lazy"
+                      width={112}
+                      height={84}
+                      className="h-16 w-28 shrink-0 rounded-lg object-cover"
+                    />
+                    <div className="flex flex-1 flex-col gap-1.5 min-w-0">
+                      <p className="font-semibold text-sm leading-snug line-clamp-2">{video.title}</p>
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                        <Badge variant="secondary" className="text-[10px]">{video.date || '—'}</Badge>
+                        <span className="inline-flex items-center gap-1"><Eye className="h-3 w-3" />{video.views?.toLocaleString() || 'N/A'}</span>
+                      </div>
+                      <div className="mt-1 flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-11 flex-1"
+                          aria-label={`Open ${video.title} on YouTube`}
+                          onClick={() => window.open(`https://www.youtube.com/watch?v=${video.videoId}`, '_blank')}
+                        >
+                          <ExternalLink className="h-4 w-4 mr-1" /> Open
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="h-11 w-11"
+                          aria-label={`Delete ${video.title}`}
+                          disabled={deletingId === video.id}
+                          onClick={() => setVideoToDelete(video)}
+                        >
+                          {deletingId === video.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                        </Button>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </>
+                  </div>
+                )}
+              />
             )}
           </CardContent>
         </Card>

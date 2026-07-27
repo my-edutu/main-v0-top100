@@ -316,7 +316,7 @@ export default function AdminOpportunitiesPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto py-8 pt-20 lg:pt-8 space-y-8">
+      <div className="container mx-auto py-8 pt-8 space-y-8">
         <div className="space-y-2">
           <Skeleton className="h-9 w-64 rounded-xl" />
           <Skeleton className="h-4 w-80 rounded-lg" />
@@ -333,7 +333,7 @@ export default function AdminOpportunitiesPage() {
 
   if (setupMessage) {
     return (
-      <div className="container mx-auto py-8 pt-20 lg:pt-8">
+      <div className="container mx-auto py-8 pt-8">
         <Card>
           <CardContent className="py-12 text-center">
             <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -347,7 +347,7 @@ export default function AdminOpportunitiesPage() {
 
   if (errorMessage) {
     return (
-      <div className="container mx-auto py-8 pt-20 lg:pt-8">
+      <div className="container mx-auto py-8 pt-8">
         <Card>
           <CardContent className="py-12 text-center space-y-4">
             <AlertTriangle className="h-12 w-12 text-destructive mx-auto" />
@@ -364,7 +364,7 @@ export default function AdminOpportunitiesPage() {
   }
 
   return (
-    <div className="container mx-auto py-8 pt-20 lg:pt-8 space-y-8">
+    <div className="container mx-auto py-8 pt-8 space-y-8">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-amber-700 bg-clip-text text-transparent">

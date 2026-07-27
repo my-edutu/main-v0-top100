@@ -8,14 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import { ResponsiveTable } from "@/components/ui/responsive-table"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import {
   AlertDialog,
@@ -512,7 +505,7 @@ function AdminEventsPageContent() {
 
 
   return (
-    <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pt-20 lg:pt-0">
+    <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div className="space-y-1">
@@ -604,129 +597,137 @@ function AdminEventsPageContent() {
             </div>
           ) : (
             <div className="relative">
-              {/* Desktop Table View */}
-              <div className="hidden lg:block overflow-x-auto">
-                <Table>
-                  <TableHeader className="bg-white/5">
-                    <TableRow className="border-white/5 hover:bg-transparent">
-                      <TableHead className="text-zinc-400 pl-6">Event Details</TableHead>
-                      <TableHead className="text-zinc-400">Schedule</TableHead>
-                      <TableHead className="text-zinc-400">Location</TableHead>
-                      <TableHead className="text-zinc-400">Status</TableHead>
-                      <TableHead className="text-zinc-400">Visibility</TableHead>
-                      <TableHead className="text-zinc-400 text-right pr-6">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {events.map((event) => (
-                      <TableRow key={event.id} className="border-white/5 hover:bg-white/5 transition-colors group">
-                        <TableCell className="pl-6 py-4">
-                          <div className="space-y-1">
-                            <div className="font-medium text-zinc-200 flex items-center gap-2 text-base">
-                              {event.title}
-                              {event.is_featured && (
-                                <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-400 border border-amber-500/20">
-                                  Featured
-                                </span>
-                              )}
-                            </div>
-                            {event.summary && (
-                              <p className="text-xs text-zinc-500 line-clamp-1 max-w-[300px]">{event.summary}</p>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm text-zinc-400 font-mono">
-                            {formatRange(event.start_at, event.end_at)}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm text-zinc-300 flex items-center gap-2">
-                            {event.is_virtual ? (
-                              <Badge variant="secondary" className="bg-purple-500/10 text-purple-400 border-purple-500/20">
-                                <Globe2 className="h-3 w-3 mr-1" /> Virtual
-                              </Badge>
-                            ) : (
-                              <span className="flex items-center gap-1.5">
-                                <MapPin className="h-3.5 w-3.5 text-zinc-500" />
-                                {event.city || event.location || "Onsite"}
-                              </span>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="outline"
-                            className={event.status === "published"
-                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                              : event.status === "draft"
-                                ? "bg-zinc-800 text-zinc-400 border-zinc-700"
-                                : "bg-red-900/20 text-red-400 border-red-900/30"}
-                          >
-                            {event.status}
+              <ResponsiveTable
+                data={events}
+                getRowKey={(event) => event.id}
+                breakpoint="lg"
+                className="[&>div:first-child]:rounded-none [&>div:first-child]:border-0 [&>div:last-child]:p-4 [&>div:last-child]:space-y-4"
+                columns={[
+                  {
+                    key: 'details',
+                    header: 'Event Details',
+                    className: 'pl-6 py-4',
+                    cell: (event) => (
+                      <div className="space-y-1">
+                        <div className="font-medium text-zinc-200 flex items-center gap-2 text-base">
+                          {event.title}
+                          {event.is_featured && (
+                            <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-400 border border-amber-500/20">
+                              Featured
+                            </span>
+                          )}
+                        </div>
+                        {event.summary && (
+                          <p className="text-xs text-zinc-500 line-clamp-1 max-w-[300px]">{event.summary}</p>
+                        )}
+                      </div>
+                    ),
+                  },
+                  {
+                    key: 'schedule',
+                    header: 'Schedule',
+                    cell: (event) => (
+                      <div className="text-sm text-zinc-400 font-mono">
+                        {formatRange(event.start_at, event.end_at)}
+                      </div>
+                    ),
+                  },
+                  {
+                    key: 'location',
+                    header: 'Location',
+                    cell: (event) => (
+                      <div className="text-sm text-zinc-300 flex items-center gap-2">
+                        {event.is_virtual ? (
+                          <Badge variant="secondary" className="bg-purple-500/10 text-purple-400 border-purple-500/20">
+                            <Globe2 className="h-3 w-3 mr-1" /> Virtual
                           </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="border-white/10 text-zinc-400">
-                            {event.visibility}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right pr-6">
-                          <div className="flex items-center justify-end gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 lg:focus-within:opacity-100 transition-opacity">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => toggleStatus(event)}
-                              className="h-8 text-xs text-zinc-400 hover:text-white hover:bg-white/10"
-                            >
-                              {event.status === "published" ? "Unpublish" : "Publish"}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => toggleFeatured(event)}
-                              aria-label={event.is_featured ? `Remove ${event.title} from featured` : `Mark ${event.title} as featured`}
-                              aria-pressed={event.is_featured}
-                              className={`h-8 w-8 rounded-lg ${event.is_featured ? 'text-amber-400 bg-amber-400/10' : 'text-zinc-600 hover:text-amber-400'}`}
-                            >
-                              <Star className={`h-4 w-4 ${event.is_featured ? "fill-current" : ""}`} />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => openEditDialog(event)}
-                              aria-label={`Edit ${event.title}`}
-                              className="h-8 w-8 text-zinc-400 hover:text-white hover:bg-white/10 rounded-lg"
-                            >
-                              <Edit2 className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => setEventToDelete(event)}
-                              disabled={deletingId === event.id}
-                              aria-label={`Delete ${event.title}`}
-                              className="h-8 w-8 text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg"
-                            >
-                              {deletingId === event.id ? (
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              ) : (
-                                <Trash2 className="h-3.5 w-3.5" />
-                              )}
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-
-              {/* Mobile Card View */}
-              <div className="lg:hidden p-4 space-y-4">
-                {events.map((event) => (
-                  <div key={event.id} className="relative bg-zinc-950/40 border border-white/5 rounded-3xl p-5 space-y-4 hover:border-amber-500/30 transition-all overflow-hidden">
-                    {/* Featured Badge */}
+                        ) : (
+                          <span className="flex items-center gap-1.5">
+                            <MapPin className="h-3.5 w-3.5 text-zinc-500" />
+                            {event.city || event.location || "Onsite"}
+                          </span>
+                        )}
+                      </div>
+                    ),
+                  },
+                  {
+                    key: 'status',
+                    header: 'Status',
+                    cell: (event) => (
+                      <Badge
+                        variant="outline"
+                        className={event.status === "published"
+                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                          : event.status === "draft"
+                            ? "bg-zinc-800 text-zinc-400 border-zinc-700"
+                            : "bg-red-900/20 text-red-400 border-red-900/30"}
+                      >
+                        {event.status}
+                      </Badge>
+                    ),
+                  },
+                  {
+                    key: 'visibility',
+                    header: 'Visibility',
+                    cell: (event) => (
+                      <Badge variant="outline" className="border-white/10 text-zinc-400">
+                        {event.visibility}
+                      </Badge>
+                    ),
+                  },
+                  {
+                    key: 'actions',
+                    header: 'Actions',
+                    className: 'text-right pr-6',
+                    cell: (event) => (
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => toggleStatus(event)}
+                          className="h-8 text-xs text-zinc-400 hover:text-white hover:bg-white/10"
+                        >
+                          {event.status === "published" ? "Unpublish" : "Publish"}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => toggleFeatured(event)}
+                          aria-label={event.is_featured ? `Remove ${event.title} from featured` : `Mark ${event.title} as featured`}
+                          aria-pressed={event.is_featured}
+                          className={`h-8 w-8 rounded-lg ${event.is_featured ? 'text-amber-400 bg-amber-400/10' : 'text-zinc-600 hover:text-amber-400'}`}
+                        >
+                          <Star className={`h-4 w-4 ${event.is_featured ? "fill-current" : ""}`} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openEditDialog(event)}
+                          aria-label={`Edit ${event.title}`}
+                          className="h-8 w-8 text-zinc-400 hover:text-white hover:bg-white/10 rounded-lg"
+                        >
+                          <Edit2 className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setEventToDelete(event)}
+                          disabled={deletingId === event.id}
+                          aria-label={`Delete ${event.title}`}
+                          className="h-8 w-8 text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg"
+                        >
+                          {deletingId === event.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-3.5 w-3.5" />
+                          )}
+                        </Button>
+                      </div>
+                    ),
+                  },
+                ]}
+                renderCard={(event) => (
+                  <div className="relative bg-zinc-950/40 border border-white/5 rounded-3xl p-5 space-y-4 hover:border-amber-500/30 transition-all overflow-hidden">
                     {event.is_featured && (
                       <div className="absolute top-4 right-4">
                         <span className="inline-flex items-center rounded-full bg-amber-500/20 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-400">
@@ -781,7 +782,7 @@ function AdminEventsPageContent() {
                         variant="ghost"
                         size="sm"
                         onClick={() => toggleStatus(event)}
-                        className="h-8 text-xs text-zinc-400 hover:text-white hover:bg-white/10 rounded-lg"
+                        className="h-11 text-xs text-zinc-400 hover:text-white hover:bg-white/10 rounded-lg"
                       >
                         {event.status === "published" ? "Unpublish" : "Publish"}
                       </Button>
@@ -792,21 +793,21 @@ function AdminEventsPageContent() {
                           onClick={() => toggleFeatured(event)}
                           aria-label={event.is_featured ? `Remove ${event.title} from featured` : `Mark ${event.title} as featured`}
                           aria-pressed={event.is_featured}
-                          className={cn("h-10 w-10 rounded-full", event.is_featured ? "bg-amber-500/20 text-amber-500" : "bg-white/5 text-zinc-600")}
+                          className={cn("h-11 w-11 rounded-full", event.is_featured ? "bg-amber-500/20 text-amber-500" : "bg-white/5 text-zinc-600")}
                         >
                           <Star className={cn("h-4 w-4", event.is_featured && "fill-current")} />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => openEditDialog(event)} aria-label={`Edit ${event.title}`} className="h-10 w-10 rounded-full bg-white/5 text-zinc-400">
+                        <Button variant="ghost" size="icon" onClick={() => openEditDialog(event)} aria-label={`Edit ${event.title}`} className="h-11 w-11 rounded-full bg-white/5 text-zinc-400">
                           <Edit2 className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => setEventToDelete(event)} disabled={deletingId === event.id} aria-label={`Delete ${event.title}`} className="h-10 w-10 rounded-full bg-rose-500/10 text-rose-500">
+                        <Button variant="ghost" size="icon" onClick={() => setEventToDelete(event)} disabled={deletingId === event.id} aria-label={`Delete ${event.title}`} className="h-11 w-11 rounded-full bg-rose-500/10 text-rose-500">
                           {deletingId === event.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                         </Button>
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
+                )}
+              />
             </div>
           )}
         </CardContent>

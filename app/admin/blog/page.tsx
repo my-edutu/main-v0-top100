@@ -6,14 +6,7 @@ import { supabase } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table'
+import { ResponsiveTable } from '@/components/ui/responsive-table'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -260,7 +253,7 @@ export default function AdminBlogPage() {
   const hasFilters = search.trim().length > 0 || statusFilter !== 'all'
 
   return (
-    <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pt-20 lg:pt-0">
+    <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div className="space-y-1">
@@ -404,127 +397,74 @@ export default function AdminBlogPage() {
                 )}
               </div>
             ) : (
-              <>
-                {/* Desktop / tablet table */}
-                <div className="hidden md:block overflow-x-auto">
-                  <Table>
-                    <TableHeader className="bg-zinc-50/70">
-                      <TableRow className="hover:bg-transparent border-zinc-200">
-                        <TableHead className="text-zinc-500 pl-6">Title</TableHead>
-                        <TableHead className="text-zinc-500">Date</TableHead>
-                        <TableHead className="text-zinc-500">Status</TableHead>
-                        <TableHead className="text-zinc-500">Featured</TableHead>
-                        <TableHead className="text-zinc-500 text-right pr-6">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredPosts.map(post => (
-                        <TableRow key={post.id} className="border-zinc-100 hover:bg-orange-50/40 transition-colors group">
-                          <TableCell className="font-medium text-zinc-800 pl-6 max-w-[320px]">
-                            <div className="flex flex-col">
-                              <span className="line-clamp-1">{post.title}</span>
-                              <span className="text-[11px] text-zinc-400 line-clamp-1">/{post.slug}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-zinc-500 whitespace-nowrap">
-                            {format(new Date(post.createdAt), 'MMM dd, yyyy')}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className={cn(
-                              "rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider capitalize",
-                              statusBadgeClass(post.status)
-                            )}>
-                              {post.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Switch
-                              checked={post.isFeatured}
-                              onCheckedChange={checked => toggleFeatured(post.id, checked)}
-                              aria-label={`Toggle featured for ${post.title}`}
-                              className="data-[state=checked]:bg-rose-500"
-                            />
-                          </TableCell>
-                          <TableCell className="text-right pr-6">
-                            <div className="flex justify-end items-center gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => router.push(`/admin/blog/edit/${post.id}`)}
-                                aria-label={`Edit ${post.title}`}
-                                className="h-9 w-9 rounded-xl text-zinc-500 hover:text-orange-600 hover:bg-orange-50"
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => setDeleteTarget(post)}
-                                disabled={deleting === post.id}
-                                aria-label={`Delete ${post.title}`}
-                                className="h-9 w-9 rounded-xl text-zinc-400 hover:text-rose-600 hover:bg-rose-50"
-                              >
-                                {deleting === post.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <Trash2 className="h-4 w-4" />
-                                )}
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-
-                {/* Mobile stacked cards */}
-                <div className="md:hidden divide-y divide-zinc-100">
-                  {filteredPosts.map(post => (
-                    <div key={post.id} className="p-4 space-y-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="font-bold text-zinc-800 line-clamp-2 leading-snug">{post.title}</p>
-                          <p className="text-[11px] text-zinc-400 line-clamp-1 mt-0.5">/{post.slug}</p>
-                        </div>
-                        <Badge variant="outline" className={cn(
-                          "shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider capitalize",
-                          statusBadgeClass(post.status)
-                        )}>
-                          {post.status}
-                        </Badge>
+              <ResponsiveTable
+                data={filteredPosts}
+                getRowKey={post => post.id}
+                className="[&>div:first-child]:rounded-none [&>div:first-child]:border-0 [&>div:last-child]:space-y-0 [&>div:last-child]:divide-y [&>div:last-child]:divide-zinc-100"
+                columns={[
+                  {
+                    key: 'title',
+                    header: 'Title',
+                    className: 'font-medium text-zinc-800 pl-6 max-w-[320px]',
+                    cell: post => (
+                      <div className="flex flex-col">
+                        <span className="line-clamp-1">{post.title}</span>
+                        <span className="text-[11px] text-zinc-400 line-clamp-1">/{post.slug}</span>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-zinc-500">
-                          {format(new Date(post.createdAt), 'MMM dd, yyyy')}
-                        </span>
-                        <label className="flex items-center gap-2 text-xs text-zinc-500">
-                          <span className="font-medium">Featured</span>
-                          <Switch
-                            checked={post.isFeatured}
-                            onCheckedChange={checked => toggleFeatured(post.id, checked)}
-                            aria-label={`Toggle featured for ${post.title}`}
-                            className="data-[state=checked]:bg-rose-500"
-                          />
-                        </label>
-                      </div>
-                      <div className="flex items-center gap-2">
+                    ),
+                  },
+                  {
+                    key: 'date',
+                    header: 'Date',
+                    className: 'text-zinc-500 whitespace-nowrap',
+                    cell: post => format(new Date(post.createdAt), 'MMM dd, yyyy'),
+                  },
+                  {
+                    key: 'status',
+                    header: 'Status',
+                    cell: post => (
+                      <Badge variant="outline" className={cn(
+                        "rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider capitalize",
+                        statusBadgeClass(post.status)
+                      )}>
+                        {post.status}
+                      </Badge>
+                    ),
+                  },
+                  {
+                    key: 'featured',
+                    header: 'Featured',
+                    cell: post => (
+                      <Switch
+                        checked={post.isFeatured}
+                        onCheckedChange={checked => toggleFeatured(post.id, checked)}
+                        aria-label={`Toggle featured for ${post.title}`}
+                        className="data-[state=checked]:bg-rose-500"
+                      />
+                    ),
+                  },
+                  {
+                    key: 'actions',
+                    header: 'Actions',
+                    className: 'text-right pr-6',
+                    cell: post => (
+                      <div className="flex justify-end items-center gap-1">
                         <Button
-                          variant="outline"
-                          size="sm"
+                          variant="ghost"
+                          size="icon"
                           onClick={() => router.push(`/admin/blog/edit/${post.id}`)}
-                          className="flex-1 rounded-xl border-zinc-200 text-zinc-700"
+                          aria-label={`Edit ${post.title}`}
+                          className="h-9 w-9 rounded-xl text-zinc-500 hover:text-orange-600 hover:bg-orange-50"
                         >
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Edit
+                          <Pencil className="h-4 w-4" />
                         </Button>
                         <Button
-                          variant="outline"
-                          size="sm"
+                          variant="ghost"
+                          size="icon"
                           onClick={() => setDeleteTarget(post)}
                           disabled={deleting === post.id}
                           aria-label={`Delete ${post.title}`}
-                          className="rounded-xl border-zinc-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                          className="h-9 w-9 rounded-xl text-zinc-400 hover:text-rose-600 hover:bg-rose-50"
                         >
                           {deleting === post.id ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -533,10 +473,65 @@ export default function AdminBlogPage() {
                           )}
                         </Button>
                       </div>
+                    ),
+                  },
+                ]}
+                renderCard={post => (
+                  <div className="p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-bold text-zinc-800 line-clamp-2 leading-snug">{post.title}</p>
+                        <p className="text-[11px] text-zinc-400 line-clamp-1 mt-0.5">/{post.slug}</p>
+                      </div>
+                      <Badge variant="outline" className={cn(
+                        "shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider capitalize",
+                        statusBadgeClass(post.status)
+                      )}>
+                        {post.status}
+                      </Badge>
                     </div>
-                  ))}
-                </div>
-              </>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-zinc-500">
+                        {format(new Date(post.createdAt), 'MMM dd, yyyy')}
+                      </span>
+                      <label className="flex items-center gap-2 text-xs text-zinc-500">
+                        <span className="font-medium">Featured</span>
+                        <Switch
+                          checked={post.isFeatured}
+                          onCheckedChange={checked => toggleFeatured(post.id, checked)}
+                          aria-label={`Toggle featured for ${post.title}`}
+                          className="data-[state=checked]:bg-rose-500"
+                        />
+                      </label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => router.push(`/admin/blog/edit/${post.id}`)}
+                        className="h-11 flex-1 rounded-xl border-zinc-200 text-zinc-700"
+                      >
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Edit
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setDeleteTarget(post)}
+                        disabled={deleting === post.id}
+                        aria-label={`Delete ${post.title}`}
+                        className="h-11 w-11 rounded-xl border-zinc-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                      >
+                        {deleting === post.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              />
             )}
           </CardContent>
         </Card>

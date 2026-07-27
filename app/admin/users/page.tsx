@@ -3,14 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { ResponsiveTable } from '@/components/ui/responsive-table'
 import {
   Card,
   CardContent,
@@ -215,7 +208,7 @@ export default function UserManagement() {
   )
 
   return (
-    <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pt-20 lg:pt-0">
+    <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 sm:gap-6">
         <div className="space-y-1">
@@ -321,124 +314,127 @@ export default function UserManagement() {
                 </div>
               </div>
             ) : (
-              <>
-                {/* Desktop Table */}
-                <div className="hidden md:block overflow-x-auto">
-                  <Table>
-                    <TableHeader className="bg-orange-50/60">
-                      <TableRow className="border-orange-100 hover:bg-transparent">
-                        <TableHead className="text-zinc-500 font-semibold pl-6">Identity</TableHead>
-                        <TableHead className="text-zinc-500 font-semibold">Role</TableHead>
-                        <TableHead className="text-zinc-500 font-semibold">Status</TableHead>
-                        <TableHead className="text-zinc-500 font-semibold">Last Active</TableHead>
-                        <TableHead className="text-zinc-500 font-semibold text-right pr-6">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredUsers.map((user) => (
-                        <TableRow key={user.id} className="border-zinc-100 hover:bg-orange-50/40 transition-colors group">
-                          <TableCell className="font-medium pl-6 py-4">
-                            <div className="flex items-center space-x-3">
-                              <div className="h-10 w-10 rounded-full bg-orange-50 border border-orange-100 flex items-center justify-center text-orange-500 shrink-0">
-                                <User className="h-5 w-5" />
-                              </div>
-                              <div className="min-w-0">
-                                <div className="text-zinc-800 font-semibold truncate">{user.name}</div>
-                                <div className="text-xs text-zinc-500 truncate">{user.email}</div>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className={roleBadgeClass(user.role)}>
-                              {user.role}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <div className={cn('h-2 w-2 rounded-full', user.status === 'active' ? 'bg-emerald-500 animate-pulse' : 'bg-zinc-300')} />
-                              <span className={cn('text-xs font-medium', user.status === 'active' ? 'text-emerald-600' : 'text-zinc-500')}>
-                                {user.status === 'active' ? 'Active' : user.status}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-zinc-500 text-xs">
-                            {new Date(user.lastActive || user.joinedDate).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell className="text-right pr-6">
-                            <div className="flex items-center justify-end gap-1 md:opacity-0 md:group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => toggleStatus(user.id)}
-                                className="h-8 w-8 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100"
-                                aria-label={`Mark ${user.name} as ${user.status === 'active' ? 'inactive' : 'active'}`}
-                                title={`Mark as ${user.status === 'active' ? 'inactive' : 'active'}`}
-                              >
-                                {user.status === 'active' ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleEditUser(user)}
-                                aria-label={`Edit role for ${user.name}`}
-                                className="h-8 w-8 text-zinc-400 hover:text-orange-600 hover:bg-orange-50"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => setDeleteTarget(user)}
-                                aria-label={`Delete ${user.name}`}
-                                className="h-8 w-8 text-zinc-400 hover:text-rose-600 hover:bg-rose-50"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-
-                {/* Mobile Cards */}
-                <div className="md:hidden p-4 space-y-3">
-                  {filteredUsers.map((user) => (
-                    <div key={user.id} className="rounded-2xl border border-zinc-100 bg-white p-4 space-y-3 hover:border-orange-200 transition-colors">
-                      <div className="flex items-start gap-3">
-                        <div className="h-11 w-11 rounded-full bg-orange-50 border border-orange-100 flex items-center justify-center text-orange-500 shrink-0">
+              <ResponsiveTable
+                data={filteredUsers}
+                getRowKey={(user) => user.id}
+                className="[&>div:first-child]:rounded-none [&>div:first-child]:border-0 [&>div:last-child]:p-4"
+                columns={[
+                  {
+                    key: 'identity',
+                    header: 'Identity',
+                    className: 'pl-6',
+                    cell: (user) => (
+                      <div className="flex items-center space-x-3">
+                        <div className="h-10 w-10 rounded-full bg-orange-50 border border-orange-100 flex items-center justify-center text-orange-500 shrink-0">
                           <User className="h-5 w-5" />
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="text-zinc-900 font-bold truncate">{user.name}</div>
+                        <div className="min-w-0">
+                          <div className="text-zinc-800 font-semibold truncate">{user.name}</div>
                           <div className="text-xs text-zinc-500 truncate">{user.email}</div>
                         </div>
-                        <Badge variant="outline" className={roleBadgeClass(user.role)}>{user.role}</Badge>
                       </div>
-                      <div className="flex items-center justify-between border-t border-zinc-100 pt-3">
-                        <div className="flex items-center gap-2">
-                          <div className={cn('h-2 w-2 rounded-full', user.status === 'active' ? 'bg-emerald-500' : 'bg-zinc-300')} />
-                          <span className={cn('text-xs font-medium', user.status === 'active' ? 'text-emerald-600' : 'text-zinc-500')}>
-                            {user.status === 'active' ? 'Active' : user.status}
-                          </span>
-                        </div>
-                        <div className="flex gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => toggleStatus(user.id)} aria-label={`Toggle status for ${user.name}`} className="h-8 w-8 rounded-full bg-zinc-50 text-zinc-500">
-                            {user.status === 'active' ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleEditUser(user)} aria-label={`Edit role for ${user.name}`} className="h-8 w-8 rounded-full bg-zinc-50 text-zinc-500 hover:text-orange-600 hover:bg-orange-50">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(user)} aria-label={`Delete ${user.name}`} className="h-8 w-8 rounded-full bg-rose-50 text-rose-600">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+                    ),
+                  },
+                  {
+                    key: 'role',
+                    header: 'Role',
+                    cell: (user) => (
+                      <Badge variant="outline" className={roleBadgeClass(user.role)}>
+                        {user.role}
+                      </Badge>
+                    ),
+                  },
+                  {
+                    key: 'status',
+                    header: 'Status',
+                    cell: (user) => (
+                      <div className="flex items-center gap-2">
+                        <div className={cn('h-2 w-2 rounded-full', user.status === 'active' ? 'bg-emerald-500 animate-pulse' : 'bg-zinc-300')} />
+                        <span className={cn('text-xs font-medium', user.status === 'active' ? 'text-emerald-600' : 'text-zinc-500')}>
+                          {user.status === 'active' ? 'Active' : user.status}
+                        </span>
+                      </div>
+                    ),
+                  },
+                  {
+                    key: 'lastActive',
+                    header: 'Last Active',
+                    className: 'text-zinc-500 text-xs',
+                    cell: (user) => new Date(user.lastActive || user.joinedDate).toLocaleDateString(),
+                  },
+                  {
+                    key: 'actions',
+                    header: 'Actions',
+                    className: 'text-right pr-6',
+                    cell: (user) => (
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => toggleStatus(user.id)}
+                          className="h-8 w-8 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100"
+                          aria-label={`Mark ${user.name} as ${user.status === 'active' ? 'inactive' : 'active'}`}
+                          title={`Mark as ${user.status === 'active' ? 'inactive' : 'active'}`}
+                        >
+                          {user.status === 'active' ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEditUser(user)}
+                          aria-label={`Edit role for ${user.name}`}
+                          className="h-8 w-8 text-zinc-400 hover:text-orange-600 hover:bg-orange-50"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setDeleteTarget(user)}
+                          aria-label={`Delete ${user.name}`}
+                          className="h-8 w-8 text-zinc-400 hover:text-rose-600 hover:bg-rose-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ),
+                  },
+                ]}
+                renderCard={(user) => (
+                  <div className="rounded-2xl border border-zinc-100 bg-white p-4 space-y-3 hover:border-orange-200 transition-colors">
+                    <div className="flex items-start gap-3">
+                      <div className="h-11 w-11 rounded-full bg-orange-50 border border-orange-100 flex items-center justify-center text-orange-500 shrink-0">
+                        <User className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-zinc-900 font-bold truncate">{user.name}</div>
+                        <div className="text-xs text-zinc-500 truncate">{user.email}</div>
+                      </div>
+                      <Badge variant="outline" className={roleBadgeClass(user.role)}>{user.role}</Badge>
+                    </div>
+                    <div className="flex items-center justify-between border-t border-zinc-100 pt-3">
+                      <div className="flex items-center gap-2">
+                        <div className={cn('h-2 w-2 rounded-full', user.status === 'active' ? 'bg-emerald-500' : 'bg-zinc-300')} />
+                        <span className={cn('text-xs font-medium', user.status === 'active' ? 'text-emerald-600' : 'text-zinc-500')}>
+                          {user.status === 'active' ? 'Active' : user.status}
+                        </span>
+                      </div>
+                      {/* 44px targets — these were 32px, below the minimum for touch. */}
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => toggleStatus(user.id)} aria-label={`Toggle status for ${user.name}`} className="h-11 w-11 rounded-full bg-zinc-50 text-zinc-500">
+                          {user.status === 'active' ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleEditUser(user)} aria-label={`Edit role for ${user.name}`} className="h-11 w-11 rounded-full bg-zinc-50 text-zinc-500 hover:text-orange-600 hover:bg-orange-50">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(user)} aria-label={`Delete ${user.name}`} className="h-11 w-11 rounded-full bg-rose-50 text-rose-600">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </>
+                  </div>
+                )}
+              />
             )}
           </CardContent>
         </Card>

@@ -3,7 +3,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 export default function SettingsLoading() {
   return (
     <div
-      className="space-y-6 pt-20 lg:pt-0"
+      className="space-y-6"
       aria-busy="true"
       aria-label="Loading settings"
     >
@@ -14,8 +14,8 @@ export default function SettingsLoading() {
       </div>
 
       {/* Tab bar */}
-      <div className="grid grid-cols-4 lg:grid-cols-10 gap-2">
-        {Array.from({ length: 4 }).map((_, i) => (
+      <div className="grid grid-cols-4 sm:grid-cols-5 lg:grid-cols-10 gap-2">
+        {Array.from({ length: 10 }).map((_, i) => (
           <Skeleton key={i} className="h-9 rounded-lg bg-zinc-200" />
         ))}
       </div>

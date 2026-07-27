@@ -245,7 +245,7 @@ export default function EditAwardeePage({ params }: { params: Promise<{ id: stri
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto py-6 sm:py-8 pt-20 lg:pt-6 space-y-6">
+      <div className="max-w-4xl mx-auto py-6 sm:py-8 pt-6 space-y-6">
         <div className="space-y-3">
           <Skeleton className="h-8 w-32" />
           <Skeleton className="h-8 w-64" />
@@ -261,7 +261,7 @@ export default function EditAwardeePage({ params }: { params: Promise<{ id: stri
 
   if (!awardee) {
     return (
-      <div className="max-w-4xl mx-auto py-20 pt-24 lg:pt-20 text-center">
+      <div className="max-w-4xl mx-auto py-20 text-center">
         <div className="mx-auto h-16 w-16 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center mb-4">
           <User className="h-8 w-8 text-orange-400" />
         </div>
@@ -275,7 +275,7 @@ export default function EditAwardeePage({ params }: { params: Promise<{ id: stri
   }
 
   return (
-    <div className="max-w-4xl mx-auto py-6 sm:py-8 pt-20 lg:pt-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="max-w-4xl mx-auto py-6 sm:py-8 pt-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Header */}
       <div className="mb-6">
         <Button

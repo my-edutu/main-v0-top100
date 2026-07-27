@@ -3,7 +3,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 export default function AwardeesLoading() {
   return (
     <div
-      className="space-y-6 sm:space-y-8 pt-20 lg:pt-0"
+      className="space-y-6 sm:space-y-8"
       aria-busy="true"
       aria-label="Loading awardees"
     >

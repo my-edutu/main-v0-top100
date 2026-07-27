@@ -39,6 +39,10 @@ export interface NavGroup {
  * Previously this was a flat list of 13 that omitted six real routes — users,
  * homepage, interviews, invites, member-posts and opportunities were only
  * reachable by typing the URL.
+ *
+ * There is deliberately no 'Groups' entry: /api/admin/groups exists but
+ * app/admin/groups/page.tsx does not, so a link here would 404. Add it when
+ * that console is built.
  */
 export const navGroups: NavGroup[] = [
   {

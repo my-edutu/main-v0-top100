@@ -130,7 +130,7 @@ export default function AdminMemberHubPage() {
   }
 
   return (
-    <div className="space-y-8 pt-20 lg:pt-0">
+    <div className="space-y-8">
       <section className="rounded-[32px] bg-gradient-to-br from-orange-500 to-amber-500 p-7 text-white">
         <div className="flex flex-wrap items-end justify-between gap-5">
           <div>
@@ -140,7 +140,7 @@ export default function AdminMemberHubPage() {
               Approve awardees, send dashboard notifications, and review feature requests in one place.
             </p>
           </div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
             <StatPill icon={Users} label="Members" value={stats.members} />
             <StatPill icon={Sparkles} label="Pending" value={stats.pendingFeatures} />
             <StatPill icon={Bell} label="Sent" value={stats.notifications} />
