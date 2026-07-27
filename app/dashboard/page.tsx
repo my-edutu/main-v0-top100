@@ -55,14 +55,16 @@ import {
   MemberProfile,
   updateMemberProfile,
 } from '@/lib/member-hub'
+import { fetchAwardOrder } from '@/lib/awards'
 import { magazineEditions } from '@/lib/magazines'
 import type { Awardee } from '@/lib/awardees-shared'
 import { cn } from '@/lib/utils'
 import WelcomeBalloons from '@/app/components/WelcomeBalloons'
 import DashboardHeader, { SignOutControl } from './dashboard-header'
 import MessagesSection, { type MessageRecipient } from './messages-section'
+import AwardsSection from './awards-section'
 
-type DashboardSection = 'home' | 'profile' | 'directory' | 'messages' | 'opportunities' | 'featured' | 'events' | 'partnerships' | 'magazine' | 'notifications' | 'settings'
+type DashboardSection = 'home' | 'profile' | 'directory' | 'messages' | 'opportunities' | 'awards' | 'featured' | 'events' | 'partnerships' | 'magazine' | 'notifications' | 'settings'
 
 type NavItem = {
   id: DashboardSection
@@ -78,7 +80,8 @@ const dashboardNav: NavItem[] = [
   { id: 'profile', title: 'BIO', label: 'Update profile', icon: FilePenLine, tone: 'orange', span: 'md:col-span-2' },
   { id: 'directory', title: 'Directory', label: 'Find awardees', icon: Users, tone: 'paper' },
   { id: 'messages', title: 'Messages', label: 'Direct contact', icon: MessageCircle, tone: 'paper' },
-  { id: 'opportunities', title: 'Opportunities', label: 'Member hub', icon: Trophy, tone: 'paper', span: 'md:col-span-2 xl:col-span-1' },
+  { id: 'opportunities', title: 'Opportunities', label: 'Member hub', icon: BriefcaseBusiness, tone: 'paper', span: 'md:col-span-2 xl:col-span-1' },
+  { id: 'awards', title: 'My Award', label: 'Claim and track', icon: Trophy, tone: 'orange' },
   { id: 'featured', title: 'Get featured', label: 'Submit story', icon: Sparkles, tone: 'orange' },
   { id: 'events', title: 'Events', label: 'Programs', icon: CalendarCheck, tone: 'paper' },
   { id: 'partnerships', title: 'Partnerships', label: 'Join or view', icon: HeartHandshake, tone: 'paper' },
@@ -141,6 +144,12 @@ const dashboardCardStyles: Record<DashboardSection, {
     arrow: 'text-amber-500',
     detail: 'text-black/52',
   },
+  awards: {
+    card: 'bg-[#fff1e6] text-black border border-orange-200',
+    icon: 'text-orange-600',
+    arrow: 'text-orange-600',
+    detail: 'text-black/52',
+  },
   featured: {
     card: 'bg-[#fdf0f5] text-black border border-pink-100',
     icon: 'text-pink-500',
@@ -191,6 +200,7 @@ export default function MemberDashboardPage() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [pendingRecipient, setPendingRecipient] = useState<MessageRecipient | null>(null)
   const [unreadMessages, setUnreadMessages] = useState(0)
+  const [needsAwardClaim, setNeedsAwardClaim] = useState(false)
 
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
@@ -214,6 +224,14 @@ export default function MemberDashboardPage() {
           const qs = params.toString()
           window.history.replaceState(null, '', window.location.pathname + (qs ? `?${qs}` : ''))
         }
+      }
+
+      if (params.get('section') === 'awards') {
+        setActiveSection('awards')
+        params.delete('section')
+        params.delete('payment')
+        const qs = params.toString()
+        window.history.replaceState(null, '', window.location.pathname + (qs ? `?${qs}` : ''))
       }
     } catch {
       // storage/history unavailable — skip the celebration rather than crash
@@ -246,6 +264,22 @@ export default function MemberDashboardPage() {
       })
       .catch(() => {
         // Messaging may not be set up yet — the section explains it.
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  // Drives the compulsory-award banner. Best-effort: a failure here must not
+  // break the dashboard, so it silently leaves the banner hidden.
+  useEffect(() => {
+    let cancelled = false
+    fetchAwardOrder()
+      .then((state) => {
+        if (!cancelled) setNeedsAwardClaim(state.needsClaim)
+      })
+      .catch(() => {
+        // Awards may not be set up yet — the section itself explains it.
       })
     return () => {
       cancelled = true
@@ -469,6 +503,24 @@ export default function MemberDashboardPage() {
         <main className="min-h-[calc(100dvh-4rem)] bg-[linear-gradient(180deg,#fffaf4_0%,#ffffff_36%,#fffaf4_100%)] px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
           <div className="mx-auto max-w-6xl space-y-5">
             <MembershipStatusBanner member={member} />
+            {needsAwardClaim && activeSection !== 'awards' && (
+              <button
+                type="button"
+                onClick={() => openSection('awards')}
+                className="flex w-full flex-wrap items-center justify-between gap-3 rounded-[24px] border border-orange-200 bg-orange-50 px-5 py-4 text-left transition hover:border-orange-300"
+              >
+                <span>
+                  <span className="block text-sm font-bold text-black">Claim your Africa Future Leaders award</span>
+                  <span className="mt-1 block text-sm font-medium leading-6 text-black/60">
+                    Every awardee receives the physical award. Add your delivery address to see the total and pay.
+                  </span>
+                </span>
+                <span className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-5 py-2.5 text-sm font-semibold text-[#fffaf0]">
+                  Claim now
+                  <ArrowRight className="h-4 w-4" strokeWidth={2.8} />
+                </span>
+              </button>
+            )}
             {activeSection === 'home' && <HomeSection member={member} onNavigate={openSection} state={state} unreadMessages={unreadMessages} unreadNotifications={unreadNotifications} />}
             {activeSection === 'profile' && <ProfileSection error={profileError} member={member} onSubmit={handleProfileSubmit} saved={saved} saving={savingProfile} />}
             {activeSection === 'directory' && <DirectorySection onMessage={handleMessageAwardee} />}
@@ -482,6 +534,7 @@ export default function MemberDashboardPage() {
               />
             )}
             {activeSection === 'opportunities' && <OpportunitiesSection state={state} />}
+            {activeSection === 'awards' && <AwardsSection member={member} onClaimStateChange={setNeedsAwardClaim} />}
             {activeSection === 'featured' && <FeaturedSection error={featureError} onSubmit={handleFeatureSubmit} saved={featureSaved} submissions={state.featureSubmissions} />}
             {activeSection === 'events' && <EventsSection />}
             {activeSection === 'partnerships' && <PartnershipsSection member={member} />}
