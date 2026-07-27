@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-27
 **Branch:** feat/member-awards-dispatch
-**Status:** approved design, not yet implemented
+**Status:** implemented 2026-07-27. See "Amendments during implementation" at the end.
 
 ## Problem
 
@@ -189,5 +189,29 @@ crawler → GET /og?title=…&hero=…
 - **Hero fetch failures at render time.** Covered by the gradient fallback, so the
   worst case is an unbranded-but-correct card rather than a broken preview.
 - **Registry drift.** A hero asset renamed in `public/` leaves a stale path in
-  `PAGE_OG`. The gradient fallback keeps the card working; the coverage test does
-  not catch this, and it is accepted rather than solved.
+  `PAGE_OG`. The gradient fallback keeps the card working. Partly solved after
+  all: `tests/og/og-pages.test.ts` asserts every registered hero exists on disk.
+
+## Amendments during implementation
+
+Two changes, both forced by looking at rendered output rather than by preference.
+
+**A third layout, `cover`.** The design assumed two variants. Rendering
+`/magazine` showed why that was wrong: a magazine cover carries its own
+typography, so putting the page header on top produced text over text, with the
+cover's "LEADERS / Magazine 2025" ghosting behind our title and a face cropped
+through the middle. Posters and covers now render whole on the right of the card
+with the header given clean space on the left. Applies to `/magazine`,
+`/magazine/afl2025`, and the 2024 magazine route. Two further routes —
+`/events` and `/initiatives` — had been pointed at a flyer and a magazine cover;
+both now use photographs, which the `banner` layout was designed for.
+
+**Redirect-only pages are exempt from coverage.** Five routes turned out to be
+bare `redirect()` calls with no rendered HTML: `/africa-future-leaders`,
+`/partners`, and `/initiatives/summit/{2024,2025,2026}`. They have nowhere to put
+a meta tag, so the coverage test skips them and the destination carries the card.
+
+One implementation trap worth recording: **satori does not honour the CSS `inset`
+shorthand.** The scrim silently did not render, which put white text on a bright
+yellow hero and looked like a colour problem rather than a positioning one. Fill
+positioning is written out as explicit `top`/`left`/`right`/`bottom`.
