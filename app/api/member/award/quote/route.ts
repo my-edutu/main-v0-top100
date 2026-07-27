@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
   try {
     quote = await getCourier().quote(details)
   } catch (error) {
-    console.error('[award-track] courier quote threw:', error)
+    console.error('[award-quote] courier quote threw:', error)
     quote = { ok: false, reason: 'Our team will contact you about delivery.', raw: null }
   }
   const award = awardPriceKobo()
