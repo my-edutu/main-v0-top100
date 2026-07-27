@@ -70,6 +70,10 @@ const eventItems: NavItem[] = [
 
 const magazineItems: NavItem[] = [
   {
+    label: "Impact Interviews",
+    href: "/interviews",
+  },
+  {
     label: "2024 Edition",
     href: "/magazine/africa future leaders magazine 2024",
   },

@@ -37,7 +37,7 @@ export default function BlogCover({
       className={cn("relative isolate overflow-hidden", className)}
       style={{
         backgroundImage:
-          "linear-gradient(135deg, #7c2d12 0%, #ea580c 55%, #e11d48 100%)",
+          "linear-gradient(135deg, #fbbf24 0%, #f59e0b 52%, #d97706 100%)",
       }}
       aria-label={title}
     >
@@ -52,14 +52,14 @@ export default function BlogCover({
         />
       ) : (
         <>
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(255,255,255,0.18),_transparent_42%),radial-gradient(circle_at_bottom_left,_rgba(251,191,36,0.16),_transparent_38%)]" />
-          <div className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-white/10 blur-3xl" />
-          <div className="absolute -bottom-12 -left-12 h-44 w-44 rounded-full bg-orange-400/20 blur-3xl" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(255,255,255,0.30),_transparent_45%),radial-gradient(circle_at_bottom_left,_rgba(180,83,9,0.22),_transparent_40%)]" />
+          <div className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-[#ffffff40] blur-3xl" />
+          <div className="absolute -bottom-12 -left-12 h-44 w-44 rounded-full bg-[#b4530933] blur-3xl" />
           <div className="relative flex h-full min-h-full items-center justify-center p-4 text-center">
             <div className="max-w-[90%] space-y-3">
               <div
                 className={cn(
-                  "mx-auto inline-flex items-center gap-2 rounded-full border border-[#ffffff33] bg-[#ffffff1f] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.35em] text-[#ffffffcc]",
+                  "mx-auto inline-flex items-center gap-2 rounded-full border border-[#451a0333] bg-[#ffffff59] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.35em] text-[#451a03]",
                   variant === "hero" && "px-4 py-2 text-[11px]",
                 )}
               >
@@ -68,7 +68,7 @@ export default function BlogCover({
               </div>
               <p
                 className={cn(
-                  "font-semibold text-[#fff]",
+                  "font-semibold text-[#451a03]",
                   variant === "hero"
                     ? "text-sm sm:text-lg"
                     : "text-xs leading-relaxed sm:text-sm line-clamp-3",

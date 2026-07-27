@@ -25,6 +25,10 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'flagcdn.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'i.ytimg.com',
+      },
     ],
   },
   async headers() {
@@ -91,8 +95,10 @@ const nextConfig = {
               "font-src 'self' data: https://fonts.gstatic.com",
               // Connections: self, Supabase, Brevo API, Turnstile verification
               "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.brevo.com https://challenges.cloudflare.com",
-              // Frames: Turnstile CAPTCHA widget
-              "frame-src https://challenges.cloudflare.com",
+              // Frames: Turnstile CAPTCHA widget + YouTube players (Impact
+              // Interviews, awardee profile videos). Without youtube-nocookie.com
+              // here the embeds are silently blocked by CSP in production.
+              "frame-src https://challenges.cloudflare.com https://www.youtube-nocookie.com https://www.youtube.com",
               // Media: self and external sources
               "media-src 'self' https: data:",
               // Object: none (no plugins)
