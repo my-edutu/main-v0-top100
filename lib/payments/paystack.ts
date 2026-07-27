@@ -21,9 +21,16 @@ export type InitResult = {
   reference: string
 }
 
-/** Deterministic reference so a retried checkout reuses one Paystack transaction. */
-export function buildReference(orderId: string): string {
-  return `AFL-AWARD-${orderId}`
+/**
+ * Build a Paystack reference for an order. Paystack's /transaction/initialize
+ * rejects a reference that already exists, so a bare orderId reference would
+ * make every retried checkout after the first fail with a duplicate-reference
+ * error. Pass a per-attempt `suffix` to keep references unique across
+ * retries while the order id stays a recoverable prefix. With no suffix this
+ * still returns exactly `AFL-AWARD-<orderId>`.
+ */
+export function buildReference(orderId: string, suffix?: string): string {
+  return suffix ? `AFL-AWARD-${orderId}-${suffix}` : `AFL-AWARD-${orderId}`
 }
 
 /**

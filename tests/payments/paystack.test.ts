@@ -84,4 +84,18 @@ describe('buildReference', () => {
   it('namespaces the reference with the order id', () => {
     expect(buildReference('0f8f-1234')).toMatch(/^AFL-AWARD-0f8f-1234$/)
   })
+
+  it('returns exactly AFL-AWARD-<orderId> when no suffix is given', () => {
+    expect(buildReference('0f8f-1234')).toBe('AFL-AWARD-0f8f-1234')
+  })
+
+  it('appends a uniqueness suffix when one is given, keeping the order id recoverable', () => {
+    expect(buildReference('0f8f-1234', 'abc123')).toBe('AFL-AWARD-0f8f-1234-abc123')
+  })
+
+  it('produces different references for the same order id with different suffixes', () => {
+    const first = buildReference('0f8f-1234', 'aaa')
+    const second = buildReference('0f8f-1234', 'bbb')
+    expect(first).not.toBe(second)
+  })
 })
