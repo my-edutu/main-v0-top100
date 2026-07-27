@@ -201,6 +201,11 @@ export default function MemberDashboardPage() {
   const [pendingRecipient, setPendingRecipient] = useState<MessageRecipient | null>(null)
   const [unreadMessages, setUnreadMessages] = useState(0)
   const [needsAwardClaim, setNeedsAwardClaim] = useState(false)
+  // Set when Paystack has just redirected the member back here
+  // (?section=awards&payment=done) and the webhook may not have landed yet.
+  // Passed down so AwardsSection can show a "confirming" state instead of a
+  // live Pay button, which would otherwise let them pay a second time.
+  const [paymentPending, setPaymentPending] = useState(false)
 
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
@@ -228,6 +233,11 @@ export default function MemberDashboardPage() {
 
       if (params.get('section') === 'awards') {
         setActiveSection('awards')
+        // Do not just discard this — a member who returns from Paystack
+        // before the webhook has landed must not see a live Pay button.
+        if (params.get('payment') === 'done') {
+          setPaymentPending(true)
+        }
         params.delete('section')
         params.delete('payment')
         const qs = params.toString()
@@ -534,7 +544,9 @@ export default function MemberDashboardPage() {
               />
             )}
             {activeSection === 'opportunities' && <OpportunitiesSection state={state} />}
-            {activeSection === 'awards' && <AwardsSection member={member} onClaimStateChange={setNeedsAwardClaim} />}
+            {activeSection === 'awards' && (
+              <AwardsSection member={member} onClaimStateChange={setNeedsAwardClaim} paymentPending={paymentPending} />
+            )}
             {activeSection === 'featured' && <FeaturedSection error={featureError} onSubmit={handleFeatureSubmit} saved={featureSaved} submissions={state.featureSubmissions} />}
             {activeSection === 'events' && <EventsSection />}
             {activeSection === 'partnerships' && <PartnershipsSection member={member} />}

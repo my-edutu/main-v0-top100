@@ -21,7 +21,8 @@ import {
     Mail,
     Bell,
     Newspaper,
-    Megaphone
+    Megaphone,
+    Award
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -31,6 +32,7 @@ import { toast } from 'sonner'
 const navItems = [
     { label: 'Overview', href: '/admin', icon: LayoutDashboard },
     { label: 'Awardees', href: '/admin/awardees', icon: Users },
+    { label: 'Awards', href: '/admin/awards', icon: Award },
     { label: 'Member Hub', href: '/admin/member-hub', icon: Bell },
     { label: 'Feature Requests', href: '/admin/feature-requests', icon: Newspaper },
     { label: 'Messages', href: '/admin/messages', icon: Mail },

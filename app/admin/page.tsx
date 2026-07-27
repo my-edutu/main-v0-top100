@@ -22,7 +22,8 @@ import {
   Star,
   Zap,
   KeyRound,
-  Bell
+  Bell,
+  Award
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -62,6 +63,15 @@ const navigationCards = [
     color: 'orange',
     stats: 'pendingApprovals',
     statsLabel: 'Pending'
+  },
+  {
+    title: 'Awards',
+    description: 'Track award payments, shipping quotes and courier dispatch',
+    href: '/admin/awards',
+    icon: Award,
+    color: 'orange',
+    stats: null,
+    statsLabel: 'Orders'
   },
   {
     title: 'Member Hub',

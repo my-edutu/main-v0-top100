@@ -39,6 +39,11 @@ export async function GET(request: NextRequest) {
       // here, and it is the only place those surface. Appended the same way
       // `memberName`/`memberEmail` already are above.
       adminNote: row.admin_note ?? null,
+      // Also intentionally omitted from `mapAwardOrder` for the same reason —
+      // it is what the admin console's "Verify payment with Paystack" action
+      // (POST /api/admin/awards/verify-payment) needs to know whether an
+      // unpaid order even has a Paystack transaction to check.
+      paystackReference: row.paystack_reference ?? null,
     })),
   })
 }

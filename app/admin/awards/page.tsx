@@ -34,6 +34,7 @@ import {
   Loader2,
   Package,
   RefreshCw,
+  ShieldCheck,
   Truck,
 } from 'lucide-react'
 
@@ -43,7 +44,7 @@ import {
 // imported here; the shape below is this page's own copy of what the GET
 // route actually returns.
 import { formatNaira, totalKobo } from '@/lib/awards/money'
-import { canTransition, type AwardStatus } from '@/lib/awards/status'
+import { canTransition, isPaid, type AwardStatus } from '@/lib/awards/status'
 
 type AwardOrder = {
   id: string
@@ -70,6 +71,7 @@ type AwardOrder = {
   memberName: string
   memberEmail: string
   adminNote: string | null
+  paystackReference: string | null
 }
 
 const ALL_STATUSES: AwardStatus[] = [
@@ -293,6 +295,43 @@ export default function AdminAwardsPage() {
       await patchOrder(order.id, { status: next })
     },
     [patchOrder],
+  )
+
+  // Fallback for when the webhook never arrives (most commonly a
+  // misconfigured webhook URL in the Paystack dashboard). Unlike patchOrder,
+  // this hits its own route — it asks Paystack whether the charge actually
+  // succeeded before writing anything, rather than trusting the admin's say-so.
+  const handleVerifyPayment = useCallback(
+    async (order: AwardOrder) => {
+      setSavingId(order.id)
+      try {
+        const response = await fetch('/api/admin/awards/verify-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderId: order.id }),
+        })
+        const data = await response.json().catch(() => ({}))
+
+        if (!response.ok) {
+          toast.error(data?.message || 'Could not verify this payment.')
+          return
+        }
+
+        if (data?.confirmed === false) {
+          toast.error(data?.message || 'Paystack does not confirm this payment.')
+          return
+        }
+
+        toast.success(data?.message || 'Payment confirmed with Paystack.')
+        await fetchOrders()
+      } catch (error) {
+        console.error('Error verifying award payment:', error)
+        toast.error('Could not verify this payment.')
+      } finally {
+        setSavingId(null)
+      }
+    },
+    [fetchOrders],
   )
 
   if (loading) {
@@ -639,6 +678,42 @@ export default function AdminAwardsPage() {
                           </p>
                         ) : null
                       })()}
+                    </div>
+                  )}
+
+                  {/* Fallback for a webhook that never arrives (most commonly
+                      a misconfigured webhook URL in the Paystack dashboard).
+                      Only offered while there is something to check — a
+                      Paystack reference — and only before this order is
+                      already recorded as paid, since the webhook is still the
+                      normal path and this route refuses to re-confirm a paid
+                      order anyway. */}
+                  {order.paystackReference && !isPaid(order.status) && (
+                    <div className="rounded-xl border border-border/60 p-3 space-y-2">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div>
+                          <label className="text-sm font-medium block">Verify payment with Paystack</label>
+                          <p className="text-xs text-muted-foreground">
+                            Asks Paystack directly whether reference {order.paystackReference} actually succeeded —
+                            use this when a payment should have landed but the order is stuck (e.g. the webhook never
+                            arrived).
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          disabled={savingId === order.id}
+                          onClick={() => handleVerifyPayment(order)}
+                          className="sm:shrink-0"
+                        >
+                          {savingId === order.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          ) : (
+                            <ShieldCheck className="h-4 w-4 mr-2" />
+                          )}
+                          Verify with Paystack
+                        </Button>
+                      </div>
                     </div>
                   )}
 

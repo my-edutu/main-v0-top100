@@ -45,16 +45,22 @@ describe('verifyPaystackSignature', () => {
     expect(verifyPaystackSignature(BODY, sign(BODY, ''), '')).toBe(false)
   })
 
-  it('rejects a same-length non-hex signature instead of truncating it as hex', () => {
-    // A correctly-hex signature is 128 chars (SHA-512 digest as hex). Swap the
-    // first char for a non-hex one: Buffer.from(sig, 'hex') would silently stop
-    // parsing there and produce a short, wrong buffer instead of failing length
-    // comparison, so this only stays rejected while comparison treats the
-    // signature as UTF-8 text rather than hex.
+  it('rejects a case-swapped valid signature', () => {
+    // Buffer.from(sig.toUpperCase(), 'hex') decodes to the exact same bytes as
+    // the lowercase form (hex decoding is case-insensitive), so a
+    // hex-decoding comparison would wrongly accept this as the same
+    // signature Paystack sent. The real implementation compares the raw
+    // signature strings as UTF-8 text — under which the differently-cased
+    // string simply is not equal to the lowercase one — so it correctly
+    // rejects it. This is what actually discriminates a safe (UTF-8 text)
+    // comparison from an unsafe (hex-decoding) one; a same-length non-hex
+    // signature does not, because it also fails the length pre-check under a
+    // hex-decoding implementation.
     const validSignature = sign(BODY)
-    const nonHexSameLength = `z${validSignature.slice(1)}`
-    expect(nonHexSameLength).toHaveLength(128)
-    expect(verifyPaystackSignature(BODY, nonHexSameLength, SECRET)).toBe(false)
+    const upperCased = validSignature.toUpperCase()
+    expect(upperCased).not.toBe(validSignature)
+    expect(upperCased).toHaveLength(validSignature.length)
+    expect(verifyPaystackSignature(BODY, upperCased, SECRET)).toBe(false)
   })
 })
 

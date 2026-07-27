@@ -1,6 +1,6 @@
 'use client'
 
-import { FormEvent, useCallback, useEffect, useState } from 'react'
+import { FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { Loader2, PackageCheck, RefreshCw, Trophy, Truck } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -22,12 +22,24 @@ import type { MemberProfile } from '@/lib/member-hub'
 // locked and the member sees tracking instead of a form.
 const TRACKING_STATUSES = ['paid', 'dispatched', 'in_transit', 'delivered']
 
+// How long we poll fetchAwardOrder() for after a Paystack return before
+// giving up and showing reassurance copy instead. 15 attempts * 4s ~= 1 minute.
+const PAYMENT_CONFIRMATION_POLL_MS = 4000
+const PAYMENT_CONFIRMATION_MAX_ATTEMPTS = 15
+
 export default function AwardsSection({
   member,
   onClaimStateChange,
+  paymentPending = false,
 }: {
   member: MemberProfile
   onClaimStateChange?: (needsClaim: boolean) => void
+  // Set by the dashboard when the member has just been redirected back from
+  // Paystack (?payment=done) and the webhook may not have landed yet. While
+  // this is confirmed unpaid, the totals panel (and its live Pay button) must
+  // not render — clicking Pay again would mint a second Paystack session and
+  // genuinely charge the member twice.
+  paymentPending?: boolean
 }) {
   const [state, setState] = useState<AwardState | null>(null)
   const [loading, setLoading] = useState(true)
@@ -38,6 +50,12 @@ export default function AwardsSection({
   const [notice, setNotice] = useState('')
   // Lets a member with a quote go back and correct their address.
   const [editingAddress, setEditingAddress] = useState(false)
+  // 'idle': not returning from payment (or already confirmed paid).
+  // 'polling': just returned from Paystack, order not paid yet — poll for it.
+  // 'timed_out': polling gave up without seeing a paid status.
+  const [paymentConfirmation, setPaymentConfirmation] = useState<'idle' | 'polling' | 'timed_out'>(
+    paymentPending ? 'polling' : 'idle',
+  )
 
   // Accepts either a full snapshot (the initial load, which already has a
   // complete, server-sourced AwardState) or an updater function that derives
@@ -86,6 +104,54 @@ export default function AwardsSection({
       cancelled = true
     }
   }, [applyState])
+
+  // Tracked via a ref (not read from `state` directly inside the polling
+  // effect below) so the polling effect's own dependency array does not need
+  // to include `state` — that would recreate the interval, and reset its
+  // attempt counter, on every single tick's own state update.
+  const orderStatusRef = useRef<string | null>(null)
+  useEffect(() => {
+    orderStatusRef.current = state?.order?.status ?? null
+  }, [state])
+
+  // Post-payment confirmation poll. Paystack redirects here before the
+  // webhook necessarily has, so immediately after a return from payment the
+  // order may still read as unpaid even though the charge went through. Poll
+  // in the background and flip back to 'idle' the moment it lands, or give up
+  // after PAYMENT_CONFIRMATION_MAX_ATTEMPTS and let the timed-out copy show.
+  useEffect(() => {
+    if (loading || paymentConfirmation !== 'polling') return
+
+    // The initial load may already show a paid status (the webhook was
+    // faster than the redirect) — nothing to poll for.
+    if (orderStatusRef.current && TRACKING_STATUSES.includes(orderStatusRef.current)) {
+      setPaymentConfirmation('idle')
+      return
+    }
+
+    let attempts = 0
+    const interval = setInterval(async () => {
+      attempts += 1
+      try {
+        const next = await fetchAwardOrder()
+        applyState(next)
+        if (next.order && TRACKING_STATUSES.includes(next.order.status)) {
+          clearInterval(interval)
+          setPaymentConfirmation('idle')
+          return
+        }
+      } catch {
+        // Best-effort — a transient failure just costs this attempt, not the
+        // whole poll.
+      }
+      if (attempts >= PAYMENT_CONFIRMATION_MAX_ATTEMPTS) {
+        clearInterval(interval)
+        setPaymentConfirmation('timed_out')
+      }
+    }, PAYMENT_CONFIRMATION_POLL_MS)
+
+    return () => clearInterval(interval)
+  }, [loading, paymentConfirmation, applyState])
 
   async function handleDeliverySubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -184,6 +250,12 @@ export default function AwardsSection({
 
   const order = state?.order ?? null
   const showTracking = order ? TRACKING_STATUSES.includes(order.status) : false
+  // Just returned from Paystack and not yet confirmed paid: never show the
+  // totals panel (and its live Pay button) here, however briefly — clicking
+  // Pay again would mint a second Paystack session and genuinely charge the
+  // member a second time while the first charge is still on its way in via
+  // the webhook.
+  const showPaymentConfirmation = !showTracking && paymentConfirmation !== 'idle'
   // awaiting_payment is a member who already started checkout — Paystack
   // deliberately admits both statuses as a legitimate retry (see the checkout
   // route). Showing the totals panel here again lets them just click Pay,
@@ -191,6 +263,7 @@ export default function AwardsSection({
   // courier quote at a possibly different price.
   const showTotals =
     !editingAddress &&
+    !showPaymentConfirmation &&
     (order?.status === 'quoted' || order?.status === 'awaiting_payment') &&
     order.totalAmountKobo !== null
 
@@ -222,6 +295,8 @@ export default function AwardsSection({
 
       {showTracking && order ? (
         <TrackingPanel order={order} onRefresh={handleRefreshTracking} refreshing={refreshing} />
+      ) : showPaymentConfirmation ? (
+        <PaymentConfirmationPanel timedOut={paymentConfirmation === 'timed_out'} />
       ) : showTotals && order ? (
         <TotalsPanel
           order={order}
@@ -233,6 +308,33 @@ export default function AwardsSection({
         <DeliveryForm member={member} order={order} onSubmit={handleDeliverySubmit} submitting={quoting} />
       )}
     </div>
+  )
+}
+
+/**
+ * Shown in place of the totals panel right after a Paystack return, while the
+ * webhook may still be in flight. Deliberately has no Pay button — see the
+ * `showPaymentConfirmation` guard above.
+ */
+function PaymentConfirmationPanel({ timedOut }: { timedOut: boolean }) {
+  return (
+    <section role="status" className="rounded-[28px] border border-orange-100 bg-white p-5 sm:p-6">
+      <div className="flex items-start gap-4">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-50 text-orange-600">
+          <Loader2 className={`h-6 w-6 ${timedOut ? '' : 'animate-spin'}`} strokeWidth={2.2} />
+        </div>
+        <div className="min-w-0">
+          <h4 className="text-2xl font-bold tracking-tight text-black">
+            {timedOut ? 'Payment received' : "We're confirming your payment"}
+          </h4>
+          <p className="mt-2 text-sm font-medium leading-6 text-black/60">
+            {timedOut
+              ? 'Your payment was received and our team will confirm it on your order shortly. If this does not update soon, contact support at info@top100afl.com.'
+              : 'This usually takes just a few seconds — hang tight and this page will update automatically once it is confirmed.'}
+          </p>
+        </div>
+      </div>
+    </section>
   )
 }
 
