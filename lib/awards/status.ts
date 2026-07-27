@@ -17,7 +17,15 @@ export type AwardStatus =
 const TRANSITIONS: Record<AwardStatus, readonly AwardStatus[]> = {
   // A member editing their address re-quotes, so quoted -> quoted is legal.
   draft: ['quoted', 'quote_failed', 'cancelled'],
-  quoted: ['quoted', 'quote_failed', 'awaiting_payment', 'cancelled'],
+  // `quoted -> paid` is deliberate. An order returns to `quoted` from
+  // `awaiting_payment` in two ordinary ways — the member re-quotes their
+  // address, or checkout resets an expired quote — while the Paystack session
+  // they already opened stays payable. The signature-verified, amount-verified
+  // charge that then arrives is real money already captured, and refusing to
+  // record it would mean taking payment with no record of it anywhere. This
+  // does not weaken the critical invariant: `dispatched` is still reachable
+  // only from `paid`, because no incoming edge to `dispatched` changes here.
+  quoted: ['quoted', 'quote_failed', 'awaiting_payment', 'paid', 'cancelled'],
   quote_failed: ['quoted', 'cancelled'],
   // Back to `quoted` when a checkout is abandoned or its quote expires.
   awaiting_payment: ['paid', 'quoted', 'cancelled'],

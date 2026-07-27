@@ -24,6 +24,14 @@ describe('canTransition', () => {
     expect(canTransition('awaiting_payment', 'paid')).toBe(true)
   })
 
+  // A member can be sitting on a still-payable Paystack session while the
+  // order has been pushed back to `quoted` (they re-quoted their address, or
+  // checkout reset an expired quote). The signature- and amount-verified
+  // charge that then arrives is real money, so `quoted -> paid` must be legal.
+  it('allows a verified payment to land on a re-quoted order', () => {
+    expect(canTransition('quoted', 'paid')).toBe(true)
+  })
+
   it('allows dispatch after payment', () => {
     expect(canTransition('paid', 'dispatched')).toBe(true)
   })
@@ -34,9 +42,12 @@ describe('canTransition', () => {
     expect(canTransition('draft', 'dispatched')).toBe(false)
   })
 
-  it('refuses to mark an order paid without going through checkout', () => {
+  it('refuses to mark an order paid before it has ever been priced', () => {
+    // No price exists at these statuses, so there is nothing a charge could be
+    // checked against — unlike `quoted`, which carries a total.
     expect(canTransition('draft', 'paid')).toBe(false)
-    expect(canTransition('quoted', 'paid')).toBe(false)
+    expect(canTransition('quote_failed', 'paid')).toBe(false)
+    expect(canTransition('cancelled', 'paid')).toBe(false)
   })
 
   it('treats delivered and cancelled as terminal', () => {

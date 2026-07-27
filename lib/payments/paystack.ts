@@ -64,7 +64,14 @@ export function paidAmountMatches(paidKobo: number, expectedKobo: number): boole
   return paidKobo >= expectedKobo
 }
 
-function secretKey(): string {
+/**
+ * The Paystack secret, or a throw. Exported so callers that need the raw key
+ * (the webhook, for signature verification) fail loudly on a misconfigured
+ * deployment. Reading process.env.PAYSTACK_SECRET_KEY directly there would
+ * hand `undefined` to verifyPaystackSignature, which returns false for a
+ * falsy secret — every webhook would be rejected as a forgery, silently.
+ */
+export function secretKey(): string {
   const key = process.env.PAYSTACK_SECRET_KEY
   if (!key) throw new Error('PAYSTACK_SECRET_KEY is not configured')
   return key
