@@ -6,5 +6,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+  // `og` is excluded so share-card renders do not each pay a Supabase
+  // session round-trip — crawlers hit that route, not signed-in users.
+  matcher: ['/((?!api|og|_next/static|_next/image|favicon.ico).*)'],
 }

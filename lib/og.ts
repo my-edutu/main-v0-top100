@@ -2,7 +2,13 @@ import type { Metadata } from "next"
 
 import { SITE_NAME, SITE_URL } from "@/lib/site"
 
-export type OgVariant = "banner" | "profile"
+/**
+ * `banner` suits photographs, which can sit behind the header under a scrim.
+ * `cover` suits posters and magazine covers, whose own typography would fight
+ * the header — those are shown whole, beside the text, not behind it.
+ * `profile` suits portraits.
+ */
+export type OgVariant = "banner" | "profile" | "cover"
 
 export type OgCard = {
   /** The page header. The one line that must be readable in a preview strip. */
@@ -107,14 +113,15 @@ export function ogImageUrl(card: OgCard): string {
   if (subtitle) params.set("subtitle", subtitle)
   if (meta) params.set("meta", meta)
   if (hero) params.set("hero", hero)
-  if (card.variant === "profile") params.set("variant", "profile")
+  if (card.variant && card.variant !== "banner") params.set("variant", card.variant)
 
   return `${SITE_URL}/og?${params.toString()}`
 }
 
 /** Inverse of ogImageUrl, used by the renderer. Always returns a usable card. */
 export function parseOgCard(params: URLSearchParams): OgCard {
-  const variant = params.get("variant") === "profile" ? "profile" : "banner"
+  const requested = params.get("variant")
+  const variant: OgVariant = requested === "profile" || requested === "cover" ? requested : "banner"
 
   return {
     title: clampText(params.get("title"), OG_LIMITS.title) ?? SITE_NAME,

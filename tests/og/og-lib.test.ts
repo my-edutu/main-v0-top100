@@ -67,9 +67,11 @@ describe("ogImageUrl", () => {
     expect(url.searchParams.has("variant")).toBe(false)
   })
 
-  it("keeps the profile variant", () => {
-    const url = new URL(ogImageUrl({ title: "Amina Okonkwo", variant: "profile" }))
-    expect(url.searchParams.get("variant")).toBe("profile")
+  it("keeps every non-default variant", () => {
+    expect(new URL(ogImageUrl({ title: "Amina Okonkwo", variant: "profile" })).searchParams.get("variant")).toBe(
+      "profile",
+    )
+    expect(new URL(ogImageUrl({ title: "Magazine", variant: "cover" })).searchParams.get("variant")).toBe("cover")
   })
 
   it("drops a disallowed hero rather than passing it through", () => {
@@ -98,6 +100,11 @@ describe("parseOgCard", () => {
 
   it("falls back to the site name when no title is supplied", () => {
     expect(parseOgCard(new URLSearchParams()).title).toBe(SITE_NAME)
+  })
+
+  it("round-trips the cover variant", () => {
+    const params = new URL(ogImageUrl({ title: "Magazine 2024", hero: "/a.jpg", variant: "cover" })).searchParams
+    expect(parseOgCard(params).variant).toBe("cover")
   })
 
   it("rejects an unknown variant and a disallowed hero", () => {
