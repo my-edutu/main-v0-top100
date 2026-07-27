@@ -10,7 +10,6 @@ import {
   BellRing,
   BriefcaseBusiness,
   BookOpen,
-  CalendarDays,
   CalendarCheck,
   Download,
   Eye,
@@ -24,6 +23,7 @@ import {
   Megaphone,
   MessageCircle,
   Newspaper,
+  PenLine,
   RefreshCw,
   Search,
   Send,
@@ -32,6 +32,7 @@ import {
   Sparkles,
   Trophy,
   Users,
+  UsersRound,
   type LucideIcon,
 } from 'lucide-react'
 import { SparklesIcon } from 'hugeicons-react'
@@ -49,7 +50,6 @@ import {
   createFeatureSubmission,
   markNotificationRead,
   markAllNotificationsRead,
-  HubOpportunity,
   MemberFeatureSubmission,
   MemberHubState,
   MemberProfile,
@@ -63,8 +63,12 @@ import WelcomeBalloons from '@/app/components/WelcomeBalloons'
 import DashboardHeader, { SignOutControl } from './dashboard-header'
 import MessagesSection, { type MessageRecipient } from './messages-section'
 import AwardsSection from './awards-section'
+import GroupsSection from './groups-section'
+import PostsSection from './posts-section'
+import OpportunitiesSection from './opportunities-section'
+import EventInvitationsSection from './event-invitations-section'
 
-type DashboardSection = 'home' | 'profile' | 'directory' | 'messages' | 'opportunities' | 'awards' | 'featured' | 'events' | 'partnerships' | 'magazine' | 'notifications' | 'settings'
+type DashboardSection = 'home' | 'profile' | 'directory' | 'messages' | 'groups' | 'posts' | 'opportunities' | 'awards' | 'featured' | 'events' | 'partnerships' | 'magazine' | 'notifications' | 'settings'
 
 type NavItem = {
   id: DashboardSection
@@ -80,6 +84,8 @@ const dashboardNav: NavItem[] = [
   { id: 'profile', title: 'BIO', label: 'Update profile', icon: FilePenLine, tone: 'orange', span: 'md:col-span-2' },
   { id: 'directory', title: 'Directory', label: 'Find awardees', icon: Users, tone: 'paper' },
   { id: 'messages', title: 'Messages', label: 'Direct contact', icon: MessageCircle, tone: 'paper' },
+  { id: 'groups', title: 'Groups', label: 'Connect with awardees', icon: UsersRound, tone: 'paper' },
+  { id: 'posts', title: 'Posts', label: 'Write and publish', icon: PenLine, tone: 'orange' },
   { id: 'opportunities', title: 'Opportunities', label: 'Member hub', icon: BriefcaseBusiness, tone: 'paper', span: 'md:col-span-2 xl:col-span-1' },
   { id: 'awards', title: 'My Award', label: 'Claim and track', icon: Trophy, tone: 'orange' },
   { id: 'featured', title: 'Get featured', label: 'Submit story', icon: Sparkles, tone: 'orange' },
@@ -136,6 +142,18 @@ const dashboardCardStyles: Record<DashboardSection, {
     card: 'bg-[#edf9f2] text-black border border-emerald-100',
     icon: 'text-emerald-500',
     arrow: 'text-emerald-500',
+    detail: 'text-black/52',
+  },
+  groups: {
+    card: 'bg-[#eafaf4] text-black border border-teal-100',
+    icon: 'text-teal-600',
+    arrow: 'text-teal-600',
+    detail: 'text-black/52',
+  },
+  posts: {
+    card: 'bg-[#fff0ee] text-black border border-red-100',
+    icon: 'text-red-500',
+    arrow: 'text-red-500',
     detail: 'text-black/52',
   },
   opportunities: {
@@ -543,12 +561,14 @@ export default function MemberDashboardPage() {
                 onBrowseDirectory={() => openSection('directory')}
               />
             )}
-            {activeSection === 'opportunities' && <OpportunitiesSection state={state} />}
+            {activeSection === 'groups' && <GroupsSection member={member} />}
+            {activeSection === 'posts' && <PostsSection member={member} />}
+            {activeSection === 'opportunities' && <OpportunitiesSection member={member} />}
             {activeSection === 'awards' && (
               <AwardsSection member={member} onClaimStateChange={setNeedsAwardClaim} paymentPending={paymentPending} />
             )}
             {activeSection === 'featured' && <FeaturedSection error={featureError} onSubmit={handleFeatureSubmit} saved={featureSaved} submissions={state.featureSubmissions} />}
-            {activeSection === 'events' && <EventsSection />}
+            {activeSection === 'events' && <EventInvitationsSection member={member} />}
             {activeSection === 'partnerships' && <PartnershipsSection member={member} />}
             {activeSection === 'magazine' && <MagazineSection onNavigate={openSection} />}
             {activeSection === 'notifications' && <NotificationsSection member={member} onRead={handleReadNotification} onMarkAll={handleMarkAllNotificationsRead} state={state} />}
@@ -1023,94 +1043,6 @@ function DirectorySection({ onMessage }: { onMessage: (awardee: Awardee) => void
   )
 }
 
-type OpportunitiesApiResponse = {
-  opportunities?: HubOpportunity[]
-  source?: string
-  mode?: 'live' | 'fallback'
-  message?: string
-}
-
-function OpportunitiesSection({ state }: { state: MemberHubState }) {
-  const [opportunities, setOpportunities] = useState<HubOpportunity[]>(state.opportunities)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-
-  async function loadOpportunities() {
-    setLoading(true)
-    setError('')
-
-    try {
-      const response = await fetch('/api/opportunities', { cache: 'no-store' })
-      const result = await response.json().catch(() => null) as OpportunitiesApiResponse | null
-
-      if (!response.ok) {
-        throw new Error(result?.message || 'Could not load opportunities.')
-      }
-
-      setOpportunities(result?.opportunities?.length && result.opportunities.length >= 4 ? result.opportunities : state.opportunities)
-    } catch (opportunityError) {
-      setOpportunities(state.opportunities)
-      setError(opportunityError instanceof Error ? opportunityError.message : 'Could not load opportunities.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    loadOpportunities()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  return (
-    <SectionShell icon={BriefcaseBusiness} title="Opportunities">
-      <div className="space-y-5">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-600">Member hub</p>
-            <h3 className="mt-2 text-3xl font-bold tracking-tight text-black">Live opportunities and programs.</h3>
-            <p className="mt-2 max-w-xl text-sm font-medium leading-6 text-black/60">
-              Keep the feed moving while new listings load in from the opportunity hub.
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            className="h-11 rounded-full border-orange-200 bg-white text-black hover:bg-orange-50"
-            onClick={loadOpportunities}
-            disabled={loading}
-          >
-            <RefreshCw className={cn('mr-2 h-4 w-4', loading && 'animate-spin')} />
-            {loading ? 'Refreshing' : 'Refresh'}
-          </Button>
-        </div>
-
-        {error ? (
-          <div className="rounded-2xl border border-orange-100 bg-white px-4 py-3 text-sm font-semibold text-orange-700">
-            {error}
-          </div>
-        ) : null}
-
-        <div className="grid gap-4 md:grid-cols-2">
-          {opportunities.map((opportunity, index) => (
-            <div key={opportunity.id} className={cn('rounded-[28px] p-6 text-black', index % 3 === 0 ? 'bg-orange-500' : index % 3 === 1 ? 'bg-[#f5f4f0]' : 'bg-[#fff2e2] border border-orange-100')}>
-              <div className="flex items-start justify-between gap-3">
-                <p className="text-xs font-semibold tracking-[0.18em] text-black/55">{opportunity.type.toUpperCase()}</p>
-                <span className="rounded-full bg-[#fffaf0] px-3 py-1 text-xs font-semibold text-black">
-                  {loading ? 'Loading' : 'Available'}
-                </span>
-              </div>
-              <h3 className="mt-4 text-2xl font-bold">{opportunity.title}</h3>
-              <div className="mt-6 flex flex-wrap gap-2">
-                <span className="rounded-full bg-[#fffaf0] px-4 py-2 text-sm font-semibold text-black">{opportunity.location}</span>
-                <span className="rounded-full bg-[#fffaf0] px-4 py-2 text-sm font-semibold text-black">{opportunity.deadline}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </SectionShell>
-  )
-}
-
 const FEATURE_STATUS_STYLES: Record<MemberFeatureSubmission['status'], string> = {
   pending: 'bg-amber-100 text-amber-800',
   reviewing: 'bg-sky-100 text-sky-800',
@@ -1256,135 +1188,6 @@ function FeaturedPreviewModal({
         </motion.div>
       ) : null}
     </AnimatePresence>
-  )
-}
-
-type DashboardEvent = {
-  id: string
-  title: string
-  summary?: string
-  start_at?: string
-  registration_url?: string
-  registration_label?: string
-  cover?: string
-}
-
-function EventsSection() {
-  const [events, setEvents] = useState<DashboardEvent[]>([])
-  const [loading, setLoading] = useState(true)
-  const [loadFailed, setLoadFailed] = useState(false)
-  const [reloadKey, setReloadKey] = useState(0)
-
-  useEffect(() => {
-    let cancelled = false
-
-    async function loadEvents() {
-      setLoading(true)
-      setLoadFailed(false)
-      try {
-        const response = await fetch('/api/events', { cache: 'no-store' })
-        if (!response.ok) throw new Error('Events request failed')
-        const payload = await response.json()
-        if (!cancelled) setEvents(Array.isArray(payload) ? payload.slice(0, 6) : [])
-      } catch {
-        if (!cancelled) {
-          setEvents([])
-          setLoadFailed(true)
-        }
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-
-    loadEvents()
-    return () => {
-      cancelled = true
-    }
-  }, [reloadKey])
-
-  const fallbackCovers = ['/top100-africa-future-leaders-2024-magazine-cover-w.jpg', '/magazine-cover-2025.jpg', '/young-african-man-business-leader.jpg']
-
-  return (
-    <SectionShell icon={CalendarDays} title="Events">
-      <div className="space-y-5">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h3 className="text-3xl font-bold tracking-tight text-black">Latest events and programs.</h3>
-            <p className="mt-2 max-w-xl text-sm font-medium leading-6 text-black/60">
-              Browse upcoming summits, live sessions, and community programs from the main events hub.
-            </p>
-          </div>
-          <Button asChild className="rounded-full bg-[#050505] px-7 py-6 text-[#fffaf0] hover:bg-[#171717]">
-            <Link href="/events">
-              Open events hub
-              <ArrowRight className="ml-2 h-4 w-4" strokeWidth={2.8} />
-            </Link>
-          </Button>
-        </div>
-
-        {loading ? (
-          <div className="grid gap-4 md:grid-cols-2" aria-hidden>
-            {[0, 1].map((row) => (
-              <div key={row} className="min-h-[250px] animate-pulse rounded-[28px] border border-orange-100 bg-orange-50/60" />
-            ))}
-          </div>
-        ) : loadFailed ? (
-          <div className="rounded-[28px] border border-orange-100 bg-white p-8 text-center">
-            <p className="text-sm font-semibold text-orange-700">Could not load events right now.</p>
-            <Button
-              type="button"
-              variant="outline"
-              className="mt-4 rounded-full border-orange-200 bg-white text-black hover:bg-orange-50"
-              onClick={() => setReloadKey((key) => key + 1)}
-            >
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Try again
-            </Button>
-          </div>
-        ) : events.length === 0 ? (
-          <div className="rounded-[28px] border border-dashed border-orange-200 bg-[#fffaf4] p-8 text-center">
-            <CalendarDays className="mx-auto h-8 w-8 text-orange-400" strokeWidth={2.2} />
-            <h4 className="mt-3 text-lg font-bold text-black">No events scheduled yet</h4>
-            <p className="mx-auto mt-2 max-w-sm text-sm font-medium leading-6 text-black/55">
-              New summits, live sessions, and programs will show up here as soon as they are announced.
-            </p>
-          </div>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2">
-            {events.map((event, index) => (
-              <article key={event.id} className="relative min-h-[250px] overflow-hidden rounded-[28px] border border-orange-100 bg-black p-6 text-white">
-                <Image
-                  src={event.cover || fallbackCovers[index % fallbackCovers.length]}
-                  alt={event.title}
-                  fill
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                  className="object-cover"
-                  priority={index === 0}
-                />
-                <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(0,0,0,0.84)_0%,rgba(0,0,0,0.58)_46%,rgba(0,0,0,0.82)_100%)]" />
-                <div className="relative z-10 flex h-full min-h-[250px] flex-col justify-between">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/70">{formatDashboardDate(event.start_at)}</p>
-                    <h4 className="mt-4 text-2xl font-bold tracking-tight">{event.title}</h4>
-                    <p className="mt-2 max-w-md text-sm font-medium leading-6 text-white/72">
-                      {event.summary || 'Program details from the Africa Future Leaders events hub.'}
-                    </p>
-                  </div>
-                  <div className="mt-6">
-                    <Button asChild className="rounded-full bg-white px-6 py-5 text-black hover:bg-white/90">
-                      <Link href={event.registration_url || '/events'}>
-                        {event.registration_label || 'Join event'}
-                        <ArrowRight className="ml-2 h-4 w-4" strokeWidth={2.8} />
-                      </Link>
-                    </Button>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </div>
-    </SectionShell>
   )
 }
 

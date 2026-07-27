@@ -51,6 +51,7 @@ import {
   Star,
   Trash2,
   Edit2,
+  Send,
 } from "lucide-react"
 
 const formatDateForInput = (value?: string | null) => {
@@ -811,6 +812,8 @@ function AdminEventsPageContent() {
         </CardContent>
       </Card>
 
+      <InvitationsPanel events={events} />
+
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto bg-zinc-950 border-white/10 text-white sm:max-w-[700px]">
           <DialogHeader>
@@ -1096,6 +1099,260 @@ export default function AdminEventsPage() {
     >
       <AdminEventsPageContent />
     </Suspense>
+  )
+}
+
+/**
+ * Send targeted invitations for one event, and read back the RSVP roster.
+ * Self-contained: owns its own state and talks only to
+ * /api/admin/event-invitations. Added by the event-invitations workstream.
+ */
+type InvitationAudience = "all" | "approved" | "cohort" | "selected"
+
+type RsvpCounts = { pending: number; attending: number; declined: number; maybe: number }
+
+type RosterEntry = {
+  id: string
+  profileId: string
+  name: string
+  email: string | null
+  rsvp: string
+  rsvpAt: string | null
+  invitedAt: string | null
+}
+
+const EMPTY_RSVP_COUNTS: RsvpCounts = { pending: 0, attending: 0, declined: 0, maybe: 0 }
+
+function InvitationsPanel({ events }: { events: AdminEvent[] }) {
+  const [eventId, setEventId] = useState("")
+  const [audience, setAudience] = useState<InvitationAudience>("all")
+  const [cohortYear, setCohortYear] = useState("")
+  const [profileIds, setProfileIds] = useState("")
+  const [message, setMessage] = useState("")
+  const [sending, setSending] = useState(false)
+  const [roster, setRoster] = useState<RosterEntry[]>([])
+  const [counts, setCounts] = useState<RsvpCounts>(EMPTY_RSVP_COUNTS)
+  const [rosterLoading, setRosterLoading] = useState(false)
+  const [rosterError, setRosterError] = useState("")
+
+  const loadRoster = useCallback(async (id: string) => {
+    if (!id) {
+      setRoster([])
+      setCounts(EMPTY_RSVP_COUNTS)
+      setRosterError("")
+      return
+    }
+
+    setRosterLoading(true)
+    setRosterError("")
+    try {
+      const response = await fetch(`/api/admin/event-invitations?eventId=${encodeURIComponent(id)}`)
+      const payload = await response.json().catch(() => null)
+      if (!response.ok) {
+        throw new Error(payload?.message || "Could not load the RSVP roster.")
+      }
+      setRoster(Array.isArray(payload?.roster) ? payload.roster : [])
+      setCounts({ ...EMPTY_RSVP_COUNTS, ...(payload?.counts ?? {}) })
+    } catch (error) {
+      setRoster([])
+      setCounts(EMPTY_RSVP_COUNTS)
+      setRosterError(error instanceof Error ? error.message : "Could not load the RSVP roster.")
+    } finally {
+      setRosterLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadRoster(eventId)
+  }, [eventId, loadRoster])
+
+  const sendInvitations = async () => {
+    if (!eventId) {
+      toast.error("Pick an event first")
+      return
+    }
+
+    setSending(true)
+    try {
+      const response = await fetch("/api/admin/event-invitations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventId,
+          audience,
+          message: message.trim() || undefined,
+          cohortYear: audience === "cohort" ? cohortYear.trim() : undefined,
+          profileIds:
+            audience === "selected"
+              ? profileIds
+                  .split(/[\s,]+/)
+                  .map((id) => id.trim())
+                  .filter(Boolean)
+              : undefined,
+        }),
+      })
+
+      const payload = await response.json().catch(() => null)
+      if (!response.ok) {
+        throw new Error(payload?.message || "Could not send the invitations.")
+      }
+
+      const invited = payload?.invited ?? 0
+      const skipped = payload?.skipped ?? 0
+      toast.success(
+        skipped > 0
+          ? `${invited} invited — ${skipped} already had an invitation and were left untouched.`
+          : `${invited} member${invited === 1 ? "" : "s"} invited`,
+      )
+      setMessage("")
+      loadRoster(eventId)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not send the invitations.")
+    } finally {
+      setSending(false)
+    }
+  }
+
+  return (
+    <Card className="bg-zinc-900/40 border-white/5 backdrop-blur-sm rounded-3xl overflow-hidden">
+      <CardHeader className="border-b border-white/5 px-6 py-4">
+        <CardTitle className="text-lg font-bold text-white flex items-center gap-2">
+          <Send className="h-4 w-4 text-zinc-400" />
+          Invitations &amp; RSVPs
+        </CardTitle>
+        <CardDescription className="text-zinc-500">
+          Invite awardees to an event and track who is coming. Re-sending never resets an RSVP.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="p-6 space-y-6">
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-2">
+            <Label className="text-zinc-400">Event</Label>
+            <Select value={eventId} onValueChange={setEventId}>
+              <SelectTrigger className="bg-zinc-900 border-zinc-800 text-white">
+                <SelectValue placeholder="Pick an event" />
+              </SelectTrigger>
+              <SelectContent className="bg-zinc-950 border-white/10 text-white">
+                {events.map((event) => (
+                  <SelectItem key={event.id} value={event.id}>
+                    {event.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid gap-2">
+            <Label className="text-zinc-400">Audience</Label>
+            <Select value={audience} onValueChange={(value) => setAudience(value as InvitationAudience)}>
+              <SelectTrigger className="bg-zinc-900 border-zinc-800 text-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-zinc-950 border-white/10 text-white">
+                <SelectItem value="all">All members</SelectItem>
+                <SelectItem value="approved">Approved members only</SelectItem>
+                <SelectItem value="cohort">A single cohort</SelectItem>
+                <SelectItem value="selected">Named members</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {audience === "cohort" ? (
+            <div className="grid gap-2">
+              <Label className="text-zinc-400">Cohort year</Label>
+              <Input
+                value={cohortYear}
+                onChange={(event) => setCohortYear(event.target.value)}
+                placeholder="Ex: 2025"
+                className="bg-zinc-900 border-zinc-800 text-white focus:ring-amber-500/50 focus:border-amber-500/50"
+              />
+            </div>
+          ) : null}
+
+          {audience === "selected" ? (
+            <div className="grid gap-2 lg:col-span-2">
+              <Label className="text-zinc-400">Member profile IDs</Label>
+              <Textarea
+                value={profileIds}
+                onChange={(event) => setProfileIds(event.target.value)}
+                placeholder="Paste profile UUIDs, separated by commas or new lines"
+                className="bg-zinc-900 border-zinc-800 text-white focus:ring-amber-500/50 focus:border-amber-500/50 min-h-[80px]"
+              />
+            </div>
+          ) : null}
+
+          <div className="grid gap-2 lg:col-span-2">
+            <Label className="text-zinc-400">Personal note (optional)</Label>
+            <Textarea
+              value={message}
+              onChange={(event) => setMessage(event.target.value)}
+              placeholder="Shown on the member's invitation card."
+              className="bg-zinc-900 border-zinc-800 text-white focus:ring-amber-500/50 focus:border-amber-500/50 min-h-[80px]"
+            />
+          </div>
+        </div>
+
+        <Button
+          onClick={sendInvitations}
+          disabled={sending || !eventId}
+          size="sm"
+          className="bg-amber-500 hover:bg-amber-600 text-black font-bold rounded-xl h-10 px-4 shadow-lg shadow-amber-500/20"
+        >
+          {sending ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Send className="mr-1 h-4 w-4" />}
+          Send invitations
+        </Button>
+
+        <div className="border-t border-white/5 pt-6 space-y-4">
+          <div className="flex flex-wrap gap-2">
+            {(["attending", "maybe", "declined", "pending"] as const).map((key) => (
+              <Badge key={key} variant="outline" className="bg-white/5 text-zinc-300 border-white/10 capitalize">
+                {key}: {counts[key]}
+              </Badge>
+            ))}
+            <Badge variant="outline" className="bg-emerald-500/5 text-emerald-400 border-emerald-500/20">
+              Invited: {roster.length}
+            </Badge>
+          </div>
+
+          {!eventId ? (
+            <p className="text-sm text-zinc-500">Pick an event to see who has been invited.</p>
+          ) : rosterLoading ? (
+            <div className="flex items-center gap-2 text-sm text-zinc-500">
+              <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
+              Loading RSVPs...
+            </div>
+          ) : rosterError ? (
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="text-sm text-rose-400">{rosterError}</p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => loadRoster(eventId)}
+                className="rounded-xl border-white/10 bg-white/5 text-zinc-300 h-9"
+              >
+                Try again
+              </Button>
+            </div>
+          ) : roster.length === 0 ? (
+            <p className="text-sm text-zinc-500">Nobody has been invited to this event yet.</p>
+          ) : (
+            <div className="rounded-2xl border border-white/5 divide-y divide-white/5 max-h-80 overflow-y-auto">
+              {roster.map((entry) => (
+                <div key={entry.id} className="flex items-center justify-between gap-4 px-4 py-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-zinc-200 truncate">{entry.name}</p>
+                    <p className="text-xs text-zinc-500 truncate">{entry.email ?? entry.profileId}</p>
+                  </div>
+                  <Badge variant="outline" className="bg-white/5 text-zinc-300 border-white/10 capitalize shrink-0">
+                    {entry.rsvp}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 

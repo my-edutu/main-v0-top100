@@ -25,6 +25,25 @@
   --border: 215 27.9% 16.9%;
   --input: 215 27.9% 16.9%;
   --ring: 216 12% 84%;
+
+  /*
+    Admin console sidebar tokens.
+
+    tailwind.config.ts maps bg-sidebar / text-sidebar-foreground / etc. to these
+    variables, but nothing defined them, so components/ui/sidebar.tsx rendered
+    with undefined colours. The admin console is deliberately always light
+    (white chrome, orange accents) regardless of the site theme, so these are
+    declared once here and repeated identically under html.light below — that
+    keeps them out of reach of the html.light !important overrides.
+  */
+  --sidebar-background: 0 0% 100%;
+  --sidebar-foreground: 240 5% 34%;
+  --sidebar-primary: 25 95% 53%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 33 100% 96%;
+  --sidebar-accent-foreground: 21 90% 48%;
+  --sidebar-border: 34 100% 92%;
+  --sidebar-ring: 25 95% 53%;
 }
 
 html.light {
@@ -48,6 +67,16 @@ html.light {
   --border: 214.3 31.8% 91.4%;
   --input: 214.3 31.8% 91.4%;
   --ring: 222.2 47.4% 11.2%;
+
+  /* Identical to :root — the admin console does not change with the theme. */
+  --sidebar-background: 0 0% 100%;
+  --sidebar-foreground: 240 5% 34%;
+  --sidebar-primary: 25 95% 53%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 33 100% 96%;
+  --sidebar-accent-foreground: 21 90% 48%;
+  --sidebar-border: 34 100% 92%;
+  --sidebar-ring: 25 95% 53%;
 }
 
 html.light body {

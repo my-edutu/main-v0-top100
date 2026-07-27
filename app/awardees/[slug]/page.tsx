@@ -12,6 +12,7 @@ import { AvatarSVG, flagEmoji } from '@/lib/avatars'
 import type { Achievement, GalleryItem, SocialLinks } from '@/types/profile'
 import ConnectButton from './ConnectButton'
 import LinkedInPostCard from './LinkedInPostCard'
+import AwardeePostsList from './AwardeePostsList'
 import StructuredData from '@/components/StructuredData'
 
 export const runtime = 'nodejs'
@@ -434,6 +435,9 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
             </div>
           )}
         </div>
+
+        {/* Posts written by this awardee. Renders nothing when they have none. */}
+        <AwardeePostsList slug={slug} />
 
         {/* Related Leaders - Forbes "More From" Section */}
         {randomAwardees.length > 0 && (

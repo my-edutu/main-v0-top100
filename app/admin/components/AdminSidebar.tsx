@@ -22,7 +22,10 @@ import {
     Bell,
     Newspaper,
     Megaphone,
-    Award
+    Award,
+    KeyRound,
+    Briefcase,
+    PenLine
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -32,8 +35,13 @@ import { toast } from 'sonner'
 const navItems = [
     { label: 'Overview', href: '/admin', icon: LayoutDashboard },
     { label: 'Awardees', href: '/admin/awardees', icon: Users },
+    { label: 'Invite Codes', href: '/admin/invites', icon: KeyRound },
     { label: 'Awards', href: '/admin/awards', icon: Award },
     { label: 'Member Hub', href: '/admin/member-hub', icon: Bell },
+    // No 'Groups' entry: /api/admin/groups exists but app/admin/groups/page.tsx
+    // does not, so a link here would 404. Add it when that console is built.
+    { label: 'Member Posts', href: '/admin/member-posts', icon: PenLine },
+    { label: 'Opportunities', href: '/admin/opportunities', icon: Briefcase },
     { label: 'Feature Requests', href: '/admin/feature-requests', icon: Newspaper },
     { label: 'Messages', href: '/admin/messages', icon: Mail },
     { label: 'Notifications', href: '/admin/notifications', icon: Bell },
