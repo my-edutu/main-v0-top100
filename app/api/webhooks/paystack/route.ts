@@ -37,6 +37,19 @@ function appendNote(existing: unknown, addition: string): string {
   return prior ? `${prior}\n${stamped}` : stamped
 }
 
+/**
+ * Every anomaly branch below writes `admin_note` / `paystack_status` as a
+ * best-effort trace, on top of the `console.error` that already ran. Those
+ * writes use the same `{ data, error }` client as everything else, so an
+ * unchecked `error` here would fail silently — if these columns were ever
+ * missing from the live schema, only the console output would survive.
+ * Non-fatal by design: the human-readable log already happened either way.
+ */
+function logNoteFailure(context: string, orderId: string, error: unknown) {
+  if (!error) return
+  console.error(`[paystack-webhook] failed to write "${context}" trace onto order`, { orderId, error })
+}
+
 /** Paystack echoes metadata as an object, but has been known to echo a string. */
 function readMetadata(raw: unknown): Record<string, unknown> {
   if (raw && typeof raw === 'object') return raw as Record<string, unknown>
@@ -96,7 +109,8 @@ export async function POST(request: NextRequest) {
   let event: any
   try {
     event = JSON.parse(rawBody)
-  } catch {
+  } catch (parseError) {
+    console.error('[paystack-webhook] signature-verified body is not valid JSON', parseError)
     return NextResponse.json({ message: 'Invalid payload.' }, { status: 400 })
   }
 
@@ -128,20 +142,30 @@ export async function POST(request: NextRequest) {
   let matchedBy: 'reference' | 'metadata' = 'reference'
 
   if (reference) {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('award_orders')
       .select('*')
       .eq('paystack_reference', reference)
       .maybeSingle()
+    if (error) {
+      // A transient database fault must not read as "no such order" — that
+      // would answer 200 to a real charge and Paystack would never retry.
+      console.error('[paystack-webhook] order lookup by reference failed', { reference, error })
+      return NextResponse.json({ message: 'Lookup failed.' }, { status: 500 })
+    }
     order = data ?? null
   }
 
   if (!order && metadataOrderId) {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('award_orders')
       .select('*')
       .eq('id', metadataOrderId)
       .maybeSingle()
+    if (error) {
+      console.error('[paystack-webhook] order lookup by metadata.orderId failed', { metadataOrderId, error })
+      return NextResponse.json({ message: 'Lookup failed.' }, { status: 500 })
+    }
     order = data ?? null
     if (order) matchedBy = 'metadata'
   }
@@ -180,7 +204,7 @@ export async function POST(request: NextRequest) {
       duplicateReference: reference,
       duplicatePaidKobo: paidKobo,
     })
-    await supabase
+    const { error: duplicateNoteError } = await supabase
       .from('award_orders')
       .update({
         admin_note: appendNote(
@@ -189,6 +213,7 @@ export async function POST(request: NextRequest) {
         ),
       })
       .eq('id', order.id)
+    logNoteFailure('duplicate charge on already-paid order', order.id, duplicateNoteError)
     return acknowledge()
   }
 
@@ -202,7 +227,7 @@ export async function POST(request: NextRequest) {
       reference,
       paidKobo,
     })
-    await supabase
+    const { error: unexpectedStatusNoteError } = await supabase
       .from('award_orders')
       .update({
         paystack_status: 'unexpected_status',
@@ -213,6 +238,7 @@ export async function POST(request: NextRequest) {
         ),
       })
       .eq('id', order.id)
+    logNoteFailure('payment on unexpected status', order.id, unexpectedStatusNoteError)
     return acknowledge()
   }
 
@@ -224,7 +250,7 @@ export async function POST(request: NextRequest) {
       reference,
       amount: paidKobo,
     })
-    await supabase
+    const { error: amountUnreadableNoteError } = await supabase
       .from('award_orders')
       .update({
         paystack_status: 'amount_unreadable',
@@ -235,6 +261,7 @@ export async function POST(request: NextRequest) {
         ),
       })
       .eq('id', order.id)
+    logNoteFailure('unreadable amount', order.id, amountUnreadableNoteError)
     return acknowledge()
   }
 
@@ -244,10 +271,18 @@ export async function POST(request: NextRequest) {
       paidKobo,
       expected: order.total_amount_kobo,
     })
-    await supabase
+    const { error: amountMismatchNoteError } = await supabase
       .from('award_orders')
-      .update({ paystack_status: 'amount_mismatch', admin_note: `Paid ${paidKobo} kobo, expected ${order.total_amount_kobo}` })
+      .update({
+        paystack_status: 'amount_mismatch',
+        admin_note: appendNote(
+          noteSoFar,
+          `AMOUNT MISMATCH: reference ${reference ?? 'unknown'} paid ${paidKobo} kobo, expected ${order.total_amount_kobo}. ` +
+            `Order NOT marked paid — verify the transaction in Paystack.`,
+        ),
+      })
       .eq('id', order.id)
+    logNoteFailure('amount mismatch', order.id, amountMismatchNoteError)
     return acknowledge()
   }
 
@@ -292,7 +327,7 @@ export async function POST(request: NextRequest) {
       paidKobo,
       error: updateError,
     })
-    await supabase
+    const { error: notRecordedNoteError } = await supabase
       .from('award_orders')
       .update({
         admin_note: appendNote(
@@ -302,22 +337,39 @@ export async function POST(request: NextRequest) {
         ),
       })
       .eq('id', order.id)
+    logNoteFailure('payment not recorded (status write failed)', order.id, notRecordedNoteError)
     return acknowledge()
   }
 
   if (!updated) {
-    // Another concurrent invocation won the status race and owns the booking.
-    // Usually that is a retry of this same charge — but with two payable
-    // sessions per order it can also be a genuinely different transaction that
-    // landed in the same instant, and that one still has to leave a trace.
-    const { data: current } = await supabase
+    // Another concurrent invocation may have won the status race and already
+    // own the booking — usually a retry of this same charge. But the status
+    // can also have moved for a reason that has nothing to do with a second
+    // payment (e.g. the member re-entered checkout in another tab and the
+    // order went `quoted -> awaiting_payment` between our read and our
+    // write), in which case this conditional update simply missed a real,
+    // verified charge. Re-read to tell the two apart; every outcome except
+    // "this is the same charge, already handled elsewhere" must leave a trace.
+    const { data: current, error: currentError } = await supabase
       .from('award_orders')
       .select('status, paystack_reference, admin_note')
       .eq('id', order.id)
       .maybeSingle()
 
+    if (currentError) {
+      console.error('[paystack-webhook] re-read failed after a paid-status update matched no rows', {
+        orderId: order.id,
+        reference,
+        paidKobo,
+        error: currentError,
+      })
+    }
+
     const currentStatus = (current?.status ?? status) as AwardStatus
-    if (current && reference && isPaid(currentStatus) && current.paystack_reference !== reference) {
+    const isKnownDuplicate =
+      !currentError && current && reference && isPaid(currentStatus) && current.paystack_reference !== reference
+
+    if (isKnownDuplicate && current) {
       console.error('[paystack-webhook] DUPLICATE CHARGE (lost the paid race to another reference)', {
         orderId: order.id,
         status: currentStatus,
@@ -325,7 +377,7 @@ export async function POST(request: NextRequest) {
         duplicateReference: reference,
         duplicatePaidKobo: paidKobo,
       })
-      await supabase
+      const { error: raceDuplicateNoteError } = await supabase
         .from('award_orders')
         .update({
           admin_note: appendNote(
@@ -334,7 +386,34 @@ export async function POST(request: NextRequest) {
           ),
         })
         .eq('id', order.id)
+      logNoteFailure('duplicate charge (lost the paid race)', order.id, raceDuplicateNoteError)
+      return acknowledge()
     }
+
+    // Not the well-understood duplicate-reference case: the conditional
+    // update matched no rows for some other reason — the status moved out
+    // from under us, there was no reference to compare (a metadata-only
+    // match), or the re-read itself failed. The charge is still real money
+    // and must not vanish with a bare 200.
+    console.error('[paystack-webhook] verified charge could not be applied: paid-status update matched no rows', {
+      orderId: order.id,
+      reference,
+      paidKobo,
+      statusAtReadTime: status,
+      statusOnReRead: currentError ? 'unknown (re-read failed)' : currentStatus,
+    })
+    const { error: unappliedNoteError } = await supabase
+      .from('award_orders')
+      .update({
+        admin_note: appendNote(
+          current && !currentError ? current.admin_note : noteSoFar,
+          `PAYMENT NOT RECORDED: reference ${reference ?? 'unknown'} paid ${paidKobo} kobo but the conditional ` +
+            `status update matched no rows (order was "${status}" when read, ` +
+            `${currentError ? 'and the re-read failed' : `"${currentStatus}" on re-read`}). Mark this order paid by hand.`,
+        ),
+      })
+      .eq('id', order.id)
+    logNoteFailure('verified charge not applied (update matched no rows)', order.id, unappliedNoteError)
     return acknowledge()
   }
 
@@ -360,7 +439,7 @@ export async function POST(request: NextRequest) {
         postalCode: order.postal_code ?? undefined,
       })
 
-      await supabase
+      const { error: bookingRecordError } = await supabase
         .from('award_orders')
         .update({
           status: 'dispatched',
@@ -370,13 +449,39 @@ export async function POST(request: NextRequest) {
         })
         .eq('id', order.id)
         .is('gig_waybill', null)
+
+      if (bookingRecordError) {
+        // The courier now holds a real, physical shipment for this order, but
+        // saving that fact failed. supabase-js reports this via `error`, not a
+        // throw, so the surrounding try/catch would never have seen it. Left
+        // unchecked, the order stays `paid` with a null waybill and an admin
+        // working the paid-without-waybill queue would book it a second time.
+        console.error('[paystack-webhook] shipment booked but could not be recorded on the order', {
+          orderId: order.id,
+          waybill: booking.waybill,
+          trackingUrl: booking.trackingUrl,
+          error: bookingRecordError,
+        })
+        const { error: bookingNoteError } = await supabase
+          .from('award_orders')
+          .update({
+            admin_note: appendNote(
+              noteSoFar,
+              `SHIPMENT BOOKED BUT NOT RECORDED: courier booking succeeded (waybill ${booking.waybill}, tracking ` +
+                `${booking.trackingUrl}) but saving it to the order failed ` +
+                `(${bookingRecordError.message ?? 'unknown error'}). Reconcile by hand — do not re-book.`,
+            ),
+          })
+          .eq('id', order.id)
+        logNoteFailure('shipment booked but not recorded', order.id, bookingNoteError)
+      }
     } catch (bookingError) {
       // book() signals failure by throwing — BookResult has no failure variant.
       // The member has paid. A booking failure must never fail the webhook, or
       // Paystack will retry and we risk re-processing a completed payment.
       // The order stays `paid` and surfaces in /admin/awards for manual dispatch.
       console.error('[paystack-webhook] dispatch booking failed', order.id, bookingError)
-      await supabase
+      const { error: dispatchFailedNoteError } = await supabase
         .from('award_orders')
         .update({
           // Appended rather than overwritten: a note may already be on this row
@@ -391,6 +496,7 @@ export async function POST(request: NextRequest) {
           ),
         })
         .eq('id', order.id)
+      logNoteFailure('automatic dispatch failed', order.id, dispatchFailedNoteError)
     }
   }
 
