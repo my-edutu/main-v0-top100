@@ -19,7 +19,7 @@ export const manualCourier: CourierAdapter = {
   async book(input: BookInput): Promise<BookResult> {
     throw new Error(
       `No courier is configured, so order ${input.orderId} cannot be dispatched automatically. ` +
-        'Set GIG_API_BASE_URL or dispatch this order manually from /admin/awards.',
+        'Set GIG_API_BASE_URL, GIG_API_USERNAME, and GIG_API_PASSWORD or dispatch this order manually from /admin/awards.',
     )
   },
 
