@@ -704,7 +704,10 @@ create extension if not exists "pgcrypto";
 
 create table if not exists public.award_orders (
   id uuid primary key default gen_random_uuid(),
-  profile_id uuid not null references public.profiles(id) on delete cascade,
+  -- restrict, not cascade: payment history (paystack_reference, paid_at,
+  -- gig_waybill) must survive, so a profile cannot be deleted while it still
+  -- has an award order. The order must be dealt with first.
+  profile_id uuid not null references public.profiles(id) on delete restrict,
   awardee_id uuid,
   cohort_year integer,
 
@@ -742,7 +745,28 @@ create table if not exists public.award_orders (
 
   admin_note text,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+
+  -- A total is required once the order has reached checkout: without this,
+  -- `total_amount_kobo >= 0` alone would still pass with a NULL total, and a
+  -- row could reach `paid` with no recorded amount.
+  constraint award_orders_total_required_when_charging check (
+    status not in ('awaiting_payment', 'paid', 'dispatched', 'in_transit', 'delivered')
+    or total_amount_kobo is not null
+  ),
+
+  -- The total must equal award + shipping whenever it is set. Both NULL is the
+  -- draft/quote_failed state and is allowed; exactly one NULL is inconsistent
+  -- and must be rejected. IS NULL/IS NOT NULL keeps that case FALSE rather
+  -- than NULL, since a CHECK constraint otherwise passes on a NULL result.
+  constraint award_orders_total_is_award_plus_shipping check (
+    (shipping_amount_kobo is null and total_amount_kobo is null)
+    or (
+      shipping_amount_kobo is not null
+      and total_amount_kobo is not null
+      and total_amount_kobo = award_amount_kobo + shipping_amount_kobo
+    )
+  )
 );
 
 -- One live award per member. Cancelled orders do not block a fresh attempt.
