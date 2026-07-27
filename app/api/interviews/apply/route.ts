@@ -19,9 +19,18 @@ const HEADSHOT_BUCKET = 'interview-applications'
 async function verifyTurnstile(token: string | null): Promise<boolean> {
   const secretKey = process.env.TURNSTILE_SECRET_KEY
 
-  // Matches app/api/verify-captcha/route.ts: unconfigured is a no-op in dev.
+  // Matches app/api/verify-captcha/route.ts: unconfigured is a no-op in dev and
+  // fails closed in production. Failing closed rejects every submission, which
+  // looks identical to a user failing the challenge — so say what is wrong.
   if (!secretKey) {
-    return process.env.NODE_ENV === 'development'
+    if (process.env.NODE_ENV === 'development') {
+      return true
+    }
+
+    console.error(
+      '[interviews/apply] TURNSTILE_SECRET_KEY is not set — every application is being rejected. Set it, or the form is dead in production.',
+    )
+    return false
   }
 
   if (!token) {
