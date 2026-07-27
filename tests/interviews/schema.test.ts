@@ -21,6 +21,7 @@ const valid = {
   otherLink: '',
   preferredFormat: 'video',
   consentRecorded: 'on',
+  legalConsent: 'on',
 }
 
 describe('applicationSchema', () => {
@@ -35,9 +36,30 @@ describe('applicationSchema', () => {
     expect(() => applicationSchema.parse({ ...valid, email: 'not-an-email' })).toThrow()
   })
 
-  it('rejects a missing consent checkbox', () => {
+  it('rejects a missing recording-consent checkbox with a readable message', () => {
     const { consentRecorded, ...withoutConsent } = valid
-    expect(() => applicationSchema.parse(withoutConsent)).toThrow()
+    const result = applicationSchema.safeParse(withoutConsent)
+
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      const issue = result.error.issues.find((entry) => entry.path[0] === 'consentRecorded')
+      // "Invalid input" is what a bare union produces, and it tells the
+      // applicant nothing about which box they missed.
+      expect(issue?.message).toMatch(/agree to be recorded/i)
+    }
+  })
+
+  it('rejects a missing legal-acceptance checkbox', () => {
+    // The form sets noValidate, so the browser does not enforce `required`.
+    // This is the only thing standing between us and unconsented data.
+    const { legalConsent, ...withoutLegal } = valid
+    const result = applicationSchema.safeParse(withoutLegal)
+
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      const issue = result.error.issues.find((entry) => entry.path[0] === 'legalConsent')
+      expect(issue?.message).toMatch(/terms|privacy/i)
+    }
   })
 
   it('rejects a bio that is too short to be usable', () => {

@@ -279,6 +279,7 @@ export default function ApplyForm() {
 
       <div className="mt-6">
         <LegalConsent id="interview-legal-consent" />
+        <ErrorText name="legalConsent" />
       </div>
 
       <label
@@ -297,6 +298,7 @@ export default function ApplyForm() {
           Leaders channels.
         </span>
       </label>
+      <ErrorText name="consentRecorded" />
 
       <div className="mt-6">
         <TurnstileCaptcha onVerify={setCaptchaToken} onExpire={() => setCaptchaToken('')} />

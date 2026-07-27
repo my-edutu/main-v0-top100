@@ -14,10 +14,16 @@ const FIRST_COHORT_YEAR = 2015
 const BIO_MIN_CHARS = 300
 const BIO_MAX_CHARS = 1600
 
-/** Checkboxes arrive from FormData as "on"; JSON clients may send "true". */
-const consentField = z
-  .union([z.literal('on'), z.literal('true'), z.literal(true)])
-  .transform(() => true)
+/**
+ * Checkboxes arrive from FormData as "on"; JSON clients may send "true". A bare
+ * union reports "Invalid input", which tells the applicant nothing about which
+ * box they missed, so each consent carries its own message.
+ */
+const consentField = (message: string) =>
+  z
+    .any()
+    .refine((value) => value === 'on' || value === 'true' || value === true, { message })
+    .transform(() => true)
 
 /** An untouched optional URL input posts as "", which is absent, not invalid. */
 const optionalUrl = z
@@ -54,7 +60,10 @@ export const applicationSchema = z.object({
   linkedinUrl: optionalUrl,
   otherLink: optionalUrl,
   preferredFormat: z.enum(PREFERRED_FORMATS),
-  consentRecorded: consentField,
+  consentRecorded: consentField('Please confirm you agree to be recorded and published'),
+  // Checked server-side as well as in the markup: LegalConsent relies on the
+  // browser enforcing `required`, which a scripted post simply ignores.
+  legalConsent: consentField('Please accept the Terms of Use and Privacy & Data Policy'),
 })
 
 export type ApplicationInput = z.infer<typeof applicationSchema>
