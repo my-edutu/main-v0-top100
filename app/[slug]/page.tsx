@@ -1,4 +1,6 @@
 
+import { ogMetadata } from '@/lib/og'
+import { pageOg } from '@/lib/og-pages'
 import { createAdminClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Image from "next/image";
@@ -35,21 +37,17 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     const plainTextContent = announcement.content?.replace(/<[^>]*>?/gm, '') || '';
     const description = plainTextContent.substring(0, 160) + (plainTextContent.length > 160 ? '...' : '');
 
+    const card = {
+        title: announcement.title,
+        eyebrow: 'Announcement',
+        subtitle: description,
+        hero: announcement.image_url || pageOg('/announcements').hero,
+    }
+
     return {
         title: announcement.title,
         description: description,
-        openGraph: {
-            title: announcement.title,
-            description: description,
-            images: announcement.image_url ? [{ url: announcement.image_url }] : [],
-            type: 'article',
-        },
-        twitter: {
-            card: 'summary_large_image',
-            title: announcement.title,
-            description: description,
-            images: announcement.image_url ? [announcement.image_url] : [],
-        }
+        ...ogMetadata(card, { type: 'article', description }),
     }
 }
 

@@ -9,6 +9,7 @@ import { getAwardees } from '@/lib/awardees'
 import { normalizeAwardeeEntry } from '@/lib/awardees-shared'
 import { fetchAwardeeBySlug } from '@/lib/dashboard/profile-service'
 import { AvatarSVG, flagEmoji } from '@/lib/avatars'
+import { ogMetadata } from '@/lib/og'
 import type { Achievement, GalleryItem, SocialLinks } from '@/types/profile'
 import ConnectButton from './ConnectButton'
 import LinkedInPostCard from './LinkedInPostCard'
@@ -47,32 +48,26 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     cohortLabel
   ]
 
-  const imageUrl = awardee.cover_image_url || awardee.avatar_url || '/magazine-cover-2025.jpg'
+  // The portrait leads the card rather than sitting behind the text: a
+  // headshot cropped to 1.91:1 loses the face, which is the whole subject.
+  const card = {
+    title: awardee.name,
+    eyebrow: `Top100 AFL ${showcaseYear}`,
+    subtitle: awardee.headline || awardee.tagline || cohortLabel,
+    meta: [awardee.country, cohortLabel].filter(Boolean).join(' · '),
+    hero: awardee.avatar_url || awardee.cover_image_url || null,
+    variant: 'profile' as const,
+  }
 
   return {
     title,
     description,
     keywords,
-    openGraph: {
-      title,
-      description,
-      images: [
-        {
-          url: imageUrl,
-          width: 1200,
-          height: 630,
-          alt: `${awardee.name} - ${cohortLabel}`,
-        }
-      ],
+    ...ogMetadata(card, {
+      url: `/awardees/${awardee.slug}`,
       type: 'profile',
-      url: `https://www.top100afl.com/awardees/${awardee.slug}`,
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title,
       description: description.substring(0, 200),
-      images: [imageUrl],
-    },
+    }),
   }
 }
 

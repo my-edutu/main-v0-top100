@@ -24,12 +24,22 @@ export type OgCard = {
   variant?: OgVariant
 }
 
+/** Extra og:article fields, for pages that are articles. */
+export type OgArticleFields = {
+  publishedTime?: string
+  modifiedTime?: string
+  authors?: string[]
+  tags?: string[]
+}
+
 export type OgMetadataOptions = {
   /** Canonical path or absolute URL for og:url. */
   url?: string
   type?: "website" | "article" | "profile"
   /** Overrides the card subtitle as the og/twitter description. */
   description?: string
+  /** Merged into openGraph. Pass alongside `type: "article"`. */
+  article?: OgArticleFields
 }
 
 export const OG_WIDTH = 1200
@@ -148,15 +158,21 @@ export function ogMetadata(card: OgCard, opts: OgMetadataOptions = {}): Metadata
   const title = clampText(card.title, OG_LIMITS.title) ?? SITE_NAME
   const description = opts.description ?? card.subtitle
 
+  // Next's OpenGraph type is a union discriminated on `type`, so a generic
+  // builder cannot produce one without asserting. Doing it once here keeps
+  // the assertion out of every calling page.
+  const openGraph = {
+    title,
+    description,
+    url: absoluteUrl(opts.url),
+    siteName: SITE_NAME,
+    type: opts.type ?? "website",
+    images: [{ url: image, width: OG_WIDTH, height: OG_HEIGHT, alt: title }],
+    ...(opts.article ?? {}),
+  } as Metadata["openGraph"]
+
   return {
-    openGraph: {
-      title,
-      description,
-      url: absoluteUrl(opts.url),
-      siteName: SITE_NAME,
-      type: opts.type ?? "website",
-      images: [{ url: image, width: OG_WIDTH, height: OG_HEIGHT, alt: title }],
-    },
+    openGraph,
     twitter: {
       card: "summary_large_image",
       title,

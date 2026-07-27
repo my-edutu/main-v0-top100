@@ -14,6 +14,7 @@ import { notFound } from 'next/navigation'
 import { ArrowLeft, CalendarDays, Clock } from 'lucide-react'
 
 import { createAdminClient } from '@/lib/supabase/server'
+import { ogMetadata } from '@/lib/og'
 import { SITE_NAME, SITE_URL } from '@/lib/site'
 import {
   bumpViewCount,
@@ -72,32 +73,26 @@ export async function generateMetadata({
   const description =
     post.excerpt || `${authorName} writes about ${post.title} on Top100 Africa Future Leaders.`
   const canonical = memberPostPath(resolved.slug, post.slug)
-  const imageUrl = post.coverUrl || '/magazine-cover-2025.jpg'
-
   return {
     title: `${post.title} — ${authorName}`,
     description,
     keywords: [...post.tags, authorName, SITE_NAME],
     authors: [{ name: authorName }],
     alternates: { canonical },
-    openGraph: {
-      title: post.title,
-      description,
-      images: [{ url: imageUrl, width: 1200, height: 630, alt: post.title }],
-      type: 'article',
-      publishedTime: post.publishedAt ?? undefined,
-      modifiedTime: post.updatedAt,
-      authors: [authorName],
-      tags: post.tags,
-      url: `${SITE_URL}${canonical}`,
-      siteName: SITE_NAME,
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: post.title,
-      description: description.slice(0, 200),
-      images: [imageUrl],
-    },
+    ...ogMetadata(
+      { title: post.title, eyebrow: authorName, subtitle: post.excerpt ?? undefined, hero: post.coverUrl },
+      {
+        url: canonical,
+        type: 'article',
+        description: description.slice(0, 200),
+        article: {
+          publishedTime: post.publishedAt ?? undefined,
+          modifiedTime: post.updatedAt,
+          authors: [authorName],
+          tags: post.tags,
+        },
+      },
+    ),
   }
 }
 

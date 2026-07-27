@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { APPLY_AWARDEE_FORM_URL, applicationOrder, applicationPrograms, getApplicationProgram, type ApplicationFormProgram } from '@/lib/applications'
+import { ogMetadata } from '@/lib/og'
+import { pageOg } from '@/lib/og-pages'
 import { cn } from '@/lib/utils'
 
 export const generateStaticParams = async () => applicationOrder.map((type) => ({ type }))
@@ -25,6 +27,10 @@ export const generateMetadata = async ({ params }: { params: Promise<{ type: str
   return {
     title: `${program.title} - Top100 Africa Future Leaders`,
     description: program.description,
+    ...ogMetadata(
+      { ...pageOg('/apply/[type]'), title: program.title, subtitle: program.description },
+      { url: `/apply/${type}`, description: program.description },
+    ),
   }
 }
 

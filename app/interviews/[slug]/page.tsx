@@ -9,6 +9,8 @@ import {
   getPublishedSlugs,
 } from '@/lib/interviews/queries'
 import { toCardView, youtubeThumbnail } from '@/lib/interviews/mappers'
+import { ogMetadata } from '@/lib/og'
+import { pageOg } from '@/lib/og-pages'
 import { SITE_NAME, SITE_URL } from '@/lib/site'
 
 import InterviewCard from '../_components/InterviewCard'
@@ -35,20 +37,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const description =
     interview.summary ||
     `${interview.awardee_name} on their work, in the Top100 Africa Future Leaders interview series.`
-  const image =
-    interview.thumbnail_url || (interview.video_id ? youtubeThumbnail(interview.video_id) : undefined)
+  const card = {
+    title: interview.title,
+    eyebrow: 'Impact Interviews',
+    subtitle: interview.awardee_name,
+    hero:
+      interview.thumbnail_url ||
+      (interview.video_id ? youtubeThumbnail(interview.video_id) : pageOg('/interviews').hero),
+  }
 
   return {
     title,
     description,
     alternates: { canonical: `${SITE_URL}/interviews/${interview.slug}` },
-    openGraph: {
-      title,
-      description,
-      url: `${SITE_URL}/interviews/${interview.slug}`,
-      type: 'article',
-      images: image ? [{ url: image }] : undefined,
-    },
+    ...ogMetadata(card, { url: `/interviews/${interview.slug}`, type: 'article', description }),
   }
 }
 

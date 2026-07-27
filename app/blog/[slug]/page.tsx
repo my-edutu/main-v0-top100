@@ -5,6 +5,8 @@ import { ArrowLeft, CalendarDays, Clock } from "lucide-react";
 
 import BlogCover from "@/components/BlogCover";
 import { getPostBySlug, getRelatedPosts } from "@/lib/posts/server";
+import { ogMetadata } from "@/lib/og";
+import { pageOg } from "@/lib/og-pages";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 import { SimpleBlogCard } from "../SimpleBlogCard";
 import StructuredData from "@/components/StructuredData";
@@ -12,11 +14,11 @@ import StructuredData from "@/components/StructuredData";
 export const revalidate = 300;
 
 // Seed posts carry a /placeholder.svg cover; a grey stock box is a poor
-// social-share card, so fall back to the magazine cover instead.
-const shareImage = (coverImage: string | null) =>
-  coverImage && !coverImage.startsWith("/placeholder.svg")
-    ? coverImage
-    : "/magazine-cover-2025.jpg";
+// share card, so fall back to the section hero instead.
+const SECTION_HERO = pageOg("/blog").hero ?? "/og-home.png";
+
+const shareImage = (coverImage: string | null): string =>
+  coverImage && !coverImage.startsWith("/placeholder.svg") ? coverImage : SECTION_HERO;
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -37,32 +39,30 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     ? post.metaKeywords.split(",").map((keyword) => keyword.trim()).filter(Boolean)
     : [...post.tags, "Top100 Africa Future Leaders", "African youth leaders"];
   const canonical = `/blog/${post.slug}`;
-  const imageUrl = shareImage(post.coverImage);
 
+  const card = {
+    title: post.title,
+    eyebrow: "Blog",
+    subtitle: post.excerpt,
+    hero: shareImage(post.coverImage),
+  };
   return {
     title,
     description,
     keywords,
     authors: [{ name: post.author }],
     alternates: { canonical },
-    openGraph: {
-      title,
-      description,
-      images: [{ url: imageUrl, width: 1200, height: 630, alt: post.coverImageAlt ?? post.title }],
+    ...ogMetadata(card, {
+      url: canonical,
       type: "article",
-      publishedTime: post.createdAt,
-      modifiedTime: post.updatedAt || post.createdAt,
-      authors: [post.author],
-      tags: post.tags,
-      url: `${SITE_URL}${canonical}`,
-      siteName: SITE_NAME,
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
       description,
-      images: [imageUrl],
-    },
+      article: {
+        publishedTime: post.createdAt,
+        modifiedTime: post.updatedAt || post.createdAt,
+        authors: [post.author],
+        tags: post.tags,
+      },
+    }),
   };
 }
 
