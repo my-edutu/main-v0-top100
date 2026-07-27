@@ -18,6 +18,7 @@ import { createAdminClient } from '@/lib/supabase/server'
 import { paidAmountMatches, secretKey, verifyPaystackSignature } from '@/lib/payments/paystack'
 import { canTransition, isPaid, type AwardStatus } from '@/lib/awards/status'
 import { getCourier } from '@/lib/courier'
+import { notifyAwardStatus } from '@/lib/awards/notify'
 
 export const runtime = 'nodejs'
 
@@ -446,6 +447,13 @@ export async function POST(request: NextRequest) {
   // The paid write landed, so any note it carried is now the row's note.
   if (typeof paidUpdate.admin_note === 'string') noteSoFar = paidUpdate.admin_note
 
+  // Announce the payment only now that it is recorded, so a notification can
+  // never precede the state it announces. Reached only by the invocation that
+  // won the conditional paid write; notifyAwardStatus is additionally
+  // exactly-once per (order, status) and never throws, so a bounced email
+  // cannot fail this webhook and trigger a Paystack retry.
+  await notifyAwardStatus(supabase, { ...order, ...paidUpdate }, 'paid')
+
   // --- Book the shipment, exactly once -------------------------------------
   // Reached only by the invocation that actually performed `-> paid`, so the
   // order is provably paid before anything is booked. The `gig_waybill` guards
@@ -500,6 +508,14 @@ export async function POST(request: NextRequest) {
           })
           .eq('id', order.id)
         logNoteFailure('shipment booked but not recorded', order.id, bookingNoteError)
+      } else {
+        // Only once the waybill is actually on the row, so the dispatch email
+        // carries it. Same never-throws / exactly-once guarantees as above.
+        await notifyAwardStatus(
+          supabase,
+          { ...order, status: 'dispatched', gig_waybill: booking.waybill, gig_tracking_url: booking.trackingUrl },
+          'dispatched',
+        )
       }
     } catch (bookingError) {
       // book() signals failure by throwing — BookResult has no failure variant.

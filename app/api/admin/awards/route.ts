@@ -9,6 +9,7 @@ import { totalKobo } from '@/lib/awards/money'
 import { assertTransition, type AwardStatus } from '@/lib/awards/status'
 import { quoteExpiresAt } from '@/lib/awards/quote'
 import { AWARD_SETUP_MESSAGE, isMissingAwardTable, mapAwardOrder } from '@/lib/awards/server'
+import { isAwardMilestone, notifyAwardStatus } from '@/lib/awards/notify'
 
 export const runtime = 'nodejs'
 
@@ -143,6 +144,11 @@ export async function PATCH(request: NextRequest) {
     .single()
 
   if (error) return NextResponse.json({ message: 'Could not update this order.' }, { status: 500 })
+
+  // `updated`, never `order`: this PATCH also writes the waybill, and the
+  // pre-update row would give the member a dispatch email with no waybill in
+  // it. notifyAwardStatus never throws and sends once per (order, status).
+  if (isAwardMilestone(columns.status)) await notifyAwardStatus(supabase, updated, columns.status as string)
 
   return NextResponse.json({ order: mapAwardOrder(updated) })
 }

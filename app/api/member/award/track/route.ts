@@ -8,6 +8,7 @@ import { checkRateLimit, RATE_LIMITS, createRateLimitResponse } from '@/lib/rate
 import { canTransition, type AwardStatus } from '@/lib/awards/status'
 import { getCourier } from '@/lib/courier'
 import { loadOrderForUser, mapAwardOrder } from '@/lib/awards/server'
+import { isAwardMilestone, notifyAwardStatus } from '@/lib/awards/notify'
 
 export const runtime = 'nodejs'
 
@@ -67,6 +68,13 @@ export async function GET() {
 
   if (error) {
     console.error('[award-track] failed to update status', order.id, error)
+  }
+
+  // Only once the courier-driven advance is actually persisted, and only for
+  // the updated row so the email carries the current waybill. Exactly-once per
+  // (order, status), so polling this route cannot re-notify.
+  if (!error && updated && isAwardMilestone(columns.status)) {
+    await notifyAwardStatus(supabase, updated, columns.status as string)
   }
 
   return NextResponse.json({ order: mapAwardOrder(updated ?? order) })
