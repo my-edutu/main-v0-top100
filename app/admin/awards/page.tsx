@@ -42,7 +42,7 @@ import {
 // server-only ("Never import into a client component"), so its types are not
 // imported here; the shape below is this page's own copy of what the GET
 // route actually returns.
-import { formatNaira } from '@/lib/awards/money'
+import { formatNaira, totalKobo } from '@/lib/awards/money'
 import { canTransition, type AwardStatus } from '@/lib/awards/status'
 
 type AwardOrder = {
@@ -635,7 +635,7 @@ export default function AdminAwardsPage() {
                         return validPreview ? (
                           <p className="text-xs text-muted-foreground">
                             = {formatNaira(parsed)} shipping · total will be{' '}
-                            {formatNaira(order.awardAmountKobo + parsed)}
+                            {formatNaira(totalKobo(order.awardAmountKobo, parsed))}
                           </p>
                         ) : null
                       })()}
