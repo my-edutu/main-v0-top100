@@ -1,5 +1,14 @@
 import { NextRequest } from 'next/server'
 
+import { getCurrentUser } from '@/lib/auth-server'
+import { createAdminClient } from '@/lib/supabase/server'
+import {
+  OPPORTUNITY_TYPES,
+  mapCuratedOpportunity,
+  mergeOpportunities,
+  type CuratedOpportunity,
+} from '@/lib/opportunities-server'
+
 export const runtime = 'nodejs'
 
 type ExternalOpportunity = {
@@ -65,22 +74,70 @@ function pickOpportunityArray(payload: unknown): RawOpportunity[] {
   return match ? match as RawOpportunity[] : []
 }
 
+/**
+ * Whether the caller is an authenticated member. A failure to resolve the
+ * session (thrown error, expired token, anything) must never be treated as
+ * membership — this is the fail-closed default that keeps `member_only`
+ * curated rows out of an unauthenticated response.
+ */
+async function resolveIsMember(): Promise<boolean> {
+  try {
+    const user = await getCurrentUser()
+    return Boolean(user?.id)
+  } catch (error) {
+    console.error('Opportunities: failed to resolve session; treating caller as not a member:', error)
+    return false
+  }
+}
+
+/**
+ * AFL-curated + member-only listings. A broken/missing `member_opportunities`
+ * table must not take down the public opportunities feed, so any failure here
+ * is logged and swallowed in favour of an empty curated list.
+ */
+async function loadCuratedOpportunities(): Promise<CuratedOpportunity[]> {
+  try {
+    const supabase = createAdminClient()
+    const { data, error } = await supabase
+      .from('member_opportunities')
+      .select('*')
+      .eq('published', true)
+      .order('sort_order', { ascending: true })
+
+    if (error) {
+      console.error('Opportunities: could not load curated listings; continuing with none:', error)
+      return []
+    }
+
+    return (data ?? []).map(mapCuratedOpportunity)
+  } catch (error) {
+    console.error('Opportunities: unexpected error loading curated listings; continuing with none:', error)
+    return []
+  }
+}
+
 export async function GET(request: NextRequest) {
   const endpoint = process.env.EDUTU_SCHOLARSHIP_API_URL
   const apiKey = process.env.EDUTU_SCHOLARSHIP_API_KEY
+  const type = request.nextUrl.searchParams.get('type') ?? undefined
+
+  // Resolved once up front and reused across every response branch below, so
+  // the member-only gate is applied identically whether the external feed is
+  // disabled, live, or failing.
+  const [isMember, curated] = await Promise.all([resolveIsMember(), loadCuratedOpportunities()])
 
   if (!endpoint) {
     return Response.json({
       mode: 'fallback',
       source: 'Local fallback',
       message: 'Set EDUTU_SCHOLARSHIP_API_URL to enable live Edutu opportunities.',
-      opportunities: fallbackOpportunities,
+      opportunities: mergeOpportunities(curated, fallbackOpportunities, { isMember, type }),
+      types: OPPORTUNITY_TYPES,
     })
   }
 
   try {
     const url = new URL(endpoint)
-    const type = request.nextUrl.searchParams.get('type')
     const country = request.nextUrl.searchParams.get('country')
 
     if (type) url.searchParams.set('type', type)
@@ -104,7 +161,12 @@ export async function GET(request: NextRequest) {
     return Response.json({
       mode: 'live',
       source: 'Edutu scholarship API',
-      opportunities: opportunities.length ? opportunities : fallbackOpportunities,
+      opportunities: mergeOpportunities(
+        curated,
+        opportunities.length ? opportunities : fallbackOpportunities,
+        { isMember, type },
+      ),
+      types: OPPORTUNITY_TYPES,
     })
   } catch (error) {
     console.error('Edutu opportunities bridge failed:', error)
@@ -113,7 +175,8 @@ export async function GET(request: NextRequest) {
       mode: 'fallback',
       source: 'Local fallback',
       message: 'Edutu opportunities are temporarily unavailable. Showing fallback opportunities.',
-      opportunities: fallbackOpportunities,
+      opportunities: mergeOpportunities(curated, fallbackOpportunities, { isMember, type }),
+      types: OPPORTUNITY_TYPES,
     })
   }
 }
