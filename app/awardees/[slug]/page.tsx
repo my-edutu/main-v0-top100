@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Calendar, ExternalLink, Globe, Instagram, Linkedin, Mail, MapPin, PenSquare, Trophy, Twitter, Users2, Youtube, GraduationCap, ArrowLeft, Quote, Award, Briefcase } from 'lucide-react'
@@ -184,10 +185,13 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
             <div className="shrink-0 mx-auto md:mx-0">
               <div className="relative w-48 h-48 sm:w-56 sm:h-56 md:w-64 md:h-64">
                 {awardee.avatar_url || awardee.cover_image_url ? (
-                  <img
+                  <Image
                     src={awardee.avatar_url || awardee.cover_image_url || ''}
                     alt={awardee.name}
-                    className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-500"
+                    fill
+                    priority
+                    sizes="256px"
+                    className="object-cover grayscale hover:grayscale-0 transition-all duration-500"
                   />
                 ) : (
                   <div className="w-full h-full bg-gray-100 flex items-center justify-center">
@@ -376,10 +380,12 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
                     className="group overflow-hidden bg-gray-100"
                   >
                     <div className="relative aspect-square overflow-hidden">
-                      <img
+                      <Image
                         src={item.url}
                         alt={item.caption ?? awardee.name}
-                        className="h-full w-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-500"
+                        fill
+                        sizes="(max-width: 768px) 50vw, 33vw"
+                        className="object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-500"
                       />
                     </div>
                     {item.caption && (
@@ -445,12 +451,14 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
                   href={`/awardees/${other.slug}`}
                   className="group flex-shrink-0 w-28 sm:w-auto"
                 >
-                  <div className="aspect-square bg-gray-100 overflow-hidden mb-2 rounded">
+                  <div className="relative aspect-square bg-gray-100 overflow-hidden mb-2 rounded">
                     {other.avatar_url || other.cover_image_url ? (
-                      <img
+                      <Image
                         src={other.avatar_url || other.cover_image_url}
                         alt={other.name}
-                        className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-300"
+                        fill
+                        sizes="112px"
+                        className="object-cover grayscale group-hover:grayscale-0 transition-all duration-300"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Calendar, MapPin, Clock, Users, ArrowRight, ExternalLink } from "lucide-react"
@@ -139,10 +140,12 @@ const UpcomingEventsSection = () => {
               {/* Event Image */}
               {event.featured_image_url ? (
                 <div className="relative h-48 overflow-hidden">
-                  <img
+                  <Image
                     src={event.featured_image_url}
                     alt={event.title}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    className="object-cover transition-transform duration-300 group-hover:scale-105"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                   {event.is_featured && (

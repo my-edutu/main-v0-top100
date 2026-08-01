@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { Award, GraduationCap, MapPin, Users, ArrowRight, Search, Filter } from 'lucide-react'
@@ -383,10 +384,15 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
                     {/* Image container */}
                     <div className="w-full aspect-square overflow-hidden bg-zinc-50 relative">
                       {(person.cover_image_url || person.avatar_url) ? (
-                        <img
+                        <Image
                           src={person.cover_image_url || person.avatar_url || ''}
                           alt={person.name}
-                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                          fill
+                          // Cards top out near 200px wide even on desktop, so
+                          // without this the optimizer would hand back a
+                          // viewport-width render of a 5MB portrait.
+                          sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 200px"
+                          className="object-cover transition-transform duration-500 group-hover:scale-110"
                         />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-orange-50 to-zinc-100 flex items-center justify-center">

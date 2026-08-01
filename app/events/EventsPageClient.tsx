@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react"
+import Image from "next/image"
 import Link from "next/link"
 import { format } from "date-fns"
 import { supabase } from "@/lib/supabase/client"
@@ -377,10 +378,13 @@ export default function EventsPage({ initialEvents, initialAnnouncements }: Even
 
                   <div className="relative min-h-[260px] bg-slate-950 lg:min-h-full">
                     {featuredItem.featured_image_url ? (
-                      <img
+                      <Image
                         src={featuredItem.featured_image_url}
                         alt={featuredItem.title}
-                        className="absolute inset-0 h-full w-full object-cover"
+                        fill
+                        priority
+                        sizes="(max-width: 1024px) 100vw, 50vw"
+                        className="object-cover"
                       />
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center bg-[linear-gradient(135deg,#431407_0%,#7c2d12_45%,#c2410c_100%)]">
@@ -513,11 +517,12 @@ export default function EventsPage({ initialEvents, initialAnnouncements }: Even
                       >
                         <div className="relative aspect-[16/10] overflow-hidden bg-slate-100">
                           {item.featured_image_url ? (
-                            <img
+                            <Image
                               src={item.featured_image_url}
                               alt={item.title}
-                              loading="lazy"
-                              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+                              fill
+                              sizes="(max-width: 640px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                              className="object-cover transition-transform duration-500 group-hover:scale-[1.04] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
                             />
                           ) : (
                             <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(135deg,#f5efe4_0%,#fde8d4_100%)]">
@@ -590,12 +595,17 @@ export default function EventsPage({ initialEvents, initialAnnouncements }: Even
                 </div>
               </DialogHeader>
               <div className="space-y-6 py-4">
+                {/* The box is pinned to the same 16/10 the card the user just
+                    clicked used, so `fill` has a box to fill and the modal
+                    opens on the crop they were already looking at. */}
                 {selectedItem.featured_image_url && (
-                  <div className="overflow-hidden rounded-2xl border border-[#e9dfd0]">
-                    <img
+                  <div className="relative aspect-[16/10] overflow-hidden rounded-2xl border border-[#e9dfd0]">
+                    <Image
                       src={selectedItem.featured_image_url}
                       alt={selectedItem.title}
-                      className="h-full w-full object-cover"
+                      fill
+                      sizes="(max-width: 768px) 100vw, 640px"
+                      className="object-cover"
                     />
                   </div>
                 )}

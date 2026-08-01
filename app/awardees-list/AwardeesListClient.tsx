@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import type { ProofAwardee, Awardee } from '@/lib/awardees-shared'
 
@@ -280,9 +281,13 @@ export default function AwardeesListClient({ awardees, featuredAwardees = [] }: 
                                             border: '2px solid rgba(255, 255, 255, 0.1)'
                                         }}>
                                             {awardee.avatar_url ? (
-                                                <img
+                                                // 56px circle. Served raw, these
+                                                // were full-resolution portraits.
+                                                <Image
                                                     src={awardee.avatar_url}
                                                     alt={awardee.name}
+                                                    width={56}
+                                                    height={56}
                                                     style={{
                                                         width: '100%',
                                                         height: '100%',

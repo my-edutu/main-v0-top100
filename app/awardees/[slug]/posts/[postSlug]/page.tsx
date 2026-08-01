@@ -9,6 +9,7 @@
 // already renders a member's bio, so React escapes everything and no new
 // markdown or HTML-sanitiser dependency is introduced.
 import type { Metadata } from 'next'
+import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ArrowLeft, CalendarDays, Clock } from 'lucide-react'
@@ -158,11 +159,13 @@ export default async function MemberPostPage({ params }: { params: Promise<PageP
 
           {post.coverUrl && (
             <div className="relative h-72 w-full overflow-hidden md:h-96">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <Image
                 src={post.coverUrl}
                 alt={post.title}
-                className="h-full w-full object-cover"
+                fill
+                priority
+                sizes="(max-width: 1024px) 100vw, 1024px"
+                className="object-cover"
               />
             </div>
           )}
