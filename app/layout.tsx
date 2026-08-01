@@ -85,6 +85,11 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+  // Unset in most environments. Without a key the SDK can only report an empty
+  // client_key, so it is a third-party script request that buys nothing —
+  // don't inject it at all.
+  const brevoClientKey = process.env.NEXT_PUBLIC_BREVO_CLIENT_KEY?.trim()
+
   const organizationSchema = {
     "@context": "https://schema.org",
     "@type": "Organization",
@@ -114,25 +119,30 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <StructuredData data={organizationSchema} />
-        <Script
-          id="brevo-sdk"
-          src="https://cdn.brevo.com/js/sdk-loader.js"
-          strategy="lazyOnload"
-        />
-        <Script
-          id="brevo-init"
-          strategy="lazyOnload"
-          dangerouslySetInnerHTML={{
-            __html: `
-              if (typeof window !== 'undefined' && window.Brevo) {
-                window.Brevo = window.Brevo || [];
-                window.Brevo.push(['init', {
-                  client_key: '${process.env.NEXT_PUBLIC_BREVO_CLIENT_KEY || ''}'
-                }]);
-              }
-            `,
-          }}
-        />
+        {brevoClientKey ? (
+          <>
+            <Script
+              id="brevo-sdk"
+              src="https://cdn.brevo.com/js/sdk-loader.js"
+              strategy="lazyOnload"
+            />
+            <Script
+              id="brevo-init"
+              strategy="lazyOnload"
+              dangerouslySetInnerHTML={{
+                // No `if (window.Brevo)` guard: the queue array is what this
+                // snippet creates. Checking for it first meant init never ran,
+                // because on lazyOnload the loader has usually not landed yet.
+                __html: `
+                  window.Brevo = window.Brevo || [];
+                  window.Brevo.push(['init', {
+                    client_key: ${JSON.stringify(brevoClientKey)}
+                  }]);
+                `,
+              }}
+            />
+          </>
+        ) : null}
       </head>
       <body
         className={cn(

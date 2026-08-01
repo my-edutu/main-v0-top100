@@ -86,16 +86,20 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              // Scripts: self, inline (for Next.js), eval (for dev), and Turnstile CAPTCHA
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://challenges.cloudflare.com",
+              // Scripts: self, inline (for Next.js), eval (for dev), Turnstile
+              // CAPTCHA, and the Brevo SDK loader injected by app/layout.tsx.
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://challenges.cloudflare.com https://cdn.brevo.com",
               // Styles: self and inline (for styled components)
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               // Images: allow all sources, data URIs, and blobs (for uploaded images)
               "img-src * data: blob:",
               // Fonts: self, data URIs, and Google Fonts
               "font-src 'self' data: https://fonts.gstatic.com",
-              // Connections: self, Supabase, Brevo API, Turnstile verification
-              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.brevo.com https://challenges.cloudflare.com",
+              // Connections: self, Supabase, Turnstile verification, and Brevo.
+              // The browser SDK talks to in-automate.brevo.com and
+              // sibautomation.com — api.brevo.com is only ever called
+              // server-side, so allowing it alone left the SDK mute.
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.brevo.com https://in-automate.brevo.com https://sibautomation.com https://challenges.cloudflare.com",
               // Frames: Turnstile CAPTCHA widget + YouTube players (Impact
               // Interviews, awardee profile videos). Without youtube-nocookie.com
               // here the embeds are silently blocked by CSP in production.
