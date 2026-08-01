@@ -19,6 +19,10 @@ export interface HomepageEvent {
   featured_image_url: string | null
   registration_url: string | null
   registration_label: string
+  /** False while a programme has not opened registration yet (card shows a waiting-list CTA). */
+  registration_open?: boolean
+  /** True when the date is not confirmed yet, so the card shows "Date TBA" instead of a fabricated date. */
+  date_tbc?: boolean
   is_featured: boolean
   capacity: number | null
   tags: string[]
@@ -133,13 +137,15 @@ const loadStaticHomepageEvents = (): HomepageEvent[] => {
         "The Africa Future Leaders Summit brings together the continent's most promising young leaders, innovators, and changemakers for keynote sessions, workshops, and high-value networking.",
       start_at: makeRelativeIso(42, 9, 0),
       end_at: makeRelativeIso(44, 17, 0),
-      location: "Kigali Convention Centre",
-      city: "Kigali",
-      country: "Rwanda",
+      location: "Lagos, Nigeria — venue to be announced",
+      city: "Lagos",
+      country: "Nigeria",
       is_virtual: false,
       featured_image_url: null,
-      registration_url: "/initiatives/summit",
-      registration_label: "Register Your Interest",
+      registration_url: "/waitlist?program=summit-2026",
+      registration_label: "Join the Waiting List",
+      registration_open: false,
+      date_tbc: true,
       is_featured: true,
       capacity: 500,
       tags: ["leadership", "networking", "innovation", "summit"],
@@ -157,13 +163,15 @@ const loadStaticHomepageEvents = (): HomepageEvent[] => {
         "Talk100 Live brings together builders, founders, and policy voices for practical conversations about scaling ideas, funding innovation, and strengthening the continent's tech ecosystem.",
       start_at: makeRelativeIso(14, 15, 0),
       end_at: makeRelativeIso(14, 17, 0),
-      location: "Zoom Meeting",
+      location: "Virtual — link shared with registered participants",
       city: "Online",
       country: "Africa-wide",
       is_virtual: true,
       featured_image_url: null,
-      registration_url: "/initiatives/talk100-live",
-      registration_label: "Join Virtual Event",
+      registration_url: "/waitlist?program=talk100-live",
+      registration_label: "Join the Waiting List",
+      registration_open: false,
+      date_tbc: true,
       is_featured: false,
       capacity: 250,
       tags: ["tech", "policy", "innovation", "virtual"],
@@ -181,13 +189,15 @@ const loadStaticHomepageEvents = (): HomepageEvent[] => {
         "Whether you're a prospective applicant or just curious about the program, this session covers eligibility, selection criteria, and tips from past scholarship recipients.",
       start_at: makeRelativeIso(7, 14, 0),
       end_at: makeRelativeIso(7, 16, 0),
-      location: "Virtual Event",
+      location: "Virtual — link shared with registered participants",
       city: "Online",
       country: "Africa-wide",
       is_virtual: true,
       featured_image_url: null,
-      registration_url: "/initiatives/project100",
-      registration_label: "Register Now",
+      registration_url: "/waitlist?program=project100-info-session",
+      registration_label: "Join the Waiting List",
+      registration_open: false,
+      date_tbc: true,
       is_featured: false,
       capacity: 300,
       tags: ["education", "scholarship", "opportunity"],
@@ -219,6 +229,9 @@ const mapHomepageEvent = (record: Record<string, unknown>): HomepageEvent => {
     featured_image_url: normalizeText(record.featured_image_url ?? record.featuredImageUrl),
     registration_url: normalizeText(record.registration_url ?? record.registrationUrl),
     registration_label: normalizeText(record.registration_label ?? record.registrationLabel) ?? "Register Now",
+    // DB-managed events are assumed open unless the row says otherwise.
+    registration_open: parseBoolean(record.registration_open ?? record.registrationOpen, true),
+    date_tbc: parseBoolean(record.date_tbc ?? record.dateTbc, false),
     is_featured: parseBoolean(record.is_featured ?? record.isFeatured, false),
     capacity:
       typeof record.capacity === "number" && Number.isFinite(record.capacity)

@@ -44,6 +44,8 @@ interface CombinedItem {
   end_at?: string | null
   registration_url?: string | null
   registration_label?: string
+  registration_open?: boolean
+  date_tbc?: boolean
   featured_image_url?: string | null
   tags?: string[]
   is_featured?: boolean
@@ -75,6 +77,11 @@ const formatRange = (startAt: string, endAt: string | null) => {
     return startAt
   }
 }
+
+// Programmes whose date is not confirmed must never render a placeholder date.
+const isDateTbc = (item: CombinedItem) => item.type === 'event' && Boolean(item.date_tbc)
+
+const isRegistrationClosed = (item: CombinedItem) => item.type === 'event' && item.registration_open === false
 
 const eventPlace = (item: CombinedItem) => {
   if (item.is_virtual) return "Virtual"
@@ -308,7 +315,9 @@ export default function EventsPage({ initialEvents, initialAnnouncements }: Even
                         <span>
                           {featuredItem.type === 'announcement'
                             ? `Published ${format(new Date(featuredItem.start_at || 0), "PPP")}`
-                            : formatRange(featuredItem.start_at || '', featuredItem.end_at || null)}
+                            : isDateTbc(featuredItem)
+                              ? "Dates to be announced"
+                              : formatRange(featuredItem.start_at || '', featuredItem.end_at || null)}
                         </span>
                       </div>
                       {featuredItem.type === 'event' && (
@@ -419,6 +428,11 @@ export default function EventsPage({ initialEvents, initialAnnouncements }: Even
                               <Megaphone className="h-5 w-5" />
                               <span className="mt-1 text-[9px] font-bold uppercase tracking-widest">New</span>
                             </>
+                          ) : isDateTbc(item) ? (
+                            <>
+                              <CalendarDays className="h-5 w-5" />
+                              <span className="mt-1 text-[9px] font-bold uppercase tracking-widest">TBA</span>
+                            </>
                           ) : (
                             <>
                               <span className="text-[10px] font-bold uppercase tracking-widest">{format(start, "MMM")}</span>
@@ -441,7 +455,7 @@ export default function EventsPage({ initialEvents, initialAnnouncements }: Even
                               <>
                                 <span className="inline-flex items-center gap-1.5">
                                   <Clock className="h-4 w-4 text-orange-600" aria-hidden="true" />
-                                  {format(start, "EEE, MMM d · h:mm a")}
+                                  {isDateTbc(item) ? "Date to be announced" : format(start, "EEE, MMM d · h:mm a")}
                                 </span>
                                 <span className="inline-flex items-center gap-1.5">
                                   {item.is_virtual ? (
@@ -452,9 +466,15 @@ export default function EventsPage({ initialEvents, initialAnnouncements }: Even
                                   {eventPlace(item)}
                                 </span>
                                 {item.registration_url && (
-                                  <span className="rounded-full bg-orange-50 px-2.5 py-0.5 text-xs font-semibold text-orange-700">
-                                    Registration open
-                                  </span>
+                                  isRegistrationClosed(item) ? (
+                                    <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700">
+                                      Registration not open yet
+                                    </span>
+                                  ) : (
+                                    <span className="rounded-full bg-orange-50 px-2.5 py-0.5 text-xs font-semibold text-orange-700">
+                                      Registration open
+                                    </span>
+                                  )
                                 )}
                               </>
                             )}
@@ -572,7 +592,9 @@ export default function EventsPage({ initialEvents, initialAnnouncements }: Even
                     <span>
                       {selectedItem.type === 'announcement'
                         ? `Updated ${format(new Date(selectedItem.start_at || 0), "PPP")}`
-                        : formatRange(selectedItem.start_at || '', selectedItem.end_at || null)}
+                        : isDateTbc(selectedItem)
+                          ? "Dates to be announced"
+                          : formatRange(selectedItem.start_at || '', selectedItem.end_at || null)}
                     </span>
                   </div>
                   {selectedItem.type === 'event' && (

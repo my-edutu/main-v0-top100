@@ -230,7 +230,7 @@ const impactMetrics = [
 
 const faqs = [
   {
-    question: "Who can attend the Africa Future Leaders Summit 2025?",
+    question: "Who can attend the Africa Future Leaders Summit 2026?",
     answer:
       "Attendance is open to Top100 awardees, alumni, invited student leaders, ecosystem partners, investors, and organisations aligned with the summit themes.",
   },
@@ -296,13 +296,13 @@ export default function FutureLeadersSummitPage() {
             Initiatives
           </Link>
           <span aria-hidden="true">/</span>
-          <span className="text-zinc-400">Africa Future Leaders Summit 2025</span>
+          <span className="text-zinc-400">Africa Future Leaders Summit 2026</span>
         </div>
       </nav>
 
       <main className="container mx-auto space-y-10 px-4 py-8 lg:px-8">
         <h1 className="text-4xl md:text-5xl font-semibold leading-tight text-white text-left">
-          Africa Future Leaders Summit 2025
+          Africa Future Leaders Summit 2026
         </h1>
 
         <Gallery />
@@ -310,7 +310,7 @@ export default function FutureLeadersSummitPage() {
         <section className="space-y-6 rounded-3xl border border-white/10 bg-white/5 p-10 shadow-sm">
           <h2 className="text-2xl font-semibold text-white">About the Summit</h2>
           <p className="text-lg leading-relaxed text-zinc-300">
-            The Africa Future Leaders Summit 2025 is Top100’s signature gathering where Africa’s brightest innovators, mission-driven
+            The Africa Future Leaders Summit 2026 is Top100’s signature gathering where Africa’s brightest innovators, mission-driven
             organisations, and global allies co-create solutions. Across two energising days, the summit blends high-impact
             storytelling, collaborative labs, partner roundtables, and showcases that move bold ideas into action.
           </p>
@@ -451,7 +451,7 @@ export default function FutureLeadersSummitPage() {
             <div className="flex justify-between items-center cursor-pointer" onClick={() => setIsTeamExpanded(!isTeamExpanded)}>
               <div className="flex items-center">
                 <h2 className="text-lg font-semibold text-slate-800 dark:text-white mr-2">Meet the Summit Team</h2>
-                <p className="text-slate-600 dark:text-slate-300 hidden md:block">The core team crafting the experiences, partnerships, and storytelling behind the Africa Future Leaders Summit 2025.</p>
+                <p className="text-slate-600 dark:text-slate-300 hidden md:block">The core team crafting the experiences, partnerships, and storytelling behind the Africa Future Leaders Summit 2026.</p>
               </div>
               <button
                 onClick={(e) => {
@@ -591,17 +591,23 @@ export default function FutureLeadersSummitPage() {
         </section>
 
         <section className="rounded-3xl border border-orange-400/20 bg-gradient-to-r from-orange-500/30 via-orange-500/10 to-transparent p-10 text-center shadow-lg">
-          <h2 className="text-3xl font-semibold text-white">Be Part of the Africa Future Leaders Summit 2025 Experience</h2>
+          <h2 className="text-3xl font-semibold text-white">Be Part of the Africa Future Leaders Summit 2026 Experience</h2>
           <p className="mt-4 text-lg text-zinc-300 dark:text-orange-100">
             Join us in co-creating a gathering that accelerates Africa&apos;s next generation of changemakers.
           </p>
+          <p className="mt-3 text-sm font-semibold uppercase tracking-widest text-orange-200">
+            Registration is not open yet — dates and venue in Lagos to be announced.
+          </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-            <Button className="rounded-xl bg-white text-slate-900 hover:bg-slate-100">Register Interest</Button>
+            <Button asChild className="rounded-xl bg-white text-slate-900 hover:bg-slate-100">
+              <Link href="/waitlist?program=summit-2026">Join the Waiting List</Link>
+            </Button>
             <Button
+              asChild
               variant="outline"
               className="rounded-xl border-white/40 bg-transparent px-6 py-6 text-white hover:bg-white/10"
             >
-              Become a Partner
+              <Link href="/partnership">Become a Partner</Link>
             </Button>
           </div>
         </section>

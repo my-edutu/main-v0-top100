@@ -80,7 +80,7 @@ The migration includes 3 ready-to-use events:
 
 1. **Africa Future Leaders Summit 2026**
    - Type: In-person summit
-   - Location: Kigali, Rwanda
+   - Location: Lagos, Nigeria
    - Status: Published & Featured
    - Date: July 15-17, 2026
 
@@ -116,8 +116,8 @@ The migration includes 3 ready-to-use events:
 | Subtitle | Supporting headline | "Shaping the Future of African Leadership" |
 | Summary | Brief description (shows in cards) | "Join us for an immersive leadership summit..." |
 | Description | Full details (shows in modal) | Detailed event information |
-| Location | Physical venue | "Kigali Convention Centre" |
-| City/Country | For filtering and display | "Kigali, Rwanda" |
+| Location | Physical venue | "Landmark Centre, Lagos" |
+| City/Country | For filtering and display | "Lagos, Nigeria" |
 | Virtual | Online event toggle | ✓ for virtual events |
 | Start/End Date | Event schedule | "July 15-17, 2026" |
 | Registration URL | Sign-up link | "/initiatives/summit" |

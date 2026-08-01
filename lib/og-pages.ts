@@ -198,6 +198,12 @@ export const PAGE_OG: Record<string, OgCard> = {
     eyebrow: "Members",
     title: "Claim Your Awardee Profile",
   },
+  "/waitlist": {
+    eyebrow: "Waiting List",
+    title: "Join the Top100 Waiting List",
+    subtitle: "Be first to know when our programmes open for registration.",
+    hero: "/IMG_0672.jpg",
+  },
   // Section fallbacks for dynamic routes whose records may carry no image.
   "/announcements": {
     eyebrow: "Announcement",

@@ -18,6 +18,8 @@ interface HubItem {
     image_url?: string | null
     cta_url?: string | null
     cta_label?: string | null
+    registration_open?: boolean
+    date_tbc?: boolean
     is_featured?: boolean
     is_virtual?: boolean
     city?: string | null
@@ -48,6 +50,8 @@ const buildHubItems = (events: HomepageEvent[], announcements: HomepageAnnouncem
             image_url: event.featured_image_url,
             cta_url: event.registration_url,
             cta_label: event.registration_label,
+            registration_open: event.registration_open ?? true,
+            date_tbc: event.date_tbc ?? false,
             is_featured: event.is_featured,
             is_virtual: event.is_virtual,
             city: event.city,
@@ -144,92 +148,111 @@ export default function EventsHubSection({ initialEvents, initialAnnouncements }
                     </div>
                 </div>
 
-                {/* Snap-carousel below lg, grid from lg up so cards never overflow the viewport */}
+                {/* Compact snap-carousel below md, single-row grid from md up */}
                 <div
                     className={cn(
-                        "flex gap-6 overflow-x-auto pb-4 -mx-4 px-4 snap-x snap-mandatory",
-                        "lg:mx-0 lg:grid lg:gap-8 lg:overflow-visible lg:px-0 lg:pb-0",
-                        items.length === 1 ? "lg:grid-cols-1 lg:max-w-4xl lg:mx-auto" : "lg:grid-cols-2"
+                        "flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 snap-x snap-mandatory",
+                        "md:mx-0 md:grid md:gap-6 md:overflow-visible md:px-0 md:pb-0",
+                        items.length === 1
+                            ? "md:grid-cols-1 md:max-w-md md:mx-auto"
+                            : items.length === 2
+                                ? "md:grid-cols-2"
+                                : "md:grid-cols-3"
                     )}
                 >
-                    {items.map((item) => (
-                        <Link
-                            key={`${item.type}-${item.id}`}
-                            href={item.type === 'announcement' ? `/announcements/${item.id}` : (item.cta_url || '#')}
-                            className="group relative flex flex-col md:flex-row bg-zinc-50 rounded-[2rem] overflow-hidden border border-zinc-100 transition-all duration-300 hover:shadow-2xl hover:shadow-orange-500/10 hover:-translate-y-1 snap-center flex-shrink-0 w-[85vw] sm:w-[400px] md:w-[700px] max-w-4xl lg:w-auto lg:max-w-none lg:flex-shrink"
-                        >
-                            {/* Image Container */}
-                            <div className="relative aspect-[16/10] md:aspect-auto md:w-2/5 overflow-hidden flex-shrink-0">
-                                {item.image_url ? (
-                                    <Image
-                                        src={item.image_url}
-                                        alt={item.title}
-                                        fill
-                                        className="object-cover transition-transform duration-500 group-hover:scale-105"
-                                    />
-                                ) : (
-                                    <div className="w-full h-full min-h-[200px] bg-orange-50 flex items-center justify-center">
-                                        {item.type === 'event' ? <Calendar className="h-12 w-12 text-orange-200" /> : <Megaphone className="h-12 w-12 text-orange-200" />}
-                                    </div>
-                                )}
+                    {items.map((item) => {
+                        const isClosed = item.type === 'event' && item.registration_open === false
 
-                                {/* Badge */}
-                                <div className="absolute top-4 left-4 flex gap-2">
-                                    <span className={cn(
-                                        "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm",
-                                        item.type === 'event' ? "bg-blue-600 text-white" : "bg-orange-600 text-white"
-                                    )}>
-                                        {item.type}
-                                    </span>
-                                    {item.is_featured && (
-                                        <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-white/90 text-zinc-900 backdrop-blur shadow-sm">
-                                            Featured
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Content */}
-                            <div className="flex-1 p-6 sm:p-8 flex flex-col justify-center space-y-4">
-                                <div className="space-y-2">
-                                    <h3 className="text-xl sm:text-2xl font-black text-zinc-900 leading-tight line-clamp-2 transition-colors group-hover:text-orange-600">
-                                        {item.title}
-                                    </h3>
-                                    {item.subtitle && (
-                                        <p className="text-sm text-zinc-500 font-medium line-clamp-3">
-                                            {item.subtitle}
-                                        </p>
-                                    )}
-                                </div>
-
-                                <div className="mt-auto pt-4 space-y-3">
-                                    {item.type === 'event' && item.start_at && (
-                                        <div className="flex flex-wrap gap-4 text-xs font-bold text-zinc-400">
-                                            <div className="flex items-center gap-1.5">
-                                                <Calendar className="h-3.5 w-3.5 text-orange-500" />
-                                                {new Date(item.start_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                            </div>
-                                            <div className="flex items-center gap-1.5">
-                                                <Clock className="h-3.5 w-3.5 text-orange-500" />
-                                                {new Date(item.start_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                                            </div>
-                                            <div className="flex items-center gap-1.5">
-                                                <MapPin className="h-3.5 w-3.5 text-orange-500" />
-                                                <span className="truncate max-w-[100px]">
-                                                    {item.is_virtual ? 'Virtual' : (item.city || item.location || 'Online')}
-                                                </span>
-                                            </div>
+                        return (
+                            <Link
+                                key={`${item.type}-${item.id}`}
+                                href={item.type === 'announcement' ? `/announcements/${item.id}` : (item.cta_url || '#')}
+                                className="group relative flex flex-col bg-zinc-50 rounded-2xl md:rounded-[1.75rem] overflow-hidden border border-zinc-100 transition-all duration-300 hover:shadow-xl hover:shadow-orange-500/10 hover:-translate-y-1 snap-center flex-shrink-0 w-[68vw] max-w-[260px] sm:w-[280px] sm:max-w-none md:w-auto md:flex-shrink"
+                            >
+                                {/* Image Container */}
+                                <div className="relative aspect-[16/9] overflow-hidden flex-shrink-0">
+                                    {item.image_url ? (
+                                        <Image
+                                            src={item.image_url}
+                                            alt={item.title}
+                                            fill
+                                            sizes="(max-width: 768px) 68vw, 33vw"
+                                            className="object-cover transition-transform duration-500 group-hover:scale-105"
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full bg-orange-50 flex items-center justify-center">
+                                            {item.type === 'event' ? <Calendar className="h-8 w-8 md:h-10 md:w-10 text-orange-200" /> : <Megaphone className="h-8 w-8 md:h-10 md:w-10 text-orange-200" />}
                                         </div>
                                     )}
 
-                                    <div className="flex items-center text-sm font-black text-zinc-900 uppercase tracking-widest group-hover:text-orange-600 transition-colors">
-                                        {item.cta_label}
-                                        <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                                    {/* Badge */}
+                                    <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
+                                        <span className={cn(
+                                            "px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm text-[#fff]",
+                                            item.type === 'event' ? "bg-blue-600" : "bg-orange-600"
+                                        )}>
+                                            {item.type}
+                                        </span>
+                                        {item.is_featured && (
+                                            <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-white/90 text-zinc-900 backdrop-blur shadow-sm">
+                                                Featured
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
-                            </div>
-                        </Link>
-                    ))}
+
+                                {/* Content */}
+                                <div className="flex-1 p-4 md:p-5 flex flex-col gap-2.5">
+                                    <div className="space-y-1.5">
+                                        <h3 className="text-base md:text-lg font-black text-zinc-900 leading-snug line-clamp-2 transition-colors group-hover:text-orange-600">
+                                            {item.title}
+                                        </h3>
+                                        {item.subtitle && (
+                                            <p className="text-xs md:text-sm text-zinc-500 font-medium line-clamp-2">
+                                                {item.subtitle}
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    <div className="mt-auto pt-2 space-y-2.5">
+                                        {item.type === 'event' && (
+                                            <div className="flex flex-wrap gap-x-3 gap-y-1.5 text-[11px] font-bold text-zinc-400">
+                                                <div className="flex items-center gap-1">
+                                                    <Calendar className="h-3 w-3 text-orange-500" />
+                                                    {item.date_tbc || !item.start_at
+                                                        ? 'Date TBA'
+                                                        : new Date(item.start_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                </div>
+                                                {!item.date_tbc && item.start_at && (
+                                                    <div className="flex items-center gap-1">
+                                                        <Clock className="h-3 w-3 text-orange-500" />
+                                                        {new Date(item.start_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                                                    </div>
+                                                )}
+                                                <div className="flex items-center gap-1">
+                                                    <MapPin className="h-3 w-3 text-orange-500" />
+                                                    <span className="truncate max-w-[90px]">
+                                                        {item.is_virtual ? 'Virtual' : (item.city || item.location || 'TBA')}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {isClosed && (
+                                            <span className="inline-flex items-center rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest text-amber-700">
+                                                Registration not open yet
+                                            </span>
+                                        )}
+
+                                        <div className="flex items-center text-[11px] md:text-xs font-black text-zinc-900 uppercase tracking-widest group-hover:text-orange-600 transition-colors">
+                                            {item.cta_label}
+                                            <ArrowRight className="ml-1.5 h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </Link>
+                        )
+                    })}
                 </div>
             </div>
         </section>
