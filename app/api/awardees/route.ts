@@ -8,6 +8,7 @@ import { randomUUID } from 'crypto';
 
 import { requireAdmin } from '@/lib/api/require-admin';
 import { getAwardees } from '@/lib/awardees';
+import { PHOTO_PRESET, processUpload } from '@/lib/image-processing';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { read, utils } from 'xlsx';
 
@@ -166,14 +167,23 @@ export async function POST(request: NextRequest) {
 
         // The extension is derived from the validated MIME type; the client's
         // filename must never reach a storage path.
-        const fileName = `${Date.now()}-${randomUUID()}.${AWARDEE_IMAGE_EXTENSIONS[body.image.type]}`;
+        const processed = await processUpload(
+          await body.image.arrayBuffer(),
+          PHOTO_PRESET,
+          body.image.type,
+        );
+        const extension = processed.extension || AWARDEE_IMAGE_EXTENSIONS[body.image.type];
+        const fileName = `${Date.now()}-${randomUUID()}.${extension}`;
 
         try {
           // Upload to Supabase storage
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from('awardees') // Use 'awardees' bucket, make sure this bucket exists in Supabase
-            .upload(fileName, body.image, {
-              cacheControl: '3600',
+            .upload(fileName, processed.data, {
+              contentType: processed.contentType,
+              // Timestamped paths are never reused, so a year is safe and keeps
+              // repeat views off Storage entirely.
+              cacheControl: String(60 * 60 * 24 * 365),
               upsert: false
             });
 

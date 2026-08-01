@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
+import { PHOTO_PRESET, processUpload } from '@/lib/image-processing'
 import { getAwardeeSession } from '@/lib/api/awardee-session'
 import {
     checkRateLimit,
@@ -93,13 +94,18 @@ export async function POST(request: NextRequest) {
 
         // Both parts are server-controlled: the id came from the signed token
         // and the extension from the validated MIME type.
-        const fileName = `${awardeeId}-${Date.now()}.${EXTENSION_BY_TYPE[image.type]}`
+        const processed = await processUpload(await image.arrayBuffer(), PHOTO_PRESET, image.type)
+        const extension = processed.extension || EXTENSION_BY_TYPE[image.type]
+        const fileName = `${awardeeId}-${Date.now()}.${extension}`
 
         // Upload to Supabase storage
         const { data: uploadData, error: uploadError } = await supabase.storage
             .from('awardees')
-            .upload(fileName, image, {
-                cacheControl: '3600',
+            .upload(fileName, processed.data, {
+                contentType: processed.contentType,
+                // Timestamped paths are never reused, so a year is safe and
+                // keeps repeat views off Storage entirely.
+                cacheControl: String(60 * 60 * 24 * 365),
                 // Timestamped names are unique, so an upsert would only ever
                 // mean overwriting something we didn't intend to.
                 upsert: false

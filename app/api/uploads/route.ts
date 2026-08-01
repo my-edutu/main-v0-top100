@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 import { requireAdmin } from '@/lib/api/require-admin'
+import { PHOTO_PRESET, processUpload } from '@/lib/image-processing'
 import { createAdminClient } from '@/lib/supabase/server'
 
 const BUCKET_NAME = process.env.SUPABASE_UPLOADS_BUCKET ?? 'uploads'
 
-const createFileName = (file: File) => {
-  const extension = file.name.split('.').pop() ?? 'jpg'
+// Timestamped paths are never reused, so the bytes at a URL cannot change.
+const CACHE_CONTROL = String(60 * 60 * 24 * 365)
+
+const createFileName = (file: File, extension: string) => {
   const base = file.name.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9-_]/g, '')
   const timestamp = Date.now()
   return `editor/${base || 'asset'}-${timestamp}.${extension}`
@@ -28,14 +31,20 @@ export async function POST(request: NextRequest) {
 
     const supabase = createAdminClient()
 
-    const filePath = createFileName(file)
-    const arrayBuffer = await file.arrayBuffer()
+    // Editor assets are not always images; processUpload hands anything it
+    // cannot decode back untouched, so a pdf still uploads as itself.
+    const processed = await processUpload(
+      await file.arrayBuffer(),
+      PHOTO_PRESET,
+      file.type || 'image/jpeg',
+    )
+    const filePath = createFileName(file, processed.extension)
 
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from(BUCKET_NAME)
-      .upload(filePath, arrayBuffer, {
-        contentType: file.type || 'image/jpeg',
-        cacheControl: '3600',
+      .upload(filePath, processed.data, {
+        contentType: processed.contentType,
+        cacheControl: CACHE_CONTROL,
         upsert: false,
       })
 

@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { requireAdmin } from '@/lib/api/require-admin';
+import { PHOTO_PRESET, processUpload } from '@/lib/image-processing';
 import { createAdminClient } from '@/lib/supabase/server';
 
 // The buckets this endpoint is allowed to write to. The bucket used to come
@@ -78,13 +79,22 @@ export async function POST(request: NextRequest) {
 
     // Both parts are server-controlled: a sanitized id and an extension derived
     // from the validated MIME type.
-    const fileName = `${resourceId}-${Date.now()}.${EXTENSION_BY_TYPE[imageFile.type]}`;
+    const processed = await processUpload(
+      await imageFile.arrayBuffer(),
+      PHOTO_PRESET,
+      imageFile.type,
+    );
+    const extension = processed.extension || EXTENSION_BY_TYPE[imageFile.type];
+    const fileName = `${resourceId}-${Date.now()}.${extension}`;
 
     // Upload to Supabase storage
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from(bucket)
-      .upload(fileName, imageFile, {
-        cacheControl: '3600',
+      .upload(fileName, processed.data, {
+        contentType: processed.contentType,
+        // Timestamped paths are never reused, so a year is safe and keeps
+        // repeat views off Storage entirely.
+        cacheControl: String(60 * 60 * 24 * 365),
         // Timestamped names are unique, so an upsert would only ever mean
         // overwriting something we didn't intend to.
         upsert: false

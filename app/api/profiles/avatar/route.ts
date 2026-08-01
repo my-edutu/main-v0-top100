@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth-server'
+import { AVATAR_PRESET, processUpload } from '@/lib/image-processing'
 import { createClient } from '@/lib/supabase/server'
 
 const BUCKET_NAME = process.env.SUPABASE_AVATARS_BUCKET ?? 'avatars'
 
-const createFileName = (userId: string, file: File) => {
-  const extension = file.name.split('.').pop() ?? 'jpg'
+// Paths are timestamped and never reused, so the object at a URL can never
+// change and the browser is safe to keep it for a year. The old one-hour TTL
+// meant returning visitors re-downloaded avatars they already had.
+const CACHE_CONTROL = String(60 * 60 * 24 * 365)
+
+const createFileName = (userId: string, extension: string) => {
   const timestamp = Date.now()
   return `users/${userId}-${timestamp}.${extension}`
 }
@@ -37,14 +42,14 @@ export async function POST(request: NextRequest) {
 
     const supabase = createClient()
 
-    const filePath = createFileName(user.id, file)
-    const arrayBuffer = await file.arrayBuffer()
+    const processed = await processUpload(await file.arrayBuffer(), AVATAR_PRESET, file.type)
+    const filePath = createFileName(user.id, processed.extension)
 
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from(BUCKET_NAME)
-      .upload(filePath, arrayBuffer, {
-        contentType: file.type,
-        cacheControl: '3600',
+      .upload(filePath, processed.data, {
+        contentType: processed.contentType,
+        cacheControl: CACHE_CONTROL,
         upsert: true, // Allow overwriting the same file
       })
 
