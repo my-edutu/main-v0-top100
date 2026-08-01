@@ -71,6 +71,11 @@ async function fetchUrbanist(): Promise<FontSpec[]> {
  * Resolves the hero to a fetchable absolute URL. Validation already happened
  * in parseOgCard; this only turns a same-origin path into an absolute URL and
  * confirms the bytes actually exist, so the layout can fall back cleanly.
+ *
+ * The probe is HEAD on purpose. This used to be a plain GET whose body was
+ * never read, which meant every uncached card downloaded its hero twice —
+ * once here and once when satori rendered the <img> — and awardee heroes live
+ * in Supabase Storage, so the wasted copy was billed egress.
  */
 async function resolveHeroSrc(hero: string | null): Promise<string | null> {
   if (!hero) return null
@@ -78,7 +83,15 @@ async function resolveHeroSrc(hero: string | null): Promise<string | null> {
   const absolute = hero.startsWith("/") ? new URL(hero, SITE_URL).toString() : hero
 
   try {
-    const response = await fetch(absolute)
+    let response = await fetch(absolute, { method: "HEAD" })
+
+    // Not every origin implements HEAD. Retry those with a GET and throw the
+    // body away rather than letting it stream to completion.
+    if (response.status === 405 || response.status === 501) {
+      response = await fetch(absolute)
+      await response.body?.cancel().catch(() => {})
+    }
+
     if (!response.ok) return null
     const type = response.headers.get("content-type") ?? ""
     if (!type.startsWith("image/")) return null
