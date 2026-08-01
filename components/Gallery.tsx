@@ -96,6 +96,7 @@ const Gallery = () => {
                   fill
                   className="object-contain"
                   priority={index === 0}
+                  sizes="(max-width: 625px) 80vw, 500px"
                 />
               </div>
             </div>

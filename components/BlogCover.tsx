@@ -19,6 +19,16 @@ type BlogCoverProps = {
 const hasRealCover = (url?: string | null) =>
   Boolean(url) && !url!.startsWith("/placeholder.svg")
 
+/**
+ * `fill` with no `sizes` makes Next assume 100vw and hand back a full-width
+ * render, which is how covers used to pull megabytes out of Storage for a card
+ * a few hundred pixels wide. Callers that know their layout pass their own.
+ */
+const DEFAULT_SIZES: Record<NonNullable<BlogCoverProps["variant"]>, string> = {
+  card: "(max-width: 640px) 100vw, (max-width: 1200px) 50vw, 33vw",
+  hero: "(max-width: 1200px) 100vw, 1200px",
+}
+
 export default function BlogCover({
   imageUrl,
   title,
@@ -48,7 +58,7 @@ export default function BlogCover({
           fill
           className="object-cover"
           priority={priority}
-          sizes={sizes}
+          sizes={sizes ?? DEFAULT_SIZES[variant]}
         />
       ) : (
         <>

@@ -7,19 +7,20 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-    unoptimized: true,
+    // `unoptimized: true` came from the v0 scaffold and was the single largest
+    // driver of Supabase cached egress: it disables Vercel's optimizer, so every
+    // <Image> streamed the full-size original out of Storage on every view and
+    // Vercel never kept a resized copy. Leave it off — the optimizer downscales
+    // to the requested `sizes` and serves the result from its own CDN, which
+    // turns N views of a photo into one Storage read.
+    formats: ['image/avif', 'image/webp'],
+    // Storage objects are content-addressed by upload path, so a long TTL is
+    // safe and keeps re-fetches off Supabase.
+    minimumCacheTTL: 60 * 60 * 24 * 30,
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'zsavekrhfwrpqudhjvlq.supabase.co',
-      },
-      {
-        protocol: 'https',
         hostname: '**.supabase.co',
-      },
-      {
-        protocol: 'https',
-        hostname: '*.supabase.co',
       },
       {
         protocol: 'https',
