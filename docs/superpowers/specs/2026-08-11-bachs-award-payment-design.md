@@ -1,7 +1,7 @@
 # Bachs Award Payment — Phase One
 
 **Date:** 2026-08-11
-**Status:** Approved design, pending written-spec review
+**Status:** Approved specification, ready for implementation planning
 
 ## Context
 
