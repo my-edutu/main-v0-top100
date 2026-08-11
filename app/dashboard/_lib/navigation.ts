@@ -35,7 +35,7 @@ export const primaryDashboardNav: PrimaryDashboardNavItem[] = [
   { id: 'home', label: 'Home', href: '/dashboard', icon: Home, color: 'ember' },
   { id: 'discover', label: 'Discover', href: '/dashboard/discover', icon: Compass, color: 'saffron' },
   { id: 'messages', label: 'Messages', href: '/dashboard/messages', icon: MessageCircle, color: 'cobalt' },
-  { id: 'me', label: 'Me', href: '/dashboard/me', icon: UserRound, color: 'forest' },
+  { id: 'me', label: 'Me', href: '/dashboard/me', icon: UserRound, color: 'burgundy' },
 ]
 
 export const discoverNav: DashboardNavItem[] = [

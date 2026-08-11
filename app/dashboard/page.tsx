@@ -46,7 +46,6 @@ import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import {
   fetchMemberHubState,
-  fetchConversations,
   createFeatureSubmission,
   markNotificationRead,
   markAllNotificationsRead,
@@ -55,12 +54,10 @@ import {
   MemberProfile,
   updateMemberProfile,
 } from '@/lib/member-hub'
-import { fetchAwardOrder } from '@/lib/awards'
 import { magazineEditions } from '@/lib/magazines'
 import type { Awardee } from '@/lib/awardees-shared'
 import { cn } from '@/lib/utils'
 import WelcomeBalloons from '@/app/components/WelcomeBalloons'
-import DashboardHeader, { SignOutControl } from './dashboard-header'
 import MessagesSection, { type MessageRecipient } from './messages-section'
 import AwardsSection from './awards-section'
 import GroupsSection from './groups-section'
@@ -68,6 +65,7 @@ import PostsSection from './posts-section'
 import OpportunitiesSection from './opportunities-section'
 import EventInvitationsSection from './event-invitations-section'
 import { buildBioPatch, saveSettingsForm } from './_lib/profile-patches'
+import { useDashboardBadges } from './_providers/dashboard-badges'
 
 type DashboardSection = 'home' | 'profile' | 'directory' | 'messages' | 'groups' | 'posts' | 'opportunities' | 'awards' | 'featured' | 'events' | 'partnerships' | 'magazine' | 'notifications' | 'settings'
 
@@ -216,10 +214,15 @@ export default function MemberDashboardPage() {
   const [profileError, setProfileError] = useState('')
   const [featureSaved, setFeatureSaved] = useState(false)
   const [featureError, setFeatureError] = useState('')
-  const [mobileOpen, setMobileOpen] = useState(false)
   const [pendingRecipient, setPendingRecipient] = useState<MessageRecipient | null>(null)
-  const [unreadMessages, setUnreadMessages] = useState(0)
-  const [needsAwardClaim, setNeedsAwardClaim] = useState(false)
+  const {
+    unreadMessages,
+    unreadUpdates: unreadNotifications,
+    awardNeedsAttention: needsAwardClaim,
+    setUnreadMessages,
+    setAwardNeedsAttention,
+    refreshBadges,
+  } = useDashboardBadges()
   // Set when Paystack has just redirected the member back here
   // (?section=awards&payment=done) and the webhook may not have landed yet.
   // Passed down so AwardsSection can show a "confirming" state instead of a
@@ -283,56 +286,12 @@ export default function MemberDashboardPage() {
     refresh()
   }, [refresh])
 
-  // Header/nav badge: unread direct messages (best-effort; the Messages
-  // section keeps this fresh while it is open).
-  useEffect(() => {
-    let cancelled = false
-    fetchConversations()
-      .then((result) => {
-        if (!cancelled) setUnreadMessages(result.unreadTotal)
-      })
-      .catch(() => {
-        // Messaging may not be set up yet — the section explains it.
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  // Drives the compulsory-award banner. Best-effort: a failure here must not
-  // break the dashboard, so it silently leaves the banner hidden.
-  useEffect(() => {
-    let cancelled = false
-    fetchAwardOrder()
-      .then((state) => {
-        if (!cancelled) setNeedsAwardClaim(state.needsClaim)
-      })
-      .catch(() => {
-        // Awards may not be set up yet — the section itself explains it.
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
   const member = useMemo(() => {
     if (!state) return null
     return state.members.find((item) => item.id === state.currentMemberId) || state.members[0] || null
   }, [state])
 
-  const unreadNotifications = useMemo(() => {
-    if (!state || !member) return 0
-    return state.notifications.filter(
-      (notification) =>
-        notification.status === 'sent' &&
-        (notification.audience === 'all' || member.status === 'approved') &&
-        !notification.readBy.includes(member.id),
-    ).length
-  }, [state, member])
-
   function openSection(section: DashboardSection) {
-    setMobileOpen(false)
-
     if (section === 'featured') {
       setSectionPreview('featured')
       return
@@ -455,6 +414,7 @@ export default function MemberDashboardPage() {
     try {
       await markNotificationRead(notificationId, member.id)
       await refresh()
+      await refreshBadges()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Could not mark this notification as read.')
     }
@@ -465,6 +425,7 @@ export default function MemberDashboardPage() {
     try {
       await markAllNotificationsRead()
       await refresh()
+      await refreshBadges()
       toast.success('All notifications marked as read.')
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Could not mark notifications as read.')
@@ -503,44 +464,15 @@ export default function MemberDashboardPage() {
     )
   }
 
-  const sidebar = (
-    <DashboardSidebar
-      activeSection={activeSection}
-      member={member}
-      onNavigate={openSection}
-      unreadMessages={unreadMessages}
-      unreadNotifications={unreadNotifications}
-    />
-  )
-
   return (
-    <section className="min-h-[100dvh] bg-[#fffaf4] text-black">
+    <>
       {welcomePending && (
         <WelcomeBalloons
           name={welcomeName || member.name}
           onDone={() => setWelcomePending(false)}
         />
       )}
-      <DashboardHeader
-        memberName={member.name}
-        memberInitials={member.avatarInitials}
-        unreadNotifications={unreadNotifications}
-        unreadMessages={unreadMessages}
-        onOpenNotifications={() => openSection('notifications')}
-        onOpenMessages={() => openSection('messages')}
-        mobileNav={sidebar}
-        mobileNavOpen={mobileOpen}
-        onMobileNavOpenChange={setMobileOpen}
-      />
-
-      <div className="grid lg:grid-cols-[264px_minmax(0,1fr)]">
-        <aside className="hidden border-r border-orange-100 bg-white lg:sticky lg:top-16 lg:block lg:h-[calc(100dvh-4rem)] lg:self-start lg:overflow-y-auto">
-          {sidebar}
-        </aside>
-
-        <main className="min-h-[calc(100dvh-4rem)] bg-[linear-gradient(180deg,#fffaf4_0%,#ffffff_36%,#fffaf4_100%)] px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
-          <div className="mx-auto max-w-6xl space-y-5">
-            <MembershipStatusBanner member={member} />
+      <div className="space-y-5">
             {needsAwardClaim && activeSection !== 'awards' && (
               <button
                 type="button"
@@ -575,7 +507,7 @@ export default function MemberDashboardPage() {
             {activeSection === 'posts' && <PostsSection member={member} />}
             {activeSection === 'opportunities' && <OpportunitiesSection member={member} />}
             {activeSection === 'awards' && (
-              <AwardsSection member={member} onClaimStateChange={setNeedsAwardClaim} paymentPending={paymentPending} />
+              <AwardsSection member={member} onClaimStateChange={setAwardNeedsAttention} paymentPending={paymentPending} />
             )}
             {activeSection === 'featured' && <FeaturedSection error={featureError} onSubmit={handleFeatureSubmit} saved={featureSaved} submissions={state.featureSubmissions} />}
             {activeSection === 'events' && <EventInvitationsSection member={member} />}
@@ -583,8 +515,6 @@ export default function MemberDashboardPage() {
             {activeSection === 'magazine' && <MagazineSection onNavigate={openSection} />}
             {activeSection === 'notifications' && <NotificationsSection member={member} onRead={handleReadNotification} onMarkAll={handleMarkAllNotificationsRead} state={state} />}
             {activeSection === 'settings' && <SettingsSection error={profileError} member={member} onSubmit={handleSettingsSubmit} saved={saved} saving={savingProfile} />}
-          </div>
-        </main>
       </div>
       <FeaturedPreviewModal
         open={sectionPreview === 'featured'}
@@ -593,90 +523,7 @@ export default function MemberDashboardPage() {
           setActiveSection('featured')
         }}
       />
-    </section>
-  )
-}
-
-function MembershipStatusBanner({ member }: { member: MemberProfile }) {
-  if (member.status === 'approved') return null
-
-  const copy: Record<string, { title: string; body: string; tone: string }> = {
-    pending: {
-      title: 'Your awardee account is pending review',
-      body: 'An admin approves every new account. You can already complete your BIO and browse the network — approved-only broadcasts unlock once you are approved. You will get a notification here when that happens.',
-      tone: 'border-amber-200 bg-amber-50 text-amber-900',
-    },
-    rejected: {
-      title: 'Your account application was not approved',
-      body: 'Contact the admin team at info@top100afl.com if you believe this is a mistake.',
-      tone: 'border-red-200 bg-red-50 text-red-900',
-    },
-    suspended: {
-      title: 'Your account is suspended',
-      body: 'Some features, including messaging, are disabled. Contact the admin team to resolve this.',
-      tone: 'border-red-200 bg-red-50 text-red-900',
-    },
-  }
-
-  const banner = copy[member.status]
-  if (!banner) return null
-
-  return (
-    <div role="status" className={cn('rounded-[24px] border px-5 py-4', banner.tone)}>
-      <p className="text-sm font-bold">{banner.title}</p>
-      <p className="mt-1 text-sm font-medium leading-6 opacity-80">{banner.body}</p>
-    </div>
-  )
-}
-
-function DashboardSidebar({
-  activeSection,
-  member,
-  onNavigate,
-  unreadMessages,
-  unreadNotifications,
-}: {
-  activeSection: DashboardSection
-  member: MemberProfile
-  onNavigate: (section: DashboardSection) => void
-  unreadMessages: number
-  unreadNotifications: number
-}) {
-  const badges: Partial<Record<DashboardSection, number>> = {
-    messages: unreadMessages,
-    notifications: unreadNotifications,
-  }
-
-  return (
-    <div className="flex h-full flex-col p-4">
-      <div className="rounded-[24px] bg-orange-50 p-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-500 text-base font-bold text-[#fffaf0]">
-            {member.avatarInitials}
-          </div>
-          <div className="min-w-0">
-            <h2 className="truncate text-lg font-semibold text-black">{member.name}</h2>
-            <p className="truncate text-xs font-medium capitalize text-black/50">{member.status} member</p>
-          </div>
-        </div>
-      </div>
-
-      <nav className="mt-5 space-y-1.5">
-        {dashboardNav.map((item) => (
-          <SideNavButton
-            key={item.id}
-            active={activeSection === item.id}
-            badge={badges[item.id] ?? 0}
-            item={item}
-            onClick={() => onNavigate(item.id)}
-          />
-        ))}
-      </nav>
-
-      <div className="mt-6 border-t border-orange-100 pt-4">
-        <SignOutControl />
-      </div>
-    </div>
+    </>
   )
 }
 
@@ -1628,49 +1475,6 @@ function SettingsSection({
         </div>
       </form>
     </SectionShell>
-  )
-}
-
-function SideNavButton({
-  active,
-  badge = 0,
-  item,
-  onClick,
-}: {
-  active: boolean
-  badge?: number
-  item: NavItem
-  onClick: () => void
-}) {
-  const Icon = item.icon
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        'group flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition active:scale-[0.98]',
-        active ? 'bg-orange-500 text-black' : 'text-black/70 hover:bg-orange-50 hover:text-black',
-      )}
-    >
-      <span className={cn('flex h-10 w-10 items-center justify-center rounded-xl', active ? 'bg-[#050505] text-[#fffaf0]' : 'bg-orange-50 text-black')}>
-        <Icon className="h-5 w-5" strokeWidth={2.8} />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-sm font-semibold">{item.title}</span>
-        <span className={cn('block truncate text-xs font-medium', active ? 'text-black/70' : 'text-black/45')}>{item.label}</span>
-      </span>
-      {badge > 0 ? (
-        <span
-          className={cn(
-            'flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full px-1.5 text-xs font-bold',
-            active ? 'bg-[#050505] text-[#fffaf0]' : 'bg-orange-500 text-white',
-          )}
-        >
-          {badge > 99 ? '99+' : badge}
-        </span>
-      ) : null}
-    </button>
   )
 }
 

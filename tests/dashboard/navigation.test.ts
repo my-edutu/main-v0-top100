@@ -15,6 +15,27 @@ describe('dashboard navigation', () => {
     ])
   })
 
+  it('gives every primary destination an accessible identity and approved category color', () => {
+    const allowedColors = new Set([
+      'ember', 'saffron', 'forest', 'cobalt', 'burgundy', 'charcoal',
+    ])
+
+    expect(primaryDashboardNav).toHaveLength(4)
+    expect(new Set(primaryDashboardNav.map(({ href }) => href)).size).toBe(4)
+    primaryDashboardNav.forEach(({ label, href, icon, color }) => {
+      expect(label.trim()).not.toBe('')
+      expect(href).toMatch(/^\/dashboard(?:\/|$)/)
+      expect(icon).toBeTypeOf('object')
+      expect(allowedColors.has(color)).toBe(true)
+    })
+    expect(primaryDashboardNav.map(({ label, color }) => [label, color])).toEqual([
+      ['Home', 'ember'],
+      ['Discover', 'saffron'],
+      ['Messages', 'cobalt'],
+      ['Me', 'burgundy'],
+    ])
+  })
+
   it('groups discovery and account work without duplicate hrefs', () => {
     expect(discoverNav.map(({ label }) => label)).toEqual([
       'Members', 'Groups', 'Opportunities', 'Saved', 'Events', 'Magazine',
