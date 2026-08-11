@@ -67,6 +67,7 @@ import GroupsSection from './groups-section'
 import PostsSection from './posts-section'
 import OpportunitiesSection from './opportunities-section'
 import EventInvitationsSection from './event-invitations-section'
+import { buildBioPatch } from './_lib/profile-patches'
 
 type DashboardSection = 'home' | 'profile' | 'directory' | 'messages' | 'groups' | 'posts' | 'opportunities' | 'awards' | 'featured' | 'events' | 'partnerships' | 'magazine' | 'notifications' | 'settings'
 
@@ -360,24 +361,7 @@ export default function MemberDashboardPage() {
     if (!member) return
 
     const form = new FormData(event.currentTarget)
-    const patch = {
-      headline: String(form.get('headline') || ''),
-      bio: String(form.get('bio') || ''),
-      location: String(form.get('location') || ''),
-      organization: String(form.get('organization') || ''),
-      field: String(form.get('field') || ''),
-      emailVisible: form.get('emailVisible') === 'on',
-      recruiterVisible: form.get('recruiterVisible') === 'on',
-      showInDirectory: form.get('showInDirectory') === 'on',
-      allowDirectMessages: form.get('allowDirectMessages') === 'on',
-      opportunityAlerts: form.get('opportunityAlerts') === 'on',
-      magazineAlerts: form.get('magazineAlerts') === 'on',
-      messageAlerts: form.get('messageAlerts') === 'on',
-      eventReminders: form.get('eventReminders') === 'on',
-      hideEmailFromRecruiters: form.get('hideEmailFromRecruiters') === 'on',
-      requireProfileApproval: form.get('requireProfileApproval') === 'on',
-      securityEmails: form.get('securityEmails') === 'on',
-    }
+    const patch = buildBioPatch(form)
 
     try {
       setProfileError('')
