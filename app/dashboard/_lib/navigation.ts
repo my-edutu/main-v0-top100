@@ -81,3 +81,20 @@ export function resolveDashboardTitle(pathname: string) {
 export function groupExitDestination() {
   return '/dashboard/discover/groups'
 }
+
+export async function finishSuccessfulGroupLeave({
+  clearSelection,
+  clearDetail,
+  refreshList,
+  exitRoute,
+}: {
+  clearSelection: () => void
+  clearDetail: () => void
+  refreshList: () => Promise<void>
+  exitRoute: () => void
+}) {
+  clearSelection()
+  clearDetail()
+  await refreshList()
+  exitRoute()
+}

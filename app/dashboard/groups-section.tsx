@@ -53,6 +53,7 @@ import {
 } from '@/lib/groups/types'
 import type { MemberProfile } from '@/lib/member-hub'
 import { cn } from '@/lib/utils'
+import { finishSuccessfulGroupLeave } from './_lib/navigation'
 
 const MESSAGE_POLL_MS = 15_000
 const LIST_POLL_MS = 45_000
@@ -358,10 +359,12 @@ export default function GroupsSection({
     try {
       await leaveGroup(group.id)
       toast.success(`You left ${group.name}.`)
-      setActiveId(null)
-      setDetail(null)
-      onGroupExited?.()
-      await refreshGroups({ silent: true })
+      await finishSuccessfulGroupLeave({
+        clearSelection: () => setActiveId(null),
+        clearDetail: () => setDetail(null),
+        refreshList: () => refreshGroups({ silent: true }),
+        exitRoute: () => onGroupExited?.(),
+      })
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Could not leave this group.')
     } finally {
