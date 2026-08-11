@@ -47,3 +47,28 @@ export function buildPrivacyPatch(
     securityEmails: checked(form, 'securityEmails'),
   }
 }
+
+export function buildSettingsPatch(
+  form: FormData,
+): Pick<
+  MemberProfile,
+  | 'recruiterVisible'
+  | 'emailVisible'
+  | 'showInDirectory'
+  | 'allowDirectMessages'
+  | 'opportunityAlerts'
+  | 'magazineAlerts'
+  | 'messageAlerts'
+  | 'eventReminders'
+  | 'hideEmailFromRecruiters'
+  | 'requireProfileApproval'
+  | 'securityEmails'
+> {
+  return {
+    recruiterVisible: checked(form, 'recruiterVisible'),
+    emailVisible: checked(form, 'emailVisible'),
+    ...buildVisibilityPatch(form),
+    ...buildNotificationPatch(form),
+    ...buildPrivacyPatch(form),
+  }
+}

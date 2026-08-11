@@ -3,6 +3,7 @@ import {
   buildBioPatch,
   buildNotificationPatch,
   buildPrivacyPatch,
+  buildSettingsPatch,
   buildVisibilityPatch,
 } from '@/app/dashboard/_lib/profile-patches'
 
@@ -41,5 +42,31 @@ describe('dashboard profile patches', () => {
       'requireProfileApproval',
       'securityEmails',
     ])
+  })
+
+  it('builds the complete legacy Settings payload without BIO keys', () => {
+    const form = new FormData()
+    form.set('recruiterVisible', 'on')
+    form.set('showInDirectory', 'on')
+    form.set('magazineAlerts', 'on')
+    form.set('eventReminders', 'on')
+    form.set('hideEmailFromRecruiters', 'on')
+    form.set('securityEmails', 'on')
+
+    expect(buildSettingsPatch(form)).toEqual({
+      recruiterVisible: true,
+      emailVisible: false,
+      showInDirectory: true,
+      allowDirectMessages: false,
+      opportunityAlerts: false,
+      magazineAlerts: true,
+      messageAlerts: false,
+      eventReminders: true,
+      hideEmailFromRecruiters: true,
+      requireProfileApproval: false,
+      securityEmails: true,
+    })
+    expect(buildSettingsPatch(form)).not.toHaveProperty('headline')
+    expect(buildSettingsPatch(form)).not.toHaveProperty('bio')
   })
 })

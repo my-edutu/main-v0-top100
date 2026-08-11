@@ -67,7 +67,7 @@ import GroupsSection from './groups-section'
 import PostsSection from './posts-section'
 import OpportunitiesSection from './opportunities-section'
 import EventInvitationsSection from './event-invitations-section'
-import { buildBioPatch } from './_lib/profile-patches'
+import { buildBioPatch, buildSettingsPatch } from './_lib/profile-patches'
 
 type DashboardSection = 'home' | 'profile' | 'directory' | 'messages' | 'groups' | 'posts' | 'opportunities' | 'awards' | 'featured' | 'events' | 'partnerships' | 'magazine' | 'notifications' | 'settings'
 
@@ -383,6 +383,33 @@ export default function MemberDashboardPage() {
     }
   }
 
+  async function handleSettingsSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!member) return
+
+    const form = new FormData(event.currentTarget)
+    const patch = buildSettingsPatch(form)
+
+    try {
+      setProfileError('')
+      setSavingProfile(true)
+      await updateMemberProfile(member.id, patch)
+
+      setSaved(true)
+      await refresh()
+      toast.success('Settings saved.')
+      window.setTimeout(() => setSaved(false), 2200)
+    } catch (error) {
+      setSaved(false)
+      const message = error instanceof Error ? error.message : 'Could not save settings.'
+      setProfileError(message)
+      toast.error(message)
+      await refresh()
+    } finally {
+      setSavingProfile(false)
+    }
+  }
+
   async function handleFeatureSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!member) return
@@ -556,7 +583,7 @@ export default function MemberDashboardPage() {
             {activeSection === 'partnerships' && <PartnershipsSection member={member} />}
             {activeSection === 'magazine' && <MagazineSection onNavigate={openSection} />}
             {activeSection === 'notifications' && <NotificationsSection member={member} onRead={handleReadNotification} onMarkAll={handleMarkAllNotificationsRead} state={state} />}
-            {activeSection === 'settings' && <SettingsSection error={profileError} member={member} onSubmit={handleProfileSubmit} saved={saved} saving={savingProfile} />}
+            {activeSection === 'settings' && <SettingsSection error={profileError} member={member} onSubmit={handleSettingsSubmit} saved={saved} saving={savingProfile} />}
           </div>
         </main>
       </div>
