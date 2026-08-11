@@ -77,3 +77,7 @@ export function resolveDashboardTitle(pathname: string) {
 
   return matchingItem?.title ?? matchingItem?.label ?? 'Dashboard'
 }
+
+export function groupExitDestination() {
+  return '/dashboard/discover/groups'
+}

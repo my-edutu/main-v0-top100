@@ -187,12 +187,14 @@ type GroupsSectionProps = {
   member: MemberProfile
   selectedGroupId?: string
   onGroupSelected?: (id: string) => void
+  onGroupExited?: () => void
 }
 
 export default function GroupsSection({
   member,
   selectedGroupId,
   onGroupSelected,
+  onGroupExited,
 }: GroupsSectionProps) {
   const [groups, setGroups] = useState<GroupSummary[] | null>(null)
   const [listLoading, setListLoading] = useState(true)
@@ -356,13 +358,10 @@ export default function GroupsSection({
     try {
       await leaveGroup(group.id)
       toast.success(`You left ${group.name}.`)
+      setActiveId(null)
+      setDetail(null)
+      onGroupExited?.()
       await refreshGroups({ silent: true })
-      if (selectedGroupId) {
-        await openGroup(group.id, { silent: true })
-      } else {
-        setActiveId(null)
-        setDetail(null)
-      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Could not leave this group.')
     } finally {
