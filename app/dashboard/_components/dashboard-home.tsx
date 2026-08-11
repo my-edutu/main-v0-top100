@@ -29,6 +29,7 @@ import { DashboardCard } from './dashboard-card'
 import { discoverNav, meNav } from '../_lib/navigation'
 import {
   selectHomePriority,
+  selectUpcomingInvitations,
   type HomePriority,
 } from '../_lib/home-priority'
 import { useDashboardBadges } from '../_providers/dashboard-badges'
@@ -161,17 +162,7 @@ export function DashboardHome() {
   const shortcuts = [discoverNav[0], discoverNav[2], meNav[0], meNav[1]]
 
   const comingUp = useMemo(() => {
-    const datedInvitations = invitations
-      .filter((invitation) => invitation.event)
-      .sort((left, right) => {
-        const leftDate = left.event?.startAt
-          ? new Date(left.event.startAt).getTime()
-          : Number.POSITIVE_INFINITY
-        const rightDate = right.event?.startAt
-          ? new Date(right.event.startAt).getTime()
-          : Number.POSITIVE_INFINITY
-        return leftDate - rightDate
-      })
+    const datedInvitations = selectUpcomingInvitations(invitations)
       .map((invitation) => ({
         id: `invitation-${invitation.id}`,
         title: invitation.event?.title ?? 'Member event',
@@ -331,6 +322,7 @@ export function DashboardHome() {
                 href={item.href}
                 className="flex min-h-16 items-center gap-3 rounded-lg py-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#171412] focus-visible:ring-offset-2"
               >
+                {item.unread ? <span className="sr-only">Unread. </span> : null}
                 <span className={cn(
                   'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
                   item.kind === 'message'
@@ -342,7 +334,7 @@ export function DashboardHome() {
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-2">
                     <span className="truncate text-sm font-extrabold">{item.title}</span>
-                    {item.unread ? <span className="h-2 w-2 shrink-0 rounded-full bg-[#F36C21]" aria-label="Unread" /> : null}
+                    {item.unread ? <span className="h-2 w-2 shrink-0 rounded-full bg-[#F36C21]" aria-hidden="true" /> : null}
                   </span>
                   <span className="mt-0.5 block truncate text-xs font-semibold text-[#625B52]">{item.description}</span>
                 </span>

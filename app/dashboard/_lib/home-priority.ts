@@ -1,4 +1,5 @@
 import type { MemberProfile } from '@/lib/member-hub'
+import type { EventInvitation } from '@/lib/events/invitations-client'
 
 import type { DashboardColor } from './navigation'
 
@@ -25,6 +26,27 @@ export type HomePriority = {
   description: string
   href: string
   color: DashboardColor
+}
+
+export function selectUpcomingInvitations(
+  invitations: readonly EventInvitation[],
+  now = new Date(),
+) {
+  const nowTime = now.getTime()
+
+  return invitations
+    .filter((invitation) => {
+      if (!invitation.event?.startAt) return false
+
+      const startTime = new Date(invitation.event.startAt).getTime()
+      return Number.isFinite(startTime) && startTime >= nowTime
+    })
+    .sort(
+      (left, right) =>
+        new Date(left.event!.startAt!).getTime() -
+        new Date(right.event!.startAt!).getTime(),
+    )
+    .slice(0, 3)
 }
 
 export function selectHomePriority({
