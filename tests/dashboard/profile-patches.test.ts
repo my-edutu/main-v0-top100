@@ -5,6 +5,7 @@ import {
   buildPrivacyPatch,
   buildSettingsPatch,
   buildVisibilityPatch,
+  saveSettingsForm,
 } from '@/app/dashboard/_lib/profile-patches'
 
 describe('dashboard profile patches', () => {
@@ -68,5 +69,50 @@ describe('dashboard profile patches', () => {
     })
     expect(buildSettingsPatch(form)).not.toHaveProperty('headline')
     expect(buildSettingsPatch(form)).not.toHaveProperty('bio')
+  })
+
+  it('sends the legacy Settings patch through the profile update boundary', async () => {
+    const form = new FormData()
+    form.set('emailVisible', 'on')
+    form.set('allowDirectMessages', 'on')
+    form.set('opportunityAlerts', 'on')
+    form.set('requireProfileApproval', 'on')
+
+    const originalFetch = globalThis.fetch
+    let request: { input: RequestInfo | URL; init?: RequestInit } | undefined
+    globalThis.fetch = async (input, init) => {
+      request = { input, init }
+      return new Response(JSON.stringify({ member: { id: 'member-7' } }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
+    try {
+      await saveSettingsForm('member-7', form)
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+
+    expect(request).toEqual({
+      input: '/api/member/me',
+      init: {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recruiterVisible: false,
+          emailVisible: true,
+          showInDirectory: false,
+          allowDirectMessages: true,
+          opportunityAlerts: true,
+          magazineAlerts: false,
+          messageAlerts: false,
+          eventReminders: false,
+          hideEmailFromRecruiters: false,
+          requireProfileApproval: true,
+          securityEmails: false,
+        }),
+      },
+    })
   })
 })

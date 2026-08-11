@@ -1,4 +1,4 @@
-import type { MemberProfile } from '@/lib/member-hub'
+import { updateMemberProfile, type MemberProfile } from '@/lib/member-hub'
 
 function checked(form: FormData, name: string) {
   return form.get(name) === 'on'
@@ -71,4 +71,8 @@ export function buildSettingsPatch(
     ...buildNotificationPatch(form),
     ...buildPrivacyPatch(form),
   }
+}
+
+export function saveSettingsForm(memberId: string, form: FormData) {
+  return updateMemberProfile(memberId, buildSettingsPatch(form))
 }

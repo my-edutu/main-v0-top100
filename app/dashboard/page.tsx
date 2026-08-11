@@ -67,7 +67,7 @@ import GroupsSection from './groups-section'
 import PostsSection from './posts-section'
 import OpportunitiesSection from './opportunities-section'
 import EventInvitationsSection from './event-invitations-section'
-import { buildBioPatch, buildSettingsPatch } from './_lib/profile-patches'
+import { buildBioPatch, saveSettingsForm } from './_lib/profile-patches'
 
 type DashboardSection = 'home' | 'profile' | 'directory' | 'messages' | 'groups' | 'posts' | 'opportunities' | 'awards' | 'featured' | 'events' | 'partnerships' | 'magazine' | 'notifications' | 'settings'
 
@@ -388,12 +388,11 @@ export default function MemberDashboardPage() {
     if (!member) return
 
     const form = new FormData(event.currentTarget)
-    const patch = buildSettingsPatch(form)
 
     try {
       setProfileError('')
       setSavingProfile(true)
-      await updateMemberProfile(member.id, patch)
+      await saveSettingsForm(member.id, form)
 
       setSaved(true)
       await refresh()
