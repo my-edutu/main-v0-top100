@@ -47,6 +47,17 @@ describe('dashboard navigation', () => {
     expect(new Set(hrefs).size).toBe(hrefs.length)
   })
 
+  it('routes every Discover destination to its approved durable URL', () => {
+    expect(discoverNav.map(({ label, href }) => [label, href])).toEqual([
+      ['Members', '/dashboard/discover/members'],
+      ['Groups', '/dashboard/discover/groups'],
+      ['Opportunities', '/dashboard/discover/opportunities'],
+      ['Saved', '/dashboard/discover/opportunities/saved'],
+      ['Events', '/dashboard/discover/events'],
+      ['Magazine', '/dashboard/discover/magazine'],
+    ])
+  })
+
   it('matches descendants without activating Home everywhere', () => {
     expect(isDashboardNavActive('/dashboard', '/dashboard')).toBe(true)
     expect(isDashboardNavActive('/dashboard/discover/events', '/dashboard/discover')).toBe(true)
@@ -56,6 +67,7 @@ describe('dashboard navigation', () => {
 
   it('resolves nested titles and every legacy section', () => {
     expect(resolveDashboardTitle('/dashboard/me/award')).toBe('My award')
+    expect(resolveDashboardTitle('/dashboard/discover/opportunities/saved')).toBe('Saved opportunities')
     expect(legacySectionDestination('directory')).toBe('/dashboard/discover/members')
     expect(legacySectionDestination('awards')).toBe('/dashboard/me/award')
     expect(legacySectionDestination('partnerships')).toBe('/partnership')

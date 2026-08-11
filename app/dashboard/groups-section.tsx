@@ -4,6 +4,7 @@
 // backed by /api/member/groups*. Two-pane on desktop, single-pane (list <->
 // group) on mobile. Polls the open group's messages while it is on screen.
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import Link from 'next/link'
 import {
   ArrowLeft,
   Loader2,
@@ -182,13 +183,23 @@ function GroupRow({
   )
 }
 
-export default function GroupsSection({ member }: { member: MemberProfile }) {
+type GroupsSectionProps = {
+  member: MemberProfile
+  selectedGroupId?: string
+  onGroupSelected?: (id: string) => void
+}
+
+export default function GroupsSection({
+  member,
+  selectedGroupId,
+  onGroupSelected,
+}: GroupsSectionProps) {
   const [groups, setGroups] = useState<GroupSummary[] | null>(null)
   const [listLoading, setListLoading] = useState(true)
   const [listError, setListError] = useState('')
   const [setupMessage, setSetupMessage] = useState('')
 
-  const [activeId, setActiveId] = useState<string | null>(null)
+  const [activeId, setActiveId] = useState<string | null>(selectedGroupId ?? null)
   const [detail, setDetail] = useState<GroupDetail | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const [detailError, setDetailError] = useState('')
@@ -205,6 +216,18 @@ export default function GroupsSection({ member }: { member: MemberProfile }) {
   activeIdRef.current = activeId
 
   const canParticipate = member.status === 'approved'
+
+  useEffect(() => {
+    setActiveId(selectedGroupId ?? null)
+  }, [selectedGroupId])
+
+  const selectGroup = useCallback(
+    (groupId: string) => {
+      setActiveId(groupId)
+      onGroupSelected?.(groupId)
+    },
+    [onGroupSelected],
+  )
 
   const refreshGroups = useCallback(async (opts: { silent?: boolean } = {}) => {
     if (!opts.silent) setListLoading(true)
@@ -319,7 +342,7 @@ export default function GroupsSection({ member }: { member: MemberProfile }) {
           : `You joined ${group.name}.`,
       )
       await refreshGroups({ silent: true })
-      setActiveId(group.id)
+      selectGroup(group.id)
       await openGroup(group.id, { silent: true })
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Could not join this group.')
@@ -333,9 +356,13 @@ export default function GroupsSection({ member }: { member: MemberProfile }) {
     try {
       await leaveGroup(group.id)
       toast.success(`You left ${group.name}.`)
-      setActiveId(null)
-      setDetail(null)
       await refreshGroups({ silent: true })
+      if (selectedGroupId) {
+        await openGroup(group.id, { silent: true })
+      } else {
+        setActiveId(null)
+        setDetail(null)
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Could not leave this group.')
     } finally {
@@ -388,7 +415,7 @@ export default function GroupsSection({ member }: { member: MemberProfile }) {
       toast.success(`${group.name} is live.`)
       setCreateOpen(false)
       await refreshGroups({ silent: true })
-      setActiveId(group.id)
+      selectGroup(group.id)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Could not create the group.')
     } finally {
@@ -441,7 +468,7 @@ export default function GroupsSection({ member }: { member: MemberProfile }) {
                       key={group.id}
                       group={group}
                       active={group.id === activeId}
-                      onSelect={() => setActiveId(group.id)}
+                      onSelect={() => selectGroup(group.id)}
                     />
                   ))}
                 </div>
@@ -463,7 +490,7 @@ export default function GroupsSection({ member }: { member: MemberProfile }) {
                       key={group.id}
                       group={group}
                       active={group.id === activeId}
-                      onSelect={() => setActiveId(group.id)}
+                      onSelect={() => selectGroup(group.id)}
                     />
                   ))}
                 </div>
@@ -484,9 +511,11 @@ export default function GroupsSection({ member }: { member: MemberProfile }) {
           <p className="text-sm font-semibold text-orange-800">
             {membership?.status === 'banned'
               ? 'You can no longer post in this group.'
-              : activeSummary?.visibility === 'private'
-                ? 'This group is invitation only.'
-                : 'Join this group to take part in the conversation.'}
+              : !canParticipate
+                ? membershipGateCopy(member.status)
+                : activeSummary?.visibility === 'private'
+                  ? 'This group is invitation only.'
+                  : 'Join this group to take part in the conversation.'}
           </p>
           {!membership && activeSummary && activeSummary.visibility !== 'private' && canParticipate ? (
             <Button
@@ -549,7 +578,7 @@ export default function GroupsSection({ member }: { member: MemberProfile }) {
 
   const groupPane = (
     <div className={cn('min-h-0 flex-col', activeId ? 'flex' : 'hidden lg:flex')}>
-      {!activeId || !activeSummary ? (
+      {!activeId ? (
         <div className="grid h-full min-h-[320px] place-items-center rounded-[24px] border border-dashed border-orange-200 bg-[#fffaf4] p-6 text-center">
           <div>
             <MessageSquare className="mx-auto h-8 w-8 text-orange-400" strokeWidth={2.2} />
@@ -558,17 +587,46 @@ export default function GroupsSection({ member }: { member: MemberProfile }) {
             </p>
           </div>
         </div>
+      ) : !activeSummary ? (
+        <div className="grid h-full min-h-[320px] place-items-center rounded-[24px] border border-orange-100 bg-[#fffaf4] p-6 text-center">
+          {detailLoading ? (
+            <div role="status" className="text-sm font-semibold text-black/55">
+              <Loader2 className="mx-auto mb-3 h-7 w-7 animate-spin text-orange-500" />
+              Loading this group...
+            </div>
+          ) : (
+            <div role="alert">
+              <p className="text-sm font-semibold text-orange-700">
+                {detailError || 'This group is not available.'}
+              </p>
+              <div className="mt-4 flex flex-wrap justify-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="rounded-full border-orange-200 bg-white text-black hover:bg-orange-50"
+                  onClick={() => openGroup(activeId)}
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Try again
+                </Button>
+                <Button asChild className="rounded-full bg-black text-white hover:bg-black/80">
+                  <Link href="/dashboard/discover/groups">Back to groups</Link>
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
       ) : (
         <>
           <div className="flex items-start gap-3 border-b border-orange-100 pb-3">
-            <button
-              type="button"
+            <Link
+              href="/dashboard/discover/groups"
               aria-label="Back to groups"
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-orange-100 bg-white text-black/70 hover:border-orange-300 lg:hidden"
               onClick={() => setActiveId(null)}
             >
               <ArrowLeft className="h-4 w-4" strokeWidth={2.8} />
-            </button>
+            </Link>
             <GroupBadge name={activeSummary.name} />
             <div className="min-w-0 flex-1">
               <h4 className="truncate text-base font-bold text-black">{activeSummary.name}</h4>
@@ -774,9 +832,17 @@ export default function GroupsSection({ member }: { member: MemberProfile }) {
       </div>
 
       {!canParticipate ? (
-        <div className="rounded-[24px] border border-amber-200 bg-amber-50 px-5 py-4">
-          <p className="text-sm font-medium leading-6 text-amber-900">
-            Groups open up once your membership is approved. You can browse in the meantime.
+        <div
+          role={member.status === 'pending' ? 'status' : 'alert'}
+          className={cn(
+            'rounded-[24px] border px-5 py-4',
+            member.status === 'pending'
+              ? 'border-amber-200 bg-amber-50 text-amber-900'
+              : 'border-red-200 bg-red-50 text-red-950',
+          )}
+        >
+          <p className="text-sm font-medium leading-6">
+            {membershipGateCopy(member.status)} You can browse groups in the meantime.
           </p>
         </div>
       ) : null}
@@ -887,4 +953,14 @@ export default function GroupsSection({ member }: { member: MemberProfile }) {
       </Dialog>
     </section>
   )
+}
+
+function membershipGateCopy(status: MemberProfile['status']) {
+  if (status === 'suspended') {
+    return 'Group participation is paused while your membership is suspended. Contact the AFL team to restore access.'
+  }
+  if (status === 'rejected') {
+    return 'Group participation is unavailable because your membership was not approved. Contact the AFL team if you believe this needs review.'
+  }
+  return 'Joining and creating groups unlocks once your membership is approved.'
 }

@@ -22,6 +22,7 @@ export type DashboardColor =
 
 type DashboardNavItem = {
   label: string
+  title?: string
   href: string
   icon: LucideIcon
   color: DashboardColor
@@ -42,7 +43,13 @@ export const discoverNav: DashboardNavItem[] = [
   { label: 'Members', href: '/dashboard/discover/members', icon: Users, color: 'forest' },
   { label: 'Groups', href: '/dashboard/discover/groups', icon: Users, color: 'cobalt' },
   { label: 'Opportunities', href: '/dashboard/discover/opportunities', icon: Compass, color: 'saffron' },
-  { label: 'Saved', href: '/dashboard/discover/saved', icon: Bookmark, color: 'burgundy' },
+  {
+    label: 'Saved',
+    title: 'Saved opportunities',
+    href: '/dashboard/discover/opportunities/saved',
+    icon: Bookmark,
+    color: 'burgundy',
+  },
   { label: 'Events', href: '/dashboard/discover/events', icon: CalendarDays, color: 'ember' },
   { label: 'Magazine', href: '/dashboard/discover/magazine', icon: FileText, color: 'charcoal' },
 ]
@@ -68,5 +75,5 @@ export function resolveDashboardTitle(pathname: string) {
     .filter(({ href }) => isDashboardNavActive(pathname, href))
     .sort((left, right) => right.href.length - left.href.length)[0]
 
-  return matchingItem?.label ?? 'Dashboard'
+  return matchingItem?.title ?? matchingItem?.label ?? 'Dashboard'
 }

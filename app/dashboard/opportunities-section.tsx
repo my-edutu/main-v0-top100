@@ -29,13 +29,19 @@ import {
   type Opportunity,
 } from '@/lib/opportunities/types'
 
-export default function OpportunitiesSection({ member }: { member: MemberProfile }) {
+export default function OpportunitiesSection({
+  member,
+  initialSavedOnly = false,
+}: {
+  member: MemberProfile
+  initialSavedOnly?: boolean
+}) {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [setupMessage, setSetupMessage] = useState('')
   const [typeFilter, setTypeFilter] = useState<string>('')
-  const [savedOnly, setSavedOnly] = useState(false)
+  const [savedOnly, setSavedOnly] = useState(initialSavedOnly)
   const [searchDraft, setSearchDraft] = useState('')
   const [search, setSearch] = useState('')
   const [pendingSaveId, setPendingSaveId] = useState<string | null>(null)
