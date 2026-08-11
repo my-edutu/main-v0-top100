@@ -11,6 +11,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import type { MessageRecipient } from '@/app/dashboard/_lib/message-route'
 import {
   ConversationSummary,
   DirectMessage,
@@ -25,11 +26,6 @@ import { cn } from '@/lib/utils'
 
 const LIST_POLL_MS = 25_000
 const THREAD_POLL_MS = 12_000
-
-export type MessageRecipient = {
-  profileId: string
-  name: string
-}
 
 function formatMessageTime(value: string) {
   const date = new Date(value)
@@ -91,23 +87,23 @@ function SetupRequiredCard({ message }: { message: string }) {
 
 export default function MessagesSection({
   member,
+  initialConversationId,
   pendingRecipient,
-  onRecipientConsumed,
   onUnreadChange,
-  onBrowseDirectory,
+  onConversationChange,
 }: {
   member: MemberProfile
-  pendingRecipient: MessageRecipient | null
-  onRecipientConsumed: () => void
+  initialConversationId?: string
+  pendingRecipient?: MessageRecipient | null
   onUnreadChange: (count: number) => void
-  onBrowseDirectory: () => void
+  onConversationChange: (id: string | null) => void
 }) {
   const [conversations, setConversations] = useState<ConversationSummary[] | null>(null)
   const [listError, setListError] = useState('')
   const [setupMessage, setSetupMessage] = useState('')
   const [listLoading, setListLoading] = useState(true)
 
-  const [activeId, setActiveId] = useState<string | null>(null)
+  const [activeId, setActiveId] = useState<string | null>(initialConversationId ?? null)
   const [thread, setThread] = useState<{ conversation: ConversationSummary; messages: DirectMessage[] } | null>(null)
   const [threadLoading, setThreadLoading] = useState(false)
   const [threadError, setThreadError] = useState('')
@@ -178,6 +174,10 @@ export default function MessagesSection({
   }, [refreshConversations])
 
   useEffect(() => {
+    setActiveId(initialConversationId ?? null)
+  }, [initialConversationId])
+
+  useEffect(() => {
     if (!activeId) return
     setThread(null)
     openThread(activeId)
@@ -192,13 +192,12 @@ export default function MessagesSection({
     if (existing) {
       setComposeRecipient(null)
       setActiveId(existing.id)
-      onRecipientConsumed()
+      onConversationChange(existing.id)
     } else if (conversations !== null) {
       setActiveId(null)
       setComposeRecipient(pendingRecipient)
-      onRecipientConsumed()
     }
-  }, [pendingRecipient, conversations, onRecipientConsumed])
+  }, [pendingRecipient, conversations, onConversationChange])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight })
@@ -216,6 +215,7 @@ export default function MessagesSection({
         setDraft('')
         setComposeRecipient(null)
         setActiveId(conversationId)
+        onConversationChange(conversationId)
         await refreshConversations({ silent: true })
         toast.success(`Message sent to ${composeRecipient.name}.`)
       } else if (activeId) {
@@ -282,12 +282,8 @@ export default function MessagesSection({
             <p className="mx-auto mt-2 max-w-xs text-sm font-medium leading-6 text-black/55">
               Find a fellow awardee in the directory and send the first message.
             </p>
-            <Button
-              type="button"
-              className="mt-4 rounded-full bg-orange-500 px-6 text-white hover:bg-orange-600"
-              onClick={onBrowseDirectory}
-            >
-              Browse directory
+            <Button asChild className="mt-4 rounded-full bg-orange-500 px-6 text-white hover:bg-orange-600">
+              <Link href="/dashboard/discover/members">Browse directory</Link>
             </Button>
           </div>
         ) : filteredConversations.length === 0 ? (
@@ -304,6 +300,7 @@ export default function MessagesSection({
                 onClick={() => {
                   setComposeRecipient(null)
                   setActiveId(conversation.id)
+                  onConversationChange(conversation.id)
                 }}
                 className={cn(
                   'flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition',
@@ -352,7 +349,10 @@ export default function MessagesSection({
         type="button"
         aria-label="Back to conversations"
         className="flex h-10 w-10 items-center justify-center rounded-xl border border-orange-100 bg-white text-black/70 hover:border-orange-300 lg:hidden"
-        onClick={() => setComposeRecipient(null)}
+        onClick={() => {
+          setComposeRecipient(null)
+          onConversationChange(null)
+        }}
       >
         <ArrowLeft className="h-4 w-4" strokeWidth={2.8} />
       </button>
@@ -368,7 +368,10 @@ export default function MessagesSection({
         type="button"
         aria-label="Back to conversations"
         className="flex h-10 w-10 items-center justify-center rounded-xl border border-orange-100 bg-white text-black/70 hover:border-orange-300 lg:hidden"
-        onClick={() => setActiveId(null)}
+        onClick={() => {
+          setActiveId(null)
+          onConversationChange(null)
+        }}
       >
         <ArrowLeft className="h-4 w-4" strokeWidth={2.8} />
       </button>
@@ -499,13 +502,14 @@ export default function MessagesSection({
           </p>
         </div>
         <Button
-          type="button"
+          asChild
           variant="outline"
           className="rounded-full border-orange-200 bg-white text-black hover:bg-orange-50"
-          onClick={onBrowseDirectory}
         >
-          <Users className="mr-2 h-4 w-4" strokeWidth={2.6} />
-          Find awardees
+          <Link href="/dashboard/discover/members">
+            <Users className="mr-2 h-4 w-4" strokeWidth={2.6} />
+            Find awardees
+          </Link>
         </Button>
       </div>
 
