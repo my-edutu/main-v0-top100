@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { hasValidDemoSession } from '@/lib/dev-dashboard/auth'
 import { isAdminRole, parseRole } from '@/lib/types/roles'
 
 /**
@@ -31,12 +32,25 @@ async function getRoleFromDatabase(userId: string): Promise<string | null> {
 }
 
 export async function updateSession(request: NextRequest) {
+  const pathname = request.nextUrl.pathname
+
+  // Local interactive dashboard demo. This guard independently requires both
+  // NODE_ENV=development and a loopback Host header, so the cookie has no
+  // meaning in preview/staging/production even if it is copied there.
+  if (hasValidDemoSession(request)) {
+    if (pathname.startsWith('/api/member/')) {
+      const url = request.nextUrl.clone()
+      url.pathname = pathname.replace(/^\/api\/member\//, '/api/dev-dashboard/')
+      return NextResponse.rewrite(url)
+    }
+    if (pathname === '/dashboard' || pathname.startsWith('/dashboard/')) {
+      return NextResponse.next({ request })
+    }
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   })
-
-  const isDemoAuthMode =
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY === 'placeholder-local-dev-key'
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -102,7 +116,6 @@ export async function updateSession(request: NextRequest) {
 
   // Protect admin routes: require authentication AND an admin role.
   // /admin/login is exempt — it only forwards to the admin sign-in screen.
-  const pathname = request.nextUrl.pathname
   if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
     if (!user) {
       const url = request.nextUrl.clone()
@@ -128,9 +141,10 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
-  if (!user && request.nextUrl.pathname.startsWith('/dashboard') && !isDemoAuthMode) {
+  if (!user && request.nextUrl.pathname.startsWith('/dashboard')) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
+    url.search = ''
     url.searchParams.set('redirect', request.nextUrl.pathname)
     return NextResponse.redirect(url)
   }

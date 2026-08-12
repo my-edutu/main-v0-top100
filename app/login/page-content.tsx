@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils'
 import { TurnstileCaptcha, verifyCaptcha } from '@/components/ui/turnstile'
 import { Role, isAdminRole } from '@/lib/types/roles'
 import { normalizeRole } from '@/lib/auth-utils'
+import { sanitizeDashboardRedirect } from '@/lib/dashboard/redirect'
 
 export default function SignInContent() {
   const [email, setEmail] = useState('')
@@ -33,8 +34,7 @@ export default function SignInContent() {
   // No default here — when no explicit destination is requested, the redirect
   // is decided by role after sign-in (admin -> /admin, member -> /dashboard).
   const requestedPath = searchParams.get('from') || searchParams.get('redirect') || ''
-  // Only allow same-site relative paths (prevents open redirects)
-  const redirectTo = requestedPath.startsWith('/') && !requestedPath.startsWith('//') ? requestedPath : ''
+  const redirectTo = sanitizeDashboardRedirect(requestedPath, '')
   const reason = searchParams.get('reason')
 
   // Display security messages based on redirect reason
