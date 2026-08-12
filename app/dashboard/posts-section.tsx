@@ -5,6 +5,7 @@
 // jump to the live public URL. Self-contained — it fetches everything it needs
 // from /api/member/posts itself.
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import { ExternalLink, Loader2, PenSquare, Plus, RefreshCw, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -39,6 +40,8 @@ const STATUS_CHIP: Record<MemberPostStatus, { label: string; className: string }
   removed: { label: 'Removed', className: 'bg-black/5 text-black/50 border-black/10' },
 }
 
+export type PostsSectionMode = 'list' | 'new' | 'edit'
+
 type EditorState = {
   postId: string | null
   title: string
@@ -68,6 +71,24 @@ function editorFor(post: MemberPost): EditorState {
   }
 }
 
+export function resolvePostEditorState(
+  mode: PostsSectionMode,
+  postId: string | undefined,
+  posts: MemberPost[],
+): EditorState | null {
+  if (mode === 'new') return EMPTY_EDITOR
+  if (mode === 'edit') {
+    const post = posts.find((candidate) => candidate.id === postId)
+    return post ? editorFor(post) : null
+  }
+  return null
+}
+
+export function postMembershipCapabilities(status: MemberProfile['status']) {
+  const canWrite = status === 'approved' || status === 'pending'
+  return { canWrite, canPublish: status === 'approved' }
+}
+
 /** "one, two , three" -> ['one', 'two', 'three'] */
 function parseTags(raw: string): string[] {
   return raw
@@ -85,12 +106,26 @@ function formatDate(iso: string | null): string {
   return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
-export default function PostsSection({ member }: { member: MemberProfile }) {
+type PostsSectionProps = {
+  member: MemberProfile
+  mode?: PostsSectionMode
+  postId?: string
+  onEditorExit?: () => void
+}
+
+export default function PostsSection({
+  member,
+  mode = 'list',
+  postId,
+  onEditorExit,
+}: PostsSectionProps) {
   const [posts, setPosts] = useState<MemberPost[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [setupMessage, setSetupMessage] = useState('')
-  const [editor, setEditor] = useState<EditorState | null>(null)
+  const [editor, setEditor] = useState<EditorState | null>(() =>
+    resolvePostEditorState(mode, postId, []),
+  )
   // Which action is in flight, so the right button shows the spinner.
   const [savingAs, setSavingAs] = useState<'draft' | 'published' | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
@@ -117,7 +152,18 @@ export default function PostsSection({ member }: { member: MemberProfile }) {
     void load()
   }, [load])
 
-  const canPublish = member.status === 'approved'
+  useEffect(() => {
+    if (loading) return
+    setEditor(resolvePostEditorState(mode, postId, posts))
+  }, [loading, mode, postId, posts])
+
+  const { canPublish, canWrite } = postMembershipCapabilities(member.status)
+  const accountRestricted = !canWrite
+
+  function exitEditor() {
+    setEditor(null)
+    onEditorExit?.()
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>, status: 'draft' | 'published') {
     event.preventDefault()
@@ -141,8 +187,8 @@ export default function PostsSection({ member }: { member: MemberProfile }) {
         await createPost(payload)
         toast.success(status === 'published' ? 'Post published.' : 'Draft saved.')
       }
-      setEditor(null)
       await load()
+      exitEditor()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Could not save your post.')
     } finally {
@@ -156,7 +202,7 @@ export default function PostsSection({ member }: { member: MemberProfile }) {
       setDeletingId(post.id)
       await deletePost(post.id)
       toast.success('Post deleted.')
-      if (editor?.postId === post.id) setEditor(null)
+      if (editor?.postId === post.id) exitEditor()
       await load()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Could not delete this post.')
@@ -202,6 +248,17 @@ export default function PostsSection({ member }: { member: MemberProfile }) {
     )
   }
 
+  if (mode === 'edit' && !editor && !accountRestricted) {
+    return (
+      <div role="alert" className="rounded-[24px] border border-amber-200 bg-amber-50 p-6">
+        <p className="text-sm font-bold text-amber-900">We could not find that post in your account.</p>
+        <Button asChild variant="outline" className="mt-4 rounded-full border-amber-300 bg-white text-black hover:bg-white">
+          <Link href="/dashboard/me/posts">Back to posts</Link>
+        </Button>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-5">
       <section className="rounded-[30px] border border-orange-100 bg-white p-6 sm:p-8">
@@ -220,20 +277,20 @@ export default function PostsSection({ member }: { member: MemberProfile }) {
             </div>
           </div>
 
-          {!editor && (
-            <Button
-              type="button"
-              onClick={() => setEditor(EMPTY_EDITOR)}
+          {mode === 'list' && !accountRestricted && (
+            <Button asChild
               className="rounded-full bg-orange-500 px-6 py-6 text-[#fffaf0] hover:bg-orange-600"
             >
-              <Plus className="mr-2 h-4 w-4" />
-              Write a post
+              <Link href="/dashboard/me/posts/new">
+                <Plus className="mr-2 h-4 w-4" />
+                Write a post
+              </Link>
             </Button>
           )}
         </div>
       </section>
 
-      {!canPublish && (
+      {member.status === 'pending' && (
         <div role="status" className="rounded-[24px] border border-amber-200 bg-amber-50 px-5 py-4">
           <p className="text-sm font-medium leading-6 text-amber-900">
             Your membership is still being reviewed. You can save drafts now and publish them once
@@ -242,46 +299,57 @@ export default function PostsSection({ member }: { member: MemberProfile }) {
         </div>
       )}
 
-      {editor && (
+      {accountRestricted && (
+        <div role="status" className="rounded-[24px] border border-rose-200 bg-rose-50 px-5 py-4">
+          <p className="text-sm font-semibold leading-6 text-rose-900">
+            {member.status === 'suspended'
+              ? 'Writing and publishing are paused while your membership is suspended. Contact the AFL team to restore access.'
+              : 'Writing and publishing are unavailable because your membership application was not approved. Contact the AFL team if this looks wrong.'}
+          </p>
+        </div>
+      )}
+
+      {editor && !accountRestricted && (
         <PostEditor
           editor={editor}
           onChange={setEditor}
-          onCancel={() => setEditor(null)}
+          onCancel={exitEditor}
           onSubmit={handleSubmit}
           savingAs={savingAs}
           canPublish={canPublish}
         />
       )}
 
-      {posts.length === 0 && !editor ? (
+      {mode === 'list' && posts.length === 0 && !accountRestricted ? (
         <div className="rounded-[28px] border border-dashed border-orange-200 bg-white/60 px-6 py-12 text-center">
           <p className="text-sm font-semibold text-black">You have not written anything yet</p>
           <p className="mx-auto mt-2 max-w-sm text-sm font-medium leading-6 text-black/55">
             Share what you are building, what you have learned, or the story behind your work.
           </p>
-          <Button
-            type="button"
-            onClick={() => setEditor(EMPTY_EDITOR)}
+          <Button asChild
             className="mt-5 rounded-full bg-orange-500 px-6 py-6 text-[#fffaf0] hover:bg-orange-600"
           >
-            <Plus className="mr-2 h-4 w-4" />
-            Write your first post
+            <Link href="/dashboard/me/posts/new">
+              <Plus className="mr-2 h-4 w-4" />
+              Write your first post
+            </Link>
           </Button>
         </div>
-      ) : (
+      ) : mode === 'list' ? (
         <div className="space-y-3">
           {posts.map((post) => (
             <PostRow
               key={post.id}
               post={post}
               publicSlug={member.publicSlug}
-              onEdit={() => setEditor(editorFor(post))}
+              onEditHref={`/dashboard/me/posts/${encodeURIComponent(post.id)}/edit`}
               onDelete={() => void handleDelete(post)}
               deleting={deletingId === post.id}
+              mutable={canWrite}
             />
           ))}
         </div>
-      )}
+      ) : null}
     </div>
   )
 }
@@ -289,15 +357,17 @@ export default function PostsSection({ member }: { member: MemberProfile }) {
 function PostRow({
   post,
   publicSlug,
-  onEdit,
+  onEditHref,
   onDelete,
   deleting,
+  mutable,
 }: {
   post: MemberPost
   publicSlug?: string
-  onEdit: () => void
+  onEditHref: string
   onDelete: () => void
   deleting: boolean
+  mutable: boolean
 }) {
   const chip = STATUS_CHIP[post.status]
   const removed = post.status === 'removed'
@@ -336,15 +406,12 @@ function PostRow({
               <ExternalLink className="h-3.5 w-3.5" />
             </a>
           )}
-          {!removed && (
+          {!removed && mutable && (
             <>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onEdit}
+              <Button asChild variant="outline"
                 className="rounded-full border-orange-200 bg-white text-black hover:bg-orange-50"
               >
-                Edit
+                <Link href={onEditHref}>Edit</Link>
               </Button>
               <Button
                 type="button"

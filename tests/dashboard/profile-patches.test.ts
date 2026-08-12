@@ -45,6 +45,72 @@ describe('dashboard profile patches', () => {
     ])
   })
 
+  it('maps every visibility checkbox to its exact on and off value without preference leakage', () => {
+    const checkedForm = new FormData()
+    checkedForm.set('showInDirectory', 'on')
+    checkedForm.set('allowDirectMessages', 'on')
+
+    const uncheckedForm = new FormData()
+
+    expect(buildVisibilityPatch(checkedForm)).toEqual({
+      showInDirectory: true,
+      allowDirectMessages: true,
+    })
+    expect(buildVisibilityPatch(uncheckedForm)).toEqual({
+      showInDirectory: false,
+      allowDirectMessages: false,
+    })
+    expect(buildVisibilityPatch(checkedForm)).not.toHaveProperty('opportunityAlerts')
+    expect(buildVisibilityPatch(checkedForm)).not.toHaveProperty('hideEmailFromRecruiters')
+  })
+
+  it('maps every notification checkbox to its exact on and off value without preference leakage', () => {
+    const checkedForm = new FormData()
+    checkedForm.set('opportunityAlerts', 'on')
+    checkedForm.set('magazineAlerts', 'on')
+    checkedForm.set('messageAlerts', 'on')
+    checkedForm.set('eventReminders', 'on')
+
+    const uncheckedForm = new FormData()
+
+    expect(buildNotificationPatch(checkedForm)).toEqual({
+      opportunityAlerts: true,
+      magazineAlerts: true,
+      messageAlerts: true,
+      eventReminders: true,
+    })
+    expect(buildNotificationPatch(uncheckedForm)).toEqual({
+      opportunityAlerts: false,
+      magazineAlerts: false,
+      messageAlerts: false,
+      eventReminders: false,
+    })
+    expect(buildNotificationPatch(checkedForm)).not.toHaveProperty('showInDirectory')
+    expect(buildNotificationPatch(checkedForm)).not.toHaveProperty('securityEmails')
+  })
+
+  it('maps every privacy checkbox to its exact on and off value without preference leakage', () => {
+    const checkedForm = new FormData()
+    checkedForm.set('hideEmailFromRecruiters', 'on')
+    checkedForm.set('requireProfileApproval', 'on')
+    checkedForm.set('securityEmails', 'on')
+
+    const uncheckedForm = new FormData()
+
+    expect(buildPrivacyPatch(checkedForm)).toEqual({
+      hideEmailFromRecruiters: true,
+      requireProfileApproval: true,
+      securityEmails: true,
+    })
+    expect(buildPrivacyPatch(uncheckedForm)).toEqual({
+      hideEmailFromRecruiters: false,
+      requireProfileApproval: false,
+      securityEmails: false,
+    })
+    expect(buildPrivacyPatch(checkedForm)).not.toHaveProperty('showInDirectory')
+    expect(buildPrivacyPatch(checkedForm)).not.toHaveProperty('messageAlerts')
+  })
+
   it('builds the complete legacy Settings payload without BIO keys', () => {
     const form = new FormData()
     form.set('recruiterVisible', 'on')
