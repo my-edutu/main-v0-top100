@@ -10,6 +10,7 @@ import { createAdminClient } from '@/lib/supabase/server'
 import { checkRateLimit, RATE_LIMITS, createRateLimitResponse } from '@/lib/rate-limit'
 import { assertKobo } from '@/lib/awards/money'
 import { isQuoteExpired } from '@/lib/awards/quote'
+import { awardReturnPath } from '@/lib/awards/return-url'
 import { assertTransition } from '@/lib/awards/status'
 import { buildReference, initializeTransaction } from '@/lib/payments/paystack'
 import { AWARD_SETUP_MESSAGE, isMissingAwardTable, loadOrderForUser } from '@/lib/awards/server'
@@ -99,7 +100,7 @@ export async function POST(request: NextRequest) {
       email: order.email || user.email || '',
       amountKobo,
       reference,
-      callbackUrl: `${siteOrigin(request)}/dashboard?section=awards&payment=done`,
+      callbackUrl: `${siteOrigin(request)}${awardReturnPath({ paymentDone: true })}`,
       metadata: { orderId: order.id, profileId: user.id, purpose: 'africa-future-leaders-award' },
     })
   } catch (paymentError) {
