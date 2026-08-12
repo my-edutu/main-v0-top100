@@ -12,6 +12,7 @@ import {
   buildPrivacyPatch,
   buildVisibilityPatch,
 } from '../_lib/profile-patches'
+import { persistThenRefresh } from '../_lib/persistence-workflows'
 import { useDashboardMember } from '../_providers/dashboard-member'
 
 export function SettingsOverview({ member }: { member: MemberProfile }) {
@@ -100,10 +101,11 @@ function PreferenceForm({
   member: MemberProfile
   successMessage: string
 }) {
-  const { refreshMember } = useDashboardMember()
+  const { refreshMember, replaceMember } = useDashboardMember()
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
+  const [warning, setWarning] = useState('')
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -111,9 +113,15 @@ function PreferenceForm({
       setSaving(true)
       setSaved(false)
       setError('')
-      await updateMemberProfile(member.id, buildPatch(new FormData(event.currentTarget)))
-      await refreshMember()
+      setWarning('')
+      const result = await persistThenRefresh({
+        persist: () => updateMemberProfile(member.id, buildPatch(new FormData(event.currentTarget))),
+        applyPersisted: replaceMember,
+        refresh: refreshMember,
+        refreshWarning: 'Your settings were saved, but we could not refresh the latest account view.',
+      })
       setSaved(true)
+      setWarning(result.warning)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not save these settings.')
     } finally {
@@ -132,6 +140,7 @@ function PreferenceForm({
           <div className="min-h-5">
             {saved ? <p role="status" className="text-sm font-bold text-emerald-700">{successMessage}</p> : null}
             {error ? <p role="alert" className="text-sm font-bold text-rose-700">{error}</p> : null}
+            {warning ? <p role="status" className="text-sm font-bold text-amber-700">{warning}</p> : null}
           </div>
           <Button type="submit" disabled={saving} className="min-h-12 rounded-full bg-[#171412] px-8 font-extrabold text-white hover:bg-[#312B27]">
             {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : null}

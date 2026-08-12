@@ -15,6 +15,7 @@ import { fetchMemberHubState, type MemberProfile } from '@/lib/member-hub'
 
 type DashboardMemberContextValue = {
   member: MemberProfile
+  replaceMember: (member: MemberProfile) => void
   refreshMember: () => Promise<void>
 }
 
@@ -24,6 +25,10 @@ export function DashboardMemberProvider({ children }: { children: ReactNode }) {
   const [member, setMember] = useState<MemberProfile | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
+  const replaceMember = useCallback((nextMember: MemberProfile) => {
+    setMember(nextMember)
+    setError('')
+  }, [])
 
   const refreshMember = useCallback(async () => {
     setLoading(true)
@@ -95,7 +100,7 @@ export function DashboardMemberProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <DashboardMemberContext.Provider value={{ member, refreshMember }}>
+    <DashboardMemberContext.Provider value={{ member, refreshMember, replaceMember }}>
       {children}
     </DashboardMemberContext.Provider>
   )

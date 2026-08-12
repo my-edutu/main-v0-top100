@@ -12,13 +12,15 @@ import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { updateMemberProfile } from '@/lib/member-hub'
 import { buildBioPatch } from '../_lib/profile-patches'
+import { persistThenRefresh } from '../_lib/persistence-workflows'
 import { useDashboardMember } from '../_providers/dashboard-member'
 
 export function ProfileSection() {
-  const { member, refreshMember } = useDashboardMember()
+  const { member, refreshMember, replaceMember } = useDashboardMember()
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
+  const [warning, setWarning] = useState('')
   const updatesRemaining = Math.max(0, member.bioUpdateLimit - member.bioUpdateCount)
   const quotaExhausted = updatesRemaining === 0
 
@@ -30,10 +32,16 @@ export function ProfileSection() {
       setSaving(true)
       setSaved(false)
       setError('')
-      await updateMemberProfile(member.id, buildBioPatch(new FormData(event.currentTarget)))
-      await refreshMember()
+      setWarning('')
+      const result = await persistThenRefresh({
+        persist: () => updateMemberProfile(member.id, buildBioPatch(new FormData(event.currentTarget))),
+        applyPersisted: replaceMember,
+        refresh: refreshMember,
+        refreshWarning: 'Your BIO was saved, but we could not refresh the latest account view.',
+      })
       setSaved(true)
       toast.success('BIO saved for review.')
+      setWarning(result.warning)
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : 'Could not save your BIO.'
       setError(message)
@@ -94,6 +102,7 @@ export function ProfileSection() {
         </Button>
         {saved ? <span role="status" className="text-sm font-bold text-emerald-700">Saved for review.</span> : null}
         {error ? <span role="alert" className="text-sm font-bold text-rose-700">{error}</span> : null}
+        {warning ? <span role="status" className="text-sm font-bold text-amber-700">{warning}</span> : null}
       </div>
     </form>
   )

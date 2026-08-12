@@ -46,3 +46,20 @@ Pending at report creation; final commit hash is reported in the task handoff.
 ## Concerns
 
 - Full repository TypeScript cleanliness remains blocked by unrelated baseline errors; Task 7 route compilation and required suites are clean.
+
+## Review round 1/5
+
+Addressed all persistence-boundary and removed-post findings in one TDD wave:
+
+- Profile and each settings page now treat the successful PATCH as final, immediately replace provider state with the returned `MemberProfile`, and run refresh only as best effort. A refresh failure displays a non-retry warning while preserving the saved state.
+- Feature submission now preserves the returned created submission locally and reports success before best-effort history refresh; history failure is a secondary warning.
+- Direct edit URLs for removed posts resolve to an explicit unavailable route state and never mount an editor.
+- `DashboardMemberProvider` exposes `replaceMember` so persisted server state is authoritative without a second network request.
+
+TDD evidence:
+
+- RED: `tests/dashboard/persistence-workflows.test.ts` could not import the missing mutation-first helper.
+- RED: unknown/removed route-state assertions received `null`/an editor instead of discriminated missing/unavailable states.
+- GREEN: `npm test -- tests/dashboard/persistence-workflows.test.ts tests/dashboard/posts-routing.test.ts` — 2 files, 6 tests passed.
+- Full required verification: `npm test -- tests/dashboard tests/member-posts tests/dev-dashboard/handler.test.ts` — 12 files, 91 tests passed.
+- Focused TypeScript diagnostic filter returned no Task 7 path errors; the unrelated repository-wide baseline remains as noted above.

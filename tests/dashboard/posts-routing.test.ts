@@ -25,17 +25,29 @@ const post: MemberPost = {
 describe('routed post editor state', () => {
   it('opens the requested owned post as soon as an edit-route load resolves', () => {
     expect(resolvePostEditorState('edit', 'post-7', [post])).toEqual({
-      postId: 'post-7',
-      title: 'Routed writing',
-      excerpt: 'A durable editor route',
-      tags: 'routes',
-      coverUrl: '',
-      body: 'This post has enough text to be edited.',
+      kind: 'editor',
+      editor: {
+        postId: 'post-7',
+        title: 'Routed writing',
+        excerpt: 'A durable editor route',
+        tags: 'routes',
+        coverUrl: '',
+        body: 'This post has enough text to be edited.',
+      },
     })
   })
 
   it('does not open a different post for an unknown edit-route id', () => {
-    expect(resolvePostEditorState('edit', 'missing', [post])).toBeNull()
+    expect(resolvePostEditorState('edit', 'missing', [post])).toEqual({ kind: 'missing' })
+  })
+
+  it('resolves a removed post edit route to an explanatory unavailable state', () => {
+    expect(
+      resolvePostEditorState('edit', 'post-7', [{ ...post, status: 'removed' }]),
+    ).toEqual({
+      kind: 'unavailable',
+      message: 'This post was removed by the admin team.',
+    })
   })
 
   it('keeps pending drafts writable while disabling all writing for restricted accounts', () => {

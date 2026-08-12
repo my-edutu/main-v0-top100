@@ -28,6 +28,7 @@ import {
   TAGS_MAX,
   TAG_MAX_LENGTH,
   TITLE_MAX,
+  REMOVED_POST_MESSAGE,
   memberPostPath,
   type MemberPost,
   type MemberPostStatus,
@@ -50,6 +51,12 @@ type EditorState = {
   coverUrl: string
   body: string
 }
+
+type PostEditorRouteState =
+  | { kind: 'editor'; editor: EditorState }
+  | { kind: 'missing' }
+  | { kind: 'unavailable'; message: string }
+  | { kind: 'list' }
 
 const EMPTY_EDITOR: EditorState = {
   postId: null,
@@ -75,13 +82,17 @@ export function resolvePostEditorState(
   mode: PostsSectionMode,
   postId: string | undefined,
   posts: MemberPost[],
-): EditorState | null {
-  if (mode === 'new') return EMPTY_EDITOR
+): PostEditorRouteState {
+  if (mode === 'new') return { kind: 'editor', editor: EMPTY_EDITOR }
   if (mode === 'edit') {
     const post = posts.find((candidate) => candidate.id === postId)
-    return post ? editorFor(post) : null
+    if (!post) return { kind: 'missing' }
+    if (post.status === 'removed') {
+      return { kind: 'unavailable', message: REMOVED_POST_MESSAGE }
+    }
+    return { kind: 'editor', editor: editorFor(post) }
   }
-  return null
+  return { kind: 'list' }
 }
 
 export function postMembershipCapabilities(status: MemberProfile['status']) {
@@ -123,9 +134,10 @@ export default function PostsSection({
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [setupMessage, setSetupMessage] = useState('')
-  const [editor, setEditor] = useState<EditorState | null>(() =>
+  const [routeState, setRouteState] = useState<PostEditorRouteState>(() =>
     resolvePostEditorState(mode, postId, []),
   )
+  const editor = routeState.kind === 'editor' ? routeState.editor : null
   // Which action is in flight, so the right button shows the spinner.
   const [savingAs, setSavingAs] = useState<'draft' | 'published' | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
@@ -154,14 +166,14 @@ export default function PostsSection({
 
   useEffect(() => {
     if (loading) return
-    setEditor(resolvePostEditorState(mode, postId, posts))
+    setRouteState(resolvePostEditorState(mode, postId, posts))
   }, [loading, mode, postId, posts])
 
   const { canPublish, canWrite } = postMembershipCapabilities(member.status)
   const accountRestricted = !canWrite
 
   function exitEditor() {
-    setEditor(null)
+    setRouteState({ kind: 'list' })
     onEditorExit?.()
   }
 
@@ -248,10 +260,18 @@ export default function PostsSection({
     )
   }
 
-  if (mode === 'edit' && !editor && !accountRestricted) {
+  if (
+    mode === 'edit' &&
+    (routeState.kind === 'missing' || routeState.kind === 'unavailable') &&
+    !accountRestricted
+  ) {
     return (
       <div role="alert" className="rounded-[24px] border border-amber-200 bg-amber-50 p-6">
-        <p className="text-sm font-bold text-amber-900">We could not find that post in your account.</p>
+        <p className="text-sm font-bold text-amber-900">
+          {routeState.kind === 'unavailable'
+            ? routeState.message
+            : 'We could not find that post in your account.'}
+        </p>
         <Button asChild variant="outline" className="mt-4 rounded-full border-amber-300 bg-white text-black hover:bg-white">
           <Link href="/dashboard/me/posts">Back to posts</Link>
         </Button>
@@ -312,7 +332,7 @@ export default function PostsSection({
       {editor && !accountRestricted && (
         <PostEditor
           editor={editor}
-          onChange={setEditor}
+          onChange={(nextEditor) => setRouteState({ kind: 'editor', editor: nextEditor })}
           onCancel={exitEditor}
           onSubmit={handleSubmit}
           savingAs={savingAs}

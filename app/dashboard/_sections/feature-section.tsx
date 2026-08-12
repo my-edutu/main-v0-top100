@@ -15,6 +15,7 @@ import {
   type MemberProfile,
 } from '@/lib/member-hub'
 import { cn } from '@/lib/utils'
+import { persistThenRefresh } from '../_lib/persistence-workflows'
 
 const statusStyles: Record<MemberFeatureSubmission['status'], string> = {
   pending: 'bg-amber-100 text-amber-800',
@@ -29,14 +30,21 @@ export function FeatureSection({ member }: { member: MemberProfile }) {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
+  const [historyWarning, setHistoryWarning] = useState('')
 
-  async function loadSubmissions() {
+  async function loadSubmissions({ secondary = false } = {}) {
     try {
       const state = await fetchMemberHubState()
       setSubmissions(state.featureSubmissions)
+      setHistoryWarning('')
       return true
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not load your submissions.')
+      const message = cause instanceof Error ? cause.message : 'Could not load your submissions.'
+      if (secondary) {
+        setHistoryWarning('Your request was sent, but we could not refresh the full submission history.')
+      } else {
+        setError(message)
+      }
       return false
     } finally {
       setLoading(false)
@@ -65,20 +73,28 @@ export function FeatureSection({ member }: { member: MemberProfile }) {
       setSaving(true)
       setSaved(false)
       setError('')
-      await createFeatureSubmission({
-        memberId: member.id,
-        memberName: member.name,
-        title,
-        category,
-        summary,
-        contactEmail: member.email,
+      const result = await persistThenRefresh({
+        persist: () => createFeatureSubmission({
+          memberId: member.id,
+          memberName: member.name,
+          title,
+          category,
+          summary,
+          contactEmail: member.email,
+        }),
+        applyPersisted: (created) => {
+          setSubmissions((current) => [created, ...current.filter(({ id }) => id !== created.id)])
+        },
+        refresh: async () => {
+          const refreshed = await loadSubmissions({ secondary: true })
+          if (!refreshed) throw new Error('Submission history refresh failed')
+        },
+        refreshWarning: 'Your request was sent, but we could not refresh the full submission history.',
       })
       formElement.reset()
-      const refreshed = await loadSubmissions()
-      if (refreshed) {
-        setSaved(true)
-        toast.success('Sent to the AFL team for review.')
-      }
+      setSaved(true)
+      toast.success('Sent to the AFL team for review.')
+      setHistoryWarning(result.warning)
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : 'Could not submit this feature request.'
       setError(message)
@@ -122,6 +138,7 @@ export function FeatureSection({ member }: { member: MemberProfile }) {
           </Button>
           {saved ? <span role="status" className="text-sm font-bold text-emerald-800">Sent for review.</span> : null}
           {error ? <span role="alert" className="text-sm font-bold text-rose-800">{error}</span> : null}
+          {historyWarning ? <span role="status" className="text-sm font-bold text-amber-800">{historyWarning}</span> : null}
         </div>
       </form>
 
