@@ -12,6 +12,7 @@ import Script from "next/script"
 import StructuredData from "@/components/StructuredData"
 import { ClientProviders } from "@/components/ClientProviders"
 import { SITE_URL } from "@/lib/site"
+import { Analytics } from "@vercel/analytics/next"
 
 
 const urbanist = Urbanist({ subsets: ["latin"], variable: "--font-sans" })
@@ -163,7 +164,7 @@ export default function RootLayout({
           </ClientProviders>
           <Toaster />
         </ThemeProvider>
-
+        <Analytics />
       </body>
     </html>
   )
