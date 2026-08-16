@@ -1,13 +1,18 @@
 import { NextRequest } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
-import { checkRateLimit, getClientIdentifier, RATE_LIMITS, createRateLimitResponse } from '@/lib/rate-limit';
+import {
+    checkRateLimit,
+    createRateLimitResponse,
+    getClientIdentifier,
+    RateLimitUnavailableError,
+} from '@/lib/rate-limit';
 
 // Subscribe to push notifications
 export async function POST(req: NextRequest) {
     try {
-        // Rate limiting
+        // Shared, atomic rate limiting across all serverless instances.
         const identifier = getClientIdentifier(req.headers);
-        const rateLimitResult = checkRateLimit({
+        const rateLimitResult = await checkRateLimit({
             maxRequests: 5,
             windowSeconds: 60,
             identifier: `push-subscribe:${identifier}`,
@@ -47,6 +52,13 @@ export async function POST(req: NextRequest) {
 
         return Response.json({ success: true, id: data.id });
     } catch (error) {
+        if (error instanceof RateLimitUnavailableError) {
+            return Response.json(
+                { error: 'Service temporarily unavailable. Please try again shortly.' },
+                { status: 503, headers: { 'Retry-After': '30' } },
+            );
+        }
+
         console.error('Error in push subscription:', error);
         return Response.json({ error: 'Internal server error' }, { status: 500 });
     }
