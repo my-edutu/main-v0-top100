@@ -10,8 +10,8 @@ const InteractiveBackground: React.FC = () => {
     const canvasElement = canvasRef.current
     if (!canvasElement) return
 
-    const ctx = canvasElement.getContext("2d")
-    if (!ctx) return
+    const context = canvasElement.getContext("2d")
+    if (!context) return
 
     let animationFrameId: number
     let mouseX = 0
@@ -28,7 +28,10 @@ const InteractiveBackground: React.FC = () => {
       speedY: number
       color: string
 
-      constructor(private readonly canvas: HTMLCanvasElement) {
+      constructor(
+        private readonly canvas: HTMLCanvasElement,
+        private readonly context: CanvasRenderingContext2D,
+      ) {
         this.x = Math.random() * this.canvas.width
         this.y = Math.random() * this.canvas.height
         this.size = Math.random() * 5 + 1
@@ -46,21 +49,21 @@ const InteractiveBackground: React.FC = () => {
       }
 
       draw() {
-        ctx.fillStyle = this.color
-        ctx.beginPath()
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2)
-        ctx.fill()
+        this.context.fillStyle = this.color
+        this.context.beginPath()
+        this.context.arc(this.x, this.y, this.size, 0, Math.PI * 2)
+        this.context.fill()
       }
     }
 
     const init = () => {
       for (let i = 0; i < particleCount; i++) {
-        particles.push(new Particle(canvasElement))
+        particles.push(new Particle(canvasElement, context))
       }
     }
 
     const animate = () => {
-      ctx.clearRect(0, 0, canvasElement.width, canvasElement.height)
+      context.clearRect(0, 0, canvasElement.width, canvasElement.height)
       for (const particle of particles) {
         particle.update()
         particle.draw()
