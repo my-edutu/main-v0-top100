@@ -15,7 +15,7 @@ export const uploadImage = async (file: File): Promise<string> => {
     
     fileReader.onload = async () => {
       try {
-        // @ts-ignore
+        // @ts-expect-error Cloudinary accepts the FileReader data URL at runtime.
         const result = await cloudinary.uploader.upload(fileReader.result, {
           folder: 'blog-posts',
           resource_type: 'auto',
