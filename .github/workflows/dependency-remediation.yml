@@ -1,0 +1,38 @@
+name: Dependency Remediation Preview
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Generate remediated manifests
+        run: |
+          npm audit fix --package-lock-only || true
+          npm install --package-lock-only sharp@^0.35.3 read-excel-file@^9.3.4
+          npm uninstall --package-lock-only xlsx
+          npm audit fix --package-lock-only || true
+          npm audit --audit-level=high || true
+
+      - name: Upload manifests
+        uses: actions/upload-artifact@v4
+        with:
+          name: remediated-manifests
+          path: |
+            package.json
+            package-lock.json
+          if-no-files-found: error
