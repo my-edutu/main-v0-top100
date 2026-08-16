@@ -1,0 +1,76 @@
+name: Next 16 Migration
+
+on:
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'agent/prod-hardening'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout hardening branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/prod-hardening
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Upgrade framework and spreadsheet compatibility package
+        run: |
+          npm install next@16.3.1 react@19.2.0 react-dom@19.2.0
+          npm install --save-dev eslint-config-next@16.3.1 @types/react@^19 @types/react-dom@^19
+          npm install xlsx@npm:@e965/xlsx@0.20.3
+          npm uninstall @types/xlsx
+          npm pkg set scripts.lint='eslint .'
+
+      - name: Migrate ESLint to flat config
+        run: |
+          cat > eslint.config.mjs <<'EOF'
+          import { defineConfig, globalIgnores } from 'eslint/config'
+          import nextVitals from 'eslint-config-next/core-web-vitals'
+          import nextTs from 'eslint-config-next/typescript'
+
+          export default defineConfig([
+            ...nextVitals,
+            ...nextTs,
+            {
+              rules: {
+                '@typescript-eslint/no-explicit-any': 'warn',
+                'react/no-unescaped-entities': 'warn',
+                '@next/next/no-html-link-for-pages': 'warn',
+              },
+            },
+            globalIgnores([
+              '.next/**',
+              'out/**',
+              'build/**',
+              'next-env.d.ts',
+              'lib/generated/prisma/**',
+            ]),
+          ])
+          EOF
+          rm -f .eslintrc.json
+
+      - name: Audit upgraded dependency graph
+        run: npm audit --audit-level=high
+
+      - name: Commit migration
+        run: |
+          if git diff --quiet; then
+            echo 'Migration already applied.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add package.json package-lock.json eslint.config.mjs .eslintrc.json
+          git commit -m 'upgrade to Next 16 security baseline'
+          git push origin HEAD:agent/prod-hardening
