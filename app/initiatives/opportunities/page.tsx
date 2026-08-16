@@ -1,27 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
-
 export default function OpportunitiesHub() {
-  // State for filters
-  const [filters, setFilters] = useState({
-    category: '',
-    location: '',
-    level: '',
-    deadline: '',
-    funding: ''
-  });
-
-
-  // Handle filter changes
-  const handleFilterChange = (filterType: string, value: string) => {
-    setFilters(prev => ({
-      ...prev,
-      [filterType]: value === prev[filterType] ? '' : value
-    }));
-  };
-
   return (
     <div className="min-h-screen bg-white pt-12 sm:pt-16">
       {/* Partnership Hero */}
