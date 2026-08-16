@@ -28,9 +28,9 @@ const InteractiveBackground: React.FC = () => {
       speedY: number
       color: string
 
-      constructor() {
-        this.x = Math.random() * canvasElement.width
-        this.y = Math.random() * canvasElement.height
+      constructor(private readonly canvas: HTMLCanvasElement) {
+        this.x = Math.random() * this.canvas.width
+        this.y = Math.random() * this.canvas.height
         this.size = Math.random() * 5 + 1
         this.speedX = Math.random() * 3 - 1.5
         this.speedY = Math.random() * 3 - 1.5
@@ -38,11 +38,11 @@ const InteractiveBackground: React.FC = () => {
       }
 
       update() {
-        this.x += this.speedX + (mouseX - canvasElement.width / 2) * 0.01
-        this.y += this.speedY + (mouseY - canvasElement.height / 2) * 0.01
+        this.x += this.speedX + (mouseX - this.canvas.width / 2) * 0.01
+        this.y += this.speedY + (mouseY - this.canvas.height / 2) * 0.01
 
-        if (this.x < 0 || this.x > canvasElement.width) this.speedX *= -1
-        if (this.y < 0 || this.y > canvasElement.height) this.speedY *= -1
+        if (this.x < 0 || this.x > this.canvas.width) this.speedX *= -1
+        if (this.y < 0 || this.y > this.canvas.height) this.speedY *= -1
       }
 
       draw() {
@@ -55,7 +55,7 @@ const InteractiveBackground: React.FC = () => {
 
     const init = () => {
       for (let i = 0; i < particleCount; i++) {
-        particles.push(new Particle())
+        particles.push(new Particle(canvasElement))
       }
     }
 
