@@ -7,10 +7,10 @@ const InteractiveBackground: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
+    const canvasElement = canvasRef.current
+    if (!canvasElement) return
 
-    const ctx = canvas.getContext("2d")
+    const ctx = canvasElement.getContext("2d")
     if (!ctx) return
 
     let animationFrameId: number
@@ -29,8 +29,8 @@ const InteractiveBackground: React.FC = () => {
       color: string
 
       constructor() {
-        this.x = Math.random() * canvas.width
-        this.y = Math.random() * canvas.height
+        this.x = Math.random() * canvasElement.width
+        this.y = Math.random() * canvasElement.height
         this.size = Math.random() * 5 + 1
         this.speedX = Math.random() * 3 - 1.5
         this.speedY = Math.random() * 3 - 1.5
@@ -38,11 +38,11 @@ const InteractiveBackground: React.FC = () => {
       }
 
       update() {
-        this.x += this.speedX + (mouseX - canvas.width / 2) * 0.01
-        this.y += this.speedY + (mouseY - canvas.height / 2) * 0.01
+        this.x += this.speedX + (mouseX - canvasElement.width / 2) * 0.01
+        this.y += this.speedY + (mouseY - canvasElement.height / 2) * 0.01
 
-        if (this.x < 0 || this.x > canvas.width) this.speedX *= -1
-        if (this.y < 0 || this.y > canvas.height) this.speedY *= -1
+        if (this.x < 0 || this.x > canvasElement.width) this.speedX *= -1
+        if (this.y < 0 || this.y > canvasElement.height) this.speedY *= -1
       }
 
       draw() {
@@ -60,7 +60,7 @@ const InteractiveBackground: React.FC = () => {
     }
 
     const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      ctx.clearRect(0, 0, canvasElement.width, canvasElement.height)
       for (const particle of particles) {
         particle.update()
         particle.draw()
@@ -69,8 +69,8 @@ const InteractiveBackground: React.FC = () => {
     }
 
     const handleResize = () => {
-      canvas.width = window.innerWidth
-      canvas.height = window.innerHeight
+      canvasElement.width = window.innerWidth
+      canvasElement.height = window.innerHeight
     }
 
     const handleMouseMove = (event: MouseEvent) => {
