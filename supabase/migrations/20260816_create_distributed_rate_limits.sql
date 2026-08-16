@@ -75,8 +75,8 @@ begin
   into v_count, v_reset_at;
 
   -- Opportunistic bounded-state cleanup. The reset_at index keeps this cheap.
-  delete from public.api_rate_limits
-  where reset_at < v_now - interval '1 day';
+  delete from public.api_rate_limits as stale
+  where stale.reset_at < v_now - interval '1 day';
 
   return query
   select
