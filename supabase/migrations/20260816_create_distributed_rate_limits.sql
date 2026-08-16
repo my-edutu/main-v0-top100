@@ -14,6 +14,7 @@ create index if not exists api_rate_limits_reset_at_idx
 alter table public.api_rate_limits enable row level security;
 
 revoke all on table public.api_rate_limits from public, anon, authenticated;
+grant select, insert, update, delete on table public.api_rate_limits to service_role;
 
 create or replace function public.consume_api_rate_limit(
   p_key_hash text,
@@ -27,8 +28,8 @@ returns table (
   reset_at timestamptz
 )
 language plpgsql
-security definer
-set search_path = public
+security invoker
+set search_path = pg_catalog, public
 as $$
 declare
   v_now timestamptz := clock_timestamp();
