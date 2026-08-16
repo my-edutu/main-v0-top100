@@ -48,8 +48,7 @@ export async function POST(req: NextRequest) {
         };
 
         let successCount = 0;
-        let failCount = 0;
-        const failedEndpoints: string[] = [];
+        const failCount = 0;
 
         // For now, we'll use a simple approach
         // In production, you'd use web-push library with VAPID keys
