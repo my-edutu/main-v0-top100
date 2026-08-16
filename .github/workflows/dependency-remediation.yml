@@ -4,15 +4,19 @@ on:
   pull_request:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   generate:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'agent/prod-hardening'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Checkout
+      - name: Checkout hardening branch
         uses: actions/checkout@v4
+        with:
+          ref: agent/prod-hardening
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -27,6 +31,18 @@ jobs:
           npm uninstall --package-lock-only xlsx
           npm audit fix --package-lock-only || true
           npm audit --audit-level=high || true
+
+      - name: Commit manifests when changed
+        run: |
+          if git diff --quiet -- package.json package-lock.json; then
+            echo 'Dependency manifests already remediated.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add package.json package-lock.json
+          git commit -m 'remediate high severity dependencies'
+          git push origin HEAD:agent/prod-hardening
 
       - name: Upload manifests
         uses: actions/upload-artifact@v4
