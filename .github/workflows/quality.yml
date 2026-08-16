@@ -30,8 +30,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Audit dependencies (report)
-        continue-on-error: true
+      - name: Audit high-severity dependencies
         run: npm audit --audit-level=high
 
       - name: Run tests
