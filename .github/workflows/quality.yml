@@ -14,7 +14,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      NODE_ENV: test
       NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
       NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-local-dev-key
       SUPABASE_SERVICE_ROLE_KEY: placeholder-ci-service-role-key
