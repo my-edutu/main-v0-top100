@@ -16,7 +16,7 @@ async function getCookies() {
   }
 
   try {
-    const { cookies } = require("next/headers");
+    const { cookies } = await import("next/headers");
     return await cookies();
   } catch (error) {
     console.warn(
