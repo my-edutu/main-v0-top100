@@ -13,10 +13,23 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17.6
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
       NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
       NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-local-dev-key
       SUPABASE_SERVICE_ROLE_KEY: placeholder-ci-service-role-key
+      PGPASSWORD: postgres
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -32,6 +45,31 @@ jobs:
 
       - name: Audit high-severity dependencies
         run: npm audit --audit-level=high
+
+      - name: Verify distributed rate-limit migration
+        run: |
+          psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 <<'SQL'
+          create role anon noinherit;
+          create role authenticated noinherit;
+          create role service_role noinherit bypassrls;
+          SQL
+
+          psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            -f supabase/migrations/20260816_create_distributed_rate_limits.sql
+
+          first=$(psql -h localhost -U postgres -d postgres -At -v ON_ERROR_STOP=1 \
+            -c "set role service_role; select allowed::text || ':' || request_count || ':' || remaining from public.consume_api_rate_limit(repeat('a', 64), 1, 60);")
+          second=$(psql -h localhost -U postgres -d postgres -At -v ON_ERROR_STOP=1 \
+            -c "set role service_role; select allowed::text || ':' || request_count || ':' || remaining from public.consume_api_rate_limit(repeat('a', 64), 1, 60);")
+
+          test "$first" = "true:1:0"
+          test "$second" = "false:2:0"
+
+          if psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            -c "set role anon; select * from public.consume_api_rate_limit(repeat('b', 64), 1, 60);"; then
+            echo "anon unexpectedly executed the protected rate-limit function" >&2
+            exit 1
+          fi
 
       - name: Run tests
         run: npm test
