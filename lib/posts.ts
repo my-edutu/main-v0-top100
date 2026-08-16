@@ -89,15 +89,24 @@ const renderBlockToHtml = (block: BlogContentBlock): string => {
 
 export const mapStaticPost = (post: BlogPost): ResolvedPost => {
   const contentHtml = post.content.map(renderBlockToHtml).join("\n")
+  const excerpt = post.excerpt ?? buildExcerpt(stripHtml(contentHtml))
+  const tags = Array.isArray(post.tags) ? post.tags : []
+
   return {
     id: post.id,
     title: post.title,
     slug: post.slug,
     author: post.author ?? DEFAULT_POST_AUTHOR,
-    excerpt: post.excerpt ?? buildExcerpt(stripHtml(contentHtml)),
+    excerpt,
     contentHtml: sanitizeHtml(contentHtml),
-    tags: Array.isArray(post.tags) ? post.tags : [],
+    tags,
     coverImage: post.coverImage ?? null,
+    coverImageAlt: post.coverImage ? post.title : null,
+    authorId: null,
+    metaTitle: post.title,
+    metaDescription: excerpt,
+    metaKeywords: tags.length > 0 ? tags.join(", ") : null,
+    scheduledAt: null,
     createdAt: post.createdAt,
     updatedAt: post.updatedAt,
     readTime: post.readTime ?? estimateReadTime(stripHtml(contentHtml)),
@@ -193,42 +202,15 @@ export const mapSupabaseRecord = (record: Record<string, unknown>): ResolvedPost
     createdAt,
     updatedAt,
     readTime:
-      typeof record["read_time"] === "number" && Number.isFinite(record["read_time"])
-        ? Math.max(1, Math.round(record["read_time"] as number))
-        : typeof record["readTime"] === "number" && Number.isFinite(record["readTime"])
-          ? Math.max(1, Math.round(record["readTime"] as number))
+      typeof record["read_time"] === "number"
+        ? (record["read_time"] as number)
+        : typeof record["readTime"] === "number"
+          ? (record["readTime"] as number)
           : estimateReadTime(plainText),
     isFeatured: Boolean(record["is_featured"] ?? record["isFeatured"]),
     status:
-      typeof record["status"] === "string" && record["status"].toLowerCase() === "published"
-        ? "published"
-        : "draft",
+      record["status"] === "draft" || record["status"] === "published"
+        ? (record["status"] as ResolvedPostStatus)
+        : "published",
   }
-}
-
-export const mergePosts = (primary: ResolvedPost[], fallback: ResolvedPost[]): ResolvedPost[] => {
-  const merged = new Map<string, ResolvedPost>()
-
-  primary.forEach((post) => {
-    merged.set(post.slug, post)
-  })
-
-  fallback.forEach((post) => {
-    if (!merged.has(post.slug)) {
-      merged.set(post.slug, post)
-    }
-  })
-
-  return Array.from(merged.values()).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-}
-
-export const selectHomepagePosts = (posts: ResolvedPost[], total: number = 6, featuredLimit: number = 3): ResolvedPost[] => {
-  const published = posts.filter((post) => post.status === "published")
-  const featured = published.filter((post) => post.isFeatured).slice(0, featuredLimit)
-  const remainingSlots = Math.max(0, total - featured.length)
-  const additional = published
-    .filter((post) => !featured.some((feat) => feat.slug === post.slug))
-    .slice(0, remainingSlots)
-
-  return [...featured, ...additional]
 }
