@@ -141,7 +141,7 @@ export async function compressImage(
 
     img.onload = () => {
       // Calculate new dimensions maintaining aspect ratio
-      let { width, height } = dimensions;
+      const { width, height } = dimensions;
       const aspectRatio = width / height;
       const targetAspectRatio = maxWidth / maxHeight;
 
