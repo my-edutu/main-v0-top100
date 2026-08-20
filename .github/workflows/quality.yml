@@ -46,9 +46,13 @@ jobs:
         run: npm ci
 
       - name: Audit high-severity dependencies
+        id: audit
+        continue-on-error: true
         run: npm audit --audit-level=high
 
       - name: Verify distributed rate-limit migration
+        id: migration
+        continue-on-error: true
         run: |
           psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 <<'SQL'
           create role anon login password 'anon' noinherit;
@@ -74,9 +78,13 @@ jobs:
           fi
 
       - name: Run tests
+        id: tests
+        continue-on-error: true
         run: npm test
 
       - name: Measure repository lint baseline
+        id: lint_baseline
+        continue-on-error: true
         shell: bash
         run: |
           set +e
@@ -133,17 +141,32 @@ jobs:
         continue-on-error: true
         run: npm run build
 
-      - name: Enforce lint and build gates
+      - name: Enforce quality gates
         if: always()
         shell: bash
         run: |
           failed=0
 
+          if [[ "${{ steps.audit.outcome }}" != "success" ]]; then
+            echo "Dependency audit gate outcome: ${{ steps.audit.outcome }}" >&2
+            failed=1
+          fi
+          if [[ "${{ steps.migration.outcome }}" != "success" ]]; then
+            echo "Distributed rate-limit migration gate outcome: ${{ steps.migration.outcome }}" >&2
+            failed=1
+          fi
+          if [[ "${{ steps.tests.outcome }}" != "success" ]]; then
+            echo "Test gate outcome: ${{ steps.tests.outcome }}" >&2
+            failed=1
+          fi
+          if [[ "${{ steps.lint_baseline.outcome }}" != "success" ]]; then
+            echo "Lint baseline measurement outcome: ${{ steps.lint_baseline.outcome }}" >&2
+            failed=1
+          fi
           if [[ "${{ steps.changed_lint.outcome }}" != "success" ]]; then
             echo "Changed-file lint gate outcome: ${{ steps.changed_lint.outcome }}" >&2
             failed=1
           fi
-
           if [[ "${{ steps.build.outcome }}" != "success" ]]; then
             echo "Build gate outcome: ${{ steps.build.outcome }}" >&2
             failed=1
