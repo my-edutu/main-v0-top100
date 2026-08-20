@@ -9,6 +9,7 @@ const qualityWorkflow = read('.github/workflows/quality.yml')
 const globalsCss = read('app/globals.css')
 const calendar = read('components/ui/calendar.tsx')
 const posts = read('lib/posts.ts')
+const tsconfig = JSON.parse(read('tsconfig.json')) as { exclude?: string[] }
 
 describe('production build hardening', () => {
   it('does not suppress lint or TypeScript build failures', () => {
@@ -31,15 +32,16 @@ describe('production build hardening', () => {
     expect(qualityWorkflow).toContain('scripts/lint-changed-lines.ts')
   })
 
-  it('reports the full audit while blocking on production dependency exposure', () => {
-    expect(qualityWorkflow).toContain('Report full dependency audit')
-    expect(qualityWorkflow).toContain('Audit production dependencies')
-    expect(qualityWorkflow).toContain('npm audit --omit=dev --audit-level=high')
+  it('reports the full audit while allowing only the exact known advisory baseline', () => {
+    expect(qualityWorkflow).toContain('Audit high-severity dependency regressions')
+    expect(qualityWorkflow).toContain('npm audit --audit-level=high --json')
+    expect(qualityWorkflow).toContain('scripts/check-audit-regressions.ts')
+    expect(qualityWorkflow).not.toContain('--omit=dev')
   })
 
   it('keeps security, tests, lint, and build independently observable before aggregate enforcement', () => {
     for (const stepName of [
-      'Audit production dependencies',
+      'Audit high-severity dependency regressions',
       'Verify distributed rate-limit migration',
       'Run tests',
       'Enforce changed-line lint',
@@ -48,6 +50,16 @@ describe('production build hardening', () => {
       expect(qualityWorkflow).toMatch(new RegExp(`name: ${stepName}[\\s\\S]*?continue-on-error: true`))
     }
     expect(qualityWorkflow).toContain('Enforce quality gates')
+  })
+
+  it('keeps non-production tooling outside the Next production typecheck without disabling app checks', () => {
+    expect(tsconfig.exclude).toEqual(expect.arrayContaining([
+      'node_modules',
+      'tests',
+      'scripts',
+      'types/scripts',
+      'remotion-advert',
+    ]))
   })
 
   it('keeps global CSS imports legal for the Next 16 Turbopack parser', () => {
