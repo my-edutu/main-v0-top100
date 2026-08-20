@@ -19,11 +19,12 @@ describe('production build hardening', () => {
     expect(productionLine).not.toContain("'unsafe-eval'")
   })
 
-  it('measures legacy lint debt but strictly lints files changed by the PR', () => {
+  it('measures legacy lint debt but blocks lint findings on lines changed by the PR', () => {
     expect(qualityWorkflow).toContain('fetch-depth: 0')
     expect(qualityWorkflow).toContain('Measure repository lint baseline')
     expect(qualityWorkflow).toContain('git diff --name-only --diff-filter=ACMR')
-    expect(qualityWorkflow).toContain('--max-warnings=0')
+    expect(qualityWorkflow).toContain('git diff --unified=0 --diff-filter=ACMR')
+    expect(qualityWorkflow).toContain('scripts/lint-changed-lines.ts')
   })
 
   it('keeps security, tests, lint, and build independently observable before aggregate enforcement', () => {
@@ -31,7 +32,7 @@ describe('production build hardening', () => {
       'Audit high-severity dependencies',
       'Verify distributed rate-limit migration',
       'Run tests',
-      'Enforce changed-file lint',
+      'Enforce changed-line lint',
       'Build',
     ]) {
       expect(qualityWorkflow).toMatch(new RegExp(`name: ${stepName}[\\s\\S]*?continue-on-error: true`))
