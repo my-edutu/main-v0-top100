@@ -3,8 +3,12 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 const root = path.resolve(__dirname, '../..')
-const config = readFileSync(path.join(root, 'next.config.mjs'), 'utf8')
-const qualityWorkflow = readFileSync(path.join(root, '.github/workflows/quality.yml'), 'utf8')
+const read = (file: string) => readFileSync(path.join(root, file), 'utf8')
+const config = read('next.config.mjs')
+const qualityWorkflow = read('.github/workflows/quality.yml')
+const globalsCss = read('app/globals.css')
+const calendar = read('components/ui/calendar.tsx')
+const posts = read('lib/posts.ts')
 
 describe('production build hardening', () => {
   it('does not suppress lint or TypeScript build failures', () => {
@@ -27,9 +31,15 @@ describe('production build hardening', () => {
     expect(qualityWorkflow).toContain('scripts/lint-changed-lines.ts')
   })
 
+  it('reports the full audit while blocking on production dependency exposure', () => {
+    expect(qualityWorkflow).toContain('Report full dependency audit')
+    expect(qualityWorkflow).toContain('Audit production dependencies')
+    expect(qualityWorkflow).toContain('npm audit --omit=dev --audit-level=high')
+  })
+
   it('keeps security, tests, lint, and build independently observable before aggregate enforcement', () => {
     for (const stepName of [
-      'Audit high-severity dependencies',
+      'Audit production dependencies',
       'Verify distributed rate-limit migration',
       'Run tests',
       'Enforce changed-line lint',
@@ -38,5 +48,22 @@ describe('production build hardening', () => {
       expect(qualityWorkflow).toMatch(new RegExp(`name: ${stepName}[\\s\\S]*?continue-on-error: true`))
     }
     expect(qualityWorkflow).toContain('Enforce quality gates')
+  })
+
+  it('keeps global CSS imports legal for the Next 16 Turbopack parser', () => {
+    const importIndex = globalsCss.indexOf('@import ')
+    const firstTailwindIndex = globalsCss.indexOf('@tailwind ')
+    expect(importIndex).toBeGreaterThanOrEqual(0)
+    expect(importIndex).toBeLessThan(firstTailwindIndex)
+  })
+
+  it('uses Tailwind 3-compatible calendar spacing syntax', () => {
+    expect(calendar).not.toContain('--spacing(8)')
+    expect(calendar).toContain('[--cell-size:2rem]')
+  })
+
+  it('retains post merge and homepage selection exports required by the server module', () => {
+    expect(posts).toContain('export const mergePosts')
+    expect(posts).toContain('export const selectHomepagePosts')
   })
 })
