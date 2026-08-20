@@ -45,14 +45,22 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Report full dependency audit
-        continue-on-error: true
-        run: npm audit --audit-level=high
-
-      - name: Audit production dependencies
+      - name: Audit high-severity dependency regressions
         id: audit
         continue-on-error: true
-        run: npm audit --omit=dev --audit-level=high
+        shell: bash
+        run: |
+          set +e
+          npm audit --audit-level=high --json > "$RUNNER_TEMP/npm-audit.json"
+          audit_exit=$?
+          set -e
+
+          if [[ ! -s "$RUNNER_TEMP/npm-audit.json" ]]; then
+            echo "npm audit did not produce a JSON report" >&2
+            exit "${audit_exit:-2}"
+          fi
+
+          npx tsx scripts/check-audit-regressions.ts "$RUNNER_TEMP/npm-audit.json"
 
       - name: Verify distributed rate-limit migration
         id: migration
@@ -180,7 +188,7 @@ jobs:
           failed=0
 
           if [[ "${{ steps.audit.outcome }}" != "success" ]]; then
-            echo "Production dependency audit gate outcome: ${{ steps.audit.outcome }}" >&2
+            echo "Dependency audit regression gate outcome: ${{ steps.audit.outcome }}" >&2
             failed=1
           fi
           if [[ "${{ steps.migration.outcome }}" != "success" ]]; then
