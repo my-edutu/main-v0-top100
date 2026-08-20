@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 
 const root = path.resolve(__dirname, '../..')
 const config = readFileSync(path.join(root, 'next.config.mjs'), 'utf8')
+const qualityWorkflow = readFileSync(path.join(root, '.github/workflows/quality.yml'), 'utf8')
 
 describe('production build hardening', () => {
   it('does not suppress lint or TypeScript build failures', () => {
@@ -16,5 +17,18 @@ describe('production build hardening', () => {
     expect(config).toMatch(/productionScriptSrc/)
     const productionLine = config.match(/const\s+productionScriptSrc\s*=\s*([^\n]+)/)?.[1] ?? ''
     expect(productionLine).not.toContain("'unsafe-eval'")
+  })
+
+  it('measures legacy lint debt but strictly lints files changed by the PR', () => {
+    expect(qualityWorkflow).toContain('fetch-depth: 0')
+    expect(qualityWorkflow).toContain('Measure repository lint baseline')
+    expect(qualityWorkflow).toContain('git diff --name-only --diff-filter=ACMR')
+    expect(qualityWorkflow).toContain('--max-warnings=0')
+  })
+
+  it('evaluates lint and build independently and fails when either gate fails', () => {
+    expect(qualityWorkflow).toMatch(/name: Enforce changed-file lint[\s\S]*continue-on-error: true/)
+    expect(qualityWorkflow).toMatch(/name: Build[\s\S]*continue-on-error: true/)
+    expect(qualityWorkflow).toContain('Enforce lint and build gates')
   })
 })
