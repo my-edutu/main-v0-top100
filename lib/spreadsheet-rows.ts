@@ -1,4 +1,4 @@
-export type SpreadsheetCell = string | number | boolean | Date | null | undefined
+export type SpreadsheetCell = unknown
 
 const hasValue = (value: SpreadsheetCell): boolean => {
   return value !== null && value !== undefined && String(value).trim().length > 0
