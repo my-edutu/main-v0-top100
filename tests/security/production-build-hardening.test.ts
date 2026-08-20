@@ -26,9 +26,16 @@ describe('production build hardening', () => {
     expect(qualityWorkflow).toContain('--max-warnings=0')
   })
 
-  it('evaluates lint and build independently and fails when either gate fails', () => {
-    expect(qualityWorkflow).toMatch(/name: Enforce changed-file lint[\s\S]*continue-on-error: true/)
-    expect(qualityWorkflow).toMatch(/name: Build[\s\S]*continue-on-error: true/)
-    expect(qualityWorkflow).toContain('Enforce lint and build gates')
+  it('keeps security, tests, lint, and build independently observable before aggregate enforcement', () => {
+    for (const stepName of [
+      'Audit high-severity dependencies',
+      'Verify distributed rate-limit migration',
+      'Run tests',
+      'Enforce changed-file lint',
+      'Build',
+    ]) {
+      expect(qualityWorkflow).toMatch(new RegExp(`name: ${stepName}[\\s\\S]*?continue-on-error: true`))
+    }
+    expect(qualityWorkflow).toContain('Enforce quality gates')
   })
 })
