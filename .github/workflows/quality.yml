@@ -105,12 +105,17 @@ jobs:
           const files = results.filter((result) => result.errorCount + result.warningCount > 0).length
           const summary = `Repository lint baseline: ${errors} errors, ${warnings} warnings across ${files} files.`
           console.log(summary)
-          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `### Legacy lint baseline\n\n${summary}\n\nExisting repository-wide findings are measured here; the blocking lint gate below applies zero tolerance to files changed by this PR.\n`)
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `### Legacy lint baseline\n\n${summary}\n\nExisting repository-wide findings are measured here; the blocking lint gate below applies zero tolerance to findings on lines added or modified by this change.\n`)
           NODE
+
+          if (( lint_exit > 1 )); then
+            echo "ESLint baseline measurement failed with infrastructure/configuration exit code $lint_exit" >&2
+            exit "$lint_exit"
+          fi
 
           echo "Legacy repository lint exit code: $lint_exit (reported, not used as the PR regression gate)"
 
-      - name: Enforce changed-file lint
+      - name: Enforce changed-line lint
         id: changed_lint
         continue-on-error: true
         shell: bash
@@ -132,9 +137,32 @@ jobs:
             exit 0
           fi
 
-          printf 'Linting %d changed files with zero-warning tolerance:\n' "${#files[@]}"
+          printf 'Evaluating lint regressions across %d changed files:\n' "${#files[@]}"
           printf ' - %s\n' "${files[@]}"
-          npx eslint --max-warnings=0 "${files[@]}"
+
+          set +e
+          npx eslint --format json --output-file "$RUNNER_TEMP/eslint-changed.json" "${files[@]}"
+          lint_exit=$?
+          set -e
+
+          if [[ ! -s "$RUNNER_TEMP/eslint-changed.json" ]]; then
+            echo "ESLint did not produce a changed-file report" >&2
+            exit "${lint_exit:-2}"
+          fi
+
+          git diff --unified=0 --diff-filter=ACMR "$BASE_SHA" "$HEAD_SHA" -- "${files[@]}" > "$RUNNER_TEMP/changed.diff"
+
+          set +e
+          npx tsx scripts/lint-changed-lines.ts "$RUNNER_TEMP/eslint-changed.json" "$RUNNER_TEMP/changed.diff"
+          gate_exit=$?
+          set -e
+
+          if (( lint_exit > 1 )); then
+            echo "ESLint failed with infrastructure/configuration exit code $lint_exit" >&2
+            exit "$lint_exit"
+          fi
+
+          exit "$gate_exit"
 
       - name: Build
         id: build
@@ -164,7 +192,7 @@ jobs:
             failed=1
           fi
           if [[ "${{ steps.changed_lint.outcome }}" != "success" ]]; then
-            echo "Changed-file lint gate outcome: ${{ steps.changed_lint.outcome }}" >&2
+            echo "Changed-line lint gate outcome: ${{ steps.changed_lint.outcome }}" >&2
             failed=1
           fi
           if [[ "${{ steps.build.outcome }}" != "success" ]]; then
