@@ -252,8 +252,9 @@ export async function POST(request: NextRequest) {
         if (existingId) {
           toUpdate.push({ ...item, id: existingId })
         } else {
-          const { id: _id, ...rest } = item
-          toInsert.push(rest)
+          const insertItem: Record<string, unknown> = { ...item }
+          delete insertItem.id
+          toInsert.push(insertItem)
         }
       }
 
