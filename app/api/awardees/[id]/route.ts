@@ -54,7 +54,9 @@ export async function GET(
     // For non-admin requests, mask sensitive data
     // We allow fetching even if is_public is false for self-service editing
     if (!adminMode) {
-      const { email: _email, personal_email: _personalEmail, ...safeData } = data
+      const safeData = { ...data }
+      delete safeData.email
+      delete safeData.personal_email
       return NextResponse.json(safeData)
     }
 
