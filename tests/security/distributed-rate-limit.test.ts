@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
@@ -9,6 +9,13 @@ const migration = readFileSync(
   join(root, 'supabase/migrations/20260816_create_distributed_rate_limits.sql'),
   'utf8',
 )
+
+const collectSourceFiles = (directory: string): string[] =>
+  readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const fullPath = join(directory, entry.name)
+    if (entry.isDirectory()) return collectSourceFiles(fullPath)
+    return /\.(?:ts|tsx)$/.test(entry.name) ? [fullPath] : []
+  })
 
 describe('distributed production rate limiting', () => {
   it('does not use process-local counters and hashes identifiers before persistence', () => {
@@ -41,5 +48,25 @@ describe('distributed production rate limiting', () => {
     expect(route).toContain("enforceSubscriptionRateLimit(req, 'status', 60)")
     expect(route).toContain('error instanceof RateLimitUnavailableError')
     expect(route).toContain('{ status: 503')
+  })
+
+  it('awaits every distributed limiter call in production API code', () => {
+    const sourceFiles = [
+      ...collectSourceFiles(join(root, 'app/api')),
+      ...collectSourceFiles(join(root, 'lib/api')),
+    ]
+
+    const violations = sourceFiles.flatMap((filePath) => {
+      const content = readFileSync(filePath, 'utf8')
+      if (!content.includes('checkRateLimit(')) return []
+
+      return content
+        .split(/\r?\n/)
+        .map((line, index) => ({ line, index }))
+        .filter(({ line }) => line.includes('checkRateLimit(') && !line.includes('await checkRateLimit('))
+        .map(({ line, index }) => `${filePath.replace(`${root}/`, '')}:${index + 1}: ${line.trim()}`)
+    })
+
+    expect(violations).toEqual([])
   })
 })
