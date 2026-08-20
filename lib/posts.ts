@@ -214,3 +214,30 @@ export const mapSupabaseRecord = (record: Record<string, unknown>): ResolvedPost
         : "published",
   }
 }
+
+export const mergePosts = (primary: ResolvedPost[], fallback: ResolvedPost[]): ResolvedPost[] => {
+  const merged = new Map<string, ResolvedPost>()
+
+  primary.forEach((post) => {
+    merged.set(post.slug, post)
+  })
+
+  fallback.forEach((post) => {
+    if (!merged.has(post.slug)) {
+      merged.set(post.slug, post)
+    }
+  })
+
+  return Array.from(merged.values()).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+}
+
+export const selectHomepagePosts = (posts: ResolvedPost[], total: number = 6, featuredLimit: number = 3): ResolvedPost[] => {
+  const published = posts.filter((post) => post.status === "published")
+  const featured = published.filter((post) => post.isFeatured).slice(0, featuredLimit)
+  const remainingSlots = Math.max(0, total - featured.length)
+  const additional = published
+    .filter((post) => !featured.some((feat) => feat.slug === post.slug))
+    .slice(0, remainingSlots)
+
+  return [...featured, ...additional]
+}
