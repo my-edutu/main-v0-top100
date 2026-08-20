@@ -1,6 +1,6 @@
 // @lib/api/require-admin.ts
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "@/lib/auth-server";
+import { getServerSession, type ServerSession } from "@/lib/auth-server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { isAdminRole } from "@/lib/types/roles";
 import { normalizeRole } from "@/lib/auth-utils";
@@ -11,9 +11,15 @@ import {
   createRateLimitResponse,
 } from "@/lib/rate-limit";
 
+type AdminProfile = {
+  role: ReturnType<typeof normalizeRole>;
+  email: string | null;
+  full_name: string | null;
+};
+
 type RequireAdminSuccess = {
-  user: any;
-  profile: any;
+  user: ServerSession["user"];
+  profile: AdminProfile;
   roleSource: "database";
 };
 
@@ -115,7 +121,11 @@ export const requireAdmin = async (
 
     return {
       user: serverSession.user,
-      profile: { ...profile, role: effectiveRole },
+      profile: {
+        role: effectiveRole,
+        email: typeof profile?.email === "string" ? profile.email : null,
+        full_name: typeof profile?.full_name === "string" ? profile.full_name : null,
+      },
       roleSource: "database",
     };
   } catch (error) {
