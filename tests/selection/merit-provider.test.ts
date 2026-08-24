@@ -4,6 +4,7 @@ import {
   buildMeritAssessmentPrompt,
   buildOpenAiMeritRequest,
   parseOpenAiMeritResponse,
+  prepareMeritModelPrompt,
   redactMeritInput,
 } from '@/lib/selection/merit/openai'
 
@@ -44,6 +45,25 @@ describe('redactMeritInput', () => {
 
     expect(redacted).not.toMatch(/ada nwosu/i)
     expect(redacted).toContain('20 volunteers')
+  })
+})
+
+describe('prepareMeritModelPrompt', () => {
+  it('redacts narrative contact data and deliberately excludes private OCR text', () => {
+    const prompt = prepareMeritModelPrompt({
+      leadershipNarrative:
+        'Email ada.nwosu@example.com. I led a project serving 300 students with 12 volunteers.',
+      supportingEvidenceText:
+        'Certificate for Ada Nwosu, University of Lagos, registration number 2018/123456.',
+    })
+
+    expect(prompt).toContain('serving 300 students')
+    expect(prompt).toContain('12 volunteers')
+    expect(prompt).not.toContain('ada.nwosu@example.com')
+    expect(prompt).not.toContain('Ada Nwosu')
+    expect(prompt).not.toContain('University of Lagos')
+    expect(prompt).not.toContain('2018/123456')
+    expect(prompt).toContain('SUPPORTING EVIDENCE TEXT\n[not provided]')
   })
 })
 
