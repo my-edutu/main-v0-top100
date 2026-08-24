@@ -1,9 +1,17 @@
+import { createHash } from 'node:crypto'
+
 import { createAdminClient } from '@/lib/supabase/server'
 import type { SelectionAssessment, SelectionPolicy } from './contracts'
-import { extractSelectionPdfWithDocumentAi, type SelectionDocumentExtraction } from './extraction/document-ai'
+import { SELECTION_PDF_MAX_BYTES } from './contracts'
+import {
+  extractSelectionPdfWithDocumentAi,
+  type SelectionDocumentExtraction,
+} from './extraction/document-ai'
+import { downloadGoogleDriveFile } from './google/forms'
 import { assessMeritWithOpenAI, type MeritAssessment } from './merit/openai'
 import { buildSelectionInputFromProcessedEvidence } from './processor'
 import { buildApplicantResultView } from './public-result'
+import { hasPdfMagicBytes } from './upload'
 import { evaluateSelectionApplication } from './verdict'
 import { decideSelectionTaskFailure } from './worker-policy'
 
@@ -40,8 +48,12 @@ type ApplicationRecord = {
 type SelectionDocumentRecord = {
   id: string
   application_id: string
+  source_type: 'google_drive' | 'direct_upload'
+  source_file_id: string | null
   original_name: string
   storage_path: string
+  mime_type: string
+  size_bytes: number
   sha256: string | null
   extraction_status: string
   extracted_data: Record<string, unknown> | null
@@ -63,7 +75,9 @@ const errorMessage = (error: unknown) =>
 
 const parsePolicy = (value: Partial<SelectionPolicy> | null | undefined): SelectionPolicy => ({
   minimumMeritScore:
-    typeof value?.minimumMeritScore === 'number' && value.minimumMeritScore >= 0 && value.minimumMeritScore <= 100
+    typeof value?.minimumMeritScore === 'number' &&
+    value.minimumMeritScore >= 0 &&
+    value.minimumMeritScore <= 100
       ? value.minimumMeritScore
       : DEFAULT_POLICY.minimumMeritScore,
   academicRequirement: 'first_class_or_equivalent',
@@ -71,7 +85,10 @@ const parsePolicy = (value: Partial<SelectionPolicy> | null | undefined): Select
     typeof value?.requireVerifiedAcademicEvidence === 'boolean'
       ? value.requireVerifiedAcademicEvidence
       : DEFAULT_POLICY.requireVerifiedAcademicEvidence,
-  version: typeof value?.version === 'string' && value.version.trim() ? value.version.trim() : DEFAULT_POLICY.version,
+  version:
+    typeof value?.version === 'string' && value.version.trim()
+      ? value.version.trim()
+      : DEFAULT_POLICY.version,
 })
 
 const cycleFromJob = (job: SelectionJobRecord) =>
@@ -89,16 +106,102 @@ const isStoredExtraction = (value: unknown): value is SelectionDocumentExtractio
   )
 }
 
-const getDuplicateSignals = async (
+const validatePdfBytes = (bytes: Uint8Array, sourceLabel: string) => {
+  if (bytes.length === 0) {
+    throw new PermanentSelectionTaskError(`${sourceLabel} is empty`)
+  }
+  if (bytes.length > SELECTION_PDF_MAX_BYTES) {
+    throw new PermanentSelectionTaskError(`${sourceLabel} exceeds the 25MB PDF limit`)
+  }
+  if (!hasPdfMagicBytes(bytes)) {
+    throw new PermanentSelectionTaskError(`${sourceLabel} is not a valid PDF document`)
+  }
+}
+
+const downloadPrivateSnapshot = async (
+  supabase: ReturnType<typeof createAdminClient>,
+  storagePath: string,
+) => {
+  const { data, error } = await supabase.storage.from('selection-evidence').download(storagePath)
+  if (error || !data) return null
+  return new Uint8Array(await data.arrayBuffer())
+}
+
+const snapshotGoogleDriveDocument = async (
   supabase: ReturnType<typeof createAdminClient>,
   document: SelectionDocumentRecord,
 ) => {
-  if (!document.sha256) return []
+  if (!document.source_file_id) {
+    throw new PermanentSelectionTaskError('Google Drive evidence is missing its file id')
+  }
 
+  const downloaded = await downloadGoogleDriveFile(document.source_file_id)
+  if (downloaded.mimeType !== 'application/pdf') {
+    throw new PermanentSelectionTaskError(
+      `Google Drive evidence has unsupported MIME type ${downloaded.mimeType}`,
+    )
+  }
+  validatePdfBytes(downloaded.bytes, document.original_name)
+
+  const { error: uploadError } = await supabase.storage
+    .from('selection-evidence')
+    .upload(document.storage_path, downloaded.bytes, {
+      contentType: 'application/pdf',
+      cacheControl: '31536000',
+      upsert: false,
+    })
+
+  if (uploadError) {
+    const existing = await downloadPrivateSnapshot(supabase, document.storage_path)
+    if (!existing) {
+      throw new Error(`Failed to snapshot Google Drive evidence: ${uploadError.message}`)
+    }
+    validatePdfBytes(existing, document.original_name)
+    return existing
+  }
+
+  return downloaded.bytes
+}
+
+const loadDocumentBytes = async (
+  supabase: ReturnType<typeof createAdminClient>,
+  document: SelectionDocumentRecord,
+) => {
+  let bytes = await downloadPrivateSnapshot(supabase, document.storage_path)
+
+  if (!bytes && document.source_type === 'google_drive') {
+    bytes = await snapshotGoogleDriveDocument(supabase, document)
+  }
+
+  if (!bytes) {
+    throw new PermanentSelectionTaskError('Evidence PDF is missing from private storage')
+  }
+
+  validatePdfBytes(bytes, document.original_name)
+  const sha256 = createHash('sha256').update(bytes).digest('hex')
+  const { error } = await supabase
+    .from('selection_documents')
+    .update({
+      size_bytes: bytes.length,
+      sha256,
+      mime_type: 'application/pdf',
+      last_error: null,
+    })
+    .eq('id', document.id)
+
+  if (error) throw new Error(`Failed to save evidence fingerprint: ${error.message}`)
+  return { bytes, sha256 }
+}
+
+const getDuplicateSignals = async (
+  supabase: ReturnType<typeof createAdminClient>,
+  document: SelectionDocumentRecord,
+  sha256: string,
+) => {
   const { data, error } = await supabase
     .from('selection_documents')
     .select('application_id')
-    .eq('sha256', document.sha256)
+    .eq('sha256', sha256)
     .neq('application_id', document.application_id)
     .limit(5)
 
@@ -112,9 +215,14 @@ const getDuplicateSignals = async (
 const extractDocument = async (
   supabase: ReturnType<typeof createAdminClient>,
   document: SelectionDocumentRecord,
-): Promise<SelectionDocumentExtraction> => {
-  if (document.extraction_status === 'completed' && isStoredExtraction(document.extracted_data)) {
-    return document.extracted_data
+): Promise<{ extraction: SelectionDocumentExtraction; sha256: string }> => {
+  const loaded = await loadDocumentBytes(supabase, document)
+
+  if (
+    ['completed', 'review_required'].includes(document.extraction_status) &&
+    isStoredExtraction(document.extracted_data)
+  ) {
+    return { extraction: document.extracted_data, sha256: loaded.sha256 }
   }
 
   const { error: startError } = await supabase
@@ -124,18 +232,8 @@ const extractDocument = async (
 
   if (startError) throw new Error(`Failed to start document extraction: ${startError.message}`)
 
-  const { data: blob, error: downloadError } = await supabase.storage
-    .from('selection-evidence')
-    .download(document.storage_path)
-
-  if (downloadError || !blob) {
-    throw new PermanentSelectionTaskError(
-      `Evidence file could not be downloaded: ${downloadError?.message ?? 'missing file'}`,
-    )
-  }
-
   const extraction = await extractSelectionPdfWithDocumentAi({
-    bytes: await blob.arrayBuffer(),
+    bytes: loaded.bytes,
     fileName: document.original_name,
   })
 
@@ -150,32 +248,39 @@ const extractDocument = async (
     .eq('id', document.id)
 
   if (updateError) throw new Error(`Failed to save document extraction: ${updateError.message}`)
-  return extraction
+  return { extraction, sha256: loaded.sha256 }
 }
 
 const loadTaskContext = async (
   supabase: ReturnType<typeof createAdminClient>,
   task: ProcessingTask,
 ) => {
-  const [{ data: application, error: applicationError }, { data: job, error: jobError }, { data: documents, error: documentsError }] =
-    await Promise.all([
-      supabase
-        .from('selection_applications')
-        .select('id, job_id, cycle_id, full_name, primary_email, country, institution, claimed_academic_status, leadership_narrative, declaration_confirmed, raw_data')
-        .eq('id', task.application_id)
-        .eq('job_id', task.job_id)
-        .single(),
-      supabase
-        .from('selection_jobs')
-        .select('id, cycle_id, selection_cycles(name, policy, appeal_deadline_at)')
-        .eq('id', task.job_id)
-        .single(),
-      supabase
-        .from('selection_documents')
-        .select('id, application_id, original_name, storage_path, sha256, extraction_status, extracted_data')
-        .eq('application_id', task.application_id)
-        .order('created_at', { ascending: true }),
-    ])
+  const [
+    { data: application, error: applicationError },
+    { data: job, error: jobError },
+    { data: documents, error: documentsError },
+  ] = await Promise.all([
+    supabase
+      .from('selection_applications')
+      .select(
+        'id, job_id, cycle_id, full_name, primary_email, country, institution, claimed_academic_status, leadership_narrative, declaration_confirmed, raw_data',
+      )
+      .eq('id', task.application_id)
+      .eq('job_id', task.job_id)
+      .single(),
+    supabase
+      .from('selection_jobs')
+      .select('id, cycle_id, selection_cycles(name, policy, appeal_deadline_at)')
+      .eq('id', task.job_id)
+      .single(),
+    supabase
+      .from('selection_documents')
+      .select(
+        'id, application_id, source_type, source_file_id, original_name, storage_path, mime_type, size_bytes, sha256, extraction_status, extracted_data',
+      )
+      .eq('application_id', task.application_id)
+      .order('created_at', { ascending: true }),
+  ])
 
   if (applicationError || !application) {
     throw new PermanentSelectionTaskError(
@@ -183,9 +288,13 @@ const loadTaskContext = async (
     )
   }
   if (jobError || !job) {
-    throw new PermanentSelectionTaskError(`Selection job could not be loaded: ${jobError?.message ?? 'missing job'}`)
+    throw new PermanentSelectionTaskError(
+      `Selection job could not be loaded: ${jobError?.message ?? 'missing job'}`,
+    )
   }
-  if (documentsError) throw new Error(`Selection documents could not be loaded: ${documentsError.message}`)
+  if (documentsError) {
+    throw new Error(`Selection documents could not be loaded: ${documentsError.message}`)
+  }
 
   return {
     application: application as ApplicationRecord,
@@ -240,7 +349,9 @@ const saveAssessment = async ({
     .single()
 
   if (assessmentError || !savedAssessment) {
-    throw new Error(`Failed to save selection assessment: ${assessmentError?.message ?? 'missing record'}`)
+    throw new Error(
+      `Failed to save selection assessment: ${assessmentError?.message ?? 'missing record'}`,
+    )
   }
 
   const cycle = cycleFromJob(job)
@@ -319,16 +430,28 @@ const processTask = async (
   const cycle = cycleFromJob(job)
   const policy = parsePolicy(cycle?.policy)
 
+  await supabase
+    .from('selection_applications')
+    .update({ status: 'processing' })
+    .eq('id', application.id)
+
   const extractions: SelectionDocumentExtraction[] = []
   const duplicateSignals: string[] = []
 
   for (const document of documents) {
-    extractions.push(await extractDocument(supabase, document))
-    duplicateSignals.push(...(await getDuplicateSignals(supabase, document)))
+    const processed = await extractDocument(supabase, document)
+    extractions.push(processed.extraction)
+    duplicateSignals.push(
+      ...(await getDuplicateSignals(supabase, document, processed.sha256)),
+    )
   }
 
-  const extraction = extractions.slice().sort((left, right) => right.confidence - left.confidence)[0] ?? null
-  const supportingEvidenceText = extractions.map((item) => item.text).join('\n\n').slice(0, 24_000)
+  const extraction =
+    extractions.slice().sort((left, right) => right.confidence - left.confidence)[0] ?? null
+  const supportingEvidenceText = extractions
+    .map((item) => item.text)
+    .join('\n\n')
+    .slice(0, 24_000)
 
   let meritAssessment: MeritAssessment | null = null
   if (process.env.OPENAI_API_KEY?.trim() && application.leadership_narrative?.trim()) {
@@ -364,6 +487,7 @@ const processTask = async (
       totalScore: assessment.totalScore,
       policyVersion: policy.version,
       logicalBatchNumber: task.logical_batch_number,
+      documentCount: documents.length,
     },
   })
   await supabase.rpc('refresh_selection_job_counts', { p_job_id: task.job_id })
@@ -422,7 +546,11 @@ const failTask = async (
   })
 
   if (decision.requiresHumanReview) {
-    await saveFailureAssessment(supabase, task, message)
+    try {
+      await saveFailureAssessment(supabase, task, message)
+    } catch (assessmentError) {
+      console.error('[selection-worker] Failed to save fallback review assessment', assessmentError)
+    }
   }
 
   const availableAt = new Date(Date.now() + decision.delaySeconds * 1000).toISOString()
@@ -443,7 +571,10 @@ const failTask = async (
   await recordAudit({
     supabase,
     task,
-    eventType: decision.status === 'retry' ? 'application_processing_retry' : 'application_processing_failed',
+    eventType:
+      decision.status === 'retry'
+        ? 'application_processing_retry'
+        : 'application_processing_failed',
     eventData: {
       attemptCount: task.attempt_count,
       error: message,
