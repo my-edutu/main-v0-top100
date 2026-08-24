@@ -53,7 +53,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const user = await getCurrentUser()
   if (!user?.id) return NextResponse.json({ message: 'Authentication required.' }, { status: 401 })
 
-  const rateLimit = checkRateLimit({
+  const rateLimit = await checkRateLimit({
     ...RATE_LIMITS.QUERY,
     identifier: `event-invitation-rsvp:${user.id}`,
   })
@@ -113,7 +113,7 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
   const user = await getCurrentUser()
   if (!user?.id) return NextResponse.json({ message: 'Authentication required.' }, { status: 401 })
 
-  const rateLimit = checkRateLimit({
+  const rateLimit = await checkRateLimit({
     ...RATE_LIMITS.QUERY,
     identifier: `event-invitation-seen:${user.id}`,
   })
