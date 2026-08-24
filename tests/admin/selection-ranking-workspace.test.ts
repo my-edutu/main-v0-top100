@@ -6,6 +6,7 @@ const root = process.cwd()
 const selectionPagePath = resolve(root, 'app/admin/selection/page.tsx')
 const selectionWorkspacePath = resolve(root, 'app/admin/selection/selection-workspace.tsx')
 const rankingWorkspacePath = resolve(root, 'app/admin/selection/ranking-workspace.tsx')
+const rankingDetailsPath = resolve(root, 'app/admin/selection/ranking-run-details.tsx')
 const rankingDetailsRoutePath = resolve(
   root,
   'app/api/admin/selection/rankings/[runId]/route.ts',
@@ -22,13 +23,14 @@ describe('Selection Engine ranking workspace', () => {
     const page = readFileSync(selectionPagePath, 'utf8')
     const workspace = readIfPresent(selectionWorkspacePath)
     const ranking = readIfPresent(rankingWorkspacePath)
+    const rankingDetails = readIfPresent(rankingDetailsPath)
 
     expect(page).toContain('SelectionWorkspace')
     expect(workspace).toContain('<TabsTrigger value="rankings">Rankings and approvals</TabsTrigger>')
     expect(workspace).toContain('<RankingWorkspace />')
     expect(ranking).toContain('/api/admin/selection/rankings')
-    expect(ranking).toContain('Approve ranking')
-    expect(ranking).toContain('Reject and void')
+    expect(rankingDetails).toContain('Approve ranking')
+    expect(rankingDetails).toContain('Reject and void')
   })
 
   it('provides private ranked-applicant details and authenticated approval endpoints', () => {
