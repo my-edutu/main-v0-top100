@@ -61,6 +61,43 @@ const truncate = (value: string, maximum: number) => {
   return normalized.length <= maximum ? normalized : `${normalized.slice(0, maximum)}\n[truncated]`
 }
 
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+export function redactMeritInput({
+  text,
+  identifiers,
+  maximum = 12_000,
+}: {
+  text: string
+  identifiers: Array<string | null | undefined>
+  maximum?: number
+}) {
+  let redacted = text
+    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/giu, '[redacted]')
+    .replace(/\b(?:https?:\/\/|www\.)[^\s<>()]+/giu, '[redacted]')
+    .replace(/(?:\+?\d[\d\s().-]{6,}\d)/gu, '[redacted]')
+
+  const uniqueIdentifiers = Array.from(
+    new Set(
+      identifiers
+        .map((identifier) => identifier?.trim() ?? '')
+        .filter((identifier) => identifier.length >= 3),
+    ),
+  ).sort((left, right) => right.length - left.length)
+
+  for (const identifier of uniqueIdentifiers) {
+    const flexibleWhitespacePattern = escapeRegExp(identifier).replace(/\s+/g, '\\s+')
+    redacted = redacted.replace(new RegExp(flexibleWhitespacePattern, 'giu'), '[redacted]')
+  }
+
+  return redacted
+    .replace(/(?:\s*\[redacted\]\s*){2,}/giu, ' [redacted] ')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+    .slice(0, Math.max(0, maximum))
+}
+
 export function buildMeritAssessmentPrompt({
   leadershipNarrative,
   supportingEvidenceText,
