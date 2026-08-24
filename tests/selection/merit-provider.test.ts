@@ -4,7 +4,48 @@ import {
   buildMeritAssessmentPrompt,
   buildOpenAiMeritRequest,
   parseOpenAiMeritResponse,
+  redactMeritInput,
 } from '@/lib/selection/merit/openai'
+
+describe('redactMeritInput', () => {
+  it('removes applicant identity and contact details while retaining outcome evidence', () => {
+    const redacted = redactMeritInput({
+      text: [
+        'My name is Ada Nwosu from the University of Lagos in Nigeria.',
+        'Contact me at ada.nwosu@example.com or +234 803 123 4567.',
+        'Portfolio: https://example.com/ada-nwosu.',
+        'I led a campus project serving 300 students and coordinated 12 volunteers.',
+      ].join(' '),
+      identifiers: [
+        'Ada Nwosu',
+        'University of Lagos',
+        'Nigeria',
+        'ada.nwosu@example.com',
+        '+234 803 123 4567',
+      ],
+    })
+
+    expect(redacted).not.toContain('Ada Nwosu')
+    expect(redacted).not.toContain('University of Lagos')
+    expect(redacted).not.toContain('Nigeria')
+    expect(redacted).not.toContain('ada.nwosu@example.com')
+    expect(redacted).not.toContain('+234 803 123 4567')
+    expect(redacted).not.toContain('https://example.com/ada-nwosu')
+    expect(redacted).toContain('[redacted]')
+    expect(redacted).toContain('serving 300 students')
+    expect(redacted).toContain('coordinated 12 volunteers')
+  })
+
+  it('matches supplied identifiers case-insensitively and ignores empty values', () => {
+    const redacted = redactMeritInput({
+      text: 'ADA NWOSU led the project with Ada Nwosu and 20 volunteers.',
+      identifiers: ['', null, undefined, 'Ada Nwosu'],
+    })
+
+    expect(redacted).not.toMatch(/ada nwosu/i)
+    expect(redacted).toContain('20 volunteers')
+  })
+})
 
 describe('buildMeritAssessmentPrompt', () => {
   it('evaluates only the redacted narrative and never includes identity or country fields', () => {
