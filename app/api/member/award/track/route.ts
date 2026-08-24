@@ -16,7 +16,7 @@ export async function GET() {
   const user = await getCurrentUser()
   if (!user?.id) return NextResponse.json({ message: 'Authentication required.' }, { status: 401 })
 
-  const rate = checkRateLimit({ ...RATE_LIMITS.QUERY, identifier: `award-track:${user.id}` })
+  const rate = await checkRateLimit({ ...RATE_LIMITS.QUERY, identifier: `award-track:${user.id}` })
   if (!rate.success) return createRateLimitResponse(rate, 'Too many tracking requests. Please wait a moment.')
 
   const supabase = createAdminClient()
