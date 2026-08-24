@@ -130,6 +130,27 @@ ${truncate(supportingEvidenceText, 12_000) || '[not provided]'}
 `
 }
 
+/**
+ * Build the only prompt allowed to leave the private selection boundary.
+ * Academic PDFs and their OCR text are deliberately excluded. The optional AI
+ * provider receives only the applicant's leadership narrative after generic
+ * contact redaction; academic verification remains deterministic and private.
+ */
+export function prepareMeritModelPrompt(input: {
+  leadershipNarrative: string
+  supportingEvidenceText: string
+}) {
+  const redactedNarrative = redactMeritInput({
+    text: input.leadershipNarrative,
+    identifiers: [],
+  })
+
+  return buildMeritAssessmentPrompt({
+    leadershipNarrative: redactedNarrative,
+    supportingEvidenceText: '',
+  })
+}
+
 export function buildOpenAiMeritRequest({ model, prompt }: { model: string; prompt: string }) {
   return {
     model,
@@ -203,10 +224,7 @@ export function parseOpenAiMeritResponse(payload: unknown): MeritAssessment {
   return validated.data
 }
 
-export async function assessMeritWithOpenAI({
-  leadershipNarrative,
-  supportingEvidenceText,
-}: {
+export async function assessMeritWithOpenAI(input: {
   leadershipNarrative: string
   supportingEvidenceText: string
 }): Promise<MeritAssessment> {
@@ -223,7 +241,7 @@ export async function assessMeritWithOpenAI({
     body: JSON.stringify(
       buildOpenAiMeritRequest({
         model,
-        prompt: buildMeritAssessmentPrompt({ leadershipNarrative, supportingEvidenceText }),
+        prompt: prepareMeritModelPrompt(input),
       }),
     ),
     cache: 'no-store',
