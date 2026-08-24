@@ -14,6 +14,7 @@ describe('selection engine database security', () => {
       'selection_jobs',
       'selection_applications',
       'selection_documents',
+      'selection_processing_tasks',
       'selection_assessments',
       'selection_public_results',
       'selection_audit_events',
@@ -26,12 +27,19 @@ describe('selection engine database security', () => {
   it('revokes browser roles instead of exposing applicant documents through the Data API', () => {
     expect(migration).toContain('REVOKE ALL ON TABLE public.selection_applications FROM anon, authenticated')
     expect(migration).toContain('REVOKE ALL ON TABLE public.selection_documents FROM anon, authenticated')
+    expect(migration).toContain('REVOKE ALL ON TABLE public.selection_processing_tasks FROM anon, authenticated')
     expect(migration).toContain('REVOKE ALL ON TABLE public.selection_assessments FROM anon, authenticated')
   })
 
   it('enforces the 100-record processing ceiling in the database', () => {
     expect(migration).toContain('batch_size integer NOT NULL DEFAULT 100')
     expect(migration).toContain('batch_size BETWEEN 1 AND 100')
+  })
+
+  it('claims worker tasks with row locks so concurrent workers cannot scan the same application', () => {
+    expect(migration).toContain('CREATE OR REPLACE FUNCTION public.claim_selection_processing_tasks')
+    expect(migration).toContain('FOR UPDATE SKIP LOCKED')
+    expect(migration).toContain('LEAST(GREATEST(p_limit, 1), 10)')
   })
 
   it('creates a private PDF-only evidence bucket', () => {
