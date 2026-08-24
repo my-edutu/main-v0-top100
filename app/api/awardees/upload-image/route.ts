@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
         // This route writes to storage with the service-role client, so cap how
         // fast one client can fill the bucket.
         const identifier = getClientIdentifier(request.headers)
-        const rateLimitResult = checkRateLimit({
+        const rateLimitResult = await checkRateLimit({
             ...RATE_LIMITS.UPLOAD,
             identifier: `awardee-upload:${awardeeId}:${identifier}`,
         })
