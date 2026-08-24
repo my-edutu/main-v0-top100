@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
         // it's an oracle: unthrottled, it can be used to guess awardees' email
         // addresses one request at a time.
         const identifier = getClientIdentifier(request.headers)
-        const rateLimitResult = checkRateLimit({
+        const rateLimitResult = await checkRateLimit({
             ...RATE_LIMITS.AUTH,
             identifier: `awardee-verify:${identifier}`,
         })

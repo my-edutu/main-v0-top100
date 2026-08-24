@@ -42,7 +42,7 @@ export const requireAdmin = async (
 ): Promise<RequireAdminResult> => {
   if (request?.headers) {
     const identifier = getClientIdentifier(request.headers);
-    const rateLimitResult = checkRateLimit({
+    const rateLimitResult = await checkRateLimit({
       ...RATE_LIMITS.ADMIN,
       identifier: `admin:${identifier}`,
     });

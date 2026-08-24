@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
   const user = await getCurrentUser()
   if (!user?.id) return NextResponse.json({ message: 'Authentication required.' }, { status: 401 })
 
-  const rate = checkRateLimit({ ...RATE_LIMITS.QUERY, identifier: `opportunities:${user.id}` })
+  const rate = await checkRateLimit({ ...RATE_LIMITS.QUERY, identifier: `opportunities:${user.id}` })
   if (!rate.success) return createRateLimitResponse(rate, 'Too many requests. Please try again shortly.')
 
   const supabase = createAdminClient()

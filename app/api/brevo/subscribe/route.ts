@@ -5,7 +5,7 @@ export async function POST(request: NextRequest) {
   try {
     // Rate limiting - prevent spam subscriptions
     const identifier = getClientIdentifier(request.headers);
-    const rateLimitResult = checkRateLimit({
+    const rateLimitResult = await checkRateLimit({
       ...RATE_LIMITS.NEWSLETTER,
       identifier: `newsletter:${identifier}`,
     });

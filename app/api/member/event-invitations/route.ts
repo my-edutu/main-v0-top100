@@ -27,7 +27,7 @@ export async function GET() {
   const user = await getCurrentUser()
   if (!user?.id) return NextResponse.json({ message: 'Authentication required.' }, { status: 401 })
 
-  const rateLimit = checkRateLimit({
+  const rateLimit = await checkRateLimit({
     ...RATE_LIMITS.QUERY,
     identifier: `event-invitations:${user.id}`,
   })
