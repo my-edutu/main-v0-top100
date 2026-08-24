@@ -6,8 +6,63 @@ import { createAdminClient } from '@/lib/supabase/server'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+type TaskStatus = 'pending' | 'processing' | 'retry' | 'failed' | 'completed'
+
+type SelectionTaskRow = {
+  job_id: string
+  status: TaskStatus
+  logical_batch_number: number
+}
+
+type SelectionCycleRelation = {
+  name: string | null
+  year: number | null
+}
+
+type SelectionSourceConfig = {
+  importComplete?: boolean
+  importedResponses?: number
+  linkedSheetVerified?: boolean
+  lastSyncedAt?: string | null
+}
+
+type SelectionJobRow = {
+  id: string
+  cycle_id: string
+  source_type: string
+  source_label: string
+  source_config: unknown
+  status: string
+  batch_size: number
+  total_count: number
+  processed_count: number
+  qualified_count: number
+  not_qualified_count: number
+  needs_review_count: number
+  current_batch: number
+  last_error: string | null
+  created_at: string
+  updated_at: string
+  selection_cycles: SelectionCycleRelation | SelectionCycleRelation[] | null
+}
+
+type TaskCounts = Record<TaskStatus, number>
+
+const emptyTaskCounts = (): TaskCounts => ({
+  pending: 0,
+  processing: 0,
+  retry: 0,
+  failed: 0,
+  completed: 0,
+})
+
 const isMissingSelectionSchema = (error: { code?: string; message?: string } | null) =>
   error?.code === '42P01' || Boolean(error?.message?.includes('selection_'))
+
+const parseSourceConfig = (value: unknown): SelectionSourceConfig => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+  return value as SelectionSourceConfig
+}
 
 export async function GET(request: NextRequest) {
   const adminCheck = await requireAdmin(request)
@@ -68,38 +123,19 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  const taskSummary = new Map<
-    string,
-    { pending: number; processing: number; retry: number; failed: number; completed: number }
-  >()
-  for (const task of tasks ?? []) {
-    const summary = taskSummary.get(task.job_id) ?? {
-      pending: 0,
-      processing: 0,
-      retry: 0,
-      failed: 0,
-      completed: 0,
-    }
-    if (task.status in summary) {
-      summary[task.status as keyof typeof summary] += 1
-    }
+  const taskSummary = new Map<string, TaskCounts>()
+  for (const task of (tasks ?? []) as SelectionTaskRow[]) {
+    const summary = taskSummary.get(task.job_id) ?? emptyTaskCounts()
+    summary[task.status] += 1
     taskSummary.set(task.job_id, summary)
   }
 
-  const normalizedJobs = (jobs ?? []).map((job: any) => {
+  const normalizedJobs = ((jobs ?? []) as SelectionJobRow[]).map((job) => {
     const cycle = Array.isArray(job.selection_cycles)
       ? job.selection_cycles[0] ?? null
       : job.selection_cycles
-    const sourceConfig = job.source_config && typeof job.source_config === 'object'
-      ? job.source_config
-      : {}
-    const taskCounts = taskSummary.get(job.id) ?? {
-      pending: 0,
-      processing: 0,
-      retry: 0,
-      failed: 0,
-      completed: 0,
-    }
+    const sourceConfig = parseSourceConfig(job.source_config)
+    const taskCounts = taskSummary.get(job.id) ?? emptyTaskCounts()
 
     return {
       id: job.id,
