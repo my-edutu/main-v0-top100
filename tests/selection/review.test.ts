@@ -51,8 +51,10 @@ describe('buildHumanReviewedAssessment', () => {
           initiative: 5,
           communication: 5,
         },
-        publicReasons: ['Reviewed.'],
-        reviewerNotes: 'Manual review completed with evidence.',
+        publicReasons: [
+          'The application was reviewed manually against the published selection criteria.',
+        ],
+        reviewerNotes: 'Manual review completed with the original academic and impact evidence.',
         priorInternalReasons: [],
         policy,
       }),
