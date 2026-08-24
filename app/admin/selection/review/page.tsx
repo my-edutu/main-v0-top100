@@ -4,10 +4,41 @@ import { ArrowLeft } from 'lucide-react'
 import PageHeader from '@/app/admin/components/PageHeader'
 import { Button } from '@/components/ui/button'
 import { createAdminClient } from '@/lib/supabase/server'
+import type { ReviewAssessment } from '../human-review-form'
 import ReviewQueueClient from './review-queue-client'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
+
+type ReviewQueueApplicant = {
+  id: string
+  full_name: string
+  primary_email: string | null
+  country: string | null
+  institution: string | null
+  course: string | null
+  claimed_cgpa: string | null
+  claimed_academic_status: string | null
+  leadership_narrative: string | null
+  selection_jobs: { source_label?: string } | Array<{ source_label?: string }> | null
+  selection_assessments: Array<
+    ReviewAssessment & {
+      reason_codes?: string[]
+      internal_reasons?: string[]
+    }
+  > | null
+  selection_documents: Array<{
+    id: string
+    original_name: string
+    size_bytes: number
+    sha256: string | null
+    extraction_status: string
+    extraction_confidence: number | null
+    integrity_flags: string[]
+    extracted_data: Record<string, unknown> | null
+    last_error: string | null
+  }> | null
+}
 
 export default async function SelectionReviewQueuePage() {
   const supabase = createAdminClient()
@@ -39,7 +70,9 @@ export default async function SelectionReviewQueuePage() {
           The review queue could not be loaded: {error.message}
         </div>
       ) : (
-        <ReviewQueueClient applicants={(data ?? []) as any} />
+        <ReviewQueueClient
+          applicants={(data ?? []) as unknown as ReviewQueueApplicant[]}
+        />
       )}
     </div>
   )
