@@ -7,7 +7,7 @@ import {
 } from '@/app/admin/components/nav-config'
 
 describe('navGroups', () => {
-  it('exposes every route that used to be unreachable from the sidebar', () => {
+  it('exposes every important admin workspace from the sidebar', () => {
     const hrefs = navItems.map((item) => item.href)
 
     for (const href of [
@@ -17,6 +17,7 @@ describe('navGroups', () => {
       '/admin/invites',
       '/admin/member-posts',
       '/admin/opportunities',
+      '/admin/selection',
     ]) {
       expect(hrefs).toContain(href)
     }
@@ -54,11 +55,10 @@ describe('isNavItemActive', () => {
     expect(isNavItemActive('/admin/blog', '/admin/blog')).toBe(true)
     expect(isNavItemActive('/admin/blog/new', '/admin/blog')).toBe(true)
     expect(isNavItemActive('/admin/blog/edit/123', '/admin/blog')).toBe(true)
+    expect(isNavItemActive('/admin/selection/applications/123', '/admin/selection')).toBe(true)
   })
 
   it('only matches on a path segment boundary', () => {
-    // Without the boundary check, /admin/member-hub would activate a
-    // hypothetical /admin/member entry.
     expect(isNavItemActive('/admin/member-hub', '/admin/member')).toBe(false)
     expect(isNavItemActive('/admin/member-posts', '/admin/member')).toBe(false)
   })
@@ -77,11 +77,13 @@ describe('resolvePageTitle', () => {
   it('names the current section', () => {
     expect(resolvePageTitle('/admin')).toBe('Overview')
     expect(resolvePageTitle('/admin/awardees')).toBe('Awardees')
+    expect(resolvePageTitle('/admin/selection')).toBe('Selection Engine')
   })
 
   it('names the section for a nested route rather than going blank', () => {
     expect(resolvePageTitle('/admin/blog/edit/123')).toBe('Editorial')
     expect(resolvePageTitle('/admin/awardees/import')).toBe('Awardees')
+    expect(resolvePageTitle('/admin/selection/applications/123')).toBe('Selection Engine')
   })
 
   it('falls back for an unknown route', () => {
