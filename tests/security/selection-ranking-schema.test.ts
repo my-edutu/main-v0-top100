@@ -7,6 +7,11 @@ const migration = readFileSync(
   'utf8',
 )
 
+const rpcMigration = readFileSync(
+  resolve(process.cwd(), 'supabase/migrations/20260824094000_create_selection_ranking_rpc.sql'),
+  'utf8',
+)
+
 describe('selection ranking database security', () => {
   it('creates private ranking runs, entries and approvals', () => {
     for (const table of [
@@ -36,5 +41,15 @@ describe('selection ranking database security', () => {
     expect(migration).toContain('UNIQUE (run_id, application_id)')
     expect(migration).toContain('UNIQUE (run_id, overall_rank)')
     expect(migration).toContain('UNIQUE (run_id, country, country_rank)')
+  })
+
+  it('persists the run and all entries atomically through a service-role-only RPC', () => {
+    expect(rpcMigration).toContain('CREATE OR REPLACE FUNCTION public.create_frozen_selection_ranking_run')
+    expect(rpcMigration).toContain('jsonb_to_recordset(p_entries)')
+    expect(rpcMigration).toContain('GET DIAGNOSTICS v_entry_count = ROW_COUNT')
+    expect(rpcMigration).toContain('ranking entry count mismatch')
+    expect(rpcMigration).toContain('SECURITY INVOKER')
+    expect(rpcMigration).toContain('FROM PUBLIC, anon, authenticated')
+    expect(rpcMigration).toContain('TO service_role')
   })
 })
