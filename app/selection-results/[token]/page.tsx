@@ -2,15 +2,29 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { CheckCircle2, Clock3, ShieldCheck, XCircle } from 'lucide-react'
 
+import { ogMetadata } from '@/lib/og'
 import { createAdminClient } from '@/lib/supabase/server'
 import type { ApplicantResultView } from '@/lib/selection/contracts'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
+const resultDescription = 'Private application result and assessment explanation.'
+
 export const metadata: Metadata = {
   title: 'Application Result — Top100 Africa Future Leaders',
-  description: 'Private application result and assessment explanation.',
+  description: resultDescription,
+  ...ogMetadata(
+    {
+      title: 'Application Result',
+      eyebrow: 'Top100 Africa Future Leaders',
+      subtitle: 'Private assessment result',
+    },
+    {
+      url: '/selection-results',
+      description: resultDescription,
+    },
+  ),
   robots: {
     index: false,
     follow: false,
@@ -47,7 +61,8 @@ const verdictDetails = (verdict: ApplicantResultView['verdict']) => {
 
   return {
     label: 'Not selected',
-    description: 'Your application was assessed but did not qualify under this cycle’s published requirements.',
+    description:
+      'Your application was assessed but did not qualify under this cycle’s published requirements.',
     Icon: XCircle,
     panel: 'border-rose-200 bg-rose-50 text-rose-950',
     icon: 'bg-rose-600 text-white',
@@ -75,10 +90,10 @@ export default async function SelectionResultPage({ params }: PageProps) {
     .select('payload, is_published, published_at, expires_at')
     .eq('access_token', token)
     .eq('is_published', true)
+    .or('expires_at.is.null,expires_at.gt.now')
     .maybeSingle()
 
   if (error || !data) notFound()
-  if (data.expires_at && new Date(data.expires_at).getTime() <= Date.now()) notFound()
 
   const result = data.payload as ApplicantResultView
   if (!result || typeof result !== 'object' || !result.verdict) notFound()
@@ -114,7 +129,9 @@ export default async function SelectionResultPage({ params }: PageProps) {
 
         <section className={`rounded-[28px] border p-6 sm:p-8 ${verdict.panel}`}>
           <div className="flex items-start gap-4">
-            <div className={`flex size-12 shrink-0 items-center justify-center rounded-2xl ${verdict.icon}`}>
+            <div
+              className={`flex size-12 shrink-0 items-center justify-center rounded-2xl ${verdict.icon}`}
+            >
               <VerdictIcon className="size-6" />
             </div>
             <div>
@@ -126,13 +143,18 @@ export default async function SelectionResultPage({ params }: PageProps) {
 
         <section className="grid gap-6 lg:grid-cols-[0.92fr_1.08fr]">
           <div className="rounded-[28px] border border-orange-100 bg-white p-6 sm:p-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-orange-600">Overall merit score</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-orange-600">
+              Overall merit score
+            </p>
             <div className="mt-4 flex items-end gap-2">
-              <span className="text-5xl font-bold tracking-tight text-zinc-950">{result.totalScore}</span>
+              <span className="text-5xl font-bold tracking-tight text-zinc-950">
+                {result.totalScore}
+              </span>
               <span className="pb-1 text-lg text-zinc-500">/ 100</span>
             </div>
             <p className="mt-3 text-sm leading-6 text-zinc-600">
-              Published merit threshold: <strong className="text-zinc-950">{result.minimumMeritScore}/100</strong>
+              Published merit threshold:{' '}
+              <strong className="text-zinc-950">{result.minimumMeritScore}/100</strong>
             </p>
           </div>
 
@@ -141,7 +163,8 @@ export default async function SelectionResultPage({ params }: PageProps) {
             <div className="mt-5 space-y-4">
               {scoreLabels.map(({ key, label }) => {
                 const score = result.scoreBreakdown[key]
-                const percentage = score.maximum > 0 ? Math.round((score.score / score.maximum) * 100) : 0
+                const percentage =
+                  score.maximum > 0 ? Math.round((score.score / score.maximum) * 100) : 0
                 return (
                   <div key={key} className="space-y-2">
                     <div className="flex items-center justify-between gap-4 text-sm">
@@ -151,7 +174,10 @@ export default async function SelectionResultPage({ params }: PageProps) {
                       </span>
                     </div>
                     <div className="h-2 overflow-hidden rounded-full bg-zinc-100">
-                      <div className="h-full rounded-full bg-orange-500" style={{ width: `${Math.min(100, Math.max(0, percentage))}%` }} />
+                      <div
+                        className="h-full rounded-full bg-orange-500"
+                        style={{ width: `${Math.min(100, Math.max(0, percentage))}%` }}
+                      />
                     </div>
                   </div>
                 )
@@ -164,7 +190,10 @@ export default async function SelectionResultPage({ params }: PageProps) {
           <h2 className="text-xl font-bold text-zinc-950">Why this result was issued</h2>
           <div className="mt-5 space-y-3">
             {result.reasons.map((reason, index) => (
-              <div key={`${index}-${reason}`} className="rounded-2xl border border-zinc-100 bg-zinc-50 px-4 py-3 text-sm leading-6 text-zinc-700">
+              <div
+                key={`${index}-${reason}`}
+                className="rounded-2xl border border-zinc-100 bg-zinc-50 px-4 py-3 text-sm leading-6 text-zinc-700"
+              >
                 {reason}
               </div>
             ))}
@@ -179,13 +208,18 @@ export default async function SelectionResultPage({ params }: PageProps) {
             <h2 className="text-xl font-bold">Appeal and correction window</h2>
             <p className="mt-3 text-sm leading-7 text-white/75">{result.appeal.message}</p>
             <p className="mt-4 text-sm font-semibold text-orange-300">
-              Deadline: {new Date(result.appeal.deadline).toLocaleString('en-GB', { dateStyle: 'long', timeStyle: 'short' })}
+              Deadline:{' '}
+              {new Date(result.appeal.deadline).toLocaleString('en-GB', {
+                dateStyle: 'long',
+                timeStyle: 'short',
+              })}
             </p>
           </section>
         )}
 
         <footer className="px-4 text-center text-xs leading-5 text-zinc-500">
-          This private link contains your application result. Do not publish it unless you choose to share your own result.
+          This private link contains your application result. Do not publish it unless you choose
+          to share your own result.
         </footer>
       </div>
     </main>
