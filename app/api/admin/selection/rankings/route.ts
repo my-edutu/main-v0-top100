@@ -23,6 +23,35 @@ const defaultPolicy: SelectionPolicy = {
   version: '2026.1',
 }
 
+type RankingJobRow = {
+  id: string
+  status: string
+  total_count: number
+  processed_count: number
+  needs_review_count: number
+}
+
+type RankingAssessmentRow = {
+  id: string
+  verdict: SelectionAssessment['verdict']
+  total_score: number | string
+  score_breakdown: unknown
+  reason_codes: SelectionAssessment['reasonCodes'] | null
+  internal_reasons: string[] | null
+  public_reasons: string[] | null
+  requires_human_review: boolean
+  policy_version: string
+  updated_at: string
+}
+
+type RankingApplicationRow = {
+  id: string
+  full_name: string
+  country: string | null
+  status: string
+  selection_assessments: RankingAssessmentRow | RankingAssessmentRow[] | null
+}
+
 const parsePolicy = (value: unknown): SelectionPolicy => {
   if (!value || typeof value !== 'object') return defaultPolicy
   const policy = value as Partial<SelectionPolicy>
@@ -66,8 +95,8 @@ const normalizeAssessment = ({
   application,
   assessment,
 }: {
-  application: any
-  assessment: any
+  application: RankingApplicationRow
+  assessment: RankingAssessmentRow
 }): SelectionAssessment => ({
   applicationId: application.id,
   fullName: application.full_name,
@@ -139,15 +168,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Selection cycle not found' }, { status: 404 })
   }
   if (jobsError) return NextResponse.json({ message: jobsError.message }, { status: 500 })
-  if (!jobs?.length) {
+  const typedJobs = (jobs ?? []) as RankingJobRow[]
+  if (!typedJobs.length) {
     return NextResponse.json(
       { message: 'The selection cycle has no applicant processing jobs.' },
       { status: 409 },
     )
   }
 
-  const incompleteJobs = jobs.filter(
-    (job: any) =>
+  const incompleteJobs = typedJobs.filter(
+    (job) =>
       Number(job.processed_count) < Number(job.total_count) ||
       ['draft', 'processing', 'paused', 'failed'].includes(job.status),
   )
@@ -155,7 +185,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         message: 'Every applicant job must finish before a ranking snapshot can be frozen.',
-        incompleteJobIds: incompleteJobs.map((job: any) => job.id),
+        incompleteJobIds: incompleteJobs.map((job) => job.id),
       },
       { status: 409 },
     )
@@ -178,14 +208,14 @@ export async function POST(request: NextRequest) {
   const assessments: SelectionAssessment[] = []
   const assessmentIds = new Map<string, string>()
 
-  for (const application of applications ?? []) {
+  for (const application of (applications ?? []) as RankingApplicationRow[]) {
     const candidates = Array.isArray(application.selection_assessments)
       ? application.selection_assessments
       : application.selection_assessments
         ? [application.selection_assessments]
         : []
     const assessment = candidates.find(
-      (candidate: any) => candidate.policy_version === policy.version,
+      (candidate) => candidate.policy_version === policy.version,
     )
 
     if (
