@@ -28,9 +28,9 @@ The engine manages **applicants**, not public awardees.
 3. Google Form responses are imported using stable `responseId` values in pages of at most 100.
 4. Uploaded Google Drive PDFs are snapshotted into the private `selection-evidence` bucket before OCR.
 5. The admin starts the next logical batch of at most 100 applications.
-6. workers claim a small number of retryable tasks with `FOR UPDATE SKIP LOCKED`.
-7. Google Document AI extracts text and academic fields.
-8. Optional OpenAI structured output assesses only redacted leadership and evidence text against bounded rubric criteria.
+6. Workers claim a small number of retryable tasks with `FOR UPDATE SKIP LOCKED`.
+7. Google Document AI extracts text and academic fields inside the private processing boundary.
+8. Optional OpenAI structured output assesses only a contact-redacted leadership/impact narrative. Raw PDFs and academic OCR text are deliberately excluded from that request.
 9. Deterministic rules create one of three results:
    - `qualified`
    - `not_qualified`
@@ -53,6 +53,8 @@ Apply these migrations in order:
 supabase/migrations/20260824090000_create_selection_engine_foundation.sql
 supabase/migrations/20260824091000_add_selection_processing_tasks.sql
 supabase/migrations/20260824092000_allow_pending_google_document_size.sql
+supabase/migrations/20260824093000_create_selection_ranking_runs.sql
+supabase/migrations/20260824094000_create_selection_ranking_rpc.sql
 ```
 
 The migrations create:
@@ -63,7 +65,9 @@ The migrations create:
 - a private PDF-only `selection-evidence` bucket;
 - retryable processing tasks;
 - atomic task claims with row locking;
-- a hard 100-record logical batch ceiling.
+- a hard 100-record logical batch ceiling;
+- frozen ranking runs, rank entries and independent approval records;
+- an atomic service-role-only RPC that writes a ranking run and all entries together.
 
 Do not expose `selection_*` tables to `anon` or `authenticated` browser roles.
 
@@ -155,12 +159,16 @@ Extraction confidence below the configured safe threshold routes the application
 
 ## Optional AI merit assessment
 
-The OpenAI request receives only:
+The OpenAI request receives only the applicant's leadership and impact narrative after generic contact redaction.
 
-- leadership and impact narrative;
-- text extracted from supporting evidence.
+It does **not** receive:
 
-It does not receive the applicant's name, email, phone, country or institution field for merit scoring. The prompt expressly treats applicant text as untrusted data and ignores embedded instructions.
+- the uploaded PDF;
+- Document AI OCR text;
+- the applicant's separately stored name, email, phone, country or institution fields;
+- internal duplicate or integrity signals.
+
+The prompt expressly treats applicant text as untrusted data and ignores embedded instructions. The API request is configured with `store: false`.
 
 Structured output is validated against fixed limits:
 
@@ -264,9 +272,10 @@ The detailed evidence viewer remains private inside the admin panel.
 5. Country never changes the merit score.
 6. AI output cannot exceed rubric maximums.
 7. Missing AI configuration routes merit scoring to review.
-8. A final result is published only through an explicit admin action.
-9. This foundation does not automatically promote applicants into `awardees`.
-10. Real applicant PDFs must never enter Git history, test fixtures, logs or CI artifacts.
+8. Raw PDFs and OCR text remain inside the private selection boundary and are not sent to the optional merit model.
+9. A final result is published only through an explicit admin action.
+10. This foundation does not automatically promote applicants into `awardees`.
+11. Real applicant PDFs must never enter Git history, test fixtures, logs or CI artifacts.
 
 ## Verification commands
 
