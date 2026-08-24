@@ -12,6 +12,25 @@ type RouteContext = {
   params: Promise<{ jobId: string; batchNumber: string }>
 }
 
+type ProcessingTaskRow = {
+  application_id: string
+  status: string
+}
+
+type ApplicationRow = {
+  id: string
+  full_name: string
+  country: string | null
+}
+
+type AssessmentRow = {
+  application_id: string
+  verdict: SelectionVerdict
+  total_score: number | string
+  public_reasons: string[] | null
+  created_at: string
+}
+
 const safeFilename = (value: string) =>
   value
     .toLowerCase()
@@ -26,7 +45,10 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
   const { jobId, batchNumber: rawBatchNumber } = await params
   const batchNumber = Number.parseInt(rawBatchNumber, 10)
   if (!Number.isInteger(batchNumber) || batchNumber < 1) {
-    return NextResponse.json({ message: 'batchNumber must be a positive integer' }, { status: 400 })
+    return NextResponse.json(
+      { message: 'batchNumber must be a positive integer' },
+      { status: 400 },
+    )
   }
 
   const supabase = createAdminClient()
@@ -49,50 +71,65 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
 
   if (tasksError) return NextResponse.json({ message: tasksError.message }, { status: 500 })
   if (!tasks?.length) {
-    return NextResponse.json({ message: 'No applications were found for this batch' }, { status: 404 })
+    return NextResponse.json(
+      { message: 'No applications were found for this batch' },
+      { status: 404 },
+    )
   }
 
-  const applicationIds = tasks.map((task: any) => task.application_id)
-  const [{ data: applications, error: applicationsError }, { data: assessments, error: assessmentsError }] =
-    await Promise.all([
-      supabase
-        .from('selection_applications')
-        .select('id, full_name, country')
-        .in('id', applicationIds),
-      supabase
-        .from('selection_assessments')
-        .select('application_id, verdict, total_score, public_reasons, created_at')
-        .eq('job_id', jobId)
-        .in('application_id', applicationIds)
-        .order('created_at', { ascending: false }),
-    ])
+  const typedTasks = tasks as ProcessingTaskRow[]
+  const applicationIds = typedTasks.map((task) => task.application_id)
+  const [
+    { data: applications, error: applicationsError },
+    { data: assessments, error: assessmentsError },
+  ] = await Promise.all([
+    supabase
+      .from('selection_applications')
+      .select('id, full_name, country')
+      .in('id', applicationIds),
+    supabase
+      .from('selection_assessments')
+      .select('application_id, verdict, total_score, public_reasons, created_at')
+      .eq('job_id', jobId)
+      .in('application_id', applicationIds)
+      .order('created_at', { ascending: false }),
+  ])
 
   if (applicationsError || assessmentsError) {
     return NextResponse.json(
-      { message: applicationsError?.message || assessmentsError?.message || 'Failed to build the report' },
+      {
+        message:
+          applicationsError?.message ||
+          assessmentsError?.message ||
+          'Failed to build the report',
+      },
       { status: 500 },
     )
   }
 
-  const applicationMap = new Map((applications ?? []).map((application: any) => [application.id, application]))
-  const assessmentMap = new Map<string, any>()
-  for (const assessment of assessments ?? []) {
+  const typedApplications = (applications ?? []) as ApplicationRow[]
+  const typedAssessments = (assessments ?? []) as AssessmentRow[]
+  const applicationMap = new Map(
+    typedApplications.map((application) => [application.id, application]),
+  )
+  const assessmentMap = new Map<string, AssessmentRow>()
+  for (const assessment of typedAssessments) {
     if (!assessmentMap.has(assessment.application_id)) {
       assessmentMap.set(assessment.application_id, assessment)
     }
   }
 
-  const reportApplications = applicationIds.map((applicationId: string) => {
+  const reportApplications = applicationIds.map((applicationId) => {
     const application = applicationMap.get(applicationId)
     const assessment = assessmentMap.get(applicationId)
     return {
       applicationId,
       fullName: application?.full_name ?? 'Unknown applicant',
       country: application?.country ?? null,
-      verdict: (assessment?.verdict ?? 'needs_review') as SelectionVerdict,
+      verdict: assessment?.verdict ?? 'needs_review',
       totalScore: Number(assessment?.total_score ?? 0),
       publicReasons:
-        assessment?.public_reasons?.length > 0
+        assessment?.public_reasons && assessment.public_reasons.length > 0
           ? assessment.public_reasons
           : ['Processing is not complete, so a final decision is not yet available.'],
     }
@@ -101,7 +138,10 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
   const cycle = Array.isArray(job.selection_cycles)
     ? job.selection_cycles[0] ?? null
     : job.selection_cycles
-  const totalBatches = Math.max(Number(job.current_batch || 0), Math.ceil(Number(job.total_count || 0) / 100))
+  const totalBatches = Math.max(
+    Number(job.current_batch || 0),
+    Math.ceil(Number(job.total_count || 0) / 100),
+  )
   const report: SelectionReport = {
     title: `Top100 Selection Engine — Batch ${batchNumber} Report`,
     generatedAt: new Date().toISOString(),
@@ -109,12 +149,18 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
     sourceLabel: job.source_label,
     summary: {
       totalApplications: Number(job.total_count || 0),
-      processedApplications: reportApplications.filter(
-        (application) => assessmentMap.has(application.applicationId),
+      processedApplications: reportApplications.filter((application) =>
+        assessmentMap.has(application.applicationId),
       ).length,
-      qualified: reportApplications.filter((application) => application.verdict === 'qualified').length,
-      notQualified: reportApplications.filter((application) => application.verdict === 'not_qualified').length,
-      needsReview: reportApplications.filter((application) => application.verdict === 'needs_review').length,
+      qualified: reportApplications.filter(
+        (application) => application.verdict === 'qualified',
+      ).length,
+      notQualified: reportApplications.filter(
+        (application) => application.verdict === 'not_qualified',
+      ).length,
+      needsReview: reportApplications.filter(
+        (application) => application.verdict === 'needs_review',
+      ).length,
       batchNumber,
       totalBatches: Math.max(batchNumber, totalBatches),
     },
@@ -122,9 +168,11 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
   }
 
   const pdf = generateSelectionReportPdf(report)
+  const body = new ArrayBuffer(pdf.byteLength)
+  new Uint8Array(body).set(pdf)
   const filename = `${safeFilename(report.cycleName)}-batch-${batchNumber}-report.pdf`
 
-  return new NextResponse(pdf, {
+  return new NextResponse(body, {
     status: 200,
     headers: {
       'content-type': 'application/pdf',
