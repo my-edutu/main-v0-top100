@@ -2,10 +2,12 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-const migration = readFileSync(
-  resolve(process.cwd(), 'supabase/migrations/20260824090000_create_selection_engine_foundation.sql'),
-  'utf8',
-)
+const migration = [
+  'supabase/migrations/20260824090000_create_selection_engine_foundation.sql',
+  'supabase/migrations/20260824091000_add_selection_processing_tasks.sql',
+]
+  .map((path) => readFileSync(resolve(process.cwd(), path), 'utf8'))
+  .join('\n')
 
 describe('selection engine database security', () => {
   it('creates separate private application and awardee selection tables', () => {
