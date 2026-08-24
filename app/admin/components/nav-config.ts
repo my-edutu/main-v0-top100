@@ -18,6 +18,7 @@ import {
   Bell,
   BarChart3,
   Settings,
+  ListChecks,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -36,10 +37,6 @@ export interface NavGroup {
 /**
  * Every reachable admin section, grouped for scannability.
  *
- * Previously this was a flat list of 13 that omitted six real routes — users,
- * homepage, interviews, invites, member-posts and opportunities were only
- * reachable by typing the URL.
- *
  * There is deliberately no 'Groups' entry: /api/admin/groups exists but
  * app/admin/groups/page.tsx does not, so a link here would 404. Add it when
  * that console is built.
@@ -52,6 +49,7 @@ export const navGroups: NavGroup[] = [
   {
     label: 'People',
     items: [
+      { label: 'Selection Engine', href: '/admin/selection', icon: ListChecks },
       { label: 'Awardees', href: '/admin/awardees', icon: Star },
       { label: 'Users', href: '/admin/users', icon: Users },
       { label: 'Invites', href: '/admin/invites', icon: UserPlus },
@@ -96,9 +94,8 @@ export const navItems: NavItem[] = navGroups.flatMap((group) => group.items)
  * Whether `href` is the active nav entry for `pathname`.
  *
  * `/admin` is matched exactly, since a prefix match would light it up on every
- * admin page. Every other entry matches its own subtree, so `/admin/blog/new`
- * keeps "Editorial" highlighted — but only on a path segment boundary, so
- * `/admin/member-hub` does not activate `/admin/member`.
+ * admin page. Every other entry matches its own subtree, so nested Selection
+ * Engine pages keep the workspace highlighted.
  */
 export function isNavItemActive(pathname: string | null, href: string): boolean {
   if (!pathname) return false
@@ -106,12 +103,7 @@ export function isNavItemActive(pathname: string | null, href: string): boolean 
   return pathname === href || pathname.startsWith(`${href}/`)
 }
 
-/**
- * Title for the current page, used by the mobile header.
- *
- * Falls back to the longest matching prefix so nested routes such as
- * /admin/blog/edit/123 still name their section rather than going blank.
- */
+/** Title for the current page, used by the mobile header. */
 export function resolvePageTitle(pathname: string | null): string {
   if (!pathname) return 'Admin'
   const match = navItems
