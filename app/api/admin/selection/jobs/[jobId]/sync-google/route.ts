@@ -28,7 +28,15 @@ type SourceConfig = {
   lastSyncedAt?: string
 }
 
-const nullable = (value: string | null) => value || null
+type ExistingApplicationRow = {
+  id: string
+  source_record_id: string
+}
+
+type ExistingDocumentRow = {
+  application_id: string
+  source_file_id: string
+}
 
 export async function POST(request: NextRequest, { params }: RouteContext) {
   const adminCheck = await requireAdmin(request)
@@ -146,8 +154,11 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
       : { data: [], error: null }
 
     if (existingError) throw new Error(`Failed to reconcile existing responses: ${existingError.message}`)
-    const existingMap = new Map(
-      (existingApplications ?? []).map((application: any) => [application.source_record_id, application.id]),
+    const existingMap = new Map<string, string>(
+      ((existingApplications ?? []) as ExistingApplicationRow[]).map((application) => [
+        application.source_record_id,
+        application.id,
+      ]),
     )
 
     const applicationPayload = normalized.map((entry) => {
@@ -175,7 +186,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
       }
     })
 
-    let savedApplications: Array<{ id: string; source_record_id: string }> = []
+    let savedApplications: ExistingApplicationRow[] = []
     if (applicationPayload.length > 0) {
       const { data, error } = await supabase
         .from('selection_applications')
@@ -183,7 +194,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
         .select('id, source_record_id')
 
       if (error) throw new Error(`Failed to store Google Form applications: ${error.message}`)
-      savedApplications = data ?? []
+      savedApplications = (data ?? []) as ExistingApplicationRow[]
     }
 
     const savedMap = new Map(savedApplications.map((application) => [application.source_record_id, application.id]))
@@ -200,8 +211,8 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
       throw new Error(`Failed to reconcile Google Drive evidence: ${documentsLookupError.message}`)
     }
     const existingDocumentKeys = new Set(
-      (existingDocuments ?? []).map(
-        (document: any) => `${document.application_id}:${document.source_file_id}`,
+      ((existingDocuments ?? []) as ExistingDocumentRow[]).map(
+        (document) => `${document.application_id}:${document.source_file_id}`,
       ),
     )
 
