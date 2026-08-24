@@ -27,7 +27,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const user = await getCurrentUser()
   if (!user?.id) return NextResponse.json({ message: 'Authentication required.' }, { status: 401 })
 
-  const rate = checkRateLimit({ ...RATE_LIMITS.QUERY, identifier: `opportunity-save:${user.id}` })
+  const rate = await checkRateLimit({ ...RATE_LIMITS.QUERY, identifier: `opportunity-save:${user.id}` })
   if (!rate.success) return createRateLimitResponse(rate, 'Too many requests. Please try again shortly.')
 
   const { id } = await params
@@ -73,7 +73,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   const user = await getCurrentUser()
   if (!user?.id) return NextResponse.json({ message: 'Authentication required.' }, { status: 401 })
 
-  const rate = checkRateLimit({ ...RATE_LIMITS.QUERY, identifier: `opportunity-save:${user.id}` })
+  const rate = await checkRateLimit({ ...RATE_LIMITS.QUERY, identifier: `opportunity-save:${user.id}` })
   if (!rate.success) return createRateLimitResponse(rate, 'Too many requests. Please try again shortly.')
 
   const { id } = await params
