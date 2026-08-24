@@ -4,15 +4,19 @@ import { revalidatePath, revalidateTag } from 'next/cache'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/api/require-admin'
 
+type AwardeeRouteContext = {
+  params: Promise<{ id: string }>
+}
+
 // GET - Retrieve specific awardee by ID
 // Public access allowed for self-service editing (returns limited data)
 // Admin access returns full data
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: AwardeeRouteContext
 ) {
   try {
-    const id = params.id
+    const { id } = await params
     const { searchParams } = new URL(request.url)
     const adminMode = searchParams.get('admin') === 'true'
 
@@ -35,7 +39,7 @@ export async function GET(
     if (error) {
       console.error('Error fetching awardee:', error)
       return NextResponse.json(
-        { message: 'Failed to fetch awardee', error: error.message },
+        { message: 'Failed to fetch awardee' },
         { status: 500 }
       )
     }
@@ -50,7 +54,9 @@ export async function GET(
     // For non-admin requests, mask sensitive data
     // We allow fetching even if is_public is false for self-service editing
     if (!adminMode) {
-      const { email, personal_email, ...safeData } = data
+      const safeData = { ...data }
+      delete safeData.email
+      delete safeData.personal_email
       return NextResponse.json(safeData)
     }
 
@@ -58,7 +64,7 @@ export async function GET(
   } catch (error) {
     console.error('Error in awardees GET:', error)
     return NextResponse.json(
-      { message: 'Failed to fetch awardee', error: error instanceof Error ? error.message : 'Unknown error' },
+      { message: 'Failed to fetch awardee' },
       { status: 500 }
     )
   }
@@ -67,7 +73,7 @@ export async function GET(
 // PATCH - Update specific fields of an awardee (for toggling featured, visibility, etc.)
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: AwardeeRouteContext
 ) {
   const adminCheck = await requireAdmin(request)
   if ('error' in adminCheck) {
@@ -75,7 +81,7 @@ export async function PATCH(
   }
 
   try {
-    const id = params.id
+    const { id } = await params
     const body = await request.json()
 
     const supabase = await createClient(true) // Use service role
@@ -109,7 +115,7 @@ export async function PATCH(
     if (error) {
       console.error('Error updating awardee:', error)
       return NextResponse.json(
-        { message: 'Failed to update awardee', error: error.message },
+        { message: 'Failed to update awardee' },
         { status: 500 }
       )
     }
@@ -122,7 +128,7 @@ export async function PATCH(
   } catch (error) {
     console.error('Error in awardees PATCH:', error)
     return NextResponse.json(
-      { message: 'Failed to update awardee', error: error instanceof Error ? error.message : 'Unknown error' },
+      { message: 'Failed to update awardee' },
       { status: 500 }
     )
   }

@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
 
   // Quoting hits an external carrier API — rate limit per member, not per IP,
   // so one member on a shared network cannot lock out another.
-  const rate = checkRateLimit({ ...RATE_LIMITS.QUERY, identifier: `award-quote:${user.id}` })
+  const rate = await checkRateLimit({ ...RATE_LIMITS.QUERY, identifier: `award-quote:${user.id}` })
   if (!rate.success) return createRateLimitResponse(rate, 'Too many quote requests. Please wait a moment.')
 
   let body: unknown

@@ -13,17 +13,18 @@ export const metadata: Metadata = {
   ...ogMetadata(pageOg('/awardees'), { url: '/awardees' }),
 };
 
-export default async function AwardeesPage({ 
-  searchParams 
-}: { 
-  searchParams?: { 
+type AwardeesPageProps = {
+  searchParams?: Promise<{
     page?: string;
     search?: string;
     year?: string;
-  } 
-}) {
+  }>;
+};
+
+export default async function AwardeesPage({ searchParams }: AwardeesPageProps) {
   const awardees = await getAwardees();
-  
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+
   // Pass the searchParams to the client component so it can handle pagination and search
-  return <AwardeesPageClient initialPeople={awardees} initialSearchParams={searchParams} />;
+  return <AwardeesPageClient initialPeople={awardees} initialSearchParams={resolvedSearchParams} />;
 }

@@ -1,6 +1,6 @@
 import { memo } from "react"
 import { Badge } from "@/components/ui/badge"
-import { AvatarSVG, flagEmoji, initials } from "@/lib/avatars"
+import { AvatarSVG } from "@/lib/avatars"
 
 export type Awardee = {
   id: string
@@ -18,8 +18,6 @@ type AwardeeCardProps = {
 }
 
 const AwardeeCardComponent = ({ awardee }: AwardeeCardProps) => {
-
-
   return (
     <article
       className="group relative flex h-full flex-col gap-4 rounded-2xl border border-zinc-800/80 bg-zinc-950/60 p-6 shadow-sm transition hover:border-orange-400/60 hover:shadow-lg focus-within:border-orange-400/60 focus-within:shadow-lg"
@@ -28,12 +26,7 @@ const AwardeeCardComponent = ({ awardee }: AwardeeCardProps) => {
     >
       <div className="flex items-start gap-4">
         <span className="inline-flex shrink-0 items-center justify-center rounded-full border border-white/5 bg-white/10 p-1">
-          <AvatarSVG
-            name={awardee.name}
-            size={64}
-            className="h-12 w-12 lg:h-16 lg:w-16"
-            style={{ height: "100%", width: "100%" }}
-          />
+          <AvatarSVG name={awardee.name} size={64} />
         </span>
         <div className="min-w-0 flex-1">
           <h3 className="text-lg font-semibold text-white" id={`awardee-${awardee.id}`}>

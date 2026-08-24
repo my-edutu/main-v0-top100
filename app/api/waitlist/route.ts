@@ -25,7 +25,7 @@ const escapeHtml = (value: string) =>
 export async function POST(req: NextRequest) {
     try {
         const identifier = getClientIdentifier(req.headers);
-        const rateLimitResult = checkRateLimit({
+        const rateLimitResult = await checkRateLimit({
             ...RATE_LIMITS.CONTACT,
             identifier: `waitlist:${identifier}`,
         });

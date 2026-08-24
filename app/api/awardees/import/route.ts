@@ -2,20 +2,21 @@ import { NextRequest, NextResponse } from 'next/server'
 import { revalidatePath, revalidateTag } from 'next/cache'
 
 import { requireAdmin } from '@/lib/api/require-admin'
+import { sheetRowsToRecords } from '@/lib/spreadsheet-rows'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
-import { read, utils } from 'xlsx'
+import { readSheet } from 'read-excel-file/node'
 import { promises as fs } from 'fs'
 import path from 'path'
 
 export const runtime = 'nodejs'
 
 const FALLBACK_FILENAME = 'top100 Africa future Leaders 2025.xlsx'
+const MAX_EXCEL_UPLOAD_BYTES = 5 * 1024 * 1024
 const EXCEL_MIME_TYPES = new Set([
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  'application/vnd.ms-excel'
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 ])
 
-const normalizeKey = (obj: Record<string, any>, keyVariants: string[]): any => {
+const normalizeKey = (obj: Record<string, unknown>, keyVariants: string[]): unknown => {
   const normalize = (value: string | number | null | undefined) => String(value ?? '').toLowerCase().replace(/[^a-z0-9]/g, '')
 
   for (const variant of keyVariants) {
@@ -42,7 +43,7 @@ const slugify = (value: string) => {
     .replace(/-+/g, '-')
 }
 
-const parseRows = (rows: any[]) => {
+const parseRows = (rows: Record<string, unknown>[]) => {
   const currentYear = new Date().getFullYear()
 
   return rows.map((row, index) => {
@@ -59,7 +60,7 @@ const parseRows = (rows: any[]) => {
       country = String(country)
     }
 
-    let year: any = normalizeKey(row, ['year', 'batch'])
+    let year: unknown = normalizeKey(row, ['year', 'batch'])
     if (typeof year === 'string') {
       const parsed = parseInt(year, 10)
       year = Number.isFinite(parsed) ? parsed : null
@@ -80,12 +81,10 @@ const parseRows = (rows: any[]) => {
     const rawCourse = normalizeKey(row, ['course', 'program', 'department'])
     const rawBio = normalizeKey(row, ['bio', 'description', 'about', 'leadership', 'bio30'])
 
-    // Extract additional fields
     const rawAvatarUrl = normalizeKey(row, ['avatar', 'avatar_url', 'image', 'photo', 'picture'])
     const rawTagline = normalizeKey(row, ['tagline', 'title', 'position'])
     const rawHeadline = normalizeKey(row, ['headline', 'summary', 'intro'])
 
-    // Social links - try to extract from various possible columns
     const rawLinkedIn = normalizeKey(row, ['linkedin', 'linkedin_url', 'linked_in'])
     const rawTwitter = normalizeKey(row, ['twitter', 'twitter_url', 'x'])
     const rawInstagram = normalizeKey(row, ['instagram', 'instagram_url', 'ig'])
@@ -120,16 +119,11 @@ const parseRows = (rows: any[]) => {
   })
 }
 
-const getRowsFromWorkbook = (buffer: Buffer) => {
-  const workbook = read(buffer, { type: 'buffer' })
-  const sheetName = workbook.SheetNames[0]
-  if (!sheetName) {
-    throw new Error('Excel workbook does not contain any sheets')
-  }
+const getRowsFromWorkbook = async (buffer: Buffer) => {
+  const sheetRows = await readSheet(buffer)
+  const rows = sheetRowsToRecords(sheetRows)
 
-  const worksheet = workbook.Sheets[sheetName]
-  const rows = utils.sheet_to_json(worksheet)
-  if (!Array.isArray(rows) || rows.length === 0) {
+  if (rows.length === 0) {
     throw new Error('Excel sheet appears to be empty')
   }
 
@@ -139,8 +133,13 @@ const getRowsFromWorkbook = (buffer: Buffer) => {
 const resolveFallbackExcelBuffer = async () => {
   const absolutePath = path.join(process.cwd(), 'public', FALLBACK_FILENAME)
   try {
-    return await fs.readFile(absolutePath)
+    const buffer = await fs.readFile(absolutePath)
+    if (buffer.byteLength > MAX_EXCEL_UPLOAD_BYTES) {
+      throw new Error('Fallback Excel file exceeds the 5 MiB import limit')
+    }
+    return buffer
   } catch (error) {
+    if (error instanceof Error && error.message.includes('5 MiB')) throw error
     throw new Error('No file uploaded and fallback Excel file is missing')
   }
 }
@@ -196,8 +195,14 @@ export async function POST(request: NextRequest) {
         if (file.size === 0) {
           throw new Error('Uploaded file is empty')
         }
+        if (file.size > MAX_EXCEL_UPLOAD_BYTES) {
+          throw new Error('Excel upload exceeds the 5 MiB import limit')
+        }
+        if (!file.name.toLowerCase().endsWith('.xlsx')) {
+          throw new Error('Please upload a valid .xlsx Excel file')
+        }
         if (file.type && !EXCEL_MIME_TYPES.has(file.type)) {
-          throw new Error('Please upload a valid Excel file (.xlsx or .xls)')
+          throw new Error('Please upload a valid .xlsx Excel file')
         }
         buffer = Buffer.from(await file.arrayBuffer())
       } else if (file) {
@@ -209,14 +214,13 @@ export async function POST(request: NextRequest) {
       buffer = await resolveFallbackExcelBuffer()
     }
 
-    const rows = getRowsFromWorkbook(buffer)
-    let payload = parseRows(rows)
+    const rows = await getRowsFromWorkbook(buffer)
+    const payload = parseRows(rows)
 
     if (!payload.length) {
       throw new Error('Excel sheet appears to be empty')
     }
 
-    // Process in chunks to handle large imports
     const chunkSize = 100
     let imported = 0
     let updated = 0
@@ -224,7 +228,6 @@ export async function POST(request: NextRequest) {
     for (let i = 0; i < payload.length; i += chunkSize) {
       const chunk = payload.slice(i, i + chunkSize)
 
-      // Check which awardees already exist based on slug
       const { data: existingAwardees, error: lookupError } = await supabase
         .from('awardees')
         .select('id, slug')
@@ -239,26 +242,22 @@ export async function POST(request: NextRequest) {
         }, { status: 500 })
       }
 
-      // Map existing slugs to IDs
       const existingMap = new Map(existingAwardees?.map(item => [item.slug, item.id]) ?? [])
 
-      // Separate into updates and inserts
-      const toUpdate: any[] = []
-      const toInsert: any[] = []
+      const toUpdate: Array<Record<string, unknown>> = []
+      const toInsert: Array<Record<string, unknown>> = []
 
       for (const item of chunk) {
         const existingId = existingMap.get(item.slug)
         if (existingId) {
-          // Update existing awardee
           toUpdate.push({ ...item, id: existingId })
         } else {
-          // Insert new awardee (remove id if it was auto-generated from Excel)
-          const { id, ...rest } = item
-          toInsert.push(rest)
+          const insertItem: Record<string, unknown> = { ...item }
+          delete insertItem.id
+          toInsert.push(insertItem)
         }
       }
 
-      // Perform updates
       if (toUpdate.length > 0) {
         const { error: updateError } = await supabase
           .from('awardees')
@@ -275,7 +274,6 @@ export async function POST(request: NextRequest) {
         updated += toUpdate.length
       }
 
-      // Perform inserts
       if (toInsert.length > 0) {
         const { error: insertError } = await supabase
           .from('awardees')

@@ -9,13 +9,18 @@ import { ArrowLeft, Calendar, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Metadata } from 'next';
 
+type AnnouncementPageProps = {
+    params: Promise<{ id: string }>;
+};
+
 async function getAnnouncement(id: string) {
     const supabase = createAdminClient();
     return supabase.from("announcements").select("*").eq("id", id).single();
 }
 
-export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
-    const { data: announcement } = await getAnnouncement(params.id);
+export async function generateMetadata({ params }: AnnouncementPageProps): Promise<Metadata> {
+    const { id } = await params;
+    const { data: announcement } = await getAnnouncement(id);
 
     if (!announcement) {
         return {
@@ -41,8 +46,9 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
     }
 }
 
-export default async function AnnouncementPage({ params }: { params: { id: string } }) {
-    const { data: announcement, error } = await getAnnouncement(params.id);
+export default async function AnnouncementPage({ params }: AnnouncementPageProps) {
+    const { id } = await params;
+    const { data: announcement, error } = await getAnnouncement(id);
 
     if (error || !announcement) {
         notFound();

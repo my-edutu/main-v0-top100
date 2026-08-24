@@ -35,7 +35,7 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
 
   const { id } = await params
 
-  const rateLimit = checkRateLimit({
+  const rateLimit = await checkRateLimit({
     maxRequests: 20,
     windowSeconds: 60,
     identifier: `group-join:${user.id}`,

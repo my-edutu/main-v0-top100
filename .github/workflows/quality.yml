@@ -1,0 +1,215 @@
+name: Quality Gate
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17.6
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-local-dev-key
+      SUPABASE_SERVICE_ROLE_KEY: placeholder-ci-service-role-key
+      PGPASSWORD: postgres
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Audit high-severity dependency regressions
+        id: audit
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          npm audit --audit-level=high --json > "$RUNNER_TEMP/npm-audit.json"
+          audit_exit=$?
+          set -e
+
+          if [[ ! -s "$RUNNER_TEMP/npm-audit.json" ]]; then
+            echo "npm audit did not produce a JSON report" >&2
+            exit "${audit_exit:-2}"
+          fi
+
+          npx tsx scripts/check-audit-regressions.ts "$RUNNER_TEMP/npm-audit.json"
+
+      - name: Verify distributed rate-limit migration
+        id: migration
+        continue-on-error: true
+        run: |
+          psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 <<'SQL'
+          create role anon login password 'anon' noinherit;
+          create role authenticated noinherit;
+          create role service_role login password 'service_role' noinherit bypassrls;
+          SQL
+
+          psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            -f supabase/migrations/20260816_create_distributed_rate_limits.sql
+
+          first=$(PGPASSWORD=service_role psql -h localhost -U service_role -d postgres -At -v ON_ERROR_STOP=1 \
+            -c "select allowed::text || ':' || request_count || ':' || remaining from public.consume_api_rate_limit(repeat('a', 64), 1, 60);")
+          second=$(PGPASSWORD=service_role psql -h localhost -U service_role -d postgres -At -v ON_ERROR_STOP=1 \
+            -c "select allowed::text || ':' || request_count || ':' || remaining from public.consume_api_rate_limit(repeat('a', 64), 1, 60);")
+
+          test "$first" = "true:1:0"
+          test "$second" = "false:2:0"
+
+          if PGPASSWORD=anon psql -h localhost -U anon -d postgres -v ON_ERROR_STOP=1 \
+            -c "select * from public.consume_api_rate_limit(repeat('b', 64), 1, 60);"; then
+            echo "anon unexpectedly executed the protected rate-limit function" >&2
+            exit 1
+          fi
+
+      - name: Run tests
+        id: tests
+        continue-on-error: true
+        run: npm test
+
+      - name: Measure repository lint baseline
+        id: lint_baseline
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          npx eslint . --format json --output-file "$RUNNER_TEMP/eslint-baseline.json"
+          lint_exit=$?
+          set -e
+
+          if [[ ! -s "$RUNNER_TEMP/eslint-baseline.json" ]]; then
+            echo "ESLint did not produce a baseline report" >&2
+            exit "${lint_exit:-2}"
+          fi
+
+          node <<'NODE'
+          const fs = require('node:fs')
+          const results = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + '/eslint-baseline.json', 'utf8'))
+          const errors = results.reduce((sum, result) => sum + result.errorCount, 0)
+          const warnings = results.reduce((sum, result) => sum + result.warningCount, 0)
+          const files = results.filter((result) => result.errorCount + result.warningCount > 0).length
+          const summary = `Repository lint baseline: ${errors} errors, ${warnings} warnings across ${files} files.`
+          console.log(summary)
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `### Legacy lint baseline\n\n${summary}\n\nExisting repository-wide findings are measured here; the blocking lint gate below applies zero tolerance to findings on lines added or modified by this change.\n`)
+          NODE
+
+          if (( lint_exit > 1 )); then
+            echo "ESLint baseline measurement failed with infrastructure/configuration exit code $lint_exit" >&2
+            exit "$lint_exit"
+          fi
+
+          echo "Legacy repository lint exit code: $lint_exit (reported, not used as the PR regression gate)"
+
+      - name: Enforce changed-line lint
+        id: changed_lint
+        continue-on-error: true
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: |
+          if [[ -z "$BASE_SHA" || "$BASE_SHA" =~ ^0+$ ]]; then
+            BASE_SHA="$(git rev-parse "$HEAD_SHA^")"
+          fi
+
+          mapfile -d '' files < <(
+            git diff --name-only --diff-filter=ACMR -z "$BASE_SHA" "$HEAD_SHA" -- \
+              '*.js' '*.jsx' '*.ts' '*.tsx' '*.mjs' '*.cjs'
+          )
+
+          if (( ${#files[@]} == 0 )); then
+            echo "No lintable files changed."
+            exit 0
+          fi
+
+          printf 'Evaluating lint regressions across %d changed files:\n' "${#files[@]}"
+          printf ' - %s\n' "${files[@]}"
+
+          set +e
+          npx eslint --format json --output-file "$RUNNER_TEMP/eslint-changed.json" "${files[@]}"
+          lint_exit=$?
+          set -e
+
+          if [[ ! -s "$RUNNER_TEMP/eslint-changed.json" ]]; then
+            echo "ESLint did not produce a changed-file report" >&2
+            exit "${lint_exit:-2}"
+          fi
+
+          git diff --unified=0 --diff-filter=ACMR "$BASE_SHA" "$HEAD_SHA" -- "${files[@]}" > "$RUNNER_TEMP/changed.diff"
+
+          set +e
+          npx tsx scripts/lint-changed-lines.ts "$RUNNER_TEMP/eslint-changed.json" "$RUNNER_TEMP/changed.diff"
+          gate_exit=$?
+          set -e
+
+          if (( lint_exit > 1 )); then
+            echo "ESLint failed with infrastructure/configuration exit code $lint_exit" >&2
+            exit "$lint_exit"
+          fi
+
+          exit "$gate_exit"
+
+      - name: Build
+        id: build
+        continue-on-error: true
+        run: npm run build
+
+      - name: Enforce quality gates
+        if: always()
+        shell: bash
+        run: |
+          failed=0
+
+          if [[ "${{ steps.audit.outcome }}" != "success" ]]; then
+            echo "Dependency audit regression gate outcome: ${{ steps.audit.outcome }}" >&2
+            failed=1
+          fi
+          if [[ "${{ steps.migration.outcome }}" != "success" ]]; then
+            echo "Distributed rate-limit migration gate outcome: ${{ steps.migration.outcome }}" >&2
+            failed=1
+          fi
+          if [[ "${{ steps.tests.outcome }}" != "success" ]]; then
+            echo "Test gate outcome: ${{ steps.tests.outcome }}" >&2
+            failed=1
+          fi
+          if [[ "${{ steps.lint_baseline.outcome }}" != "success" ]]; then
+            echo "Lint baseline measurement outcome: ${{ steps.lint_baseline.outcome }}" >&2
+            failed=1
+          fi
+          if [[ "${{ steps.changed_lint.outcome }}" != "success" ]]; then
+            echo "Changed-line lint gate outcome: ${{ steps.changed_lint.outcome }}" >&2
+            failed=1
+          fi
+          if [[ "${{ steps.build.outcome }}" != "success" ]]; then
+            echo "Build gate outcome: ${{ steps.build.outcome }}" >&2
+            failed=1
+          fi
+
+          exit "$failed"
