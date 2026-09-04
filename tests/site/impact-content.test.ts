@@ -1,7 +1,16 @@
 import { describe, expect, it } from "vitest"
 import { IMPACT_HERO, IMPACT_STATS, TEAM_MEMBERS, VISION_IMAGES } from "@/lib/impact-content"
+import type { ImpactHero, ImpactStats, VisionImages } from "@/lib/impact-content"
 
 describe("impact content", () => {
+  it("exports consumer-ready types for each impact constant", () => {
+    const hero: ImpactHero = IMPACT_HERO
+    const stats: ImpactStats = IMPACT_STATS
+    const visionImages: VisionImages = VISION_IMAGES
+
+    expect([hero, stats, visionImages]).toHaveLength(3)
+  })
+
   it("uses the approved closed-application replacement", () => {
     expect(IMPACT_HERO).toEqual({
       eyebrow: "Our 2026 Focus",

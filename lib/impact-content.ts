@@ -7,11 +7,15 @@ export const IMPACT_HERO = {
   secondaryCta: { label: "Meet the leaders", href: "/hall-of-fame" },
 } as const
 
+export type ImpactHero = typeof IMPACT_HERO
+
 export const IMPACT_STATS = [
   { key: "countries", label: "Countries", description: "Across Africa", value: 31, suffix: "+" },
   { key: "lives", label: "Lives impacted", description: "Across Africa", value: 97000, suffix: "" },
   { key: "awardees", label: "Awardees", description: "Across Africa", value: 2000, suffix: "+" },
 ] as const
+
+export type ImpactStats = typeof IMPACT_STATS
 
 export type TeamMember = { name: string; role: string; image?: string; linkedIn?: string }
 
@@ -40,3 +44,5 @@ export const VISION_IMAGES = [
   "/IMG_0681.jpg",
   "/IMG_0683.jpg",
 ] as const
+
+export type VisionImages = typeof VISION_IMAGES
