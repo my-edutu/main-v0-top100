@@ -1,6 +1,6 @@
 "use client"
 
-import type { ComponentType, SVGProps } from "react"
+import { useEffect, useState, type ComponentType, type SVGProps } from "react"
 import { motion, useReducedMotion } from "framer-motion"
 import { Globe, Users, Award } from "lucide-react"
 import Counter from "@/components/Counter"
@@ -31,7 +31,12 @@ const impactStatVisuals: Record<(typeof IMPACT_STATS)[number]["key"], ImpactStat
 }
 
 export default function ImpactSection() {
+  const [canAnimate, setCanAnimate] = useState(false)
   const reduceMotion = useReducedMotion()
+
+  useEffect(() => {
+    setCanAnimate(reduceMotion === false)
+  }, [reduceMotion])
 
   return (
     <section className="section-padding">
@@ -52,13 +57,13 @@ export default function ImpactSection() {
             return (
               <motion.article
                 key={stat.label}
-                initial={reduceMotion ? false : { opacity: 0, y: 20 }}
-                whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-                whileHover={reduceMotion ? undefined : { y: -5 }}
+                initial={canAnimate ? { opacity: 0, y: 20 } : false}
+                whileInView={canAnimate ? { opacity: 1, y: 0 } : undefined}
+                whileHover={canAnimate ? { y: -5 } : undefined}
                 transition={
-                  reduceMotion
-                    ? undefined
-                    : { type: "spring", stiffness: 220, damping: 24, delay: index * 0.05 }
+                  canAnimate
+                    ? { type: "spring", stiffness: 220, damping: 24, delay: index * 0.05 }
+                    : undefined
                 }
                 viewport={{ once: true, amount: 0.3 }}
                 className="group relative flex flex-col items-center justify-center gap-6 overflow-hidden rounded-xl border border-white/25 bg-card p-8 text-center shadow-lg shadow-black/10 transition-all min-h-32 sm:min-h-44"

@@ -8,10 +8,15 @@ import TypeEffect from "@/components/TypeEffect"
 
 export default function RotatingVisionSection({ images }: { images: readonly string[] }) {
   const [active, setActive] = useState(0)
+  const [canAnimate, setCanAnimate] = useState(false)
   const reduceMotion = useReducedMotion()
 
   useEffect(() => {
-    if (reduceMotion || images.length < 2) return
+    setCanAnimate(reduceMotion === false)
+  }, [reduceMotion])
+
+  useEffect(() => {
+    if (!canAnimate || images.length < 2) return
 
     let timer: ReturnType<typeof setInterval> | undefined
     const sync = () => {
@@ -29,7 +34,7 @@ export default function RotatingVisionSection({ images }: { images: readonly str
       document.removeEventListener("visibilitychange", sync)
       if (timer) clearInterval(timer)
     }
-  }, [images.length, reduceMotion])
+  }, [canAnimate, images.length])
 
   return (
     <section className="relative isolate min-h-[430px] overflow-hidden bg-[#0b1220] py-16 sm:min-h-[520px] sm:py-20">
@@ -55,10 +60,10 @@ export default function RotatingVisionSection({ images }: { images: readonly str
             </div>
             <div className="flex flex-col items-start justify-center">
               <div className="text-lg font-bold text-[#fff] uppercase leading-tight drop-shadow-lg sm:text-xl md:text-2xl">
-                {reduceMotion ? "youth" : <TypeEffect text="youth" speed={150} />}
+                {canAnimate ? <TypeEffect text="youth" speed={150} /> : "youth"}
               </div>
               <div className="text-lg font-bold text-[#fff] uppercase leading-tight drop-shadow-lg sm:text-xl md:text-2xl">
-                {reduceMotion ? "leaders" : <TypeEffect text="leaders" speed={200} />}
+                {canAnimate ? <TypeEffect text="leaders" speed={200} /> : "leaders"}
               </div>
             </div>
           </div>

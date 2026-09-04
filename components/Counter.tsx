@@ -10,11 +10,16 @@ interface CounterProps {
 }
 
 export default function Counter({ target, duration = 2000, className = '' }: CounterProps) {
+  const [canAnimate, setCanAnimate] = useState(false);
   const reduceMotion = useReducedMotion();
-  const [count, setCount] = useState(reduceMotion ? target : 0);
+  const [count, setCount] = useState(target);
 
   useEffect(() => {
-    if (reduceMotion) {
+    setCanAnimate(reduceMotion === false);
+  }, [reduceMotion]);
+
+  useEffect(() => {
+    if (!canAnimate) {
       setCount(target);
       return;
     }
@@ -40,7 +45,7 @@ export default function Counter({ target, duration = 2000, className = '' }: Cou
     return () => {
       window.cancelAnimationFrame(frame);
     };
-  }, [target, duration, reduceMotion]);
+  }, [target, duration, canAnimate]);
 
   return (
     <span
