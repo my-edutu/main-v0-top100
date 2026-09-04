@@ -23,7 +23,16 @@ describe("Hall of Fame registry", () => {
     expect(getSpeaker("not-a-speaker")).toBeUndefined()
   })
 
-  it("returns featured speakers in configured order", () => {
-    expect(getFeaturedSpeakers().map(({ slug }) => slug)).toEqual(FEATURED_SPEAKER_SLUGS)
+  it("returns every speaker for the preview with the requested leaders first", () => {
+    const featuredSlugs = getFeaturedSpeakers().map(({ slug }) => slug)
+
+    expect(featuredSlugs.slice(0, 3)).toEqual([
+      "leye-falade",
+      "ruby-igwe",
+      "belinda-nkechi-idinmachi",
+    ])
+    expect(featuredSlugs).toHaveLength(SPEAKERS.length)
+    expect(new Set(featuredSlugs)).toEqual(new Set(SPEAKERS.map(({ slug }) => slug)))
+    expect(featuredSlugs).toEqual(FEATURED_SPEAKER_SLUGS)
   })
 })

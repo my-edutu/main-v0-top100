@@ -38,7 +38,7 @@ describe("Hall of Fame routes", () => {
     })
   })
 
-  it("links every speaker from the index and featured speakers from the preview", () => {
+  it("links every speaker from both the index and the cinematic preview", () => {
     const indexMarkup = renderToStaticMarkup(createElement(HallOfFamePage))
     const previewMarkup = renderToStaticMarkup(
       createElement(HallOfFamePreview, { speakers: getFeaturedSpeakers() }),
@@ -52,7 +52,14 @@ describe("Hall of Fame routes", () => {
     }
     expect(previewMarkup).toContain('href="/hall-of-fame"')
     expect(indexMarkup).toMatch(/<h2[^>]*>Ruby Igwe<\/h2>/)
-    expect(previewMarkup).toMatch(/<h3[^>]*>Ruby Igwe<\/h3>/)
+    expect(previewMarkup).toContain('data-card-variant="cinematic"')
+
+    const leyePosition = previewMarkup.indexOf("Leye Falade")
+    const rubyPosition = previewMarkup.indexOf("Ruby Igwe")
+    const belindaPosition = previewMarkup.indexOf("Belinda Nkechi Idinmachi")
+    expect(leyePosition).toBeGreaterThan(-1)
+    expect(leyePosition).toBeLessThan(rubyPosition)
+    expect(rubyPosition).toBeLessThan(belindaPosition)
   })
 
   it("uses AA orange accents and explicit white text", async () => {

@@ -23,10 +23,16 @@ export const SPEAKERS: readonly Speaker[] = [
 ]
 
 export const FEATURED_SPEAKER_SLUGS = [
+  "leye-falade",
   "ruby-igwe",
+  "belinda-nkechi-idinmachi",
   "odinakachi-umunna",
   "lungile-tlomatsana",
-  "leye-falade",
+  "kaitochukwu-chukwudi",
+  "samuel-olarewaju",
+  "damilola-babatunde",
+  "tochukwu-idinmachi",
+  "yetunde-shado-asekun",
 ] as const
 
 export function getSpeaker(slug: string): Speaker | undefined {
