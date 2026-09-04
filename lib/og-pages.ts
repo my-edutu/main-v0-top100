@@ -65,6 +65,12 @@ export const PAGE_OG: Record<string, OgCard> = {
     subtitle: "Start your application in a few minutes.",
     hero: "/african-students-celebrating-achievement-at-gradua.jpg",
   },
+  "/hall-of-fame": {
+    eyebrow: "Hall of Fame",
+    title: "Leaders Who Chose Impact",
+    subtitle: "The speakers who have inspired and supported the Top100 community.",
+    hero: "/speakers/Ruby Igwe.jpeg",
+  },
   "/initiatives": {
     eyebrow: "Initiatives",
     title: "Our Initiatives — Scholarships, Summits & Opportunities",

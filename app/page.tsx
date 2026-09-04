@@ -5,8 +5,10 @@ import { ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { getHomepagePosts } from "@/lib/posts/server"
 import { getHomepageAnnouncements, getHomepageEvents } from "@/lib/homepage-feed"
+import { getFeaturedSpeakers } from "@/lib/speakers"
 
 import HomePageHeroSection from "./components/HomePageHeroSection"
+import HallOfFamePreview from "./components/HallOfFamePreview"
 import HomeFeaturedAwardeesSection from "./components/HomeFeaturedAwardeesSection"
 import BlogSection from "./components/BlogSection"
 import MagazineSection from "./components/MagazineSection"
@@ -85,6 +87,8 @@ export default async function HomePage() {
     <div className="bg-background text-foreground">
       <div className="flex flex-col pb-16 [--section-gap:clamp(1.5rem,5vw,2.5rem)] sm:[--section-gap:clamp(1.75rem,4vw,3rem)] lg:[--section-gap:clamp(2rem,3vw,3.5rem)] xl:[--section-gap:clamp(2rem,2vw,4rem)] gap-[var(--section-gap)]">
         <HomePageHeroSection />
+
+        <HallOfFamePreview speakers={getFeaturedSpeakers()} />
 
         <section className="py-6">
           <div className="container space-y-6">
