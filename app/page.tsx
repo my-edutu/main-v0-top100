@@ -125,7 +125,7 @@ export default async function HomePage() {
               ))}
             </div>
             <div className="flex justify-center pt-2">
-              <Button asChild className="rounded-full bg-slate-950 px-6 text-white hover:bg-orange-600">
+              <Button asChild className="rounded-full bg-slate-950 px-6 text-[#fff] hover:bg-orange-600">
                 <Link href="/partnership">Partner with us <ArrowRight className="ml-2 h-4 w-4" /></Link>
               </Button>
             </div>

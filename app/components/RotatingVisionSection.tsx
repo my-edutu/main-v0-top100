@@ -45,23 +45,23 @@ export default function RotatingVisionSection({ images }: { images: readonly str
         />
       ))}
       <div aria-hidden="true" className="absolute inset-0 bg-[rgba(0,0,0,0.52)]" />
-      <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-[rgba(0,0,0,0.65)] via-transparent to-[rgba(0,0,0,0.2)]" />
 
       <div className="container relative z-10 flex min-h-[302px] items-center justify-center sm:min-h-[360px]">
-        <div className="flex flex-col items-center justify-center text-center text-white">
+        <div className="relative isolate flex flex-col items-center justify-center text-center text-[#fff]">
+          <div aria-hidden="true" className="absolute -inset-x-8 -inset-y-10 -z-10 rounded-[3rem] bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0.42),transparent_72%)]" />
           <div className="mb-4 flex items-center gap-3 sm:gap-4">
-            <div className="text-5xl font-extrabold drop-shadow-2xl sm:text-7xl md:text-8xl lg:text-9xl" style={{ textShadow: "0 2px 4px rgba(0,0,0,0.5)" }}>
+            <div className="text-5xl font-extrabold text-[#fff] drop-shadow-2xl sm:text-7xl md:text-8xl lg:text-9xl" style={{ textShadow: "0 2px 4px rgba(0,0,0,0.5)" }}>
               10,000
             </div>
             <div className="flex flex-col items-start justify-center">
-              <div className="text-lg font-bold uppercase leading-tight drop-shadow-lg sm:text-xl md:text-2xl"><TypeEffect text="youth" speed={150} /></div>
-              <div className="text-lg font-bold uppercase leading-tight drop-shadow-lg sm:text-xl md:text-2xl"><TypeEffect text="leaders" speed={200} /></div>
+              <div className="text-lg font-bold text-[#fff] uppercase leading-tight drop-shadow-lg sm:text-xl md:text-2xl"><TypeEffect text="youth" speed={150} /></div>
+              <div className="text-lg font-bold text-[#fff] uppercase leading-tight drop-shadow-lg sm:text-xl md:text-2xl"><TypeEffect text="leaders" speed={200} /></div>
             </div>
           </div>
-          <p className="mt-4 max-w-4xl text-xl font-bold drop-shadow-xl sm:text-2xl md:text-3xl lg:text-4xl">
+          <p className="mt-4 max-w-4xl text-xl font-bold text-[#fff] drop-shadow-xl sm:text-2xl md:text-3xl lg:text-4xl">
             Our vision is to identify, empower, and celebrate youth leaders across Africa by 2030.
           </p>
-          <div className="mt-6 h-1 w-24 rounded-full bg-white/70 shadow-lg" />
+          <div className="mt-6 h-1 w-24 rounded-full bg-[#fff] shadow-lg" />
         </div>
       </div>
     </section>
