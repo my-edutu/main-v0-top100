@@ -4,7 +4,7 @@ export const IMPACT_HERO = {
   description:
     "Recognition is only the beginning. Discover the leaders turning achievement into lasting change across Africa.",
   primaryCta: { label: "Explore the impact", href: "/impacts" },
-  secondaryCta: { label: "Meet the leaders", href: "/hall-of-fame" },
+  secondaryCta: { label: "Partner with us", href: "/partnership" },
 } as const
 
 export type ImpactHero = typeof IMPACT_HERO

@@ -1,4 +1,8 @@
 import { describe, expect, it } from "vitest"
+import { createElement } from "react"
+import { renderToStaticMarkup } from "react-dom/server"
+
+import { HeroCtas } from "@/app/components/HomePageHeroSection"
 import { IMPACT_HERO, IMPACT_STATS, TEAM_MEMBERS, VISION_IMAGES } from "@/lib/impact-content"
 import type { ImpactHero, ImpactStats, VisionImages } from "@/lib/impact-content"
 
@@ -18,8 +22,19 @@ describe("impact content", () => {
       description:
         "Recognition is only the beginning. Discover the leaders turning achievement into lasting change across Africa.",
       primaryCta: { label: "Explore the impact", href: "/impacts" },
-      secondaryCta: { label: "Meet the leaders", href: "/hall-of-fame" },
+      secondaryCta: { label: "Partner with us", href: "/partnership" },
     })
+  })
+
+  it("renders the impact CTA as the branded gradient and the partnership destination as the secondary action", () => {
+    const markup = renderToStaticMarkup(createElement(HeroCtas))
+
+    expect(markup).toContain('href="/impacts"')
+    expect(markup).toContain("bg-gradient-to-r")
+    expect(markup).toContain("from-orange-500")
+    expect(markup).toContain("to-amber-500")
+    expect(markup).toContain('href="/partnership"')
+    expect(markup).toContain("Partner with us")
   })
 
   it("publishes the approved movement metrics", () => {

@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { motion, useReducedMotion } from "framer-motion"
-import { ArrowRight, UsersRound } from "lucide-react"
+import { ArrowRight, Handshake } from "lucide-react"
 
 import { flagFromCountryCode } from "@/lib/avatars"
 import { IMPACT_HERO } from "@/lib/impact-content"
@@ -20,6 +20,27 @@ const countries = [
   { name: "Argentina", code: "ar" }, { name: "Côte d'Ivoire", code: "ci" },
   { name: "Democratic Republic of the Congo", code: "cd" }, { name: "Morocco", code: "ma" },
 ] as const
+
+export function HeroCtas() {
+  return (
+    <div className="mx-auto flex w-full max-w-xl flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center sm:gap-4">
+      <Link
+        href={IMPACT_HERO.primaryCta.href}
+        className="group flex h-12 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 via-orange-400 to-amber-500 px-6 font-semibold text-slate-950 shadow-[0_12px_30px_rgba(249,115,22,0.24)] transition-[transform,box-shadow,filter] duration-300 hover:-translate-y-0.5 hover:brightness-105 hover:shadow-[0_16px_34px_rgba(249,115,22,0.32)] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 focus-visible:ring-offset-4 motion-reduce:transform-none"
+      >
+        {IMPACT_HERO.primaryCta.label}
+        <ArrowRight aria-hidden="true" className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1 motion-reduce:transform-none" />
+      </Link>
+      <Link
+        href={IMPACT_HERO.secondaryCta.href}
+        className="flex h-12 items-center justify-center gap-2 rounded-xl border border-slate-300 px-6 font-semibold text-slate-950 transition-colors hover:border-orange-700 hover:text-orange-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-4 dark:border-slate-700 dark:text-[#fff]"
+      >
+        <Handshake aria-hidden="true" className="h-4 w-4" />
+        {IMPACT_HERO.secondaryCta.label}
+      </Link>
+    </div>
+  )
+}
 
 function HomePageHeroSection() {
   const shouldReduceMotion = useReducedMotion()
@@ -47,14 +68,7 @@ function HomePageHeroSection() {
             </p>
           </div>
 
-          <div className="mx-auto flex w-full max-w-xl flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center sm:gap-4">
-            <Link href={IMPACT_HERO.primaryCta.href} className="group flex h-12 items-center justify-center gap-2 rounded-xl bg-slate-950 px-6 font-semibold text-[#fff] hover:bg-orange-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-4">
-              {IMPACT_HERO.primaryCta.label}<ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link href={IMPACT_HERO.secondaryCta.href} className="flex h-12 items-center justify-center gap-2 rounded-xl border border-slate-300 px-6 font-semibold text-slate-950 hover:border-orange-700 hover:text-orange-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-4 dark:border-slate-700 dark:text-[#fff]">
-              <UsersRound className="h-4 w-4" />{IMPACT_HERO.secondaryCta.label}
-            </Link>
-          </div>
+          <HeroCtas />
         </div>
       </motion.div>
 
