@@ -16,21 +16,16 @@ import ImpactSection from "./components/ImpactSection"
 import PartnershipHeroSection from "./components/PartnershipHeroSection"
 import InitiativeCards from "@/components/InitiativeCards"
 import NewsletterForm from "./components/NewsletterForm"
-import TypeEffect from "@/components/TypeEffect"
-import Counter from "@/components/Counter"
 import FAQSection from "./components/FAQSection"
 import EventsHubSection from "./components/EventsHubSection"
+import PortraitImage from "./components/PortraitImage"
+import RotatingVisionSection from "./components/RotatingVisionSection"
+import { TEAM_MEMBERS, VISION_IMAGES } from "@/lib/impact-content"
 
 type Initiative = {
   title: string
   description: string
   href: string
-}
-
-type TeamMember = {
-  name: string
-  role: string
-  linkedIn?: string
 }
 
 const initiatives: Initiative[] = [
@@ -53,24 +48,6 @@ const initiatives: Initiative[] = [
     title: "Opportunities Hub",
     description: "Career opportunities, grants, and fellowships curated for young African leaders.",
     href: "/initiatives/opportunities",
-  },
-]
-
-const teamMembers: TeamMember[] = [
-  {
-    name: "Nwosu Paul Light",
-    role: "Founder",
-    linkedIn: "https://www.linkedin.com/in/paul-light-/",
-  },
-  {
-    name: "Emmanuella Igboafu",
-    role: "Team Lead",
-    linkedIn: "https://www.linkedin.com/in/emmanuellaigboafu/",
-  },
-  {
-    name: "Chinedu Nwangwu",
-    role: "Community Manager",
-    linkedIn: "https://www.linkedin.com/in/chinedu-nwandu-a4689323b/",
   },
 ]
 
@@ -108,44 +85,7 @@ export default async function HomePage() {
           </div>
         </section>
 
-        <section className="relative w-full bg-black py-16 md:py-20 overflow-hidden">
-          {/* Background Image */}
-          <div className="absolute inset-0 z-0">
-            <Image
-              src="/african-students-celebrating-achievement-at-gradua.jpg"
-              alt="African youth leaders"
-              fill
-              className="object-cover"
-              priority
-              sizes="100vw"
-            />
-          </div>
-
-          {/* Dark Overlay */}
-          <div className="absolute inset-0 bg-black/75 z-[1]"></div>
-
-          {/* Subtle gradient overlay for depth */}
-          <div className="absolute inset-0 bg-gradient-to-br from-black/60 via-black/50 to-black/70 z-[2]"></div>
-
-          {/* Content */}
-          <div className="container relative z-10">
-            <div className="flex flex-col items-center justify-center text-center text-white">
-              <div className="flex items-center gap-3 sm:gap-4 mb-4">
-                <div className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-extrabold drop-shadow-2xl" style={{ color: '#ffffff', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
-                  10,000
-                </div>
-                <div className="flex flex-col items-start justify-center">
-                  <div className="text-lg sm:text-xl md:text-2xl font-bold uppercase drop-shadow-lg leading-tight"><TypeEffect text="youth" speed={150} /></div>
-                  <div className="text-lg sm:text-xl md:text-2xl font-bold uppercase drop-shadow-lg leading-tight"><TypeEffect text="leaders" speed={200} /></div>
-                </div>
-              </div>
-              <p className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mt-4 max-w-4xl drop-shadow-xl" style={{ color: '#ffffff' }}>
-                Our vision is to identify, empower, and celebrate youth leaders across Africa by 2030.
-              </p>
-              <div className="w-24 h-1 bg-white/70 mx-auto rounded-full mt-6 shadow-lg"></div>
-            </div>
-          </div>
-        </section>
+        <RotatingVisionSection images={VISION_IMAGES} />
 
 
 
@@ -184,6 +124,11 @@ export default async function HomePage() {
                 </div>
               ))}
             </div>
+            <div className="flex justify-center pt-2">
+              <Button asChild className="rounded-full bg-slate-950 px-6 text-white hover:bg-orange-600">
+                <Link href="/partnership">Partner with us <ArrowRight className="ml-2 h-4 w-4" /></Link>
+              </Button>
+            </div>
           </div>
         </section>
 
@@ -219,42 +164,17 @@ export default async function HomePage() {
                 Programme leads, storytellers, and community builders sustaining the Top100 movement.
               </p>
             </div>
-            <div className="grid grid-cols-3 gap-2 md:gap-4 justify-center pb-4 overflow-x-hidden">
-              {teamMembers.map((member) => {
+            <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-4 sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible lg:grid-cols-5">
+              {TEAM_MEMBERS.map((member) => {
                 const cardContent = (
                   <>
                     <div className="relative w-full h-32 sm:h-36 md:h-48 lg:h-56 xl:h-64 overflow-hidden rounded-t-[12px] sm:rounded-t-[16px]">
-                      {member.name === "Nwosu Paul Light" ? (
-                        <Image
-                          src="/team/Paul light.jpg.png"
-                          alt={member.name}
-                          fill
-                          className="object-cover object-top"
-                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                        />
-                      ) : member.name === "Emmanuella Igboafu" ? (
-                        <Image
-                          src="/team/emmanuella igboafu.jpg"
-                          alt={member.name}
-                          fill
-                          className="object-cover object-top"
-                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                        />
-                      ) : member.name === "Chinedu Nwangwu" || member.name === "Chinedu Daniel" ? (
-                        <Image
-                          src="/team/chinedu daniel.jpg.png"
-                          alt={member.name}
-                          fill
-                          className="object-cover object-top"
-                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-                          <div className="text-3xl font-bold text-primary">
-                            {member.name.split(' ').map(n => n[0]).join('')}
-                          </div>
-                        </div>
-                      )}
+                      <PortraitImage
+                        src={member.image}
+                        name={member.name}
+                        sizes="(max-width: 640px) 72vw, (max-width: 1024px) 50vw, 20vw"
+                        className="object-cover object-top"
+                      />
                     </div>
                     <div className="p-2 sm:p-3 md:p-4 xl:p-5 space-y-1 text-center">
                       <h3 className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl font-bold line-clamp-2">{member.name}</h3>
@@ -266,7 +186,7 @@ export default async function HomePage() {
                 return (
                   <div
                     key={member.name}
-                    className={`w-full rounded-[12px] sm:rounded-[16px] lg:rounded-[24px] border border-border/60 bg-card shadow-lg transition hover:-translate-y-1 hover:shadow-xl flex-shrink-0 ${member.linkedIn ? 'cursor-pointer hover:scale-[1.02]' : ''
+                    className={`w-[72vw] snap-start rounded-[12px] sm:w-auto sm:rounded-[16px] lg:rounded-[24px] border border-border/60 bg-card shadow-lg transition hover:-translate-y-1 hover:shadow-xl flex-shrink-0 ${member.linkedIn ? 'cursor-pointer hover:scale-[1.02]' : ''
                       }`}
                   >
                     {member.linkedIn ? (

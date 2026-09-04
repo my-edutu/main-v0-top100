@@ -4,46 +4,31 @@ import type { ComponentType, SVGProps } from "react"
 import { motion } from "framer-motion"
 import { Globe, Users, Award } from "lucide-react"
 import Counter from "@/components/Counter"
+import { IMPACT_STATS } from "@/lib/impact-content"
 
-type ImpactStat = {
+type ImpactStatVisual = {
   icon: ComponentType<SVGProps<SVGSVGElement>>
-  label: string
-  value: string
-  description: string
   gradient: string
   accent: string
-  target: number
 }
 
-const impactStats: ImpactStat[] = [
-  {
+const impactStatVisuals: Record<(typeof IMPACT_STATS)[number]["key"], ImpactStatVisual> = {
+  countries: {
     icon: Globe,
-    label: "Countries",
-    value: "31+",
-    description: "Across Africa",
     gradient: "linear-gradient(145deg, rgba(255,179,71,0.95), rgba(255,131,87,0.92))",
     accent: "rgba(255,255,255,0.75)",
-    target: 31,
   },
-  {
+  lives: {
     icon: Users,
-    label: "Lives impacted",
-    value: "97,000",
-    description: "Across Africa",
     gradient: "linear-gradient(145deg, rgba(101,200,255,0.95), rgba(80,130,255,0.92))",
     accent: "rgba(255,255,255,0.8)",
-    target: 97000,
   },
-  {
+  awardees: {
     icon: Award,
-    label: "Awardees",
-    value: "400+",
-    description: "Across Africa",
     gradient: "linear-gradient(145deg, rgba(238,186,255,0.95), rgba(255,144,214,0.92))",
     accent: "rgba(255,255,255,0.8)",
-    target: 400,
   },
-]
+}
 
 export default function ImpactSection() {
   return (
@@ -59,8 +44,9 @@ export default function ImpactSection() {
         </div>
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {impactStats.map((stat, index) => {
-            const Icon = stat.icon
+          {IMPACT_STATS.map((stat, index) => {
+            const visual = impactStatVisuals[stat.key]
+            const Icon = visual.icon
             return (
               <motion.article
                 key={stat.label}
@@ -70,7 +56,7 @@ export default function ImpactSection() {
                 transition={{ type: "spring", stiffness: 220, damping: 24, delay: index * 0.05 }}
                 viewport={{ once: true, amount: 0.3 }}
                 className="group relative flex flex-col items-center justify-center gap-6 overflow-hidden rounded-xl border border-white/25 bg-card p-8 text-center shadow-lg shadow-black/10 transition-all min-h-32 sm:min-h-44"
-                style={{ backgroundImage: stat.gradient }}
+                style={{ backgroundImage: visual.gradient }}
               >
                 <span
                   aria-hidden="true"
@@ -81,15 +67,15 @@ export default function ImpactSection() {
                     <div
                       className="relative flex h-10 w-10 items-center justify-center rounded-full border bg-white/15 text-slate-900 shadow-inner"
                       style={{
-                        borderColor: stat.accent,
-                        boxShadow: `0 18px 38px -12px ${stat.accent}`,
+                        borderColor: visual.accent,
+                        boxShadow: `0 18px 38px -12px ${visual.accent}`,
                       }}
                     >
                       <Icon className="h-4 w-4" />
                     </div>
                     <div className="text-4xl font-bold tracking-tight text-slate-900 ml-2">
-                      <Counter target={stat.target} duration={2000} className="text-black" />
-                      {stat.value.includes('+') ? '+' : ''}
+                      <Counter target={stat.value} duration={2000} className="text-black" />
+                      {stat.suffix}
                     </div>
                   </div>
                   <div className="text-left">
