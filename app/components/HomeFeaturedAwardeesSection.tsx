@@ -1,7 +1,7 @@
 import HomeFeaturedAwardees from "./HomeFeaturedAwardees"
 import { getAwardees } from "@/lib/awardees"
 
-const AWARDEES_LIMIT = 8
+const AWARDEES_LIMIT = 12
 
 export default async function HomeFeaturedAwardeesSection() {
   const awardees = await getAwardees()

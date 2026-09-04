@@ -3,21 +3,15 @@
 import { useMemo, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { motion } from "framer-motion"
 import { ArrowRight } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
 import { AvatarSVG } from "@/lib/avatars"
 
 type SpotlightAwardee = {
   slug: string
   name: string
   country?: string | null
-  bio?: string | null
   avatar_url?: string | null
-  course?: string | null
-  cgpa?: string | null
-  featured?: boolean | null
 }
 
 type Props = {
@@ -45,60 +39,59 @@ export default function HomeFeaturedAwardees({ awardees }: Props) {
   )
 
   return (
-    <section id="awardees" className="section-padding">
+    <section id="awardees" className="bg-slate-950 py-16 text-slate-50 sm:py-20 lg:py-24">
       <div className="container space-y-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          viewport={{ once: true, amount: 0.4 }}
-          className="text-center"
-        >
-          <h2 className="mt-3 text-3xl font-semibold sm:text-[2.5rem]">
-            Meet the Bold Minds Shaping Africa Tomorrow
+        <div className="max-w-3xl">
+          <p className="text-xs font-bold uppercase tracking-[0.24em] text-orange-400">Awardee spotlight</p>
+          <h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-5xl">
+            Meet the bold minds shaping Africa tomorrow
           </h2>
-          <p className="mx-auto mt-3 max-w-3xl text-sm text-muted-foreground sm:text-base">
-            Discover the inspiring stories of Africa&apos;s future leaders making impact across the continent.
+          <p className="mt-4 max-w-2xl text-base leading-8 text-slate-300 sm:text-lg">
+            Discover the people turning distinction into useful work, stronger communities, and lasting change.
           </p>
-        </motion.div>
+        </div>
 
-        <div className="min-h-[220px] relative overflow-hidden">
+        <div className="relative min-h-[220px]">
           {safeAwardees.length === 0 ? (
-            <div className="rounded-2xl border border-border/60 bg-card/50 p-6 text-center text-sm text-muted-foreground">
+            <div className="rounded-2xl border border-white/15 bg-white/[0.04] p-6 text-center text-sm text-slate-300">
               Spotlight awardees will appear here once they are marked as featured in Supabase.
             </div>
           ) : (
             <div
               aria-label="Featured awardees"
-              className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-4"
+              data-awardee-rail="featured"
+              className="-mx-4 grid auto-cols-[8rem] grid-flow-col gap-3 overflow-x-auto overscroll-x-contain px-4 pb-3 [scrollbar-width:none] snap-x snap-proximity touch-pan-x sm:-mx-6 sm:auto-cols-[9.5rem] sm:gap-4 sm:px-6 lg:auto-cols-[11rem] [&::-webkit-scrollbar]:hidden"
             >
               {safeAwardees.map((awardee, index) => (
                 <Link
                   key={awardee.slug}
                   href={`/awardees/${awardee.slug}`}
-                  className="group w-[72vw] max-w-[220px] shrink-0 snap-start overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 sm:w-52"
+                  aria-label={`View ${awardee.name}'s awardee profile`}
+                  className="group relative aspect-[2/3] min-w-0 snap-start overflow-hidden rounded-xl bg-slate-800 ring-1 ring-white/10 transition duration-300 hover:-translate-y-1 hover:ring-orange-400/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 motion-reduce:transform-none"
                 >
-                  <div className="relative h-48 w-full overflow-hidden bg-muted">
+                  <div className="absolute inset-0 bg-slate-800">
                     {awardee.avatar_url && !imageErrors.has(awardee.slug) ? (
                       <Image
                         src={awardee.avatar_url}
                         alt={awardee.name}
                         fill
-                        sizes="220px"
-                        className="object-cover"
+                        sizes="(max-width: 640px) 128px, (max-width: 1024px) 152px, 176px"
+                        className="object-cover transition duration-500 group-hover:scale-105 motion-reduce:transform-none"
                         priority={index < 3}
                         onError={() => setImageErrors((previous) => new Set(previous).add(awardee.slug))}
                       />
                     ) : (
-                      <div className="flex h-full items-center justify-center bg-gradient-to-br from-primary/20 via-primary/10 to-transparent text-primary">
-                        <AvatarSVG name={awardee.name} size={48} />
+                      <div className="flex h-full items-center justify-center bg-gradient-to-br from-orange-700/70 via-slate-800 to-slate-950 text-orange-200">
+                        <AvatarSVG name={awardee.name} size={42} />
                       </div>
                     )}
                   </div>
-                  <div className="p-4">
-                    <h3 className="text-lg font-semibold capitalize">{awardee.name}</h3>
-                    {awardee.course ? <p className="mt-1 line-clamp-1 text-sm text-muted-foreground">{awardee.course}</p> : null}
-                    {awardee.cgpa ? <p className="mt-3 text-sm font-semibold text-primary">CGPA {awardee.cgpa}</p> : null}
+                  <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/15 to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 p-3 sm:p-3.5">
+                    <h3 className="text-sm font-semibold leading-tight text-slate-50 sm:text-base">{awardee.name}</h3>
+                    <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-orange-300">
+                      {awardee.country ?? "Across Africa"}
+                    </p>
                   </div>
                 </Link>
               ))}
@@ -106,14 +99,14 @@ export default function HomeFeaturedAwardees({ awardees }: Props) {
           )}
         </div>
 
-        {/* View More Button */}
-        <div className="flex justify-center">
-          <Button asChild size="lg" variant="soft" className="px-6 border border-orange-400 text-base">
-            <Link href="/awardees" className="text-base flex items-center gap-2">
-              <span>View All Awardees</span>
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
+        <div className="flex justify-start">
+          <Link
+            href="/awardees"
+            className="inline-flex items-center gap-3 rounded-full bg-orange-700 px-6 py-3.5 font-semibold text-slate-50 transition hover:bg-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+          >
+            View all awardees
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          </Link>
         </div>
       </div>
     </section>
