@@ -63,10 +63,15 @@ export default async function SpeakerPage({ params }: PageProps) {
           {speaker.topic ? (
             <h2 className="mt-10 text-2xl font-semibold">“{speaker.topic}”</h2>
           ) : null}
-          <p className="mt-4 max-w-2xl leading-7 text-slate-600">
-            Part of the Top100 speaker community, sharing experience and perspective with Africa’s
-            next generation of leaders.
-          </p>
+          <div className="mt-10 max-w-2xl border-l-2 border-orange-700 pl-5 sm:pl-6">
+            <h2 className="text-xs font-bold uppercase tracking-[0.24em] text-orange-700">
+              Impact
+            </h2>
+            <p className="mt-3 leading-7 text-slate-600">
+              {speaker.impact ??
+                "Part of the Top100 speaker community, sharing experience and perspective with Africa’s next generation of leaders."}
+            </p>
+          </div>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
               href="/hall-of-fame"

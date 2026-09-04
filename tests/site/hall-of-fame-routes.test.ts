@@ -103,13 +103,13 @@ describe("Hall of Fame routes", () => {
     expect(markup.match(/<figure/g)).toHaveLength(2)
   })
 
-  it("keeps the neutral profile copy when no biography exists", async () => {
+  it("renders verified impact copy independently of optional artwork", async () => {
     const markup = renderToStaticMarkup(
       await SpeakerPage({ params: Promise.resolve({ slug: "samuel-olarewaju" }) }),
     )
 
-    expect(markup).toContain(
-      "Part of the Top100 speaker community, sharing experience and perspective with Africa’s next generation of leaders.",
-    )
+    expect(markup).toMatch(/<h2[^>]*>Impact<\/h2>/)
+    expect(markup).toContain("50,000")
+    expect(markup).toContain("Food and Genes Initiative")
   })
 })
