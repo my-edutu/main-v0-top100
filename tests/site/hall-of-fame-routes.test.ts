@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it } from "vitest"
 
 import HallOfFamePreview from "@/app/components/HallOfFamePreview"
+import SpeakerMediaCarousel from "@/app/components/SpeakerMediaCarousel"
 import SpeakerPage, {
   generateMetadata,
   generateStaticParams,
@@ -98,13 +99,13 @@ describe("Hall of Fame routes", () => {
     expect(previewMarkup).toContain("text-[#fff]")
   })
 
-  it("renders bio and announcement artwork as separate figures when both exist", async () => {
+  it("renders profile portrait and story artwork as separate slideshow figures", async () => {
     const markup = renderToStaticMarkup(
       await SpeakerPage({ params: Promise.resolve({ slug: "ruby-igwe" }) }),
     )
 
-    expect(markup).toContain("Ruby Igwe 2025 speaker session artwork")
-    expect(markup).toContain("Ruby Igwe 2025 speaker announcement")
+    expect(markup).toContain('alt="Ruby Igwe portrait"')
+    expect(markup).toContain('alt="Ruby Igwe Top100 speaker artwork"')
     expect(markup.match(/<figure/g)).toHaveLength(2)
   })
 
@@ -116,5 +117,32 @@ describe("Hall of Fame routes", () => {
     expect(markup).toMatch(/<h2[^>]*>Impact<\/h2>/)
     expect(markup).toContain("50,000")
     expect(markup).toContain("Food and Genes Initiative")
+  })
+
+  it("renders a profile-first page with a mobile media slideshow and no back navigation", async () => {
+    const speaker = SPEAKERS.find(({ slug }) => slug === "ruby-igwe")!
+    const markup = renderToStaticMarkup(
+      await SpeakerPage({ params: Promise.resolve({ slug: speaker.slug }) }),
+    )
+    const carousel = renderToStaticMarkup(
+      createElement(SpeakerMediaCarousel, { speaker }),
+    )
+
+    expect(markup).toMatch(/<h2[^>]*>Profile<\/h2>/)
+    expect(markup).toMatch(/<h2[^>]*>Impact<\/h2>/)
+    expect(markup).not.toContain("Back to Hall of Fame")
+    expect(markup).not.toContain('href="/impacts"')
+    expect(carousel).toContain('data-speaker-media-carousel="Ruby Igwe"')
+    expect(carousel).toContain("Swipe to explore")
+    expect(carousel.match(/<figure/g)).toHaveLength(2)
+  })
+
+  it("keeps video space intentional when a YouTube URL is not available", async () => {
+    const markup = renderToStaticMarkup(
+      await SpeakerPage({ params: Promise.resolve({ slug: "ruby-igwe" }) }),
+    )
+
+    expect(markup).toContain("Video coming soon")
+    expect(markup).not.toContain("youtube.com")
   })
 })
