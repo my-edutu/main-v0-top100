@@ -55,7 +55,7 @@ export default async function SpeakerPage({ params }: PageProps) {
           />
         </div>
         <div className="self-center">
-          <p className="text-xs font-bold uppercase tracking-[0.24em] text-orange-600">
+          <p className="text-xs font-bold uppercase tracking-[0.24em] text-orange-700">
             Hall of Fame · {speaker.eventYears.join(", ")}
           </p>
           <h1 className="mt-4 text-4xl font-semibold sm:text-6xl">{speaker.name}</h1>
@@ -70,13 +70,13 @@ export default async function SpeakerPage({ params }: PageProps) {
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
               href="/hall-of-fame"
-              className="rounded-full bg-slate-950 px-5 py-3 font-semibold text-[#fff] transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
+              className="rounded-full bg-slate-950 px-5 py-3 font-semibold text-[#fff] transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-2"
             >
               Back to Hall of Fame
             </Link>
             <Link
               href="/impacts"
-              className="rounded-full border border-slate-300 px-5 py-3 font-semibold transition hover:border-orange-500 hover:text-orange-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
+              className="rounded-full border border-slate-300 px-5 py-3 font-semibold transition hover:border-orange-700 hover:text-orange-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-2"
             >
               Explore the impact
             </Link>

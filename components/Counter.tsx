@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useReducedMotion } from 'framer-motion';
 
 interface CounterProps {
   target: number;
@@ -9,29 +10,37 @@ interface CounterProps {
 }
 
 export default function Counter({ target, duration = 2000, className = '' }: CounterProps) {
-  const [count, setCount] = useState(0);
+  const reduceMotion = useReducedMotion();
+  const [count, setCount] = useState(reduceMotion ? target : 0);
 
   useEffect(() => {
+    if (reduceMotion) {
+      setCount(target);
+      return;
+    }
+
+    setCount(0);
     let start: number | null = null;
+    let frame: number;
     const step = (timestamp: number) => {
-      if (!start) start = timestamp;
+      if (start === null) start = timestamp;
       const progress = Math.min((timestamp - start) / duration, 1);
       const currentValue = Math.floor(progress * target);
       setCount(currentValue);
       
       if (progress < 1) {
-        window.requestAnimationFrame(step);
+        frame = window.requestAnimationFrame(step);
       } else {
         setCount(target); // Ensure it reaches the exact target value
       }
     };
     
-    window.requestAnimationFrame(step);
+    frame = window.requestAnimationFrame(step);
     
     return () => {
-      // Cleanup if needed
+      window.cancelAnimationFrame(frame);
     };
-  }, [target, duration]);
+  }, [target, duration, reduceMotion]);
 
   return (
     <span

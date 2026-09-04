@@ -54,8 +54,12 @@ export default function RotatingVisionSection({ images }: { images: readonly str
               10,000
             </div>
             <div className="flex flex-col items-start justify-center">
-              <div className="text-lg font-bold text-[#fff] uppercase leading-tight drop-shadow-lg sm:text-xl md:text-2xl"><TypeEffect text="youth" speed={150} /></div>
-              <div className="text-lg font-bold text-[#fff] uppercase leading-tight drop-shadow-lg sm:text-xl md:text-2xl"><TypeEffect text="leaders" speed={200} /></div>
+              <div className="text-lg font-bold text-[#fff] uppercase leading-tight drop-shadow-lg sm:text-xl md:text-2xl">
+                {reduceMotion ? "youth" : <TypeEffect text="youth" speed={150} />}
+              </div>
+              <div className="text-lg font-bold text-[#fff] uppercase leading-tight drop-shadow-lg sm:text-xl md:text-2xl">
+                {reduceMotion ? "leaders" : <TypeEffect text="leaders" speed={200} />}
+              </div>
             </div>
           </div>
           <p className="mt-4 max-w-4xl text-xl font-bold text-[#fff] drop-shadow-xl sm:text-2xl md:text-3xl lg:text-4xl">

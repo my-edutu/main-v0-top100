@@ -48,10 +48,10 @@ function HomePageHeroSection() {
           </div>
 
           <div className="mx-auto flex w-full max-w-xl flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center sm:gap-4">
-            <Link href={IMPACT_HERO.primaryCta.href} className="group flex h-12 items-center justify-center gap-2 rounded-xl bg-slate-950 px-6 font-semibold text-white hover:bg-orange-600">
+            <Link href={IMPACT_HERO.primaryCta.href} className="group flex h-12 items-center justify-center gap-2 rounded-xl bg-slate-950 px-6 font-semibold text-[#fff] hover:bg-orange-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-4">
               {IMPACT_HERO.primaryCta.label}<ArrowRight className="h-4 w-4" />
             </Link>
-            <Link href={IMPACT_HERO.secondaryCta.href} className="flex h-12 items-center justify-center gap-2 rounded-xl border border-slate-300 px-6 font-semibold text-slate-950 hover:border-orange-500 hover:text-orange-700 dark:border-slate-700 dark:text-white">
+            <Link href={IMPACT_HERO.secondaryCta.href} className="flex h-12 items-center justify-center gap-2 rounded-xl border border-slate-300 px-6 font-semibold text-slate-950 hover:border-orange-700 hover:text-orange-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-4 dark:border-slate-700 dark:text-[#fff]">
               <UsersRound className="h-4 w-4" />{IMPACT_HERO.secondaryCta.label}
             </Link>
           </div>

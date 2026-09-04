@@ -1,7 +1,7 @@
 "use client"
 
 import type { ComponentType, SVGProps } from "react"
-import { motion } from "framer-motion"
+import { motion, useReducedMotion } from "framer-motion"
 import { Globe, Users, Award } from "lucide-react"
 import Counter from "@/components/Counter"
 import { IMPACT_STATS } from "@/lib/impact-content"
@@ -31,6 +31,8 @@ const impactStatVisuals: Record<(typeof IMPACT_STATS)[number]["key"], ImpactStat
 }
 
 export default function ImpactSection() {
+  const reduceMotion = useReducedMotion()
+
   return (
     <section className="section-padding">
       <div className="container space-y-10">
@@ -50,10 +52,14 @@ export default function ImpactSection() {
             return (
               <motion.article
                 key={stat.label}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                whileHover={{ y: -5 }}
-                transition={{ type: "spring", stiffness: 220, damping: 24, delay: index * 0.05 }}
+                initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+                whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+                whileHover={reduceMotion ? undefined : { y: -5 }}
+                transition={
+                  reduceMotion
+                    ? undefined
+                    : { type: "spring", stiffness: 220, damping: 24, delay: index * 0.05 }
+                }
                 viewport={{ once: true, amount: 0.3 }}
                 className="group relative flex flex-col items-center justify-center gap-6 overflow-hidden rounded-xl border border-white/25 bg-card p-8 text-center shadow-lg shadow-black/10 transition-all min-h-32 sm:min-h-44"
                 style={{ backgroundImage: visual.gradient }}

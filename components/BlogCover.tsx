@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import Image from "next/image"
 import { Sparkles } from "lucide-react"
 
@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils"
 
 type BlogCoverProps = {
   imageUrl?: string | null
+  fallbackImageUrls?: readonly string[]
   title: string
   alt?: string | null
   className?: string
@@ -35,6 +36,7 @@ const DEFAULT_SIZES: Record<NonNullable<BlogCoverProps["variant"]>, string> = {
 
 export default function BlogCover({
   imageUrl,
+  fallbackImageUrls = [],
   title,
   alt,
   className,
@@ -42,13 +44,12 @@ export default function BlogCover({
   sizes,
   variant = "card",
 }: BlogCoverProps) {
-  const [imageFailed, setImageFailed] = useState(false)
+  const candidates = [...new Set([imageUrl, ...fallbackImageUrls].filter(hasRealCover))] as string[]
+  const candidateKey = candidates.join("\u0000")
+  const [imageState, setImageState] = useState({ candidateKey, activeIndex: 0 })
+  const activeImageIndex = imageState.candidateKey === candidateKey ? imageState.activeIndex : 0
 
-  useEffect(() => {
-    setImageFailed(false)
-  }, [imageUrl])
-
-  const showImage = hasRealCover(imageUrl) && !imageFailed
+  const activeImage = candidates[activeImageIndex]
 
   return (
     // The brand gradient is set inline: globals.css rewrites `from-zinc-950`
@@ -61,16 +62,23 @@ export default function BlogCover({
           "linear-gradient(135deg, #fbbf24 0%, #f59e0b 52%, #d97706 100%)",
       }}
       aria-label={title}
+      data-story-cover-count={candidates.length}
     >
-      {showImage ? (
+      {activeImage ? (
         <Image
-          src={imageUrl!}
+          key={`${candidateKey}-${activeImageIndex}`}
+          src={activeImage}
           alt={alt ?? title}
           fill
           className="object-cover"
           priority={priority}
           sizes={sizes ?? DEFAULT_SIZES[variant]}
-          onError={() => setImageFailed(true)}
+          onError={() => {
+            setImageState({
+              candidateKey,
+              activeIndex: advanceStoryCoverIndex(activeImageIndex, candidates.length),
+            })
+          }}
         />
       ) : (
         <>
@@ -104,4 +112,8 @@ export default function BlogCover({
       )}
     </div>
   )
+}
+
+export function advanceStoryCoverIndex(currentIndex: number, candidateCount: number): number {
+  return Math.min(currentIndex + 1, candidateCount)
 }

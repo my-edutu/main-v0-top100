@@ -8,7 +8,7 @@ import { ArrowRight } from "lucide-react"
 import BlogCover from "@/components/BlogCover"
 import { Button } from "@/components/ui/button"
 import type { ResolvedPost } from "@/lib/posts"
-import { resolveStoryCover } from "@/lib/story-covers"
+import { resolveStoryCoverCandidates } from "@/lib/story-covers"
 
 type BlogSectionProps = {
   initialPosts?: ResolvedPost[]
@@ -83,8 +83,10 @@ export default function BlogSection({ initialPosts }: BlogSectionProps) {
           </div>
         ) : posts.length > 0 ? (
           <div className="grid gap-3 sm:gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
-            {posts.map((post, index) => (
-              <motion.div
+            {posts.map((post, index) => {
+              const coverCandidates = resolveStoryCoverCandidates(post, index)
+
+              return <motion.div
                 key={post.id}
                 initial={{ opacity: 0, y: 18 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -100,11 +102,12 @@ export default function BlogSection({ initialPosts }: BlogSectionProps) {
                       : index % 4 === 2
                         ? "bg-gradient-to-br from-amber-50 to-orange-50/50"
                         : "bg-gradient-to-br from-emerald-50 to-teal-50/50"
-                    } flex-row sm:flex-col`}
+                  } flex-row sm:flex-col`}
                 >
                   <div className="relative w-28 h-28 sm:w-full sm:h-auto sm:aspect-[16/10] flex-shrink-0 overflow-hidden">
                     <BlogCover
-                      imageUrl={resolveStoryCover(post, index)}
+                      imageUrl={coverCandidates[0]}
+                      fallbackImageUrls={coverCandidates.slice(1)}
                       title={post.title}
                       alt={post.coverImageAlt ?? post.title}
                       className="transition duration-500 group-hover:scale-105"
@@ -138,7 +141,7 @@ export default function BlogSection({ initialPosts }: BlogSectionProps) {
                   </div>
                 </Link>
               </motion.div>
-            ))}
+            })}
           </div>
         ) : (
           <div className="rounded-[28px] border border-dashed border-border/80 bg-background/70 p-8 text-center text-sm text-muted-foreground">

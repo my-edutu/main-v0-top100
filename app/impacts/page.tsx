@@ -4,13 +4,14 @@ import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 
 import HallOfFamePreview from "@/app/components/HallOfFamePreview"
+import BlogCover from "@/components/BlogCover"
 import { AvatarSVG } from "@/lib/avatars"
 import { IMPACT_HERO, IMPACT_STATS } from "@/lib/impact-content"
 import { ogMetadata } from "@/lib/og"
 import { pageOg } from "@/lib/og-pages"
 import { getFeaturedSpeakers } from "@/lib/speakers"
 import { SITE_URL } from "@/lib/site"
-import { resolveStoryCover } from "@/lib/story-covers"
+import { resolveStoryCoverCandidates } from "@/lib/story-covers"
 
 import { getImpactPageData } from "./data"
 
@@ -42,7 +43,7 @@ export default async function ImpactPage() {
       <section className="container py-8 sm:py-12 lg:py-16">
         <div className="grid items-stretch gap-8 lg:grid-cols-[0.88fr_1.12fr] lg:gap-12">
           <div className="flex flex-col justify-center py-4 lg:py-12">
-            <p className="text-xs font-bold uppercase tracking-[0.28em] text-orange-600">
+            <p className="text-xs font-bold uppercase tracking-[0.28em] text-orange-700">
               {impactCard.eyebrow}
             </p>
             <h1 className="mt-5 max-w-3xl text-balance text-4xl font-semibold leading-[1.02] tracking-[-0.04em] sm:text-6xl lg:text-7xl">
@@ -54,13 +55,13 @@ export default async function ImpactPage() {
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
                 href="#leaders"
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-orange-500 px-6 py-3 font-semibold text-[#fff] transition hover:bg-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-4"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-orange-700 px-6 py-3 font-semibold text-[#fff] transition hover:bg-orange-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-4"
               >
                 Explore leaders <ArrowRight aria-hidden="true" className="h-4 w-4" />
               </Link>
               <Link
                 href="/partnership"
-                className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-300 bg-[#fff] px-6 py-3 font-semibold text-slate-950 transition hover:border-orange-500 hover:text-orange-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-4"
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-300 bg-[#fff] px-6 py-3 font-semibold text-slate-950 transition hover:border-orange-700 hover:text-orange-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-4"
               >
                 Partner with us
               </Link>
@@ -111,14 +112,14 @@ export default async function ImpactPage() {
         </div>
       </section>
 
-      <div className="impact-hall [&.impact-hall>section]:!bg-[#0b1220] [&.impact-hall_.text-white]:!text-[#fff]">
+      <div className="impact-hall [&.impact-hall>section]:!bg-[#0b1220]">
         <HallOfFamePreview speakers={getFeaturedSpeakers()} />
       </div>
 
       <section id="leaders" className="container scroll-mt-24 py-16 sm:py-24">
         <div className="grid gap-8 lg:grid-cols-[0.7fr_1.3fr] lg:items-end">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.24em] text-orange-600">
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-orange-700">
               Awardee spotlight
             </p>
             <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight sm:text-5xl">
@@ -131,56 +132,71 @@ export default async function ImpactPage() {
           </p>
         </div>
 
-        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:mt-14 lg:grid-cols-3 lg:gap-6">
-          {featuredAwardees.map((awardee, index) => (
-            <Link
-              key={awardee.slug}
-              href={`/awardees/${awardee.slug}`}
-              className="group rounded-[1.75rem] border border-orange-100 bg-[#fff] p-5 shadow-[0_12px_45px_rgba(15,23,42,0.06)] transition hover:-translate-y-1 hover:border-orange-300 hover:shadow-[0_20px_55px_rgba(15,23,42,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-4"
-            >
-              <article className="flex h-full flex-col">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-orange-100 text-slate-950 ring-4 ring-orange-50">
-                    {awardee.avatar_url ? (
-                      <Image
-                        src={awardee.avatar_url}
-                        alt={`Portrait of ${awardee.name}`}
-                        fill
-                        sizes="80px"
-                        className="object-cover"
-                      />
-                    ) : (
-                      <AvatarSVG name={awardee.name} size={80} />
-                    )}
+        {featuredAwardees.length > 0 ? (
+          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:mt-14 lg:grid-cols-3 lg:gap-6">
+            {featuredAwardees.map((awardee, index) => (
+              <Link
+                key={awardee.slug}
+                href={`/awardees/${awardee.slug}`}
+                className="group rounded-[1.75rem] border border-orange-100 bg-[#fff] p-5 shadow-[0_12px_45px_rgba(15,23,42,0.06)] transition hover:-translate-y-1 hover:border-orange-300 hover:shadow-[0_20px_55px_rgba(15,23,42,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-4"
+              >
+                <article className="flex h-full flex-col">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-orange-100 text-slate-950 ring-4 ring-orange-50">
+                      {awardee.avatar_url ? (
+                        <Image
+                          src={awardee.avatar_url}
+                          alt={`Portrait of ${awardee.name}`}
+                          fill
+                          sizes="80px"
+                          className="object-cover"
+                        />
+                      ) : (
+                        <AvatarSVG name={awardee.name} size={80} />
+                      )}
+                    </div>
+                    <span className="font-mono text-xs text-slate-400">0{index + 1}</span>
                   </div>
-                  <span className="font-mono text-xs text-slate-400">0{index + 1}</span>
-                </div>
-                <h3 className="mt-5 text-xl font-semibold leading-7 transition group-hover:text-orange-700">
-                  {awardee.name}
-                </h3>
-                {awardee.country ? (
-                  <p className="mt-1 text-xs font-bold uppercase tracking-[0.18em] text-orange-600">
+                  <h3 className="mt-5 text-xl font-semibold leading-7 transition group-hover:text-orange-700">
+                    {awardee.name}
+                  </h3>
+                  {awardee.country ? (
+                    <p className="mt-1 text-xs font-bold uppercase tracking-[0.18em] text-orange-700">
                     {awardee.country}
+                    </p>
+                  ) : null}
+                  <p className="mt-4 line-clamp-4 text-sm leading-6 text-slate-600">
+                    {awardee.bio ?? "Profile details coming soon."}
                   </p>
-                ) : null}
-                <p className="mt-4 line-clamp-4 text-sm leading-6 text-slate-600">
-                  {awardee.bio ?? "Profile details coming soon."}
-                </p>
-                <span className="mt-auto inline-flex items-center gap-2 pt-6 text-sm font-semibold text-slate-950">
-                  Meet {awardee.name.split(" ")[0]}
-                  <ArrowRight aria-hidden="true" className="h-4 w-4 transition group-hover:translate-x-1" />
-                </span>
-              </article>
+                  <span className="mt-auto inline-flex items-center gap-2 pt-6 text-sm font-semibold text-slate-950">
+                    Meet {awardee.name.split(" ")[0]}
+                    <ArrowRight aria-hidden="true" className="h-4 w-4 transition group-hover:translate-x-1" />
+                  </span>
+                </article>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-10 rounded-[1.75rem] border border-dashed border-orange-200 bg-[#fff] p-8 text-center sm:p-10">
+            <h3 className="text-xl font-semibold">Awardee spotlights are currently unavailable.</h3>
+            <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-slate-600">
+              Explore the full directory while new spotlight profiles are prepared.
+            </p>
+            <Link
+              href="/awardees"
+              className="mt-5 inline-flex items-center gap-2 font-semibold text-orange-700 hover:text-orange-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-4"
+            >
+              Meet all awardees <ArrowRight aria-hidden="true" className="h-4 w-4" />
             </Link>
-          ))}
-        </div>
+          </div>
+        )}
       </section>
 
       <section className="border-y border-orange-100 bg-[#fff] py-16 sm:py-24">
         <div className="container">
           <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.24em] text-orange-600">
+              <p className="text-xs font-bold uppercase tracking-[0.24em] text-orange-700">
                 Field notes
               </p>
               <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight sm:text-5xl">
@@ -192,40 +208,62 @@ export default async function ImpactPage() {
             </Link>
           </div>
 
-          <div className="mt-10 grid gap-7 lg:mt-14 lg:grid-cols-3">
-            {stories.map((post, index) => (
+          {stories.length > 0 ? (
+            <div className="mt-10 grid gap-7 lg:mt-14 lg:grid-cols-3">
+              {stories.map((post, index) => {
+                const coverCandidates = resolveStoryCoverCandidates(post, index)
+
+                return (
+                  <Link
+                    key={post.id}
+                    href={`/blog/${post.slug}`}
+                    className="group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-4"
+                  >
+                    <article>
+                      <div className="relative aspect-[4/3] overflow-hidden rounded-[1.5rem] bg-orange-100">
+                        <BlogCover
+                          imageUrl={coverCandidates[0]}
+                          fallbackImageUrls={coverCandidates.slice(1)}
+                          title={post.title}
+                          alt={post.coverImageAlt ?? post.title}
+                          sizes="(max-width: 1024px) 100vw, 33vw"
+                          className="h-full w-full transition duration-500 group-hover:scale-[1.03]"
+                        />
+                      </div>
+                      <p className="mt-5 text-xs font-bold uppercase tracking-[0.2em] text-orange-700">
+                        Story {String(index + 1).padStart(2, "0")}
+                      </p>
+                      <h3 className="mt-3 text-balance text-xl font-semibold leading-7 transition group-hover:text-orange-700 sm:text-2xl">
+                        {post.title}
+                      </h3>
+                      <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-600">
+                        {post.excerpt}
+                      </p>
+                    </article>
+                  </Link>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="mt-10 rounded-[1.75rem] border border-dashed border-orange-200 bg-[#fffaf2] p-8 text-center sm:p-10">
+              <h3 className="text-xl font-semibold">No impact stories are published yet.</h3>
+              <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-slate-600">
+                Visit the full story archive for more updates from the movement.
+              </p>
               <Link
-                key={post.id}
-                href={`/blog/${post.slug}`}
-                className="group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-4"
+                href="/blog"
+                className="mt-5 inline-flex items-center gap-2 font-semibold text-orange-700 hover:text-orange-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-4"
               >
-                <article>
-                  <div className="relative aspect-[4/3] overflow-hidden rounded-[1.5rem] bg-orange-100">
-                    <Image
-                      src={resolveStoryCover(post, index)}
-                      alt={post.coverImageAlt ?? post.title}
-                      fill
-                      sizes="(max-width: 1024px) 100vw, 33vw"
-                      className="object-cover transition duration-500 group-hover:scale-[1.03]"
-                    />
-                  </div>
-                  <p className="mt-5 text-xs font-bold uppercase tracking-[0.2em] text-orange-600">
-                    Story {String(index + 1).padStart(2, "0")}
-                  </p>
-                  <h3 className="mt-3 text-balance text-xl font-semibold leading-7 transition group-hover:text-orange-700 sm:text-2xl">
-                    {post.title}
-                  </h3>
-                  <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-600">{post.excerpt}</p>
-                </article>
+                Read all stories <ArrowRight aria-hidden="true" className="h-4 w-4" />
               </Link>
-            ))}
-          </div>
+            </div>
+          )}
         </div>
       </section>
 
       <section className="container py-16 sm:py-24">
         <div className="max-w-3xl">
-          <p className="text-xs font-bold uppercase tracking-[0.24em] text-orange-600">
+          <p className="text-xs font-bold uppercase tracking-[0.24em] text-orange-700">
             Event moments
           </p>
           <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight sm:text-5xl">
@@ -272,7 +310,7 @@ export default async function ImpactPage() {
             <p className="text-xs font-bold uppercase tracking-[0.24em] text-orange-400">Impact interviews</p>
             <h2 className="mt-4 text-3xl font-semibold text-[#fff] sm:text-5xl">Hear the work behind the recognition.</h2>
             <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300">Awardees share the decisions, setbacks, and community work shaping their journeys.</p>
-            <Link href="/interviews" className="mt-7 inline-flex items-center gap-2 rounded-full bg-orange-500 px-6 py-3 font-semibold text-[#fff] transition hover:bg-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 focus-visible:ring-offset-4 focus-visible:ring-offset-[#0b1220]">Watch the interviews <ArrowRight aria-hidden="true" className="h-4 w-4" /></Link>
+            <Link href="/interviews" className="mt-7 inline-flex items-center gap-2 rounded-full bg-orange-700 px-6 py-3 font-semibold text-[#fff] transition hover:bg-orange-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 focus-visible:ring-offset-4 focus-visible:ring-offset-[#0b1220]">Watch the interviews <ArrowRight aria-hidden="true" className="h-4 w-4" /></Link>
           </div>
         </div>
       </section>
@@ -280,7 +318,7 @@ export default async function ImpactPage() {
       <section className="container py-16 sm:py-24">
         <div className="grid overflow-hidden rounded-[2rem] border border-orange-200 bg-[#fff] lg:grid-cols-2">
           <div className="p-7 sm:p-10 lg:p-12">
-            <p className="text-xs font-bold uppercase tracking-[0.24em] text-orange-600">Build with us</p>
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-orange-700">Build with us</p>
             <h2 className="mt-4 text-3xl font-semibold tracking-tight">Help the work travel further.</h2>
             <p className="mt-4 max-w-lg leading-7 text-slate-600">
               Bring resources, reach, and expertise to a community turning recognition into durable change.
@@ -290,7 +328,7 @@ export default async function ImpactPage() {
             </Link>
           </div>
           <div className="border-t border-orange-200 bg-orange-50 p-7 sm:p-10 lg:border-l lg:border-t-0 lg:p-12">
-            <p className="text-xs font-bold uppercase tracking-[0.24em] text-orange-600">The directory</p>
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-orange-700">The directory</p>
             <h2 className="mt-4 text-3xl font-semibold tracking-tight">Meet the people moving Africa forward.</h2>
             <p className="mt-4 max-w-lg leading-7 text-slate-600">
               Explore the full network of recognised leaders, their fields, and the communities they serve.

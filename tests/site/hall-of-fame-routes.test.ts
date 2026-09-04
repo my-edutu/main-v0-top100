@@ -51,6 +51,25 @@ describe("Hall of Fame routes", () => {
       expect(previewMarkup).toContain(`href="/hall-of-fame/${slug}"`)
     }
     expect(previewMarkup).toContain('href="/hall-of-fame"')
+    expect(indexMarkup).toMatch(/<h2[^>]*>Ruby Igwe<\/h2>/)
+    expect(previewMarkup).toMatch(/<h3[^>]*>Ruby Igwe<\/h3>/)
+  })
+
+  it("uses AA orange accents and explicit white text", async () => {
+    const indexMarkup = renderToStaticMarkup(createElement(HallOfFamePage))
+    const previewMarkup = renderToStaticMarkup(
+      createElement(HallOfFamePreview, { speakers: getFeaturedSpeakers() }),
+    )
+    const profileMarkup = renderToStaticMarkup(
+      await SpeakerPage({ params: Promise.resolve({ slug: "ruby-igwe" }) }),
+    )
+
+    for (const markup of [indexMarkup, previewMarkup, profileMarkup]) {
+      expect(markup).not.toContain("text-orange-600")
+      expect(markup).not.toContain("ring-orange-500")
+    }
+    expect(previewMarkup).toContain("bg-orange-700")
+    expect(previewMarkup).toContain("text-[#fff]")
   })
 
   it("renders bio and announcement artwork as separate figures when both exist", async () => {

@@ -18,7 +18,7 @@ export default function HallOfFamePage() {
     <main className="bg-[#fffaf2] text-slate-950">
       <section className="container py-14 sm:py-20 lg:py-24">
         <div className="max-w-3xl">
-          <p className="text-xs font-bold uppercase tracking-[0.24em] text-orange-600">
+          <p className="text-xs font-bold uppercase tracking-[0.24em] text-orange-700">
             Our Hall of Fame
           </p>
           <h1 className="mt-4 text-balance text-4xl font-semibold tracking-tight text-slate-950 sm:text-6xl">
@@ -32,7 +32,12 @@ export default function HallOfFamePage() {
 
         <div className="mt-12 grid grid-cols-2 gap-3 sm:gap-6 md:grid-cols-3 lg:mt-16 lg:grid-cols-4 lg:gap-7">
           {SPEAKERS.map((speaker, index) => (
-            <SpeakerCard key={speaker.slug} speaker={speaker} priority={index < 4} />
+            <SpeakerCard
+              key={speaker.slug}
+              speaker={speaker}
+              priority={index < 4}
+              headingLevel={2}
+            />
           ))}
         </div>
       </section>

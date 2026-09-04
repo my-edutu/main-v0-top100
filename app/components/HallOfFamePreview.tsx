@@ -7,7 +7,7 @@ import SpeakerCard from "./SpeakerCard"
 
 export default function HallOfFamePreview({ speakers }: { speakers: readonly Speaker[] }) {
   return (
-    <section className="overflow-hidden bg-slate-950 py-14 text-white sm:py-20">
+    <section className="overflow-hidden bg-slate-950 py-14 text-[#fff] sm:py-20">
       <div className="container">
         <div className="max-w-3xl">
           <p className="text-xs font-bold uppercase tracking-[0.24em] text-orange-400">
@@ -30,7 +30,7 @@ export default function HallOfFamePreview({ speakers }: { speakers: readonly Spe
 
         <Link
           href="/hall-of-fame"
-          className="mt-4 inline-flex items-center gap-2 rounded-full bg-orange-500 px-6 py-3 font-semibold text-white transition hover:bg-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 focus-visible:ring-offset-4 focus-visible:ring-offset-slate-950"
+          className="mt-4 inline-flex items-center gap-2 rounded-full bg-orange-700 px-6 py-3 font-semibold text-[#fff] transition hover:bg-orange-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 focus-visible:ring-offset-4 focus-visible:ring-offset-slate-950"
         >
           View the Hall of Fame <ArrowRight aria-hidden="true" className="h-4 w-4" />
         </Link>

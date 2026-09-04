@@ -223,4 +223,31 @@ describe("Impact hub", () => {
       expect(markup).toContain(caption)
     }
   })
+
+  it("renders controlled empty states when awardees and stories are unavailable", async () => {
+    const savedAwardees = fixtures.awardees.splice(0)
+    const savedPosts = fixtures.posts.splice(0)
+
+    try {
+      const markup = renderToStaticMarkup(await ImpactPage())
+
+      expect(markup).toContain("Awardee spotlights are currently unavailable.")
+      expect(markup).toContain("No impact stories are published yet.")
+      expect(markup).toContain('href="/awardees"')
+      expect(markup).toContain('href="/blog"')
+    } finally {
+      fixtures.awardees.push(...savedAwardees)
+      fixtures.posts.push(...savedPosts)
+    }
+  })
+
+  it("uses AA orange accents and an ordered runtime fallback for story images", async () => {
+    const markup = renderToStaticMarkup(await ImpactPage())
+
+    expect(markup).not.toContain("text-orange-600")
+    expect(markup).not.toContain("bg-orange-500")
+    expect(markup).not.toContain("ring-orange-500")
+    expect(markup).toContain("bg-orange-700")
+    expect(markup).toContain("data-story-cover-count=\"1\"")
+  })
 })

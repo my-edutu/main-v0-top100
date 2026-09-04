@@ -1,3 +1,5 @@
+import type { ResolvedPost } from "@/lib/posts"
+
 const SLUG_COVERS: Readonly<Record<string, string>> = {
   "one-young-world-partners-with-top100": "/blog/Top100 Africa Future Leaders patners with one young world.png",
   "from-first-class-graduate-to-global-leader": "/IMG_0680.jpg",
@@ -21,8 +23,19 @@ export function resolveStoryCover(
   post: Pick<ResolvedPost, "slug" | "coverImage">,
   index: number,
 ): string {
-  if (isUsableCover(post.coverImage)) return post.coverImage
-
-  return SLUG_COVERS[post.slug] ?? CURATED_COVERS[Math.abs(index) % CURATED_COVERS.length]
+  return resolveStoryCoverCandidates(post, index)[0]
 }
-import type { ResolvedPost } from "@/lib/posts"
+
+export function resolveStoryCoverCandidates(
+  post: Pick<ResolvedPost, "slug" | "coverImage">,
+  index: number,
+): string[] {
+  const curatedCover = CURATED_COVERS[Math.abs(index) % CURATED_COVERS.length]
+  const candidates = [
+    isUsableCover(post.coverImage) ? post.coverImage : null,
+    SLUG_COVERS[post.slug],
+    curatedCover,
+  ].filter((cover): cover is string => Boolean(cover))
+
+  return [...new Set(candidates)]
+}
