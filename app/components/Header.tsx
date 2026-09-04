@@ -21,6 +21,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
+import { PRIMARY_NAV_ITEMS } from "@/lib/site-navigation"
 import { cn } from "@/lib/utils"
 
 type NavItem = {
@@ -269,35 +270,32 @@ export default function Header() {
   return (
     <header className="site-header sticky inset-x-0 top-0 z-50 border-b border-orange-200/50 bg-[linear-gradient(90deg,#f97316_0%,#fb923c_52%,#f59e0b_100%)] text-white shadow-[0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl">
       <div className="absolute inset-x-0 top-0 h-[2px] bg-white/20" />
-      <div className="container grid h-[4.5rem] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4">
-        <Link href="/" className="flex shrink-0 items-center gap-2">
-          <div className="h-12 w-[9.25rem] sm:w-[10.75rem]">
-            <Image
-              src="/Top100 Africa Future leaders Logo .png"
-              alt="Top100 Africa Future Leaders Logo"
-              width={180}
-              height={60}
-              className="h-full w-full object-contain"
-              priority
-            />
-          </div>
-        </Link>
+      <div className="container grid h-[4.5rem] grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
+        <div className="flex min-w-0 items-center">
+          <Link href="/" className="flex shrink-0 items-center gap-2">
+            <div className="h-12 w-[9.25rem] sm:w-[10.75rem]">
+              <Image
+                src="/Top100 Africa Future leaders Logo .png"
+                alt="Top100 Africa Future Leaders Logo"
+                width={180}
+                height={60}
+                className="h-full w-full object-contain"
+                priority
+              />
+            </div>
+          </Link>
 
-        <nav className="hidden min-w-0 items-center justify-center gap-1 lg:flex">
-          <DesktopLink label="Home" href="/" pathname={pathname} />
-          <DesktopLink label="Awardees" href="/awardees" pathname={pathname} />
-          {desktopGroups.map((group) => (
-            <DesktopDropdown key={group.label} group={group} pathname={pathname} />
-          ))}
-        </nav>
+          <nav className="hidden min-w-0 flex-1 items-center justify-center gap-1 lg:flex">
+            {PRIMARY_NAV_ITEMS.map((item) => (
+              <DesktopLink key={item.href} {...item} pathname={pathname} />
+            ))}
+            {desktopGroups.map((group) => (
+              <DesktopDropdown key={group.label} group={group} pathname={pathname} />
+            ))}
+          </nav>
+        </div>
 
-        <div className="ml-auto flex items-center gap-2">
-          <Button
-            asChild
-            className="rounded-full bg-white px-4 py-2 text-xs font-semibold text-orange-700 shadow-none hover:bg-orange-50 sm:px-5 sm:text-sm"
-          >
-            <Link href="/get-started">Get Started</Link>
-          </Button>
+        <div className="flex items-center gap-2">
           <div className="lg:hidden">
             <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
               <SheetTrigger asChild>
@@ -326,17 +324,13 @@ export default function Header() {
                         className="h-full w-full object-contain"
                       />
                     </div>
-                    <Button asChild className="mt-4 w-full rounded-full bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-3 text-sm font-semibold text-white shadow-none hover:opacity-95">
-                      <Link href="/get-started" onClick={closeSheet}>
-                        Get Started
-                      </Link>
-                    </Button>
                   </div>
 
                   <div className="flex-1 overflow-y-auto px-3 py-4">
                     <div className="space-y-2">
-                      <MobileLink label="Home" href="/" pathname={pathname} onNavigate={closeSheet} />
-                      <MobileLink label="Awardees" href="/awardees" pathname={pathname} onNavigate={closeSheet} />
+                      {PRIMARY_NAV_ITEMS.map((item) => (
+                        <MobileLink key={item.href} {...item} pathname={pathname} onNavigate={closeSheet} />
+                      ))}
 
                       <Accordion type="multiple" className="w-full">
                         {mobileGroups.map((group) => (
