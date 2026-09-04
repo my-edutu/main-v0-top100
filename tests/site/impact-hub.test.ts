@@ -1,0 +1,155 @@
+import { renderToStaticMarkup } from "react-dom/server"
+import { describe, expect, it, vi } from "vitest"
+
+const fixtures = vi.hoisted(() => {
+  const awardee = (name: string, featured: boolean) => ({
+    awardee_id: `awardee-${name.toLowerCase()}`,
+    profile_id: null,
+    slug: name.toLowerCase(),
+    name,
+    email: null,
+    country: "Ghana",
+    current_school: null,
+    field_of_study: null,
+    course: null,
+    bio: `${name} leads a community impact programme.`,
+    avatar_url: null,
+    cover_image_url: null,
+    headline: null,
+    tagline: null,
+    personal_email: null,
+    phone: null,
+    location: "Accra, Ghana",
+    achievements: null,
+    gallery: null,
+    video_links: null,
+    social_links: null,
+    interests: null,
+    cohort: "2025",
+    metadata: null,
+    cgpa: null,
+    year: 2025,
+    featured,
+    created_at: null,
+    updated_at: null,
+    is_public: true,
+    role: "awardee",
+    mentor: null,
+    impact_projects: null,
+    lives_impacted: null,
+    awards_received: null,
+    youtube_video_url: null,
+  })
+  const post = (index: number) => ({
+    id: `post-${index}`,
+    title: `Impact story ${index}`,
+    slug: `impact-story-${index}`,
+    author: "Top100 Africa Future Leaders",
+    excerpt: `The field notes from impact story ${index}.`,
+    contentHtml: `<p>Impact story ${index}</p>`,
+    tags: ["impact"],
+    coverImage: null,
+    coverImageAlt: null,
+    authorId: null,
+    metaTitle: null,
+    metaDescription: null,
+    metaKeywords: null,
+    scheduledAt: null,
+    createdAt: "2026-09-01T00:00:00.000Z",
+    updatedAt: "2026-09-01T00:00:00.000Z",
+    readTime: 3,
+    isFeatured: index === 2,
+    status: "published" as const,
+  })
+
+  return {
+    awardees: [
+      awardee("Amina", false),
+      awardee("Kwame", true),
+      awardee("Thandi", false),
+      awardee("Zuri", true),
+      awardee("Ngozi", false),
+      awardee("Musa", false),
+      awardee("Lebo", false),
+    ],
+    posts: [post(1), post(2), post(3), post(4)],
+  }
+})
+
+vi.mock("@/lib/awardees", () => ({
+  getAwardees: async () => fixtures.awardees,
+}))
+
+vi.mock("@/lib/posts/server", () => ({
+  getHomepagePosts: async () => fixtures.posts,
+}))
+
+import { getImpactPageData } from "@/app/impacts/data"
+import ImpactPage, { metadata } from "@/app/impacts/page"
+import { galleryImages } from "@/lib/gallery-data"
+import { PAGE_OG } from "@/lib/og-pages"
+import { getFeaturedSpeakers } from "@/lib/speakers"
+import { SITE_URL } from "@/lib/site"
+
+describe("Impact hub", () => {
+  it("publishes the approved share card and canonical destination", () => {
+    expect(PAGE_OG["/impacts"]).toEqual({
+      eyebrow: "Impact Beyond Recognition",
+      title: "Celebrating the Work Beyond the Award",
+      subtitle: "Leaders, stories, and moments creating lasting change across Africa.",
+      hero: "/IMG_0679.jpg",
+    })
+    expect(metadata.alternates).toEqual({ canonical: `${SITE_URL}/impacts` })
+  })
+
+  it("selects featured leaders first and bounds every editorial feed", async () => {
+    const data = await getImpactPageData()
+
+    expect(data.featuredAwardees.map(({ slug }) => slug)).toEqual([
+      "kwame",
+      "zuri",
+      "amina",
+      "thandi",
+      "ngozi",
+      "musa",
+    ])
+    expect(data.stories.map(({ slug }) => slug)).toEqual([
+      "impact-story-1",
+      "impact-story-2",
+      "impact-story-3",
+    ])
+    expect(data.moments).toEqual(galleryImages.slice(0, 6))
+  })
+
+  it("server-renders the approved editorial pathways and selected content", async () => {
+    const data = await getImpactPageData()
+    const markup = renderToStaticMarkup(await ImpactPage())
+
+    expect(markup).toContain("Celebrating the Work Beyond the Award")
+    expect(markup).toContain('href="#leaders"')
+    expect(markup).toContain('id="leaders"')
+    expect(markup).toContain('href="/partnership"')
+    expect(markup).toContain('href="/interviews"')
+    expect(markup).toContain('href="/awardees"')
+    expect(markup).toContain("31+")
+    expect(markup).toContain("97,000")
+    expect(markup).toContain("2,000+")
+    expect(markup).toContain("Hear the work behind the recognition.")
+    expect(markup).toContain(">KW</text>")
+
+    for (const { slug } of getFeaturedSpeakers()) {
+      expect(markup).toContain(`href="/hall-of-fame/${slug}"`)
+    }
+    for (const { slug, name } of data.featuredAwardees) {
+      expect(markup).toContain(`href="/awardees/${slug}"`)
+      expect(markup).toContain(name)
+    }
+    for (const { slug } of data.stories) {
+      expect(markup).toContain(`href="/blog/${slug}"`)
+    }
+    for (const { alt, caption } of data.moments) {
+      expect(markup).toContain(`alt="${alt}"`)
+      expect(markup).toContain(caption)
+    }
+  })
+})

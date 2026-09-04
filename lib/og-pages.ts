@@ -71,6 +71,12 @@ export const PAGE_OG: Record<string, OgCard> = {
     subtitle: "The speakers who have inspired and supported the Top100 community.",
     hero: "/speakers/Ruby Igwe.jpeg",
   },
+  "/impacts": {
+    eyebrow: "Impact Beyond Recognition",
+    title: "Celebrating the Work Beyond the Award",
+    subtitle: "Leaders, stories, and moments creating lasting change across Africa.",
+    hero: "/IMG_0679.jpg",
+  },
   "/initiatives": {
     eyebrow: "Initiatives",
     title: "Our Initiatives — Scholarships, Summits & Opportunities",
