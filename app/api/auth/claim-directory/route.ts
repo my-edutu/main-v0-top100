@@ -28,7 +28,7 @@ function maskEmail(email: string): string {
 
 export async function GET(request: NextRequest) {
   const identifier = getClientIdentifier(request.headers)
-  const rl = checkRateLimit({ ...RATE_LIMITS.AUTH, identifier: `claim-directory:${identifier}` })
+  const rl = await checkRateLimit({ ...RATE_LIMITS.AUTH, identifier: `claim-directory:${identifier}` })
   if (!rl.success) {
     return createRateLimitResponse(rl, 'Too many requests. Please try again shortly.')
   }

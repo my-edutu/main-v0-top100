@@ -239,7 +239,7 @@ export default function AwardeesListClient({ awardees, featuredAwardees = [] }: 
                     }}>
                         {featuredAwardees.map((awardee) => (
                             <Link
-                                key={awardee.id}
+                                key={awardee.awardee_id}
                                 href={`/awardees/${generateSlug(awardee.name)}`}
                                 style={{
                                     flexShrink: 0,
@@ -375,4 +375,3 @@ export default function AwardeesListClient({ awardees, featuredAwardees = [] }: 
         </main>
     )
 }
-

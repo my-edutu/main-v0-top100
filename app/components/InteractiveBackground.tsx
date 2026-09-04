@@ -7,11 +7,11 @@ const InteractiveBackground: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
+    const canvasElement = canvasRef.current
+    if (!canvasElement) return
 
-    const ctx = canvas.getContext("2d")
-    if (!ctx) return
+    const context = canvasElement.getContext("2d")
+    if (!context) return
 
     let animationFrameId: number
     let mouseX = 0
@@ -28,9 +28,12 @@ const InteractiveBackground: React.FC = () => {
       speedY: number
       color: string
 
-      constructor() {
-        this.x = Math.random() * canvas.width
-        this.y = Math.random() * canvas.height
+      constructor(
+        private readonly canvas: HTMLCanvasElement,
+        private readonly context: CanvasRenderingContext2D,
+      ) {
+        this.x = Math.random() * this.canvas.width
+        this.y = Math.random() * this.canvas.height
         this.size = Math.random() * 5 + 1
         this.speedX = Math.random() * 3 - 1.5
         this.speedY = Math.random() * 3 - 1.5
@@ -38,29 +41,29 @@ const InteractiveBackground: React.FC = () => {
       }
 
       update() {
-        this.x += this.speedX + (mouseX - canvas.width / 2) * 0.01
-        this.y += this.speedY + (mouseY - canvas.height / 2) * 0.01
+        this.x += this.speedX + (mouseX - this.canvas.width / 2) * 0.01
+        this.y += this.speedY + (mouseY - this.canvas.height / 2) * 0.01
 
-        if (this.x < 0 || this.x > canvas.width) this.speedX *= -1
-        if (this.y < 0 || this.y > canvas.height) this.speedY *= -1
+        if (this.x < 0 || this.x > this.canvas.width) this.speedX *= -1
+        if (this.y < 0 || this.y > this.canvas.height) this.speedY *= -1
       }
 
       draw() {
-        ctx.fillStyle = this.color
-        ctx.beginPath()
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2)
-        ctx.fill()
+        this.context.fillStyle = this.color
+        this.context.beginPath()
+        this.context.arc(this.x, this.y, this.size, 0, Math.PI * 2)
+        this.context.fill()
       }
     }
 
     const init = () => {
       for (let i = 0; i < particleCount; i++) {
-        particles.push(new Particle())
+        particles.push(new Particle(canvasElement, context))
       }
     }
 
     const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      context.clearRect(0, 0, canvasElement.width, canvasElement.height)
       for (const particle of particles) {
         particle.update()
         particle.draw()
@@ -69,8 +72,8 @@ const InteractiveBackground: React.FC = () => {
     }
 
     const handleResize = () => {
-      canvas.width = window.innerWidth
-      canvas.height = window.innerHeight
+      canvasElement.width = window.innerWidth
+      canvasElement.height = window.innerHeight
     }
 
     const handleMouseMove = (event: MouseEvent) => {

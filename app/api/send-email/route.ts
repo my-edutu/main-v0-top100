@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
   try {
     // Rate limiting - prevent spam
     const identifier = getClientIdentifier(req.headers);
-    const rateLimitResult = checkRateLimit({
+    const rateLimitResult = await checkRateLimit({
       ...RATE_LIMITS.CONTACT,
       identifier: `contact:${identifier}`,
     });

@@ -92,6 +92,7 @@ export type AwardeeDirectoryEntry = {
   cover_image_url?: string | null;
   headline?: string | null;
   tagline?: string | null;
+  linkedin_post_url?: string | null;
 
   personal_email?: string | null;
   phone?: string | null;

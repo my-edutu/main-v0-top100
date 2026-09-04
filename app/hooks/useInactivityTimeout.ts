@@ -69,8 +69,8 @@ export function useInactivityTimeout(options: UseInactivityTimeoutOptions = {}) 
   } = options
 
   const router = useRouter()
-  const timeoutRef = useRef<NodeJS.Timeout>()
-  const warningTimeoutRef = useRef<NodeJS.Timeout>()
+  const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined)
+  const warningTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined)
   const lastActivityRef = useRef<number>(Date.now())
 
   /**

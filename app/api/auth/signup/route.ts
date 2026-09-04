@@ -30,7 +30,6 @@ const VALIDATION_MESSAGES: Record<string, string> = {
 
 async function verifyCaptchaToken(token: string | undefined): Promise<boolean> {
   const secretKey = process.env.TURNSTILE_SECRET_KEY
-  // Captcha not configured -> skip (dev / not-yet-enabled).
   if (!secretKey) return true
   if (!token) return false
 
@@ -49,14 +48,12 @@ async function verifyCaptchaToken(token: string | undefined): Promise<boolean> {
 }
 
 export async function POST(request: NextRequest) {
-  // 1. Rate limit (strict auth bucket)
   const identifier = getClientIdentifier(request.headers)
-  const rl = checkRateLimit({ ...RATE_LIMITS.AUTH, identifier: `signup:${identifier}` })
+  const rl = await checkRateLimit({ ...RATE_LIMITS.AUTH, identifier: `signup:${identifier}` })
   if (!rl.success) {
     return createRateLimitResponse(rl, 'Too many signup attempts. Please try again shortly.')
   }
 
-  // 2. Parse + validate input
   let payload: Record<string, unknown>
   try {
     payload = await request.json()
@@ -80,7 +77,6 @@ export async function POST(request: NextRequest) {
   }
   if (!rawCode.trim()) return NextResponse.json({ message: 'An invite code is required.' }, { status: 400 })
 
-  // 3. Captcha (if configured)
   const captchaOk = await verifyCaptchaToken(captchaToken)
   if (!captchaOk) {
     return NextResponse.json({ message: 'CAPTCHA verification failed. Please try again.' }, { status: 400 })
@@ -88,7 +84,6 @@ export async function POST(request: NextRequest) {
 
   const supabase = createAdminClient()
 
-  // 4. Validate the identity claim against the awardee directory.
   const { data: awardee, error: awardeeError } = await supabase
     .from('awardees')
     .select('id, name, email, slug, country, course, bio, image_url, profile_id')
@@ -116,7 +111,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'This awardee record is incomplete. Contact the admin team.' }, { status: 422 })
   }
 
-  // 5. Validate the access code (bound to email if the code specifies one)
   const validation = await validateCode(rawCode, email)
   if (!validation.ok) {
     return NextResponse.json(
@@ -125,7 +119,6 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  // 6. Create the auth user. Role lives in app_metadata so the JWT carries it.
   const { data: created, error: createError } = await supabase.auth.admin.createUser({
     email,
     password,
@@ -144,9 +137,6 @@ export async function POST(request: NextRequest) {
   }
 
   const userId = created.user.id
-
-  // 7. Create the profile row, seeded from the awardee record. Roll back the
-  // auth user if this fails.
   const slug =
     awardee.slug ||
     name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') ||
@@ -178,9 +168,7 @@ export async function POST(request: NextRequest) {
   })
 
   if (profileError) {
-    // best-effort rollback so a failed signup doesn't strand an auth user
     await supabase.auth.admin.deleteUser(userId).catch(() => {})
-    // A slug/email collision is the most likely cause.
     const dup = /duplicate|unique/i.test(profileError.message)
     return NextResponse.json(
       { message: dup ? 'An account with these details already exists.' : 'Could not finish creating your profile. Please try again.' },
@@ -188,9 +176,6 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  // 8. Claim the awardee row. The `.is('profile_id', null)` filter makes this
-  // a compare-and-swap: two concurrent signups for the same awardee can both
-  // pass step 4, but only one lands the claim — the loser is rolled back.
   const { data: claimed, error: claimError } = await supabase
     .from('awardees')
     .update({ profile_id: userId, email })
@@ -207,7 +192,6 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  // 9. Consume the code (non-fatal if it races; account already exists).
   await consumeCode(rawCode, userId)
 
   return NextResponse.json(

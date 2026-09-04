@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
   const user = await getCurrentUser()
   if (!user?.id) return NextResponse.json({ message: 'Authentication required.' }, { status: 401 })
 
-  const rateLimit = checkRateLimit({ ...POST_CREATE_LIMIT, identifier: `member-posts:${user.id}` })
+  const rateLimit = await checkRateLimit({ ...POST_CREATE_LIMIT, identifier: `member-posts:${user.id}` })
   if (!rateLimit.success) {
     return createRateLimitResponse(
       rateLimit,

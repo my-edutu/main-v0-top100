@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
   const user = await getCurrentUser()
   if (!user?.id) return NextResponse.json({ message: 'Authentication required.' }, { status: 401 })
 
-  const rate = checkRateLimit({ ...RATE_LIMITS.AUTH, identifier: `award-checkout:${user.id}` })
+  const rate = await checkRateLimit({ ...RATE_LIMITS.AUTH, identifier: `award-checkout:${user.id}` })
   if (!rate.success) return createRateLimitResponse(rate, 'Too many payment attempts. Please wait a moment.')
 
   const supabase = createAdminClient()

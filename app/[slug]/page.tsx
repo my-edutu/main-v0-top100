@@ -9,6 +9,10 @@ import { ArrowLeft, Calendar, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Metadata } from 'next';
 
+type AnnouncementPageProps = {
+    params: Promise<{ slug: string }>;
+};
+
 async function getAnnouncement(slug: string) {
     const supabase = createAdminClient();
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
@@ -24,8 +28,9 @@ async function getAnnouncement(slug: string) {
     return query.single();
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-    const { data: announcement } = await getAnnouncement(params.slug);
+export async function generateMetadata({ params }: AnnouncementPageProps): Promise<Metadata> {
+    const { slug } = await params;
+    const { data: announcement } = await getAnnouncement(slug);
 
     if (!announcement) {
         return {
@@ -51,8 +56,9 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     }
 }
 
-export default async function AnnouncementSlugPage({ params }: { params: { slug: string } }) {
-    const { data: announcement, error } = await getAnnouncement(params.slug);
+export default async function AnnouncementSlugPage({ params }: AnnouncementPageProps) {
+    const { slug } = await params;
+    const { data: announcement, error } = await getAnnouncement(slug);
 
     if (error || !announcement) {
         notFound();

@@ -58,7 +58,7 @@ const formatEmailHtml = (subject: string, message: string, values: Record<string
 export async function POST(req: NextRequest) {
   try {
     const identifier = getClientIdentifier(req.headers)
-    const rateLimitResult = checkRateLimit({
+    const rateLimitResult = await checkRateLimit({
       ...RATE_LIMITS.CONTACT,
       identifier: `application:${identifier}`,
     })

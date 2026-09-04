@@ -159,6 +159,11 @@ export default function EditAwardeePage({ params }: { params: Promise<{ id: stri
   };
 
   const onSubmit = async (data: AwardeeFormValues) => {
+    if (!awardee) {
+      toast.error('Awardee record is unavailable. Refresh the page and try again.');
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       toast.loading('Updating awardee...', { id: 'update-awardee' });
@@ -170,7 +175,7 @@ export default function EditAwardeePage({ params }: { params: Promise<{ id: stri
         // Upload image to Supabase Storage
         const formData = new FormData();
         formData.append('image', imageFile);
-        formData.append('awardee_id', awardee?.id || '');
+        formData.append('awardee_id', awardee.id);
 
         const uploadResponse = await fetch('/api/upload-image', {
           method: 'POST',

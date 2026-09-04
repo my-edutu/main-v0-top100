@@ -119,7 +119,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ message }, { status: 400 })
   }
 
-  const rateLimit = checkRateLimit({
+  const rateLimit = await checkRateLimit({
     maxRequests: 30,
     windowSeconds: 60,
     identifier: `group-post:${user.id}`,

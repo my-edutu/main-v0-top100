@@ -1,13 +1,25 @@
-import { AvatarSVG, flagEmoji } from '@/lib/avatars'
-import type { AwardeeDirectoryEntry } from '@/types/profile'
+import { AvatarSVG } from '@/lib/avatars'
+
+type AwardeeCardData = {
+  name: string
+  country?: string | null
+  cohort?: string | null
+  field_of_study?: string | null
+  current_school?: string | null
+  category?: string | null
+  bio?: string | null
+  bio30?: string | null
+  interests?: string[] | null
+}
 
 interface AwardeeCardProps {
-  awardee: AwardeeDirectoryEntry
+  awardee: AwardeeCardData
 }
 
 export const AwardeeCard: React.FC<AwardeeCardProps> = ({ awardee }) => {
   const interests = awardee.interests ?? []
-  const primaryTag = awardee.cohort ?? awardee.field_of_study ?? awardee.current_school ?? ''
+  const primaryTag = awardee.cohort ?? awardee.field_of_study ?? awardee.current_school ?? awardee.category ?? ''
+  const bio = awardee.bio ?? awardee.bio30
 
   return (
     <div className="bg-black/50 rounded-2xl overflow-hidden backdrop-blur-lg border border-orange-400/20 hover:border-orange-400/40 transition-all duration-300 h-full flex flex-col">
@@ -30,8 +42,8 @@ export const AwardeeCard: React.FC<AwardeeCardProps> = ({ awardee }) => {
             )}
           </div>
         </div>
-        {awardee.bio && (
-          <p className="mt-4 line-clamp-3 text-sm text-zinc-400">{awardee.bio}</p>
+        {bio && (
+          <p className="mt-4 line-clamp-3 text-sm text-zinc-400">{bio}</p>
         )}
       </div>
       {interests.length > 0 && (

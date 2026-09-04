@@ -1,83 +1,90 @@
-import { read, utils } from 'xlsx';
+import { readSheet } from 'read-excel-file/universal'
 
-// Function to read awardees from Excel file
+import { sheetRowsToRecords } from '@/lib/spreadsheet-rows'
+
 export async function readAwardeesFromExcel(filePath: string) {
   try {
-    // This function would typically be used server-side
-    // For browser/client use, we'd need to handle file input differently
-    const response = await fetch(filePath);
-    const buffer = await response.arrayBuffer();
-    
-    const workbook = read(buffer, { type: 'array' });
-    const firstSheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[firstSheetName];
-    const jsonData = utils.sheet_to_json(worksheet);
+    const response = await fetch(filePath)
+    if (!response.ok) {
+      throw new Error(`Failed to fetch spreadsheet: ${response.status}`)
+    }
 
-    return processAwardeesData(jsonData);
+    const buffer = await response.arrayBuffer()
+    const sheetRows = await readSheet(buffer)
+    const jsonData = sheetRowsToRecords(sheetRows)
+
+    return processAwardeesData(jsonData)
   } catch (error) {
-    console.error('Error reading Excel file:', error);
-    throw error;
+    console.error('Error reading Excel file:', error)
+    throw error
   }
 }
 
-// Function to process the raw Excel data into our required format
-export function processAwardeesData(rawData: any[]) {
-  return rawData.map((row: any, index: number) => {
-    // Normalize keys to handle different possible column names
-    const normalizeKey = (obj: any, keyVariants: string[]): any => {
+export function processAwardeesData(rawData: Array<Record<string, unknown>>) {
+  return rawData.map((row, index) => {
+    const normalizeKey = (obj: Record<string, unknown>, keyVariants: string[]): unknown => {
       for (const variant of keyVariants) {
-        const foundKey = Object.keys(obj).find(k => 
+        const foundKey = Object.keys(obj).find(k =>
           k.toLowerCase().replace(/\s+/g, '').includes(variant.toLowerCase().replace(/\s+/g, ''))
-        );
-        if (foundKey && obj[foundKey]) {
-          return obj[foundKey];
+        )
+        if (foundKey) {
+          const candidate = obj[foundKey]
+          if (candidate !== undefined && candidate !== null && candidate !== '') {
+            return candidate
+          }
         }
       }
-      return null;
-    };
+      return null
+    }
 
-    // Extract country name properly - remove abbreviations like "NG Nigeria", keep only "Nigeria"
-    let country = normalizeKey(row, ['country', 'nationality']) || '';
+    let country = normalizeKey(row, ['country', 'nationality']) || ''
     if (country && typeof country === 'string' && country.includes(' ')) {
-      // If it looks like "XX CountryName", extract just the country name
-      const parts = country.split(' ');
-      if (parts.length >= 2 && parts[0].length === 2) { // Two-letter abbreviation
-        country = parts.slice(1).join(' '); // Take everything after the abbreviation
+      const parts = country.split(' ')
+      if (parts.length >= 2 && parts[0].length === 2) {
+        country = parts.slice(1).join(' ')
       }
     }
-    
-    // Extract year properly
-    let year = normalizeKey(row, ['year', 'batch']);
+
+    let year = normalizeKey(row, ['year', 'batch'])
     if (typeof year === 'string') {
-      year = parseInt(year);
+      const parsedYear = parseInt(year, 10)
+      year = Number.isFinite(parsedYear) ? parsedYear : null
     }
 
+    const rawName = normalizeKey(row, ['name', 'fullname', 'awardee'])
+    const name = rawName ? String(rawName) : `Awardee ${index + 1}`
+    const rawId = row.id
+
     return {
-      id: row.id || `awardee-${index + 1}`,
-      name: normalizeKey(row, ['name', 'fullname', 'awardee']) || `Awardee ${index + 1}`,
+      id: rawId ? String(rawId) : `awardee-${index + 1}`,
+      name,
       email: normalizeKey(row, ['email', 'mail', 'e-mail']) || null,
-      country: country || null,
+      country: country ? String(country) : null,
       cgpa: normalizeKey(row, ['cgpa', 'gpa', 'grade']) || null,
       course: normalizeKey(row, ['course', 'program', 'department']) || null,
       bio: normalizeKey(row, ['bio', 'description', 'about', 'leadership', 'bio30']) || null,
-      year: year ? parseInt(year.toString()) : 2024,
-      slug: generateSlug(normalizeKey(row, ['name', 'fullname', 'awardee']) || `Awardee ${index + 1}`)
-    };
-  });
+      year: typeof year === 'number' && Number.isFinite(year) ? year : 2024,
+      slug: generateSlug(name)
+    }
+  })
 }
 
-// Helper function to generate slug
 export function generateSlug(name: string): string {
   return name
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, '')
     .trim()
     .replace(/\s+/g, '-')
-    .replace(/-+/g, '-');
+    .replace(/-+/g, '-')
 }
 
-// Function to get statistics from awardees data
-export function getAwardeesStats(awardees: any[]) {
+interface AwardeeStatsInput {
+  country?: string | null
+  course?: string | null
+  year?: number | null
+}
+
+export function getAwardeesStats(awardees: AwardeeStatsInput[]) {
   if (!awardees || awardees.length === 0) {
     return {
       totalAwardees: 0,
@@ -87,41 +94,39 @@ export function getAwardeesStats(awardees: any[]) {
       recentAwardees: 0,
       topCountries: [],
       topCourses: []
-    };
+    }
   }
 
-  const currentYear = new Date().getFullYear();
-  
-  const totalAwardees = awardees.length;
-  const totalCountries = [...new Set(awardees.map((a: any) => a.country))].length;
-  const totalCourses = [...new Set(awardees.map((a: any) => a.course))].length;
-  const currentYearAwardees = awardees.filter((a: any) => a.year === currentYear).length;
-  const recentAwardees = awardees.filter((a: any) => 
-    a.year === currentYear || 
-    (a.year === currentYear - 1 && new Date().getMonth() < 3) // Include last year if we're early in current year
-  ).length;
+  const currentYear = new Date().getFullYear()
 
-  // Calculate countries distribution
-  const countryMap = new Map<string, number>();
-  awardees.forEach((awardee: any) => {
+  const totalAwardees = awardees.length
+  const totalCountries = [...new Set(awardees.map(a => a.country).filter(Boolean))].length
+  const totalCourses = [...new Set(awardees.map(a => a.course).filter(Boolean))].length
+  const currentYearAwardees = awardees.filter(a => a.year === currentYear).length
+  const recentAwardees = awardees.filter(a =>
+    a.year === currentYear ||
+    (a.year === currentYear - 1 && new Date().getMonth() < 3)
+  ).length
+
+  const countryMap = new Map<string, number>()
+  awardees.forEach((awardee) => {
     if (awardee.country) {
-      countryMap.set(awardee.country, (countryMap.get(awardee.country) || 0) + 1);
+      countryMap.set(awardee.country, (countryMap.get(awardee.country) || 0) + 1)
     }
-  });
+  })
   const topCountries = Array.from(countryMap, ([country, count]) => ({ country, count }))
     .sort((a, b) => b.count - a.count)
-    .slice(0, 5); // Top 5 countries
+    .slice(0, 5)
 
-  // Calculate course distribution
-  const courseMap = new Map<string, number>();
-  awardees.forEach((awardee: any) => {
+  const courseMap = new Map<string, number>()
+  awardees.forEach((awardee) => {
     if (awardee.course) {
-      courseMap.set(awardee.course, (courseMap.get(awardee.course) || 0) + 1);
+      courseMap.set(awardee.course, (courseMap.get(awardee.course) || 0) + 1)
     }
-  });
+  })
   const topCourses = Array.from(courseMap, ([course, count]) => ({ course, count }))
     .sort((a, b) => b.count - a.count)
-    .slice(0, 5); // Top 5 courses
+    .slice(0, 5)
 
   return {
     totalAwardees,
@@ -131,5 +136,5 @@ export function getAwardeesStats(awardees: any[]) {
     recentAwardees,
     topCountries,
     topCourses
-  };
+  }
 }

@@ -48,7 +48,7 @@ async function verifyTurnstile(token: string | null): Promise<boolean> {
 
 export async function POST(request: NextRequest) {
   const identifier = getClientIdentifier(request.headers)
-  const rateLimit = checkRateLimit({
+  const rateLimit = await checkRateLimit({
     ...RATE_LIMITS.UPLOAD,
     identifier: `interview-apply:${identifier}`,
   })

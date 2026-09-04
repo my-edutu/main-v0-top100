@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'File size too large. Maximum size is 5MB.' }, { status: 400 })
     }
 
-    const supabase = createClient()
+    const supabase = await createClient()
 
     const processed = await processUpload(await file.arrayBuffer(), AVATAR_PRESET, file.type)
     const filePath = createFileName(user.id, processed.extension)
@@ -54,17 +54,8 @@ export async function POST(request: NextRequest) {
       })
 
     if (uploadError) {
-      if (uploadError.message.includes('not found')) {
-        return NextResponse.json(
-          {
-            error: `Storage bucket "${BUCKET_NAME}" is missing. Create it in Supabase or set SUPABASE_AVATARS_BUCKET to an existing bucket.`,
-          },
-          { status: 500 },
-        )
-      }
-
       console.error('[avatars] upload failed', uploadError)
-      return NextResponse.json({ error: uploadError.message }, { status: 500 })
+      return NextResponse.json({ error: 'Avatar upload failed' }, { status: 500 })
     }
 
     const { data: publicUrl } = supabase.storage.from(BUCKET_NAME).getPublicUrl(uploadData.path)

@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Per member, not per IP: a shared office network must not lock everyone out.
-  const rateLimit = checkRateLimit({
+  const rateLimit = await checkRateLimit({
     maxRequests: GROUP_CREATE_DAILY_LIMIT,
     windowSeconds: 24 * 60 * 60,
     identifier: `group-create:${user.id}`,
