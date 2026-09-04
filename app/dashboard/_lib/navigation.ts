@@ -5,6 +5,7 @@ import {
   FileText,
   Home,
   MessageCircle,
+  Newspaper,
   Settings,
   Trophy,
   UserRound,
@@ -56,6 +57,7 @@ export const discoverNav: DashboardNavItem[] = [
 
 export const meNav: DashboardNavItem[] = [
   { label: 'Profile', href: '/dashboard/me/profile', icon: UserRound, color: 'forest' },
+  { label: 'Portfolio cover', href: '/dashboard/me/portfolio-cover', icon: Newspaper, color: 'saffron' },
   { label: 'My award', href: '/dashboard/me/award', icon: Trophy, color: 'saffron' },
   { label: 'Posts', href: '/dashboard/me/posts', icon: FileText, color: 'cobalt' },
   { label: 'Get featured', href: '/dashboard/me/feature', icon: Trophy, color: 'burgundy' },

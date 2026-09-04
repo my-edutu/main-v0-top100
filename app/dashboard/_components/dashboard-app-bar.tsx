@@ -8,6 +8,7 @@ import { ArrowLeft, Bell } from 'lucide-react'
 import { resolveDashboardTitle } from '../_lib/navigation'
 import { useDashboardBadges } from '../_providers/dashboard-badges'
 import { useDashboardMember } from '../_providers/dashboard-member'
+import { top100DashboardTheme } from '@/lib/dashboard/theme'
 
 function CountBadge({ count }: { count: number }) {
   if (count <= 0) return null
@@ -28,7 +29,7 @@ export function DashboardAppBar() {
   const title = resolveDashboardTitle(pathname)
 
   return (
-    <header className="sticky top-0 z-40 h-[60px] border-b border-[#E7DDCF] bg-[#FBF7EF]/95 text-[#171412] backdrop-blur-md">
+    <header className={`sticky top-0 z-40 h-[60px] border-b text-[#171412] ${top100DashboardTheme.appBar}`}>
       <div className="flex h-full items-center gap-2 px-4 sm:px-6">
         {isHome ? (
           <Link

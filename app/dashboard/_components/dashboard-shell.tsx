@@ -7,12 +7,13 @@ import { DashboardBottomNav } from './dashboard-bottom-nav'
 import { DashboardDesktopNav } from './dashboard-desktop-nav'
 import { MembershipStatusBanner } from './membership-status-banner'
 import { useDashboardMember } from '../_providers/dashboard-member'
+import { top100DashboardTheme } from '@/lib/dashboard/theme'
 
 export function DashboardShell({ children }: { children: ReactNode }) {
   const { member } = useDashboardMember()
 
   return (
-    <div className="min-h-[100dvh] overflow-x-clip bg-[#FBF7EF] font-sans text-[#171412]">
+    <div className={`min-h-[100dvh] overflow-x-clip font-sans text-[#171412] ${top100DashboardTheme.canvas}`}>
       <DashboardAppBar />
       <div className="flex min-h-[calc(100dvh-60px)] items-start">
         <DashboardDesktopNav />

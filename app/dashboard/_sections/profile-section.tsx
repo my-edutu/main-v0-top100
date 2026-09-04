@@ -61,7 +61,7 @@ export function ProfileSection() {
         <div className="flex flex-wrap items-center gap-2">
           {member.publicSlug ? (
             <Button asChild variant="outline" className="rounded-full border-orange-200 bg-white text-[#171412] hover:bg-white">
-              <Link href={`/awardees/${member.publicSlug}`}>View public profile</Link>
+              <Link href={`/bio/${member.publicSlug}`}>View public profile</Link>
             </Button>
           ) : null}
           <span className="rounded-full bg-white px-3 py-2 text-xs font-extrabold text-[#6C2600]">

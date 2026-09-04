@@ -183,6 +183,25 @@ describe('interactive local dashboard demo API', () => {
     expect(completed.data.order.paidAt).toEqual(expect.any(String))
   })
 
+  it('creates two portfolio cover options and preserves the original member avatar state', async () => {
+    const form = new FormData()
+    form.set('portrait', new File([Buffer.from('portrait')], 'portrait.jpg', { type: 'image/jpeg' }))
+    form.set('tailoring', 'female')
+    form.set('consent', 'true')
+    form.set('fields', JSON.stringify({ name: 'Amara Okafor', school: 'University of Lagos', cgpa: '4.8 / 5.0' }))
+    const request = new NextRequest('http://localhost:3000/api/member/portfolio-cover/generations', { method: 'POST', headers: { host: 'localhost:3000', cookie: `${DEV_DASHBOARD_COOKIE}=${DEV_DASHBOARD_COOKIE_VALUE}` }, body: form })
+    const path = ['portfolio-cover', 'generations']
+    const created = await handleDemoMemberRequest(request, path, store, 'development')
+    const createdData = await created.json()
+    expect(created.status).toBe(202)
+    expect(Object.keys(createdData.generation.options)).toHaveLength(2)
+    const id = createdData.generation.id as string
+    const selectedRequest = demoRequest('POST', `portfolio-cover/generations/${id}/select`, { variant: 'leadership-ivory' })
+    const selected = await handleDemoMemberRequest(selectedRequest, [...path, id, 'select'], store, 'development')
+    expect((await selected.json()).generation.status).toBe('selected')
+    expect(store.profile.avatarInitials).toBe('AO')
+  })
+
   it('makes unsupported demo operations visible', async () => {
     const { response, data } = await call(store, 'GET', 'does-not-exist')
     expect(response.status).toBe(501)

@@ -32,6 +32,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
 
   const awardee = normalizeAwardeeEntry(raw)
+  const portfolioCoverUrl = typeof (raw as any).portfolio_cover_url === 'string' ? (raw as any).portfolio_cover_url : null
   const showcaseYear = typeof awardee.year === 'number' && Number.isFinite(awardee.year) ? awardee.year : 2025
   const cohortLabel = awardee.cohort && awardee.cohort.trim().length > 0 ? awardee.cohort : `Top100 Africa Future Leader ${showcaseYear}`
 
@@ -56,7 +57,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     eyebrow: `Top100 AFL ${showcaseYear}`,
     subtitle: awardee.headline || awardee.tagline || cohortLabel,
     meta: [awardee.country, cohortLabel].filter(Boolean).join(' · '),
-    hero: awardee.avatar_url || awardee.cover_image_url || null,
+    hero: portfolioCoverUrl || awardee.avatar_url || awardee.cover_image_url || null,
     variant: 'profile' as const,
   }
 
@@ -113,6 +114,7 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
   }
 
   const awardee = normalizeAwardeeEntry(raw)
+  const portfolioCoverUrl = typeof (raw as any).portfolio_cover_url === 'string' ? (raw as any).portfolio_cover_url : null
 
   // Fetch random other awardees for suggestions
   const randomAwardees = (await getAwardees())
@@ -274,6 +276,19 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
             </div>
           </div>
         </header>
+
+        {portfolioCoverUrl ? (
+          <section className="border-b border-gray-100 py-10 sm:py-14" aria-labelledby="portfolio-cover-heading">
+            <div className="grid items-center gap-8 md:grid-cols-[240px_1fr] md:gap-12">
+              <Image src={portfolioCoverUrl} alt={`${awardee.name} Top100 Africa Future Leaders magazine cover`} width={480} height={600} className="mx-auto w-full max-w-[240px] rounded-sm shadow-2xl" />
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-700">Top100 editorial profile</p>
+                <h2 id="portfolio-cover-heading" className="mt-2 font-serif text-3xl font-bold text-gray-900 sm:text-4xl">Meet the future leader behind the work.</h2>
+                <p className="mt-4 max-w-xl text-base leading-7 text-gray-600">A shareable portrait of {awardee.name}, created for the Africa Future Leaders community.</p>
+              </div>
+            </div>
+          </section>
+        ) : null}
 
         {/* Main Content */}
         <div className="py-10 sm:py-16">

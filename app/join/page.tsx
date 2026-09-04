@@ -44,6 +44,20 @@ export default function JoinPage() {
               Become an Africa Future Leader
             </a>
           </div>
+          <div className="mx-auto max-w-xl rounded-2xl border border-orange-400/30 bg-white/5 px-5 py-4 text-left backdrop-blur-sm">
+            <p className="text-sm text-zinc-300">
+              Already selected as a Top100 Africa Future Leader?
+            </p>
+            <Link
+              href="/signup"
+              className="mt-2 inline-flex items-center font-semibold text-orange-300 underline-offset-4 transition-colors hover:text-orange-200 hover:underline"
+            >
+              Claim your awardee profile →
+            </Link>
+            <p className="mt-1 text-xs text-zinc-500">
+              You&apos;ll need the one-time invite code from the admin team.
+            </p>
+          </div>
         </div>
 
         {/* Statistics Section */}

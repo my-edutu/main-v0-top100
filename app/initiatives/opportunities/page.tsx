@@ -15,7 +15,7 @@ export default function OpportunitiesHub() {
 
 
   // Handle filter changes
-  const handleFilterChange = (filterType: string, value: string) => {
+  const handleFilterChange = (filterType: keyof typeof filters, value: string) => {
     setFilters(prev => ({
       ...prev,
       [filterType]: value === prev[filterType] ? '' : value

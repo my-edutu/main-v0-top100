@@ -24,6 +24,11 @@ import { Label } from '@/components/ui/label'
 import { supabase } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import LegalConsent from '@/app/components/LegalConsent'
+import {
+  CLAIM_DIRECTORY_RESULT_LIMIT,
+  filterClaimDirectory,
+  isPersistentAvatarUrl,
+} from '@/lib/auth/claim-directory'
 
 type DirectoryAwardee = {
   id: string
@@ -92,11 +97,17 @@ export default function SignUpPage() {
   }, [])
 
   const filtered = useMemo(() => {
+    return filterClaimDirectory(directory, query)
+  }, [directory, query])
+
+  const totalMatches = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return directory
-    return directory.filter((a) =>
-      [a.name, a.country ?? '', a.course ?? ''].some((field) => field.toLowerCase().includes(q))
-    )
+    if (!q) return directory.length
+    return directory.filter((awardee) =>
+      [awardee.name, awardee.country ?? '', awardee.course ?? ''].some((field) =>
+        field.toLowerCase().includes(q)
+      )
+    ).length
   }, [directory, query])
 
   function choose(awardee: DirectoryAwardee) {
@@ -297,7 +308,7 @@ export default function SignUpPage() {
                         onClick={() => choose(awardee)}
                         className="flex w-full items-center gap-3 rounded-2xl border border-slate-100 bg-white px-4 py-3 text-left transition-colors hover:border-orange-200 hover:bg-orange-50/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40"
                       >
-                        {awardee.imageUrl ? (
+                        {isPersistentAvatarUrl(awardee.imageUrl) ? (
                           <Image
                             src={awardee.imageUrl}
                             alt=""
@@ -320,6 +331,12 @@ export default function SignUpPage() {
                       </button>
                     ))}
                 </div>
+                {!directoryLoading && !directoryError && totalMatches > CLAIM_DIRECTORY_RESULT_LIMIT && (
+                  <p className="text-center text-xs leading-5 text-slate-500">
+                    Showing the first {CLAIM_DIRECTORY_RESULT_LIMIT} matches. Search by name, country,
+                    or field to find your profile faster.
+                  </p>
+                )}
               </div>
             )}
 

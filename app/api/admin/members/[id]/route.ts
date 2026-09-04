@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/api/require-admin'
 import { createAdminClient } from '@/lib/supabase/server'
 import { mapProfileToMember } from '@/lib/member-hub-server'
+import { createPortfolioCoverRepository } from '@/lib/portfolio-cover/repository'
 
 export const runtime = 'nodejs'
 
@@ -31,7 +32,16 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const action = String(body.action ?? '')
   const update: Record<string, unknown> = {}
 
-  if (action === 'reset-bio') {
+  if (action === 'reset-portfolio-cover') {
+    try {
+      const generation = await createPortfolioCoverRepository().getLatest(id)
+      if (!generation) return NextResponse.json({ message: 'No portfolio cover set found.' }, { status: 404 })
+      await createPortfolioCoverRepository().reset(generation.id, adminCheck.user.id)
+      update.portfolio_cover_url = null
+    } catch {
+      return NextResponse.json({ message: 'Could not reset the portfolio cover.' }, { status: 500 })
+    }
+  } else if (action === 'reset-bio') {
     update.bio_update_count = 0
   } else if (STATUS_ACTIONS[action]) {
     update.membership_status = STATUS_ACTIONS[action]
@@ -54,6 +64,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   // Tell the member what happened so status changes are visible in their
   // dashboard notifications, not just as a silent badge change.
   const statusNotice: Record<string, { title: string; body: string }> = {
+    'reset-portfolio-cover': {
+      title: 'Your portfolio cover can be regenerated',
+      body: 'The admin team reset your portfolio cover allowance. You can create a new two-option cover set from your dashboard.',
+    },
     approve: {
       title: 'Your awardee account is approved',
       body: 'Welcome to the network! Your account has full access — complete your BIO and connect with fellow awardees.',
