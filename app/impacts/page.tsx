@@ -5,7 +5,6 @@ import { ArrowRight } from "lucide-react"
 
 import HallOfFamePreview from "@/app/components/HallOfFamePreview"
 import BlogCover from "@/components/BlogCover"
-import { AvatarSVG } from "@/lib/avatars"
 import { IMPACT_HERO, IMPACT_STATS } from "@/lib/impact-content"
 import { ogMetadata } from "@/lib/og"
 import { pageOg } from "@/lib/og-pages"
@@ -14,6 +13,7 @@ import { SITE_URL } from "@/lib/site"
 import { resolveStoryCoverCandidates } from "@/lib/story-covers"
 
 import { getImpactPageData } from "./data"
+import ImpactAwardeeSpotlight from "./ImpactAwardeeSpotlight"
 
 export const revalidate = 300
 
@@ -132,64 +132,7 @@ export default async function ImpactPage() {
           </p>
         </div>
 
-        {featuredAwardees.length > 0 ? (
-          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:mt-14 lg:grid-cols-3 lg:gap-6">
-            {featuredAwardees.map((awardee, index) => (
-              <Link
-                key={awardee.slug}
-                href={`/awardees/${awardee.slug}`}
-                className="group rounded-[1.75rem] border border-orange-100 bg-[#fff] p-5 shadow-[0_12px_45px_rgba(15,23,42,0.06)] transition hover:-translate-y-1 hover:border-orange-300 hover:shadow-[0_20px_55px_rgba(15,23,42,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-4"
-              >
-                <article className="flex h-full flex-col">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-orange-100 text-slate-950 ring-4 ring-orange-50">
-                      {awardee.avatar_url ? (
-                        <Image
-                          src={awardee.avatar_url}
-                          alt={`Portrait of ${awardee.name}`}
-                          fill
-                          sizes="80px"
-                          className="object-cover"
-                        />
-                      ) : (
-                        <AvatarSVG name={awardee.name} size={80} />
-                      )}
-                    </div>
-                    <span className="font-mono text-xs text-slate-400">0{index + 1}</span>
-                  </div>
-                  <h3 className="mt-5 text-xl font-semibold leading-7 transition group-hover:text-orange-700">
-                    {awardee.name}
-                  </h3>
-                  {awardee.country ? (
-                    <p className="mt-1 text-xs font-bold uppercase tracking-[0.18em] text-orange-700">
-                    {awardee.country}
-                    </p>
-                  ) : null}
-                  <p className="mt-4 line-clamp-4 text-sm leading-6 text-slate-600">
-                    {awardee.bio ?? "Profile details coming soon."}
-                  </p>
-                  <span className="mt-auto inline-flex items-center gap-2 pt-6 text-sm font-semibold text-slate-950">
-                    Meet {awardee.name.split(" ")[0]}
-                    <ArrowRight aria-hidden="true" className="h-4 w-4 transition group-hover:translate-x-1" />
-                  </span>
-                </article>
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <div className="mt-10 rounded-[1.75rem] border border-dashed border-orange-200 bg-[#fff] p-8 text-center sm:p-10">
-            <h3 className="text-xl font-semibold">Awardee spotlights are currently unavailable.</h3>
-            <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-slate-600">
-              Explore the full directory while new spotlight profiles are prepared.
-            </p>
-            <Link
-              href="/awardees"
-              className="mt-5 inline-flex items-center gap-2 font-semibold text-orange-700 hover:text-orange-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-4"
-            >
-              Meet all awardees <ArrowRight aria-hidden="true" className="h-4 w-4" />
-            </Link>
-          </div>
-        )}
+        <ImpactAwardeeSpotlight awardees={featuredAwardees} />
       </section>
 
       <section className="border-y border-orange-100 bg-[#fff] py-16 sm:py-24">
@@ -261,12 +204,12 @@ export default async function ImpactPage() {
         </div>
       </section>
 
-      <section className="container py-16 sm:py-24">
+      <section aria-labelledby="event-moments-title" className="container py-16 sm:py-24">
         <div className="max-w-3xl">
           <p className="text-xs font-bold uppercase tracking-[0.24em] text-orange-700">
             Event moments
           </p>
-          <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight sm:text-5xl">
+          <h2 id="event-moments-title" className="mt-4 text-balance text-3xl font-semibold tracking-tight sm:text-5xl">
             A movement, witnessed together.
           </h2>
           <p className="mt-5 text-base leading-7 text-slate-600 sm:text-lg sm:leading-8">
@@ -275,26 +218,19 @@ export default async function ImpactPage() {
           </p>
         </div>
 
-        <div className="mt-10 grid auto-rows-[minmax(12rem,1fr)] grid-cols-1 gap-4 sm:grid-cols-12 lg:mt-14">
+        <div className="mt-10 grid auto-rows-[minmax(9rem,1fr)] grid-cols-2 gap-3 sm:auto-rows-[minmax(12rem,1fr)] sm:grid-cols-12 sm:gap-4 lg:mt-14">
           {moments.map((moment, index) => (
             <figure
               key={moment.id}
-              className={`group relative aspect-[4/3] overflow-hidden rounded-[1.5rem] bg-slate-200 ${momentLayouts[index]}`}
+              className={`group relative aspect-square overflow-hidden rounded-[1.25rem] bg-slate-200 sm:rounded-[1.5rem] ${momentLayouts[index]}`}
             >
               <Image
                 src={moment.src}
                 alt={moment.alt}
                 fill
-                sizes={index === 0 ? "(max-width: 640px) 100vw, 58vw" : "(max-width: 640px) 100vw, 34vw"}
+                sizes={index === 0 ? "(max-width: 640px) 50vw, 58vw" : "(max-width: 640px) 50vw, 34vw"}
                 className="object-cover transition duration-700 group-hover:scale-[1.025]"
               />
-              <div
-                aria-hidden="true"
-                className="absolute inset-0 bg-[linear-gradient(180deg,transparent_42%,rgba(11,18,32,0.78)_100%)]"
-              />
-              <figcaption className="absolute inset-x-0 bottom-0 p-5 text-sm font-medium leading-5 text-[#fff] sm:p-6">
-                {moment.caption}
-              </figcaption>
             </figure>
           ))}
         </div>
@@ -316,27 +252,45 @@ export default async function ImpactPage() {
       </section>
 
       <section className="container py-16 sm:py-24">
-        <div className="grid overflow-hidden rounded-[2rem] border border-orange-200 bg-[#fff] lg:grid-cols-2">
-          <div className="p-7 sm:p-10 lg:p-12">
-            <p className="text-xs font-bold uppercase tracking-[0.24em] text-orange-700">Build with us</p>
-            <h2 className="mt-4 text-3xl font-semibold tracking-tight">Help the work travel further.</h2>
-            <p className="mt-4 max-w-lg leading-7 text-slate-600">
+        <div className="grid overflow-hidden rounded-[2rem] bg-[#0b1220] shadow-[0_24px_70px_rgba(15,23,42,0.16)] lg:grid-cols-2">
+          <article aria-labelledby="build-with-us-title" className="relative isolate min-h-[25rem] overflow-hidden p-7 text-[#fff] sm:p-10 lg:p-12">
+            <Image
+              src="/IMG_0676.jpg"
+              alt=""
+              aria-hidden="true"
+              fill
+              sizes="(max-width: 1024px) 100vw, 50vw"
+              className="-z-20 object-cover"
+            />
+            <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[linear-gradient(135deg,rgba(11,18,32,0.94)_12%,rgba(11,18,32,0.68)_62%,rgba(194,65,12,0.46)_100%)]" />
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-orange-300">Build with us</p>
+            <h2 id="build-with-us-title" className="mt-4 max-w-md text-3xl font-semibold tracking-tight text-[#fff]">Help the work travel further.</h2>
+            <p className="mt-4 max-w-lg leading-7 text-slate-200">
               Bring resources, reach, and expertise to a community turning recognition into durable change.
             </p>
-            <Link href="/partnership" className="mt-7 inline-flex items-center gap-2 font-semibold text-orange-700 hover:text-orange-800">
+            <Link href="/partnership" className="mt-7 inline-flex items-center gap-2 font-semibold text-orange-200 transition hover:text-[#fff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 focus-visible:ring-offset-4 focus-visible:ring-offset-[#0b1220]">
               Partner with us <ArrowRight aria-hidden="true" className="h-4 w-4" />
             </Link>
-          </div>
-          <div className="border-t border-orange-200 bg-orange-50 p-7 sm:p-10 lg:border-l lg:border-t-0 lg:p-12">
-            <p className="text-xs font-bold uppercase tracking-[0.24em] text-orange-700">The directory</p>
-            <h2 className="mt-4 text-3xl font-semibold tracking-tight">Meet the people moving Africa forward.</h2>
-            <p className="mt-4 max-w-lg leading-7 text-slate-600">
+          </article>
+          <article aria-labelledby="impact-directory-title" className="relative isolate min-h-[25rem] overflow-hidden border-t border-white/20 p-7 text-[#fff] sm:p-10 lg:border-l lg:border-t-0 lg:p-12">
+            <Image
+              src="/IMG_0674.jpg"
+              alt=""
+              aria-hidden="true"
+              fill
+              sizes="(max-width: 1024px) 100vw, 50vw"
+              className="-z-20 object-cover"
+            />
+            <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[linear-gradient(135deg,rgba(67,20,7,0.91)_4%,rgba(124,45,18,0.72)_56%,rgba(11,18,32,0.83)_100%)]" />
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-orange-200">The directory</p>
+            <h2 id="impact-directory-title" className="mt-4 max-w-lg text-3xl font-semibold tracking-tight text-[#fff]">Meet the people moving Africa forward.</h2>
+            <p className="mt-4 max-w-lg leading-7 text-orange-50">
               Explore the full network of recognised leaders, their fields, and the communities they serve.
             </p>
-            <Link href="/awardees" className="mt-7 inline-flex items-center gap-2 font-semibold text-orange-700 hover:text-orange-800">
+            <Link href="/awardees" className="mt-7 inline-flex items-center gap-2 font-semibold text-orange-100 transition hover:text-[#fff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-200 focus-visible:ring-offset-4 focus-visible:ring-offset-orange-950">
               Meet all awardees <ArrowRight aria-hidden="true" className="h-4 w-4" />
             </Link>
-          </div>
+          </article>
         </div>
       </section>
     </main>

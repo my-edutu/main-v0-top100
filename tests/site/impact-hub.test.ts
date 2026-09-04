@@ -220,8 +220,52 @@ describe("Impact hub", () => {
     }
     for (const { alt, caption } of data.moments) {
       expect(markup).toContain(`alt="${alt}"`)
-      expect(markup).toContain(caption)
+      expect(markup).not.toContain(caption)
     }
+  })
+
+  it("presents event moments as a compact mobile grid without visible captions", async () => {
+    const markup = renderToStaticMarkup(await ImpactPage())
+    const momentsSection = markup.match(
+      /aria-labelledby="event-moments-title"[\s\S]*?<\/section>/,
+    )?.[0]
+
+    expect(momentsSection).toBeDefined()
+    expect(momentsSection).toContain("grid-cols-2")
+    expect(momentsSection).not.toContain("<figcaption")
+    for (const { alt } of galleryImages.slice(0, 6)) {
+      expect(momentsSection).toContain(`alt="${alt}"`)
+    }
+  })
+
+  it("uses decorative event photographs behind both closing calls to action", async () => {
+    const markup = renderToStaticMarkup(await ImpactPage())
+    const partnershipPanel = markup.match(
+      /aria-labelledby="build-with-us-title"[\s\S]*?<\/article>/,
+    )?.[0]
+    const directoryPanel = markup.match(
+      /aria-labelledby="impact-directory-title"[\s\S]*?<\/article>/,
+    )?.[0]
+
+    expect(partnershipPanel).toContain('alt=""')
+    expect(partnershipPanel).toContain("%2FIMG_0676.jpg")
+    expect(directoryPanel).toContain('alt=""')
+    expect(directoryPanel).toContain("%2FIMG_0674.jpg")
+  })
+
+  it("shuffles spotlight cards without mutating or losing awardees", async () => {
+    const spotlightModule = await import("@/app/impacts/ImpactAwardeeSpotlight").catch(() => null)
+
+    expect(spotlightModule).not.toBeNull()
+    if (!spotlightModule) return
+
+    const original = fixtures.awardees.slice(0, 6)
+    const originalSlugs = original.map(({ slug }) => slug)
+    const shuffled = spotlightModule.shuffleSpotlightAwardees(original, () => 0.25)
+
+    expect(original.map(({ slug }) => slug)).toEqual(originalSlugs)
+    expect(shuffled.map(({ slug }) => slug)).not.toEqual(originalSlugs)
+    expect(shuffled.map(({ slug }) => slug).sort()).toEqual([...originalSlugs].sort())
   })
 
   it("renders controlled empty states when awardees and stories are unavailable", async () => {
