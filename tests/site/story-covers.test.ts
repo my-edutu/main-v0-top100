@@ -15,6 +15,14 @@ describe("resolveStoryCover", () => {
   })
 
   it("is deterministic for any index", () => {
-    expect(resolveStoryCover({ slug: "unmapped", coverImage: null }, 8)).toBe("/IMG_0681.jpg")
+    expect(resolveStoryCover({ slug: "unmapped", coverImage: null }, 8)).toBe("/IMG_0679.jpg")
+  })
+
+  it("provides a distinct fallback for every homepage story slot", () => {
+    const covers = Array.from({ length: 6 }, (_, index) =>
+      resolveStoryCover({ slug: `unmapped-${index}`, coverImage: null }, index),
+    )
+
+    expect(new Set(covers).size).toBe(6)
   })
 })

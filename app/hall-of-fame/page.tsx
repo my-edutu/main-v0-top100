@@ -7,7 +7,7 @@ import { SITE_URL } from "@/lib/site"
 import { SPEAKERS } from "@/lib/speakers"
 
 export const metadata: Metadata = {
-  title: "Hall of Fame | Top100 Africa Future Leaders",
+  title: "Hall of Fame",
   description: "Meet the speakers who have inspired and supported the Top100 community.",
   alternates: { canonical: `${SITE_URL}/hall-of-fame` },
   ...ogMetadata(pageOg("/hall-of-fame"), { url: "/hall-of-fame" }),

@@ -15,14 +15,16 @@ import { SITE_URL } from "@/lib/site"
 
 
 const urbanist = Urbanist({ subsets: ["latin"], variable: "--font-sans" })
+const globalTitle = "Top100 Africa Future Leaders | Celebrating Impact Beyond Recognition"
+const globalDescription =
+  "Meet 2,000+ awardees and the speakers, partners, and stories turning recognition into lasting impact across Africa."
 
 export const metadata: Metadata = {
   title: {
-    default: "Top100 Africa Future Leaders | Celebrating Africa's Youth Innovation & Leadership",
+    default: globalTitle,
     template: "%s | Top100 Africa Future Leaders",
   },
-  description:
-    "Discover 10,000+ exceptional African youth leaders, innovators, and changemakers. Access scholarships, leadership summits, and opportunities across the continent. Celebrating excellence from Lagos to Kigali.",
+  description: globalDescription,
   keywords: [
     "Africa",
     "leadership",
@@ -46,9 +48,8 @@ export const metadata: Metadata = {
   ],
   metadataBase: new URL(SITE_URL),
   openGraph: {
-    title: "Top100 Africa Future Leaders | Celebrating Africa's Youth Innovation & Leadership",
-    description:
-      "Discover 10,000+ exceptional African youth leaders, innovators, and changemakers. Access scholarships, leadership summits, and opportunities across the continent.",
+    title: globalTitle,
+    description: globalDescription,
     url: SITE_URL,
     siteName: "Top100 Africa Future Leaders",
     images: [
@@ -56,7 +57,7 @@ export const metadata: Metadata = {
         url: "/og-home.png",
         width: 2400,
         height: 1260,
-        alt: "Top100 Africa Future Leaders — Apply for Africa Future Leaders 2026",
+        alt: "Top100 Africa Future Leaders — Celebrating Impact Beyond Recognition",
       },
     ],
     locale: "en_US",
@@ -64,9 +65,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Top100 Africa Future Leaders | Celebrating Africa's Youth Innovation & Leadership",
-    description:
-      "Discover 10,000+ exceptional African youth leaders, innovators, and changemakers. Access scholarships, leadership summits, and opportunities across the continent.",
+    title: globalTitle,
+    description: globalDescription,
     images: ["/og-home.png"],
   },
   icons: {

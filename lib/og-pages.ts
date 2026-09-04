@@ -38,7 +38,7 @@ export const PAGE_OG: Record<string, OgCard> = {
   "/awardees": {
     eyebrow: "Directory",
     title: "Meet the Top100 Africa Future Leaders",
-    subtitle: "400+ awardees across 31 countries.",
+    subtitle: "2,000+ awardees across 31 countries.",
     hero: "/top100 2024.webp",
   },
   "/awardees-list": {

@@ -21,6 +21,7 @@ describe("Hall of Fame routes", () => {
     const ruby = SPEAKERS[0]
     const profileMetadata = await generateMetadata({ params: Promise.resolve({ slug: ruby.slug }) })
 
+    expect(metadata.title).toBe("Hall of Fame")
     expect(metadata.alternates).toEqual({ canonical: `${SITE_URL}/hall-of-fame` })
     expect(profileMetadata.title).toBe(`${ruby.name} | Hall of Fame`)
     expect(profileMetadata.alternates).toEqual({

@@ -8,7 +8,7 @@ import { ArrowRight } from "lucide-react"
 
 export default function MagazineSection() {
   return (
-    <section id="magazine" className="section-padding relative">
+    <section id="magazine" className="section-padding relative overflow-hidden">
       <div className="container">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">

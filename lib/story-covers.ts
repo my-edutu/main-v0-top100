@@ -10,6 +10,7 @@ const CURATED_COVERS = [
   "/IMG_0679.jpg",
   "/IMG_0681.jpg",
   "/IMG_0683.jpg",
+  "/IMG_0685.jpg",
 ] as const
 
 function isUsableCover(coverImage?: string | null): coverImage is string {

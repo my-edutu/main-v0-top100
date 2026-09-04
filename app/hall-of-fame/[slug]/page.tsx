@@ -70,7 +70,7 @@ export default async function SpeakerPage({ params }: PageProps) {
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
               href="/hall-of-fame"
-              className="rounded-full bg-slate-950 px-5 py-3 font-semibold text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
+              className="rounded-full bg-slate-950 px-5 py-3 font-semibold text-[#fff] transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
             >
               Back to Hall of Fame
             </Link>
