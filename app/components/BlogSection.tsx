@@ -8,6 +8,7 @@ import { ArrowRight } from "lucide-react"
 import BlogCover from "@/components/BlogCover"
 import { Button } from "@/components/ui/button"
 import type { ResolvedPost } from "@/lib/posts"
+import { resolveStoryCover } from "@/lib/story-covers"
 
 type BlogSectionProps = {
   initialPosts?: ResolvedPost[]
@@ -103,8 +104,9 @@ export default function BlogSection({ initialPosts }: BlogSectionProps) {
                 >
                   <div className="relative w-28 h-28 sm:w-full sm:h-auto sm:aspect-[16/10] flex-shrink-0 overflow-hidden">
                     <BlogCover
-                      imageUrl={post.coverImage}
+                      imageUrl={resolveStoryCover(post, index)}
                       title={post.title}
+                      alt={post.coverImageAlt ?? post.title}
                       className="transition duration-500 group-hover:scale-105"
                       sizes="(max-width: 640px) 112px, (max-width: 1200px) 50vw, 33vw"
                     />

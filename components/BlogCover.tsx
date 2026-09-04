@@ -1,3 +1,6 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import Image from "next/image"
 import { Sparkles } from "lucide-react"
 
@@ -6,6 +9,7 @@ import { cn } from "@/lib/utils"
 type BlogCoverProps = {
   imageUrl?: string | null
   title: string
+  alt?: string | null
   className?: string
   priority?: boolean
   sizes?: string
@@ -32,12 +36,19 @@ const DEFAULT_SIZES: Record<NonNullable<BlogCoverProps["variant"]>, string> = {
 export default function BlogCover({
   imageUrl,
   title,
+  alt,
   className,
   priority = false,
   sizes,
   variant = "card",
 }: BlogCoverProps) {
-  const showImage = hasRealCover(imageUrl)
+  const [imageFailed, setImageFailed] = useState(false)
+
+  useEffect(() => {
+    setImageFailed(false)
+  }, [imageUrl])
+
+  const showImage = hasRealCover(imageUrl) && !imageFailed
 
   return (
     // The brand gradient is set inline: globals.css rewrites `from-zinc-950`
@@ -54,11 +65,12 @@ export default function BlogCover({
       {showImage ? (
         <Image
           src={imageUrl!}
-          alt={title}
+          alt={alt ?? title}
           fill
           className="object-cover"
           priority={priority}
           sizes={sizes ?? DEFAULT_SIZES[variant]}
+          onError={() => setImageFailed(true)}
         />
       ) : (
         <>
