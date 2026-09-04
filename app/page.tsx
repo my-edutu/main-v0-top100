@@ -18,8 +18,8 @@ import InitiativeCards from "@/components/InitiativeCards"
 import NewsletterForm from "./components/NewsletterForm"
 import FAQSection from "./components/FAQSection"
 import EventsHubSection from "./components/EventsHubSection"
-import PortraitImage from "./components/PortraitImage"
 import RotatingVisionSection from "./components/RotatingVisionSection"
+import TeamRail from "./components/TeamRail"
 import { TEAM_MEMBERS, VISION_IMAGES } from "@/lib/impact-content"
 
 type Initiative = {
@@ -164,48 +164,7 @@ export default async function HomePage() {
                 Programme leads, storytellers, and community builders sustaining the Top100 movement.
               </p>
             </div>
-            <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-4 sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible lg:grid-cols-5">
-              {TEAM_MEMBERS.map((member) => {
-                const cardContent = (
-                  <>
-                    <div className="relative w-full h-32 sm:h-36 md:h-48 lg:h-56 xl:h-64 overflow-hidden rounded-t-[12px] sm:rounded-t-[16px]">
-                      <PortraitImage
-                        src={member.image}
-                        name={member.name}
-                        sizes="(max-width: 640px) 72vw, (max-width: 1024px) 50vw, 20vw"
-                        className="object-cover object-top"
-                      />
-                    </div>
-                    <div className="p-2 sm:p-3 md:p-4 xl:p-5 space-y-1 text-center">
-                      <h3 className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl font-bold line-clamp-2">{member.name}</h3>
-                      <p className="text-[0.6rem] sm:text-xs md:text-sm lg:text-base xl:text-lg uppercase tracking-[0.05em] text-slate-900">{member.role}</p>
-                    </div>
-                  </>
-                );
-
-                return (
-                  <div
-                    key={member.name}
-                    className={`w-[72vw] snap-start rounded-[12px] sm:w-auto sm:rounded-[16px] lg:rounded-[24px] border border-border/60 bg-card shadow-lg transition hover:-translate-y-1 hover:shadow-xl flex-shrink-0 ${member.linkedIn ? 'cursor-pointer hover:scale-[1.02]' : ''
-                      }`}
-                  >
-                    {member.linkedIn ? (
-                      <a
-                        href={member.linkedIn}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label={`${member.name} on LinkedIn (opens in a new tab)`}
-                        className="block rounded-[12px] sm:rounded-[16px] lg:rounded-[24px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-                      >
-                        {cardContent}
-                      </a>
-                    ) : (
-                      <div>{cardContent}</div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+            <TeamRail members={TEAM_MEMBERS} />
           </div>
         </section>
 
