@@ -62,6 +62,20 @@ describe("Hall of Fame routes", () => {
     expect(rubyPosition).toBeLessThan(belindaPosition)
   })
 
+  it("renders the homepage speakers as a compact, accessible horizontal poster rail", () => {
+    const previewMarkup = renderToStaticMarkup(
+      createElement(HallOfFamePreview, { speakers: getFeaturedSpeakers() }),
+    )
+
+    expect(previewMarkup).toContain('aria-label="Hall of Fame speakers"')
+    expect(previewMarkup).toContain('data-speaker-rail="compact"')
+    expect(previewMarkup).toContain("overflow-x-auto")
+    expect(previewMarkup).toContain("auto-cols-[7.75rem]")
+    expect(previewMarkup).toContain("sm:auto-cols-[9rem]")
+    expect(previewMarkup).toContain("lg:auto-cols-[10rem]")
+    expect(previewMarkup).toContain('aria-label="View Leye Falade’s Hall of Fame profile"')
+  })
+
   it("uses AA orange accents and explicit white text", async () => {
     const indexMarkup = renderToStaticMarkup(createElement(HallOfFamePage))
     const previewMarkup = renderToStaticMarkup(

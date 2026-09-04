@@ -21,6 +21,7 @@ export default function SpeakerCard({
     return (
       <Link
         href={`/hall-of-fame/${speaker.slug}`}
+        aria-label={`View ${speaker.name}’s Hall of Fame profile`}
         data-card-variant="cinematic"
         className="group block snap-start rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-4 focus-visible:ring-offset-slate-950"
       >
@@ -29,26 +30,26 @@ export default function SpeakerCard({
             src={speaker.portrait}
             name={speaker.name}
             priority={priority}
-            sizes="(max-width: 640px) 44vw, (max-width: 1024px) 24vw, 13rem"
+            sizes="(max-width: 640px) 7.75rem, (max-width: 1024px) 9rem, 10rem"
             className="object-cover transition duration-500 ease-out group-hover:scale-[1.045] motion-reduce:transform-none motion-reduce:transition-none"
           />
           <div
             aria-hidden="true"
             className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,6,23,0.04)_28%,rgba(2,6,23,0.45)_57%,rgba(2,6,23,0.98)_100%)]"
           />
-          <span className="absolute left-3 top-3 rounded-full border border-white/25 bg-slate-950/65 px-2.5 py-1 text-[0.6rem] font-bold uppercase tracking-[0.18em] text-[#fff] backdrop-blur-sm">
+          <span className="absolute left-2.5 top-2.5 rounded-full border border-white/25 bg-slate-950/65 px-2 py-1 text-[0.5rem] font-bold uppercase tracking-[0.14em] text-[#fff] backdrop-blur-sm sm:left-3 sm:top-3 sm:text-[0.55rem]">
             Speaker · {speaker.eventYears.join(", ")}
           </span>
-          <div className="absolute inset-x-0 bottom-0 p-3.5">
-            <Heading className="text-base font-semibold leading-tight text-[#fff] sm:text-lg">
+          <div className="absolute inset-x-0 bottom-0 p-2.5 sm:p-3">
+            <Heading className="line-clamp-2 text-sm font-semibold leading-tight text-[#fff] sm:text-base">
               {speaker.name}
             </Heading>
-            <p className="mt-1 line-clamp-2 text-[0.68rem] leading-4 text-slate-300 sm:text-xs">
+            <p className="mt-1 hidden text-[0.625rem] leading-4 text-slate-300 sm:line-clamp-2">
               {speaker.label}
             </p>
             <span
               aria-hidden="true"
-              className="mt-3 block h-0.5 w-8 bg-orange-700 transition-all duration-300 group-hover:w-14 motion-reduce:transition-none"
+              className="mt-2 block h-0.5 w-6 bg-orange-700 transition-all duration-300 group-hover:w-10 motion-reduce:transition-none sm:mt-2.5"
             />
           </div>
         </article>

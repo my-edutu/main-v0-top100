@@ -22,7 +22,13 @@ export default function HallOfFamePreview({ speakers }: { speakers: readonly Spe
           </p>
         </div>
 
-        <div className="-mx-4 mt-9 grid auto-cols-[minmax(10.5rem,44vw)] grid-flow-col gap-3 overflow-x-auto px-4 pb-8 pt-2 [scrollbar-width:none] snap-x snap-mandatory sm:-mx-6 sm:auto-cols-[12rem] sm:gap-4 sm:px-6 lg:-mx-[max(1.5rem,calc((100vw-80rem)/2))] lg:auto-cols-[13rem] lg:px-[max(1.5rem,calc((100vw-80rem)/2))] [&::-webkit-scrollbar]:hidden">
+        <div
+          role="region"
+          aria-label="Hall of Fame speakers"
+          tabIndex={0}
+          data-speaker-rail="compact"
+          className="-mx-4 mt-9 grid auto-cols-[7.75rem] grid-flow-col gap-2.5 overflow-x-auto overscroll-x-contain px-4 pb-7 pt-2 [scrollbar-width:none] snap-x snap-proximity touch-pan-x sm:-mx-6 sm:auto-cols-[9rem] sm:gap-3 sm:px-6 lg:auto-cols-[10rem] [&::-webkit-scrollbar]:hidden"
+        >
           {speakers.map((speaker, index) => (
             <SpeakerCard
               key={speaker.slug}
