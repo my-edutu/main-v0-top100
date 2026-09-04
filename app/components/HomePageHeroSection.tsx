@@ -26,7 +26,7 @@ export function HeroCtas() {
     <div className="mx-auto flex w-full max-w-xl flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center sm:gap-4">
       <Link
         href={IMPACT_HERO.primaryCta.href}
-        className="group flex h-12 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 via-orange-400 to-amber-500 px-6 font-semibold text-slate-950 shadow-[0_12px_30px_rgba(249,115,22,0.24)] transition-[transform,box-shadow,filter] duration-300 hover:-translate-y-0.5 hover:brightness-105 hover:shadow-[0_16px_34px_rgba(249,115,22,0.32)] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 focus-visible:ring-offset-4 motion-reduce:transform-none"
+        className="group flex h-12 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 via-orange-400 to-amber-500 px-6 font-semibold text-slate-950 transition-[transform,filter] duration-300 hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 focus-visible:ring-offset-4 motion-reduce:transform-none"
       >
         {IMPACT_HERO.primaryCta.label}
         <ArrowRight aria-hidden="true" className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1 motion-reduce:transform-none" />

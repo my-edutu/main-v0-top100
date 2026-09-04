@@ -33,6 +33,7 @@ describe("impact content", () => {
     expect(markup).toContain("bg-gradient-to-r")
     expect(markup).toContain("from-orange-500")
     expect(markup).toContain("to-amber-500")
+    expect(markup).not.toContain("shadow-[")
     expect(markup).toContain('href="/partnership"')
     expect(markup).toContain("Partner with us")
   })

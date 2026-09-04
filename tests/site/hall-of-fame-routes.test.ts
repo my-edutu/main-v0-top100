@@ -70,10 +70,15 @@ describe("Hall of Fame routes", () => {
     expect(previewMarkup).toContain('aria-label="Hall of Fame speakers"')
     expect(previewMarkup).toContain('data-speaker-rail="compact"')
     expect(previewMarkup).toContain("overflow-x-auto")
-    expect(previewMarkup).toContain("auto-cols-[7.75rem]")
-    expect(previewMarkup).toContain("sm:auto-cols-[9rem]")
-    expect(previewMarkup).toContain("lg:auto-cols-[10rem]")
+    expect(previewMarkup).toContain("auto-cols-[6.5rem]")
+    expect(previewMarkup).toContain("sm:auto-cols-[7.5rem]")
+    expect(previewMarkup).toContain("lg:auto-cols-[8.5rem]")
     expect(previewMarkup).toContain('aria-label="View Leye Falade’s Hall of Fame profile"')
+    expect(previewMarkup).not.toContain("Speaker ·")
+    expect(previewMarkup).not.toContain("h-0.5 w-6")
+    for (const { label } of getFeaturedSpeakers()) {
+      expect(previewMarkup).not.toContain(label)
+    }
   })
 
   it("uses AA orange accents and explicit white text", async () => {

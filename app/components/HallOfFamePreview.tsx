@@ -27,7 +27,7 @@ export default function HallOfFamePreview({ speakers }: { speakers: readonly Spe
           aria-label="Hall of Fame speakers"
           tabIndex={0}
           data-speaker-rail="compact"
-          className="-mx-4 mt-9 grid auto-cols-[7.75rem] grid-flow-col gap-2.5 overflow-x-auto overscroll-x-contain px-4 pb-7 pt-2 [scrollbar-width:none] snap-x snap-proximity touch-pan-x sm:-mx-6 sm:auto-cols-[9rem] sm:gap-3 sm:px-6 lg:auto-cols-[10rem] [&::-webkit-scrollbar]:hidden"
+          className="-mx-4 mt-9 grid auto-cols-[6.5rem] grid-flow-col gap-2.5 overflow-x-auto overscroll-x-contain px-4 pb-7 pt-2 [scrollbar-width:none] snap-x snap-proximity touch-pan-x sm:-mx-6 sm:auto-cols-[7.5rem] sm:gap-3 sm:px-6 lg:auto-cols-[8.5rem] [&::-webkit-scrollbar]:hidden"
         >
           {speakers.map((speaker, index) => (
             <SpeakerCard
