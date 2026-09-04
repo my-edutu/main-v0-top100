@@ -1,13 +1,13 @@
 "use client"
 
-import { useMemo, useEffect, useState } from "react"
+import { useMemo, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { ArrowRight, Award } from "lucide-react"
+import { ArrowRight } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { AvatarSVG, flagEmoji } from "@/lib/avatars"
+import { AvatarSVG } from "@/lib/avatars"
 
 type SpotlightAwardee = {
   slug: string
@@ -32,17 +32,8 @@ const toSlug = (value: string) =>
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
 
-const formatExcerpt = (value?: string | null, length = 120) => {
-  if (!value) return "Tap to explore their leadership journey."
-  const cleaned = value.replace(/\s+/g, " ").trim()
-  if (cleaned.length <= length) return cleaned
-  return `${cleaned.slice(0, length)}...`
-}
-
 export default function HomeFeaturedAwardees({ awardees }: Props) {
-  const [isMobile, setIsMobile] = useState(false);
-  const [scrollPosition, setScrollPosition] = useState(0);
-  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set())
 
   const safeAwardees = useMemo(
     () =>
@@ -52,76 +43,6 @@ export default function HomeFeaturedAwardees({ awardees }: Props) {
       })),
     [awardees],
   )
-
-  // Check if mobile
-  useEffect(() => {
-    const checkIfMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    checkIfMobile();
-    window.addEventListener('resize', checkIfMobile);
-
-    return () => {
-      window.removeEventListener('resize', checkIfMobile);
-    };
-  }, []);
-
-  // Auto-scroll animation for mobile - smooth continuous scrolling
-  useEffect(() => {
-    if (!isMobile || safeAwardees.length === 0) return;
-
-    let scrollInterval: NodeJS.Timeout;
-    let lastInteractionTime = Date.now();
-    const INACTIVITY_THRESHOLD = 3000; // Stop auto-scroll after 3 seconds of user interaction
-
-    const startAutoScroll = () => {
-      scrollInterval = setInterval(() => {
-        // Only auto-scroll if no recent user interaction
-        if (Date.now() - lastInteractionTime > INACTIVITY_THRESHOLD) {
-          setScrollPosition((prev) => {
-            // Each card is ~160px wide (150px + 10px gap)
-            const cardWidth = 160;
-            const newPosition = prev + 1;
-
-            // Reset when we've scrolled past all cards
-            if (newPosition >= cardWidth * safeAwardees.length) {
-              return 0;
-            }
-
-            return newPosition;
-          });
-        }
-      }, 30); // Smooth 30ms intervals for fluid animation
-    };
-
-    startAutoScroll();
-
-    // Function to handle user interaction
-    const handleUserInteraction = () => {
-      lastInteractionTime = Date.now();
-    };
-
-    // Add event listeners for user interactions
-    const container = document.querySelector('.mobile-awardees-container');
-    if (container) {
-      container.addEventListener('touchstart', handleUserInteraction);
-      container.addEventListener('touchmove', handleUserInteraction);
-      container.addEventListener('mousedown', handleUserInteraction);
-      container.addEventListener('mousemove', handleUserInteraction);
-    }
-
-    return () => {
-      clearInterval(scrollInterval);
-      // Clean up event listeners
-      if (container) {
-        container.removeEventListener('touchstart', handleUserInteraction);
-        container.removeEventListener('touchmove', handleUserInteraction);
-        container.removeEventListener('mousedown', handleUserInteraction);
-        container.removeEventListener('mousemove', handleUserInteraction);
-      }
-    };
-  }, [isMobile, safeAwardees.length]);
 
   return (
     <section id="awardees" className="section-padding">
@@ -147,171 +68,41 @@ export default function HomeFeaturedAwardees({ awardees }: Props) {
               Spotlight awardees will appear here once they are marked as featured in Supabase.
             </div>
           ) : (
-            <>
-              {isMobile ? (
-                // Mobile: Auto-scrolling horizontal carousel with 4 visible cards
-                <div className="relative overflow-hidden mobile-awardees-container" onMouseDown={(e) => {
-                  // Handle manual dragging interaction
-                  const startX = e.clientX;
-                  const startScrollPos = scrollPosition;
-
-                  const handleMouseMove = (moveEvent: MouseEvent) => {
-                    const diff = startX - moveEvent.clientX;
-                    setScrollPosition(startScrollPos + diff);
-                  };
-
-                  const handleMouseUp = () => {
-                    document.removeEventListener('mousemove', handleMouseMove);
-                    document.removeEventListener('mouseup', handleMouseUp);
-                  };
-
-                  document.addEventListener('mousemove', handleMouseMove);
-                  document.addEventListener('mouseup', handleMouseUp);
-                }} onTouchStart={(e) => {
-                  // Handle touch dragging interaction
-                  const startX = e.touches[0].clientX;
-                  const startScrollPos = scrollPosition;
-
-                  const handleTouchMove = (moveEvent: TouchEvent) => {
-                    const diff = startX - moveEvent.touches[0].clientX;
-                    setScrollPosition(startScrollPos + diff);
-                  };
-
-                  const handleTouchEnd = () => {
-                    document.removeEventListener('touchmove', handleTouchMove);
-                    document.removeEventListener('touchend', handleTouchEnd);
-                  };
-
-                  document.addEventListener('touchmove', handleTouchMove);
-                  document.addEventListener('touchend', handleTouchEnd);
-                }}>
-                  <div
-                    className="flex gap-2 transition-transform"
-                    style={{
-                      transform: `translateX(-${scrollPosition}px)`,
-                      width: `${(safeAwardees.length * 2) * 160}px` // Reduced width for smaller cards
-                    }}
-                  >
-                    {/* Render cards twice for seamless infinite scroll */}
-                    {[...safeAwardees, ...safeAwardees].map((awardee, index) => (
-                      <Link
-                        key={`${awardee.slug}-${index}`}
-                        href={`/awardees/${awardee.slug}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-shrink-0 w-[150px] flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm shadow-primary/5"
-                      >
-                        <div className="relative h-36 w-full overflow-hidden bg-muted">
-                          {awardee.avatar_url && !imageErrors.has(awardee.slug) ? (
-                            <Image
-                              src={awardee.avatar_url}
-                              alt={awardee.name}
-                              fill
-                              className="object-cover"
-                              sizes="150px"
-                              priority={index < 4} // Prioritize first few images
-                              onError={() => {
-                                setImageErrors(prev => new Set(prev).add(awardee.slug));
-                              }}
-                            />
-                          ) : (
-                            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/20 via-primary/10 to-transparent text-primary">
-                              <AvatarSVG name={awardee.name} size={36} />
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex flex-1 flex-col gap-1 p-2">
-                          <h3 className="text-xs font-semibold capitalize line-clamp-2">{awardee.name}</h3>
-                          {awardee.course && (
-                            <p className="text-[0.6rem] text-muted-foreground line-clamp-1">{awardee.course}</p>
-                          )}
-                          {awardee.cgpa && (
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <span className="text-[0.6rem] text-muted-foreground">CGPA</span>
-                                <div className="font-bold text-primary text-xs">{awardee.cgpa}</div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                // Desktop: Standard horizontal scroll
-                <motion.div
-                  layout
-                  className="flex overflow-x-auto pb-4 -mx-4 px-4 gap-3 hide-scrollbar"
+            <div
+              aria-label="Featured awardees"
+              className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-4"
+            >
+              {safeAwardees.map((awardee, index) => (
+                <Link
+                  key={awardee.slug}
+                  href={`/awardees/${awardee.slug}`}
+                  className="group w-[72vw] max-w-[220px] shrink-0 snap-start overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 sm:w-52"
                 >
-                  {safeAwardees.map((awardee, index) => (
-                    <motion.article
-                      key={awardee.slug}
-                      layout
-                      initial={{ opacity: 0, x: 24 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.45, delay: index * 0.05, ease: "easeOut" }}
-                      viewport={{ once: true, amount: 0.35 }}
-                      className="flex-shrink-0 w-52 flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm shadow-primary/5 transition hover:border-primary/40 hover:scale-105 hover:shadow-lg"
-                    >
-                      <div className="relative h-48 w-full overflow-hidden bg-muted">
-                        {awardee.avatar_url && !imageErrors.has(awardee.slug) ? (
-                          <Image
-                            src={awardee.avatar_url}
-                            alt={awardee.name}
-                            fill
-                            className="object-cover"
-                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                            onError={() => {
-                              setImageErrors(prev => new Set(prev).add(awardee.slug));
-                            }}
-                          />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/20 via-primary/10 to-transparent text-primary">
-                            <AvatarSVG name={awardee.name} size={48} />
-                          </div>
-                        )}
+                  <div className="relative h-48 w-full overflow-hidden bg-muted">
+                    {awardee.avatar_url && !imageErrors.has(awardee.slug) ? (
+                      <Image
+                        src={awardee.avatar_url}
+                        alt={awardee.name}
+                        fill
+                        sizes="220px"
+                        className="object-cover"
+                        priority={index < 3}
+                        onError={() => setImageErrors((previous) => new Set(previous).add(awardee.slug))}
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center bg-gradient-to-br from-primary/20 via-primary/10 to-transparent text-primary">
+                        <AvatarSVG name={awardee.name} size={48} />
                       </div>
-                      <div className="flex flex-1 flex-col gap-3 p-4">
-                        <div>
-                          <h3 className="text-lg font-semibold capitalize">{awardee.name}</h3>
-                        </div>
-                        <div className="flex flex-1 flex-col justify-center">
-                          {awardee.cgpa && (
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <span className="text-xs text-muted-foreground">CGPA</span>
-                                <div className="font-bold text-primary">{awardee.cgpa}</div>
-                              </div>
-                              <Link
-                                href={`/awardees/${awardee.slug}`}
-                                className="inline-flex items-center gap-1 text-primary transition group-hover:text-primary/80"
-                                aria-label={`View ${awardee.name}'s profile`}
-                              >
-                                <span className="text-xs whitespace-nowrap">Read more</span>
-                                <ArrowRight className="h-4 w-4 text-primary transition-transform duration-200 group-hover:translate-x-1" />
-                              </Link>
-                            </div>
-                          )}
-                        </div>
-                        {!awardee.cgpa && (
-                          <div className="flex justify-end">
-                            <Link
-                              href={`/awardees/${awardee.slug}`}
-                              className="inline-flex items-center gap-1 text-primary transition group-hover:text-primary/80"
-                              aria-label={`View ${awardee.name}'s profile`}
-                            >
-                              <span className="text-xs whitespace-nowrap">Read more</span>
-                              <ArrowRight className="h-4 w-4 text-primary transition-transform duration-200 group-hover:translate-x-1" />
-                            </Link>
-                          </div>
-                        )}
-                      </div>
-                    </motion.article>
-                  ))}
-                </motion.div>
-              )}
-            </>
+                    )}
+                  </div>
+                  <div className="p-4">
+                    <h3 className="text-lg font-semibold capitalize">{awardee.name}</h3>
+                    {awardee.course ? <p className="mt-1 line-clamp-1 text-sm text-muted-foreground">{awardee.course}</p> : null}
+                    {awardee.cgpa ? <p className="mt-3 text-sm font-semibold text-primary">CGPA {awardee.cgpa}</p> : null}
+                  </div>
+                </Link>
+              ))}
+            </div>
           )}
         </div>
 
