@@ -30,6 +30,8 @@ export const fetchAwardeeBySlug = unstable_cache(
         const awardees = await getAwardees()
         return awardees.find((awardee) => awardee.slug === slug) ?? null
     },
-    ['awardee-profile-by-slug'],
+    // Version the cache key so a previously cached not-found response cannot
+    // hide a newly added public directory record after it is inserted.
+    ['awardee-profile-by-slug-v2'],
     { revalidate: 600, tags: ['awardees'] },
 )
