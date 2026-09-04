@@ -64,7 +64,13 @@ const fixtures = vi.hoisted(() => {
 
   return {
     awardees: [
-      awardee("Amina", false),
+      {
+        ...awardee("Amina", false),
+        country: null,
+        location: null,
+        bio: null,
+        tagline: "Amina transforms communities across Africa.",
+      },
       awardee("Kwame", true),
       awardee("Thandi", false),
       awardee("Zuri", true),
@@ -121,6 +127,61 @@ describe("Impact hub", () => {
     expect(data.moments).toEqual(galleryImages.slice(0, 6))
   })
 
+  it("describes the selected event photographs without invented context or credits", () => {
+    expect(
+      galleryImages.slice(0, 6).map(({ src, alt, caption, category, credit }) => ({
+        src,
+        alt,
+        caption,
+        category,
+        credit,
+      })),
+    ).toEqual([
+      {
+        src: "/IMG_0672.jpg",
+        alt: "Attendees seated and talking at the Top100 Africa Future Leaders 2025 event",
+        caption: "Attendees converse during the 2025 event.",
+        category: "Event",
+        credit: undefined,
+      },
+      {
+        src: "/IMG_0673.jpg",
+        alt: "Four people pose while an awardee holds a framed award",
+        caption: "Four people pose while an awardee holds a framed award.",
+        category: "Event",
+        credit: undefined,
+      },
+      {
+        src: "/IMG_0674.jpg",
+        alt: "Four people pose with a framed Top100 Africa Future Leaders award",
+        caption: "Four people pose with a framed award.",
+        category: "Event",
+        credit: undefined,
+      },
+      {
+        src: "/IMG_0675.jpg",
+        alt: "Three women pose at the Top100 Africa Future Leaders 2025 event",
+        caption: "Three women pose at the 2025 event.",
+        category: "Event",
+        credit: undefined,
+      },
+      {
+        src: "/IMG_0676.jpg",
+        alt: "Attendees converse during the Top100 Africa Future Leaders 2025 event",
+        caption: "Attendees converse during the 2025 event.",
+        category: "Event",
+        credit: undefined,
+      },
+      {
+        src: "/IMG_0677.jpg",
+        alt: "Four attendees pose with a framed Top100 Africa Future Leaders award",
+        caption: "Four attendees pose with a framed award.",
+        category: "Event",
+        credit: undefined,
+      },
+    ])
+  })
+
   it("server-renders the approved editorial pathways and selected content", async () => {
     const data = await getImpactPageData()
     const markup = renderToStaticMarkup(await ImpactPage())
@@ -136,6 +197,16 @@ describe("Impact hub", () => {
     expect(markup).toContain("2,000+")
     expect(markup).toContain("Hear the work behind the recognition.")
     expect(markup).toContain(">KW</text>")
+    expect(markup).toContain(
+      'alt="Three people pose with a framed Top100 Africa Future Leaders 2025 award"',
+    )
+
+    const aminaCard = markup.match(/href="\/awardees\/amina"[\s\S]*?<\/article>/)?.[0]
+    expect(aminaCard).toBeDefined()
+    expect(aminaCard).toContain("Profile details coming soon.")
+    expect(aminaCard).not.toContain(">Africa<")
+    expect(aminaCard).not.toContain("Amina transforms communities across Africa.")
+    expect(aminaCard).not.toContain("Building a legacy of leadership and community impact.")
 
     for (const { slug } of getFeaturedSpeakers()) {
       expect(markup).toContain(`href="/hall-of-fame/${slug}"`)

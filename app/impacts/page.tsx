@@ -70,7 +70,7 @@ export default async function ImpactPage() {
           <figure className="relative min-h-[25rem] overflow-hidden rounded-[2rem] bg-slate-200 shadow-[0_28px_80px_rgba(15,23,42,0.18)] sm:min-h-[34rem] lg:min-h-[42rem]">
             <Image
               src={impactCard.hero ?? "/IMG_0679.jpg"}
-              alt="Top100 Africa Future Leaders awardees gathered at an event"
+              alt="Three people pose with a framed Top100 Africa Future Leaders 2025 award"
               fill
               priority
               sizes="(max-width: 1024px) 100vw, 58vw"
@@ -158,11 +158,13 @@ export default async function ImpactPage() {
                 <h3 className="mt-5 text-xl font-semibold leading-7 transition group-hover:text-orange-700">
                   {awardee.name}
                 </h3>
-                <p className="mt-1 text-xs font-bold uppercase tracking-[0.18em] text-orange-600">
-                  {awardee.country ?? "Africa"}
-                </p>
+                {awardee.country ? (
+                  <p className="mt-1 text-xs font-bold uppercase tracking-[0.18em] text-orange-600">
+                    {awardee.country}
+                  </p>
+                ) : null}
                 <p className="mt-4 line-clamp-4 text-sm leading-6 text-slate-600">
-                  {awardee.bio ?? awardee.tagline ?? "Building a legacy of leadership and community impact."}
+                  {awardee.bio ?? "Profile details coming soon."}
                 </p>
                 <span className="mt-auto inline-flex items-center gap-2 pt-6 text-sm font-semibold text-slate-950">
                   Meet {awardee.name.split(" ")[0]}
