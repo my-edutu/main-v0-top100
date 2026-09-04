@@ -90,6 +90,7 @@ export type AwardeeDirectoryEntry = {
   bio?: string | null;
   avatar_url?: string | null;
   cover_image_url?: string | null;
+  portfolio_cover_url?: string | null;
   headline?: string | null;
   tagline?: string | null;
   linkedin_post_url?: string | null;

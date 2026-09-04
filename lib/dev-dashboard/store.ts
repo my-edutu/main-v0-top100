@@ -10,8 +10,11 @@ import type {
 } from '@/lib/member-hub'
 import type { MemberPost } from '@/lib/member-posts/types'
 import type { Opportunity } from '@/lib/opportunities/types'
+import type { AwardeeDirectoryEntry } from '@/types/profile'
+import type { PortfolioCoverGeneration } from '@/lib/portfolio-cover/types'
 
 export const DEMO_MEMBER_ID = 'demo-member-1'
+export const DEMO_PUBLIC_SLUG = 'amara-okafor-demo'
 
 export type DemoConversation = {
   summary: ConversationSummary
@@ -34,6 +37,7 @@ export type DemoDashboardStore = {
   opportunities: Opportunity[]
   invitations: EventInvitation[]
   awardOrder: AwardOrder | null
+  portfolioCover: PortfolioCoverGeneration | null
   sequence: number
 }
 
@@ -47,7 +51,7 @@ export function createDemoDashboardStore(): DemoDashboardStore {
       email: 'demo@top100.local',
       inviteCode: 'LOCAL-DEMO',
       awardeeId: 'demo-awardee-1',
-      publicSlug: 'amara-okafor-demo',
+      publicSlug: DEMO_PUBLIC_SLUG,
       status: 'approved',
       profileStatus: 'approved',
       headline: 'Climate-tech founder and community builder',
@@ -260,6 +264,7 @@ export function createDemoDashboardStore(): DemoDashboardStore {
       },
     ],
     awardOrder: null,
+    portfolioCover: null,
     sequence: 100,
   }
 }
@@ -274,4 +279,40 @@ export function getDemoDashboardStore(): DemoDashboardStore {
     globalThis.__top100DemoDashboardStore = createDemoDashboardStore()
   }
   return globalThis.__top100DemoDashboardStore
+}
+
+export function demoAwardeeDirectoryEntry(
+  store: DemoDashboardStore,
+): AwardeeDirectoryEntry {
+  const { profile } = store
+  const country = profile.location.split(',').at(-1)?.trim() || null
+
+  return {
+    awardee_id: profile.awardeeId ?? 'demo-awardee-1',
+    profile_id: profile.id,
+    slug: profile.publicSlug ?? DEMO_PUBLIC_SLUG,
+    name: profile.name,
+    email: profile.emailVisible ? profile.email : null,
+    country,
+    current_school: null,
+    field_of_study: profile.field || null,
+    bio: profile.bio || null,
+    avatar_url: null,
+    cover_image_url: null,
+    portfolio_cover_url: store.portfolioCover?.selectedUrl ?? null,
+    headline: profile.headline || null,
+    tagline: profile.organization || null,
+    location: profile.location || null,
+    achievements: [],
+    gallery: [],
+    video_links: [],
+    social_links: {},
+    interests: profile.field ? [profile.field] : [],
+    cohort: 'Top100 Africa Future Leaders demo',
+    metadata: { local_demo: true },
+    year: 2026,
+    featured: false,
+    is_public: profile.showInDirectory,
+    role: 'user',
+  }
 }

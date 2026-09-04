@@ -14,7 +14,17 @@ export function SignOutControl() {
   const handleSignOut = async () => {
     setIsLoading(true)
     try {
-      await supabase.auth.signOut()
+      let demoSignedOut = false
+      try {
+        const response = await fetch('/api/dev/dashboard-session', { method: 'DELETE' })
+        if (response.ok) {
+          const payload = await response.json().catch(() => null)
+          demoSignedOut = payload?.demo === true
+        }
+      } catch {
+        // The development-only endpoint is absent in production.
+      }
+      if (!demoSignedOut) await supabase.auth.signOut()
     } catch (error) {
       console.error('Failed to sign out:', error)
     } finally {

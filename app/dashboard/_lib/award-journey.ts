@@ -48,6 +48,10 @@ export function resolveAwardStep(order: AwardJourneyOrder): AwardJourneyStep {
   return 'tracking'
 }
 
+export function shouldAdvanceFromAwardQuote(order: AwardJourneyOrder): boolean {
+  return order?.status === 'quoted'
+}
+
 export function awardStepRedirect(
   requestedStep: AwardJourneyStep,
   order: AwardJourneyOrder,

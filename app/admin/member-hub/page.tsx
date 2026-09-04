@@ -114,7 +114,7 @@ export default function AdminMemberHubPage() {
     }
   }
 
-  async function handleMemberAction(id: string, action: 'approve' | 'reject' | 'suspend' | 'reset-bio') {
+  async function handleMemberAction(id: string, action: 'approve' | 'reject' | 'suspend' | 'reset-bio' | 'reset-portfolio-cover') {
     try {
       const res = await fetch(`/api/admin/members/${id}`, {
         method: 'PATCH',
@@ -123,7 +123,7 @@ export default function AdminMemberHubPage() {
       })
       if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.message || 'Update failed.')
       await refresh()
-      toast.success(action === 'reset-bio' ? 'BIO limit reset.' : `Member ${action}d.`)
+      toast.success(action === 'reset-bio' ? 'BIO limit reset.' : action === 'reset-portfolio-cover' ? 'Portfolio cover reset.' : `Member ${action}d.`)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Could not update the member.')
     }
@@ -332,6 +332,9 @@ export default function AdminMemberHubPage() {
                 <div className="flex flex-wrap gap-2">
                   <Button variant="outline" className="rounded-full border-orange-200 text-orange-700 hover:bg-orange-50" onClick={() => handleMemberAction(member.id, 'reset-bio')}>
                     Reset BIO limit
+                  </Button>
+                  <Button variant="outline" className="rounded-full border-amber-200 text-amber-800 hover:bg-amber-50" onClick={() => handleMemberAction(member.id, 'reset-portfolio-cover')}>
+                    Reset cover
                   </Button>
                   {member.status !== 'suspended' ? (
                     <Button variant="outline" className="rounded-full border-red-200 text-red-700 hover:bg-red-50" onClick={() => handleMemberAction(member.id, 'suspend')}>

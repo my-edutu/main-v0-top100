@@ -39,6 +39,7 @@ import {
   awardStepPath,
   awardStepRedirect,
   resolveAwardStep,
+  shouldAdvanceFromAwardQuote,
   validateAwardAddress,
   type AwardAddressErrors,
   type AwardAddressValues,
@@ -76,14 +77,17 @@ export default function AwardsSection({
 
   const applyState = useCallback(
     (update: AwardState | ((previous: AwardState | null) => AwardState)) => {
-      setState((previous) => {
-        const next = typeof update === 'function' ? update(previous) : update
-        onClaimStateChange?.(next.needsClaim)
-        return next
-      })
+      setState((previous) =>
+        typeof update === 'function' ? update(previous) : update,
+      )
     },
-    [onClaimStateChange],
+    [],
   )
+
+  const needsClaim = state?.needsClaim
+  useEffect(() => {
+    if (needsClaim !== undefined) onClaimStateChange?.(needsClaim)
+  }, [needsClaim, onClaimStateChange])
 
   const loadAward = useCallback(async () => {
     setLoading(true)
@@ -205,11 +209,11 @@ export default function AwardsSection({
         needsClaim: true,
       }))
 
-      if (result.message) {
-        setNotice(result.message)
-      } else {
-        toast.success('Delivery quote ready.')
+      if (shouldAdvanceFromAwardQuote(result.order)) {
+        toast.success(result.message || 'Delivery quote ready.')
         router.push(awardStepPath('review'))
+      } else if (result.message) {
+        setNotice(result.message)
       }
     } catch (cause) {
       toast.error(

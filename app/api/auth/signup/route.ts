@@ -17,6 +17,7 @@ import {
   createRateLimitResponse,
 } from '@/lib/rate-limit'
 import { sanitizeEmail, sanitizeInput } from '@/lib/security'
+import { captchaVerificationAllowed } from '@/lib/production-readiness'
 
 export const runtime = 'nodejs'
 
@@ -30,7 +31,9 @@ const VALIDATION_MESSAGES: Record<string, string> = {
 
 async function verifyCaptchaToken(token: string | undefined): Promise<boolean> {
   const secretKey = process.env.TURNSTILE_SECRET_KEY
-  if (!secretKey) return true
+  // Local development may run without Turnstile. Production fails closed so
+  // a missing secret cannot silently remove the signup abuse barrier.
+  if (!secretKey) return captchaVerificationAllowed(process.env, process.env.NODE_ENV)
   if (!token) return false
 
   try {
@@ -152,6 +155,7 @@ export async function POST(request: NextRequest) {
     is_public: true,
     access_code: normalizeCode(rawCode),
     location: awardee.country ?? null,
+    field: awardee.course ?? null,
     field_of_study: awardee.course ?? null,
     bio: awardee.bio ?? null,
     avatar_url: awardee.image_url ?? null,

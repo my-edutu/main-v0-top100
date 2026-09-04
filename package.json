@@ -10,8 +10,13 @@
     "import-awardee-images": "tsx scripts/import-awardee-images.ts",
     "test-security": "tsx scripts/test-security-fixes.ts",
     "check-images": "tsx scripts/check-awardee-images.ts",
+    "check:production": "tsx scripts/check-production-readiness.ts",
+    "check:portfolio-images": "tsx scripts/check-production-readiness.ts --require-portfolio-images",
+    "check:launch": "tsx scripts/check-production-readiness.ts --require-awards",
+    "launch:smoke": "tsx scripts/prepare-launch-smoke.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@emotion/is-prop-valid": "1.4.0",

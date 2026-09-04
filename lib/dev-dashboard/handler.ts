@@ -10,6 +10,7 @@ import { nextAvailableSlug, slugifyGroupName } from '@/lib/groups/types'
 import { slugifyTitle } from '@/lib/member-posts/types'
 import { awardReturnPath } from '@/lib/awards/return-url'
 import { needsClaim } from '@/lib/awards/status'
+import type { PortfolioCoverFields, PortfolioCoverGeneration, PortfolioVariant } from '@/lib/portfolio-cover/types'
 
 function json(data: unknown, status = 200): Response {
   return Response.json(data, { status })
@@ -411,6 +412,47 @@ async function routeAward(request: NextRequest, path: string[], store: DemoDashb
   return null
 }
 
+function demoCoverData(label: string, name: string, fields: PortfolioCoverFields) {
+  const safe = (value: string) => value.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' })[character] ?? character)
+  const facts = [fields.school, fields.cgpa, fields.degreeClass, fields.fieldOfStudy, fields.country, fields.cohort].filter(Boolean).map((value, index) => `<text x="80" y="${700 + index * 32}" fill="#f5d76e" font-family="Arial" font-size="23">${safe(String(value))}</text>`).join('')
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1000"><defs><linearGradient id="g" x2="0" y2="1"><stop stop-color="#3a3d43"/><stop offset=".7" stop-color="#111315"/></linearGradient></defs><rect width="800" height="1000" fill="url(#g)"/><circle cx="400" cy="430" r="190" fill="#b98b72"/><path d="M160 100h480v80H160z" fill="#f3c623" opacity=".9"/><text x="60" y="130" font-family="Georgia" font-weight="bold" font-size="75" fill="white">TOP100</text><text x="60" y="215" font-family="Arial" font-size="18" letter-spacing="5" fill="#f5d76e">AFRICA FUTURE LEADERS</text><path d="M160 610h480v310H160z" fill="#24272b"/><text x="60" y="730" font-family="Georgia" font-weight="bold" font-size="46" fill="white">${safe(label)}</text><text x="60" y="790" font-family="Arial" font-weight="bold" font-size="28" fill="white">${safe(name)}</text><text x="60" y="860" font-family="Arial" font-size="19" fill="#f5d76e">${facts ? safe(String(fields.school ?? 'Top100 Future Leader')) : 'TOP100 FUTURE LEADER'}</text></svg>`
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+}
+
+async function routePortfolioCover(request: NextRequest, path: string[], store: DemoDashboardStore) {
+  if (path[1] !== 'generations') return null
+  if (path.length === 3 && path[2] === 'current' && request.method === 'GET') return json({ enabled: true, generation: store.portfolioCover })
+  if (path.length === 2 && request.method === 'POST') {
+    if (store.portfolioCover && ['queued', 'processing', 'ready', 'selected'].includes(store.portfolioCover.status)) return json({ message: 'You already have a portfolio cover set.' }, 409)
+    const form = await request.formData()
+    const file = form.get('portrait')
+    if (!(file instanceof File)) return json({ message: 'A portrait photo is required.' }, 400)
+    const tailoring = form.get('tailoring') === 'female' ? 'female' : form.get('tailoring') === 'male' ? 'male' : null
+    if (!tailoring || form.get('consent') !== 'true') return json({ message: 'Choose Male or Female and accept consent.' }, 400)
+    let fields: PortfolioCoverFields = {}
+    try { fields = JSON.parse(String(form.get('fields') ?? '{}')) as PortfolioCoverFields } catch { return json({ message: 'Invalid details.' }, 400) }
+    const id = nextId(store, 'demo-cover')
+    const now = new Date().toISOString()
+    const generation: PortfolioCoverGeneration = { id, memberId: DEMO_MEMBER_ID, status: 'ready', tailoring, fields, attempt: 1, options: { 'executive-charcoal': demoCoverData('EXECUTIVE CHARCOAL', String(fields.name ?? store.profile.name), fields), 'leadership-ivory': demoCoverData('LEADERSHIP IVORY', String(fields.name ?? store.profile.name), fields) }, createdAt: now, updatedAt: now }
+    store.portfolioCover = generation
+    return json({ generation }, 202)
+  }
+  const id = path[2]
+  if (!store.portfolioCover || store.portfolioCover.id !== id) return json({ message: 'Cover set not found.' }, 404)
+  if (path[3] === 'select' && request.method === 'POST') {
+    const body = await readBody(request)
+    const variant = body?.variant as PortfolioVariant
+    if (!['executive-charcoal', 'leadership-ivory'].includes(variant)) return json({ message: 'Choose one of the two covers.' }, 400)
+    store.portfolioCover = { ...store.portfolioCover, status: 'selected', selectedVariant: variant, selectedUrl: store.portfolioCover.options[variant], updatedAt: new Date().toISOString() }
+    return json({ generation: store.portfolioCover })
+  }
+  if (path[3] === 'reject' && request.method === 'POST') {
+    store.portfolioCover = { ...store.portfolioCover, status: 'rejected', updatedAt: new Date().toISOString() }
+    return json({ generation: store.portfolioCover })
+  }
+  return json({ message: 'Local portfolio cover demo route not implemented.' }, 501)
+}
+
 export async function handleDemoMemberRequest(
   request: NextRequest,
   path: string[],
@@ -472,6 +514,9 @@ export async function handleDemoMemberRequest(
       break
     case 'award':
       response = await routeAward(request, path, store)
+      break
+    case 'portfolio-cover':
+      response = await routePortfolioCover(request, path, store)
       break
   }
 

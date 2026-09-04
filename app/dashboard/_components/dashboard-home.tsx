@@ -17,7 +17,6 @@ import {
   fetchConversations,
   fetchMemberHubState,
   type ConversationSummary,
-  type HubOpportunity,
   type MemberNotification,
 } from '@/lib/member-hub'
 import {
@@ -25,6 +24,12 @@ import {
   type EventInvitation,
 } from '@/lib/events/invitations-client'
 import { cn } from '@/lib/utils'
+import { selectHomeOpportunities } from '@/lib/dashboard/home-opportunities'
+import { fetchMemberOpportunities } from '@/lib/opportunities/client'
+import {
+  formatDeadlineDate,
+  type Opportunity,
+} from '@/lib/opportunities/types'
 import { DashboardCard } from './dashboard-card'
 import { discoverNav, meNav } from '../_lib/navigation'
 import {
@@ -96,17 +101,18 @@ export function DashboardHome() {
   const [conversations, setConversations] = useState<ConversationSummary[]>([])
   const [invitations, setInvitations] = useState<EventInvitation[]>([])
   const [notifications, setNotifications] = useState<MemberNotification[]>([])
-  const [opportunities, setOpportunities] = useState<HubOpportunity[]>([])
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([])
 
   useEffect(() => {
     let cancelled = false
 
     async function loadPreviews() {
-      const [conversationResult, invitationResult, hubResult] =
+      const [conversationResult, invitationResult, hubResult, opportunityResult] =
         await Promise.allSettled([
           fetchConversations(),
           fetchEventInvitations(),
           fetchMemberHubState(),
+          fetchMemberOpportunities(),
         ])
 
       if (cancelled) return
@@ -127,12 +133,15 @@ export function DashboardHome() {
             (notification.audience === 'all' || member.status === 'approved'),
         )
         setNotifications(visibleNotifications)
-        setOpportunities(hubResult.value.opportunities)
         setUnreadUpdates(
           visibleNotifications.filter(
             (notification) => !notification.readBy.includes(member.id),
           ).length,
         )
+      }
+
+      if (opportunityResult.status === 'fulfilled') {
+        setOpportunities(selectHomeOpportunities(opportunityResult.value))
       }
     }
 
@@ -177,8 +186,8 @@ export function DashboardHome() {
     const opportunityRows = opportunities.map((opportunity) => ({
       id: `opportunity-${opportunity.id}`,
       title: opportunity.title,
-      detail: `${opportunity.type} · ${opportunity.location}`,
-      date: opportunity.deadline,
+      detail: [opportunity.type, opportunity.location].filter(Boolean).join(' · '),
+      date: formatDeadlineDate(opportunity.deadline),
       href: '/dashboard/discover/opportunities',
     }))
 

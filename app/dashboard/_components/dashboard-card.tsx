@@ -5,12 +5,12 @@ import type { DashboardColor } from '../_lib/navigation'
 import { cn } from '@/lib/utils'
 
 export const dashboardColorClasses = {
-  ember: 'border-orange-200 bg-[#FFE7D5] text-[#6C2600]',
-  saffron: 'border-amber-200 bg-[#FFE49A] text-[#563700]',
-  forest: 'border-emerald-200 bg-[#CFF3DF] text-[#064C36]',
-  cobalt: 'border-blue-200 bg-[#DCE8FF] text-[#123A78]',
-  burgundy: 'border-rose-200 bg-[#F8DCE6] text-[#6E1636]',
-  charcoal: 'border-slate-200 bg-[#E8EBF0] text-[#252B35]',
+  ember: 'border-amber-100 bg-white text-stone-900 shadow-[0_14px_40px_rgba(113,82,0,.08)]',
+  saffron: 'border-amber-100 bg-white text-stone-900 shadow-[0_14px_40px_rgba(113,82,0,.08)]',
+  forest: 'border-amber-100 bg-white text-stone-900 shadow-[0_14px_40px_rgba(113,82,0,.08)]',
+  cobalt: 'border-amber-100 bg-white text-stone-900 shadow-[0_14px_40px_rgba(113,82,0,.08)]',
+  burgundy: 'border-amber-100 bg-white text-stone-900 shadow-[0_14px_40px_rgba(113,82,0,.08)]',
+  charcoal: 'border-amber-100 bg-white text-stone-900 shadow-[0_14px_40px_rgba(113,82,0,.08)]',
 } as const
 
 type DashboardCardProps = {

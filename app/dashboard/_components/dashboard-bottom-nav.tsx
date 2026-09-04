@@ -6,14 +6,15 @@ import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { isDashboardNavActive, primaryDashboardNav, type DashboardColor } from '../_lib/navigation'
 import { useDashboardBadges } from '../_providers/dashboard-badges'
+import { top100DashboardTheme } from '@/lib/dashboard/theme'
 
 const activeColorClasses: Record<DashboardColor, string> = {
-  ember: 'bg-[#FFE7D5] text-[#6C2600]',
-  saffron: 'bg-[#FFE49A] text-[#563700]',
-  forest: 'bg-[#CFF3DF] text-[#064C36]',
-  cobalt: 'bg-[#DCE8FF] text-[#123A78]',
-  burgundy: 'bg-[#F8DCE6] text-[#6E1636]',
-  charcoal: 'bg-[#E8EBF0] text-[#252B35]',
+  ember: 'bg-gradient-to-r from-yellow-300 to-amber-400 text-stone-950 shadow-sm',
+  saffron: 'bg-gradient-to-r from-yellow-300 to-amber-400 text-stone-950 shadow-sm',
+  forest: 'bg-gradient-to-r from-yellow-300 to-amber-400 text-stone-950 shadow-sm',
+  cobalt: 'bg-gradient-to-r from-yellow-300 to-amber-400 text-stone-950 shadow-sm',
+  burgundy: 'bg-gradient-to-r from-yellow-300 to-amber-400 text-stone-950 shadow-sm',
+  charcoal: 'bg-gradient-to-r from-yellow-300 to-amber-400 text-stone-950 shadow-sm',
 }
 
 export function DashboardBottomNav() {
@@ -23,7 +24,7 @@ export function DashboardBottomNav() {
   return (
     <nav
       aria-label="Primary dashboard navigation"
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-[#E7DDCF] bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden"
+      className={`fixed inset-x-0 bottom-0 z-50 border-t pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden ${top100DashboardTheme.nav}`}
     >
       <div className="grid min-h-[68px] grid-cols-4">
         {primaryDashboardNav.map((item) => {

@@ -6,14 +6,15 @@ import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { isDashboardNavActive, primaryDashboardNav, type DashboardColor } from '../_lib/navigation'
 import { useDashboardBadges } from '../_providers/dashboard-badges'
+import { top100DashboardTheme } from '@/lib/dashboard/theme'
 
 const activeColorClasses: Record<DashboardColor, string> = {
-  ember: 'bg-[#FFE7D5] text-[#6C2600]',
-  saffron: 'bg-[#FFE49A] text-[#563700]',
-  forest: 'bg-[#CFF3DF] text-[#064C36]',
-  cobalt: 'bg-[#DCE8FF] text-[#123A78]',
-  burgundy: 'bg-[#F8DCE6] text-[#6E1636]',
-  charcoal: 'bg-[#E8EBF0] text-[#252B35]',
+  ember: 'bg-gradient-to-r from-yellow-300 to-amber-400 text-stone-950 shadow-sm',
+  saffron: 'bg-gradient-to-r from-yellow-300 to-amber-400 text-stone-950 shadow-sm',
+  forest: 'bg-gradient-to-r from-yellow-300 to-amber-400 text-stone-950 shadow-sm',
+  cobalt: 'bg-gradient-to-r from-yellow-300 to-amber-400 text-stone-950 shadow-sm',
+  burgundy: 'bg-gradient-to-r from-yellow-300 to-amber-400 text-stone-950 shadow-sm',
+  charcoal: 'bg-gradient-to-r from-yellow-300 to-amber-400 text-stone-950 shadow-sm',
 }
 
 export function DashboardDesktopNav() {
@@ -21,7 +22,7 @@ export function DashboardDesktopNav() {
   const { unreadMessages } = useDashboardBadges()
 
   return (
-    <aside className="hidden w-[88px] shrink-0 border-r border-[#E7DDCF] bg-white lg:sticky lg:top-[60px] lg:flex lg:h-[calc(100dvh-60px)] lg:flex-col xl:w-[240px]">
+    <aside className={`hidden w-[88px] shrink-0 border-r lg:sticky lg:top-[60px] lg:flex lg:h-[calc(100dvh-60px)] lg:flex-col xl:w-[240px] ${top100DashboardTheme.nav}`}>
       <nav aria-label="Primary dashboard navigation" className="flex flex-1 flex-col gap-2 p-3 xl:p-4">
         {primaryDashboardNav.map((item) => {
           const Icon = item.icon

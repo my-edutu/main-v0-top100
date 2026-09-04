@@ -63,7 +63,7 @@ export function DashboardMemberProvider({ children }: { children: ReactNode }) {
 
   if (loading && !member) {
     return (
-      <div className="grid min-h-[100dvh] place-items-center bg-[#FBF7EF] px-4 text-[#171412]">
+      <div className="grid min-h-[100dvh] place-items-center bg-[radial-gradient(circle_at_top_left,rgba(250,204,21,.28),transparent_32%),linear-gradient(180deg,#FFFDF5_0%,#FFFFFF_54%,#FFF8D6_100%)] px-4 text-[#171412]">
         <div
           role="status"
           aria-label="Loading your member dashboard"
@@ -78,7 +78,7 @@ export function DashboardMemberProvider({ children }: { children: ReactNode }) {
 
   if (!member) {
     return (
-      <div className="grid min-h-[100dvh] place-items-center bg-[#FBF7EF] px-4 text-[#171412]">
+      <div className="grid min-h-[100dvh] place-items-center bg-[radial-gradient(circle_at_top_left,rgba(250,204,21,.28),transparent_32%),linear-gradient(180deg,#FFFDF5_0%,#FFFFFF_54%,#FFF8D6_100%)] px-4 text-[#171412]">
         <section className="w-full max-w-md rounded-[20px] border border-[#E7DDCF] bg-white p-6 text-center sm:p-8" role="alert">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-[16px] bg-[#FFE7D5] text-[#6C2600]">
             <RotateCcw className="h-6 w-6" aria-hidden="true" />
