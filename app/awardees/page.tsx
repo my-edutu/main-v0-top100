@@ -24,7 +24,6 @@ type AwardeesPageProps = {
 export default async function AwardeesPage({ searchParams }: AwardeesPageProps) {
   const awardees = await getAwardees();
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
-
   // Pass the searchParams to the client component so it can handle pagination and search
   return <AwardeesPageClient initialPeople={awardees} initialSearchParams={resolvedSearchParams} />;
 }

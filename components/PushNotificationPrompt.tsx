@@ -3,6 +3,12 @@
 import { useState, useEffect } from 'react';
 import { Bell, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+    isPushPromptAvailable,
+    urlBase64ToUint8Array,
+} from '@/lib/push-notification-readiness';
+
+const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim() ?? '';
 
 /**
  * Minimal Push Notification Permission Prompt
@@ -13,26 +19,21 @@ import { motion, AnimatePresence } from 'framer-motion';
 export function PushNotificationPrompt() {
     const [isVisible, setIsVisible] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState('');
 
     useEffect(() => {
         const shouldShow = () => {
-            // Check if push notifications are supported
-            if (!('Notification' in window) || !('serviceWorker' in navigator)) {
-                return false;
-            }
+            const supportsNotifications = 'Notification' in window;
+            const supportsServiceWorker = 'serviceWorker' in navigator;
 
-            // Check if already granted or denied
-            if (Notification.permission !== 'default') {
-                return false;
-            }
-
-            // Check if user has EVER seen this popup (one-time only)
-            const hasSeenPopup = localStorage.getItem('push-popup-shown');
-            if (hasSeenPopup === 'true') {
-                return false;
-            }
-
-            return true;
+            return isPushPromptAvailable({
+                supportsNotifications,
+                supportsServiceWorker,
+                supportsPushManager: supportsServiceWorker && 'PushManager' in window,
+                permission: supportsNotifications ? Notification.permission : 'denied',
+                vapidPublicKey: VAPID_PUBLIC_KEY,
+                alreadyPrompted: localStorage.getItem('push-popup-shown') === 'true',
+            });
         };
 
         // Show after 8 seconds of browsing
@@ -49,55 +50,43 @@ export function PushNotificationPrompt() {
 
     const handleEnable = async () => {
         setIsLoading(true);
+        setError('');
 
         try {
-            // Register service worker
-            const registration = await navigator.serviceWorker.register('/sw.js');
-
-            // Request permission
             const permission = await Notification.requestPermission();
 
-            if (permission === 'granted') {
-                // Show confirmation notification
-                new Notification('🔔 Notifications enabled!', {
-                    body: 'You\'ll receive updates from Top100 AFL.',
-                    icon: '/Top100 Africa Future leaders Logo .png',
-                    silent: true,
-                });
-
-                // Try to save subscription
-                try {
-                    const subscriptionData = {
-                        subscription: {
-                            endpoint: `browser-${Date.now()}-${Math.random().toString(36).substring(7)}`,
-                            keys: null,
-                        },
-                        userAgent: navigator.userAgent,
-                    };
-
-                    try {
-                        const pushSubscription = await registration.pushManager.subscribe({
-                            userVisibleOnly: true,
-                        });
-                        subscriptionData.subscription = pushSubscription.toJSON() as any;
-                    } catch (e) {
-                        // VAPID not configured, use fallback
-                    }
-
-                    await fetch('/api/notifications/subscribe', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(subscriptionData),
-                    });
-                } catch (e) {
-                    console.log('[Push] Subscription save failed:', e);
-                }
+            if (permission !== 'granted') {
+                setIsVisible(false);
+                return;
             }
 
+            const registration = await navigator.serviceWorker.register('/sw.js');
+            const pushSubscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+            });
+            const response = await fetch('/api/notifications/subscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    subscription: pushSubscription.toJSON(),
+                    userAgent: navigator.userAgent,
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error('The notification subscription could not be saved.');
+            }
+
+            registration.showNotification('Notifications enabled', {
+                body: 'You can now receive Top100 AFL updates on this device.',
+                icon: '/Top100 Africa Future leaders Logo .png',
+                silent: true,
+            });
             setIsVisible(false);
         } catch (error) {
             console.error('[Push] Error:', error);
-            setIsVisible(false);
+            setError('Notifications could not be enabled. Please try again later.');
         } finally {
             setIsLoading(false);
         }
@@ -117,7 +106,8 @@ export function PushNotificationPrompt() {
                     transition={{ type: 'spring', damping: 30, stiffness: 400 }}
                     className="fixed bottom-4 left-4 z-50 max-w-[280px]"
                 >
-                    <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-3 flex items-center gap-3">
+                    <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-lg">
+                      <div className="flex items-center gap-3">
                         {/* Icon */}
                         <div className="w-9 h-9 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
                             <Bell className="h-4 w-4 text-orange-600" />
@@ -136,7 +126,7 @@ export function PushNotificationPrompt() {
                                 disabled={isLoading}
                                 className="px-2.5 py-1.5 text-[11px] font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg transition-colors disabled:opacity-50"
                             >
-                                {isLoading ? '...' : 'Yes'}
+                                {isLoading ? 'Enabling...' : 'Enable'}
                             </button>
                             <button
                                 onClick={handleDismiss}
@@ -146,6 +136,12 @@ export function PushNotificationPrompt() {
                                 <X className="h-3.5 w-3.5" />
                             </button>
                         </div>
+                      </div>
+                      {error && (
+                        <p role="alert" className="mt-2 text-xs font-medium leading-snug text-rose-700">
+                          {error}
+                        </p>
+                      )}
                     </div>
                 </motion.div>
             )}

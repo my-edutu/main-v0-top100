@@ -13,8 +13,9 @@ import Image from 'next/image'
 import { cn } from '@/lib/utils'
 import { TurnstileCaptcha, verifyCaptcha } from '@/components/ui/turnstile'
 import { Role, isAdminRole } from '@/lib/types/roles'
-import { normalizeRole } from '@/lib/auth-utils'
+import { friendlySignInError, normalizeRole } from '@/lib/auth-utils'
 import { sanitizeDashboardRedirect } from '@/lib/dashboard/redirect'
+import { attemptLocalDashboardLogin } from '@/lib/dev-dashboard/login'
 
 export default function SignInContent() {
   const [email, setEmail] = useState('')
@@ -36,6 +37,7 @@ export default function SignInContent() {
   const requestedPath = searchParams.get('from') || searchParams.get('redirect') || ''
   const redirectTo = sanitizeDashboardRedirect(requestedPath, '')
   const reason = searchParams.get('reason')
+  const passwordWasReset = searchParams.get('passwordReset') === 'success'
 
   // Display security messages based on redirect reason
   useEffect(() => {
@@ -70,6 +72,21 @@ export default function SignInContent() {
     setIsLoading(true)
 
     try {
+      const demoLogin = await attemptLocalDashboardLogin(
+        fetch,
+        { email, password },
+        redirectTo,
+      )
+      if (demoLogin.handled) {
+        if ('error' in demoLogin) {
+          setError(demoLogin.error)
+          setIsLoading(false)
+          return
+        }
+        window.location.href = demoLogin.redirectTo
+        return
+      }
+
       // Verify CAPTCHA first (if configured)
       if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && captchaToken) {
         const captchaValid = await verifyCaptcha(captchaToken)
@@ -81,8 +98,6 @@ export default function SignInContent() {
         }
       }
 
-      console.log('Starting sign-in process for:', email)
-
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -90,30 +105,18 @@ export default function SignInContent() {
 
       if (signInError) {
         console.error('Sign-in error:', signInError)
-        // Check if the error is because user doesn't exist or wrong password
-        if (signInError.message.includes('Invalid login credentials')) {
-          setError('Invalid email or password')
-        } else {
-          setError(signInError.message)
-        }
+        setError(friendlySignInError(signInError))
         setIsLoading(false)
         return
       }
 
-      console.log('Sign-in successful, checking profile...')
-
       // Check if user is an awardee with appropriate access
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
-        console.log('User authenticated, ID:', user.id)
-
-        // Use API endpoint to check profile (bypasses RLS issues)
+        // The API derives identity from the verified session. Never send a
+        // client-selected user ID to a service-role-backed lookup.
         const response = await fetch('/api/auth/check-profile', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ userId: user.id })
         })
 
         if (!response.ok) {
@@ -134,11 +137,8 @@ export default function SignInContent() {
         }
 
         const { profile } = await response.json()
-        console.log('Profile loaded:', profile)
-
         const role = normalizeRole(profile.role)
         if (!role || role === Role.GUEST) {
-          console.error('Invalid role:', profile.role)
           setError('Access denied. This account does not have Top100 Awardee privileges.')
           // Sign out unauthorized user
           await supabase.auth.signOut()
@@ -149,29 +149,18 @@ export default function SignInContent() {
         // Redirect based on user role
         let redirectPath = redirectTo
 
-        console.log('📍 Redirect decision - Role:', role, 'From:', redirectTo)
-
         if (!redirectTo || redirectTo === '/') {
           // Default redirect based on role
           redirectPath = isAdminRole(role) ? '/admin' : '/dashboard'
-          console.log('📍 No redirect specified, using default for role:', redirectPath)
         } else if (redirectTo.startsWith('/admin') && !isAdminRole(role)) {
           // Non-admin trying to access admin area
           redirectPath = '/dashboard'
-          console.log('📍 Non-admin trying admin area, redirecting to dashboard')
-        }
-
-        console.log('✅ Final redirect path:', redirectPath)
-        if (typeof document !== 'undefined') {
-          console.log('🍪 Current cookies:', document.cookie)
         }
 
         // Verify session is actually stored
         const { data: verifySession } = await supabase.auth.getSession()
-        console.log('✅ Session verification:', verifySession.session ? 'EXISTS' : 'MISSING')
 
         if (!verifySession.session) {
-          console.error('❌ SESSION MISSING BEFORE REDIRECT!')
           setError('Session storage failed. Please clear cookies and try again.')
           setIsLoading(false)
           return
@@ -179,10 +168,7 @@ export default function SignInContent() {
 
         // For admin users, wait longer to ensure cookies are fully set
         const waitTime = isAdminRole(role) ? 1500 : 1000
-        console.log(`⏳ Waiting ${waitTime}ms for session cookies to be set...`)
         await new Promise(resolve => setTimeout(resolve, waitTime))
-
-        console.log('🚀 Performing hard redirect to:', redirectPath)
 
         // Force a full page reload to ensure middleware can read the session
         window.location.href = redirectPath
@@ -286,6 +272,16 @@ export default function SignInContent() {
           </div>
 
           <form onSubmit={handleSignIn} className="mt-8 space-y-5">
+            {process.env.NODE_ENV === 'development' && (
+              <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+                <p className="font-semibold">Local dashboard demo</p>
+                <p className="mt-1 font-mono text-xs leading-relaxed">
+                  demo@top100.local<br />
+                  Top100Demo!2026
+                </p>
+              </div>
+            )}
+
             {securityMessage && (
               <div
                 className={cn(
@@ -306,6 +302,15 @@ export default function SignInContent() {
                 className="rounded-xl border border-rose-200/70 bg-rose-50 px-4 py-3 text-sm leading-snug text-rose-700"
               >
                 {error}
+              </div>
+            )}
+
+            {passwordWasReset && (
+              <div
+                role="status"
+                className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm leading-snug text-emerald-800"
+              >
+                Password updated. Sign in with your new password.
               </div>
             )}
 
@@ -331,12 +336,12 @@ export default function SignInContent() {
                   <Label htmlFor="password" className="text-sm font-medium text-zinc-700">
                     Password
                   </Label>
-                  {/* Password reset is not built yet (no /auth/forgot-password route),
-                      so this reads as disabled rather than linking to a 404.
-                      Colour is explicit: globals.css darkens text-zinc-300 under html.light. */}
-                  <span className="cursor-not-allowed text-xs font-medium text-[#a1a1aa]" title="Coming soon">
+                  <Link
+                    href="/auth/forgot-password"
+                    className="rounded text-xs font-semibold text-orange-800 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-2"
+                  >
                     Forgot password?
-                  </span>
+                  </Link>
                 </div>
                 <div className="relative">
                   <Input

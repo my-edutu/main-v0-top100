@@ -15,7 +15,17 @@ export default function SignOutButton() {
     setIsLoading(true)
 
     try {
-      await supabase.auth.signOut()
+      let demoSignedOut = false
+      try {
+        const response = await fetch('/api/dev/dashboard-session', { method: 'DELETE' })
+        if (response.ok) {
+          const payload = await response.json().catch(() => null)
+          demoSignedOut = payload?.demo === true
+        }
+      } catch {
+        // The development-only endpoint is absent in production.
+      }
+      if (!demoSignedOut) await supabase.auth.signOut()
       router.push("/login")
       router.refresh()
     } catch (error) {

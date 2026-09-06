@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { AwardeeCard } from '@/components/AwardeeCard';
+import { AwardeeCard } from '../components/AwardeeCard';
 import FiltersBar from '@/components/FiltersBar';
 import { useSearchParams } from 'next/navigation';
 
