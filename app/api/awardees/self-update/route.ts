@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
 import { revalidatePath, revalidateTag } from 'next/cache'
 import { getAwardeeSession } from '@/lib/api/awardee-session'
+import { legacySelfServiceEnabled } from '@/lib/legacy-self-service'
 
 type ExistingAwardee = {
     id: string
@@ -43,10 +44,13 @@ export async function PUT(request: NextRequest) {
             }, { status: 401 })
         }
 
+        const supabase = createAdminClient()
+        if (!(await legacySelfServiceEnabled(supabase))) {
+            return Response.json({ success: false, message: 'Profile editing has moved to the member dashboard.' }, { status: 404 })
+        }
+
         const body = await request.json()
         const { headline, tagline, bio, social_links, linkedin_post_url, avatar_url, image_url } = body
-
-        const supabase = createAdminClient()
 
         // First verify the awardee exists
         const { data: existing, error: checkError } = await supabase

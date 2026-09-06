@@ -32,6 +32,22 @@ const PORTFOLIO_SETTINGS = [
   'PORTFOLIO_COVER_BUCKET',
 ] as const
 
+const R2_SETTINGS = [
+  'CLOUDFLARE_R2_ACCOUNT_ID',
+  'CLOUDFLARE_R2_ACCESS_KEY_ID',
+  'CLOUDFLARE_R2_SECRET_ACCESS_KEY',
+  'CLOUDFLARE_R2_BUCKET',
+  'CLOUDFLARE_R2_PRIVATE_BUCKET',
+  'CLOUDFLARE_R2_PUBLIC_URL',
+] as const
+
+const PORTFOLIO_QUEUE_SETTINGS = [
+  'CLOUDFLARE_ACCOUNT_ID',
+  'CLOUDFLARE_QUEUE_ID',
+  'CLOUDFLARE_API_TOKEN',
+  'PORTFOLIO_WORKER_SECRET',
+] as const
+
 function present(env: RuntimeEnvironment, key: string) {
   return Boolean(env[key]?.trim())
 }
@@ -116,6 +132,21 @@ export function evaluateProductionReadiness(
   if (options.requirePortfolioImages || enabled(env.PORTFOLIO_IMAGE_GENERATION_ENABLED)) {
     for (const key of PORTFOLIO_SETTINGS) {
       if (!present(env, key)) issues.push({ key, message: `${key} is required when portfolio image generation is enabled.` })
+    }
+  }
+
+  if (env.MEDIA_STORAGE_PROVIDER?.trim().toLowerCase() === 'r2') {
+    for (const key of R2_SETTINGS) {
+      if (!present(env, key)) issues.push({ key, message: `${key} is required when R2 media storage is enabled.` })
+    }
+  }
+
+  if (
+    env.MEDIA_STORAGE_PROVIDER?.trim().toLowerCase() === 'r2' &&
+    (options.requirePortfolioImages || enabled(env.PORTFOLIO_IMAGE_GENERATION_ENABLED))
+  ) {
+    for (const key of PORTFOLIO_QUEUE_SETTINGS) {
+      if (!present(env, key)) issues.push({ key, message: `${key} is required for queued portfolio generation.` })
     }
   }
 

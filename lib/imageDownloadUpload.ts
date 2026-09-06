@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
+import { uploadMedia } from '@/lib/media/storage';
 
 // Function to get Supabase client
 function getSupabaseClient() {
@@ -49,33 +50,23 @@ export async function downloadAndUploadImage(imageUrl: string, fileName: string,
       throw new Error(`URL does not point to an image: ${contentType}`);
     }
 
-    // Convert the response to a blob
-    const imageBlob = await response.blob();
+    // Convert the response to bytes
+    const imageBytes = Buffer.from(await response.arrayBuffer());
 
     // Generate a unique filename if needed
     const fileExtension = getExtensionFromContentType(contentType) || getExtensionFromUrl(imageUrl) || '.jpg';
     const uniqueFileName = `${Date.now()}-${fileName}${fileExtension}`;
 
-    // Upload the image to Supabase storage
-    const { data, error } = await supabase.storage
-      .from(bucketName)
-      .upload(uniqueFileName, imageBlob, {
-        cacheControl: '3600',
-        upsert: false,
-        contentType: contentType,
-      });
+    const uploaded = await uploadMedia({
+      bucket: bucketName,
+      path: uniqueFileName,
+      body: imageBytes,
+      cacheControl: '3600',
+      upsert: false,
+      contentType,
+    });
 
-    if (error) {
-      console.error('Error uploading image to Supabase:', error);
-      throw error;
-    }
-
-    // Get the public URL of the uploaded image
-    const { data: publicUrlData } = supabase.storage
-      .from(bucketName)
-      .getPublicUrl(data.path);
-
-    return publicUrlData.publicUrl;
+    return uploaded.publicUrl;
   } catch (error) {
     console.error('Error in downloadAndUploadImage:', error);
     return null;

@@ -13,6 +13,7 @@ import { createPortfolioCoverRepository, portfolioObjectPath } from '@/lib/portf
 import { createDemoImageEditor } from '@/lib/portfolio-cover/providers/demo'
 import { createOpenAIImageEditor } from '@/lib/portfolio-cover/providers/openai'
 import { portfolioCoverRequestSchema, normalizePortfolioCoverFields } from '@/lib/portfolio-cover/validation'
+import { enqueuePortfolioGeneration, portfolioQueueConfigured } from '@/lib/portfolio-cover/queue'
 
 export const runtime = 'nodejs'
 export const maxDuration = 300
@@ -62,12 +63,22 @@ export async function POST(request: NextRequest) {
   const profile = await createAdminClient().from('profiles').select('full_name').eq('id', user.id).maybeSingle()
   const memberName = String(profile.data?.full_name ?? fields.name ?? 'Top100 Future Leader')
   const editor = config.demo ? createDemoImageEditor() : createOpenAIImageEditor({ apiKey: process.env.OPENAI_API_KEY! })
-  after(async () => {
+  if (portfolioQueueConfigured()) {
     try {
-      await generatePortfolioCoverSet({ id, memberId: user.id, memberName, tailoring: parsed.data.tailoring, fields, portrait, mask }, { repo, editor })
+      await enqueuePortfolioGeneration({ generationId: id, memberId: user.id, attempt: 1 })
     } catch (error) {
-      if (process.env.NODE_ENV !== 'production') console.warn('[portfolio-cover] generation failed', error instanceof Error ? error.message : 'unknown')
+      await repo.update(id, { status: 'failed', failure_code: 'queue_unavailable' })
+      console.error('[portfolio-cover] queue enqueue failed', error)
+      return NextResponse.json({ message: 'We could not start image generation. Please try again.' }, { status: 503 })
     }
-  })
+  } else {
+    after(async () => {
+      try {
+        await generatePortfolioCoverSet({ id, memberId: user.id, memberName, tailoring: parsed.data.tailoring, fields, portrait, mask }, { repo, editor })
+      } catch (error) {
+        if (process.env.NODE_ENV !== 'production') console.warn('[portfolio-cover] generation failed', error instanceof Error ? error.message : 'unknown')
+      }
+    })
+  }
   return NextResponse.json({ generation }, { status: 202 })
 }

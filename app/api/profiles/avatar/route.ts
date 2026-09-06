@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth-server'
 import { AVATAR_PRESET, processUpload } from '@/lib/image-processing'
-import { createClient } from '@/lib/supabase/server'
+import { uploadMedia } from '@/lib/media/storage'
 
 const BUCKET_NAME = process.env.SUPABASE_AVATARS_BUCKET ?? 'avatars'
 
@@ -40,31 +40,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'File size too large. Maximum size is 5MB.' }, { status: 400 })
     }
 
-    const supabase = await createClient()
-
     const processed = await processUpload(await file.arrayBuffer(), AVATAR_PRESET, file.type)
     const filePath = createFileName(user.id, processed.extension)
 
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from(BUCKET_NAME)
-      .upload(filePath, processed.data, {
-        contentType: processed.contentType,
-        cacheControl: CACHE_CONTROL,
-        upsert: true, // Allow overwriting the same file
-      })
+    const uploaded = await uploadMedia({
+      bucket: BUCKET_NAME,
+      path: filePath,
+      body: processed.data,
+      contentType: processed.contentType,
+      cacheControl: CACHE_CONTROL,
+      upsert: true,
+    })
 
-    if (uploadError) {
-      console.error('[avatars] upload failed', uploadError)
-      return NextResponse.json({ error: 'Avatar upload failed' }, { status: 500 })
-    }
-
-    const { data: publicUrl } = supabase.storage.from(BUCKET_NAME).getPublicUrl(uploadData.path)
-
-    if (!publicUrl?.publicUrl) {
+    if (!uploaded.publicUrl) {
       return NextResponse.json({ error: 'Unable to resolve public URL' }, { status: 500 })
     }
 
-    return NextResponse.json({ url: publicUrl.publicUrl })
+    return NextResponse.json({ url: uploaded.publicUrl })
   } catch (error) {
     console.error('[avatars] unexpected error', error)
     return NextResponse.json({ error: 'Unexpected error occurred while uploading avatar' }, { status: 500 })

@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
-const productionScriptSrc = "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://cdn.brevo.com"
-const developmentScriptSrc = "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://challenges.cloudflare.com https://cdn.brevo.com"
+const productionScriptSrc = "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://cdn.brevo.com https://sibautomation.com"
+const developmentScriptSrc = "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://challenges.cloudflare.com https://cdn.brevo.com https://sibautomation.com"
 const scriptSrc = process.env.NODE_ENV === 'production' ? productionScriptSrc : developmentScriptSrc
 
 const nextConfig = {
@@ -21,6 +21,11 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'i.ytimg.com',
+      },
+      {
+        // Public selected covers served from Cloudflare R2.
+        protocol: 'https',
+        hostname: 'media.top100afl.com',
       },
     ],
   },

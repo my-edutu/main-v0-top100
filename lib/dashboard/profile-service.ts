@@ -1,11 +1,16 @@
 import { unstable_cache } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getAwardees } from '@/lib/awardees'
+import {
+    DEMO_PUBLIC_SLUG,
+    demoAwardeeDirectoryEntry,
+    getDemoDashboardStore,
+} from '@/lib/dev-dashboard/store'
 
 /**
  * Fetch a single awardee by their slug for public profile display
  */
-export const fetchAwardeeBySlug = unstable_cache(
+const fetchPersistedAwardeeBySlug = unstable_cache(
     async (slug: string) => {
         try {
             const supabase = await createClient(true)
@@ -35,3 +40,11 @@ export const fetchAwardeeBySlug = unstable_cache(
     ['awardee-profile-by-slug-v2'],
     { revalidate: 600, tags: ['awardees'] },
 )
+
+export async function fetchAwardeeBySlug(slug: string) {
+    if (process.env.NODE_ENV === 'development' && slug === DEMO_PUBLIC_SLUG) {
+        return demoAwardeeDirectoryEntry(getDemoDashboardStore())
+    }
+
+    return fetchPersistedAwardeeBySlug(slug)
+}

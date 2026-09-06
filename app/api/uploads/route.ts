@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 import { requireAdmin } from '@/lib/api/require-admin'
 import { PHOTO_PRESET, processUpload } from '@/lib/image-processing'
-import { createAdminClient } from '@/lib/supabase/server'
+import { uploadMedia } from '@/lib/media/storage'
 
 const BUCKET_NAME = process.env.SUPABASE_UPLOADS_BUCKET ?? 'uploads'
 
@@ -29,8 +29,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
 
-    const supabase = createAdminClient()
-
     // Editor assets are not always images; processUpload hands anything it
     // cannot decode back untouched, so a pdf still uploads as itself.
     const processed = await processUpload(
@@ -40,39 +38,22 @@ export async function POST(request: NextRequest) {
     )
     const filePath = createFileName(file, processed.extension)
 
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from(BUCKET_NAME)
-      .upload(filePath, processed.data, {
-        contentType: processed.contentType,
-        cacheControl: CACHE_CONTROL,
-        upsert: false,
-      })
+    const uploaded = await uploadMedia({
+      bucket: BUCKET_NAME,
+      path: filePath,
+      body: processed.data,
+      contentType: processed.contentType,
+      cacheControl: CACHE_CONTROL,
+      upsert: false,
+    })
 
-    if (uploadError) {
-      if (uploadError.message.includes('not found')) {
-        return NextResponse.json(
-          {
-            error:
-              `Storage bucket "${BUCKET_NAME}" is missing. Create it in Supabase or set SUPABASE_UPLOADS_BUCKET to an existing bucket.`,
-          },
-          { status: 500 },
-        )
-      }
-
-      console.error('[uploads] upload failed', uploadError)
-      return NextResponse.json({ error: uploadError.message }, { status: 500 })
-    }
-
-    const { data: publicUrl } = supabase.storage.from(BUCKET_NAME).getPublicUrl(uploadData.path)
-
-    if (!publicUrl?.publicUrl) {
+    if (!uploaded.publicUrl) {
       return NextResponse.json({ error: 'Unable to resolve public URL' }, { status: 500 })
     }
 
-    return NextResponse.json({ url: publicUrl.publicUrl })
+    return NextResponse.json({ url: uploaded.publicUrl })
   } catch (error) {
     console.error('[uploads] unexpected error', error)
     return NextResponse.json({ error: 'Unexpected error occurred while uploading asset' }, { status: 500 })
   }
 }
-

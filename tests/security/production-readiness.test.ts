@@ -131,4 +131,29 @@ describe('production readiness configuration', () => {
       'PORTFOLIO_COVER_BUCKET',
     ])
   })
+
+  it('requires Cloudflare media and queue settings when R2 is selected', () => {
+    const result = evaluateProductionReadiness({
+      ...completeCoreEnv,
+      MEDIA_STORAGE_PROVIDER: 'r2',
+      PORTFOLIO_IMAGE_GENERATION_ENABLED: 'true',
+      OPENAI_API_KEY: 'openai',
+      PORTFOLIO_SOURCE_BUCKET: 'portfolio-sources',
+      PORTFOLIO_OPTION_BUCKET: 'portfolio-options',
+      PORTFOLIO_COVER_BUCKET: 'portfolio-covers',
+    }, { requirePortfolioImages: true })
+    expect(result.ready).toBe(false)
+    expect(result.issues.map((issue) => issue.key)).toEqual([
+      'CLOUDFLARE_R2_ACCOUNT_ID',
+      'CLOUDFLARE_R2_ACCESS_KEY_ID',
+      'CLOUDFLARE_R2_SECRET_ACCESS_KEY',
+      'CLOUDFLARE_R2_BUCKET',
+      'CLOUDFLARE_R2_PRIVATE_BUCKET',
+      'CLOUDFLARE_R2_PUBLIC_URL',
+      'CLOUDFLARE_ACCOUNT_ID',
+      'CLOUDFLARE_QUEUE_ID',
+      'CLOUDFLARE_API_TOKEN',
+      'PORTFOLIO_WORKER_SECRET',
+    ])
+  })
 })

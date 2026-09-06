@@ -1,10 +1,12 @@
 import { createAdminClient } from '@/lib/supabase/server'
+import { downloadMedia, signedMediaUrl, uploadMedia } from '@/lib/media/storage'
 
 import type { PortfolioCoverFields, PortfolioCoverGeneration, PortfolioGenerationStatus, PortfolioTailoring, PortfolioVariant } from './types'
 
 export type PortfolioGenerationRow = {
   id: string; member_id: string; status: PortfolioGenerationStatus; tailoring: PortfolioTailoring
   fields: PortfolioCoverFields; attempt: number; options?: Record<string, string> | null
+  source_path?: string | null
   selected_variant?: PortfolioVariant | null; selected_url?: string | null; failure_code?: string | null
   created_at: string; updated_at: string
 }
@@ -54,6 +56,16 @@ export function createPortfolioCoverRepository() {
       if (error) throw error
       return data ? mapPortfolioGenerationRow(data as PortfolioGenerationRow) : null
     },
+    async getForProcessing(id: string, memberId: string) {
+      const { data, error } = await supabase
+        .from('portfolio_cover_generations')
+        .select('*')
+        .eq('id', id)
+        .eq('member_id', memberId)
+        .maybeSingle()
+      if (error) throw error
+      return data as PortfolioGenerationRow | null
+    },
     async getOwned(id: string, memberId: string) {
       const { data, error } = await supabase.from('portfolio_cover_generations').select('*').eq('id', id).eq('member_id', memberId).maybeSingle()
       if (error) throw error
@@ -71,26 +83,28 @@ export function createPortfolioCoverRepository() {
       return mapPortfolioGenerationRow(data as PortfolioGenerationRow)
     },
     async uploadSource(path: string, body: Buffer) {
-      const { error } = await supabase.storage.from(sourceBucket()).upload(path, body, { contentType: 'image/png', upsert: false })
-      if (error) throw error
+      await uploadMedia({ bucket: sourceBucket(), path, body, contentType: 'image/png', upsert: false })
     },
     async uploadOption(path: string, body: Buffer) {
-      const { error } = await supabase.storage.from(optionBucket()).upload(path, body, { contentType: 'image/png', upsert: false })
-      if (error) throw error
+      await uploadMedia({ bucket: optionBucket(), path, body, contentType: 'image/png', upsert: false })
     },
     async signedOptionUrl(path: string) {
-      const { data, error } = await supabase.storage.from(optionBucket()).createSignedUrl(path, 900)
-      if (error) throw error
-      return data.signedUrl
+      return signedMediaUrl(optionBucket(), path, 900)
+    },
+    async downloadSource(path: string) {
+      return downloadMedia(sourceBucket(), path)
     },
     async publishSelection(path: string, memberId: string, id: string, variant: PortfolioVariant) {
-      const { data: object, error: downloadError } = await supabase.storage.from(optionBucket()).download(path)
-      if (downloadError || !object) throw downloadError ?? new Error('Selected cover is unavailable.')
+      const object = await downloadMedia(optionBucket(), path)
       const publicPath = `${memberId}/${id}/${variant}.png`
-      const { error: uploadError } = await supabase.storage.from(coverBucket()).upload(publicPath, object, { contentType: 'image/png', upsert: true })
-      if (uploadError) throw uploadError
-      const { data: publicUrl } = supabase.storage.from(coverBucket()).getPublicUrl(publicPath)
-      return { path: publicPath, url: publicUrl.publicUrl }
+      const uploaded = await uploadMedia({
+        bucket: coverBucket(),
+        path: publicPath,
+        body: object,
+        contentType: 'image/png',
+        upsert: true,
+      })
+      return { path: uploaded.path, url: uploaded.publicUrl }
     },
     async select(id: string, memberId: string, variant: PortfolioVariant) {
       const { data, error } = await supabase.from('portfolio_cover_generations').select('option_paths, status').eq('id', id).eq('member_id', memberId).maybeSingle()
