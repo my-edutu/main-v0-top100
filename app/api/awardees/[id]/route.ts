@@ -9,10 +9,10 @@ import { requireAdmin } from '@/lib/api/require-admin'
 // Admin access returns full data
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = params.id
+    const { id } = await params
     const { searchParams } = new URL(request.url)
     const adminMode = searchParams.get('admin') === 'true'
 
@@ -67,7 +67,7 @@ export async function GET(
 // PATCH - Update specific fields of an awardee (for toggling featured, visibility, etc.)
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const adminCheck = await requireAdmin(request)
   if ('error' in adminCheck) {
@@ -75,7 +75,7 @@ export async function PATCH(
   }
 
   try {
-    const id = params.id
+    const { id } = await params
     const body = await request.json()
 
     const supabase = await createClient(true) // Use service role

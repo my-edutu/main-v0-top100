@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
+import { uploadMedia } from '@/lib/media/storage'
 import { PHOTO_PRESET, processUpload } from '@/lib/image-processing'
 import { getAwardeeSession } from '@/lib/api/awardee-session'
+import { legacySelfServiceEnabled } from '@/lib/legacy-self-service'
 import {
     checkRateLimit,
     createRateLimitResponse,
@@ -32,6 +34,14 @@ export async function POST(request: NextRequest) {
             return NextResponse.json(
                 { success: false, message: 'Please verify your email before uploading an image.' },
                 { status: 401 }
+            )
+        }
+
+        const supabase = createAdminClient()
+        if (!(await legacySelfServiceEnabled(supabase))) {
+            return NextResponse.json(
+                { success: false, message: 'Profile editing has moved to the member dashboard.' },
+                { status: 404 },
             )
         }
 
@@ -76,8 +86,6 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        const supabase = createAdminClient()
-
         // Verify awardee exists
         const { data: awardee, error: awardeeError } = await supabase
             .from('awardees')
@@ -98,36 +106,19 @@ export async function POST(request: NextRequest) {
         const extension = processed.extension || EXTENSION_BY_TYPE[image.type]
         const fileName = `${awardeeId}-${Date.now()}.${extension}`
 
-        // Upload to Supabase storage
-        const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('awardees')
-            .upload(fileName, processed.data, {
-                contentType: processed.contentType,
-                // Timestamped paths are never reused, so a year is safe and
-                // keeps repeat views off Storage entirely.
-                cacheControl: String(60 * 60 * 24 * 365),
-                // Timestamped names are unique, so an upsert would only ever
-                // mean overwriting something we didn't intend to.
-                upsert: false
-            })
-
-        if (uploadError) {
-            console.error('Error uploading image:', uploadError)
-            return NextResponse.json(
-                { success: false, message: 'Failed to upload image', error: uploadError.message },
-                { status: 500 }
-            )
-        }
-
-        // Get public URL
-        const { data: publicUrlData } = supabase.storage
-            .from('awardees')
-            .getPublicUrl(uploadData.path)
+        const uploaded = await uploadMedia({
+            bucket: 'awardees',
+            path: fileName,
+            body: processed.data,
+            contentType: processed.contentType,
+            cacheControl: String(60 * 60 * 24 * 365),
+            upsert: false,
+        })
 
         return NextResponse.json({
             success: true,
             message: 'Image uploaded successfully',
-            imageUrl: publicUrlData.publicUrl
+            imageUrl: uploaded.publicUrl
         })
     } catch (error) {
         console.error('Error in self-service image upload:', error)

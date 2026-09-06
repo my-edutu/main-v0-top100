@@ -9,6 +9,7 @@ import { randomUUID } from 'crypto';
 import { requireAdmin } from '@/lib/api/require-admin';
 import { getAwardees } from '@/lib/awardees';
 import { PHOTO_PRESET, processUpload } from '@/lib/image-processing';
+import { uploadMedia } from '@/lib/media/storage';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { read, utils } from 'xlsx';
 
@@ -149,8 +150,6 @@ export async function POST(request: NextRequest) {
       // If there's an image file, upload it to Supabase storage
       let imageUrl = null;
       if (body.image && body.image.size > 0) {
-        const supabase = createAdminClient(); // Use service role for admin operations
-
         if (!AWARDEE_IMAGE_TYPES.includes(body.image.type)) {
           return Response.json({
             success: false,
@@ -176,34 +175,16 @@ export async function POST(request: NextRequest) {
         const fileName = `${Date.now()}-${randomUUID()}.${extension}`;
 
         try {
-          // Upload to Supabase storage
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('awardees') // Use 'awardees' bucket, make sure this bucket exists in Supabase
-            .upload(fileName, processed.data, {
-              contentType: processed.contentType,
-              // Timestamped paths are never reused, so a year is safe and keeps
-              // repeat views off Storage entirely.
-              cacheControl: String(60 * 60 * 24 * 365),
-              upsert: false
-            });
+          const uploaded = await uploadMedia({
+            bucket: 'awardees',
+            path: fileName,
+            body: processed.data,
+            contentType: processed.contentType,
+            cacheControl: String(60 * 60 * 24 * 365),
+            upsert: false,
+          });
 
-          if (uploadError) {
-            // Creating the awardee anyway would silently drop the image the
-            // admin chose and report success — they'd have no idea it was lost.
-            console.error('Error uploading image:', uploadError);
-            return Response.json({
-              success: false,
-              message: 'Failed to upload the image. The awardee was not created.',
-              error: uploadError.message
-            }, { status: 500 });
-          }
-
-          // Get the public URL of the uploaded image
-          const { data: publicUrlData } = supabase.storage
-            .from('awardees')
-            .getPublicUrl(uploadData.path);
-
-          imageUrl = publicUrlData.publicUrl;
+          imageUrl = uploaded.publicUrl;
         } catch (storageError) {
           console.error('Unexpected error during image upload:', storageError);
           return Response.json({

@@ -193,14 +193,19 @@ export const flagEmoji = (country: string): string => {
 interface AvatarSVGProps {
   name: string;
   size?: number;
+  className?: string;
+  style?: React.CSSProperties;
 }
 
-export const AvatarSVG: React.FC<AvatarSVGProps> = ({ name, size = 48 }) => {
+export const AvatarSVG: React.FC<AvatarSVGProps> = ({ name, size = 48, className, style }) => {
   const initial = initials(name);
   const bgColor = colorFromName(name);
   
   return (
-    <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
+    <div
+      className={`relative inline-flex items-center justify-center ${className ?? ''}`}
+      style={{ width: size, height: size, ...style }}
+    >
       <svg 
         width={size} 
         height={size} 

@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { requireAdmin } from '@/lib/api/require-admin';
 import { PHOTO_PRESET, processUpload } from '@/lib/image-processing';
-import { createAdminClient } from '@/lib/supabase/server';
+import { uploadMedia } from '@/lib/media/storage';
 
 // The buckets this endpoint is allowed to write to. The bucket used to come
 // straight from the request body, which let any caller who passed the admin
@@ -74,9 +74,6 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Use service role client for storage operations
-    const supabase = createAdminClient();
-
     // Both parts are server-controlled: a sanitized id and an extension derived
     // from the validated MIME type.
     const processed = await processUpload(
@@ -87,37 +84,19 @@ export async function POST(request: NextRequest) {
     const extension = processed.extension || EXTENSION_BY_TYPE[imageFile.type];
     const fileName = `${resourceId}-${Date.now()}.${extension}`;
 
-    // Upload to Supabase storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from(bucket)
-      .upload(fileName, processed.data, {
-        contentType: processed.contentType,
-        // Timestamped paths are never reused, so a year is safe and keeps
-        // repeat views off Storage entirely.
-        cacheControl: String(60 * 60 * 24 * 365),
-        // Timestamped names are unique, so an upsert would only ever mean
-        // overwriting something we didn't intend to.
-        upsert: false
-      });
-
-    if (uploadError) {
-      console.error('Error uploading image to Supabase:', uploadError);
-      return Response.json({
-        success: false,
-        message: 'Failed to upload image',
-        error: uploadError.message
-      }, { status: 500 });
-    }
-
-    // Get the public URL
-    const { data: publicUrlData } = supabase.storage
-      .from(bucket)
-      .getPublicUrl(uploadData.path);
+    const uploaded = await uploadMedia({
+      bucket,
+      path: fileName,
+      body: processed.data,
+      contentType: processed.contentType,
+      cacheControl: String(60 * 60 * 24 * 365),
+      upsert: false,
+    });
 
     return Response.json({
       success: true,
       message: 'Image uploaded successfully',
-      imageUrl: publicUrlData.publicUrl
+      imageUrl: uploaded.publicUrl
     });
   } catch (error) {
     console.error('Error in upload-image API:', error);

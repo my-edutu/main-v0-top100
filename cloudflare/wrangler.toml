@@ -1,0 +1,11 @@
+name = "top100-afl-portfolio-generation"
+main = "portfolio-generation-consumer.js"
+compatibility_date = "2026-09-06"
+
+[vars]
+APP_ORIGIN = "https://www.top100afl.com"
+
+[[queues.consumers]]
+queue = "top100-afl-portfolio-generation"
+max_batch_size = 1
+max_retries = 3

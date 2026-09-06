@@ -1,11 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
   images: {
     // `unoptimized: true` came from the v0 scaffold and was the single largest
     // driver of Supabase cached egress: it disables Vercel's optimizer, so every
@@ -29,6 +23,11 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'i.ytimg.com',
+      },
+      {
+        // Public selected covers served from Cloudflare R2.
+        protocol: 'https',
+        hostname: 'media.top100afl.com',
       },
     ],
   },
@@ -88,7 +87,7 @@ const nextConfig = {
               "default-src 'self'",
               // Scripts: self, inline (for Next.js), eval (for dev), Turnstile
               // CAPTCHA, and the Brevo SDK loader injected by app/layout.tsx.
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://challenges.cloudflare.com https://cdn.brevo.com",
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://challenges.cloudflare.com https://cdn.brevo.com https://sibautomation.com",
               // Styles: self and inline (for styled components)
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               // Images: allow all sources, data URIs, and blobs (for uploaded images)
