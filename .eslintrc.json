@@ -2,5 +2,17 @@
   "extends": [
     "next/core-web-vitals",
     "next/typescript"
-  ]
+  ],
+  "ignorePatterns": [
+    "lib/generated/**",
+    "remotion-advert/**",
+    "scripts/**",
+    "tests/**",
+    "types/scripts/**",
+    ".playwright-cli/**"
+  ],
+  "rules": {
+    "@typescript-eslint/no-explicit-any": "warn",
+    "react/no-unescaped-entities": "warn"
+  }
 }
