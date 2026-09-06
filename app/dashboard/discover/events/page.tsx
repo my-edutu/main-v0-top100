@@ -9,9 +9,9 @@ export default function EventsPage() {
 
   return (
     <RouteSection
-      eyebrow="Gatherings"
+      className="hub-events-route"
       title="Events"
-      description="Respond to member invitations and browse public AFL events."
+      description="Upcoming gatherings and programmes."
     >
       <EventInvitationsSection member={member} />
     </RouteSection>

@@ -24,13 +24,13 @@ export function RouteSection({
       <header className="hub-route-heading flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
           {eyebrow ? (
-            <p className="mb-1 text-xs font-extrabold uppercase tracking-[0.16em] text-orange-700">{eyebrow}</p>
+            <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8a5a00]">{eyebrow}</p>
           ) : null}
-          <h1 className="text-[28px] font-extrabold leading-tight tracking-[-0.025em] text-[#171412] sm:text-[32px]">
+          <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.035em] text-[#171412] sm:text-[32px]">
             {title}
           </h1>
           {description ? (
-            <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-[#625B52] sm:text-base">
+            <p className="mt-2 max-w-2xl text-sm font-normal leading-6 text-[#625B52] sm:text-base">
               {description}
             </p>
           ) : null}

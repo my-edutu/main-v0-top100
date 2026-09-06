@@ -8,7 +8,7 @@ export default function SettingsPage() {
   const { member } = useDashboardMember()
 
   return (
-    <RouteSection eyebrow="Your preferences" title="Settings" description="Manage one responsibility at a time without affecting your BIO allowance.">
+    <RouteSection title="Settings" description="Manage your visibility, alerts and privacy.">
       <SettingsOverview member={member} />
     </RouteSection>
   )

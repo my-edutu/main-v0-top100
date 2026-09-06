@@ -8,7 +8,7 @@ export default function FeaturePage() {
   const { member } = useDashboardMember()
 
   return (
-    <RouteSection eyebrow="Tell your story" title="Get featured" description="Pitch your work and follow each submission through editorial review.">
+    <RouteSection title="Get featured" description="Share your work with the AFL editorial team.">
       <FeatureSection member={member} />
     </RouteSection>
   )

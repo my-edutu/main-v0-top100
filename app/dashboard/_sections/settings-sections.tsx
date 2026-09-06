@@ -1,12 +1,13 @@
 'use client'
 
 import { type FormEvent, type ReactNode, useState } from 'react'
-import { Bell, Eye, Loader2, LockKeyhole, ShieldCheck } from 'lucide-react'
+import { Bell, Eye, Loader2, LockKeyhole, ShieldCheck, ChevronRight } from 'lucide-react'
+import Link from 'next/link'
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { updateMemberProfile, type MemberProfile } from '@/lib/member-hub'
-import { DashboardCard } from '../_components/dashboard-card'
 import {
   buildNotificationPatch,
   buildPrivacyPatch,
@@ -16,15 +17,34 @@ import { persistThenRefresh } from '../_lib/persistence-workflows'
 import { useDashboardMember } from '../_providers/dashboard-member'
 
 export function SettingsOverview({ member }: { member: MemberProfile }) {
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [confirmed, setConfirmed] = useState(false)
   const updatesRemaining = Math.max(0, member.bioUpdateLimit - member.bioUpdateCount)
 
   return (
     <div className="space-y-5">
-      <div className="grid gap-3 sm:grid-cols-3">
-        <DashboardCard href="/dashboard/me/settings/visibility" title="Visibility" description="Profile and contact access" icon={Eye} color="forest" />
-        <DashboardCard href="/dashboard/me/settings/notifications" title="Notifications" description="Choose member alerts" icon={Bell} color="saffron" />
-        <DashboardCard href="/dashboard/me/settings/privacy" title="Privacy" description="Security preferences" icon={LockKeyhole} color="cobalt" />
-      </div>
+      <nav aria-label="Settings categories" className="divide-y divide-neutral-200 rounded-xl border border-neutral-200">
+        {[
+          { path:'visibility', title:'Visibility', description:'Profile and contact access', icon:Eye },
+          { path:'notifications', title:'Notifications', description:'Choose your alerts', icon:Bell },
+          { path:'privacy', title:'Privacy', description:'Security preferences', icon:LockKeyhole },
+        ].map(item => <Link key={item.path} href={`/dashboard/me/settings/${item.path}`} className="flex min-h-20 items-center gap-3 px-4 py-4 hover:bg-orange-50 focus-visible:outline-orange-600"><item.icon size={21} strokeWidth={1.6} className="shrink-0 text-orange-700" aria-hidden="true" /><span className="min-w-0 flex-1"><span className="block text-base font-medium">{item.title}</span><span className="mt-1 block text-sm text-neutral-500">{item.description}</span></span><ChevronRight size={18} className="shrink-0 text-neutral-400" aria-hidden="true" /></Link>)}
+      </nav>
+      <section className="border-t border-neutral-200 pt-5">
+        <h2 className="text-base font-medium">Your data</h2>
+        <button type="button" onClick={() => { setConfirmed(false); setDeleteOpen(true) }} className="mt-2 flex min-h-14 w-full items-center justify-between gap-3 text-left text-sm font-medium text-red-700">Delete my data <ChevronRight size={18} aria-hidden="true" /></button>
+        <p className="text-xs leading-5 text-neutral-500">Request removal of your personal data through the privacy team.</p>
+      </section>
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent className="max-h-[85dvh] w-[calc(100%-32px)] max-w-md overflow-y-auto bg-white p-6">
+          <DialogTitle>Request data deletion</DialogTitle>
+          <DialogDescription className="text-sm leading-6">This opens an email to our privacy team. You must send the email to submit your request. Nothing is deleted automatically.</DialogDescription>
+          <p className="text-sm leading-6 text-neutral-600">Ask the team to remove your account, public profile and associated personal data. They will verify your identity and explain any records that cannot be removed before processing your request.</p>
+          <label className="flex items-start gap-3 text-sm leading-6"><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} className="mt-1 h-5 w-5 shrink-0" />I understand that processed deletion may remove my profile and account access.</label>
+          <button type="button" disabled={!confirmed} onClick={() => { window.location.href = `mailto:partnership@top100afl.com?subject=${encodeURIComponent('Personal data deletion request')}&body=${encodeURIComponent(`Hello Top100 privacy team,\n\nI request deletion of my account, public profile and associated personal data. Please confirm the scope, any retained records, and the identity verification required.\n\nAccount name: ${member.name}\nAccount email: ${member.email}\n\nThank you.`)}` }} className="min-h-12 rounded-xl bg-red-700 px-4 font-medium text-white disabled:opacity-40" style={{backgroundColor:'#b91c1c',color:'#fff'}}>Open deletion request email</button>
+          <p className="text-xs leading-5 text-neutral-500">No email app? Write to partnership@top100afl.com from your account email. <Link href="/legal/privacy" className="underline">Read our privacy policy</Link>.</p>
+        </DialogContent>
+      </Dialog>
 
       <section className="rounded-[24px] border border-orange-200 bg-[#FFE7D5] p-5 sm:p-6">
         <div className="flex items-start gap-3">

@@ -14,6 +14,7 @@ import { updateMemberProfile } from '@/lib/member-hub'
 import { buildBioPatch } from '../_lib/profile-patches'
 import { persistThenRefresh } from '../_lib/persistence-workflows'
 import { useDashboardMember } from '../_providers/dashboard-member'
+import { MemberAvatar } from '../_components/member-avatar'
 
 export function ProfileSection() {
   const { member, refreshMember, replaceMember } = useDashboardMember()
@@ -21,6 +22,20 @@ export function ProfileSection() {
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
   const [warning, setWarning] = useState('')
+  const [uploading, setUploading] = useState(false)
+  async function uploadPhoto(file?: File) {
+    if (!file) return
+    setUploading(true); setError('')
+    try {
+      const form = new FormData(); form.set('file', file)
+      const response = await fetch('/api/member/avatar', { method: 'POST', body: form })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Could not upload your photo.')
+      replaceMember({ ...member, avatarUrl: data.url })
+      await refreshMember()
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not save your photo.') }
+    finally { setUploading(false) }
+  }
   const updatesRemaining = Math.max(0, member.bioUpdateLimit - member.bioUpdateCount)
   const quotaExhausted = updatesRemaining === 0
 
@@ -52,11 +67,12 @@ export function ProfileSection() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5 rounded-[24px] border border-[#E7DDCF] bg-white p-5 sm:p-7">
+    <form onSubmit={handleSubmit} className="hub-profile-editor space-y-5 bg-white">
+      <div className="flex items-center gap-4"><MemberAvatar src={member.avatarUrl} initials={member.avatarInitials} size={64} /><label className="min-w-0 text-sm font-medium">{uploading ? 'Saving photo…' : 'Your profile photo'}<input disabled={uploading || member.id === 'demo-member-1'} type="file" accept="image/*" onChange={event => void uploadPhoto(event.target.files?.[0])} className="mt-2 block w-full text-xs" /><span className="mt-1 block text-xs font-normal text-neutral-500">JPG, PNG or WebP, up to 5 MB{member.id === 'demo-member-1' ? ' · uploads are unavailable in preview' : ''}</span></label></div>
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-[16px] border border-orange-200 bg-[#FFF3E8] px-4 py-3">
         <div>
           <p className="text-sm font-extrabold text-[#171412]">Public profile sync</p>
-          <p className="mt-1 text-xs font-semibold text-[#625B52]">BIO edits update your awardee profile record.</p>
+          <p className="mt-1 text-xs font-normal leading-5 text-[#625B52]">These details update your public awardee profile. Public content may appear in search engines; search ranking is not guaranteed.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {member.publicSlug ? (
@@ -93,12 +109,13 @@ export function ProfileSection() {
           <ProfileToggle name="recruiterVisible" label="Recruiter visibility" defaultChecked={member.recruiterVisible} />
           <ProfileToggle name="emailVisible" label="Show email on profile" defaultChecked={member.emailVisible} />
         </div>
+        <div className="space-y-2"><p className="text-sm font-medium">Account email</p><p className="break-all text-sm text-neutral-600">{member.email}</p><p className="text-xs leading-5 text-neutral-500">Keep “Show email on profile” off if you do not want your email displayed publicly.</p></div>
       </fieldset>
 
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="submit" disabled={quotaExhausted || saving} className="min-h-12 rounded-full bg-[#171412] px-7 font-extrabold text-white hover:bg-[#312B27]">
+        <Button type="submit" disabled={quotaExhausted || saving} className="hub-profile-save min-h-12 w-full rounded-xl px-7 font-medium sm:w-auto">
           {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : null}
-          {saving ? 'Saving...' : 'Submit BIO'}
+          {saving ? 'Saving...' : 'Save profile for review'}
         </Button>
         {saved ? <span role="status" className="text-sm font-bold text-emerald-700">Saved for review.</span> : null}
         {error ? <span role="alert" className="text-sm font-bold text-rose-700">{error}</span> : null}

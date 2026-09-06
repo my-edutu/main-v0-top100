@@ -66,6 +66,11 @@ const shortcutDescriptions: Record<string, string> = {
   Opportunities: 'Find your next opening',
   Profile: 'Keep your BIO current',
   'My award': 'Claim or track delivery',
+  'Portfolio cover': 'Create your magazine profile',
+  'Get featured': 'Share your work with the team',
+  'Schedule an interview': 'Email the team to arrange a time',
+  'Contact the team': 'Ask a question or get support',
+  'Partner with us': 'Explore working together',
 }
 
 function formatShortDate(value: string | null | undefined) {
@@ -163,7 +168,11 @@ export function DashboardHome() {
   })
   const PriorityIcon = priorityIcons[priority.kind]
 
-  const shortcuts = [discoverNav[0], discoverNav[2], meNav[0], meNav[1]]
+  const shortcuts = [discoverNav[0], discoverNav[2], meNav[0], meNav[1], meNav[4],
+    { label:'Schedule an interview', href:'mailto:info@top100afl.com?subject=Interview%20scheduling%20request', icon:MessageCircle, color:'ember' as const },
+    { label:'Contact the team', href:'mailto:info@top100afl.com', icon:MessageCircle, color:'forest' as const },
+    { label:'Partner with us', href:'/partnership', icon:UserRound, color:'cobalt' as const },
+  ]
 
   const comingUp = useMemo(() => {
     const datedInvitations = selectUpcomingInvitations(invitations)
@@ -178,16 +187,8 @@ export function DashboardHome() {
         href: '/dashboard/discover/events',
       }))
 
-    const opportunityRows = opportunities.map((opportunity) => ({
-      id: `opportunity-${opportunity.id}`,
-      title: opportunity.title,
-      detail: [opportunity.type, opportunity.location].filter(Boolean).join(' · '),
-      date: formatDeadlineDate(opportunity.deadline),
-      href: '/dashboard/discover/opportunities',
-    }))
-
-    return [...datedInvitations, ...opportunityRows].slice(0, 3)
-  }, [invitations, opportunities])
+    return datedInvitations
+  }, [invitations])
 
   const recentItems = useMemo<RecentItem[]>(() => {
     const messageRows: RecentItem[] = conversations
@@ -225,63 +226,62 @@ export function DashboardHome() {
       {profileNeedsAttention && !profileDismissed && (
         <aside className="hub-profile-reminder" aria-label="Profile reminder">
           <div>
-            <p className="text-sm font-semibold">Let your profile tell your story.</p>
-            <Link href="/dashboard/me/profile" className="inline-flex min-h-11 items-center text-xs underline underline-offset-4">Complete your profile</Link>
+            <p className="text-sm font-medium">Your story is still taking shape.</p>
+            <Link href="/dashboard/me/profile" className="inline-flex min-h-9 items-center text-xs font-medium underline decoration-1 underline-offset-4">Complete your profile</Link>
           </div>
           <button type="button" onClick={() => setProfileDismissed(true)} aria-label="Dismiss profile reminder" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full"><X size={18} aria-hidden="true" /></button>
         </aside>
       )}
       <section className="hub-welcome" aria-labelledby="hub-welcome-title">
-        <h1 id="hub-welcome-title">Hey, {member.name.trim().split(/\s+/)[0]}.</h1>
+        <h1 id="hub-welcome-title">{(member.dashboardLoginCount ?? 0) < 4 ? 'Congratulations' : 'Hey'}, {member.name.trim().split(/\s+/)[0]}.</h1>
         <p className="hub-welcome-description">Your people, opportunities, and latest updates.</p>
       </section>
-      {loading && <p role="status" className="text-sm text-neutral-600">Loading your latest activity…</p>}
-      {loadError && <p role="status" className="text-sm text-neutral-600">Some activity couldn’t load. We’ll retry automatically; you can also open Messages, Events, or Updates directly.</p>}
+      {loading && <p role="status" className="hub-status text-sm text-neutral-600">Loading your latest activity…</p>}
+      {loadError && <p role="status" className="hub-status rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-sm leading-5 text-neutral-700">Some activity couldn’t load. We’ll retry automatically; you can also open Messages, Events, or Updates directly.</p>}
 
       <section className="hub-next-move" aria-labelledby="next-move-title">
-        <p id="next-move-title" className="mb-3 text-xs font-extrabold uppercase tracking-[0.16em] text-[#625B52]">
+        <p id="next-move-title" className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#625B52]">
           Your next move
         </p>
         <DashboardCard
-          href={priority.href}
-          title={priority.title}
-          description={priority.description}
-          icon={PriorityIcon}
+          href={member.status === 'pending' ? '/dashboard/me/award' : priority.href}
+          title={member.status === 'pending' || priority.kind === 'award' ? 'Get your award here' : priority.title}
+          description={member.status === 'pending' ? 'Explore your award and the next steps to receive it.' : priority.description}
+          icon={member.status === 'pending' ? Trophy : PriorityIcon}
           color={priority.color}
           compact
         />
       </section>
 
-      <section aria-labelledby="coming-up-title" className="hub-panel md:order-4">
+      <section aria-labelledby="coming-up-title" className="hub-upcoming-events min-w-0 md:order-4">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-neutral-600">Calendar</p>
-            <h2 id="coming-up-title" className="hub-panel-title mt-1">On your horizon</h2>
+            <h2 id="coming-up-title" className="hub-panel-title">Upcoming events</h2>
           </div>
           <CalendarDays className="h-6 w-6 text-[#171717]" aria-hidden="true" />
         </div>
-        <div className="mt-3 divide-y divide-[#E7DDCF]">
+        <div className="hub-events-rail mt-3" tabIndex={0} role="region" aria-label="Upcoming events, scroll horizontally">
           {comingUp.length > 0 ? comingUp.map((item) => (
             <Link
               key={item.id}
               href={item.href}
-              className="grid min-h-14 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-lg py-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-2"
+              className="hub-upcoming-event focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-2"
             >
               <span className="min-w-0">
-                <span className="block truncate text-sm font-extrabold text-[#171412]">{item.title}</span>
-                <span className="mt-0.5 block truncate text-xs font-semibold text-[#625B52]">{item.detail}</span>
+                <span className="block break-words text-sm font-semibold text-[#171412]">{item.title}</span>
+                <span className="mt-0.5 block truncate text-xs font-normal text-[#625B52]">{item.detail}</span>
               </span>
-              <span className="text-xs font-extrabold text-[#171717]">{item.date}</span>
+              <span className="text-xs font-medium text-[#171717]">{item.date}</span>
             </Link>
           )) : (
-            <div className="hub-empty"><span className="hub-empty-icon" aria-hidden="true"><CalendarDays size={26} strokeWidth={1.5} /></span><div><p className="text-sm font-semibold">A little space for what’s next.</p><p className="mt-1 text-xs leading-5 text-[#625B52]">Your event invitations and opportunity deadlines will land here.</p><Link className="mt-1 inline-flex min-h-11 items-center gap-1 text-xs font-bold text-[#171717]" href="/dashboard/discover/opportunities">Explore opportunities <ArrowUpRight size={14} aria-hidden="true" /></Link></div></div>
+            <div className="py-3"><p className="text-sm text-[#625B52]">No upcoming events yet.</p><Link className="mt-1 inline-flex min-h-11 items-center gap-1 text-xs font-medium text-[#171717]" href="/dashboard/discover/events">View events <ArrowUpRight size={14} aria-hidden="true" /></Link></div>
           )}
         </div>
       </section>
 
       <section className="hub-shortcuts" aria-labelledby="shortcuts-title">
         <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 id="shortcuts-title" className="hub-panel-title">A little more possibility</h2>
+          <h2 id="shortcuts-title" className="hub-panel-title">Explore more</h2>
           <Sparkles className="h-5 w-5 text-[#171717]" aria-hidden="true" />
         </div>
         <div className="grid grid-cols-2 gap-3 sm:gap-4">
@@ -315,19 +315,19 @@ export function DashboardHome() {
                 <span className={cn(
                   'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
                   item.kind === 'message'
-                    ? 'bg-[#fff3af] text-[#171717]'
-                    : 'bg-[#FFE49A] text-[#171717]',
+                    ? 'bg-orange-100 text-orange-900'
+                    : 'bg-amber-100 text-amber-900',
                 )}>
                   <Icon className="h-5 w-5" aria-hidden="true" />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-2">
-                    <span className="truncate text-sm font-extrabold">{item.title}</span>
+                    <span className="truncate text-sm font-semibold">{item.title}</span>
                     {item.unread ? <span className="h-2 w-2 shrink-0 rounded-full bg-[#171717]" aria-hidden="true" /> : null}
                   </span>
-                  <span className="mt-0.5 block truncate text-xs font-semibold text-[#625B52]">{item.description}</span>
+                  <span className="mt-0.5 block truncate text-xs font-normal text-[#625B52]">{item.description}</span>
                 </span>
-                <span className="shrink-0 text-[11px] font-bold text-[#625B52]">{formatShortDate(item.date)}</span>
+                <span className="hidden shrink-0 text-[11px] font-medium text-[#625B52] sm:block">{formatShortDate(item.date)}</span>
               </Link>
             )
           }) : (

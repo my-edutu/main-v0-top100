@@ -32,26 +32,29 @@ export function DashboardCard({
   badge,
   compact = false,
 }: DashboardCardProps) {
+  const photos: Record<string, string> = { Members: '/dashboard/cards/community.jpg', Groups: '/dashboard/cards/community.jpg', Opportunities: '/dashboard/cards/opportunities.jpg', Saved: '/dashboard/cards/portfolio.jpg', Events: '/dashboard/cards/community.jpg', Magazine: '/dashboard/cards/portfolio.jpg', Profile: '/dashboard/cards/profile.jpg', 'Portfolio cover': '/dashboard/cards/portfolio.jpg' }
   return (
     <Link
       href={href}
       className={cn(
-        'hub-card group relative flex rounded-[16px] border p-4 font-sans shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#171412] focus-visible:ring-offset-2 focus-visible:ring-offset-[#FBF7EF] motion-reduce:transform-none motion-reduce:transition-none sm:p-5',
+        'hub-card group relative flex rounded-[18px] border p-4 font-sans transition-colors duration-200 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#171412] focus-visible:ring-offset-2 focus-visible:ring-offset-[#FBF7EF] motion-reduce:transform-none motion-reduce:transition-none sm:p-5',
         compact ? 'min-h-[92px] items-center gap-3' : 'min-h-[156px] flex-col',
-        dashboardColorClasses[color],
+        dashboardColorClasses[color], 'hub-image-card isolate overflow-hidden',
       )}
     >
+      <img src={photos[title] ?? '/dashboard/cards/membership.jpg'} alt="" loading="lazy" className="absolute inset-0 -z-20 h-full w-full object-cover" />
+      <span className="hub-card-scrim absolute inset-0 -z-10" aria-hidden="true" />
       <span className="hub-card-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] border border-current/15 bg-white/45">
         <Icon className="h-5 w-5" strokeWidth={1.8} aria-hidden="true" />
       </span>
 
       <span className={cn('min-w-0', compact ? 'flex-1' : 'mt-auto pt-5')}>
-        <span className="hub-card-title block text-lg font-extrabold leading-tight tracking-tight">{title}</span>
-        <span className="hub-card-description mt-1 block text-sm font-semibold leading-5 opacity-80">{description}</span>
+        <span className="hub-card-title block text-lg font-semibold leading-tight tracking-tight">{title}</span>
+        <span className="hub-card-description mt-1 block text-sm font-normal leading-5 opacity-80">{description}</span>
       </span>
 
       {badge !== undefined && badge !== 0 && badge !== '' ? (
-        <span className="absolute right-3 top-3 flex min-h-6 min-w-6 items-center justify-center rounded-full bg-[#171412] px-1.5 text-xs font-extrabold text-white" aria-label={`${badge} items`}>
+        <span className="absolute right-3 top-3 flex min-h-6 min-w-6 items-center justify-center rounded-full bg-[#171412] px-1.5 text-xs font-semibold text-white" aria-label={`${badge} items`}>
           {typeof badge === 'number' && badge > 99 ? '99+' : badge}
         </span>
       ) : (

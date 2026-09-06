@@ -24,6 +24,8 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
   const [loading, setLoading] = useState(true)
   const [loadFailed, setLoadFailed] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
+  const [page, setPage] = useState(0)
+  useEffect(() => { setPage(0) }, [searchTerm, selectedYear])
 
   useEffect(() => {
     let cancelled = false
@@ -73,28 +75,24 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
     })
   }, [awardees, searchTerm, selectedYear])
 
-  const visibleAwardees = filteredAwardees.slice(0, 36)
+  const pageCount = Math.max(1, Math.ceil(filteredAwardees.length / 12))
+  const currentPage = Math.min(page, pageCount - 1)
+  const visibleAwardees = filteredAwardees.slice(currentPage * 12, (currentPage + 1) * 12)
   const restrictedStatus = member.status === 'suspended' || member.status === 'rejected' ? member.status : null
   const messagingRestricted = restrictedStatus !== null
 
   return (
-    <Card className="rounded-[30px] border-orange-100 bg-white shadow-none">
-      <CardContent className="space-y-5 p-5 sm:p-7">
+    <div className="hub-directory min-w-0">
+      <div className="space-y-5">
         {restrictedStatus ? <DirectoryRecoveryCard status={restrictedStatus} /> : null}
 
         <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h2 className="text-3xl font-bold text-black">Fellow Africa Future Leaders.</h2>
-            <p className="mt-2 max-w-xl text-base font-medium text-black/60">
-              Browse the awardee list by cohort without leaving your dashboard.
-            </p>
-          </div>
           <div className="rounded-full bg-orange-50 px-4 py-2 text-sm font-semibold text-orange-700">
-            {loading ? 'Loading leaders' : `${filteredAwardees.length} leaders shown`}
+            {loading ? 'Loading leaders' : `${filteredAwardees.length} leaders found`}
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="hub-cohort-filters grid grid-cols-3 gap-2">
           {directoryCohorts.map((cohort) => (
             <button
               key={cohort.year}
@@ -102,12 +100,12 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
               onClick={() => setSelectedYear(cohort.year)}
               aria-pressed={selectedYear === cohort.year}
               className={cn(
-                'group flex min-h-[122px] flex-col justify-between rounded-[22px] border p-4 text-left text-black transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2',
+                'group flex min-h-16 flex-col justify-center rounded-xl border p-3 text-left text-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 focus-visible:ring-offset-2',
                 cohort.surface,
                 selectedYear === cohort.year ? 'border-black/15 ring-1 ring-black/10' : 'border-black/5',
               )}
             >
-              <div className="flex items-start justify-between gap-3">
+              <div className="hidden">
                 <span className="w-fit rounded-full border border-black/10 bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-black/45">
                   Cohort
                 </span>
@@ -117,14 +115,14 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
                 />
               </div>
               <div>
-                <h3 className="text-2xl font-semibold tracking-tight">{cohort.title}</h3>
-                <p className="mt-2 text-base font-medium text-black/50">Filter list</p>
+                <span className="text-base font-medium">{cohort.year}</span>
+                <span className="mt-1 block text-xs text-neutral-500">Cohort</span>
               </div>
             </button>
           ))}
         </div>
 
-        <div className="rounded-[28px] border border-orange-100 bg-white p-4">
+        <div className="min-w-0">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <button
               type="button"
@@ -153,14 +151,14 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
             {visibleAwardees.map((awardee) => (
               <article
                 key={awardee.awardee_id || awardee.slug}
-                className="rounded-[22px] border border-black/5 bg-white p-4"
+                className="min-w-0 rounded-2xl border border-neutral-200 bg-white p-4"
               >
                 <div className="flex items-start gap-3">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#050505] text-sm font-bold text-[#fffaf0]">
                     {getInitials(awardee.name)}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <h3 className="truncate text-[17px] font-bold text-black">{awardee.name}</h3>
+                    <h3 className="break-words text-base font-medium text-black">{awardee.name}</h3>
                     <p className="mt-1 line-clamp-2 text-[15px] font-medium leading-6 text-black/55">
                       {awardee.headline || awardee.tagline || awardee.bio || 'Africa Future Leader'}
                     </p>
@@ -263,12 +261,14 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
 
           {filteredAwardees.length > visibleAwardees.length ? (
             <p className="mt-4 text-center text-sm font-semibold text-black/45">
-              Showing first {visibleAwardees.length} of {filteredAwardees.length}. Search to narrow the list.
+              <button disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)} className="mr-4 rounded-xl border px-3 disabled:opacity-40">Previous</button>
+              Page {currentPage + 1} of {pageCount}
+              <button disabled={currentPage >= pageCount - 1} onClick={() => setPage(currentPage + 1)} className="ml-4 rounded-xl border px-3 disabled:opacity-40">Next</button>
             </p>
           ) : null}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }
 

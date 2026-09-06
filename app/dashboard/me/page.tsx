@@ -1,7 +1,9 @@
+'use client'
 import Link from 'next/link'
-import { ArrowUpRight, HeartHandshake } from 'lucide-react'
+import { useDashboardMember } from '../_providers/dashboard-member'
+import { MemberAvatar } from '../_components/member-avatar'
+import { ArrowUpRight } from 'lucide-react'
 
-import { DashboardCard } from '../_components/dashboard-card'
 import { RouteSection } from '../_components/route-section'
 import { meNav } from '../_lib/navigation'
 import { SignOutControl } from '../dashboard-header'
@@ -16,35 +18,49 @@ const meDescriptions: Record<string, string> = {
 }
 
 export default function MePage() {
+  const { member } = useDashboardMember()
   return (
     <RouteSection
-      eyebrow="Your membership"
       title="Me"
       description="Manage how you show up, publish and stay connected."
     >
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
+      <header className="flex items-center gap-4 py-3">
+        <MemberAvatar
+          src={member.avatarUrl}
+          initials={member.avatarInitials}
+          size={72}
+        />
+        <div className="min-w-0">
+          <h2 className="break-words text-2xl font-medium">{member.name}</h2>
+          <p className="mt-1 text-sm leading-6 text-neutral-600">
+            {member.headline}
+          </p>
+        </div>
+      </header>
+      <div className="divide-y divide-neutral-200 rounded-2xl border border-neutral-200">
         {meNav.map((item) => (
-          <DashboardCard
+          <Link
             key={item.href}
             href={item.href}
-            title={item.label}
-            description={meDescriptions[item.label]}
-            icon={item.icon}
-            color={item.color}
-          />
+            className="flex min-h-20 items-center gap-4 px-4 py-4 hover:bg-orange-50 focus-visible:outline-orange-600"
+          >
+            <item.icon
+              size={21}
+              strokeWidth={1.6}
+              className="shrink-0 text-orange-700"
+            />
+            <span className="min-w-0 flex-1">
+              <span className="block text-base font-medium">{item.label}</span>
+              <span className="mt-1 block text-sm leading-5 text-neutral-500">
+                {meDescriptions[item.label]}
+              </span>
+            </span>
+            <ArrowUpRight size={18} className="shrink-0 text-neutral-400" />
+          </Link>
         ))}
       </div>
 
       <div className="space-y-3 border-t border-[#E7DDCF] pt-5">
-        <Link
-          href="/partnership"
-          className="flex min-h-11 items-center gap-3 rounded-xl px-1 text-sm font-extrabold text-[#252B35] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#171412] focus-visible:ring-offset-2"
-        >
-          <HeartHandshake className="h-5 w-5 text-[#6C2600]" aria-hidden="true" />
-          <span>Partnerships</span>
-          <span className="ml-auto text-xs font-bold text-[#625B52]">Visit public page</span>
-          <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
-        </Link>
         <SignOutControl />
       </div>
     </RouteSection>

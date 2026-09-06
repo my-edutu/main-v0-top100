@@ -1,7 +1,7 @@
 export const top100DashboardTheme = {
-  canvas: 'bg-[radial-gradient(circle_at_top_left,rgba(250,204,21,.28),transparent_32%),linear-gradient(180deg,#FFFDF5_0%,#FFFFFF_54%,#FFF8D6_100%)]',
-  appBar: 'border-amber-100 bg-white/90 text-stone-950 backdrop-blur-md',
-  nav: 'border-amber-100 bg-white/85',
-  activeNav: 'bg-gradient-to-r from-yellow-300 to-amber-400 text-stone-950 shadow-sm',
-  card: 'border-amber-100 bg-white shadow-[0_14px_40px_rgba(113,82,0,.08)]',
+  canvas: 'bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,.14),transparent_30rem),linear-gradient(180deg,#FFFAF5_0%,#FFFFFF_52%,#FFF8F1_100%)]',
+  appBar: 'border-stone-200 bg-white/95 text-stone-950 backdrop-blur-md',
+  nav: 'border-stone-200 bg-white/95',
+  activeNav: 'bg-gradient-to-r from-orange-500 to-amber-500 text-white',
+  card: 'border-stone-200 bg-white',
 } as const

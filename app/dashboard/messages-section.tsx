@@ -23,6 +23,7 @@ import {
   startConversation,
 } from '@/lib/member-hub'
 import { cn } from '@/lib/utils'
+import { MemberAvatar } from './_components/member-avatar'
 
 const LIST_POLL_MS = 25_000
 const THREAD_POLL_MS = 12_000
@@ -91,12 +92,14 @@ export default function MessagesSection({
   pendingRecipient,
   onUnreadChange,
   onConversationChange,
+  apiBase = '/api/member/conversations',
 }: {
   member: MemberProfile
   initialConversationId?: string
   pendingRecipient?: MessageRecipient | null
   onUnreadChange: (count: number) => void
   onConversationChange: (id: string | null) => void
+  apiBase?: string
 }) {
   const [conversations, setConversations] = useState<ConversationSummary[] | null>(null)
   const [listError, setListError] = useState('')
@@ -123,7 +126,7 @@ export default function MessagesSection({
     async (opts: { silent?: boolean } = {}) => {
       if (!opts.silent) setListLoading(true)
       try {
-        const result = await fetchConversations()
+        const result = await fetchConversations(apiBase)
         setConversations(result.conversations)
         onUnreadChange(result.unreadTotal)
         setListError('')
@@ -139,7 +142,7 @@ export default function MessagesSection({
         setListLoading(false)
       }
     },
-    [onUnreadChange],
+    [onUnreadChange, apiBase],
   )
 
   const openThread = useCallback(
@@ -149,7 +152,7 @@ export default function MessagesSection({
         setThreadError('')
       }
       try {
-        const result = await fetchConversation(conversationId)
+        const result = await fetchConversation(conversationId, apiBase)
         // Ignore stale responses after the member switched threads.
         if (activeIdRef.current !== conversationId) return
         setThread(result)
@@ -164,7 +167,7 @@ export default function MessagesSection({
         if (activeIdRef.current === conversationId && !opts.silent) setThreadLoading(false)
       }
     },
-    [refreshConversations],
+    [refreshConversations, apiBase],
   )
 
   useEffect(() => {
@@ -211,7 +214,7 @@ export default function MessagesSection({
     setSending(true)
     try {
       if (composeRecipient) {
-        const conversationId = await startConversation(composeRecipient.profileId, body)
+        const conversationId = await startConversation(composeRecipient.profileId, body, apiBase)
         setDraft('')
         setComposeRecipient(null)
         setActiveId(conversationId)
@@ -219,7 +222,7 @@ export default function MessagesSection({
         await refreshConversations({ silent: true })
         toast.success(`Message sent to ${composeRecipient.name}.`)
       } else if (activeId) {
-        const message = await sendMessage(activeId, body)
+        const message = await sendMessage(activeId, body, apiBase)
         setDraft('')
         setThread((current) =>
           current ? { ...current, messages: [...current.messages, message] } : current,
@@ -245,7 +248,7 @@ export default function MessagesSection({
   const showThreadPane = Boolean(activeId || composeRecipient)
 
   const listPane = (
-    <div className={cn('flex min-h-0 flex-col', showThreadPane ? 'hidden lg:flex' : 'flex')}>
+    <div className={cn('flex min-h-0 min-w-0 flex-col', showThreadPane ? 'hidden lg:flex' : 'flex')}>
       <div className="relative mb-3">
         <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-black/35" strokeWidth={2.8} />
         <Input
@@ -309,7 +312,7 @@ export default function MessagesSection({
                     : 'border-black/5 bg-white hover:border-orange-200 hover:bg-[#fffaf4]',
                 )}
               >
-                <Avatar initials={conversation.otherMember.initials} />
+                <MemberAvatar src={conversation.otherMember.avatarUrl} initials={conversation.otherMember.initials} size={44} />
                 <span className="min-w-0 flex-1">
                   <span className="flex items-baseline justify-between gap-2">
                     <span className="truncate text-sm font-bold text-black">{conversation.otherMember.name}</span>
@@ -375,7 +378,7 @@ export default function MessagesSection({
       >
         <ArrowLeft className="h-4 w-4" strokeWidth={2.8} />
       </button>
-      <Avatar initials={thread.conversation.otherMember.initials} />
+      <MemberAvatar src={thread.conversation.otherMember.avatarUrl} initials={thread.conversation.otherMember.initials} size={44} />
       <div className="min-w-0 flex-1">
         <h4 className="truncate text-base font-bold text-black">{thread.conversation.otherMember.name}</h4>
         <p className="truncate text-xs font-medium text-black/50">
@@ -395,7 +398,7 @@ export default function MessagesSection({
   ) : null
 
   const threadPane = (
-    <div className={cn('min-h-0 flex-col', showThreadPane ? 'flex' : 'hidden lg:flex')}>
+    <div className={cn('hub-chat-thread min-h-0 min-w-0 flex-col', showThreadPane ? 'flex' : 'hidden lg:flex')}>
       {!showThreadPane ? (
         <div className="grid h-full min-h-[320px] place-items-center rounded-[24px] border border-dashed border-orange-200 bg-[#fffaf4] p-6 text-center">
           <div>
@@ -407,7 +410,7 @@ export default function MessagesSection({
         <>
           {threadHeader}
 
-          <div ref={scrollRef} className="min-h-[240px] flex-1 space-y-3 overflow-y-auto py-4 pr-1">
+          <div ref={scrollRef} role="log" aria-label="Conversation messages" aria-live="polite" className="hub-chat-history min-h-0 flex-1 space-y-3 overflow-y-auto">
             {composeRecipient ? (
               <p className="rounded-2xl bg-orange-50 px-4 py-3 text-sm font-medium leading-6 text-black/60">
                 Introduce yourself to {composeRecipient.name.split(' ')[0]} — they will see your name and profile.
@@ -434,27 +437,30 @@ export default function MessagesSection({
                 No messages yet — say hello.
               </p>
             ) : (
-              thread?.messages.map((message) => (
-                <div key={message.id} className={cn('flex', message.mine ? 'justify-end' : 'justify-start')}>
+              thread?.messages.map((message, index) => (
+                <div key={message.id}>
+                {(index === 0 || new Date(thread.messages[index - 1].createdAt).toDateString() !== new Date(message.createdAt).toDateString()) && <div className="hub-chat-date"><time dateTime={message.createdAt}>{new Intl.DateTimeFormat('en', { month:'short', day:'numeric', year:'numeric' }).format(new Date(message.createdAt))}</time></div>}
+                <div className={cn('flex', message.mine ? 'justify-end' : 'justify-start')}>
                   <div
                     className={cn(
-                      'max-w-[82%] rounded-3xl px-4 py-2.5 sm:max-w-[70%]',
+                      'hub-message-bubble max-w-[88%] rounded-3xl px-4 py-2.5 sm:max-w-[70%]',
                       message.mine
-                        ? 'rounded-br-lg bg-orange-500 text-white'
-                        : 'rounded-bl-lg border border-black/5 bg-white text-black',
+                        ? 'is-outgoing rounded-br-lg'
+                        : 'is-incoming rounded-bl-lg',
                     )}
                   >
-                    <p className="whitespace-pre-wrap break-words text-sm font-medium leading-6">{message.body}</p>
+                    <p className="whitespace-pre-wrap break-words text-sm font-normal leading-6 [overflow-wrap:anywhere]">{message.body}</p>
                     <p className={cn('mt-1 text-right text-[10px] font-semibold', message.mine ? 'text-white/70' : 'text-black/35')}>
-                      {formatMessageTime(message.createdAt)}
+                      {new Intl.DateTimeFormat('en', { hour:'numeric', minute:'2-digit' }).format(new Date(message.createdAt))}
                     </p>
                   </div>
+                </div>
                 </div>
               ))
             )}
           </div>
 
-          <form onSubmit={handleSend} className="border-t border-orange-100 pt-3">
+          <form onSubmit={handleSend} className="hub-chat-composer">
             {!canSend ? (
               <p className="rounded-2xl bg-orange-50 px-4 py-3 text-sm font-semibold text-orange-700">
                 Your account cannot send messages right now. Contact the admin team for help.
@@ -465,7 +471,7 @@ export default function MessagesSection({
                   value={draft}
                   onChange={(event) => setDraft(event.target.value)}
                   onKeyDown={(event) => {
-                    if (event.key === 'Enter' && !event.shiftKey) {
+                    if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
                       event.preventDefault()
                       event.currentTarget.form?.requestSubmit()
                     }
@@ -474,13 +480,13 @@ export default function MessagesSection({
                   aria-label="Write a message"
                   rows={1}
                   maxLength={4000}
-                  className="min-h-[52px] flex-1 resize-none rounded-3xl border-orange-100 px-4 py-3.5 text-sm text-black placeholder:text-black/40"
+                  className="min-h-[48px] flex-1 resize-none rounded-2xl border-neutral-200 px-4 py-3 text-base text-black placeholder:text-black/40"
                 />
                 <Button
                   type="submit"
                   disabled={sending || !draft.trim()}
                   aria-label="Send message"
-                  className="h-[52px] w-[52px] shrink-0 rounded-2xl bg-orange-500 p-0 text-white hover:bg-orange-600 disabled:bg-orange-200"
+                  className="hub-chat-send h-12 w-12 shrink-0 rounded-2xl p-0"
                 >
                   {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" strokeWidth={2.4} />}
                 </Button>
@@ -493,10 +499,10 @@ export default function MessagesSection({
   )
 
   return (
-    <section className="space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <section className={cn('hub-messages min-w-0 space-y-5', showThreadPane && 'has-open-thread')}>
+      <div className="hub-inbox-heading flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h2 className="text-4xl font-bold tracking-tight text-black sm:text-5xl">Messages</h2>
+          <h2 className="text-2xl font-medium tracking-tight text-black sm:text-3xl">Messages</h2>
           <p className="mt-2 max-w-xl text-sm font-medium leading-6 text-black/60">
             Direct conversations with fellow Africa Future Leaders. Find someone new in the directory.
           </p>
@@ -513,8 +519,8 @@ export default function MessagesSection({
         </Button>
       </div>
 
-      <div className="rounded-[30px] border border-orange-100 bg-white p-4 sm:p-5">
-        <div className="grid min-h-[520px] gap-5 lg:grid-cols-[340px_minmax(0,1fr)]">
+      <div className="hub-chat-frame min-w-0 rounded-2xl border border-neutral-200 bg-white">
+        <div className="hub-chat-grid grid min-w-0 grid-cols-[minmax(0,1fr)] lg:grid-cols-[300px_minmax(0,1fr)]">
           {listPane}
           {threadPane}
         </div>

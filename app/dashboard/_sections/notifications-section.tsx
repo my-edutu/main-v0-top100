@@ -168,10 +168,10 @@ export function NotificationsSection() {
           })}
         </ul>
       ) : (
-        <div className="rounded-[20px] border border-[#E7DDCF] bg-white p-6 text-center">
+        <div className="flex min-h-[calc(100dvh-380px)] flex-col items-center justify-center px-4 py-8 text-center">
           <BellRing className="mx-auto h-7 w-7 text-[#6C2600]" aria-hidden="true" />
-          <h2 className="mt-3 text-xl font-extrabold text-[#171412]">You are all caught up</h2>
-          <p className="mt-1 text-sm font-semibold text-[#625B52]">Member news and award updates will appear here.</p>
+          <h2 className="mt-3 text-xl font-medium text-[#171412]">You are all caught up</h2>
+          <p className="mt-2 max-w-xs text-sm font-normal leading-6 text-[#625B52]">Member news and award updates will appear here.</p>
         </div>
       )}
     </div>

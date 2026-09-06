@@ -1,4 +1,6 @@
-import { AlertTriangle, Clock3, type LucideIcon } from 'lucide-react'
+'use client'
+import { useState } from 'react'
+import { AlertTriangle, Clock3, X, type LucideIcon } from 'lucide-react'
 
 import type { MemberProfile, MemberStatus } from '@/lib/member-hub'
 import { cn } from '@/lib/utils'
@@ -12,8 +14,8 @@ const statusCopy: Record<RestrictedMemberStatus, {
   tone: string
 }> = {
   pending: {
-    title: 'Your awardee account is pending review',
-    body: 'You can complete your BIO and browse the network while the team reviews your account.',
+    title: 'Account pending review',
+    body: 'You can update your profile and browse while we review your account.',
     icon: Clock3,
     tone: 'border-amber-300 bg-[#FFF3C7] text-[#563700]',
   },
@@ -32,20 +34,20 @@ const statusCopy: Record<RestrictedMemberStatus, {
 }
 
 export function MembershipStatusBanner({ member }: { member: MemberProfile }) {
+  const [dismissed, setDismissed] = useState(false)
+  if (dismissed && member.status === 'pending') return null
   if (member.status === 'approved') return null
 
   const status = statusCopy[member.status]
   const Icon = status.icon
 
   return (
-    <div role="status" className={cn('flex gap-3 rounded-[16px] border p-4', status.tone)}>
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-current/15 bg-white/45">
-        <Icon className="h-5 w-5" aria-hidden="true" />
-      </span>
+    <div role="status" className={cn('flex gap-2 rounded-xl border px-3 py-2', status.tone)}>
       <div className="min-w-0">
-        <p className="text-sm font-extrabold">{status.title}</p>
-        <p className="mt-1 text-sm font-semibold leading-5 opacity-80">{status.body}</p>
+        <p className="text-sm font-semibold">{status.title}</p>
+        <p className="mt-1 text-xs font-normal leading-5 opacity-80">{status.body}</p>
       </div>
+      {member.status === 'pending' && <button type="button" aria-label="Dismiss pending review notice" onClick={() => setDismissed(true)} className="flex h-11 w-11 shrink-0 items-center justify-center self-start rounded-lg hover:bg-white/50"><X size={18} aria-hidden="true" /></button>}
     </div>
   )
 }

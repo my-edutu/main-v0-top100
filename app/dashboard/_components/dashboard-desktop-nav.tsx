@@ -9,12 +9,12 @@ import { useDashboardBadges } from '../_providers/dashboard-badges'
 import { top100DashboardTheme } from '@/lib/dashboard/theme'
 
 const activeColorClasses: Record<DashboardColor, string> = {
-  ember: 'bg-gradient-to-r from-yellow-300 to-amber-400 text-stone-950 shadow-sm',
-  saffron: 'bg-gradient-to-r from-yellow-300 to-amber-400 text-stone-950 shadow-sm',
-  forest: 'bg-gradient-to-r from-yellow-300 to-amber-400 text-stone-950 shadow-sm',
-  cobalt: 'bg-gradient-to-r from-yellow-300 to-amber-400 text-stone-950 shadow-sm',
-  burgundy: 'bg-gradient-to-r from-yellow-300 to-amber-400 text-stone-950 shadow-sm',
-  charcoal: 'bg-gradient-to-r from-yellow-300 to-amber-400 text-stone-950 shadow-sm',
+  ember: 'bg-gradient-to-r from-orange-500 to-amber-500 text-white',
+  saffron: 'bg-gradient-to-r from-orange-500 to-amber-500 text-white',
+  forest: 'bg-gradient-to-r from-orange-500 to-amber-500 text-white',
+  cobalt: 'bg-gradient-to-r from-orange-500 to-amber-500 text-white',
+  burgundy: 'bg-gradient-to-r from-orange-500 to-amber-500 text-white',
+  charcoal: 'bg-gradient-to-r from-orange-500 to-amber-500 text-white',
 }
 
 export function DashboardDesktopNav() {
@@ -36,7 +36,7 @@ export function DashboardDesktopNav() {
               aria-current={active ? 'page' : undefined}
               aria-label={badge > 0 ? `${item.label} (${badge} unread)` : item.label}
               className={cn(
-                'group relative flex min-h-14 items-center justify-center rounded-[16px] text-[#625B52] transition duration-200 hover:bg-[#FBF7EF] hover:text-[#171412] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#171412] focus-visible:ring-offset-2 xl:justify-start xl:gap-3 xl:px-3',
+                'group relative flex min-h-14 items-center justify-center rounded-[16px] text-[#625B52] transition-colors duration-200 hover:bg-orange-50 hover:text-[#171412] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#171412] focus-visible:ring-offset-2 xl:justify-start xl:gap-3 xl:px-3',
                 active && activeColorClasses[item.color],
               )}
             >
@@ -48,8 +48,7 @@ export function DashboardDesktopNav() {
                   </span>
                 ) : null}
               </span>
-              <span className="hidden truncate text-sm font-extrabold xl:block">{item.label}</span>
-              {active ? <span className="absolute left-0 h-7 w-1 rounded-r-full bg-current" aria-hidden="true" /> : null}
+              <span className="hidden truncate text-sm font-semibold xl:block">{item.label}</span>
             </Link>
           )
         })}
