@@ -37,9 +37,10 @@
   ],
   "exclude": [
     "node_modules",
+    "remotion-advert",
     "tests",
     "scripts",
     "types/scripts",
-    "remotion-advert"
+    ".playwright-cli"
   ]
 }

@@ -36,12 +36,18 @@ next-env.d.ts
 
 # local agent tooling (machine-specific paths + runtime state)
 /.labx
+/.playwright-cli/
+/output/
+/supabase/.temp/
 
 # macOS
 .DS_Store
 
 # superpowers scratch (progress ledger, task briefs)
 .superpowers/
+
+# local launch-smoke invite credential and record ids
+/.launch-smoke/
 
 # agent worktrees (real git worktrees; never commit these)
 .claude/worktrees/
