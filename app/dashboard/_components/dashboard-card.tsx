@@ -21,6 +21,7 @@ type DashboardCardProps = {
   color: DashboardColor
   badge?: number | string
   compact?: boolean
+  image?: boolean
 }
 
 export function DashboardCard({
@@ -31,6 +32,7 @@ export function DashboardCard({
   color,
   badge,
   compact = false,
+  image = true,
 }: DashboardCardProps) {
   const photos: Record<string, string> = { Members: '/dashboard/cards/community.jpg', Groups: '/dashboard/cards/community.jpg', Opportunities: '/dashboard/cards/opportunities.jpg', Saved: '/dashboard/cards/portfolio.jpg', Events: '/dashboard/cards/community.jpg', Magazine: '/dashboard/cards/portfolio.jpg', Profile: '/dashboard/cards/profile.jpg', 'Portfolio cover': '/dashboard/cards/portfolio.jpg' }
   return (
@@ -42,7 +44,7 @@ export function DashboardCard({
         dashboardColorClasses[color], 'hub-image-card isolate overflow-hidden',
       )}
     >
-      <img src={photos[title] ?? '/dashboard/cards/membership.jpg'} alt="" loading="lazy" className="absolute inset-0 -z-20 h-full w-full object-cover" />
+      {image && <img src={photos[title] ?? '/dashboard/cards/membership.jpg'} alt="" loading="lazy" className="absolute inset-0 -z-20 h-full w-full object-cover" />}
       <span className="hub-card-scrim absolute inset-0 -z-10" aria-hidden="true" />
       <span className="hub-card-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] border border-current/15 bg-white/45">
         <Icon className="h-5 w-5" strokeWidth={1.8} aria-hidden="true" />

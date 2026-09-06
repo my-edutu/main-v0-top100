@@ -7,6 +7,7 @@
 // which enforce auth + membership + BIO-limit rules on the server.
 
 import { fetchWithTimeout } from '@/lib/http/fetch-with-timeout'
+import { dashboardRead } from '@/lib/http/dashboard-read'
 
 export type MemberStatus = 'pending' | 'approved' | 'rejected' | 'suspended'
 export type ProfileStatus = 'draft' | 'submitted' | 'approved'
@@ -126,7 +127,7 @@ async function jsonOrThrow(res: Response) {
  * submissions). Returns null-ish state the caller can guard on.
  */
 export async function fetchMemberHubState(): Promise<MemberHubState> {
-  const res = await fetchWithTimeout('/api/member/me', { cache: 'no-store' })
+  const res = await dashboardRead('/api/member/me')
   const data = await jsonOrThrow(res)
 
   const member = data.member as MemberProfile | null
@@ -218,7 +219,7 @@ async function dmJsonOrThrow(res: Response) {
 }
 
 export async function fetchConversations(base = '/api/member/conversations'): Promise<ConversationListResult> {
-  const res = await fetchWithTimeout(base, { cache: 'no-store' })
+  const res = await dashboardRead(base)
   const data = await dmJsonOrThrow(res)
   return {
     conversations: (data.conversations ?? []) as ConversationSummary[],

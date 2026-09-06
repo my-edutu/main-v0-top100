@@ -97,7 +97,8 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
             <button
               key={cohort.year}
               type="button"
-              onClick={() => setSelectedYear(cohort.year)}
+              onClick={() => setSelectedYear(current => current === cohort.year ? 'all' : cohort.year)}
+              aria-label={`${cohort.year} cohort${selectedYear === cohort.year ? ', selected; activate to show all years' : ''}`}
               aria-pressed={selectedYear === cohort.year}
               className={cn(
                 'group flex min-h-16 flex-col justify-center rounded-xl border p-3 text-left text-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 focus-visible:ring-offset-2',
@@ -124,17 +125,6 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
 
         <div className="min-w-0">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <button
-              type="button"
-              onClick={() => setSelectedYear('all')}
-              aria-pressed={selectedYear === 'all'}
-              className={cn(
-                'min-h-11 rounded-full px-4 py-2.5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2',
-                selectedYear === 'all' ? 'bg-[#050505] text-[#fffaf0]' : 'bg-orange-50 text-black hover:bg-orange-100',
-              )}
-            >
-              All cohorts
-            </button>
             <div className="relative w-full lg:max-w-sm">
               <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-black/35" strokeWidth={2.8} />
               <Input

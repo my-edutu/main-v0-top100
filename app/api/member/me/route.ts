@@ -27,15 +27,8 @@ export async function GET() {
 
   const supabase = createAdminClient()
 
-  const { data: profile, error } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle()
-  if (error) {
-    return NextResponse.json({ message: 'Could not load your profile.' }, { status: 500 })
-  }
-  if (!profile) {
-    return NextResponse.json({ message: 'Profile not found. Contact the admin team.' }, { status: 404 })
-  }
-
-  const [awardeeId, notificationsRes, featuresRes] = await Promise.all([
+  const [profileResult, awardeeId, notificationsRes, featuresRes] = await Promise.all([
+    supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
     loadLinkedAwardeeId(supabase, user.id),
     supabase
       .from('user_notifications')
@@ -49,6 +42,10 @@ export async function GET() {
       .eq('member_id', user.id)
       .order('created_at', { ascending: false }),
   ])
+
+  const { data: profile, error } = profileResult
+  if (error) return NextResponse.json({ message: 'Could not load your profile.' }, { status: 500 })
+  if (!profile) return NextResponse.json({ message: 'Profile not found. Contact the admin team.' }, { status: 404 })
 
   return NextResponse.json({
     member: mapProfileToMember(profile, awardeeId),

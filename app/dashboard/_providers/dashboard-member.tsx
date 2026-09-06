@@ -12,7 +12,8 @@ import { LoaderCircle, RotateCcw } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { fetchMemberHubState, type MemberProfile } from '@/lib/member-hub'
-import { Onboarding } from '../_components/onboarding'
+import dynamic from 'next/dynamic'
+const Onboarding = dynamic(() => import('../_components/onboarding').then(module => module.Onboarding))
 
 type DashboardMemberContextValue = {
   member: MemberProfile

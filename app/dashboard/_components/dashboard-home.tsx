@@ -26,12 +26,6 @@ import {
   type EventInvitation,
 } from '@/lib/events/invitations-client'
 import { cn } from '@/lib/utils'
-import { selectHomeOpportunities } from '@/lib/dashboard/home-opportunities'
-import { fetchMemberOpportunities } from '@/lib/opportunities/client'
-import {
-  formatDeadlineDate,
-  type Opportunity,
-} from '@/lib/opportunities/types'
 import { DashboardCard } from './dashboard-card'
 import { discoverNav, meNav } from '../_lib/navigation'
 import {
@@ -98,26 +92,28 @@ export function DashboardHome() {
   const [conversations, setConversations] = useState<ConversationSummary[]>([])
   const [invitations, setInvitations] = useState<EventInvitation[]>([])
   const [notifications, setNotifications] = useState<MemberNotification[]>([])
-  const [opportunities, setOpportunities] = useState<Opportunity[]>([])
   const [profileDismissed, setProfileDismissed] = useState(false)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
 
   useEffect(() => {
     let cancelled = false
+    let inFlight = false
 
     async function loadPreviews() {
-      const [conversationResult, invitationResult, hubResult, opportunityResult] =
+      if (inFlight) return
+      inFlight = true
+      const [conversationResult, invitationResult, hubResult] =
         await Promise.allSettled([
           fetchConversations(),
           fetchEventInvitations(),
           fetchMemberHubState(),
-          fetchMemberOpportunities(),
         ])
 
+      inFlight = false
       if (cancelled) return
       setLoading(false)
-      setLoadError([conversationResult, invitationResult, hubResult, opportunityResult].some(result => result.status === 'rejected'))
+      setLoadError([conversationResult, invitationResult, hubResult].some(result => result.status === 'rejected'))
 
       if (conversationResult.status === 'fulfilled') {
         setConversations(conversationResult.value.conversations)
@@ -142,9 +138,6 @@ export function DashboardHome() {
         )
       }
 
-      if (opportunityResult.status === 'fulfilled') {
-        setOpportunities(selectHomeOpportunities(opportunityResult.value))
-      }
     }
 
     void loadPreviews()
@@ -244,6 +237,7 @@ export function DashboardHome() {
           Your next move
         </p>
         <DashboardCard
+          image={false}
           href={member.status === 'pending' ? '/dashboard/me/award' : priority.href}
           title={member.status === 'pending' || priority.kind === 'award' ? 'Get your award here' : priority.title}
           description={member.status === 'pending' ? 'Explore your award and the next steps to receive it.' : priority.description}
@@ -287,6 +281,7 @@ export function DashboardHome() {
         <div className="grid grid-cols-2 gap-3 sm:gap-4">
           {shortcuts.map((item) => (
             <DashboardCard
+              image={false}
               key={item.href}
               href={item.href}
               title={item.label}

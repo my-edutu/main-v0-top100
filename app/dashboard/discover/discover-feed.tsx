@@ -46,7 +46,6 @@ export function DiscoverFeed({ posts }: { posts: Story[] }) {
     }).catch(() => { if (!controller.signal.aborted) setState('error') })
     return () => controller.abort()
   }, [member.id, retry])
-  const canConnect = !['suspended', 'rejected'].includes(member.status)
   return <div className="discover-feed">
     <header><h1 className="text-xl font-semibold tracking-tight">Find your people. Make an impact.</h1></header>
     <nav aria-label="Discover shortcuts" className="discover-shortcuts">
@@ -63,13 +62,12 @@ export function DiscoverFeed({ posts }: { posts: Story[] }) {
       {state === 'loading' && <p className="discover-empty" role="status">Loading members…</p>}
       {state === 'error' && <div className="discover-empty" role="status">Members couldn’t load. <button className="underline" onClick={() => setRetry(value => value + 1)}>Try again</button></div>}
       {state === 'ready' && !people.length && <p className="discover-empty">Explore the <Link href="/dashboard/discover/members" className="underline">member directory</Link> to meet fellow awardees.</p>}
-      {state === 'ready' && people.map(person => <article className="discover-person" key={person.slug}>
-        <Link href={`/awardees/${person.slug}`} className="discover-person-profile">
+      {state === 'ready' && people.map(person => <Link href={`/awardees/${person.slug}`} aria-label={`View ${person.name}'s profile`} className="discover-person" key={person.slug}>
+        <div className="discover-person-profile">
           {person.avatar_url ? <img src={person.avatar_url} alt="" loading="lazy" className="discover-avatar" /> : <span className="discover-avatar">{person.name.split(' ').map(part => part[0]).slice(0, 2).join('')}</span>}
-          <h3>{person.name}</h3><p>{person.headline || person.country || 'Africa Future Leader'}</p>
-        </Link>
-        {canConnect && person.profile_id ? <Link className="discover-connect" aria-label={`Connect with ${person.name} by message`} href={`/dashboard/messages?to=${encodeURIComponent(person.profile_id)}&name=${encodeURIComponent(person.name)}`}>Connect <ArrowUpRight size={14} /></Link> : <Link className="discover-connect" href={`/awardees/${person.slug}`}>View profile <ArrowUpRight size={14} /></Link>}
-      </article>)}
+          <h3>{person.name}</h3>
+        </div>
+      </Link>)}
     </Rail>
     <Rail title="Stories & ideas" href="/blog">
       {posts.length ? posts.map(post => <Link className="discover-story" href={`/blog/${post.slug}`} key={post.id}>

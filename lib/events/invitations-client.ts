@@ -4,6 +4,7 @@
 // which is server-side.
 
 import { fetchWithTimeout } from '@/lib/http/fetch-with-timeout'
+import { dashboardRead } from '@/lib/http/dashboard-read'
 
 export type Rsvp = 'pending' | 'attending' | 'declined' | 'maybe'
 export type RsvpChoice = 'attending' | 'declined' | 'maybe'
@@ -64,7 +65,7 @@ async function readError(response: Response, fallback: string): Promise<string> 
 }
 
 export async function fetchEventInvitations(): Promise<EventInvitationsResponse> {
-  const response = await fetchWithTimeout('/api/member/event-invitations', { cache: 'no-store' })
+  const response = await dashboardRead('/api/member/event-invitations')
   if (!response.ok) {
     throw new Error(await readError(response, 'Could not load your invitations.'))
   }
