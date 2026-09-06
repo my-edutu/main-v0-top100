@@ -14,6 +14,7 @@ import {
   mapConversation,
   orderPair,
 } from '@/lib/dm-server'
+import { notifyNewMessage } from '@/lib/email/dm-notification'
 
 export const runtime = 'nodejs'
 
@@ -179,6 +180,16 @@ export async function POST(request: NextRequest) {
   }
 
   await supabase.from('dm_conversations').update({ last_message_at: now }).eq('id', conversationId)
+
+  // Best-effort "you have a new message" email. Fired after the message row
+  // is safely saved, and awaited so a serverless runtime does not kill the
+  // request before the (already failure-proof) send finishes — see
+  // notifyNewMessage, which never throws and never blocks the response body.
+  await notifyNewMessage(supabase, {
+    conversationId,
+    recipientId,
+    senderName: sender.full_name || 'A member',
+  })
 
   return NextResponse.json({ conversationId }, { status: 201 })
 }

@@ -13,6 +13,7 @@ import {
   mapConversation,
   mapMessage,
 } from '@/lib/dm-server'
+import { notifyNewMessage } from '@/lib/email/dm-notification'
 
 export const runtime = 'nodejs'
 
@@ -120,6 +121,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   await supabase.from('dm_conversations').update({ last_message_at: now }).eq('id', id)
+
+  // Best-effort "you have a new message" email, fired only after the message
+  // row is safely saved. Awaited for the same reason as the first-message
+  // path: notifyNewMessage never throws and never surfaces a failure, so the
+  // only cost of awaiting is latency, and a floating promise risks being
+  // killed when the response returns on a serverless runtime.
+  const recipientId = conversation.member_one === user.id ? conversation.member_two : conversation.member_one
+  await notifyNewMessage(supabase, {
+    conversationId: id,
+    recipientId,
+    senderName: sender?.full_name || 'A member',
+  })
 
   return NextResponse.json({ message: mapMessage(message, user.id) }, { status: 201 })
 }
