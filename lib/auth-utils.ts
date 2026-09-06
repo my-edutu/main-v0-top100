@@ -102,6 +102,43 @@ export function extractRoleFromJWTPayload(payload: any): Role | null {
 }
 
 /**
+ * Turn a Supabase sign-in error into something safe to show a member.
+ *
+ * Supabase surfaces infrastructure failures verbatim — a suspended project, for
+ * instance, returns "Service for this project is restricted due to the following
+ * violations: exceed_cached_egress_quota. The project owner must upgrade their
+ * plan...". Rendering that raw tells the visitor nothing they can act on and
+ * leaks our billing state, so anything that isn't a genuine credential problem
+ * collapses to one neutral message. The original still goes to console.error
+ * at the call site for debugging.
+ */
+export function friendlySignInError(error: {
+  code?: string
+  message?: string
+  name?: string
+  status?: number
+} | null): string {
+  const code = error?.code ?? ''
+  const message = error?.message ?? ''
+
+  if (code === 'invalid_credentials' || /invalid login credentials/i.test(message)) {
+    return 'Invalid email or password.'
+  }
+  if (code === 'email_not_confirmed' || /email not confirmed/i.test(message)) {
+    return 'Please confirm your email address before signing in.'
+  }
+  if (
+    code === 'over_request_rate_limit' ||
+    /too many requests|rate limit/i.test(message) ||
+    error?.status === 429
+  ) {
+    return 'Too many sign-in attempts. Please wait a minute and try again.'
+  }
+
+  return 'Sign-in is temporarily unavailable. Please try again in a few minutes — if it keeps happening, contact the Top100 team.'
+}
+
+/**
  * Extract user object from JWT payload for debugging
  */
 export function extractUserFromJWTPayload(payload: any): any {

@@ -13,6 +13,7 @@ import { isQuoteExpired } from '@/lib/awards/quote'
 import { awardReturnPath } from '@/lib/awards/return-url'
 import { assertTransition } from '@/lib/awards/status'
 import { buildReference, initializeTransaction } from '@/lib/payments/paystack'
+import { isAwardCheckoutEnabled } from '@/lib/production-readiness'
 import { AWARD_SETUP_MESSAGE, isMissingAwardTable, loadOrderForUser } from '@/lib/awards/server'
 
 export const runtime = 'nodejs'
@@ -24,6 +25,13 @@ function siteOrigin(request: NextRequest): string {
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser()
   if (!user?.id) return NextResponse.json({ message: 'Authentication required.' }, { status: 401 })
+
+  if (!isAwardCheckoutEnabled(process.env)) {
+    return NextResponse.json(
+      { message: 'Award payment is temporarily unavailable. Please check back soon.' },
+      { status: 503 },
+    )
+  }
 
   const rate = await checkRateLimit({ ...RATE_LIMITS.AUTH, identifier: `award-checkout:${user.id}` })
   if (!rate.success) return createRateLimitResponse(rate, 'Too many payment attempts. Please wait a moment.')

@@ -1,10 +1,16 @@
 import { NextRequest } from 'next/server'
 
-import type { HubOpportunity } from '@/lib/member-hub'
-
 export const runtime = 'nodejs'
 
-const fallbackOpportunities: HubOpportunity[] = [
+type ExternalOpportunity = {
+  id: string
+  title: string
+  type: string
+  location: string
+  deadline: string
+}
+
+const fallbackOpportunities: ExternalOpportunity[] = [
   {
     id: 'edutu-fallback-1',
     title: 'Youth Climate Fellowship',
@@ -37,7 +43,7 @@ function asText(value: unknown, fallback: string) {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : fallback
 }
 
-function normalizeOpportunity(item: RawOpportunity, index: number): HubOpportunity {
+function normalizeOpportunity(item: RawOpportunity, index: number): ExternalOpportunity {
   return {
     id: asText(item.id, `edutu-${index + 1}`),
     title: asText(item.title, asText(item.name, 'Scholarship opportunity')),

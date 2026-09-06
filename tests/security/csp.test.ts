@@ -67,7 +67,14 @@ describe('Content-Security-Policy', () => {
   })
 
   it('allows the Brevo endpoints the SDK calls once it runs', () => {
+    const scripts = cspDirectives().get('script-src') ?? []
     const connect = cspDirectives().get('connect-src') ?? []
+    // The loader dynamically injects sa.js from this origin. It is an
+    // executable script origin, not only an analytics connection origin.
+    expect(scripts).toContain('https://sibautomation.com')
+    // The conversations/automation SDK posts to these two hosts, not to
+    // api.brevo.com. Loading the script without them yields a working script
+    // that cannot report anything.
     expect(connect).toContain('https://in-automate.brevo.com')
     expect(connect).toContain('https://sibautomation.com')
   })
@@ -88,6 +95,12 @@ describe('Brevo SDK injection', () => {
   it('is gated on the client key being configured', () => {
     expect(layout).toMatch(/const\s+brevoClientKey\s*=/)
     expect(layout).toMatch(/brevoClientKey\s*(\?|&&)/)
+  })
+
+  it('rejects documentation placeholder keys', () => {
+    // A non-empty placeholder used to pass the truthiness gate and produced a
+    // request to sa.js?key=your-brevo-client-key-here on every page.
+    expect(layout).toMatch(/your-brevo-client-key-here/i)
   })
 
   it('does not guard init on window.Brevo already existing', () => {

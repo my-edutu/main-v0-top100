@@ -228,12 +228,12 @@ export default function AdminDashboard() {
           <p className="text-sm text-zinc-500">
             Internal tooling is paused while we prepare the public launch.
           </p>
-          <a
+          <Link
             href="/"
             className="inline-flex items-center justify-center rounded-full bg-orange-500 px-6 py-3 text-sm font-semibold text-white transition hover:bg-orange-600"
           >
             Back to homepage
-          </a>
+          </Link>
         </div>
       </div>
     )
