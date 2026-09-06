@@ -109,9 +109,9 @@ function ResetPasswordContent() {
                 disabled={!isRecoveryReady || isLoading}
                 aria-label={showPassword ? 'Hide new password' : 'Show new password'}
                 aria-pressed={showPassword}
-                className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-xl text-slate-400 transition-colors hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-orange-400 disabled:cursor-not-allowed disabled:opacity-40"
+                className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-xl bg-slate-50 text-slate-700 transition-colors hover:bg-orange-50 hover:text-orange-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-orange-400 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500"
               >
-                {showPassword ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
+                {showPassword ? <EyeOff className="h-5 w-5 stroke-[2.25]" aria-hidden="true" /> : <Eye className="h-5 w-5 stroke-[2.25]" aria-hidden="true" />}
               </button>
             </div>
           </div>
@@ -125,9 +125,9 @@ function ResetPasswordContent() {
                 disabled={!isRecoveryReady || isLoading}
                 aria-label={showConfirmPassword ? 'Hide confirmation password' : 'Show confirmation password'}
                 aria-pressed={showConfirmPassword}
-                className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-xl text-slate-400 transition-colors hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-orange-400 disabled:cursor-not-allowed disabled:opacity-40"
+                className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-xl bg-slate-50 text-slate-700 transition-colors hover:bg-orange-50 hover:text-orange-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-orange-400 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500"
               >
-                {showConfirmPassword ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
+                {showConfirmPassword ? <EyeOff className="h-5 w-5 stroke-[2.25]" aria-hidden="true" /> : <Eye className="h-5 w-5 stroke-[2.25]" aria-hidden="true" />}
               </button>
             </div>
           </div>

@@ -55,4 +55,11 @@ describe('password recovery', () => {
     expect(forgot).toContain('resetPasswordForEmail')
     expect(reset).toContain('updateUser({ password })')
   })
+
+  it('keeps both password visibility controls obvious and accessible', () => {
+    const reset = readFileSync(path.join(root, 'app/auth/reset-password/page.tsx'), 'utf8')
+    expect(reset).toContain("aria-label={showPassword ? 'Hide new password' : 'Show new password'}")
+    expect(reset).toContain("aria-label={showConfirmPassword ? 'Hide confirmation password' : 'Show confirmation password'}")
+    expect(reset).toContain('h-5 w-5 stroke-[2.25]')
+  })
 })
