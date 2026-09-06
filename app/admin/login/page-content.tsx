@@ -4,7 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Eye, EyeOff, Loader2, ShieldAlert } from 'lucide-react'
+import { CheckCircle2, Eye, EyeOff, Loader2, ShieldAlert } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label'
 import { TurnstileCaptcha, verifyCaptcha } from '@/components/ui/turnstile'
 import { supabase } from '@/lib/supabase/client'
 import { isAdminRole } from '@/lib/types/roles'
-import { normalizeRole } from '@/lib/auth-utils'
+import { friendlySignInError, normalizeRole } from '@/lib/auth-utils'
 
 /**
  * Administrator sign-in. Deliberately separate from the member /login page:
@@ -28,6 +28,7 @@ export default function AdminLoginContent() {
   const [captchaToken, setCaptchaToken] = useState('')
 
   const searchParams = useSearchParams()
+  const passwordWasReset = searchParams.get('passwordReset') === 'success'
   const requestedPath = searchParams.get('redirect') || searchParams.get('from') || ''
   // Only ever land inside the console, and only on same-site paths.
   const redirectTo =
@@ -50,11 +51,8 @@ export default function AdminLoginContent() {
 
       const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
       if (signInError) {
-        setError(
-          signInError.message.includes('Invalid login credentials')
-            ? 'Invalid email or password.'
-            : signInError.message
-        )
+        console.error('[admin-login] sign-in error:', signInError)
+        setError(friendlySignInError(signInError))
         setIsLoading(false)
         return
       }
@@ -68,8 +66,6 @@ export default function AdminLoginContent() {
 
       const response = await fetch('/api/auth/check-profile', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id }),
       })
 
       const data = await response.json().catch(() => ({}))
@@ -117,6 +113,16 @@ export default function AdminLoginContent() {
         </p>
 
         <form onSubmit={handleSignIn} className="mt-8 space-y-5">
+          {passwordWasReset && (
+            <div
+              role="status"
+              className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
+            >
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>Your password has been updated. Sign in with your new password.</span>
+            </div>
+          )}
+
           {error && (
             <div
               role="alert"
@@ -144,9 +150,17 @@ export default function AdminLoginContent() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="admin-password" className="text-slate-700">
-              Password
-            </Label>
+            <div className="flex items-baseline justify-between gap-4">
+              <Label htmlFor="admin-password" className="text-slate-700">
+                Password
+              </Label>
+              <Link
+                href="/auth/forgot-password?source=admin"
+                className="text-xs font-semibold text-orange-700 underline-offset-4 hover:underline"
+              >
+                Forgot password?
+              </Link>
+            </div>
             <div className="relative">
               <Input
                 id="admin-password"

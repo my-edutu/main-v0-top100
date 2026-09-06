@@ -146,15 +146,15 @@ export function redactSensitiveFields<T extends Record<string, unknown>>(
     obj: T,
     sensitiveFields: string[] = ['password', 'token', 'secret', 'apiKey', 'api_key', 'authorization']
 ): T {
-    const redacted = { ...obj };
+    const redacted: Record<string, unknown> = { ...obj };
 
     for (const field of sensitiveFields) {
         if (field in redacted) {
-            redacted[field] = '[REDACTED]' as unknown as T[keyof T];
+            redacted[field] = '[REDACTED]';
         }
     }
 
-    return redacted;
+    return redacted as T;
 }
 
 /**

@@ -47,7 +47,7 @@ export async function handleJoinSubmission(formData: FormData) {
     const data = validatedFields.data
 
     // 1. Store in Supabase interest_registrations table
-    const supabaseClient = createClient()
+    const supabaseClient = await createClient()
     const { error: dbError } = await supabaseClient
       .from('interest_registrations')
       .insert({

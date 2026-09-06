@@ -1,7 +1,10 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { hasValidDemoSession } from '@/lib/dev-dashboard/auth'
+import { rejectCrossOriginMutation } from '@/lib/security/same-origin'
 import { isAdminRole, parseRole } from '@/lib/types/roles'
+
+const MUTATION_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 
 /**
  * Look up the user's app role in the profiles table using the service role key.
@@ -33,6 +36,20 @@ async function getRoleFromDatabase(userId: string): Promise<string | null> {
 
 export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname
+
+  // These are immutable files under public/. Their directory name overlaps
+  // the protected dashboard route, so they must bypass session redirects.
+  if (/^\/dashboard\/award\/(?:address|review|tracking)\.webp$/.test(pathname)) {
+    return NextResponse.next({ request })
+  }
+
+  if (
+    (pathname.startsWith('/api/member/') || pathname.startsWith('/api/admin/')) &&
+    MUTATION_METHODS.has(request.method)
+  ) {
+    const rejection = rejectCrossOriginMutation(request)
+    if (rejection) return rejection
+  }
 
   // Local interactive dashboard demo. This guard independently requires both
   // NODE_ENV=development and a loopback Host header, so the cookie has no

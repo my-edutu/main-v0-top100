@@ -4,6 +4,7 @@ import {
   awardStepPath,
   awardStepRedirect,
   resolveAwardStep,
+  shouldAdvanceFromAwardQuote,
   validateAwardAddress,
 } from '@/app/dashboard/_lib/award-journey'
 
@@ -34,6 +35,11 @@ describe('award journey state resolution', () => {
 })
 
 describe('award journey prerequisite guards', () => {
+  it('advances after a usable quote even when the courier returns an informational message', () => {
+    expect(shouldAdvanceFromAwardQuote({ status: 'quoted' })).toBe(true)
+    expect(shouldAdvanceFromAwardQuote({ status: 'quote_failed' })).toBe(false)
+  })
+
   it('redirects attempts to skip an incomplete address or quote', () => {
     expect(awardStepRedirect('review', null)).toBe('/dashboard/me/award/address')
     expect(awardStepRedirect('payment', { status: 'draft' })).toBe(

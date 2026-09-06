@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
         };
 
         let successCount = 0;
-        let failCount = 0;
+        const failCount = 0;
         const failedEndpoints: string[] = [];
 
         // For now, we'll use a simple approach
@@ -135,4 +135,3 @@ export async function GET(req: NextRequest) {
         return Response.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
-

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
 import { setAwardeeSessionCookie } from '@/lib/api/awardee-session'
+import { legacySelfServiceEnabled } from '@/lib/legacy-self-service'
 import {
     checkRateLimit,
     createRateLimitResponse,
@@ -33,6 +34,11 @@ export async function POST(request: NextRequest) {
             )
         }
 
+        const supabase = createAdminClient()
+        if (!(await legacySelfServiceEnabled(supabase))) {
+            return NextResponse.json({ success: false, message: 'Profile editing has moved to the member dashboard.' }, { status: 404 })
+        }
+
         const body = await request.json()
         const { awardeeId, email } = body
 
@@ -42,8 +48,6 @@ export async function POST(request: NextRequest) {
                 message: 'Awardee ID and email are required'
             }, { status: 400 })
         }
-
-        const supabase = createAdminClient()
 
         // Fetch the awardee to verify email matches
         const { data: awardee, error } = await supabase
