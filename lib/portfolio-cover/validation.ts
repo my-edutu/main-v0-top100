@@ -7,7 +7,10 @@ const optionalText = (max: number) => z.string().trim().max(max).optional()
 const cgpa = z
   .string()
   .trim()
-  .regex(/^(?:[0-4](?:\.\d{1,2})?|5(?:\.0{1,2})?)\s*\/\s*5(?:\.0{1,2})?$/i)
+  .refine(value => {
+    const match = value.match(/^(\d(?:\.\d{1,2})?)\s*\/\s*([45])(?:\.0{1,2})?$/)
+    return Boolean(match && Number(match[1]) <= Number(match[2]))
+  }, 'Use a CGPA within a 4.0 or 5.0 scale.')
   .optional()
 
 export const portfolioCoverFieldsSchema = z

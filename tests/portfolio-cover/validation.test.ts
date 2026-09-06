@@ -26,6 +26,9 @@ describe('portfolio cover validation', () => {
   })
 
   it('bounds supplied fields and rejects unknown keys', () => {
+    expect(portfolioCoverFieldsSchema.safeParse({ cgpa: '3.75 / 4.0' }).success).toBe(true)
+    expect(portfolioCoverFieldsSchema.safeParse({ cgpa: '4.01 / 4.0' }).success).toBe(false)
+    expect(portfolioCoverFieldsSchema.safeParse({ cgpa: '-1 / 5.0' }).success).toBe(false)
     expect(portfolioCoverFieldsSchema.safeParse({ name: 'A'.repeat(121) }).success).toBe(false)
     expect(portfolioCoverFieldsSchema.safeParse({ name: 'Ada', madeUp: 'x' }).success).toBe(false)
     expect(portfolioCoverFieldsSchema.safeParse({ cgpa: '4.8 / 5.0' }).success).toBe(true)

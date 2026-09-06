@@ -35,6 +35,10 @@ import {
 import type { MemberProfile } from '@/lib/member-hub'
 
 import { AwardJourney } from './_components/award-journey'
+import { DeliveryPhone } from './_components/delivery-phone'
+import { DeliveryCountry } from './_components/delivery-country'
+import { AwardIntroduction } from './_components/award-introduction'
+import { AwardWelcome } from './_components/award-welcome'
 import {
   awardStepPath,
   awardStepRedirect,
@@ -172,7 +176,7 @@ export default function AwardsSection({
     if (loading || loadError || !state || paymentConfirmation !== 'idle') return
 
     if (!step) {
-      router.replace(awardStepPath(resolveAwardStep(state.order)))
+      if (resolveAwardStep(state.order) === 'tracking') router.replace(awardStepPath('tracking'))
       return
     }
 
@@ -294,6 +298,10 @@ export default function AwardsSection({
     )
   }
 
+  if (state && !step && resolveAwardStep(state.order) !== 'tracking') {
+    return <AwardIntroduction continueTo={awardStepPath(resolveAwardStep(state.order))} />
+  }
+
   if (!state || !step || awardStepRedirect(step, state.order)) {
     return <AwardRouteLoading label="Opening the next award step" />
   }
@@ -304,11 +312,12 @@ export default function AwardsSection({
     return (
       <AwardJourney
         current="address"
-        title="Where should we send your award?"
-        description="Add a reachable contact and the exact delivery address. We use it to request a live courier quote."
+        title="Your award, delivered."
+        description="Tell us who will receive it and where. You’ll review the delivery cost before payment."
         imageSrc="/dashboard/award/address.webp"
         imageAlt="Award parcel prepared for delivery"
       >
+        <AwardWelcome name={member.name} price={order?.awardAmountKobo ?? state.awardPriceKobo} preview={member.id === 'demo-member-1'} />
         {notice ? <AwardNotice>{notice}</AwardNotice> : null}
         <AddressForm
           member={member}
@@ -330,7 +339,7 @@ export default function AwardsSection({
         imageSrc="/dashboard/award/review.webp"
         imageAlt="Africa Future Leaders award ready for review"
       >
-        <ReviewPanel order={order} />
+        <ReviewPanel order={order} preview={member.id === 'demo-member-1'} />
       </AwardJourney>
     )
   }
@@ -339,7 +348,7 @@ export default function AwardsSection({
     return (
       <AwardJourney
         current="payment"
-        title="Complete secure payment"
+        title="One last step."
         description="Paystack handles the payment securely. Your card details are never stored by Top100 Africa."
         imageSrc="/dashboard/award/review.webp"
         imageAlt="Secure award payment handoff"
@@ -347,6 +356,7 @@ export default function AwardsSection({
         <PaymentPanel
           order={order}
           paying={submitting}
+          preview={member.id === 'demo-member-1'}
           onPay={handlePay}
         />
       </AwardJourney>
@@ -436,50 +446,72 @@ function AddressForm({
   submitting: boolean
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
 }) {
+  const [page, setPage] = useState(1)
+  const [recipientErrors, setRecipientErrors] = useState<AwardAddressErrors>({})
+  const visibleErrors = { ...errors, ...recipientErrors }
+  function handleStep(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (page === 2) { onSubmit(event); return }
+    const form = new FormData(event.currentTarget)
+    const checked = validateAwardAddress(Object.fromEntries(form.entries()) as AwardAddressValues)
+    const next: AwardAddressErrors = {}
+    for (const key of ['recipientName', 'phone', 'email'] as const) {
+      if (checked[key]) next[key] = checked[key]
+    }
+    setRecipientErrors(next)
+    if (Object.keys(next).length) return
+    setPage(2)
+    window.scrollTo({ top: 0 })
+  }
   return (
-    <form onSubmit={onSubmit} noValidate className="space-y-6">
+    <form onSubmit={handleStep} noValidate className="award-address-form space-y-5">
+      <p className="text-sm text-orange-700" role="status">{page === 1 ? 'Recipient details · 1 of 2' : 'Delivery address · 2 of 2'}</p>
+      <section className="award-profile-summary" aria-label="Awardee profile">
+        <div className="min-w-0"><p className="text-xs text-neutral-500">Awarded to</p><p className="mt-1 break-words text-base font-medium">{member.name}</p><p className="mt-1 text-xs leading-5 text-neutral-500">Your awardee profile is separate from delivery details.</p></div>
+        <Link href="/dashboard/me/profile" className="inline-flex min-h-11 shrink-0 items-center text-xs font-medium text-orange-700 underline underline-offset-4">View profile</Link>
+      </section>
       {Object.keys(errors).length > 0 ? (
         <div role="alert" className="rounded-[16px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-900">
           Check the highlighted delivery details before continuing.
         </div>
       ) : null}
 
-      <fieldset>
-        <legend className="text-lg font-extrabold text-[#171412]">Delivery contact</legend>
-        <p className="mt-1 text-sm font-semibold text-[#625B52]">The courier will use these details to reach you.</p>
+      <fieldset className="award-form-group" style={{ display: page === 1 ? undefined : 'none' }}>
+        <legend className="text-base font-medium text-[#171412]">Recipient details</legend>
+        <p className="mt-1 text-sm font-normal text-[#625B52]">You or someone receiving on your behalf. These details are only for delivery.</p>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <AwardField label="Full name" name="recipientName" defaultValue={order?.recipientName || member.name} error={errors.recipientName} autoComplete="name" />
-          <AwardField label="Phone number" name="phone" type="tel" defaultValue={order?.phone || ''} error={errors.phone} autoComplete="tel" />
-          <AwardField label="Email" name="email" type="email" defaultValue={order?.email || member.email} error={errors.email} autoComplete="email" className="md:col-span-2" />
+          <AwardField label="Full name" name="recipientName" defaultValue={order?.recipientName || member.name} error={visibleErrors.recipientName} autoComplete="name" />
+          <DeliveryPhone defaultValue={order?.phone || ''} deliveryCountry={order?.country} error={visibleErrors.phone} />
+          <AwardField label="Email" name="email" type="email" defaultValue={order?.email || member.email} error={visibleErrors.email} autoComplete="email" className="md:col-span-2" />
         </div>
       </fieldset>
 
-      <fieldset className="border-t border-[#E7DDCF] pt-6">
-        <legend className="text-lg font-extrabold text-[#171412]">Delivery address</legend>
-        <p className="mt-1 text-sm font-semibold text-[#625B52]">Use the address where someone can receive the parcel.</p>
+      <fieldset className="award-form-group" style={{ display: page === 2 ? undefined : 'none' }}>
+        <legend className="text-base font-medium text-[#171412]">Delivery address</legend>
+        <p className="mt-1 text-sm font-normal text-[#625B52]">Where should the courier bring your parcel?</p>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <AwardField label="Street address" name="addressLine1" defaultValue={order?.addressLine1 || ''} error={errors.addressLine1} autoComplete="address-line1" className="md:col-span-2" />
           <AwardField label="Apartment, suite (optional)" name="addressLine2" defaultValue={order?.addressLine2 || ''} autoComplete="address-line2" className="md:col-span-2" />
           <AwardField label="City" name="city" defaultValue={order?.city || ''} error={errors.city} autoComplete="address-level2" />
           <AwardField label="State or region" name="state" defaultValue={order?.state || ''} error={errors.state} autoComplete="address-level1" />
-          <AwardField label="Country" name="country" defaultValue={order?.country || ''} error={errors.country} autoComplete="country-name" />
+          <DeliveryCountry value={order?.country} error={errors.country} />
           <AwardField label="Postal code (optional)" name="postalCode" defaultValue={order?.postalCode || ''} autoComplete="postal-code" />
         </div>
       </fieldset>
 
-      <div className="flex flex-wrap gap-3 border-t border-[#E7DDCF] pt-5">
-        <Button asChild type="button" variant="outline" className="min-h-11 rounded-xl border-[#D4C7B6] bg-white text-[#171412]">
+      <div className="award-fixed-actions award-form-actions flex flex-wrap gap-3 pt-1">
+        {page === 2 ? <Button type="button" variant="outline" disabled={submitting} onClick={() => { setPage(1); window.scrollTo({ top: 0 }) }}>Back</Button> : <Button asChild type="button" variant="outline" className="min-h-11 rounded-xl border-[#D4C7B6] bg-white text-[#171412]">
           <Link href="/dashboard/me">Back</Link>
-        </Button>
+        </Button>}
         <Button type="submit" disabled={submitting} className="min-h-11 rounded-xl bg-[#F36C21] px-6 font-extrabold text-white hover:bg-[#D95412] disabled:bg-orange-200 disabled:text-[#625B52]">
-          {submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />Getting delivery quote...</> : 'Continue to review'}
+          {submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />Getting delivery quote...</> : page === 1 ? 'Continue to delivery address' : 'Continue to review'}
         </Button>
       </div>
     </form>
   )
 }
 
-function ReviewPanel({ order }: { order: AwardOrder }) {
+function ReviewPanel({ order, preview }: { order: AwardOrder; preview: boolean }) {
   return (
     <div className="space-y-5">
       <div className="grid gap-4 md:grid-cols-2">
@@ -500,12 +532,13 @@ function ReviewPanel({ order }: { order: AwardOrder }) {
         <MoneyRow label="Delivery · GIG Logistics" value={order.shippingAmountKobo ?? 0} />
         <MoneyRow label="Total" value={order.totalAmountKobo ?? 0} total />
       </dl>
+      {preview && <AwardNotice>Preview prices only. The ₦7,500 delivery charge is sample data, not a live GIG Logistics quote. No real courier price has been confirmed for this address.</AwardNotice>}
 
       {order.status === 'awaiting_payment' ? (
         <AwardNotice>A payment session has already been started for this total. Continue to the payment step; do not open multiple checkout tabs.</AwardNotice>
       ) : null}
 
-      <div className="flex flex-wrap gap-3">
+      <div className="award-fixed-actions flex flex-wrap gap-3">
         {order.status === 'quoted' ? (
           <Button asChild type="button" variant="outline" className="min-h-11 rounded-xl border-[#D4C7B6] bg-white text-[#171412]">
             <Link href={awardStepPath('address')}>Edit address</Link>
@@ -519,29 +552,27 @@ function ReviewPanel({ order }: { order: AwardOrder }) {
   )
 }
 
-function PaymentPanel({ order, paying, onPay }: { order: AwardOrder; paying: boolean; onPay: () => void }) {
+function PaymentPanel({ order, paying, onPay, preview }: { order: AwardOrder; paying: boolean; onPay: () => void; preview: boolean }) {
   return (
-    <div className="space-y-5">
-      <div className="rounded-[16px] border border-emerald-200 bg-[#CFF3DF] p-4 text-[#064C36] sm:p-5">
+    <div className="award-payment space-y-5">
+      <div className="award-security-note">
         <div className="flex items-start gap-3">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] border border-emerald-300 bg-white/60"><LockKeyhole className="h-5 w-5" aria-hidden="true" /></span>
           <div>
-            <h2 className="text-lg font-extrabold">Secure Paystack handoff</h2>
-            <p className="mt-1 text-sm font-semibold leading-6">You will leave this page briefly to complete payment. Return here only through Paystack so we can confirm the signed webhook safely.</p>
+            <h2 className="text-base font-medium">Secure checkout with Paystack</h2>
+            <p className="mt-1 text-sm font-normal leading-6">Complete payment on Paystack, then return here to see your confirmation. We’ll update your order once payment is verified.</p>
           </div>
         </div>
       </div>
 
-      <div className="flex items-end justify-between gap-4 rounded-[16px] border border-[#E7DDCF] bg-white p-4 sm:p-5">
-        <div><p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#625B52]">Amount due</p><p className="mt-1 text-3xl font-extrabold tracking-tight text-[#171412]">{formatNaira(order.totalAmountKobo ?? 0)}</p></div>
-        <Check className="h-7 w-7 text-emerald-700" aria-label="Quote reviewed" />
-      </div>
+      <section className="award-payment-total"><h2 className="text-base font-medium">Order summary</h2><dl className="mt-3"><MoneyRow label="Africa Future Leaders Award" value={order.awardAmountKobo} /><MoneyRow label={preview ? 'Delivery · sample quote' : 'Delivery'} value={order.shippingAmountKobo ?? 0} /><MoneyRow label="Total due" value={order.totalAmountKobo ?? 0} total /></dl></section>
+      {preview && <AwardNotice>Local preview only. Prices are sample data and this checkout does not charge you.</AwardNotice>}
 
-      <div className="flex flex-wrap gap-3">
+      <div className="award-fixed-actions award-payment-actions">
         <Button asChild type="button" variant="outline" className="min-h-11 rounded-xl border-[#D4C7B6] bg-white text-[#171412]">
           <Link href={awardStepPath('review')}>Back to review</Link>
         </Button>
-        <Button type="button" onClick={onPay} disabled={paying} className="min-h-11 rounded-xl bg-[#171412] px-6 font-extrabold text-white hover:bg-[#312B27] disabled:bg-[#D4C7B6] disabled:text-[#625B52]">
+        <Button type="button" onClick={onPay} disabled={paying} className="award-pay-button min-h-12 rounded-xl px-6 font-medium">
           {paying ? <><Loader2 className="mr-2 h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />Opening secure payment...</> : `Pay ${formatNaira(order.totalAmountKobo ?? 0)}`}
         </Button>
       </div>
@@ -554,19 +585,19 @@ function TrackingPanel({ order, onRefresh, refreshing }: { order: AwardOrder; on
   const timeline = ['Payment confirmed', 'Dispatched', 'In transit', 'Delivered']
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-start gap-4 rounded-[16px] border border-emerald-200 bg-[#CFF3DF] p-4 text-[#064C36] sm:p-5">
+    <div className="award-tracking space-y-5">
+      <div className="award-tracking-status flex items-start gap-4 p-4 sm:p-5">
         <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] border border-emerald-300 bg-white/60">
           {order.status === 'delivered' ? <PackageCheck className="h-6 w-6" aria-hidden="true" /> : <Truck className="h-6 w-6" aria-hidden="true" />}
         </span>
-        <div><h2 className="text-xl font-extrabold">{order.status === 'delivered' ? 'Delivery complete' : 'Payment confirmed'}</h2><p className="mt-1 text-sm font-semibold leading-6">{order.deliveryStatus || 'Your award is being prepared for dispatch.'}</p></div>
+        <div><h2 className="text-xl font-medium">{timeline[statusIndex]}</h2><p className="mt-1 text-sm font-normal leading-6">{order.deliveryStatus || ['Your award is being prepared for dispatch.', 'Your parcel has been dispatched.', 'Your parcel is on its way.', 'Your award has been delivered.'][statusIndex]}</p></div>
       </div>
 
-      <ol aria-label="Award delivery timeline" className="grid gap-3 sm:grid-cols-4">
+      <ol aria-label="Award delivery timeline" className="award-delivery-timeline">
         {timeline.map((label, index) => (
-          <li key={label} className={`rounded-[14px] border p-3 ${index <= statusIndex ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-[#E7DDCF] bg-white text-[#625B52]'}`}>
+          <li key={label} aria-current={index === statusIndex ? 'step' : undefined} className={index <= statusIndex ? 'is-reached' : ''}>
             <span className="flex h-7 w-7 items-center justify-center rounded-full border border-current text-xs font-extrabold">{index < statusIndex || order.status === 'delivered' ? <Check className="h-4 w-4" aria-hidden="true" /> : index + 1}</span>
-            <span className="mt-2 block text-xs font-extrabold">{label}</span>
+            <span className="text-sm font-medium">{label}<span className="mt-1 block text-xs font-normal text-neutral-500">{index < statusIndex || order.status === 'delivered' ? 'Complete' : index === statusIndex ? 'Current status' : 'Pending'}</span></span>
           </li>
         ))}
       </ol>
@@ -576,7 +607,7 @@ function TrackingPanel({ order, onRefresh, refreshing }: { order: AwardOrder; on
         <AwardInfo label="Waybill" value={order.waybill || 'Assigned once dispatched'} />
       </dl>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="award-fixed-actions flex flex-wrap items-center gap-3">
         <Button type="button" variant="outline" onClick={onRefresh} disabled={refreshing} className="min-h-11 rounded-xl border-[#D4C7B6] bg-white text-[#171412]">
           <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin motion-reduce:animate-none' : ''}`} aria-hidden="true" />{refreshing ? 'Refreshing...' : 'Refresh courier status'}
         </Button>

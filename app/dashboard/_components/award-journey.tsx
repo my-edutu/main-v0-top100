@@ -32,9 +32,9 @@ export function AwardJourney({
   const currentIndex = AWARD_JOURNEY_STEPS.indexOf(current)
 
   return (
-    <section className="space-y-5">
-      <nav aria-label="Award journey progress" className="overflow-x-auto pb-1">
-        <ol className="grid min-w-[360px] grid-cols-4 gap-2">
+    <section className="award-flow space-y-6">
+      <nav aria-label="Award journey progress" className="award-progress">
+        <ol className="grid grid-cols-4 gap-2">
           {AWARD_JOURNEY_STEPS.map((step, index) => {
             const complete = index < currentIndex
             const active = step === current
@@ -42,18 +42,18 @@ export function AwardJourney({
               <li key={step}>
                 <div
                   aria-current={active ? 'step' : undefined}
-                  className={`flex min-h-14 items-center gap-2 rounded-[14px] border px-3 py-2 ${
+                  className={`award-step flex min-w-0 flex-col items-center gap-2 ${
                     active
-                      ? 'border-orange-300 bg-[#FFE7D5] text-[#6C2600]'
+                      ? 'is-active'
                       : complete
-                        ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
-                        : 'border-[#E7DDCF] bg-white text-[#625B52]'
+                        ? 'is-complete'
+                        : ''
                   }`}
                 >
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-current text-xs font-extrabold">
+                  <span className="award-step-number flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-medium">
                     {complete ? <Check className="h-4 w-4" aria-hidden="true" /> : index + 1}
                   </span>
-                  <span className="text-xs font-extrabold sm:text-sm">{STEP_LABELS[step]}</span>
+                  <span className="text-xs font-medium">{STEP_LABELS[step]}</span>
                 </div>
               </li>
             )
@@ -61,16 +61,15 @@ export function AwardJourney({
         </ol>
       </nav>
 
-      <div className="overflow-hidden rounded-[20px] border border-[#E7DDCF] bg-white">
-        <header className="grid items-center gap-4 border-b border-[#E7DDCF] bg-[#FBF7EF] p-5 sm:grid-cols-[minmax(0,1fr)_176px] sm:p-7">
+      <div>
+        <header className="grid grid-cols-[minmax(0,1fr)_64px] items-center gap-3 pb-6 sm:grid-cols-[minmax(0,1fr)_104px]">
           <div>
-            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-orange-700">Your Africa Future Leaders Award</p>
-            <h1 className="mt-2 text-[28px] font-extrabold leading-tight tracking-[-0.025em] text-[#171412] sm:text-[32px]">{title}</h1>
-            <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-[#625B52] sm:text-base">{description}</p>
+            <h1 className="text-2xl font-medium leading-tight tracking-tight text-[#171412] sm:text-3xl">{title}</h1>
+            <p className="mt-2 max-w-xl text-sm font-normal leading-6 text-[#625B52]">{description}</p>
           </div>
-          <Image src={imageSrc} alt={imageAlt} width={176} height={176} className="mx-auto h-auto w-32 max-w-[176px] object-contain sm:w-44" priority />
+          <Image src={imageSrc} alt={imageAlt} width={104} height={104} className="h-auto w-16 object-contain sm:w-[104px]" priority />
         </header>
-        <div className="p-5 sm:p-7">{children}</div>
+        <div>{children}</div>
       </div>
     </section>
   )
