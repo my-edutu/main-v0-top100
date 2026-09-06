@@ -12,6 +12,7 @@ import { LoaderCircle, RotateCcw } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { fetchMemberHubState, type MemberProfile } from '@/lib/member-hub'
+import { Onboarding } from '../_components/onboarding'
 
 type DashboardMemberContextValue = {
   member: MemberProfile
@@ -61,9 +62,20 @@ export function DashboardMemberProvider({ children }: { children: ReactNode }) {
     void refreshMember().catch(() => undefined)
   }, [refreshMember])
 
+  useEffect(() => {
+    if (!member?.onboardingCompletedAt) return
+    let cancelled = false
+    void fetch('/api/member/visits', { method: 'POST' }).then(async response => {
+      if (!response.ok) return
+      const data = await response.json()
+      if (!cancelled) setMember(current => current ? { ...current, dashboardLoginCount: data.count } : current)
+    }).catch(() => undefined)
+    return () => { cancelled = true }
+  }, [member?.id, member?.onboardingCompletedAt])
+
   if (loading && !member) {
     return (
-      <div className="grid min-h-[100dvh] place-items-center bg-[radial-gradient(circle_at_top_left,rgba(250,204,21,.28),transparent_32%),linear-gradient(180deg,#FFFDF5_0%,#FFFFFF_54%,#FFF8D6_100%)] px-4 text-[#171412]">
+      <div className="grid min-h-[100dvh] place-items-center bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,.18),transparent_32%),linear-gradient(180deg,#FFFAF5_0%,#FFFFFF_54%,#FFF5EB_100%)] px-4 text-[#171412]">
         <div
           role="status"
           aria-label="Loading your member dashboard"
@@ -78,7 +90,7 @@ export function DashboardMemberProvider({ children }: { children: ReactNode }) {
 
   if (!member) {
     return (
-      <div className="grid min-h-[100dvh] place-items-center bg-[radial-gradient(circle_at_top_left,rgba(250,204,21,.28),transparent_32%),linear-gradient(180deg,#FFFDF5_0%,#FFFFFF_54%,#FFF8D6_100%)] px-4 text-[#171412]">
+      <div className="grid min-h-[100dvh] place-items-center bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,.18),transparent_32%),linear-gradient(180deg,#FFFAF5_0%,#FFFFFF_54%,#FFF5EB_100%)] px-4 text-[#171412]">
         <section className="w-full max-w-md rounded-[20px] border border-[#E7DDCF] bg-white p-6 text-center sm:p-8" role="alert">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-[16px] bg-[#FFE7D5] text-[#6C2600]">
             <RotateCcw className="h-6 w-6" aria-hidden="true" />
@@ -101,7 +113,8 @@ export function DashboardMemberProvider({ children }: { children: ReactNode }) {
 
   return (
     <DashboardMemberContext.Provider value={{ member, refreshMember, replaceMember }}>
-      {children}
+      {member.id === 'demo-member-1' && <div className="bg-orange-50 px-4 py-2 text-center text-xs text-orange-900">Local preview · sample account and activity {member.onboardingCompletedAt && <button className="ml-2 underline" onClick={() => { void fetch('/api/member/onboarding', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reset: true }) }).then(async response => { if (response.ok) replaceMember((await response.json()).member) }) }}>Preview onboarding</button>}</div>}
+      {!member.onboardingCompletedAt ? <Onboarding member={member} onComplete={replaceMember} /> : children}
     </DashboardMemberContext.Provider>
   )
 }

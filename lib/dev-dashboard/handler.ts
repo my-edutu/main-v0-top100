@@ -10,6 +10,7 @@ import { nextAvailableSlug, slugifyGroupName } from '@/lib/groups/types'
 import { slugifyTitle } from '@/lib/member-posts/types'
 import { awardReturnPath } from '@/lib/awards/return-url'
 import { needsClaim } from '@/lib/awards/status'
+import { validateOnboarding } from '@/lib/dashboard/onboarding'
 import type { PortfolioCoverFields, PortfolioCoverGeneration, PortfolioVariant } from '@/lib/portfolio-cover/types'
 
 function json(data: unknown, status = 200): Response {
@@ -465,6 +466,28 @@ export async function handleDemoMemberRequest(
 
   let response: Response | null = null
   switch (path[0]) {
+    case 'visits':
+      response = json({ count: 1 })
+      break
+    case 'onboarding': {
+      if (request.method !== 'POST') break
+      const body = await readBody(request)
+      if (!body) return json({ message: 'Invalid form.' }, 400)
+      if (body.reset === true) {
+        store.profile.onboardingCompletedAt = null
+        store.profile.onboardingStep = 0
+        return json({ member: store.profile })
+      }
+      if (body.complete) {
+        const error = validateOnboarding(body)
+        if (error) return json({ message: error }, 400)
+      }
+      for (const key of ['headline', 'location', 'field', 'bio'] as const) if (typeof body[key] === 'string') store.profile[key] = body[key].trim()
+      store.profile.onboardingStep = Number(body.step) || 0
+      if (body.complete) store.profile.onboardingCompletedAt = new Date().toISOString()
+      response = json({ member: store.profile })
+      break
+    }
     case 'me':
       response = await routeMe(request, store)
       break

@@ -12,6 +12,10 @@ export type MemberStatus = 'pending' | 'approved' | 'rejected' | 'suspended'
 export type ProfileStatus = 'draft' | 'submitted' | 'approved'
 
 export type MemberProfile = {
+  avatarUrl?: string | null
+  onboardingCompletedAt?: string | null
+  onboardingStep?: number
+  dashboardLoginCount?: number
   id: string
   name: string
   email: string
@@ -213,8 +217,8 @@ async function dmJsonOrThrow(res: Response) {
   return data
 }
 
-export async function fetchConversations(): Promise<ConversationListResult> {
-  const res = await fetchWithTimeout('/api/member/conversations', { cache: 'no-store' })
+export async function fetchConversations(base = '/api/member/conversations'): Promise<ConversationListResult> {
+  const res = await fetchWithTimeout(base, { cache: 'no-store' })
   const data = await dmJsonOrThrow(res)
   return {
     conversations: (data.conversations ?? []) as ConversationSummary[],
@@ -222,11 +226,11 @@ export async function fetchConversations(): Promise<ConversationListResult> {
   }
 }
 
-export async function fetchConversation(conversationId: string): Promise<{
+export async function fetchConversation(conversationId: string, base = '/api/member/conversations'): Promise<{
   conversation: ConversationSummary
   messages: DirectMessage[]
 }> {
-  const res = await fetch(`/api/member/conversations/${conversationId}`, { cache: 'no-store' })
+  const res = await fetch(`${base}/${conversationId}`, { cache: 'no-store' })
   const data = await dmJsonOrThrow(res)
   return {
     conversation: data.conversation as ConversationSummary,
@@ -235,8 +239,8 @@ export async function fetchConversation(conversationId: string): Promise<{
 }
 
 /** Start (or reuse) a conversation with another member. Returns its id. */
-export async function startConversation(recipientProfileId: string, body: string): Promise<string> {
-  const res = await fetch('/api/member/conversations', {
+export async function startConversation(recipientProfileId: string, body: string, base = '/api/member/conversations'): Promise<string> {
+  const res = await fetch(base, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ recipientProfileId, body }),
@@ -245,8 +249,8 @@ export async function startConversation(recipientProfileId: string, body: string
   return String(data.conversationId)
 }
 
-export async function sendMessage(conversationId: string, body: string): Promise<DirectMessage> {
-  const res = await fetch(`/api/member/conversations/${conversationId}`, {
+export async function sendMessage(conversationId: string, body: string, base = '/api/member/conversations'): Promise<DirectMessage> {
+  const res = await fetch(`${base}/${conversationId}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ body }),

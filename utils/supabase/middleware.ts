@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { hasValidDemoSession } from '@/lib/dev-dashboard/auth'
 import { rejectCrossOriginMutation } from '@/lib/security/same-origin'
 import { isAdminRole, parseRole } from '@/lib/types/roles'
+import { onboardingComplete } from '@/lib/dashboard/onboarding'
 
 const MUTATION_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 
@@ -164,6 +165,22 @@ export async function updateSession(request: NextRequest) {
     url.search = ''
     url.searchParams.set('redirect', request.nextUrl.pathname)
     return NextResponse.redirect(url)
+  }
+
+  if (user && (pathname.startsWith('/dashboard') || pathname.startsWith('/api/member/'))) {
+    const allowed = ['/api/member/me', '/api/member/onboarding', '/api/member/uploads', '/api/member/avatar']
+    if (!allowed.includes(pathname)) {
+      const { data: profile, error } = await supabase.from('profiles').select('notification_prefs').eq('id', user.sub).maybeSingle()
+      if (error || !onboardingComplete(profile?.notification_prefs)) {
+        if (pathname.startsWith('/api/member/')) return NextResponse.json({ message: 'Complete your profile setup first.', onboardingRequired: true }, { status: 403 })
+        if (pathname !== '/dashboard/onboarding') {
+          const url = request.nextUrl.clone(); url.pathname = '/dashboard/onboarding'; url.search = ''
+          const response = NextResponse.redirect(url)
+          supabaseResponse.cookies.getAll().forEach(cookie => response.cookies.set(cookie))
+          return response
+        }
+      }
+    }
   }
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're

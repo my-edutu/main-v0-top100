@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth-server'
 import { AVATAR_PRESET, processUpload } from '@/lib/image-processing'
 import { uploadMedia } from '@/lib/media/storage'
+import { rejectCrossOriginMutation } from '@/lib/security/same-origin'
 
 const BUCKET_NAME = process.env.SUPABASE_AVATARS_BUCKET ?? 'avatars'
 
@@ -16,6 +17,8 @@ const createFileName = (userId: string, extension: string) => {
 }
 
 export async function POST(request: NextRequest) {
+  const rejected = rejectCrossOriginMutation(request)
+  if (rejected) return rejected
   try {
     // Check if user is authenticated
     const user = await getCurrentUser()

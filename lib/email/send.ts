@@ -1,5 +1,6 @@
 // lib/email/send.ts
-// Brevo transactional send. `lib/brevo.ts` is a 'use server' module for the
+// Resend (when configured), with the existing Brevo provider otherwise.
+// `lib/brevo.ts` is a 'use server' module for the
 // newsletter contact API; this is a separate plain module so it can be called
 // from route handlers without server-action semantics.
 
@@ -18,6 +19,17 @@ export type SendInput = {
  * fail the underlying action, so the result is returned rather than raised.
  */
 export async function sendTransactionalEmail(input: SendInput): Promise<{ ok: boolean; reason?: string }> {
+  if (process.env.RESEND_API_KEY) {
+    if (!process.env.RESEND_FROM_EMAIL) return { ok: false, reason: 'RESEND_FROM_EMAIL must be a verified sender.' }
+    try {
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST', headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from: process.env.RESEND_FROM_EMAIL, to: [input.to], subject: input.subject, html: input.html, text: input.text }),
+        signal: AbortSignal.timeout(10000),
+      })
+      return response.ok ? { ok: true } : { ok: false, reason: `Resend returned ${response.status}` }
+    } catch { return { ok: false, reason: 'Resend could not be reached.' } }
+  }
   const apiKey = process.env.BREVO_API_KEY
   if (!apiKey) return { ok: false, reason: 'BREVO_API_KEY is not configured' }
 
