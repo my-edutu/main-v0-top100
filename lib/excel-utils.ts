@@ -1,6 +1,5 @@
-import { readSheet } from 'read-excel-file/universal'
-
 import { sheetRowsToRecords } from '@/lib/spreadsheet-rows'
+import { readFirstWorksheet } from '@/lib/xlsx-reader'
 
 export async function readAwardeesFromExcel(filePath: string) {
   try {
@@ -10,7 +9,7 @@ export async function readAwardeesFromExcel(filePath: string) {
     }
 
     const buffer = await response.arrayBuffer()
-    const sheetRows = await readSheet(buffer)
+    const sheetRows = readFirstWorksheet(buffer)
     const jsonData = sheetRowsToRecords(sheetRows)
 
     return processAwardeesData(jsonData)

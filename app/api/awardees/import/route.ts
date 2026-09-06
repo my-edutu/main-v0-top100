@@ -3,8 +3,12 @@ import { revalidatePath, revalidateTag } from 'next/cache'
 
 import { requireAdmin } from '@/lib/api/require-admin'
 import { sheetRowsToRecords } from '@/lib/spreadsheet-rows'
+import {
+  planAwardeeImport,
+  type ExistingAwardeeIdentity,
+} from '@/lib/awardee-import-planner'
+import { readFirstWorksheet } from '@/lib/xlsx-reader'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
-import { readSheet } from 'read-excel-file/node'
 import { promises as fs } from 'fs'
 import path from 'path'
 
@@ -120,7 +124,7 @@ const parseRows = (rows: Record<string, unknown>[]) => {
 }
 
 const getRowsFromWorkbook = async (buffer: Buffer) => {
-  const sheetRows = await readSheet(buffer)
+  const sheetRows = readFirstWorksheet(buffer)
   const rows = sheetRowsToRecords(sheetRows)
 
   if (rows.length === 0) {
@@ -221,47 +225,39 @@ export async function POST(request: NextRequest) {
       throw new Error('Excel sheet appears to be empty')
     }
 
-    const chunkSize = 100
-    let imported = 0
-    let updated = 0
-
-    for (let i = 0; i < payload.length; i += chunkSize) {
-      const chunk = payload.slice(i, i + chunkSize)
-
-      const { data: existingAwardees, error: lookupError } = await supabase
+    const existingAwardees: ExistingAwardeeIdentity[] = []
+    const lookupPageSize = 1000
+    for (let offset = 0; ; offset += lookupPageSize) {
+      const { data, error: lookupError } = await supabase
         .from('awardees')
-        .select('id, slug')
-        .in('slug', chunk.map(item => item.slug))
+        .select('id, slug, email')
+        .order('id', { ascending: true })
+        .range(offset, offset + lookupPageSize - 1)
 
       if (lookupError) {
         console.error('Supabase lookup error:', lookupError)
         return NextResponse.json({
           success: false,
           message: 'Failed to prepare awardee import',
-          error: lookupError.message
+          error: lookupError.message,
         }, { status: 500 })
       }
 
-      const existingMap = new Map(existingAwardees?.map(item => [item.slug, item.id]) ?? [])
+      existingAwardees.push(...((data ?? []) as ExistingAwardeeIdentity[]))
+      if ((data ?? []).length < lookupPageSize) break
+    }
 
-      const toUpdate: Array<Record<string, unknown>> = []
-      const toInsert: Array<Record<string, unknown>> = []
+    const { toInsert, toUpdate } = planAwardeeImport(payload, existingAwardees)
+    const chunkSize = 100
+    let imported = 0
+    let updated = 0
 
-      for (const item of chunk) {
-        const existingId = existingMap.get(item.slug)
-        if (existingId) {
-          toUpdate.push({ ...item, id: existingId })
-        } else {
-          const insertItem: Record<string, unknown> = { ...item }
-          delete insertItem.id
-          toInsert.push(insertItem)
-        }
-      }
-
-      if (toUpdate.length > 0) {
+    for (let i = 0; i < toUpdate.length; i += chunkSize) {
+      const chunk = toUpdate.slice(i, i + chunkSize)
+      if (chunk.length > 0) {
         const { error: updateError } = await supabase
           .from('awardees')
-          .upsert(toUpdate, { onConflict: 'id' })
+          .upsert(chunk, { onConflict: 'id' })
 
         if (updateError) {
           console.error('Update error:', updateError)
@@ -271,13 +267,16 @@ export async function POST(request: NextRequest) {
             error: updateError.message
           }, { status: 500 })
         }
-        updated += toUpdate.length
+        updated += chunk.length
       }
+    }
 
-      if (toInsert.length > 0) {
+    for (let i = 0; i < toInsert.length; i += chunkSize) {
+      const chunk = toInsert.slice(i, i + chunkSize)
+      if (chunk.length > 0) {
         const { error: insertError } = await supabase
           .from('awardees')
-          .insert(toInsert)
+          .insert(chunk)
 
         if (insertError) {
           console.error('Insert error:', insertError)
@@ -287,7 +286,7 @@ export async function POST(request: NextRequest) {
             error: insertError.message
           }, { status: 500 })
         }
-        imported += toInsert.length
+        imported += chunk.length
       }
     }
 

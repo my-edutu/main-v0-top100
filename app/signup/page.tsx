@@ -1,6 +1,6 @@
 'use client'
 
-import { FormEvent, useEffect, useMemo, useState } from 'react'
+import { FormEvent, useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import {
@@ -24,11 +24,7 @@ import { Label } from '@/components/ui/label'
 import { supabase } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import LegalConsent from '@/app/components/LegalConsent'
-import {
-  CLAIM_DIRECTORY_RESULT_LIMIT,
-  filterClaimDirectory,
-  isPersistentAvatarUrl,
-} from '@/lib/auth/claim-directory'
+import { isPersistentAvatarUrl } from '@/lib/auth/claim-directory'
 
 type DirectoryAwardee = {
   id: string
@@ -60,8 +56,9 @@ export default function SignUpPage() {
 
   // Step 1 — directory
   const [directory, setDirectory] = useState<DirectoryAwardee[]>([])
-  const [directoryLoading, setDirectoryLoading] = useState(true)
+  const [directoryLoading, setDirectoryLoading] = useState(false)
   const [directoryError, setDirectoryError] = useState('')
+  const [directoryHasMore, setDirectoryHasMore] = useState(false)
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<DirectoryAwardee | null>(null)
 
@@ -75,40 +72,41 @@ export default function SignUpPage() {
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
-    let cancelled = false
-    async function loadDirectory() {
+    const search = query.trim().replace(/\s+/g, ' ')
+    if (search.length < 2) {
+      setDirectory([])
+      setDirectoryError('')
+      setDirectoryHasMore(false)
+      setDirectoryLoading(false)
+      return
+    }
+
+    const controller = new AbortController()
+    const timeout = window.setTimeout(async () => {
+      setDirectoryLoading(true)
+      setDirectoryError('')
       try {
-        const res = await fetch('/api/auth/claim-directory')
+        const res = await fetch(`/api/auth/claim-directory?q=${encodeURIComponent(search)}`, {
+          cache: 'no-store',
+          signal: controller.signal,
+        })
         const data = await res.json().catch(() => ({}))
         if (!res.ok) throw new Error(data?.message || 'Could not load the awardee directory.')
-        if (!cancelled) setDirectory(data.awardees ?? [])
+        setDirectory(data.awardees ?? [])
+        setDirectoryHasMore(Boolean(data.hasMore))
       } catch (err) {
-        if (!cancelled) {
-          setDirectoryError(err instanceof Error ? err.message : 'Could not load the awardee directory.')
-        }
+        if (controller.signal.aborted) return
+        setDirectoryError(err instanceof Error ? err.message : 'Could not load the awardee directory.')
       } finally {
-        if (!cancelled) setDirectoryLoading(false)
+        if (!controller.signal.aborted) setDirectoryLoading(false)
       }
-    }
-    loadDirectory()
+    }, 300)
+
     return () => {
-      cancelled = true
+      window.clearTimeout(timeout)
+      controller.abort()
     }
-  }, [])
-
-  const filtered = useMemo(() => {
-    return filterClaimDirectory(directory, query)
-  }, [directory, query])
-
-  const totalMatches = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    if (!q) return directory.length
-    return directory.filter((awardee) =>
-      [awardee.name, awardee.country ?? '', awardee.course ?? ''].some((field) =>
-        field.toLowerCase().includes(q)
-      )
-    ).length
-  }, [directory, query])
+  }, [query])
 
   function choose(awardee: DirectoryAwardee) {
     setSelected(awardee)
@@ -273,7 +271,7 @@ export default function SignUpPage() {
                   <Input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Search your name, country, or field…"
+                    placeholder="Search your full name…"
                     className="rounded-2xl pl-10"
                     autoFocus
                   />
@@ -289,7 +287,12 @@ export default function SignUpPage() {
                   {!directoryLoading && directoryError && (
                     <p className="py-8 text-center text-sm font-medium text-red-600">{directoryError}</p>
                   )}
-                  {!directoryLoading && !directoryError && filtered.length === 0 && (
+                  {!directoryLoading && !directoryError && query.trim().length < 2 && (
+                    <p className="py-8 text-center text-sm text-slate-500">
+                      Enter at least two letters of your name to search.
+                    </p>
+                  )}
+                  {!directoryLoading && !directoryError && query.trim().length >= 2 && directory.length === 0 && (
                     <p className="py-8 text-center text-sm text-slate-500">
                       No unclaimed profile matches “{query}”. Already claimed yours?{' '}
                       <Link href="/login" className="font-semibold text-orange-700">
@@ -299,7 +302,7 @@ export default function SignUpPage() {
                     </p>
                   )}
                   {!directoryLoading &&
-                    filtered.map((awardee) => (
+                    directory.map((awardee) => (
                       <button
                         key={awardee.id}
                         type="button"
@@ -330,13 +333,12 @@ export default function SignUpPage() {
                         <ArrowRight className="ml-auto h-4 w-4 shrink-0 text-slate-300" />
                       </button>
                     ))}
+                  {!directoryLoading && directoryHasMore && (
+                    <p className="px-2 py-3 text-center text-xs text-slate-500">
+                      Showing the first 25 matches. Add more of your name to narrow the results.
+                    </p>
+                  )}
                 </div>
-                {!directoryLoading && !directoryError && totalMatches > CLAIM_DIRECTORY_RESULT_LIMIT && (
-                  <p className="text-center text-xs leading-5 text-slate-500">
-                    Showing the first {CLAIM_DIRECTORY_RESULT_LIMIT} matches. Search by name, country,
-                    or field to find your profile faster.
-                  </p>
-                )}
               </div>
             )}
 

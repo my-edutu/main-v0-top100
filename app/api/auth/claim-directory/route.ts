@@ -13,6 +13,12 @@ import {
   RATE_LIMITS,
   createRateLimitResponse,
 } from '@/lib/rate-limit'
+import {
+  CLAIM_DIRECTORY_MIN_QUERY_LENGTH,
+  CLAIM_DIRECTORY_PAGE_SIZE,
+  normalizeClaimDirectorySearch,
+  toIlikePattern,
+} from '@/lib/claim-directory-search'
 
 export const runtime = 'nodejs'
 
@@ -27,8 +33,17 @@ function maskEmail(email: string): string {
 }
 
 export async function GET(request: NextRequest) {
+  const search = normalizeClaimDirectorySearch(request.nextUrl.searchParams.get('q'))
+  if (!search) {
+    return NextResponse.json({
+      awardees: [],
+      hasMore: false,
+      minQueryLength: CLAIM_DIRECTORY_MIN_QUERY_LENGTH,
+    })
+  }
+
   const identifier = getClientIdentifier(request.headers)
-  const rl = await checkRateLimit({ ...RATE_LIMITS.AUTH, identifier: `claim-directory:${identifier}` })
+  const rl = await checkRateLimit({ ...RATE_LIMITS.QUERY, identifier: `claim-directory:${identifier}` })
   if (!rl.success) {
     return createRateLimitResponse(rl, 'Too many requests. Please try again shortly.')
   }
@@ -39,11 +54,15 @@ export async function GET(request: NextRequest) {
       .from('awardees')
       .select('id, name, country, course, image_url, email, profile_id')
       .is('profile_id', null)
+      .ilike('name', toIlikePattern(search))
       .order('name', { ascending: true })
+      .limit(CLAIM_DIRECTORY_PAGE_SIZE + 1)
 
     if (error) throw new Error(error.message)
 
+    const hasMore = (data ?? []).length > CLAIM_DIRECTORY_PAGE_SIZE
     const awardees = (data ?? [])
+      .slice(0, CLAIM_DIRECTORY_PAGE_SIZE)
       .filter((a) => a.name)
       .map((a) => ({
         id: a.id,
@@ -54,7 +73,7 @@ export async function GET(request: NextRequest) {
         emailHint: a.email ? maskEmail(a.email) : null,
       }))
 
-    return NextResponse.json({ awardees })
+    return NextResponse.json({ awardees, hasMore })
   } catch (error) {
     console.error('[claim-directory] Failed to load directory:', error)
     return NextResponse.json({ message: 'Could not load the awardee directory.' }, { status: 500 })
