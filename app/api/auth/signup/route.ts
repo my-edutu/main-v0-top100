@@ -51,12 +51,6 @@ async function verifyCaptchaToken(token: string | undefined): Promise<boolean> {
 }
 
 export async function POST(request: NextRequest) {
-  const identifier = getClientIdentifier(request.headers)
-  const rl = await checkRateLimit({ ...RATE_LIMITS.AUTH, identifier: `signup:${identifier}` })
-  if (!rl.success) {
-    return createRateLimitResponse(rl, 'Too many signup attempts. Please try again shortly.')
-  }
-
   let payload: Record<string, unknown>
   try {
     payload = await request.json()
@@ -83,6 +77,12 @@ export async function POST(request: NextRequest) {
   const captchaOk = await verifyCaptchaToken(captchaToken)
   if (!captchaOk) {
     return NextResponse.json({ message: 'CAPTCHA verification failed. Please try again.' }, { status: 400 })
+  }
+
+  const identifier = getClientIdentifier(request.headers)
+  const rl = await checkRateLimit({ ...RATE_LIMITS.AUTH, identifier: `signup:${identifier}` })
+  if (!rl.success) {
+    return createRateLimitResponse(rl, 'Too many signup attempts. Please try again shortly.')
   }
 
   const supabase = createAdminClient()
