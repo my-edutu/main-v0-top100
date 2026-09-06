@@ -42,6 +42,14 @@ export type MemberProfile = {
   createdAt: string
 }
 
+export type HubOpportunity = {
+  id: string
+  title: string
+  type: string
+  location: string
+  deadline: string
+}
+
 export type MemberFeatureSubmission = {
   id: string
   memberId: string
@@ -95,9 +103,13 @@ export type DirectMessage = {
 export type MemberHubState = {
   members: MemberProfile[]
   currentMemberId?: string
+  opportunities: HubOpportunity[]
   featureSubmissions: MemberFeatureSubmission[]
   notifications: MemberNotification[]
 }
+
+// An unavailable listing must never become invented opportunities.
+export const defaultOpportunities: HubOpportunity[] = []
 
 async function jsonOrThrow(res: Response) {
   const data = await res.json().catch(() => ({}))
@@ -117,6 +129,7 @@ export async function fetchMemberHubState(): Promise<MemberHubState> {
   return {
     members: member ? [member] : [],
     currentMemberId: member?.id,
+    opportunities: defaultOpportunities,
     featureSubmissions: (data.featureSubmissions ?? []) as MemberFeatureSubmission[],
     notifications: (data.notifications ?? []) as MemberNotification[],
   }

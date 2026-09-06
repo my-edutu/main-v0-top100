@@ -1,6 +1,7 @@
 'use client'
 
 import type { ReactNode } from 'react'
+import '../dashboard.css'
 
 import { DashboardAppBar } from './dashboard-app-bar'
 import { DashboardBottomNav } from './dashboard-bottom-nav'
@@ -13,7 +14,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   const { member } = useDashboardMember()
 
   return (
-    <div className={`min-h-[100dvh] overflow-x-clip font-sans text-[#171412] ${top100DashboardTheme.canvas}`}>
+    <div className={`awardee-dashboard min-h-[100dvh] overflow-x-clip font-sans text-[#171412] ${top100DashboardTheme.canvas}`}>
       <DashboardAppBar />
       <div className="flex min-h-[calc(100dvh-60px)] items-start">
         <DashboardDesktopNav />

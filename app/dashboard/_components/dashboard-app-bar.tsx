@@ -14,7 +14,7 @@ function CountBadge({ count }: { count: number }) {
   if (count <= 0) return null
 
   return (
-    <span className="absolute right-0 top-0 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-[#FBF7EF] bg-[#9B1C4A] px-1 text-[10px] font-extrabold leading-none text-white">
+    <span className="absolute right-0 top-0 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-[#FBF7EF] bg-[#171717] px-1 text-[10px] font-extrabold leading-none text-white">
       {count > 99 ? '99+' : count}
     </span>
   )
@@ -29,7 +29,7 @@ export function DashboardAppBar() {
   const title = resolveDashboardTitle(pathname)
 
   return (
-    <header className={`sticky top-0 z-40 h-[60px] border-b text-[#171412] ${top100DashboardTheme.appBar}`}>
+    <header className={`hub-app-bar sticky top-0 z-40 h-[60px] border-b text-[#171412] ${top100DashboardTheme.appBar}`}>
       <div className="flex h-full items-center gap-2 px-4 sm:px-6">
         {isHome ? (
           <Link
@@ -76,7 +76,7 @@ export function DashboardAppBar() {
             aria-label={`Open ${member.name}'s account`}
             className="flex h-11 w-11 items-center justify-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-800 focus-visible:ring-offset-2"
           >
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#F8DCE6] text-xs font-extrabold uppercase text-[#6E1636]" aria-hidden="true">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#ffdf45] text-xs font-extrabold uppercase text-[#171717]" aria-hidden="true">
               {member.avatarInitials}
             </span>
           </Link>

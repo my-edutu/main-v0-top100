@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import {
   BellRing,
+  ArrowUpRight,
+  X,
   CalendarDays,
   Compass,
   MessageCircle,
@@ -79,16 +81,6 @@ function formatShortDate(value: string | null | undefined) {
   }).format(date)
 }
 
-function initialsFromName(name: string) {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join('')
-    .toUpperCase()
-}
-
 export function DashboardHome() {
   const { member } = useDashboardMember()
   const {
@@ -102,6 +94,9 @@ export function DashboardHome() {
   const [invitations, setInvitations] = useState<EventInvitation[]>([])
   const [notifications, setNotifications] = useState<MemberNotification[]>([])
   const [opportunities, setOpportunities] = useState<Opportunity[]>([])
+  const [profileDismissed, setProfileDismissed] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -116,6 +111,8 @@ export function DashboardHome() {
         ])
 
       if (cancelled) return
+      setLoading(false)
+      setLoadError([conversationResult, invitationResult, hubResult, opportunityResult].some(result => result.status === 'rejected'))
 
       if (conversationResult.status === 'fulfilled') {
         setConversations(conversationResult.value.conversations)
@@ -146,20 +143,18 @@ export function DashboardHome() {
     }
 
     void loadPreviews()
+    const refresh = () => { if (!document.hidden) void loadPreviews() }
+    window.addEventListener('focus', refresh)
+    const interval = window.setInterval(refresh, 30000)
 
     return () => {
       cancelled = true
+      window.removeEventListener('focus', refresh)
+      window.clearInterval(interval)
     }
   }, [member.id, member.status, setUnreadMessages, setUnreadUpdates])
 
-  const profileSteps = [
-    Boolean(member.headline.trim()),
-    Boolean(member.bio.trim()),
-    member.profileStatus === 'approved',
-  ]
-  const profileProgress = Math.round(
-    (profileSteps.filter(Boolean).length / profileSteps.length) * 100,
-  )
+  const profileNeedsAttention = !member.headline.trim() || !member.bio.trim() || member.profileStatus === 'draft'
   const priority = selectHomePriority({
     member,
     awardNeedsAttention,
@@ -203,7 +198,7 @@ export function DashboardHome() {
         title: conversation.otherMember.name,
         description: conversation.lastMessage?.body ?? 'Open conversation',
         date: conversation.lastMessageAt,
-        href: '/dashboard/messages',
+        href: `/dashboard/messages/${conversation.id}`,
         unread: conversation.unreadCount > 0,
       }))
 
@@ -226,39 +221,24 @@ export function DashboardHome() {
   }, [conversations, member.id, notifications])
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-[20px] border border-[#E7DDCF] bg-white px-4 py-4 sm:px-5">
-        <div className="flex items-center gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-[#171412] text-xs font-extrabold text-[#FBF7EF]">
-            {member.avatarInitials || initialsFromName(member.name)}
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-orange-700">
-              {member.status === 'approved' ? 'Awardee member' : member.status}
-            </p>
-            <h1 className="truncate text-2xl font-extrabold leading-tight tracking-tight text-[#171412]">
-              Hello, {member.name.split(/\s+/)[0]}.
-            </h1>
+    <div className="hub-home">
+      {profileNeedsAttention && !profileDismissed && (
+        <aside className="hub-profile-reminder" aria-label="Profile reminder">
+          <div>
+            <p className="text-sm font-semibold">Let your profile tell your story.</p>
+            <Link href="/dashboard/me/profile" className="inline-flex min-h-11 items-center text-xs underline underline-offset-4">Complete your profile</Link>
           </div>
-          <span className="shrink-0 text-sm font-extrabold text-[#625B52]">
-            {profileProgress}%
-          </span>
-        </div>
-        <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#E8EBF0]" aria-label={`Profile ${profileProgress}% complete`} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={profileProgress}>
-          <span
-            className="block h-full rounded-full bg-[#F36C21] transition-[width] motion-reduce:transition-none"
-            style={{ width: `${profileProgress}%` }}
-          />
-        </div>
-        <div className="mt-2 flex items-center justify-between gap-3 text-xs font-bold text-[#625B52]">
-          <span>Profile completion</span>
-          <Link href="/dashboard/me/profile" className="rounded-lg text-[#6C2600] underline decoration-2 underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700">
-            Review BIO
-          </Link>
-        </div>
+          <button type="button" onClick={() => setProfileDismissed(true)} aria-label="Dismiss profile reminder" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full"><X size={18} aria-hidden="true" /></button>
+        </aside>
+      )}
+      <section className="hub-welcome" aria-labelledby="hub-welcome-title">
+        <h1 id="hub-welcome-title">Hey, {member.name.trim().split(/\s+/)[0]}.</h1>
+        <p className="hub-welcome-description">Your people, opportunities, and latest updates.</p>
       </section>
+      {loading && <p role="status" className="text-sm text-neutral-600">Loading your latest activity…</p>}
+      {loadError && <p role="status" className="text-sm text-neutral-600">Some activity couldn’t load. We’ll retry automatically; you can also open Messages, Events, or Updates directly.</p>}
 
-      <section aria-labelledby="next-move-title">
+      <section className="hub-next-move" aria-labelledby="next-move-title">
         <p id="next-move-title" className="mb-3 text-xs font-extrabold uppercase tracking-[0.16em] text-[#625B52]">
           Your next move
         </p>
@@ -272,13 +252,13 @@ export function DashboardHome() {
         />
       </section>
 
-      <section aria-labelledby="coming-up-title" className="rounded-[20px] border border-[#E7DDCF] bg-white p-4 sm:p-5">
+      <section aria-labelledby="coming-up-title" className="hub-panel md:order-4">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-orange-700">Calendar</p>
-            <h2 id="coming-up-title" className="mt-1 text-xl font-extrabold tracking-tight">Coming up</h2>
+            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-neutral-600">Calendar</p>
+            <h2 id="coming-up-title" className="hub-panel-title mt-1">On your horizon</h2>
           </div>
-          <CalendarDays className="h-6 w-6 text-[#6C2600]" aria-hidden="true" />
+          <CalendarDays className="h-6 w-6 text-[#171717]" aria-hidden="true" />
         </div>
         <div className="mt-3 divide-y divide-[#E7DDCF]">
           {comingUp.length > 0 ? comingUp.map((item) => (
@@ -291,18 +271,18 @@ export function DashboardHome() {
                 <span className="block truncate text-sm font-extrabold text-[#171412]">{item.title}</span>
                 <span className="mt-0.5 block truncate text-xs font-semibold text-[#625B52]">{item.detail}</span>
               </span>
-              <span className="text-xs font-extrabold text-[#6C2600]">{item.date}</span>
+              <span className="text-xs font-extrabold text-[#171717]">{item.date}</span>
             </Link>
           )) : (
-            <p className="py-4 text-sm font-semibold text-[#625B52]">Your invitations and deadlines will appear here.</p>
+            <div className="hub-empty"><span className="hub-empty-icon" aria-hidden="true"><CalendarDays size={26} strokeWidth={1.5} /></span><div><p className="text-sm font-semibold">A little space for what’s next.</p><p className="mt-1 text-xs leading-5 text-[#625B52]">Your event invitations and opportunity deadlines will land here.</p><Link className="mt-1 inline-flex min-h-11 items-center gap-1 text-xs font-bold text-[#171717]" href="/dashboard/discover/opportunities">Explore opportunities <ArrowUpRight size={14} aria-hidden="true" /></Link></div></div>
           )}
         </div>
       </section>
 
-      <section aria-labelledby="shortcuts-title">
+      <section className="hub-shortcuts" aria-labelledby="shortcuts-title">
         <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 id="shortcuts-title" className="text-xl font-extrabold tracking-tight">Shortcuts</h2>
-          <Sparkles className="h-5 w-5 text-[#9B1C4A]" aria-hidden="true" />
+          <h2 id="shortcuts-title" className="hub-panel-title">A little more possibility</h2>
+          <Sparkles className="h-5 w-5 text-[#171717]" aria-hidden="true" />
         </div>
         <div className="grid grid-cols-2 gap-3 sm:gap-4">
           {shortcuts.map((item) => (
@@ -319,8 +299,8 @@ export function DashboardHome() {
         </div>
       </section>
 
-      <section aria-labelledby="recent-title" className="rounded-[20px] border border-[#E7DDCF] bg-white p-4 sm:p-5">
-        <h2 id="recent-title" className="text-xl font-extrabold tracking-tight">Recent</h2>
+      <section aria-labelledby="recent-title" className="hub-panel md:order-5">
+        <div className="flex items-center justify-between"><h2 id="recent-title" className="hub-panel-title">In the loop</h2><Link href="/dashboard/updates" className="inline-flex min-h-11 items-center gap-1 text-xs font-semibold text-[#171717]">All updates <ArrowUpRight size={15} aria-hidden="true" /></Link></div>
         <div className="mt-3 divide-y divide-[#E7DDCF]">
           {recentItems.length > 0 ? recentItems.map((item) => {
             const Icon = item.kind === 'message' ? MessageCircle : BellRing
@@ -335,15 +315,15 @@ export function DashboardHome() {
                 <span className={cn(
                   'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
                   item.kind === 'message'
-                    ? 'bg-[#DCE8FF] text-[#123A78]'
-                    : 'bg-[#FFE49A] text-[#563700]',
+                    ? 'bg-[#fff3af] text-[#171717]'
+                    : 'bg-[#FFE49A] text-[#171717]',
                 )}>
                   <Icon className="h-5 w-5" aria-hidden="true" />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-2">
                     <span className="truncate text-sm font-extrabold">{item.title}</span>
-                    {item.unread ? <span className="h-2 w-2 shrink-0 rounded-full bg-[#F36C21]" aria-hidden="true" /> : null}
+                    {item.unread ? <span className="h-2 w-2 shrink-0 rounded-full bg-[#171717]" aria-hidden="true" /> : null}
                   </span>
                   <span className="mt-0.5 block truncate text-xs font-semibold text-[#625B52]">{item.description}</span>
                 </span>
@@ -351,7 +331,7 @@ export function DashboardHome() {
               </Link>
             )
           }) : (
-            <p className="py-4 text-sm font-semibold text-[#625B52]">New messages and AFL updates will appear here.</p>
+            <div className="hub-empty"><span className="hub-empty-icon" aria-hidden="true"><MessageCircle size={26} strokeWidth={1.5} /></span><div><p className="text-sm font-semibold">Good conversations start with hello.</p><p className="mt-1 text-xs leading-5 text-[#625B52]">Connect with another awardee. Your messages and community updates will appear here.</p><Link href="/dashboard/discover/members" className="mt-1 inline-flex min-h-11 items-center gap-1 text-xs font-bold text-[#171717]">Meet the community <ArrowUpRight size={14} aria-hidden="true" /></Link></div></div>
           )}
         </div>
       </section>

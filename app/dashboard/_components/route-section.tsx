@@ -21,7 +21,7 @@ export function RouteSection({
 }: RouteSectionProps) {
   return (
     <section className={cn('animate-in space-y-5 fade-in slide-in-from-bottom-2 duration-200 motion-reduce:animate-none', className)}>
-      <header className="flex flex-wrap items-end justify-between gap-4">
+      <header className="hub-route-heading flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
           {eyebrow ? (
             <p className="mb-1 text-xs font-extrabold uppercase tracking-[0.16em] text-orange-700">{eyebrow}</p>

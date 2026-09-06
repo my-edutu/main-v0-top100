@@ -24,7 +24,7 @@ export function DashboardBottomNav() {
   return (
     <nav
       aria-label="Primary dashboard navigation"
-      className={`fixed inset-x-0 bottom-0 z-50 border-t pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden ${top100DashboardTheme.nav}`}
+      className={`hub-bottom-nav fixed inset-x-0 bottom-0 z-50 border-t pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden ${top100DashboardTheme.nav}`}
     >
       <div className="grid min-h-[68px] grid-cols-4">
         {primaryDashboardNav.map((item) => {
@@ -45,7 +45,7 @@ export function DashboardBottomNav() {
               <span className={cn('relative flex h-8 min-w-10 items-center justify-center rounded-xl px-2', active && activeColorClasses[item.color])}>
                 <Icon className="h-5 w-5" strokeWidth={active ? 2.65 : 2.1} aria-hidden="true" />
                 {badge > 0 ? (
-                  <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-[#123A78] px-1 text-[9px] font-extrabold leading-none text-white" aria-label={`${badge} unread messages`}>
+                  <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-[#171717] px-1 text-[9px] font-extrabold leading-none text-white" aria-label={`${badge} unread messages`}>
                     {badge > 99 ? '99+' : badge}
                   </span>
                 ) : null}

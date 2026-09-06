@@ -22,7 +22,7 @@ export function DashboardDesktopNav() {
   const { unreadMessages } = useDashboardBadges()
 
   return (
-    <aside className={`hidden w-[88px] shrink-0 border-r lg:sticky lg:top-[60px] lg:flex lg:h-[calc(100dvh-60px)] lg:flex-col xl:w-[240px] ${top100DashboardTheme.nav}`}>
+    <aside className={`hub-desktop-nav hidden w-[88px] shrink-0 border-r lg:sticky lg:top-[60px] lg:flex lg:h-[calc(100dvh-60px)] lg:flex-col xl:w-[240px] ${top100DashboardTheme.nav}`}>
       <nav aria-label="Primary dashboard navigation" className="flex flex-1 flex-col gap-2 p-3 xl:p-4">
         {primaryDashboardNav.map((item) => {
           const Icon = item.icon

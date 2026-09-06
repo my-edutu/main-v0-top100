@@ -62,6 +62,13 @@ export function DashboardBadgeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     void refreshBadges()
+    const refresh = () => { if (!document.hidden) void refreshBadges() }
+    window.addEventListener('focus', refresh)
+    const interval = window.setInterval(refresh, 30000)
+    return () => {
+      window.removeEventListener('focus', refresh)
+      window.clearInterval(interval)
+    }
   }, [refreshBadges])
 
   const value = useMemo(

@@ -36,18 +36,18 @@ export function DashboardCard({
     <Link
       href={href}
       className={cn(
-        'group relative flex rounded-[16px] border p-4 font-sans shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#171412] focus-visible:ring-offset-2 focus-visible:ring-offset-[#FBF7EF] motion-reduce:transform-none motion-reduce:transition-none sm:p-5',
+        'hub-card group relative flex rounded-[16px] border p-4 font-sans shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#171412] focus-visible:ring-offset-2 focus-visible:ring-offset-[#FBF7EF] motion-reduce:transform-none motion-reduce:transition-none sm:p-5',
         compact ? 'min-h-[92px] items-center gap-3' : 'min-h-[156px] flex-col',
         dashboardColorClasses[color],
       )}
     >
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] border border-current/15 bg-white/45">
-        <Icon className="h-6 w-6" strokeWidth={2.25} aria-hidden="true" />
+      <span className="hub-card-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] border border-current/15 bg-white/45">
+        <Icon className="h-5 w-5" strokeWidth={1.8} aria-hidden="true" />
       </span>
 
       <span className={cn('min-w-0', compact ? 'flex-1' : 'mt-auto pt-5')}>
-        <span className="block text-lg font-extrabold leading-tight tracking-tight">{title}</span>
-        <span className="mt-1 block text-sm font-semibold leading-5 opacity-80">{description}</span>
+        <span className="hub-card-title block text-lg font-extrabold leading-tight tracking-tight">{title}</span>
+        <span className="hub-card-description mt-1 block text-sm font-semibold leading-5 opacity-80">{description}</span>
       </span>
 
       {badge !== undefined && badge !== 0 && badge !== '' ? (
