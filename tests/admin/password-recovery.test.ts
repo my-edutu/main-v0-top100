@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   getPostRecoveryPath,
+  getRecoveryRequestOrigin,
   getRecoveryRedirectUrl,
 } from '@/lib/auth/password-recovery'
 
@@ -17,6 +18,24 @@ describe('password recovery', () => {
     expect(getRecoveryRedirectUrl('http://localhost:3100/', 'member')).toBe(
       'http://localhost:3100/auth/reset-password?area=member',
     )
+  })
+
+  it('keeps localhost in development and uses the canonical site in production', () => {
+    expect(
+      getRecoveryRequestOrigin({
+        browserOrigin: 'http://localhost:3100',
+        canonicalSiteUrl: 'https://www.top100afl.com',
+        isProduction: false,
+      }),
+    ).toBe('http://localhost:3100')
+
+    expect(
+      getRecoveryRequestOrigin({
+        browserOrigin: 'https://preview.example.com',
+        canonicalSiteUrl: 'https://www.top100afl.com/',
+        isProduction: true,
+      }),
+    ).toBe('https://www.top100afl.com')
   })
 
   it('returns the correct sign-in destination after a password update', () => {

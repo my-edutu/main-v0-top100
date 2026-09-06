@@ -9,17 +9,19 @@ import { Loader2, MailCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { createPasswordRecoveryClient } from '@/lib/supabase/password-recovery-client'
 import {
-  recoverySignInPath,
-  requestPasswordRecovery,
-  type RecoverySource,
-} from '@/lib/auth-recovery'
-import { supabase } from '@/lib/supabase/client'
+  getRecoveryRedirectUrl,
+  getRecoveryRequestOrigin,
+  type RecoveryArea,
+} from '@/lib/auth/password-recovery'
+import { SITE_URL } from '@/lib/site'
 
 function ForgotPasswordContent() {
   const searchParams = useSearchParams()
-  const source: RecoverySource = searchParams.get('source') === 'admin' ? 'admin' : 'member'
-  const isAdmin = source === 'admin'
+  const area: RecoveryArea = searchParams.get('area') === 'admin' ? 'admin' : 'member'
+  const isAdmin = area === 'admin'
+  const loginHref = isAdmin ? '/admin/login' : '/login'
   const [email, setEmail] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -31,12 +33,15 @@ function ForgotPasswordContent() {
     setIsLoading(true)
 
     try {
-      const resetError = await requestPasswordRecovery(
-        supabase.auth,
-        email,
-        window.location.origin,
-        source,
-      )
+      const recoveryClient = createPasswordRecoveryClient()
+      const recoveryOrigin = getRecoveryRequestOrigin({
+        browserOrigin: window.location.origin,
+        canonicalSiteUrl: SITE_URL,
+        isProduction: process.env.NODE_ENV === 'production',
+      })
+      const { error: resetError } = await recoveryClient.auth.resetPasswordForEmail(email, {
+        redirectTo: getRecoveryRedirectUrl(recoveryOrigin, area),
+      })
 
       if (resetError) {
         setError(
@@ -83,7 +88,7 @@ function ForgotPasswordContent() {
               it in this browser, then choose a new password.
             </p>
             <Link
-              href={recoverySignInPath(source)}
+              href={loginHref}
               className="mt-6 inline-flex text-sm font-semibold text-orange-700 underline-offset-4 hover:underline"
             >
               Return to {isAdmin ? 'admin' : 'member'} sign in
@@ -143,7 +148,7 @@ function ForgotPasswordContent() {
             <p className="mt-6 text-center text-xs text-slate-500">
               Remembered it?{' '}
               <Link
-                href={recoverySignInPath(source)}
+                href={loginHref}
                 className="font-semibold text-orange-700 underline-offset-4 hover:underline"
               >
                 Return to {isAdmin ? 'admin' : 'member'} sign in

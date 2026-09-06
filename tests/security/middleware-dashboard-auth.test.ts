@@ -68,20 +68,18 @@ describe('dashboard middleware authentication boundary', () => {
     expect(response.headers.get('x-middleware-next')).toBe('1')
   })
 
-  it('admits and rewrites requests with the exact demo cookie', async () => {
+  it('requires real authentication even with a retired demo cookie', async () => {
     vi.stubEnv('NODE_ENV', 'development')
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'http://localhost:54321')
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', 'placeholder-local-dev-key')
 
     const dashboard = await updateSession(dashboardRequest(DEV_DASHBOARD_COOKIE_VALUE))
-    expect(dashboard.status).toBe(200)
-    expect(dashboard.headers.get('x-middleware-next')).toBe('1')
+    expect(dashboard.status).toBe(307)
+    expect(dashboard.headers.get('location')).toContain('/login?redirect=')
 
     const memberApi = await updateSession(memberApiRequest(DEV_DASHBOARD_COOKIE_VALUE))
     expect(memberApi.status).toBe(200)
-    expect(memberApi.headers.get('x-middleware-rewrite')).toBe(
-      'http://localhost:3000/api/dev-dashboard/me',
-    )
+    expect(memberApi.headers.get('x-middleware-rewrite')).toBeNull()
   })
 
   it('redirects a placeholder-key dashboard request with an invalid demo cookie', async () => {
