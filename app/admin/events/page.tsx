@@ -1219,10 +1219,10 @@ function InvitationsPanel({ events }: { events: AdminEvent[] }) {
       <CardHeader className="border-b border-white/5 px-6 py-4">
         <CardTitle className="text-lg font-bold text-white flex items-center gap-2">
           <Send className="h-4 w-4 text-zinc-400" />
-          Invitations &amp; RSVPs
+          Africa Future Leaders · Event invitations
         </CardTitle>
         <CardDescription className="text-zinc-500">
-          Invite awardees to an event and track who is coming. Re-sending never resets an RSVP.
+          Push an event to candidate dashboards and track RSVPs. All candidates means everyone with a member account. Re-sending preserves existing responses.
         </CardDescription>
       </CardHeader>
       <CardContent className="p-6 space-y-6">
@@ -1250,7 +1250,7 @@ function InvitationsPanel({ events }: { events: AdminEvent[] }) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-zinc-950 border-white/10 text-white">
-                <SelectItem value="all">All members</SelectItem>
+                <SelectItem value="all">All candidates (member accounts)</SelectItem>
                 <SelectItem value="approved">Approved members only</SelectItem>
                 <SelectItem value="cohort">A single cohort</SelectItem>
                 <SelectItem value="selected">Named members</SelectItem>
@@ -1300,7 +1300,7 @@ function InvitationsPanel({ events }: { events: AdminEvent[] }) {
           className="bg-amber-500 hover:bg-amber-600 text-black font-bold rounded-xl h-10 px-4 shadow-lg shadow-amber-500/20"
         >
           {sending ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Send className="mr-1 h-4 w-4" />}
-          Send invitations
+          {audience === 'all' ? 'Push event to all candidates' : 'Send invitations'}
         </Button>
 
         <div className="border-t border-white/5 pt-6 space-y-4">

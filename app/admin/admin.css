@@ -1,0 +1,70 @@
+.top100-admin {
+  --admin-ink: #181715;
+  --admin-muted: #706c65;
+  --admin-line: #e7e3dc;
+  --admin-paper: #ffffff;
+  --admin-canvas: #faf8f5;
+  --admin-brand: linear-gradient(90deg, #f97316 0%, #fb923c 52%, #f59e0b 100%);
+  background: var(--admin-canvas);
+  color: var(--admin-ink);
+}
+
+.top100-admin .admin-canvas {
+  background:
+    radial-gradient(circle at 96% 0%, rgb(249 115 22 / 12%), transparent 28rem),
+    var(--admin-canvas);
+}
+
+.top100-admin .admin-content {
+  width: 100%;
+  max-width: 100rem;
+}
+
+.top100-admin .admin-panel {
+  border: 1px solid var(--admin-line);
+  border-radius: 1.125rem;
+  background: var(--admin-paper);
+  box-shadow: 0 1px 1px rgb(24 23 21 / 3%);
+}
+
+.top100-admin .admin-kicker {
+  color: #8a5a00;
+  font-size: .6875rem;
+  font-weight: 600;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.top100-admin :is(h1, h2, h3) {
+  text-wrap: balance;
+}
+
+.top100-admin :is(.font-black, .font-extrabold) {
+  font-weight: 650;
+}
+
+.top100-admin :is(input, textarea, select) {
+  font-weight: 400;
+}
+
+.top100-admin :is(a, button, input, textarea, select):focus-visible {
+  outline: 2px solid var(--admin-ink);
+  outline-offset: 3px;
+}
+
+@media (max-width: 639px) {
+  .top100-admin .admin-panel {
+    border-radius: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .top100-admin *,
+  .top100-admin *::before,
+  .top100-admin *::after {
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

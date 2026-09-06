@@ -87,15 +87,15 @@ export function ResponsiveTable<T>({
       {/* Table — at and above the breakpoint */}
       <div
         className={cn(
-          'overflow-x-auto rounded-xl border border-orange-100',
+          'overflow-x-auto rounded-2xl border border-zinc-200 bg-white',
           breakpointClasses.table,
         )}
       >
-        <Table>
+        <Table className="min-w-full">
           <TableHeader>
-            <TableRow>
+            <TableRow className="bg-zinc-50/80 hover:bg-zinc-50/80">
               {columns.map((column) => (
-                <TableHead key={column.key} className={column.className}>
+                <TableHead key={column.key} className={cn('h-11 text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-500', column.className)}>
                   {column.header}
                 </TableHead>
               ))}
@@ -103,7 +103,7 @@ export function ResponsiveTable<T>({
           </TableHeader>
           <TableBody>
             {data.map((row) => (
-              <TableRow key={getRowKey(row)}>
+              <TableRow key={getRowKey(row)} className="transition-colors hover:bg-orange-50/45">
                 {columns.map((column) => (
                   <TableCell key={column.key} className={column.className}>
                     {column.cell(row)}
@@ -122,12 +122,12 @@ export function ResponsiveTable<T>({
             {renderCard ? (
               renderCard(row)
             ) : (
-              <div className="rounded-xl border border-orange-100 bg-white p-4 shadow-sm">
+              <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-[0_1px_1px_rgba(24,23,21,.03)]">
                 <dl className="space-y-2">
                   {mobileColumns.map((column) => (
                     <div
                       key={column.key}
-                      className="flex items-start justify-between gap-3"
+                      className="flex min-h-8 items-start justify-between gap-3 border-b border-zinc-100 py-1.5 last:border-0"
                     >
                       <dt className="shrink-0 text-xs font-medium uppercase tracking-wide text-zinc-500">
                         {column.header}

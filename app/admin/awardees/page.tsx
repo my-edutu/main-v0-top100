@@ -620,37 +620,34 @@ export default function AwardeesManagement() {
   const hasNoResults = paginatedAwardees.length === 0;
 
   return (
-    <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="space-y-6 pb-4">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+      <div className="flex flex-col gap-4 border-b border-[#e7e3dc] pb-5 sm:flex-row sm:items-end sm:justify-between md:pb-6">
         <div className="space-y-1">
-          <div className="flex items-center gap-2 mb-1">
-            <div className="h-2 w-2 rounded-full bg-orange-500 animate-pulse" />
-            <span className="text-[10px] uppercase tracking-widest text-zinc-400 font-bold">Awardee Management</span>
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-black text-zinc-900 tracking-tight leading-none">
-            Awardee <span className="text-orange-600">Directory</span>
+          <p className="admin-kicker">People</p>
+          <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.035em] text-zinc-950 sm:text-[2rem]">
+            Awardee directory
           </h1>
-          <p className="text-zinc-500 text-xs sm:text-sm font-medium">
+          <p className="max-w-2xl text-sm font-normal leading-6 text-zinc-500">
             Manage, verify, and spotlight future leaders of Africa.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
-          <Link href="/admin/awardees/new">
-            <Button size="sm" className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl h-9 px-2 sm:px-4 shadow-lg shadow-orange-200 font-bold">
-              <Plus className="h-4 w-4 sm:mr-1" />
-              <span className="hidden sm:inline">Add New</span>
+        <div className="flex w-full items-center gap-2 sm:w-auto sm:shrink-0">
+          <Link href="/admin/awardees/new" className="flex-1 sm:flex-none">
+            <Button size="sm" className="min-h-11 w-full rounded-xl bg-zinc-950 px-4 font-medium text-white shadow-none hover:bg-zinc-800">
+              <Plus className="h-4 w-4" />
+              Add awardee
             </Button>
           </Link>
-          <Button variant="outline" size="sm" onClick={handleExport} className="bg-white border-zinc-200 text-zinc-600 hover:text-orange-600 hover:border-orange-200 hover:bg-orange-50 rounded-xl h-9 px-2 sm:px-4 font-bold">
-            <Download className="h-4 w-4 sm:mr-1" />
-            <span className="hidden sm:inline">Export</span>
+          <Button variant="outline" size="sm" onClick={handleExport} className="min-h-11 flex-1 rounded-xl border-zinc-200 bg-white px-4 font-medium text-zinc-700 shadow-none sm:flex-none">
+            <Download className="h-4 w-4" />
+            Export
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KPITile
           label="Total Leaders"
           value={stats?.totalAwardees ?? 0}
@@ -686,16 +683,16 @@ export default function AwardeesManagement() {
       </div>
 
       {/* Operations Bar: Import/Export & Filters */}
-      <Card className="bg-white border border-orange-100 rounded-3xl overflow-hidden shadow-sm">
-        <CardHeader className="border-b border-orange-100 px-4 sm:px-6 py-4">
+      <Card className="admin-panel overflow-hidden shadow-none">
+        <CardHeader className="border-b border-zinc-200 px-4 py-4 sm:px-5">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base sm:text-lg font-bold text-zinc-900 flex items-center gap-2">
-              <Download className="h-4 w-4 text-orange-500" />
+            <CardTitle className="flex items-center gap-2 text-base font-semibold text-zinc-900 sm:text-lg">
+              <Download className="h-4 w-4 text-zinc-500" />
               Data Operations
             </CardTitle>
           </div>
         </CardHeader>
-        <CardContent className="p-4 sm:p-6">
+        <CardContent className="p-4 sm:p-5">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
             {/* Left: Search & Filters */}
             <div className="space-y-4">
@@ -1090,20 +1087,19 @@ function KPITile({ label, value, icon: Icon, color, subValue, loading }: any) {
   };
 
   return (
-    <div className="relative p-4 sm:p-6 rounded-3xl border border-orange-100 bg-white shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 group">
-      <Icon className="absolute -right-3 -bottom-3 h-20 w-20 text-orange-500 opacity-[0.04] -rotate-12 group-hover:scale-110 transition-transform duration-700" />
-      <div className="relative z-10 space-y-3 sm:space-y-4">
-        <div className={cn('h-10 w-10 sm:h-12 sm:w-12 rounded-2xl flex items-center justify-center border', colors[color] || colors.orange)}>
-          <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
+    <div className="admin-panel relative overflow-hidden p-4 sm:p-5">
+      <div className="relative z-10 space-y-3">
+        <div className={cn('flex h-9 w-9 items-center justify-center rounded-xl border sm:h-10 sm:w-10', colors[color] || colors.orange)}>
+          <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
         </div>
         <div className="space-y-1">
           {loading ? (
             <Skeleton className="h-8 w-16" />
           ) : (
-            <p className="text-3xl sm:text-4xl font-black text-zinc-900 tracking-tighter">{value}</p>
+            <p className="text-2xl font-semibold tracking-[-0.04em] text-zinc-950 sm:text-3xl">{value}</p>
           )}
           <div className="flex items-center justify-between gap-2">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">{label}</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">{label}</p>
             {subValue && <span className="text-[10px] font-medium text-zinc-500 bg-zinc-50 px-2 py-0.5 rounded-full border border-zinc-100 hidden sm:inline">{subValue}</span>}
           </div>
         </div>

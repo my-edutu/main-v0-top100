@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers'
 import AdminShell from './components/AdminShell'
+import './admin.css'
 
 export default async function AdminLayout({
   children,
