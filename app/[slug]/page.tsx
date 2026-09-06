@@ -24,8 +24,9 @@ async function getAnnouncement(slug: string) {
     return query.single();
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-    const { data: announcement } = await getAnnouncement(params.slug);
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+    const { slug } = await params;
+    const { data: announcement } = await getAnnouncement(slug);
 
     if (!announcement) {
         return {
@@ -51,8 +52,9 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     }
 }
 
-export default async function AnnouncementSlugPage({ params }: { params: { slug: string } }) {
-    const { data: announcement, error } = await getAnnouncement(params.slug);
+export default async function AnnouncementSlugPage({ params }: { params: Promise<{ slug: string }> }) {
+    const { slug } = await params;
+    const { data: announcement, error } = await getAnnouncement(slug);
 
     if (error || !announcement) {
         notFound();

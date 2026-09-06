@@ -3,6 +3,8 @@
 // from client components — it must never pull in lib/events/invitations.ts,
 // which is server-side.
 
+import { fetchWithTimeout } from '@/lib/http/fetch-with-timeout'
+
 export type Rsvp = 'pending' | 'attending' | 'declined' | 'maybe'
 export type RsvpChoice = 'attending' | 'declined' | 'maybe'
 
@@ -62,7 +64,7 @@ async function readError(response: Response, fallback: string): Promise<string> 
 }
 
 export async function fetchEventInvitations(): Promise<EventInvitationsResponse> {
-  const response = await fetch('/api/member/event-invitations', { cache: 'no-store' })
+  const response = await fetchWithTimeout('/api/member/event-invitations', { cache: 'no-store' })
   if (!response.ok) {
     throw new Error(await readError(response, 'Could not load your invitations.'))
   }

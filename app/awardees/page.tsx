@@ -16,14 +16,15 @@ export const metadata: Metadata = {
 export default async function AwardeesPage({ 
   searchParams 
 }: { 
-  searchParams?: { 
+  searchParams?: Promise<{
     page?: string;
     search?: string;
     year?: string;
-  } 
+  }>
 }) {
   const awardees = await getAwardees();
+  const resolvedSearchParams = await searchParams;
   
   // Pass the searchParams to the client component so it can handle pagination and search
-  return <AwardeesPageClient initialPeople={awardees} initialSearchParams={searchParams} />;
+  return <AwardeesPageClient initialPeople={awardees} initialSearchParams={resolvedSearchParams} />;
 }

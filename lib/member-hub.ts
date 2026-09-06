@@ -6,6 +6,8 @@
 // All functions here are thin `fetch` wrappers around the /api/member/* routes,
 // which enforce auth + membership + BIO-limit rules on the server.
 
+import { fetchWithTimeout } from '@/lib/http/fetch-with-timeout'
+
 export type MemberStatus = 'pending' | 'approved' | 'rejected' | 'suspended'
 export type ProfileStatus = 'draft' | 'submitted' | 'approved'
 
@@ -38,14 +40,6 @@ export type MemberProfile = {
   bioUpdateCount: number
   bioUpdateLimit: number
   createdAt: string
-}
-
-export type HubOpportunity = {
-  id: string
-  title: string
-  type: string
-  location: string
-  deadline: string
 }
 
 export type MemberFeatureSubmission = {
@@ -101,19 +95,9 @@ export type DirectMessage = {
 export type MemberHubState = {
   members: MemberProfile[]
   currentMemberId?: string
-  opportunities: HubOpportunity[]
   featureSubmissions: MemberFeatureSubmission[]
   notifications: MemberNotification[]
 }
-
-// Default opportunities used as the OpportunitiesSection fallback before the
-// live /api/opportunities fetch resolves (mirrors that route's fallback list).
-export const defaultOpportunities: HubOpportunity[] = [
-  { id: 'opp-1', title: 'Youth Climate Fellowship', type: 'Fellowship', location: 'Hybrid', deadline: 'Jul 30' },
-  { id: 'opp-2', title: 'Founder Mentorship Sprint', type: 'Mentorship', location: 'Remote', deadline: 'Aug 12' },
-  { id: 'opp-3', title: 'Africa Innovation Grant', type: 'Grant', location: 'Pan-African', deadline: 'Aug 28' },
-  { id: 'opp-4', title: 'Leadership Story Residency', type: 'Residency', location: 'Lagos', deadline: 'Sep 04' },
-]
 
 async function jsonOrThrow(res: Response) {
   const data = await res.json().catch(() => ({}))
@@ -126,14 +110,13 @@ async function jsonOrThrow(res: Response) {
  * submissions). Returns null-ish state the caller can guard on.
  */
 export async function fetchMemberHubState(): Promise<MemberHubState> {
-  const res = await fetch('/api/member/me', { cache: 'no-store' })
+  const res = await fetchWithTimeout('/api/member/me', { cache: 'no-store' })
   const data = await jsonOrThrow(res)
 
   const member = data.member as MemberProfile | null
   return {
     members: member ? [member] : [],
     currentMemberId: member?.id,
-    opportunities: defaultOpportunities,
     featureSubmissions: (data.featureSubmissions ?? []) as MemberFeatureSubmission[],
     notifications: (data.notifications ?? []) as MemberNotification[],
   }
@@ -218,7 +201,7 @@ async function dmJsonOrThrow(res: Response) {
 }
 
 export async function fetchConversations(): Promise<ConversationListResult> {
-  const res = await fetch('/api/member/conversations', { cache: 'no-store' })
+  const res = await fetchWithTimeout('/api/member/conversations', { cache: 'no-store' })
   const data = await dmJsonOrThrow(res)
   return {
     conversations: (data.conversations ?? []) as ConversationSummary[],

@@ -210,7 +210,7 @@ export async function POST(request: NextRequest) {
     }
 
     const rows = getRowsFromWorkbook(buffer)
-    let payload = parseRows(rows)
+    const payload = parseRows(rows)
 
     if (!payload.length) {
       throw new Error('Excel sheet appears to be empty')

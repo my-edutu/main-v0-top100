@@ -50,7 +50,7 @@ function read(file: string): string {
  * put a meta tag. The destination carries the card instead.
  */
 function isRedirectOnly(source: string): boolean {
-  return /\bredirect\((['"`])/.test(source) && !source.includes("export const metadata")
+  return /\b(?:redirect|permanentRedirect)\(/.test(source) && !source.includes("export const metadata")
 }
 
 /**

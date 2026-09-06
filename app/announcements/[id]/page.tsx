@@ -14,8 +14,9 @@ async function getAnnouncement(id: string) {
     return supabase.from("announcements").select("*").eq("id", id).single();
 }
 
-export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
-    const { data: announcement } = await getAnnouncement(params.id);
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+    const { id } = await params;
+    const { data: announcement } = await getAnnouncement(id);
 
     if (!announcement) {
         return {
@@ -41,8 +42,9 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
     }
 }
 
-export default async function AnnouncementPage({ params }: { params: { id: string } }) {
-    const { data: announcement, error } = await getAnnouncement(params.id);
+export default async function AnnouncementPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
+    const { data: announcement, error } = await getAnnouncement(id);
 
     if (error || !announcement) {
         notFound();

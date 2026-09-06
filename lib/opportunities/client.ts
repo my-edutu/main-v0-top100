@@ -3,6 +3,7 @@
 // Deliberately never sends a `visibility` parameter — the tier a caller may
 // read is decided server-side by visibleTiersFor().
 import type { Opportunity } from '@/lib/opportunities/types'
+import { fetchWithTimeout } from '@/lib/http/fetch-with-timeout'
 
 /** Thrown when the API answers 503 because the migration has not been run. */
 export class OpportunitiesSetupRequiredError extends Error {
@@ -37,7 +38,10 @@ export async function fetchMemberOpportunities(
   if (filters.savedOnly) params.set('saved', '1')
 
   const query = params.toString()
-  const res = await fetch(`/api/member/opportunities${query ? `?${query}` : ''}`, { cache: 'no-store' })
+  const res = await fetchWithTimeout(
+    `/api/member/opportunities${query ? `?${query}` : ''}`,
+    { cache: 'no-store' },
+  )
   const data = await jsonOrThrow(res)
   return (data.opportunities ?? []) as Opportunity[]
 }

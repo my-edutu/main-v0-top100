@@ -39,6 +39,7 @@ describe("isAllowedHero", () => {
   it("accepts the allowed remote hosts", () => {
     expect(isAllowedHero("https://zsavekrhfwrpqudhjvlq.supabase.co/storage/a.jpg")).toBe(true)
     expect(isAllowedHero("https://i.ytimg.com/vi/abc/hq.jpg")).toBe(true)
+    expect(isAllowedHero("https://media.top100afl.com/portfolio-covers/member/cover.png")).toBe(true)
     expect(isAllowedHero(`${SITE_URL}/og-home.png`)).toBe(true)
   })
 

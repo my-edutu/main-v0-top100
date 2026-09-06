@@ -60,7 +60,7 @@ export const OG_LIMITS = {
 const SITE_HOSTNAMES = new Set(["top100afl.com", "www.top100afl.com", new URL(SITE_URL).hostname])
 
 /** Mirrors the remotePatterns already allowed in next.config.mjs. */
-const ALLOWED_HERO_HOSTS = new Set(["flagcdn.com", "i.ytimg.com", "img.youtube.com"])
+const ALLOWED_HERO_HOSTS = new Set(["flagcdn.com", "i.ytimg.com", "img.youtube.com", "media.top100afl.com"])
 const ALLOWED_HERO_HOST_SUFFIXES = [".supabase.co"]
 
 export function clampText(value: string | null | undefined, max: number): string | undefined {

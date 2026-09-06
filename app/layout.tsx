@@ -88,7 +88,12 @@ export default function RootLayout({
   // Unset in most environments. Without a key the SDK can only report an empty
   // client_key, so it is a third-party script request that buys nothing —
   // don't inject it at all.
-  const brevoClientKey = process.env.NEXT_PUBLIC_BREVO_CLIENT_KEY?.trim()
+  const configuredBrevoClientKey = process.env.NEXT_PUBLIC_BREVO_CLIENT_KEY?.trim()
+  const brevoClientKey =
+    configuredBrevoClientKey &&
+    configuredBrevoClientKey.toLowerCase() !== 'your-brevo-client-key-here'
+      ? configuredBrevoClientKey
+      : undefined
 
   const organizationSchema = {
     "@context": "https://schema.org",
