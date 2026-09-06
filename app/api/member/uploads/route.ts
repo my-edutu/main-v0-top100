@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
   const user = await getCurrentUser()
   if (!user?.id) return NextResponse.json({ message: 'Authentication required.' }, { status: 401 })
 
-  const rate = checkRateLimit({ ...RATE_LIMITS.UPLOAD, identifier: `member-upload:${user.id}` })
+  const rate = await checkRateLimit({ ...RATE_LIMITS.UPLOAD, identifier: `member-upload:${user.id}` })
   if (!rate.success) return createRateLimitResponse(rate, 'Too many uploads. Please wait a few minutes.')
 
   let formData: FormData

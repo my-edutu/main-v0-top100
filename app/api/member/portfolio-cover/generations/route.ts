@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
   const config = portfolioCoverConfig()
   if (!config.enabled) return NextResponse.json({ message: 'Portfolio cover generation is not available yet.' }, { status: 503 })
 
-  const rate = checkRateLimit({ ...RATE_LIMITS.UPLOAD, identifier: `portfolio-cover:${getClientIdentifier(request.headers)}:${user.id}` })
+  const rate = await checkRateLimit({ ...RATE_LIMITS.UPLOAD, identifier: `portfolio-cover:${getClientIdentifier(request.headers)}:${user.id}` })
   if (!rate.success) return createRateLimitResponse(rate, 'Too many image generations. Please try again later.')
 
   let form: FormData

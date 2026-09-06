@@ -168,6 +168,10 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  if (!conversationId) {
+    return NextResponse.json({ message: 'Could not start this conversation.' }, { status: 500 })
+  }
+
   const now = new Date().toISOString()
   const { data: message, error: messageError } = await supabase
     .from('dm_messages')
