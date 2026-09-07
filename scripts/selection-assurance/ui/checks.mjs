@@ -30,8 +30,8 @@ const screenshot = (name) => command('screenshot', join(output, name), '--full')
 const snapshot = (name) => writeFileSync(join(output, name), command('snapshot', '-i'))
 const allVerificationChecks = () => evaluate(`Array.from(document.querySelectorAll('input[type="checkbox"]')).slice(0,4).forEach(e=>{if(!e.checked)e.click()});true`)
 const confirm = () => evaluate(`(()=>{const e=Array.from(document.querySelectorAll('input[type="checkbox"]')).at(-1);if(!e.checked)e.click();return true})()`)
-const textContrast = `(()=>{
-  const e=document.querySelector('input[type="number"]');
+const textContrast = (selector = 'input[type="number"]') => `(()=>{
+  const e=document.querySelector(${JSON.stringify(selector)});
   const rgb=s=>(s.match(/[\\d.]+/g)||[]).map(Number);
   const fg=rgb(getComputedStyle(e).color); let node=e,bg;
   while(node){bg=rgb(getComputedStyle(node).backgroundColor);if(bg.length>=3&&(bg.length<4||bg[3]>0.99))break;node=node.parentElement;}
@@ -74,13 +74,17 @@ async function main() {
   check('Default decision remains unresolved', `document.querySelector(${JSON.stringify(field('verdict'))}).value==='needs_review'`)
   check('Original PDF link is scoped and isolated in a new tab', "(()=>{const a=document.querySelector('a[href$=\"/access\"]');return a&&a.target==='_blank'&&a.rel.includes('noreferrer')&&a.href.includes('/11111111-1111-4111-8111-111111111111/documents/')})()")
   check('Desktop has no horizontal overflow', 'document.documentElement.scrollWidth<=window.innerWidth+1')
-  check('Rubric input text contrast meets 4.5:1 in default site theme', textContrast)
+  check('Rubric input text contrast meets 4.5:1 in default site theme', textContrast())
+  check('Save button contrast meets 4.5:1 in default site theme', textContrast('button[type="submit"]'))
   screenshot('review-desktop-default.png')
   evaluate("document.documentElement.className='light';true")
-  check('Rubric input text contrast meets 4.5:1 in light site theme', textContrast)
+  check('Rubric input text contrast meets 4.5:1 in light site theme', textContrast())
+  check('Save button contrast meets 4.5:1 in light site theme', textContrast('button[type="submit"]'))
   screenshot('review-desktop-light.png')
   command('set', 'viewport', '390', '844')
   check('Mobile has no horizontal overflow', 'document.documentElement.scrollWidth<=window.innerWidth+1')
+  check('Mobile fieldset and controls stay inside the visible form', "(()=>{const form=document.querySelector('form').getBoundingClientRect();return Array.from(document.querySelectorAll('fieldset,fieldset input,fieldset select,fieldset textarea,fieldset button,fieldset label,fieldset h4')).every(e=>{const r=e.getBoundingClientRect();return r.right<=form.right-10&&r.left>=form.left+10})})()")
+  check('Mobile save label is not horizontally clipped', "(()=>{const b=document.querySelector('button[type=submit]');return b.scrollWidth<=b.clientWidth+1})()")
   screenshot('review-mobile-light.png')
   command('press', 'Tab')
   check('Keyboard can reach an interactive reviewer control', "document.activeElement.matches('a,input,select,textarea,button')")
