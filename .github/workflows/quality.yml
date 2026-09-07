@@ -181,6 +181,30 @@ jobs:
         continue-on-error: true
         run: npm run build
 
+      - name: Record quality gate outcomes
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p quality-gate-diagnostics
+          cat > quality-gate-diagnostics/outcomes.txt <<'EOF'
+          audit=${{ steps.audit.outcome }}
+          migration=${{ steps.migration.outcome }}
+          tests=${{ steps.tests.outcome }}
+          lint_baseline=${{ steps.lint_baseline.outcome }}
+          changed_lint=${{ steps.changed_lint.outcome }}
+          build=${{ steps.build.outcome }}
+          EOF
+          cat quality-gate-diagnostics/outcomes.txt
+
+      - name: Upload quality gate diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-gate-outcomes
+          path: quality-gate-diagnostics/outcomes.txt
+          if-no-files-found: error
+          retention-days: 3
+
       - name: Enforce quality gates
         if: always()
         shell: bash
