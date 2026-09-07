@@ -92,7 +92,7 @@ export default function HumanReviewForm({ applicationId, applicantName, assessme
   }
 
   return (
-    <form onSubmit={submit} onChange={() => setDirty(true)} className="rounded-2xl border border-zinc-200 bg-white p-4 sm:p-6" aria-label={`Review ${applicantName}`}>
+    <form onSubmit={submit} onChange={() => setDirty(true)} className="min-w-0 rounded-2xl border border-zinc-200 bg-white p-4 sm:p-6" aria-label={`Review ${applicantName}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div><h3 className="flex items-center gap-2 text-lg font-semibold text-zinc-950"><ShieldCheck aria-hidden="true" className="size-5 text-orange-600" />Evidence-led human review</h3>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-600">Extracted text and AI scores are suggestions, not proof. Verify the holder and issuing source. A different administrator must publish a final result.</p></div>
@@ -101,17 +101,17 @@ export default function HumanReviewForm({ applicationId, applicantName, assessme
       {stale && <p role="alert" className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm">This assessment changed. Your unsaved input is preserved, but cannot overwrite the newer revision. Reload and compare the latest evidence.</p>}
       {error && <p role="alert" className="mt-4 rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-900">{error}</p>}
       <p role="status" aria-live="polite" className="mt-3 text-sm text-emerald-800">{status}</p>
-      <fieldset disabled={saving || stale} className="mt-5 space-y-6 disabled:opacity-70">
+      <fieldset disabled={saving || stale} className="mt-5 min-w-0 w-full space-y-6 disabled:opacity-70">
         <legend className="sr-only">Verification and decision fields</legend>
         <section className="space-y-3" aria-labelledby={`${applicationId}-verification-title`}>
           <h4 id={`${applicationId}-verification-title`} className="font-semibold">1. Verify evidence before scoring</h4>
           <Label htmlFor={`${applicationId}-academic-outcome`}>Confirmed academic classification</Label>
-          <select id={`${applicationId}-academic-outcome`} value={verification.academicOutcome} className="min-h-11 w-full rounded-md border border-input bg-white px-3 text-sm" onChange={(event) => {setVerification((value) => ({ ...value, academicOutcome: event.target.value as SelectionReviewVerification['academicOutcome'] })); setConfirmed(false)}}>
+          <select id={`${applicationId}-academic-outcome`} value={verification.academicOutcome} className="min-h-11 min-w-0 w-full max-w-full rounded-md border border-input bg-white px-3 text-sm" onChange={(event) => {setVerification((value) => ({ ...value, academicOutcome: event.target.value as SelectionReviewVerification['academicOutcome'] })); setConfirmed(false)}}>
             <option value="unconfirmed">Unconfirmed — keep in review</option><option value="first_class">First Class verified by the reviewer</option><option value="approved_equivalent">Equivalent under an approved institution-specific rule</option><option value="requirement_not_met">Verified evidence does not meet the academic requirement</option>
           </select>
-          <div className="grid gap-2 sm:grid-cols-2">
+          <div className="grid min-w-0 gap-2 sm:grid-cols-2">
             {([['identityConfirmed','I confirmed this evidence belongs to this applicant.'],['academicEvidenceAuthenticated','I checked academic authenticity, not just OCR text.'],['leadershipEvidenceReviewed','I reviewed evidence supporting the leadership and impact claims.'],['noConflictOfInterest','I have no conflict of interest with this applicant.']] as const).map(([key, text]) => (
-              <label key={key} className="flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border border-zinc-200 p-3 text-sm leading-5"><input type="checkbox" className="mt-0.5 size-5 shrink-0" checked={verification[key]} onChange={(event) => setCheck(key,event.target.checked)} /><span>{text}</span></label>
+              <label key={key} className="flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border border-zinc-200 p-3 text-sm leading-5"><input type="checkbox" className="mt-0.5 size-5 shrink-0" checked={verification[key]} onChange={(event) => setCheck(key,event.target.checked)} /><span className="min-w-0 break-words">{text}</span></label>
             ))}
           </div>
           <Label htmlFor={`${applicationId}-reference`}>Private verification reference</Label>
@@ -122,12 +122,12 @@ export default function HumanReviewForm({ applicationId, applicantName, assessme
           <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{criteria.map(([key,label,maximum]) => <div key={key} className="space-y-2"><Label htmlFor={`${applicationId}-${key}`}>{label} / {maximum}</Label><Input id={`${applicationId}-${key}`} type="number" inputMode="decimal" min={0} max={maximum} step="0.01" required={final} value={scores[key]} onChange={(event) => {setScores((value) => ({ ...value, [key]: event.target.value })); setConfirmed(false)}} /></div>)}</div>
         </section>
         <section className="space-y-3" aria-labelledby={`${applicationId}-decision-title`}><h4 id={`${applicationId}-decision-title`} className="font-semibold">3. Explain and confirm the decision</h4>
-          <Label htmlFor={`${applicationId}-verdict`}>Review outcome</Label><select id={`${applicationId}-verdict`} className="min-h-11 w-full rounded-md border border-input bg-white px-3 text-sm" value={verdict} onChange={(event) => {setVerdict(event.target.value as ReviewAssessment['verdict']);setConfirmed(false)}}><option value="needs_review">Needs more evidence or review — no final decision</option><option value="qualified">Qualified — subject to independent publication approval</option><option value="not_qualified">Not qualified — subject to independent publication approval</option></select>
+          <Label htmlFor={`${applicationId}-verdict`}>Review outcome</Label><select id={`${applicationId}-verdict`} className="min-h-11 min-w-0 w-full max-w-full rounded-md border border-input bg-white px-3 text-sm" value={verdict} onChange={(event) => {setVerdict(event.target.value as ReviewAssessment['verdict']);setConfirmed(false)}}><option value="needs_review">Needs more evidence or review — no final decision</option><option value="qualified">Qualified — subject to independent publication approval</option><option value="not_qualified">Not qualified — subject to independent publication approval</option></select>
           <Label htmlFor={`${applicationId}-notes`}>Private reasoning and evidence checked</Label><Textarea id={`${applicationId}-notes`} rows={3} required minLength={10} maxLength={4000} value={reviewerNotes} onChange={(event) => {setReviewerNotes(event.target.value);setConfirmed(false)}} />
           <Label htmlFor={`${applicationId}-reasons`}>Applicant-facing explanation</Label><Textarea id={`${applicationId}-reasons`} rows={4} required maxLength={4807} value={publicReasons} onChange={(event) => {setPublicReasons(event.target.value);setConfirmed(false)}} placeholder="One respectful reason per line. Explain what was established or remains unconfirmed. Never include another applicant, private notes or internal risk signals." />
           {final && <label className="flex min-h-11 items-start gap-3 rounded-xl border border-orange-200 bg-orange-50 p-4 text-sm leading-6"><input type="checkbox" className="mt-1 size-5 shrink-0" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} required /><span>I reviewed this decision and its applicant-facing explanation. Saving revokes earlier result links and invalidates existing ranking approvals.</span></label>}
         </section>
-        <Button type="submit" className="min-h-11" disabled={saving || stale}>{saving && <Loader2 aria-hidden="true" className="mr-2 size-4 animate-spin" />}{saving ? 'Saving safely…' : final ? 'Save reviewed decision privately' : 'Save as unresolved — keep in review'}</Button>
+        <Button type="submit" className="min-h-11 h-auto w-full max-w-full whitespace-normal break-words bg-orange-800 !text-[#ffffff] px-4 py-3 hover:bg-orange-900 focus-visible:ring-orange-800 sm:w-auto" disabled={saving || stale}>{saving && <Loader2 aria-hidden="true" className="mr-2 size-4 animate-spin" />}{saving ? 'Saving safely…' : final ? 'Save reviewed decision privately' : 'Save as unresolved — keep in review'}</Button>
       </fieldset>
     </form>
   )
