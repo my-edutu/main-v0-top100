@@ -13,106 +13,64 @@ type SelectionApplicationRecord = {
   raw_data: Record<string, unknown> | null
 }
 
-const normalizeWords = (value: string) =>
-  new Set(
-    value
-      .toLowerCase()
-      .replace(/[^a-z0-9\s]/g, ' ')
-      .split(/\s+/)
-      .filter((word) => word.length > 1 && !['of', 'the', 'and'].includes(word)),
-  )
-
+const normalizeWords = (value: string) => new Set(
+  value.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .split(/\s+/).filter((word) => word.length > 1 && !['of', 'the', 'and'].includes(word)),
+)
 const institutionSimilarity = (left: string, right: string) => {
-  const leftWords = normalizeWords(left)
-  const rightWords = normalizeWords(right)
-  if (leftWords.size === 0 || rightWords.size === 0) return 0
-
-  const intersection = Array.from(leftWords).filter((word) => rightWords.has(word)).length
-  const union = new Set([...leftWords, ...rightWords]).size
-  return union === 0 ? 0 : intersection / union
+  const a = normalizeWords(left)
+  const b = normalizeWords(right)
+  if (!a.size || !b.size) return 0
+  return [...a].filter((word) => b.has(word)).length / new Set([...a, ...b]).size
 }
 
-const hasInstitutionMatch = (claimed: string, candidates: string[]) =>
-  candidates.some((candidate) => institutionSimilarity(claimed, candidate) >= 0.6)
-
-const claimsFirstClass = (value: string | null) => /\bfirst\s+class\b/i.test(value ?? '')
-
+/** OCR and narrative scores are suggestions only. Authentication belongs to human review. */
 export function buildSelectionInputFromProcessedEvidence({
-  application,
-  extraction,
-  meritAssessment,
-  duplicateSignals,
+  application, extraction, meritAssessment, duplicateSignals,
 }: {
   application: SelectionApplicationRecord
   extraction: SelectionDocumentExtraction | null
   meritAssessment: MeritAssessment | null
   duplicateSignals: string[]
 }): SelectionApplicationInput {
-  const integrityFlags = duplicateSignals.slice()
+  const integrityFlags = [...duplicateSignals, 'ACADEMIC_AUTHENTICITY_NOT_VERIFIED', 'DOCUMENT_HOLDER_NOT_VERIFIED']
   const academic = extraction?.academic
-
-  if (
-    application.institution &&
-    academic &&
-    academic.institutionCandidates.length > 0 &&
-    !hasInstitutionMatch(application.institution, academic.institutionCandidates)
-  ) {
+  const readable = Boolean(extraction && extraction.text.trim() && extraction.pageCount > 0 &&
+    Number.isFinite(extraction.confidence) && extraction.confidence >= 0.55 && extraction.confidence <= 1)
+  const text = extraction?.text ?? ''
+  const conflictingClasses = /\bfirst\s+class\b/i.test(text) &&
+    /\b(?:second\s+class|third\s+class|pass\s+degree)\b/i.test(text)
+  const contradictedClaim = /\bfirst\s+class\b/i.test(application.claimed_academic_status ?? '') &&
+    academic?.degreeClassification === 'other_classification'
+  const impossibleGpa = Boolean(academic && academic.cgpa != null &&
+    (!Number.isFinite(academic.cgpa) || academic.cgpa < 0 ||
+      (academic.cgpaScale != null && (!Number.isFinite(academic.cgpaScale) ||
+        academic.cgpaScale <= 0 || academic.cgpa > academic.cgpaScale))))
+  const conflict = conflictingClasses || contradictedClaim || impossibleGpa
+  if (conflict) integrityFlags.push('ACADEMIC_FIELDS_REQUIRE_RECONCILIATION')
+  if (application.institution && academic?.institutionCandidates.length &&
+    !academic.institutionCandidates.some((candidate) => institutionSimilarity(application.institution!, candidate) >= 0.6)) {
     integrityFlags.push('INSTITUTION_NAME_MISMATCH')
   }
-
-  if (!meritAssessment) {
-    integrityFlags.push('MERIT_ASSESSMENT_NOT_AVAILABLE')
-  } else if (meritAssessment.requiresHumanReview || meritAssessment.evidenceQuality === 'insufficient') {
+  if (!meritAssessment) integrityFlags.push('MERIT_ASSESSMENT_NOT_AVAILABLE')
+  else if (meritAssessment.requiresHumanReview || meritAssessment.evidenceQuality === 'insufficient') {
     integrityFlags.push('MERIT_REVIEW_REQUIRED')
   }
-
-  const academicEligibility: SelectionApplicationInput['academicEligibility'] = !academic
-    ? 'unknown'
-    : academic.degreeClassification === 'first_class'
-      ? 'verified_first_class'
-      : academic.degreeClassification === 'other_classification'
-        ? 'verified_other_classification'
-        : 'unknown'
-
-  let evidenceStatus: SelectionApplicationInput['evidenceStatus'] = !extraction
-    ? 'missing'
-    : extraction.confidence < 0.55
-      ? 'unreadable'
-      : 'verified'
-
-  if (
-    evidenceStatus === 'verified' &&
-    claimsFirstClass(application.claimed_academic_status) &&
-    academicEligibility === 'verified_other_classification'
-  ) {
-    evidenceStatus = 'conflicting'
-  }
-
-  const hasRequiredAnswers = Boolean(
-    application.full_name?.trim() &&
-      application.country?.trim() &&
-      application.institution?.trim() &&
-      application.leadership_narrative?.trim(),
-  )
-
+  // Never award verified First Class or BGS points from a phrase in OCR text.
   return {
     applicationId: application.id,
     fullName: application.full_name,
     country: application.country,
-    academicEligibility,
-    evidenceStatus,
-    hasRequiredAnswers,
+    academicEligibility: conflict ? 'conflicting' : 'unknown',
+    evidenceStatus: !extraction ? 'missing' : !readable ? 'unreadable' : conflict ? 'conflicting' : 'pending',
+    hasRequiredAnswers: Boolean(application.full_name?.trim() && application.country?.trim() &&
+      application.institution?.trim() && application.leadership_narrative?.trim()),
     consentConfirmed: application.declaration_confirmed,
-    academicScore:
-      academicEligibility === 'verified_first_class'
-        ? academic?.bestGraduatingStudent
-          ? 30
-          : 28
-        : 0,
+    academicScore: 0,
     leadershipScore: meritAssessment?.leadershipScore ?? 0,
     impactScore: meritAssessment?.impactScore ?? 0,
     initiativeScore: meritAssessment?.initiativeScore ?? 0,
     communicationScore: meritAssessment?.communicationScore ?? 0,
-    integrityFlags: Array.from(new Set(integrityFlags)),
+    integrityFlags: [...new Set(integrityFlags)],
   }
 }

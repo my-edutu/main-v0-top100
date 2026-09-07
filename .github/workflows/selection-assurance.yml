@@ -1,0 +1,51 @@
+name: Selection assurance database checks
+on:
+  pull_request:
+    paths:
+      - 'lib/selection/**'
+      - 'app/**/selection/**'
+      - 'supabase/migrations/*selection*'
+      - 'scripts/selection-assurance/**'
+      - '.github/workflows/selection-assurance.yml'
+permissions:
+  contents: read
+jobs:
+  database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17.6
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGDATABASE: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v7
+      - name: Prepare disposable database
+        run: psql -v ON_ERROR_STOP=1 -f scripts/selection-assurance/bootstrap.sql
+      - name: Apply selection migrations in release order
+        shell: bash
+        run: |
+          set -euo pipefail
+          for migration in \
+            supabase/migrations/20260824090000_create_selection_engine_foundation.sql \
+            supabase/migrations/20260824091000_add_selection_processing_tasks.sql \
+            supabase/migrations/20260824092000_allow_pending_google_document_size.sql \
+            supabase/migrations/20260824093000_create_selection_ranking_runs.sql \
+            supabase/migrations/20260824094000_create_selection_ranking_rpc.sql \
+            supabase/migrations/20260907150000_selection_review_assurance.sql; do
+            psql -v ON_ERROR_STOP=1 -f "$migration"
+          done
+      - name: Execute adversarial transaction and permissions checks
+        run: psql -v ON_ERROR_STOP=1 -f scripts/selection-assurance/database.test.sql

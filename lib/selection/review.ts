@@ -1,3 +1,4 @@
+import { assertReviewVerification, assertSelectionPolicy, type SelectionReviewVerification } from './assurance'
 import type {
   SelectionAssessment,
   SelectionPolicy,
@@ -30,6 +31,7 @@ export function buildHumanReviewedAssessment({
   reviewerNotes,
   priorInternalReasons,
   policy,
+  verification,
 }: {
   applicationId: string
   fullName: string
@@ -40,7 +42,10 @@ export function buildHumanReviewedAssessment({
   reviewerNotes: string
   priorInternalReasons: string[]
   policy: SelectionPolicy
+  verification?: SelectionReviewVerification
 }): SelectionAssessment {
+  assertSelectionPolicy(policy)
+  assertReviewVerification(verdict, verification)
   const reasons = publicReasons.map((reason) => reason.trim()).filter(Boolean)
   if (reasons.length === 0 || reasons.some((reason) => reason.length < 10)) {
     throw new Error('A meaningful applicant-facing public explanation is required')
