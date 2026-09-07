@@ -1,21 +1,18 @@
 'use client'
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ResponsiveTable } from '@/components/ui/responsive-table';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter,
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Label } from '@/components/ui/label';
-import { Skeleton } from '@/components/ui/skeleton';
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  AlertCircle,
+  CalendarDays,
+  Clock3,
+  ExternalLink,
+  Loader2,
+  Play,
+  Trash2,
+  Youtube as YoutubeIcon,
+} from 'lucide-react'
+import { toast } from 'sonner'
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,540 +22,262 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { toast } from 'sonner';
-import {
-  Plus,
-  Edit,
-  Trash2,
-  ExternalLink,
-  Calendar,
-  Loader2,
-  Play,
-  BarChart3,
-  TrendingUp,
-  Clock,
-  Eye,
-  Youtube as YoutubeIcon
-} from 'lucide-react';
+} from '@/components/ui/alert-dialog'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { ResponsiveTable } from '@/components/ui/responsive-table'
+import { Skeleton } from '@/components/ui/skeleton'
+import { summarizeAdminVideos } from '@/lib/youtube/admin-summary'
+import PageHeader from '../components/PageHeader'
 
 interface YouTubeVideo {
-  id: string;
-  title: string;
-  description: string;
-  date: string;
-  videoId: string;
-  views?: number;
-  likes?: number;
+  id: string
+  title: string
+  description: string
+  date: string
+  videoId: string
 }
 
-interface Stats {
-  totalVideos: number;
-  totalViews: number;
-  averageViews: number;
-  recentVideos: number;
+const getYouTubeThumbnail = (videoId: string) =>
+  `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`
+
+const extractVideoId = (url: string): string | null => {
+  const value = url.trim()
+  if (/^[a-zA-Z0-9_-]{11}$/.test(value)) return value
+
+  const match = value.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/)
+  return match?.[2]?.length === 11 ? match[2] : null
 }
 
 export default function YouTubeManagement() {
-  const router = useRouter();
-  const [videos, setVideos] = useState<YouTubeVideo[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [newVideo, setNewVideo] = useState({
-    title: '',
-    description: '',
-    date: '',
-    videoId: ''
-  });
-  const [isAdding, setIsAdding] = useState(false);
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [videoToDelete, setVideoToDelete] = useState<YouTubeVideo | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [videos, setVideos] = useState<YouTubeVideo[]>([])
+  const [loading, setLoading] = useState(true)
+  const [newVideo, setNewVideo] = useState({ title: '', description: '', date: '', videoId: '' })
+  const [isAdding, setIsAdding] = useState(false)
+  const [videoToDelete, setVideoToDelete] = useState<YouTubeVideo | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetchYouTubeVideos();
-  }, []);
+  const stats = useMemo(() => summarizeAdminVideos(videos), [videos])
 
-  useEffect(() => {
-    if (videos.length > 0) {
-      calculateStats();
+  const fetchYouTubeVideos = useCallback(async ({ announce = true }: { announce?: boolean } = {}) => {
+    if (announce) {
+      setLoading(true)
+      toast.loading('Loading channel videos…', { id: 'loading-youtube' })
     }
-  }, [videos]);
 
-  const fetchYouTubeVideos = async () => {
     try {
-      setLoading(true);
-      toast.loading('Loading YouTube videos...', { id: 'loading-youtube' });
-      
-      const response = await fetch('/api/youtube');
-      if (!response.ok) throw new Error('Failed to fetch videos');
-      
-      const data = await response.json();
-      // Add some mock data for views and likes
-      const videosWithData = data.map((video: any) => ({
-        ...video,
-        views: Math.floor(Math.random() * 10000) + 1000, // Random views between 1000-11000
-        likes: Math.floor(Math.random() * 500) + 50 // Random likes between 50-550
-      }));
-      
-      setVideos(videosWithData);
-      toast.success('YouTube videos loaded successfully', { id: 'loading-youtube' });
+      const response = await fetch('/api/youtube')
+      if (!response.ok) throw new Error('Failed to fetch videos')
+      const data: unknown = await response.json()
+      setVideos(Array.isArray(data) ? data as YouTubeVideo[] : [])
+      if (announce) toast.success('Channel videos loaded', { id: 'loading-youtube' })
     } catch (error) {
-      console.error('Error fetching YouTube videos:', error);
-      toast.error('Failed to fetch YouTube videos', { id: 'loading-youtube' });
+      console.error('Error fetching YouTube videos:', error)
+      toast.error('Failed to fetch channel videos', { id: 'loading-youtube' })
     } finally {
-      setLoading(false);
+      if (announce) setLoading(false)
     }
-  };
+  }, [])
 
-  const calculateStats = () => {
-    if (videos.length === 0) return;
-
-    const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth();
-
-    const totalVideos = videos.length;
-    const totalViews = videos.reduce((sum, video) => sum + (video.views || 0), 0);
-    const averageViews = totalViews ? Math.round(totalViews / videos.length) : 0;
-    const recentVideos = videos.filter(video => {
-      const videoDate = video.date ? new Date(video.date) : new Date();
-      return videoDate.getFullYear() === currentYear && 
-             videoDate.getMonth() >= currentMonth - 3; // Last 3 months
-    }).length;
-
-    setStats({
-      totalVideos,
-      totalViews,
-      averageViews,
-      recentVideos
-    });
-  };
+  useEffect(() => {
+    // This memoized loader owns the asynchronous state transitions for the external API.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchYouTubeVideos()
+  }, [fetchYouTubeVideos])
 
   const handleAddVideo = async () => {
-    if (!newVideo.title || !newVideo.videoId) {
-      toast.error('Title and Video ID are required');
-      return;
+    if (!newVideo.title.trim() || !newVideo.videoId.trim()) {
+      toast.error('Title and YouTube URL are required')
+      return
+    }
+
+    const videoId = extractVideoId(newVideo.videoId)
+    if (!videoId) {
+      toast.error('Enter a valid YouTube URL or 11-character video ID')
+      return
     }
 
     try {
-      setIsAdding(true);
-      toast.loading('Adding YouTube video...', { id: 'add-youtube' });
-      
-      // Validate YouTube URL format
-      const videoId = extractVideoId(newVideo.videoId);
-      if (!videoId) {
-        toast.error('Invalid YouTube URL or Video ID');
-        return;
-      }
-
+      setIsAdding(true)
+      toast.loading('Adding video…', { id: 'add-youtube' })
       const response = await fetch('/api/youtube', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: newVideo.title,
-          description: newVideo.description,
-          date: newVideo.date,
-          videoId: videoId
-        })
-      });
-      
-      if (!response.ok) throw new Error('Failed to add video');
-      
-      const result = await response.json();
-      
-      if (result.success) {
-        // Refresh the video list
-        await fetchYouTubeVideos();
-        setNewVideo({
-          title: '',
-          description: '',
-          date: '',
-          videoId: ''
-        });
-        toast.success(result.message, { id: 'add-youtube' });
-      } else {
-        throw new Error(result.message);
-      }
+          title: newVideo.title.trim(),
+          description: newVideo.description.trim(),
+          date: newVideo.date.trim(),
+          videoId,
+        }),
+      })
+      if (!response.ok) throw new Error('Failed to add video')
+
+      const result = await response.json()
+      if (!result.success) throw new Error(result.message)
+
+      await fetchYouTubeVideos({ announce: false })
+      setNewVideo({ title: '', description: '', date: '', videoId: '' })
+      toast.success(result.message, { id: 'add-youtube' })
     } catch (error) {
-      console.error('Error adding YouTube video:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to add YouTube video', { id: 'add-youtube' });
+      console.error('Error adding YouTube video:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to add video', { id: 'add-youtube' })
     } finally {
-      setIsAdding(false);
+      setIsAdding(false)
     }
-  };
+  }
 
   const handleDelete = async (id: string) => {
     try {
-      setDeletingId(id);
-      toast.loading('Deleting YouTube video...', { id: `delete-${id}` });
+      setDeletingId(id)
+      toast.loading('Removing video…', { id: `delete-${id}` })
+      const response = await fetch(`/api/youtube?id=${id}`, { method: 'DELETE' })
+      if (!response.ok) throw new Error('Failed to delete video')
 
-      const response = await fetch(`/api/youtube?id=${id}`, {
-        method: 'DELETE'
-      });
+      const result = await response.json()
+      if (!result.success) throw new Error(result.message)
 
-      if (!response.ok) throw new Error('Failed to delete video');
-
-      const result = await response.json();
-
-      if (result.success) {
-        // Refresh the video list
-        await fetchYouTubeVideos();
-        toast.success(result.message, { id: `delete-${id}` });
-      } else {
-        throw new Error(result.message);
-      }
+      await fetchYouTubeVideos({ announce: false })
+      toast.success(result.message, { id: `delete-${id}` })
     } catch (error) {
-      console.error('Error deleting YouTube video:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to delete YouTube video', { id: `delete-${id}` });
+      console.error('Error deleting YouTube video:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to delete video', { id: `delete-${id}` })
     } finally {
-      setDeletingId(null);
-      setVideoToDelete(null);
+      setDeletingId(null)
+      setVideoToDelete(null)
     }
-  };
-
-  const extractVideoId = (url: string): string | null => {
-    // Handle both full URLs and just the video ID
-    if (url.length === 11) return url; // Already a video ID
-
-    // Regex to extract video ID from various YouTube URL formats
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-    const match = url.match(regExp);
-    
-    if (match && match[2].length === 11) {
-      return match[2];
-    }
-    
-    return null;
-  };
-
-  const getYouTubeThumbnail = (videoId: string) => {
-    return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
-  };
-
-  // For development, we're not checking authentication
-  // In production, implement proper auth check
+  }
 
   return (
-    <div className="container mx-auto py-6 sm:py-10 pt-6 space-y-8">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-red-500 to-orange-500 bg-clip-text text-transparent">
-          YouTube Management
-        </h1>
-        <p className="text-sm text-muted-foreground">Manage YouTube links displayed on the site</p>
-      </div>
+    <div className="youtube-admin-page space-y-6 pb-4">
+      <PageHeader
+        eyebrow="Video channel"
+        title="Channel"
+        description="Manage the YouTube videos shown in the Recent Events section."
+        actions={(
+          <Button className="admin-primary" asChild>
+            <a href="#add-video"><Play className="h-4 w-4" /> Add video</a>
+          </Button>
+        )}
+      />
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <Card className="bg-gradient-to-br from-red-500 to-red-600 text-white hover:shadow-lg transition-shadow">
-          <CardHeader className="pb-2">
-            <div className="flex items-center">
-              <div className="p-2 bg-red-400/30 rounded-lg mr-3">
-                <Play className="h-6 w-6" />
-              </div>
-              <CardTitle className="text-lg">Total Videos</CardTitle>
+      <section className="space-y-3" aria-labelledby="youtube-overview-heading">
+        <div className="youtube-section-heading">
+          <div><p className="admin-kicker">Library health</p><h2 id="youtube-overview-heading">Channel overview</h2></div>
+          <p>Only saved channel data is shown here.</p>
+        </div>
+        <div className="youtube-metrics">
+          <article className="youtube-metric"><span><Play aria-hidden="true" /></span><div><strong>{loading ? '—' : stats.total}</strong><p>All videos</p><small>Saved to the channel</small></div></article>
+          <article className="youtube-metric"><span><CalendarDays aria-hidden="true" /></span><div><strong>{loading ? '—' : stats.dated}</strong><p>Dated</p><small>With event context</small></div></article>
+          <article className="youtube-metric"><span><Clock3 aria-hidden="true" /></span><div><strong>{loading ? '—' : stats.recent}</strong><p>Recent</p><small>Within the last 3 months</small></div></article>
+          <article className="youtube-metric"><span><AlertCircle aria-hidden="true" /></span><div><strong>{loading ? '—' : stats.missingDate}</strong><p>Missing date</p><small>Needs timeline context</small></div></article>
+        </div>
+      </section>
+
+      <div className="youtube-workspace">
+        <Card className="youtube-library admin-panel">
+          <CardHeader className="youtube-panel-header">
+            <div>
+              <p className="admin-kicker">Published collection</p>
+              <CardTitle>Video library</CardTitle>
+              <p>{loading ? 'Loading videos…' : `${videos.length} ${videos.length === 1 ? 'video' : 'videos'} shown on the site`}</p>
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {loading ? <div className="h-6 w-12 bg-red-400/30 rounded animate-pulse" /> : stats?.totalVideos || 0}
-            </div>
-            <p className="text-xs text-red-100 mt-1">All YouTube videos</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:shadow-lg transition-shadow">
-          <CardHeader className="pb-2">
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-400/30 rounded-lg mr-3">
-                <Eye className="h-6 w-6" />
-              </div>
-              <CardTitle className="text-lg">Total Views</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {loading ? <div className="h-6 w-16 bg-blue-400/30 rounded animate-pulse" /> : 
-                (stats?.totalViews ? stats.totalViews.toLocaleString() : '0')}
-            </div>
-            <p className="text-xs text-blue-100 mt-1">All videos combined</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white hover:shadow-lg transition-shadow">
-          <CardHeader className="pb-2">
-            <div className="flex items-center">
-              <div className="p-2 bg-purple-400/30 rounded-lg mr-3">
-                <BarChart3 className="h-6 w-6" />
-              </div>
-              <CardTitle className="text-lg">Avg. Views</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {loading ? <div className="h-6 w-16 bg-purple-400/30 rounded animate-pulse" /> : 
-                (stats?.averageViews ? stats.averageViews.toLocaleString() : '0')}
-            </div>
-            <p className="text-xs text-purple-100 mt-1">Per video</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-amber-500 to-amber-600 text-white hover:shadow-lg transition-shadow">
-          <CardHeader className="pb-2">
-            <div className="flex items-center">
-              <div className="p-2 bg-amber-400/30 rounded-lg mr-3">
-                <Clock className="h-6 w-6" />
-              </div>
-              <CardTitle className="text-lg">Recent</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {loading ? <div className="h-6 w-12 bg-amber-400/30 rounded animate-pulse" /> : stats?.recentVideos || 0}
-            </div>
-            <p className="text-xs text-amber-100 mt-1">Last 3 months</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>YouTube Videos</CardTitle>
-            <CardDescription>
-              Manage videos displayed in the Recent Events section
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+          <CardContent className="youtube-library-content">
             {loading ? (
-              <div className="space-y-3">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="flex items-center gap-4 rounded-lg border p-3">
-                    <Skeleton className="h-12 w-20 shrink-0 rounded" />
-                    <div className="flex-1 space-y-2">
-                      <Skeleton className="h-4 w-3/4" />
-                      <Skeleton className="h-3 w-1/3" />
-                    </div>
-                    <Skeleton className="h-8 w-16 shrink-0 rounded" />
-                  </div>
+              <div className="youtube-loading-list">
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <div key={index}><Skeleton className="h-16 w-28 shrink-0 rounded-xl" /><div><Skeleton className="h-4 w-3/4" /><Skeleton className="h-3 w-1/3" /></div></div>
                 ))}
               </div>
             ) : videos.length === 0 ? (
-              <div className="flex flex-col items-center justify-center gap-3 py-14 text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500/10">
-                  <YoutubeIcon className="h-7 w-7 text-red-500" />
-                </div>
-                <div className="space-y-1">
-                  <p className="text-base font-semibold">No videos yet</p>
-                  <p className="text-sm text-muted-foreground">Add your first YouTube video using the form.</p>
-                </div>
+              <div className="youtube-empty-state">
+                <span><YoutubeIcon aria-hidden="true" /></span>
+                <p className="admin-kicker">Library empty</p>
+                <h3>Add the first channel video</h3>
+                <p>Use the publishing form to add a YouTube link to the site.</p>
+                <Button variant="outline" asChild><a href="#add-video">Open publishing form</a></Button>
               </div>
             ) : (
               <ResponsiveTable
                 data={videos}
+                breakpoint="xl"
                 getRowKey={(video) => video.id}
-                className="[&>div:first-child]:rounded-md"
+                className="youtube-video-table"
                 columns={[
                   {
-                    key: 'thumbnail',
-                    header: 'Thumbnail',
+                    key: 'thumbnail', header: 'Video',
                     cell: (video) => (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={getYouTubeThumbnail(video.videoId)}
-                        alt={`Thumbnail for ${video.title}`}
-                        loading="lazy"
-                        width={64}
-                        height={48}
-                        className="w-16 h-12 object-cover rounded"
-                      />
+                      <img src={getYouTubeThumbnail(video.videoId)} alt="" loading="lazy" width={80} height={54} className="youtube-thumbnail" />
                     ),
                   },
+                  { key: 'title', header: 'Title', className: 'font-medium max-w-[340px]', cell: (video) => <span className="line-clamp-2">{video.title}</span> },
+                  { key: 'date', header: 'Event date', cell: (video) => <Badge variant="secondary">{video.date || 'Not set'}</Badge> },
                   {
-                    key: 'title',
-                    header: 'Title',
-                    className: 'font-medium max-w-[240px] truncate',
-                    cell: (video) => video.title,
-                  },
-                  {
-                    key: 'date',
-                    header: 'Date',
-                    cell: (video) => <Badge variant="secondary">{video.date || '—'}</Badge>,
-                  },
-                  {
-                    key: 'views',
-                    header: 'Views',
-                    cell: (video) => video.views?.toLocaleString() || 'N/A',
-                  },
-                  {
-                    key: 'actions',
-                    header: 'Actions',
-                    className: 'text-right',
+                    key: 'actions', header: 'Actions', className: 'text-right',
                     cell: (video) => (
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          aria-label={`Open ${video.title} on YouTube`}
-                          onClick={() => window.open(`https://www.youtube.com/watch?v=${video.videoId}`, '_blank')}
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          aria-label={`Delete ${video.title}`}
-                          disabled={deletingId === video.id}
-                          onClick={() => setVideoToDelete(video)}
-                        >
-                          {deletingId === video.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                        </Button>
+                      <div className="youtube-row-actions">
+                        <Button variant="outline" size="sm" aria-label={`Open ${video.title} on YouTube`} onClick={() => window.open(`https://www.youtube.com/watch?v=${video.videoId}`, '_blank', 'noopener,noreferrer')}><ExternalLink className="h-4 w-4" /> Open</Button>
+                        <Button variant="outline" size="icon" aria-label={`Delete ${video.title}`} disabled={deletingId === video.id} onClick={() => setVideoToDelete(video)}>{deletingId === video.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}</Button>
                       </div>
                     ),
                   },
                 ]}
                 renderCard={(video) => (
-                  <div className="flex gap-3 rounded-xl border p-3">
+                  <article className="youtube-video-card">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={getYouTubeThumbnail(video.videoId)}
-                      alt={`Thumbnail for ${video.title}`}
-                      loading="lazy"
-                      width={112}
-                      height={84}
-                      className="h-16 w-28 shrink-0 rounded-lg object-cover"
-                    />
-                    <div className="flex flex-1 flex-col gap-1.5 min-w-0">
-                      <p className="font-semibold text-sm leading-snug line-clamp-2">{video.title}</p>
-                      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                        <Badge variant="secondary" className="text-[10px]">{video.date || '—'}</Badge>
-                        <span className="inline-flex items-center gap-1"><Eye className="h-3 w-3" />{video.views?.toLocaleString() || 'N/A'}</span>
-                      </div>
-                      <div className="mt-1 flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-11 flex-1"
-                          aria-label={`Open ${video.title} on YouTube`}
-                          onClick={() => window.open(`https://www.youtube.com/watch?v=${video.videoId}`, '_blank')}
-                        >
-                          <ExternalLink className="h-4 w-4 mr-1" /> Open
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          className="h-11 w-11"
-                          aria-label={`Delete ${video.title}`}
-                          disabled={deletingId === video.id}
-                          onClick={() => setVideoToDelete(video)}
-                        >
-                          {deletingId === video.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                        </Button>
+                    <img src={getYouTubeThumbnail(video.videoId)} alt="" loading="lazy" width={160} height={90} />
+                    <div>
+                      <div><h3>{video.title}</h3><Badge variant="secondary">{video.date || 'Date not set'}</Badge></div>
+                      {video.description ? <p>{video.description}</p> : null}
+                      <div className="youtube-card-actions">
+                        <Button variant="outline" onClick={() => window.open(`https://www.youtube.com/watch?v=${video.videoId}`, '_blank', 'noopener,noreferrer')}><ExternalLink className="h-4 w-4" /> Open video</Button>
+                        <Button variant="outline" size="icon" aria-label={`Delete ${video.title}`} disabled={deletingId === video.id} onClick={() => setVideoToDelete(video)}>{deletingId === video.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}</Button>
                       </div>
                     </div>
-                  </div>
+                  </article>
                 )}
               />
             )}
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Add New Video</CardTitle>
-            <CardDescription>
-              Add a YouTube video to the recent events section
-            </CardDescription>
+        <Card id="add-video" className="youtube-publisher admin-panel scroll-mt-24">
+          <CardHeader className="youtube-panel-header">
+            <div><p className="admin-kicker">Publish to site</p><CardTitle>Add a video</CardTitle><p>Paste a YouTube link and add the context visitors should see.</p></div>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="yt-title">Title *</Label>
-                <Input
-                  id="yt-title"
-                  value={newVideo.title}
-                  onChange={(e) => setNewVideo({...newVideo, title: e.target.value})}
-                  placeholder="Video title"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="yt-videoId">YouTube URL or Video ID *</Label>
-                <Input
-                  id="yt-videoId"
-                  value={newVideo.videoId}
-                  onChange={(e) => setNewVideo({...newVideo, videoId: e.target.value})}
-                  placeholder="https://www.youtube.com/watch?v=..."
-                />
-                <p className="text-xs text-muted-foreground">
-                  Enter the full URL or just the video ID (11 characters)
-                </p>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="yt-date">Date</Label>
-                <Input
-                  id="yt-date"
-                  value={newVideo.date}
-                  onChange={(e) => setNewVideo({...newVideo, date: e.target.value})}
-                  placeholder="e.g., March 2024"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="yt-description">Description</Label>
-                <Input
-                  id="yt-description"
-                  value={newVideo.description}
-                  onChange={(e) => setNewVideo({...newVideo, description: e.target.value})}
-                  placeholder="Video description"
-                />
-              </div>
-            </div>
+          <CardContent className="youtube-form">
+            <div><Label htmlFor="yt-title">Video title <span aria-hidden="true">*</span></Label><Input id="yt-title" value={newVideo.title} onChange={(event) => setNewVideo({ ...newVideo, title: event.target.value })} placeholder="e.g. AFL Summit highlights" /></div>
+            <div><Label htmlFor="yt-videoId">YouTube URL or video ID <span aria-hidden="true">*</span></Label><Input id="yt-videoId" value={newVideo.videoId} onChange={(event) => setNewVideo({ ...newVideo, videoId: event.target.value })} placeholder="youtube.com/watch?v=…" aria-describedby="yt-video-help" /><p id="yt-video-help">Use a full YouTube URL or its 11-character video ID.</p></div>
+            <div><Label htmlFor="yt-date">Event date</Label><Input id="yt-date" value={newVideo.date} onChange={(event) => setNewVideo({ ...newVideo, date: event.target.value })} placeholder="e.g. March 2026" /></div>
+            <div><Label htmlFor="yt-description">Description</Label><Input id="yt-description" value={newVideo.description} onChange={(event) => setNewVideo({ ...newVideo, description: event.target.value })} placeholder="A short description for visitors" /></div>
           </CardContent>
-          <CardFooter>
-            <Button 
-              className="w-full bg-red-500 hover:bg-red-600 text-white" 
-              onClick={handleAddVideo}
-              disabled={isAdding || !newVideo.title || !newVideo.videoId}
-            >
-              {isAdding ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Adding...
-                </>
-              ) : (
-                <>
-                  <Play className="mr-2 h-4 w-4" />
-                  Add YouTube Video
-                </>
-              )}
+          <CardFooter className="youtube-form-footer">
+            <Button className="admin-primary w-full" onClick={handleAddVideo} disabled={isAdding || !newVideo.title.trim() || !newVideo.videoId.trim()}>
+              {isAdding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+              {isAdding ? 'Adding video…' : 'Add video'}
             </Button>
           </CardFooter>
         </Card>
       </div>
 
-      <AlertDialog open={!!videoToDelete} onOpenChange={(open) => { if (!open) setVideoToDelete(null) }}>
-        <AlertDialogContent>
+      <AlertDialog open={Boolean(videoToDelete)} onOpenChange={(open) => { if (!open) setVideoToDelete(null) }}>
+        <AlertDialogContent className="bg-white">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete this video?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {videoToDelete
-                ? `"${videoToDelete.title}" will be removed from the site. This action cannot be undone.`
-                : 'This action cannot be undone.'}
-            </AlertDialogDescription>
+            <AlertDialogDescription>{videoToDelete ? `“${videoToDelete.title}” will be removed from the site. This action cannot be undone.` : 'This action cannot be undone.'}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => { if (videoToDelete) handleDelete(videoToDelete.id) }}
-              disabled={!!deletingId}
-              className="bg-red-500 hover:bg-red-600 text-white"
-            >
-              {deletingId ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Delete Video
+            <AlertDialogAction onClick={() => { if (videoToDelete) handleDelete(videoToDelete.id) }} disabled={Boolean(deletingId)} className="bg-red-600 text-white hover:bg-red-700">
+              {deletingId ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Delete video
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  );
+  )
 }

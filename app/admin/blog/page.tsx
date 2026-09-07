@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import type { ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -12,7 +13,6 @@ import { Badge } from '@/components/ui/badge'
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle
 } from '@/components/ui/card'
@@ -36,6 +36,8 @@ import {
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { Loader2, Plus, FileText, BarChart3, TrendingUp, Eye, Heart, ChevronLeft, ChevronRight, Star, Search, Pencil, Trash2 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
+import PageHeader from '../components/PageHeader'
 
 interface AdminPost {
   id: string
@@ -60,7 +62,28 @@ interface Stats {
   scheduledPosts: number
 }
 
-const mapPostRecord = (raw: Record<string, any>): AdminPost => {
+interface RawPostRecord {
+  id: string
+  title?: string
+  slug?: string
+  content?: string | null
+  cover_image?: string | null
+  coverImage?: string | null
+  cover_image_alt?: string | null
+  coverImageAlt?: string | null
+  is_featured?: boolean
+  isFeatured?: boolean
+  status?: string
+  tags?: unknown
+  created_at?: string
+  createdAt?: string
+  updated_at?: string
+  updatedAt?: string
+  scheduled_at?: string | null
+  scheduledAt?: string | null
+}
+
+const mapPostRecord = (raw: RawPostRecord): AdminPost => {
   const createdAt = raw.created_at ?? raw.createdAt ?? new Date().toISOString()
   const updatedAt = raw.updated_at ?? raw.updatedAt ?? createdAt
   const scheduledAt = raw.scheduled_at ?? raw.scheduledAt ?? null
@@ -164,6 +187,8 @@ export default function AdminBlogPage() {
   }, [])
 
   useEffect(() => {
+    // The memoized loader owns the asynchronous state transitions for this external sync.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchPosts()
   }, [fetchPosts])
 
@@ -244,7 +269,7 @@ export default function AdminBlogPage() {
 
   const renderStatsValue = (value: number) => {
     if (loading) {
-      return <div className="h-6 w-12 bg-white/30 rounded animate-pulse" />
+      return <div className="editorial-metric-loading animate-pulse" />
     }
 
     return value
@@ -253,94 +278,93 @@ export default function AdminBlogPage() {
   const hasFilters = search.trim().length > 0 || statusFilter !== 'all'
 
   return (
-    <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 mb-1">
-            <div className="h-2 w-2 rounded-full bg-orange-500 animate-pulse" />
-            <span className="text-[10px] uppercase tracking-widest text-zinc-400 font-bold">Content Engine</span>
+    <div className="editorial-admin-page space-y-6 pb-4 animate-in fade-in duration-300">
+      <PageHeader
+        eyebrow="Content studio"
+        title="Editorial"
+        description="Create, schedule, and spotlight stories across the Top100 platform."
+        actions={(
+          <Button onClick={handleAddNewPost} className="admin-primary">
+            <Plus className="h-4 w-4" />
+            Create article
+          </Button>
+        )}
+      />
+
+      <section className="space-y-3" aria-labelledby="editorial-overview-heading">
+        <div className="editorial-section-heading">
+          <div>
+            <p className="admin-kicker">Publishing pulse</p>
+            <h2 id="editorial-overview-heading">Content overview</h2>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-zinc-900 leading-none">
-            Editorial <span className="text-orange-500">Control</span>
-          </h1>
-          <p className="text-zinc-500 text-xs sm:text-sm font-medium">
-            Orchestrate your content strategy with real-time publishing.
-          </p>
+          <p>Live totals across the editorial library.</p>
         </div>
-
-        <Button onClick={handleAddNewPost} className="bg-orange-600 hover:bg-orange-700 text-white rounded-xl h-11 px-6 shadow-lg shadow-orange-200 font-bold shrink-0">
-          <Plus className="mr-2 h-5 w-5" />
-          Create Article
-        </Button>
-      </div>
-
-      {/* KPI Stats Grid - 2x2 on mobile */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="editorial-metrics">
         <KPITile
-          label="Total Content"
+          label="All articles"
           value={renderStatsValue(stats.totalPosts)}
           icon={FileText}
           color="blue"
-          subValue="Articles"
+          subValue="Across every status"
         />
         <KPITile
-          label="Live Now"
+          label="Published"
           value={renderStatsValue(stats.publishedPosts)}
           icon={BarChart3}
           color="emerald"
-          subValue="Public"
+          subValue="Visible to readers"
         />
         <KPITile
           label="Spotlight"
           value={renderStatsValue(stats.featuredPosts)}
           icon={Heart}
           color="rose"
-          subValue="Featured"
+          subValue="Promoted on homepage"
         />
         <KPITile
           label="Scheduled"
           value={renderStatsValue(stats.scheduledPosts)}
           icon={TrendingUp}
           color="amber"
-          subValue="Upcoming"
+          subValue="Queued to publish"
         />
-      </div>
+        </div>
+      </section>
 
       {/* Content + Spotlight */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 border-zinc-200 shadow-sm rounded-2xl overflow-hidden">
-          <CardHeader className="bg-zinc-50/50 border-b border-zinc-200 px-4 sm:px-6 py-4">
+      <div className="editorial-workspace">
+        <Card className="editorial-library admin-panel">
+          <CardHeader className="editorial-library-header">
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between gap-3">
-                <CardTitle className="text-lg font-bold text-zinc-900 flex items-center gap-2">
-                  <Eye className="h-5 w-5 text-orange-600" />
-                  Content Library
+                <CardTitle className="editorial-library-title">
+                  <span><Eye className="h-5 w-5" /></span>
+                  Article library
                 </CardTitle>
                 {!loading && (
-                  <span className="text-xs font-medium text-zinc-400">
+                  <span className="editorial-result-count">
                     {filteredPosts.length} {filteredPosts.length === 1 ? 'article' : 'articles'}
                   </span>
                 )}
               </div>
 
               {/* Toolbar: search + status filter */}
-              <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-                <div className="relative flex-1">
+              <div className="editorial-toolbar">
+                <div className="editorial-search">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
                   <Input
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Search by title or slug..."
                     aria-label="Search articles"
-                    className="pl-10 h-10 rounded-xl border-zinc-200 bg-white focus:ring-1 focus:ring-orange-300 focus:border-orange-300"
+                    className="pl-10"
                   />
                 </div>
-                <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
-                  <SelectTrigger aria-label="Filter by status" className="h-10 w-full sm:w-44 rounded-xl border-zinc-200 bg-white">
+                <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as typeof statusFilter)}>
+                  <SelectTrigger aria-label="Filter by status">
                     <SelectValue placeholder="All statuses" />
                   </SelectTrigger>
-                  <SelectContent className="rounded-xl">
+                  <SelectContent>
                     <SelectItem value="all">All statuses</SelectItem>
                     <SelectItem value="published">Published</SelectItem>
                     <SelectItem value="draft">Draft</SelectItem>
@@ -399,6 +423,7 @@ export default function AdminBlogPage() {
             ) : (
               <ResponsiveTable
                 data={filteredPosts}
+                breakpoint="xl"
                 getRowKey={post => post.id}
                 className="[&>div:first-child]:rounded-none [&>div:first-child]:border-0 [&>div:last-child]:space-y-0 [&>div:last-child]:divide-y [&>div:last-child]:divide-zinc-100"
                 columns={[
@@ -537,17 +562,16 @@ export default function AdminBlogPage() {
         </Card>
 
         {/* Right Column: Hero Spotlight Preview */}
-        <div className="space-y-6">
-          <Card className="border-rose-200 bg-gradient-to-br from-rose-50 to-orange-50/40 shadow-sm rounded-2xl overflow-hidden">
-            <CardHeader className="border-b border-rose-100 pb-4">
+        <aside className="editorial-side-column">
+          <Card className="editorial-spotlight admin-panel">
+            <CardHeader className="editorial-spotlight-header">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                  <CardTitle className="text-rose-600 text-sm font-bold uppercase tracking-[0.15em] flex items-center gap-2">
-                    <Star className="h-4 w-4 fill-current" /> Homepage Spotlight
+                  <p className="admin-kicker">Homepage curation</p>
+                  <CardTitle className="editorial-spotlight-title">
+                    <span><Star className="h-4 w-4" /></span> Spotlight
                   </CardTitle>
-                  <CardDescription className="text-zinc-500 text-xs font-medium">
-                    Maximum visibility on the landing page hero section.
-                  </CardDescription>
+                  <p className="editorial-spotlight-description">Choose the stories promoted on the public homepage.</p>
                 </div>
                 {featuredPosts.length > SPOTLIGHT_PER_PAGE && (
                   <div className="flex gap-1">
@@ -557,7 +581,7 @@ export default function AdminBlogPage() {
                       onClick={() => setSpotlightPage(p => Math.max(0, p - 1))}
                       disabled={spotlightPage === 0}
                       aria-label="Previous spotlight page"
-                      className="h-8 w-8 rounded-full text-zinc-400 hover:text-rose-600 hover:bg-rose-100/60"
+                      className="editorial-page-button"
                     >
                       <ChevronLeft className="h-4 w-4" />
                     </Button>
@@ -567,7 +591,7 @@ export default function AdminBlogPage() {
                       onClick={() => setSpotlightPage(p => Math.min(Math.ceil(featuredPosts.length / SPOTLIGHT_PER_PAGE) - 1, p + 1))}
                       disabled={spotlightPage >= Math.ceil(featuredPosts.length / SPOTLIGHT_PER_PAGE) - 1}
                       aria-label="Next spotlight page"
-                      className="h-8 w-8 rounded-full text-zinc-400 hover:text-rose-600 hover:bg-rose-100/60"
+                      className="editorial-page-button"
                     >
                       <ChevronRight className="h-4 w-4" />
                     </Button>
@@ -575,56 +599,59 @@ export default function AdminBlogPage() {
                 )}
               </div>
             </CardHeader>
-            <CardContent className="p-4 space-y-4">
+            <CardContent className="editorial-spotlight-content">
               {featuredPosts.length === 0 ? (
-                <div className="text-center py-8 text-zinc-400 text-sm border-2 border-dashed border-zinc-200 rounded-xl">
-                  No active spotlight posts
+                <div className="editorial-spotlight-empty">
+                  <Star className="h-5 w-5" />
+                  <span>No active spotlight stories</span>
                 </div>
               ) : (
                 featuredPosts.slice(spotlightPage * SPOTLIGHT_PER_PAGE, (spotlightPage + 1) * SPOTLIGHT_PER_PAGE).map(post => (
-                  <div key={post.id} className="group relative bg-white border border-zinc-200 rounded-2xl p-3.5 hover:border-rose-300 hover:shadow-sm transition-all overflow-hidden">
+                  <article key={post.id} className="editorial-spotlight-item">
                     <div className="flex justify-between items-start gap-4 relative z-10">
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-bold text-zinc-800 text-sm line-clamp-2 leading-tight mb-1.5 group-hover:text-rose-600 transition-colors">{post.title}</h4>
+                        <h4>{post.title}</h4>
                         <div className="flex items-center gap-2">
                           <span className="text-[10px] text-zinc-400 font-medium">{format(new Date(post.updatedAt), 'MMM dd, yyyy')}</span>
                           <span className="h-1 w-1 rounded-full bg-zinc-300" />
-                          <span className="text-[10px] text-rose-500 font-bold uppercase tracking-wider">Spotlight</span>
+                          <span className="editorial-spotlight-label">Spotlight</span>
                         </div>
                       </div>
                       <Switch
                         checked={true}
                         onCheckedChange={() => toggleFeatured(post.id, false)}
                         aria-label={`Remove ${post.title} from spotlight`}
-                        className="scale-75 data-[state=checked]:bg-rose-500"
+                        className="data-[state=checked]:bg-orange-500"
                       />
                     </div>
                     {post.coverImage && (
-                      <div className="mt-4 aspect-[21/9] w-full rounded-xl bg-zinc-100 overflow-hidden relative border border-zinc-200">
-                        <img src={post.coverImage} className="object-cover w-full h-full group-hover:scale-105 transition-all duration-700" alt={post.coverImageAlt || post.title} />
+                      <div className="editorial-spotlight-image">
+                        {/* Remote editorial images can come from multiple configured storage hosts. */}
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={post.coverImage} alt={post.coverImageAlt || post.title} />
                       </div>
                     )}
-                  </div>
+                  </article>
                 ))
               )}
             </CardContent>
           </Card>
 
-          <Card className="border-zinc-200 shadow-sm rounded-2xl">
-            <CardContent className="p-5 space-y-3">
-              <h3 className="text-zinc-700 text-sm font-bold">Quick Stats</h3>
+          <Card className="editorial-draft-health admin-panel">
+            <CardContent className="editorial-draft-health-content">
+              <div><p className="admin-kicker">Workflow health</p><h3>Draft share</h3></div>
               <div className="space-y-2">
                 <div className="flex justify-between text-xs">
-                  <span className="text-zinc-500">Draft Rate</span>
+                  <span className="text-zinc-500">Articles still in draft</span>
                   <span className="text-zinc-700 font-medium">{stats.totalPosts > 0 ? Math.round((stats.draftPosts / stats.totalPosts) * 100) : 0}%</span>
                 </div>
                 <div className="h-1.5 w-full bg-zinc-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full transition-all" style={{ width: `${stats.totalPosts > 0 ? (stats.draftPosts / stats.totalPosts) * 100 : 0}%` }} />
+                  <div className="h-full bg-orange-500 rounded-full transition-all" style={{ width: `${stats.totalPosts > 0 ? (stats.draftPosts / stats.totalPosts) * 100 : 0}%` }} />
                 </div>
               </div>
             </CardContent>
           </Card>
-        </div>
+        </aside>
       </div>
 
       {/* Delete confirmation */}
@@ -655,39 +682,21 @@ export default function AdminBlogPage() {
 
 // Sub-components
 
-function KPITile({ label, value, icon: Icon, color, subValue }: any) {
-  const colors: any = {
-    blue: "from-blue-600 to-cyan-500 shadow-blue-500/20",
-    emerald: "from-emerald-600 to-teal-500 shadow-emerald-500/20",
-    amber: "from-orange-500 to-amber-500 shadow-orange-500/20",
-    rose: "from-rose-600 to-pink-500 shadow-rose-500/20",
-    purple: "from-purple-600 to-indigo-600 shadow-purple-500/20",
-  }
-
-  const selectedColor = colors[color] || colors.blue
-
+function KPITile({ label, value, icon: Icon, color, subValue }: {
+  label: string
+  value: ReactNode
+  icon: LucideIcon
+  color: 'blue' | 'emerald' | 'amber' | 'rose'
+  subValue: string
+}) {
   return (
-    <div className={cn(
-      "relative p-5 sm:p-6 rounded-[2rem] border-none bg-gradient-to-br shadow-xl overflow-hidden transition-all duration-300 hover:scale-[1.03] hover:-translate-y-1 group",
-      selectedColor
-    )}>
-      {/* Background Icon */}
-      <Icon className="absolute -right-4 -bottom-4 h-24 w-24 text-white opacity-[0.08] -rotate-12 group-hover:scale-110 transition-transform duration-700" />
-
-      <div className="relative z-10 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="h-11 w-11 sm:h-12 sm:w-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-lg">
-            <Icon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
-          </div>
-        </div>
-        <div className="space-y-1">
-          <div className="text-3xl sm:text-4xl font-black text-white tracking-tighter">{value}</div>
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-white/80">{label}</p>
-            {subValue && <span className="text-[10px] font-medium text-white/90 bg-black/10 px-2 py-0.5 rounded-full backdrop-blur-sm border border-white/10">{subValue}</span>}
-          </div>
-        </div>
+    <article className={`editorial-metric editorial-metric-${color}`}>
+      <span><Icon aria-hidden="true" /></span>
+      <div>
+        <strong>{value}</strong>
+        <p>{label}</p>
+        <small>{subValue}</small>
       </div>
-    </div>
+    </article>
   )
 }

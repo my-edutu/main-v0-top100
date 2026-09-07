@@ -37,6 +37,7 @@ import {
   ShieldCheck,
   Truck,
 } from 'lucide-react'
+import PageHeader from '../components/PageHeader'
 
 // `lib/awards/money.ts` and `lib/awards/status.ts` are plain, dependency-free
 // logic — safe to import client-side. `lib/awards/server.ts` is explicitly
@@ -336,7 +337,7 @@ export default function AdminAwardsPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto py-8 pt-8 space-y-8">
+      <div className="award-orders-page space-y-6 pb-4">
         <div className="space-y-2">
           <Skeleton className="h-9 w-64 rounded-xl" />
           <Skeleton className="h-4 w-80 rounded-lg" />
@@ -358,116 +359,75 @@ export default function AdminAwardsPage() {
 
   if (setupMessage) {
     return (
-      <div className="container mx-auto py-8 pt-8">
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="font-semibold text-lg mb-2">Awards are not set up yet</h3>
-            <p className="text-muted-foreground">{setupMessage}</p>
-          </CardContent>
-        </Card>
+      <div className="award-orders-page space-y-6 pb-4">
+        <PageHeader eyebrow="Awards & delivery" title="Award orders" description="Payments, shipping quotes and dispatch—all in one operational view." />
+        <div className="admin-panel award-empty-state">
+          <span className="award-empty-icon"><Package aria-hidden="true" /></span>
+          <h2>Awards are not set up yet</h2>
+          <p>{setupMessage}</p>
+        </div>
       </div>
     )
   }
 
   if (errorMessage) {
     return (
-      <div className="container mx-auto py-8 pt-8">
-        <Card>
-          <CardContent className="py-12 text-center space-y-4">
-            <AlertTriangle className="h-12 w-12 text-destructive mx-auto" />
-            <h3 className="font-semibold text-lg">Could not load award orders</h3>
-            <p className="text-muted-foreground">{errorMessage}</p>
-            <Button variant="outline" onClick={fetchOrders}>
+      <div className="award-orders-page space-y-6 pb-4">
+        <PageHeader eyebrow="Awards & delivery" title="Award orders" description="Payments, shipping quotes and dispatch—all in one operational view." />
+        <div className="admin-panel award-empty-state award-empty-error">
+            <span className="award-empty-icon"><AlertTriangle aria-hidden="true" /></span>
+            <h2>Could not load award orders</h2>
+            <p>{errorMessage}</p>
+            <Button variant="outline" onClick={fetchOrders} className="mt-2">
               <RefreshCw className="h-4 w-4 mr-2" />
               Try again
             </Button>
-          </CardContent>
-        </Card>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="container mx-auto py-8 pt-8 space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-amber-700 bg-clip-text text-transparent">
-          Award Orders
-        </h1>
-        <p className="text-muted-foreground">
-          Africa Future Leaders award payments, shipping quotes and dispatch.
-        </p>
-      </div>
+    <div className="award-orders-page space-y-6 pb-4">
+      <PageHeader
+        eyebrow="Awards & delivery"
+        title="Award orders"
+        description="Track every payment, resolve delivery issues, and keep awards moving."
+        actions={
+          <Button variant="outline" onClick={fetchOrders}>
+            <RefreshCw className="h-4 w-4" />
+            Refresh orders
+          </Button>
+        }
+      />
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-gray-100 flex items-center justify-center">
-                <Award className="h-5 w-5 text-gray-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.total}</p>
-                <p className="text-xs text-muted-foreground">Total orders</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card
-          className={stats.paidNoWaybill > 0 ? 'border-destructive/50 shadow-destructive/10' : undefined}
-        >
-          <CardContent className="pt-6">
+      <section aria-labelledby="award-pulse-heading" className="space-y-3">
+        <div className="award-section-heading">
+          <div><p className="admin-kicker">Live operations</p><h2 id="award-pulse-heading">Delivery pulse</h2></div>
+          <p>{stats.total === 0 ? 'Waiting for the first order' : `${stats.total} order${stats.total === 1 ? '' : 's'} recorded`}</p>
+        </div>
+        <div className="award-metrics">
+          <article className="award-metric">
+            <span><Award aria-hidden="true" /></span><div><strong>{stats.total}</strong><p>Total orders</p><small>Across every status</small></div>
+          </article>
+          <article className={`award-metric ${stats.paidNoWaybill > 0 ? 'award-metric-urgent' : ''}`}>
             <button
               type="button"
-              className="flex items-center gap-3 w-full text-left"
+              className="award-metric-button"
               onClick={() => setStatusFilter('paid_no_waybill')}
             >
-              <div
-                className={`h-10 w-10 rounded-lg flex items-center justify-center ${
-                  stats.paidNoWaybill > 0 ? 'bg-destructive/15' : 'bg-gray-100'
-                }`}
-              >
-                <AlertTriangle
-                  className={`h-5 w-5 ${stats.paidNoWaybill > 0 ? 'text-destructive' : 'text-gray-600'}`}
-                />
-              </div>
-              <div>
-                <p className={`text-2xl font-bold ${stats.paidNoWaybill > 0 ? 'text-destructive' : ''}`}>
-                  {stats.paidNoWaybill}
-                </p>
-                <p className="text-xs text-muted-foreground">Paid, no waybill</p>
-              </div>
+              <span><AlertTriangle aria-hidden="true" /></span><div><strong>{stats.paidNoWaybill}</strong><p>Needs dispatch</p><small>Paid, no waybill</small></div>
             </button>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-amber-100 flex items-center justify-center">
-                <AlertTriangle className="h-5 w-5 text-amber-700" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.quoteFailed}</p>
-                <p className="text-xs text-muted-foreground">Quote failed</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-emerald-100 flex items-center justify-center">
-                <Truck className="h-5 w-5 text-emerald-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.dispatchedOrLater}</p>
-                <p className="text-xs text-muted-foreground">Dispatched+</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          </article>
+          <article className="award-metric">
+            <span><AlertTriangle aria-hidden="true" /></span><div><strong>{stats.quoteFailed}</strong><p>Quote failed</p><small>Needs a manual price</small></div>
+          </article>
+          <article className="award-metric">
+            <span><Truck aria-hidden="true" /></span><div><strong>{stats.dispatchedOrLater}</strong><p>On the move</p><small>Dispatched or delivered</small></div>
+          </article>
+        </div>
+      </section>
 
       {/* Requirement A: the paid-without-waybill recovery queue. Rendered
           unconditionally above the filters and the main table whenever it is
@@ -535,11 +495,15 @@ export default function AdminAwardsPage() {
       )}
 
       {/* Filters */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-4 md:items-center">
+      <section className="admin-panel award-toolbar" aria-label="Order filters">
+          <div className="award-toolbar-copy">
+            <p className="admin-kicker">Order queue</p>
+            <h2>{statusFilter === 'all' ? 'All award orders' : statusFilter === 'paid_no_waybill' ? 'Orders needing dispatch' : STATUS_LABELS[statusFilter]}</h2>
+            <p>Showing {filteredOrders.length} of {orders.length}</p>
+          </div>
+          <div className="award-toolbar-actions">
             <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as StatusFilter)}>
-              <SelectTrigger className="w-full md:w-[240px]">
+              <SelectTrigger className="w-full sm:w-[240px]">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent>
@@ -554,25 +518,20 @@ export default function AdminAwardsPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Button variant="outline" onClick={fetchOrders}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh
-            </Button>
           </div>
-        </CardContent>
-      </Card>
+      </section>
 
       {/* Orders */}
       {filteredOrders.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="font-semibold text-lg mb-2">No orders</h3>
-            <p className="text-muted-foreground">
+        <div className="admin-panel award-empty-state">
+            <span className="award-empty-icon"><Package aria-hidden="true" /></span>
+            <p className="admin-kicker">Queue clear</p>
+            <h2>{statusFilter === 'all' ? 'No award orders yet' : 'No orders match this filter'}</h2>
+            <p>
               {statusFilter === 'all' ? 'No award orders have been started yet.' : 'No orders match this filter.'}
             </p>
-          </CardContent>
-        </Card>
+            {statusFilter !== 'all' ? <Button variant="outline" onClick={() => setStatusFilter('all')}>View all orders</Button> : null}
+        </div>
       ) : (
         <div className="space-y-4">
           {filteredOrders.map((order) => {

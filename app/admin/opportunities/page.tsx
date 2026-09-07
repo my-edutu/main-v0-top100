@@ -58,13 +58,10 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+  ResponsiveTable,
+} from '@/components/ui/responsive-table'
+import PageHeader from '../components/PageHeader'
+import { summarizeAdminOpportunities } from '@/lib/opportunities/admin-summary'
 
 // lib/opportunities/types.ts is dependency-free and safe client-side.
 // lib/opportunities/server.ts is server-only and deliberately not imported.
@@ -210,15 +207,7 @@ export default function AdminOpportunitiesPage() {
     [opportunities, statusFilter],
   )
 
-  const stats = useMemo(
-    () => ({
-      total: opportunities.length,
-      published: opportunities.filter((item) => item.status === 'published').length,
-      exclusive: opportunities.filter((item) => item.visibility !== 'public').length,
-      drafts: opportunities.filter((item) => item.status === 'draft').length,
-    }),
-    [opportunities],
-  )
+  const stats = useMemo(() => summarizeAdminOpportunities(opportunities), [opportunities])
 
   function openCreate() {
     setEditingId(null)
@@ -316,17 +305,19 @@ export default function AdminOpportunitiesPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto py-8 pt-8 space-y-8">
-        <div className="space-y-2">
-          <Skeleton className="h-9 w-64 rounded-xl" />
-          <Skeleton className="h-4 w-80 rounded-lg" />
+      <div className="opportunities-admin-page space-y-6 pb-4" aria-busy="true" aria-label="Loading opportunities">
+        <div className="space-y-3 border-b border-[#e7e3dc] pb-6">
+          <Skeleton className="opportunity-loading-block h-3 w-28 rounded" />
+          <Skeleton className="opportunity-loading-block h-9 w-64 rounded-lg" />
+          <Skeleton className="opportunity-loading-block h-4 w-full max-w-xl rounded" />
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="opportunity-metrics">
           {[0, 1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-24 w-full rounded-xl" />
+            <Skeleton key={i} className="opportunity-loading-block h-[132px] w-full rounded-[18px]" />
           ))}
         </div>
-        <Skeleton className="h-72 w-full rounded-xl" />
+        <Skeleton className="opportunity-loading-block h-24 w-full rounded-[18px]" />
+        <Skeleton className="opportunity-loading-block h-72 w-full rounded-[18px]" />
       </div>
     )
   }
@@ -364,52 +355,64 @@ export default function AdminOpportunitiesPage() {
   }
 
   return (
-    <div className="container mx-auto py-8 pt-8 space-y-8">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-amber-700 bg-clip-text text-transparent">
-            Opportunities
-          </h1>
-          <p className="text-muted-foreground">
-            Scholarships, fellowships, grants and roles — and who in the network gets to see them.
-          </p>
-        </div>
-        <Button onClick={openCreate}>
-          <Plus className="h-4 w-4 mr-2" />
-          New opportunity
-        </Button>
-      </div>
+    <div className="opportunities-admin-page space-y-6 pb-4">
+      <PageHeader
+        eyebrow="Network growth"
+        title="Opportunities"
+        description="Publish scholarships, fellowships, grants, and roles to the right member audience."
+        actions={(
+          <Button onClick={openCreate}>
+            <Plus className="mr-2 h-4 w-4" />
+            New opportunity
+          </Button>
+        )}
+      />
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={<Briefcase className="h-5 w-5 text-gray-600" />} value={stats.total} label="Total" />
+      <section aria-labelledby="opportunity-summary-heading" className="space-y-3">
+        <div className="opportunity-section-heading">
+          <div>
+            <p className="admin-kicker">Publishing pulse</p>
+            <h2 id="opportunity-summary-heading">Listing overview</h2>
+          </div>
+          <p>Live totals across every status</p>
+        </div>
+        <div className="opportunity-metrics">
+        <StatCard icon={<Briefcase className="h-5 w-5" />} value={stats.total} label="Total listings" note="Across every status" />
         <StatCard
-          icon={<CheckCircle2 className="h-5 w-5 text-emerald-600" />}
+          icon={<CheckCircle2 className="h-5 w-5" />}
           value={stats.published}
           label="Published"
-          tone="bg-emerald-100"
+          note="Visible in member feeds"
         />
         <StatCard
-          icon={<Eye className="h-5 w-5 text-orange-600" />}
-          value={stats.exclusive}
-          label="Member-only"
-          tone="bg-orange-100"
+          icon={<Eye className="h-5 w-5" />}
+          value={stats.restricted}
+          label="Restricted access"
+          note="Members or awardees only"
         />
         <StatCard
-          icon={<Pencil className="h-5 w-5 text-amber-700" />}
+          icon={<Pencil className="h-5 w-5" />}
           value={stats.drafts}
           label="Drafts"
-          tone="bg-amber-100"
+          note="Waiting to be published"
         />
-      </div>
+        </div>
+      </section>
 
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-4 md:items-center">
+      <Card className="opportunity-toolbar admin-panel">
+        <CardContent className="p-4 sm:p-5">
+          <div className="opportunity-toolbar-inner">
+            <div className="opportunity-toolbar-copy">
+              <p className="admin-kicker">Listing queue</p>
+              <h2>{statusFilter === 'all' ? 'All opportunities' : STATUS_LABELS[statusFilter]}</h2>
+              <p>Showing {filtered.length} of {opportunities.length}</p>
+            </div>
+            <div className="opportunity-toolbar-actions">
             <Select
               value={statusFilter}
               onValueChange={(value) => setStatusFilter(value as 'all' | OpportunityStatus)}
             >
-              <SelectTrigger className="w-full md:w-[240px]">
+              <SelectTrigger>
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent>
@@ -421,23 +424,25 @@ export default function AdminOpportunitiesPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Button variant="outline" onClick={fetchOpportunities}>
+            <Button variant="outline" onClick={fetchOpportunities} aria-label="Refresh opportunities">
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh
             </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
 
       {filtered.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="font-semibold text-lg mb-2">No opportunities</h3>
-            <p className="text-muted-foreground mb-4">
+        <Card className="opportunity-empty-state admin-panel">
+          <CardContent>
+            <div className="opportunity-empty-icon"><Briefcase /></div>
+            <p className="admin-kicker">{statusFilter === 'all' ? 'Ready to publish' : 'No matches'}</p>
+            <h2>{statusFilter === 'all' ? 'Create the first opportunity' : `No ${STATUS_LABELS[statusFilter].toLowerCase()} opportunities`}</h2>
+            <p>
               {statusFilter === 'all'
-                ? 'Nothing has been posted yet. Create the first listing for the network.'
-                : 'No opportunities match this filter.'}
+                ? 'Add a scholarship, fellowship, grant, programme, or role for the network.'
+                : 'Choose another status to return to the full listing queue.'}
             </p>
             {statusFilter === 'all' && (
               <Button onClick={openCreate}>
@@ -448,114 +453,61 @@ export default function AdminOpportunitiesPage() {
           </CardContent>
         </Card>
       ) : (
-        <Card>
-          <CardContent className="pt-6 overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Opportunity</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Visibility</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Deadline</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((opportunity) => (
-                  <TableRow key={opportunity.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2 font-medium">
-                        {opportunity.isFeatured && (
-                          <Star className="h-4 w-4 text-amber-500 fill-amber-400 shrink-0" />
-                        )}
+        <Card className="opportunity-list admin-panel overflow-hidden">
+          <CardContent className="p-0">
+            <ResponsiveTable
+              data={filtered}
+              getRowKey={(opportunity) => opportunity.id}
+              breakpoint="xl"
+              className="[&>div:first-child]:rounded-none [&>div:first-child]:border-0 [&>div:last-child]:space-y-3 [&>div:last-child]:p-3 sm:[&>div:last-child]:p-4"
+              columns={[
+                {
+                  key: 'opportunity',
+                  header: 'Opportunity',
+                  className: 'min-w-[260px]',
+                  cell: (opportunity) => (
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 font-medium text-zinc-950">
+                        {opportunity.isFeatured && <Star className="h-4 w-4 shrink-0 fill-amber-400 text-amber-500" />}
                         <span>{opportunity.title}</span>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        {opportunity.organization || 'No organisation'}
-                        {opportunity.location ? ` · ${opportunity.location}` : ''}
-                      </p>
-                      {!opportunity.applicationUrl && !opportunity.contactEmail && (
-                        <p className="text-xs text-destructive mt-1">
-                          No application link or contact email — cannot be published.
-                        </p>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-sm">{opportunity.type}</TableCell>
-                    <TableCell>
-                      <Badge variant={opportunity.visibility === 'public' ? 'outline' : 'secondary'}>
-                        {VISIBILITY_LABELS[opportunity.visibility]}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={STATUS_BADGE[opportunity.status]}>
-                        {STATUS_LABELS[opportunity.status]}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      <div>{formatDeadlineDate(opportunity.deadline)}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {formatDeadlineCountdown(opportunity.deadline)}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap justify-end gap-2">
-                        {opportunity.status !== 'published' && (
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            disabled={busyId === opportunity.id}
-                            onClick={() => patchStatus(opportunity, 'published')}
-                          >
-                            {busyId === opportunity.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                            ) : (
-                              <CheckCircle2 className="h-4 w-4 mr-2" />
-                            )}
-                            Publish
-                          </Button>
-                        )}
-                        {opportunity.status === 'published' && (
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            disabled={busyId === opportunity.id}
-                            onClick={() => patchStatus(opportunity, 'closed')}
-                          >
-                            <XCircle className="h-4 w-4 mr-2" />
-                            Close
-                          </Button>
-                        )}
-                        {opportunity.status !== 'archived' && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            disabled={busyId === opportunity.id}
-                            onClick={() => patchStatus(opportunity, 'archived')}
-                          >
-                            <Archive className="h-4 w-4 mr-2" />
-                            Archive
-                          </Button>
-                        )}
-                        <Button size="sm" variant="outline" onClick={() => openEdit(opportunity)}>
-                          <Pencil className="h-4 w-4 mr-2" />
-                          Edit
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          disabled={busyId === opportunity.id}
-                          onClick={() => setDeleteTarget(opportunity)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          <span className="sr-only">Delete {opportunity.title}</span>
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                      <p className="text-xs text-zinc-500">{opportunity.organization || 'No organisation'}{opportunity.location ? ` · ${opportunity.location}` : ''}</p>
+                    </div>
+                  ),
+                },
+                { key: 'type', header: 'Type', cell: (opportunity) => opportunity.type },
+                { key: 'visibility', header: 'Visibility', cell: (opportunity) => <Badge variant={opportunity.visibility === 'public' ? 'outline' : 'secondary'}>{VISIBILITY_LABELS[opportunity.visibility]}</Badge> },
+                { key: 'status', header: 'Status', cell: (opportunity) => <Badge variant={STATUS_BADGE[opportunity.status]}>{STATUS_LABELS[opportunity.status]}</Badge> },
+                { key: 'deadline', header: 'Deadline', cell: (opportunity) => <div><div>{formatDeadlineDate(opportunity.deadline)}</div><div className="text-xs text-zinc-500">{formatDeadlineCountdown(opportunity.deadline)}</div></div> },
+                {
+                  key: 'actions',
+                  header: 'Actions',
+                  className: 'min-w-[280px] text-right',
+                  cell: (opportunity) => <OpportunityActions opportunity={opportunity} busyId={busyId} patchStatus={patchStatus} openEdit={openEdit} setDeleteTarget={setDeleteTarget} />,
+                },
+              ]}
+              renderCard={(opportunity) => (
+                <article className="opportunity-record-card">
+                  <div className="space-y-2">
+                    <div className="flex min-w-0 items-start justify-between gap-3">
+                      <h3>{opportunity.title}</h3>
+                      {opportunity.isFeatured && <Star className="h-4 w-4 shrink-0 fill-amber-400 text-amber-500" aria-label="Featured" />}
+                    </div>
+                    <p>{opportunity.organization || 'No organisation'}{opportunity.location ? ` · ${opportunity.location}` : ''}</p>
+                  </div>
+                  <dl className="opportunity-record-meta">
+                    <div><dt>Type</dt><dd>{opportunity.type}</dd></div>
+                    <div><dt>Deadline</dt><dd>{formatDeadlineDate(opportunity.deadline)} · {formatDeadlineCountdown(opportunity.deadline)}</dd></div>
+                  </dl>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant={STATUS_BADGE[opportunity.status]}>{STATUS_LABELS[opportunity.status]}</Badge>
+                    <Badge variant={opportunity.visibility === 'public' ? 'outline' : 'secondary'}>{VISIBILITY_LABELS[opportunity.visibility]}</Badge>
+                  </div>
+                  {!opportunity.applicationUrl && !opportunity.contactEmail && <p className="opportunity-publish-warning">Add an application link or contact email before publishing.</p>}
+                  <OpportunityActions opportunity={opportunity} busyId={busyId} patchStatus={patchStatus} openEdit={openEdit} setDeleteTarget={setDeleteTarget} />
+                </article>
+              )}
+            />
           </CardContent>
         </Card>
       )}
@@ -779,24 +731,64 @@ function StatCard({
   icon,
   value,
   label,
-  tone = 'bg-gray-100',
+  note,
 }: {
   icon: React.ReactNode
   value: number
   label: string
-  tone?: string
+  note: string
 }) {
   return (
-    <Card>
-      <CardContent className="pt-6">
-        <div className="flex items-center gap-3">
-          <div className={`h-10 w-10 rounded-lg ${tone} flex items-center justify-center`}>{icon}</div>
-          <div>
-            <p className="text-2xl font-bold">{value}</p>
-            <p className="text-xs text-muted-foreground">{label}</p>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="opportunity-metric">
+      <span>{icon}</span>
+      <div>
+        <strong>{value}</strong>
+        <p>{label}</p>
+        <small>{note}</small>
+      </div>
+    </div>
+  )
+}
+
+function OpportunityActions({
+  opportunity,
+  busyId,
+  patchStatus,
+  openEdit,
+  setDeleteTarget,
+}: {
+  opportunity: Opportunity
+  busyId: string | null
+  patchStatus: (opportunity: Opportunity, status: OpportunityStatus) => Promise<void>
+  openEdit: (opportunity: Opportunity) => void
+  setDeleteTarget: (opportunity: Opportunity) => void
+}) {
+  return (
+    <div className="opportunity-actions">
+      {opportunity.status !== 'published' ? (
+        <Button size="sm" variant="secondary" disabled={busyId === opportunity.id} onClick={() => patchStatus(opportunity, 'published')}>
+          {busyId === opportunity.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+          Publish
+        </Button>
+      ) : (
+        <Button size="sm" variant="secondary" disabled={busyId === opportunity.id} onClick={() => patchStatus(opportunity, 'closed')}>
+          <XCircle className="mr-2 h-4 w-4" />
+          Close
+        </Button>
+      )}
+      {opportunity.status !== 'archived' && (
+        <Button size="sm" variant="ghost" disabled={busyId === opportunity.id} onClick={() => patchStatus(opportunity, 'archived')}>
+          <Archive className="mr-2 h-4 w-4" />
+          Archive
+        </Button>
+      )}
+      <Button size="sm" variant="outline" onClick={() => openEdit(opportunity)}>
+        <Pencil className="mr-2 h-4 w-4" />
+        Edit
+      </Button>
+      <Button size="icon" variant="destructive" disabled={busyId === opportunity.id} onClick={() => setDeleteTarget(opportunity)} aria-label={`Delete ${opportunity.title}`}>
+        <Trash2 className="h-4 w-4" />
+      </Button>
+    </div>
   )
 }

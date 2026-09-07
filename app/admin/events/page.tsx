@@ -9,7 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { ResponsiveTable } from "@/components/ui/responsive-table"
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import PageHeader from "../components/PageHeader"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -505,30 +506,28 @@ function AdminEventsPageContent() {
 
 
   return (
-    <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 mb-1">
-            <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-            <span className="text-[10px] uppercase tracking-widest text-zinc-400 font-bold">Program Management</span>
+    <div className="events-admin-page space-y-6 pb-4">
+      <PageHeader
+        eyebrow="Program management"
+        title="Events & invitations"
+        description="Plan gatherings, publish programmes, and invite the right member audience."
+        actions={(
+          <Button onClick={openCreateDialog}>
+            <Plus className="mr-1.5 h-4 w-4" />
+            Create event
+          </Button>
+        )}
+      />
+
+      <section aria-labelledby="event-summary-heading" className="space-y-3">
+        <div className="event-section-heading">
+          <div>
+            <p className="admin-kicker">Programme pulse</p>
+            <h2 id="event-summary-heading">Event overview</h2>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white leading-none">
-            Event <span className="text-amber-500">Registry</span>
-          </h1>
-          <p className="text-zinc-500 text-xs sm:text-sm font-medium">
-            Coordinate leader gatherings and digital summits.
-          </p>
+          <p>Live totals from this registry</p>
         </div>
-
-        <Button onClick={openCreateDialog} size="sm" className="bg-amber-500 hover:bg-amber-600 text-black font-bold rounded-xl h-10 px-4 shadow-lg shadow-amber-500/20">
-          <Plus className="mr-1 h-4 w-4" />
-          Create Event
-        </Button>
-      </div>
-
-      {/* KPI Stats Grid - 2x2 on mobile */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="event-metrics">
         <KPITile
           label="Total Events"
           value={stats.total}
@@ -557,40 +556,40 @@ function AdminEventsPageContent() {
           color="zinc"
           subValue="Archived"
         />
-      </div>
+        </div>
+      </section>
 
-      {/* Main Events Table Card */}
-      <Card className="bg-zinc-900/40 border-white/5 backdrop-blur-sm rounded-3xl overflow-hidden min-h-[500px]">
-        <CardHeader className="border-b border-white/5 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg font-bold text-white flex items-center gap-2">
-              <CalendarDays className="h-4 w-4 text-zinc-400" />
+      <Card className="events-timeline admin-panel overflow-hidden">
+        <CardHeader className="events-panel-header">
+          <div className="flex min-w-0 items-center justify-between gap-3">
+            <CardTitle className="flex min-w-0 items-center gap-2 text-lg font-semibold text-zinc-950">
+              <CalendarDays className="h-4 w-4 shrink-0 text-zinc-500" />
               Timeline
             </CardTitle>
-            <Badge variant="outline" className="bg-emerald-500/5 text-emerald-400 border-emerald-500/20">
-              Sync Active
+            <Badge variant="outline" className="shrink-0 border-[#d9d3ca] bg-white text-zinc-600">
+              {events.length} {events.length === 1 ? "event" : "events"}
             </Badge>
           </div>
           <CardDescription className="text-zinc-500">
-            Real-time overview of all programmed activities.
+            Review schedules and control publishing, visibility, and featured placement.
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           {loading ? (
-            <div className="flex flex-col items-center justify-center p-20 space-y-4 text-zinc-500">
-              <Loader2 className="h-10 w-10 animate-spin text-amber-500" />
+            <div className="flex min-h-64 flex-col items-center justify-center space-y-4 p-8 text-zinc-500">
+              <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
               <p>Loading schedule...</p>
             </div>
           ) : events.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-4 py-16 sm:py-20 text-center text-zinc-500 border-2 border-dashed border-zinc-800 m-4 sm:m-8 rounded-2xl px-6">
-              <div className="h-14 w-14 rounded-2xl bg-amber-500/10 flex items-center justify-center">
-                <CalendarDays className="h-7 w-7 text-amber-500" />
+            <div className="event-empty-state">
+              <div className="event-empty-icon">
+                <CalendarDays className="h-7 w-7" />
               </div>
               <div className="space-y-1">
-                <p className="text-base font-semibold text-zinc-300">No events scheduled yet</p>
+                <p className="text-base font-semibold text-zinc-950">No events scheduled yet</p>
                 <p className="text-sm text-zinc-500">Launch your first program to get started.</p>
               </div>
-              <Button onClick={openCreateDialog} size="sm" className="bg-amber-500 hover:bg-amber-600 text-black font-bold rounded-xl h-10 px-4">
+              <Button onClick={openCreateDialog} size="sm">
                 <Plus className="mr-1 h-4 w-4" />
                 Create Event
               </Button>
@@ -600,7 +599,7 @@ function AdminEventsPageContent() {
               <ResponsiveTable
                 data={events}
                 getRowKey={(event) => event.id}
-                breakpoint="lg"
+                breakpoint="xl"
                 className="[&>div:first-child]:rounded-none [&>div:first-child]:border-0 [&>div:last-child]:p-4 [&>div:last-child]:space-y-4"
                 columns={[
                   {
@@ -727,7 +726,7 @@ function AdminEventsPageContent() {
                   },
                 ]}
                 renderCard={(event) => (
-                  <div className="relative bg-zinc-950/40 border border-white/5 rounded-3xl p-5 space-y-4 hover:border-amber-500/30 transition-all overflow-hidden">
+                  <article className="event-record-card">
                     {event.is_featured && (
                       <div className="absolute top-4 right-4">
                         <span className="inline-flex items-center rounded-full bg-amber-500/20 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-400">
@@ -743,7 +742,7 @@ function AdminEventsPageContent() {
                       )}
                     </div>
 
-                    <div className="space-y-3 bg-white/5 rounded-2xl p-3 border border-white/5">
+                    <div className="event-record-meta space-y-3">
                       <div className="flex justify-between items-center text-xs">
                         <span className="text-zinc-500 flex items-center gap-1.5">
                           <CalendarDays className="h-3.5 w-3.5" /> Schedule
@@ -777,7 +776,7 @@ function AdminEventsPageContent() {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between pt-2 border-t border-white/5">
+                    <div className="event-record-actions">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -805,7 +804,7 @@ function AdminEventsPageContent() {
                         </Button>
                       </div>
                     </div>
-                  </div>
+                  </article>
                 )}
               />
             </div>
@@ -819,6 +818,9 @@ function AdminEventsPageContent() {
         <DialogContent className="max-h-[90vh] overflow-y-auto bg-zinc-950 border-white/10 text-white sm:max-w-[700px]">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">{mode === "create" ? "Create New Event" : "Edit Event Details"}</DialogTitle>
+            <DialogDescription>
+              Add the schedule, location, visibility, and registration details candidates need.
+            </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-6 py-4">
@@ -1215,17 +1217,18 @@ function InvitationsPanel({ events }: { events: AdminEvent[] }) {
   }
 
   return (
-    <Card className="bg-zinc-900/40 border-white/5 backdrop-blur-sm rounded-3xl overflow-hidden">
-      <CardHeader className="border-b border-white/5 px-6 py-4">
-        <CardTitle className="text-lg font-bold text-white flex items-center gap-2">
-          <Send className="h-4 w-4 text-zinc-400" />
-          Africa Future Leaders · Event invitations
+    <Card className="events-invitations admin-panel overflow-hidden">
+      <CardHeader className="events-panel-header">
+        <p className="admin-kicker">Audience delivery</p>
+        <CardTitle className="flex items-center gap-2 text-lg font-semibold text-zinc-950">
+          <Send className="h-4 w-4 text-zinc-500" />
+          Event invitations
         </CardTitle>
         <CardDescription className="text-zinc-500">
-          Push an event to candidate dashboards and track RSVPs. All candidates means everyone with a member account. Re-sending preserves existing responses.
+          Send an event to candidate dashboards and track RSVPs. Re-sending preserves existing responses.
         </CardDescription>
       </CardHeader>
-      <CardContent className="p-6 space-y-6">
+      <CardContent className="space-y-6 p-4 sm:p-6">
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="grid gap-2">
             <Label className="text-zinc-400">Event</Label>
@@ -1233,7 +1236,7 @@ function InvitationsPanel({ events }: { events: AdminEvent[] }) {
               <SelectTrigger className="bg-zinc-900 border-zinc-800 text-white">
                 <SelectValue placeholder="Pick an event" />
               </SelectTrigger>
-              <SelectContent className="bg-zinc-950 border-white/10 text-white">
+              <SelectContent className="border-zinc-200 bg-white text-zinc-950">
                 {events.map((event) => (
                   <SelectItem key={event.id} value={event.id}>
                     {event.title}
@@ -1249,7 +1252,7 @@ function InvitationsPanel({ events }: { events: AdminEvent[] }) {
               <SelectTrigger className="bg-zinc-900 border-zinc-800 text-white">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-zinc-950 border-white/10 text-white">
+              <SelectContent className="border-zinc-200 bg-white text-zinc-950">
                 <SelectItem value="all">All candidates (member accounts)</SelectItem>
                 <SelectItem value="approved">Approved members only</SelectItem>
                 <SelectItem value="cohort">A single cohort</SelectItem>
@@ -1297,13 +1300,13 @@ function InvitationsPanel({ events }: { events: AdminEvent[] }) {
           onClick={sendInvitations}
           disabled={sending || !eventId}
           size="sm"
-          className="bg-amber-500 hover:bg-amber-600 text-black font-bold rounded-xl h-10 px-4 shadow-lg shadow-amber-500/20"
+          className="event-invite-button"
         >
           {sending ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Send className="mr-1 h-4 w-4" />}
           {audience === 'all' ? 'Push event to all candidates' : 'Send invitations'}
         </Button>
 
-        <div className="border-t border-white/5 pt-6 space-y-4">
+        <div className="space-y-4 border-t border-zinc-200 pt-6">
           <div className="flex flex-wrap gap-2">
             {(["attending", "maybe", "declined", "pending"] as const).map((key) => (
               <Badge key={key} variant="outline" className="bg-white/5 text-zinc-300 border-white/10 capitalize">
@@ -1371,23 +1374,23 @@ function KPITile({ label, value, icon: Icon, color, subValue }: any) {
 
   return (
     <div className={cn(
-      "relative p-6 rounded-[2rem] border-none bg-gradient-to-br shadow-xl overflow-hidden transition-all duration-300 hover:scale-[1.05] hover:-translate-y-1 group",
+      "event-metric admin-stat relative overflow-hidden group",
       selectedColor
     )}>
       {/* Background Icon */}
       <Icon className="absolute -right-4 -bottom-4 h-24 w-24 text-white opacity-[0.08] -rotate-12 group-hover:scale-110 transition-transform duration-700" />
 
-      <div className="relative z-10 space-y-4">
+      <div className="relative z-10 flex h-full min-w-0 flex-col justify-between gap-4">
         <div className="flex items-center justify-between">
-          <div className="h-12 w-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-lg">
-            <Icon className="h-6 w-6 text-white" />
+          <div className="event-metric-icon">
+            <Icon className="h-5 w-5" />
           </div>
         </div>
         <div className="space-y-1">
-          <p className="text-4xl font-black text-white tracking-tighter">{value}</p>
+          <p className="text-4xl font-black tracking-tighter">{value}</p>
           <div className="flex items-center justify-between">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-white/80">{label}</p>
-            {subValue && <span className="text-[10px] font-medium text-white/90 bg-black/10 px-2 py-0.5 rounded-full backdrop-blur-sm border border-white/10">{subValue}</span>}
+            <p className="text-[10px] font-bold uppercase tracking-widest">{label}</p>
+            {subValue && <span className="event-metric-tag">{subValue}</span>}
           </div>
         </div>
       </div>

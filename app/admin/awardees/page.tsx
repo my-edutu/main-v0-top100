@@ -708,7 +708,7 @@ export default function AwardeesManagement() {
                 />
               </div>
 
-              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar -mx-1 px-1 pb-1">
+              <div className="flex flex-wrap items-center gap-2 pb-1">
                 <FilterButton
                   active={filterType === 'all'}
                   onClick={() => setFilterType('all')}
@@ -1087,7 +1087,7 @@ function KPITile({ label, value, icon: Icon, color, subValue, loading }: any) {
   };
 
   return (
-    <div className="admin-panel relative overflow-hidden p-4 sm:p-5">
+    <div data-admin-stat className="admin-panel relative overflow-hidden p-4 sm:p-5">
       <div className="relative z-10 space-y-3">
         <div className={cn('flex h-9 w-9 items-center justify-center rounded-xl border sm:h-10 sm:w-10', colors[color] || colors.orange)}>
           <Icon className="h-4 w-4 sm:h-5 sm:w-5" />

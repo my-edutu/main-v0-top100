@@ -316,6 +316,7 @@ export default function UserManagement() {
             ) : (
               <ResponsiveTable
                 data={filteredUsers}
+                breakpoint="lg"
                 getRowKey={(user) => user.id}
                 className="[&>div:first-child]:rounded-none [&>div:first-child]:border-0 [&>div:last-child]:p-4"
                 columns={[
@@ -574,7 +575,7 @@ function KPITile({ label, value, icon: Icon, color, subValue, loading }: any) {
   }
 
   return (
-    <div className="relative p-4 sm:p-6 rounded-3xl border border-orange-100 bg-white shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 group">
+    <div data-admin-stat className="relative p-4 sm:p-6 rounded-3xl border border-orange-100 bg-white shadow-sm overflow-hidden group">
       <Icon className="absolute -right-3 -bottom-3 h-20 w-20 text-orange-500 opacity-[0.04] -rotate-12 group-hover:scale-110 transition-transform duration-700" />
       <div className="relative z-10 space-y-3 sm:space-y-4">
         <div className={cn('h-10 w-10 sm:h-12 sm:w-12 rounded-2xl flex items-center justify-center border', colors[color] || colors.orange)}>

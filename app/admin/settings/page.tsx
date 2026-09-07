@@ -481,7 +481,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="py-6 sm:py-8 pt-6">
+    <div className="admin-settings pb-8">
       <div className="mb-6 sm:mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-600 to-gray-800 bg-clip-text text-transparent">
           Site Settings
