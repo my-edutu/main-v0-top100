@@ -6,6 +6,7 @@ import SessionSecurityGuard from '@/app/components/SessionSecurityGuard'
 import AdminSidebar from './AdminSidebar'
 import AdminFooter from './AdminFooter'
 import { resolvePageTitle } from './nav-config'
+import AdminSectionHelp from './AdminSectionHelp'
 
 export default function AdminShell({
   defaultOpen,
@@ -47,6 +48,7 @@ export default function AdminShell({
         </header>
 
         <main className="admin-content mx-auto flex-grow px-4 pb-12 pt-5 sm:px-6 md:px-8 md:pt-8 xl:px-10">
+          <AdminSectionHelp pathname={pathname} />
           {children}
         </main>
 

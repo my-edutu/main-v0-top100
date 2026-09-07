@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
+import { renderToStaticMarkup } from 'react-dom/server'
+import { createElement } from 'react'
 import { cardColumns, type ResponsiveColumn } from '@/components/ui/responsive-table'
+import { ResponsiveTable } from '@/components/ui/responsive-table'
 
 interface Row {
   id: string
@@ -32,5 +35,21 @@ describe('cardColumns', () => {
 
   it('returns empty for an empty column set', () => {
     expect(cardColumns<Row>([])).toEqual([])
+  })
+})
+
+describe('ResponsiveTable breakpoints', () => {
+  it('keeps dense records in cards until the extra-wide breakpoint', () => {
+    const markup = renderToStaticMarkup(
+      createElement(ResponsiveTable<Row>, {
+        data: [{ id: 'event-1', name: 'Leadership summit' }],
+        columns,
+        getRowKey: (row) => row.id,
+        breakpoint: 'xl',
+      }),
+    )
+
+    expect(markup).toContain('hidden xl:block')
+    expect(markup).toContain('xl:hidden')
   })
 })

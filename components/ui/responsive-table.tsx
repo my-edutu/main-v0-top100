@@ -31,9 +31,9 @@ export interface ResponsiveTableProps<T> {
   empty?: React.ReactNode
   /**
    * Width at which the table replaces the cards. Wide tables (8+ columns) are
-   * cramped at `md`, so they opt into `lg`.
+   * cramped at `md`, so they opt into `lg` or `xl`.
    */
-  breakpoint?: 'md' | 'lg'
+  breakpoint?: 'md' | 'lg' | 'xl'
   className?: string
 }
 
@@ -44,6 +44,7 @@ export interface ResponsiveTableProps<T> {
 const BREAKPOINT_CLASSES = {
   md: { table: 'hidden md:block', cards: 'md:hidden' },
   lg: { table: 'hidden lg:block', cards: 'lg:hidden' },
+  xl: { table: 'hidden xl:block', cards: 'xl:hidden' },
 } as const
 
 /**
@@ -83,7 +84,7 @@ export function ResponsiveTable<T>({
   const breakpointClasses = BREAKPOINT_CLASSES[breakpoint]
 
   return (
-    <div className={className}>
+    <div className={cn('responsive-records min-w-0', className)}>
       {/* Table — at and above the breakpoint */}
       <div
         className={cn(
@@ -118,7 +119,7 @@ export function ResponsiveTable<T>({
       {/* Cards — below the breakpoint */}
       <div className={cn('space-y-3', breakpointClasses.cards)}>
         {data.map((row) => (
-          <div key={getRowKey(row)}>
+          <div key={getRowKey(row)} className="responsive-record min-w-0">
             {renderCard ? (
               renderCard(row)
             ) : (

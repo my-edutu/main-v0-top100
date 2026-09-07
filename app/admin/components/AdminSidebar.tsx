@@ -45,22 +45,23 @@ export default function AdminSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-[#e7e3dc]">
-      <SidebarHeader className="border-b border-[#e7e3dc] px-3 py-3">
+      <SidebarHeader className="admin-sidebar-header border-b border-[#e7e3dc] px-3 py-3">
         <Link
           href="/admin"
           onClick={closeOnNavigate}
-          className="flex min-h-11 items-center gap-2.5 rounded-xl px-2 transition-colors hover:bg-orange-50"
+          className="admin-sidebar-brand flex min-h-11 items-center gap-3 rounded-xl px-2 transition-colors hover:bg-orange-50"
         >
           <Image
             src="/Top100 Africa Future leaders Logo .png"
             alt="Top 100 Africa Future Leaders"
-            width={32}
-            height={32}
-            className="size-9 shrink-0 object-contain"
+            width={104}
+            height={24}
+            className="admin-sidebar-logo h-auto w-[104px] shrink-0 object-contain group-data-[collapsible=icon]:hidden"
             priority
           />
+          <span className="admin-sidebar-monogram hidden group-data-[collapsible=icon]:grid" aria-hidden="true">100</span>
           <span className="min-w-0 group-data-[collapsible=icon]:hidden">
-            <span className="block truncate text-sm font-semibold text-zinc-950">Top100 Admin</span>
+            <span className="block truncate text-[15px] font-bold leading-tight tracking-[-0.02em] text-zinc-950">Top100 Admin</span>
             <span className="block truncate text-[10px] font-medium uppercase tracking-[0.13em] text-zinc-500">Staff workspace</span>
           </span>
         </Link>

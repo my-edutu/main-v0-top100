@@ -98,12 +98,14 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [partialFailure, setPartialFailure] = useState(false)
   const [stats, setStats] = useState<Stats | null>(null)
+  const [cohorts, setCohorts] = useState<[string, number][]>([])
+  const [updatedAt, setUpdatedAt] = useState<string | null>(null)
 
   const fetchStats = useCallback(async ({ withSpinner = true }: { withSpinner?: boolean } = {}) => {
     if (withSpinner) setLoading(true)
 
     try {
-      const responses = await Promise.all([
+      const responses = await Promise.allSettled([
         fetch('/api/awardees'),
         fetch('/api/events?scope=admin'),
         fetch('/api/posts?scope=admin'),
@@ -111,7 +113,7 @@ export default function AdminDashboard() {
         fetch('/api/users'),
       ])
       const payloads = await Promise.all(
-        responses.map(async (response) => (response.ok ? response.json().catch(() => null) : null)),
+        responses.map(async (result) => (result.status === 'fulfilled' && result.value.ok ? result.value.json().catch(() => null) : null)),
       )
 
       const awardees = readObjectArray(payloads[0], 'awardees')
@@ -121,6 +123,13 @@ export default function AdminDashboard() {
       const users = readObjectArray(payloads[4], 'users')
 
       setPartialFailure([awardees, events, posts, videos, users].some((value) => value === null))
+      const counts = new Map<string, number>()
+      for (const row of awardees ?? []) {
+        const year = String((row as Record<string, unknown>).year || 'Unspecified')
+        counts.set(year, (counts.get(year) ?? 0) + 1)
+      }
+      setCohorts([...counts].sort(([a], [b]) => a.localeCompare(b)))
+      setUpdatedAt(new Date().toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit' }))
       setStats({
         totalAwardees: awardees?.length ?? null,
         totalCountries: awardees
@@ -144,7 +153,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     void fetchStats()
-    const interval = window.setInterval(() => void fetchStats({ withSpinner: false }), 30_000)
+    const interval = window.setInterval(() => { if (!document.hidden) void fetchStats({ withSpinner: false }) }, 60_000)
     return () => window.clearInterval(interval)
   }, [fetchStats])
 
@@ -164,22 +173,22 @@ export default function AdminDashboard() {
     { label: 'Leaders', value: stats?.totalAwardees ?? null, detail: `${displayMetric(stats?.recentAwardees ?? null)} added this week`, icon: Users },
     { label: 'Countries', value: stats?.totalCountries ?? null, detail: 'Represented in the directory', icon: Globe2 },
     { label: 'Published stories', value: stats?.publishedPosts ?? null, detail: `${displayMetric(stats?.draftPosts ?? null)} drafts awaiting work`, icon: FileText },
-    { label: 'Member accounts', value: stats?.totalUsers ?? null, detail: 'Registered platform users', icon: KeyRound },
+    { label: 'Platform accounts', value: stats?.totalUsers ?? null, detail: 'Registered platform users', icon: KeyRound },
   ]
 
   return (
-    <div className="space-y-7 pb-4">
+    <div className="admin-overview space-y-6 pb-4">
       <PageHeader
-        eyebrow="Operations"
-        title="Command centre"
-        description="The people, programmes, content, and delivery work behind Top100—kept clear and ready to act on."
+        eyebrow="Top100 workspace"
+        title="Let’s move things forward."
+        description="Your people, your programmes, and what needs your attention."
         actions={
           <>
             <Button variant="outline" size="sm" onClick={() => void fetchStats()} disabled={loading} className="rounded-xl border-zinc-200 bg-white font-medium text-zinc-700 shadow-none">
               <RefreshCw className={cn('size-4', loading && 'animate-spin')} aria-hidden="true" />
               Refresh
             </Button>
-            <Button asChild size="sm" className="rounded-xl bg-[#181715] font-medium text-white shadow-none hover:bg-zinc-800">
+            <Button asChild size="sm" className="overview-primary rounded-xl bg-[#181715] font-medium text-white shadow-none hover:bg-zinc-800">
               <Link href="/admin/awardees/new"><Plus className="size-4" aria-hidden="true" />Add awardee</Link>
             </Button>
           </>
@@ -195,14 +204,14 @@ export default function AdminDashboard() {
 
       <section aria-labelledby="snapshot-heading" className="space-y-3">
         <div className="flex items-end justify-between gap-4">
-          <div><p className="admin-kicker">Live snapshot</p><h2 id="snapshot-heading" className="mt-1 text-lg font-semibold tracking-tight text-zinc-950">What the platform holds now</h2></div>
+          <div><h2 id="snapshot-heading" className="text-sm font-medium text-zinc-600">Platform snapshot {updatedAt && <span className="ml-2 text-xs text-zinc-500">Updated {updatedAt}</span>}</h2></div>
           {loading ? <Loader2 className="size-4 animate-spin text-zinc-400" aria-label="Refreshing totals" /> : null}
         </div>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {headlineMetrics.map((metric) => {
             const Icon = metric.icon
             return (
-              <article key={metric.label} className="admin-panel min-w-0 p-4 sm:p-5">
+              <article key={metric.label} className="admin-panel overview-metric min-w-0 p-4 sm:p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0"><p className="text-xs font-medium text-zinc-500">{metric.label}</p><p className="mt-2 text-2xl font-semibold tabular-nums tracking-[-0.04em] text-zinc-950 sm:text-3xl">{displayMetric(metric.value)}</p></div>
                   <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-orange-50 text-orange-700"><Icon className="size-[18px]" strokeWidth={1.9} aria-hidden="true" /></span>
@@ -214,14 +223,41 @@ export default function AdminDashboard() {
         </div>
       </section>
 
+      <div className="overview-bento">
+        <section className="overview-focus" aria-labelledby="focus-title">
+          <p className="admin-kicker">Start here</p><h2 id="focus-title">A little attention.<br />A lot of impact.</h2>
+          <p className="overview-focus-copy">Keep the next step moving for your community.</p>
+          <Link href="/admin/awards" className="overview-task"><span><strong>Awards & delivery</strong><small>Check paid orders waiting for dispatch.</small></span><ArrowUpRight size={20} /></Link>
+          <Link href="/admin/blog" className="overview-task"><span><strong>Editorial desk</strong><small>{displayMetric(stats?.draftPosts ?? null)} draft stories to work on</small></span><ArrowUpRight size={20} /></Link>
+          <Link href="/admin/messages" className="overview-task"><span><strong>Community inbox</strong><small>Review volunteer offers and cash pledges.</small></span><ArrowUpRight size={20} /></Link>
+          <details className="overview-hint"><summary>What should I handle first?</summary><p>Start with delivery exceptions, then review submissions. Opening a workspace does not send messages, publish content, or dispatch awards.</p></details>
+        </section>
+        <section className="admin-panel overview-chart" aria-labelledby="cohort-title">
+          <div className="overview-chart-heading"><div><p className="admin-kicker">Our community</p><h2 id="cohort-title">Leaders by cohort</h2></div><Users size={20} /></div>
+          <p className="overview-chart-caption">Distribution of the current public directory.</p>
+          {stats?.totalAwardees == null ? <p className="py-8 text-sm">{loading ? 'Loading directory…' : 'Directory data unavailable.'}</p> : !cohorts.length ? <p className="py-8 text-sm">No directory entries yet.</p> : <div className="overview-bars">{cohorts.map(([year, count]) => <div key={year}><div className="flex justify-between gap-3 text-sm"><span>{year}</span><span className="tabular-nums">{displayMetric(count)}</span></div><div className="overview-bar-track" aria-hidden="true"><div style={{ width: `${count / Math.max(...cohorts.map(([, value]) => value), 1) * 100}%` }} /></div></div>)}</div>}
+          <Link className="overview-text-link" href="/admin/awardees">Explore directory <ArrowUpRight size={16} /></Link>
+        </section>
+        <section className="admin-panel overview-chart" aria-labelledby="publishing-title">
+          <div className="overview-chart-heading"><div><p className="admin-kicker">Editorial pulse</p><h2 id="publishing-title">Stories in motion</h2></div><FileText size={20} /></div>
+          <p className="overview-chart-caption">Current publishing status, not a growth forecast.</p>
+          {stats?.totalPosts == null ? <p className="py-8 text-sm">{loading ? 'Loading stories…' : 'Editorial data unavailable.'}</p> : <>
+            <div className="overview-publishing-total">{displayMetric(stats.totalPosts)} <span>stories</span></div>
+            <div className="overview-publishing-bar" aria-hidden="true"><span style={{width:`${(stats.publishedPosts ?? 0) / Math.max(stats.totalPosts, 1) * 100}%`}} /><span style={{width:`${(stats.draftPosts ?? 0) / Math.max(stats.totalPosts, 1) * 100}%`}} /></div>
+            <div className="overview-legend"><span>Published <b>{displayMetric(stats.publishedPosts)}</b></span><span>Drafts <b>{displayMetric(stats.draftPosts)}</b></span><span>Other <b>{displayMetric(stats.totalPosts - (stats.publishedPosts ?? 0) - (stats.draftPosts ?? 0))}</b></span></div>
+          </>}
+          <details className="overview-hint"><summary>About these numbers</summary><p>Counts come from the editorial API. Other includes any status besides published and draft. A dash means the source could not be loaded.</p></details>
+        </section>
+      </div>
+
       <section aria-labelledby="workspaces-heading" className="space-y-3">
-        <div><p className="admin-kicker">Workspaces</p><h2 id="workspaces-heading" className="mt-1 text-lg font-semibold tracking-tight text-zinc-950">Choose what needs attention</h2></div>
+        <div><h2 id="workspaces-heading" className="text-lg font-semibold tracking-tight text-zinc-950">Your workspaces</h2><p className="mt-1 text-sm text-zinc-500">Everything you need, one step away.</p></div>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {workspaceCards.map((card) => {
             const Icon = card.icon
             const value = card.stat && stats ? stats[card.stat] : null
             return (
-              <Link key={card.href} href={card.href} className={cn('admin-panel group relative flex min-h-[150px] flex-col overflow-hidden p-5 transition-colors hover:border-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2', card.featured && 'border-orange-400 bg-gradient-to-r from-orange-500 to-amber-500 hover:border-orange-600')}>
+              <Link key={card.href} href={card.href} className="admin-panel overview-workspace group relative flex flex-col p-4 transition-colors hover:border-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2">
                 <div className="flex items-start justify-between gap-4">
                   <span className={cn('grid size-10 place-items-center rounded-xl', card.featured ? 'bg-white/60' : 'bg-zinc-100')}><Icon className="size-[19px]" strokeWidth={1.9} aria-hidden="true" /></span>
                   <ArrowUpRight className="size-[18px] text-zinc-500 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" aria-hidden="true" />
