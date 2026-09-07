@@ -17,7 +17,7 @@ import {
   createRateLimitResponse,
 } from '@/lib/rate-limit'
 import { sanitizeEmail, sanitizeInput } from '@/lib/security'
-import { captchaVerificationAllowed } from '@/lib/production-readiness'
+import { verifySignupCaptcha } from '@/lib/auth/signup-turnstile'
 
 export const runtime = 'nodejs'
 
@@ -27,27 +27,6 @@ const VALIDATION_MESSAGES: Record<string, string> = {
   exhausted: 'This invite code has no uses left.',
   expired: 'This invite code has expired. Ask the admin team for a new one.',
   email_mismatch: 'This invite code is registered to a different email address.',
-}
-
-async function verifyCaptchaToken(token: string | undefined): Promise<boolean> {
-  const secretKey = process.env.TURNSTILE_SECRET_KEY
-  // Local development may run without Turnstile. Production fails closed so
-  // a missing secret cannot silently remove the signup abuse barrier.
-  if (!secretKey) return captchaVerificationAllowed(process.env, process.env.NODE_ENV)
-  if (!token) return false
-
-  try {
-    const body = new URLSearchParams({ secret: secretKey, response: token })
-    const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: body.toString(),
-    })
-    const data = (await res.json()) as { success?: boolean }
-    return data.success === true
-  } catch {
-    return false
-  }
 }
 
 export async function POST(request: NextRequest) {
@@ -74,7 +53,14 @@ export async function POST(request: NextRequest) {
   }
   if (!rawCode.trim()) return NextResponse.json({ message: 'An invite code is required.' }, { status: 400 })
 
-  const captchaOk = await verifyCaptchaToken(captchaToken)
+  const productionHostnames = process.env.TURNSTILE_HOSTNAMES || 'top100afl.com,www.top100afl.com'
+  const localHostnames = 'localhost,127.0.0.1'
+  const captchaOk = await verifySignupCaptcha(captchaToken, {
+    secret: process.env.TURNSTILE_SECRET_KEY,
+    hostnames: process.env.NODE_ENV === 'production' ? productionHostnames : localHostnames,
+    remoteIp: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim(),
+    nodeEnv: process.env.NODE_ENV,
+  })
   if (!captchaOk) {
     return NextResponse.json({ message: 'CAPTCHA verification failed. Please try again.' }, { status: 400 })
   }

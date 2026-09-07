@@ -25,6 +25,8 @@ import { supabase } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import LegalConsent from '@/app/components/LegalConsent'
 import { isPersistentAvatarUrl } from '@/lib/auth/claim-directory'
+import { TurnstileCaptcha } from '@/components/ui/turnstile'
+import { buildSignupPayload } from '@/lib/auth/signup-turnstile'
 
 type DirectoryAwardee = {
   id: string
@@ -51,6 +53,8 @@ function initials(name: string): string {
 }
 
 export default function SignUpPage() {
+  const captchaEnabled = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY)
+  const captchaUnavailable = process.env.NODE_ENV === 'production' && !captchaEnabled
   const [step, setStep] = useState<1 | 2 | 3>(1)
   const [error, setError] = useState('')
 
@@ -70,6 +74,8 @@ export default function SignUpPage() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [captchaToken, setCaptchaToken] = useState('')
+  const [captchaKey, setCaptchaKey] = useState(0)
 
   useEffect(() => {
     const search = query.trim().replace(/\s+/g, ' ')
@@ -140,18 +146,28 @@ export default function SignUpPage() {
       setStep(1)
       return
     }
+    if ((captchaEnabled || captchaUnavailable) && !captchaToken) {
+      setError('Complete the security check before claiming your profile.')
+      return
+    }
+
+    const resetCaptcha = () => {
+      setCaptchaToken('')
+      setCaptchaKey((key) => key + 1)
+    }
 
     setSubmitting(true)
     try {
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: JSON.stringify(buildSignupPayload({
           awardeeId: selected.id,
-          email: email.trim(),
+          email,
           password,
-          inviteCode: inviteCode.trim(),
-        }),
+          inviteCode,
+          captchaToken,
+        })),
       })
 
       const data = await response.json().catch(() => ({}))
@@ -162,6 +178,7 @@ export default function SignUpPage() {
           setStep(2)
         }
         setSubmitting(false)
+        resetCaptcha()
         return
       }
 
@@ -189,6 +206,7 @@ export default function SignUpPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create this account.')
       setSubmitting(false)
+      resetCaptcha()
     }
   }
 
@@ -467,11 +485,34 @@ export default function SignUpPage() {
 
                 <LegalConsent id="signup-legal-consent" />
 
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-4">
+                  <p className="mb-3 text-sm font-medium text-slate-700">Security check</p>
+                  <TurnstileCaptcha
+                    key={captchaKey}
+                    action="signup"
+                    onVerify={(token) => { setCaptchaToken(token); setError('') }}
+                    onExpire={() => setCaptchaToken('')}
+                    onError={() => {
+                      setCaptchaToken('')
+                      setError('The security check could not load. Check your connection and try again.')
+                    }}
+                  />
+                  {captchaUnavailable ? (
+                    <p role="alert" className="text-sm text-red-700">
+                      The security check is temporarily unavailable. Please try again shortly.
+                    </p>
+                  ) : null}
+                </div>
+
                 <div className="flex items-center justify-between gap-3 pt-2">
                   <Button
                     type="button"
                     variant="ghost"
-                    onClick={() => setStep(2)}
+                    onClick={() => {
+                      setCaptchaToken('')
+                      setCaptchaKey((key) => key + 1)
+                      setStep(2)
+                    }}
                     disabled={submitting}
                     className="rounded-full text-slate-600"
                   >
@@ -480,7 +521,7 @@ export default function SignUpPage() {
                   </Button>
                   <Button
                     type="submit"
-                    disabled={submitting}
+                    disabled={submitting || captchaUnavailable || Boolean(captchaEnabled && !captchaToken)}
                     className="rounded-full bg-gradient-to-r from-orange-500 to-amber-500 px-6 text-white hover:opacity-95"
                   >
                     {submitting ? (

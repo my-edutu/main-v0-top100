@@ -7,6 +7,7 @@ interface TurnstileProps {
     onVerify: (token: string) => void;
     onError?: () => void;
     onExpire?: () => void;
+    action?: string;
 }
 
 /**
@@ -23,7 +24,7 @@ interface TurnstileProps {
  *    NEXT_PUBLIC_TURNSTILE_SITE_KEY=your_site_key
  *    TURNSTILE_SECRET_KEY=your_secret_key
  */
-export function TurnstileCaptcha({ onVerify, onError, onExpire }: TurnstileProps) {
+export function TurnstileCaptcha({ onVerify, onError, onExpire, action }: TurnstileProps) {
     const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
     const handleVerify = useCallback((token: string) => {
@@ -51,6 +52,7 @@ export function TurnstileCaptcha({ onVerify, onError, onExpire }: TurnstileProps
                 options={{
                     theme: 'light',
                     size: 'normal',
+                    ...(action ? { action } : {}),
                 }}
             />
         </div>
