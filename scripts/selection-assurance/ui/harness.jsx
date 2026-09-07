@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import ReviewQueueClient from '../../../../app/admin/selection/review/review-queue-client'
+import ReviewQueueClient from '../../../app/admin/selection/review/review-queue-client'
 
 // Isolated, invented UI fixtures only. Not an authentication or live-API test.
 const id = '11111111-1111-4111-8111-111111111111'
