@@ -1,0 +1,49 @@
+name: Selection reviewer browser checks
+on:
+  pull_request:
+    paths:
+      - 'app/admin/selection/**'
+      - 'app/globals.css'
+      - 'components/ui/**'
+      - 'lib/selection/**'
+      - 'scripts/selection-assurance/ui/**'
+      - 'package-lock.json'
+      - '.github/workflows/selection-review-ui.yml'
+permissions:
+  contents: read
+jobs:
+  reviewer-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      AGENT_BROWSER_NO_WEBMCP: '1'
+      UI_EVIDENCE_DIR: ${{ runner.temp }}/selection-review-ui-artifacts
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install application dependencies
+        run: npm ci
+      - name: Install pinned isolated browser tooling
+        run: |
+          npm install --prefix "$RUNNER_TEMP/selection-browser-tooling" --no-package-lock agent-browser@0.36.0
+          echo "$RUNNER_TEMP/selection-browser-tooling/node_modules/.bin" >> "$GITHUB_PATH"
+      - name: Prepare local Chromium
+        run: agent-browser install --with-deps
+      - name: Test actual reviewer components with invented fixtures
+        run: node scripts/selection-assurance/ui/checks.mjs
+      - name: Preserve synthetic screenshots and test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selection-reviewer-ui
+          path: |
+            ${{ runner.temp }}/selection-review-ui-artifacts/*.png
+            ${{ runner.temp }}/selection-review-ui-artifacts/*.txt
+            ${{ runner.temp }}/selection-review-ui-artifacts/results.json
+          if-no-files-found: warn
+          retention-days: 7
