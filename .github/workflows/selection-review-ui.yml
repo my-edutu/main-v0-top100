@@ -17,7 +17,7 @@ jobs:
     timeout-minutes: 15
     env:
       AGENT_BROWSER_NO_WEBMCP: '1'
-      UI_EVIDENCE_DIR: ${{ runner.temp }}/selection-review-ui-artifacts
+      UI_EVIDENCE_DIR: selection-review-ui-artifacts
     steps:
       - uses: actions/checkout@v7
         with:
@@ -42,8 +42,8 @@ jobs:
         with:
           name: selection-reviewer-ui
           path: |
-            ${{ runner.temp }}/selection-review-ui-artifacts/*.png
-            ${{ runner.temp }}/selection-review-ui-artifacts/*.txt
-            ${{ runner.temp }}/selection-review-ui-artifacts/results.json
+            selection-review-ui-artifacts/*.png
+            selection-review-ui-artifacts/*.txt
+            selection-review-ui-artifacts/results.json
           if-no-files-found: warn
           retention-days: 7
