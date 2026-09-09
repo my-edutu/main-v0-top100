@@ -15,3 +15,10 @@ Verification completed:
 - `git diff --check` — passed.
 
 No live Supabase integration check was run; focused route tests mock session and persistence boundaries.
+
+## Review fixes
+
+- The authenticated database client now receives the token verified by `getServerSession`, including bearer tokens, through its Supabase Authorization header.
+- A follow-up migration applies the schedule deadline inside member draft RLS INSERT and UPDATE policies. `clock_timestamp()` makes the policy evaluate against the actual write time.
+- Route handlers catch `ZodError` directly and consistently return `400` for invalid drafts and incomplete stored submissions.
+- Added persistence-boundary tests for member scoping, safe response mapping, omitted-field preservation, bearer propagation, RPC submission, and closed-schedule rejection.

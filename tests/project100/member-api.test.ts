@@ -38,7 +38,7 @@ function request(url: string, method: string, body?: unknown) {
 }
 
 beforeEach(() => {
-  mocks.session.mockResolvedValue({ user: { id: 'member-1', email: 'member@example.com' } })
+  mocks.session.mockResolvedValue({ token: 'verified-token', user: { id: 'member-1', email: 'member@example.com' } })
   mocks.load.mockResolvedValue({ schedule: openSchedule, application: null, canEdit: true })
   mocks.save.mockResolvedValue({ schedule: openSchedule, application: savedApplication, canEdit: true })
   mocks.submit.mockResolvedValue({ schedule: openSchedule, application: { ...savedApplication, status: 'submitted', submittedAt: '2026-09-09T01:00:00.000Z' }, canEdit: false })
@@ -57,18 +57,24 @@ describe('Project100 member API', () => {
     const response = await GET(request('/api/member/project100', 'GET'))
     expect(response.status).toBe(200)
     expect(await response.json()).toMatchObject({ application: { id: 'application-1' }, canEdit: true })
-    expect(mocks.load).toHaveBeenCalledWith('member-1', expect.anything())
+    expect(mocks.load).toHaveBeenCalledWith('member-1', 'verified-token')
   })
 
   it('saves a partial validated draft for the signed-in member', async () => {
     const response = await PUT(request('/api/member/project100', 'PUT', { fullName: 'Ada Lovelace' }))
     expect(response.status).toBe(200)
     expect(await response.json()).toMatchObject({ application: { fullName: 'Ada Lovelace' } })
-    expect(mocks.save).toHaveBeenCalledWith('member-1', { fullName: 'Ada Lovelace' }, expect.anything())
+    expect(mocks.save).toHaveBeenCalledWith('member-1', { fullName: 'Ada Lovelace' }, 'verified-token')
   })
 
   it('rejects malformed draft fields before saving', async () => {
     const response = await PUT(request('/api/member/project100', 'PUT', { teamLeadPreference: 'yes' }))
+    expect(response.status).toBe(400)
+    expect(mocks.save).not.toHaveBeenCalled()
+  })
+
+  it('returns 400 for an overlength draft field', async () => {
+    const response = await PUT(request('/api/member/project100', 'PUT', { interest: 'a'.repeat(501) }))
     expect(response.status).toBe(400)
     expect(mocks.save).not.toHaveBeenCalled()
   })
@@ -95,6 +101,6 @@ describe('Project100 member API', () => {
     const response = await POST(request('/api/member/project100/submit', 'POST'))
     expect(response.status).toBe(200)
     expect(await response.json()).toMatchObject({ application: { status: 'submitted' }, canEdit: false })
-    expect(mocks.submit).toHaveBeenCalledWith('member-1', expect.anything())
+    expect(mocks.submit).toHaveBeenCalledWith('member-1', 'verified-token')
   })
 })

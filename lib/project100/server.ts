@@ -1,4 +1,6 @@
-import { createAdminClient, createClient } from '@/lib/supabase/server'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+
+import { createAdminClient } from '@/lib/supabase/server'
 
 import type {
   Project100Application,
@@ -76,12 +78,21 @@ async function loadSchedule(): Promise<Project100Schedule> {
   return serializeProject100Schedule(data as Project100ScheduleRow)
 }
 
-async function memberClient(request: Request) {
-  return createClient(false, request.headers.get('cookie'))
+function memberClient(accessToken: string) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!url || !key) throw new Error('Supabase is not configured')
+  // getServerSession verified this exact token before this client is created.
+  // Supplying it as an Authorization header makes the database apply member
+  // RLS for both cookie and bearer-authenticated requests.
+  return createSupabaseClient(url, key, {
+    auth: { autoRefreshToken: false, persistSession: false },
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+  })
 }
 
-async function loadApplication(memberId: string, request: Request) {
-  const db = await memberClient(request)
+async function loadApplication(memberId: string, accessToken: string) {
+  const db = memberClient(accessToken)
   const { data, error } = await db
     .from('project100_applications')
     .select(APPLICATION_COLUMNS)
@@ -99,20 +110,20 @@ function view(schedule: Project100Schedule, application: Project100ApplicationRo
   }
 }
 
-export async function loadMemberProject100(memberId: string, request: Request): Promise<MemberProject100View> {
-  const [schedule, application] = await Promise.all([loadSchedule(), loadApplication(memberId, request)])
+export async function loadMemberProject100(memberId: string, accessToken: string): Promise<MemberProject100View> {
+  const [schedule, application] = await Promise.all([loadSchedule(), loadApplication(memberId, accessToken)])
   return view(schedule, application)
 }
 
 export async function saveMemberProject100Draft(
   memberId: string,
   draft: Partial<Project100ApplicationDraft>,
-  request: Request,
+  accessToken: string,
 ): Promise<MemberProject100View> {
   const schedule = await loadSchedule()
   assertOpen(schedule)
-  const db = await memberClient(request)
-  const existing = await loadApplication(memberId, request)
+  const db = memberClient(accessToken)
+  const existing = await loadApplication(memberId, accessToken)
   if (existing?.status === 'submitted') throw new Error('Project100 application has already been submitted')
 
   const columns = draftColumns(draft)
@@ -141,17 +152,16 @@ export async function saveMemberProject100Draft(
   return view(schedule, data)
 }
 
-export async function submitMemberProject100(memberId: string, request: Request): Promise<MemberProject100View> {
+export async function submitMemberProject100(memberId: string, accessToken: string): Promise<MemberProject100View> {
   const schedule = await loadSchedule()
   assertOpen(schedule)
-  const existing = await loadApplication(memberId, request)
+  const existing = await loadApplication(memberId, accessToken)
   if (!existing) throw new Error('Complete every required field before submitting')
   if (existing.status !== 'draft') throw new Error('Project100 application has already been submitted')
 
-  const parsed = project100SubmissionSchema.safeParse(submissionAnswers(mapApplication(existing)))
-  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? 'Complete every required field before submitting')
+  project100SubmissionSchema.parse(submissionAnswers(mapApplication(existing)))
 
-  const db = await memberClient(request)
+  const db = memberClient(accessToken)
   const { data, error } = await db.rpc('submit_project100_application')
   if (error || !data) throw new Error(error?.message ?? 'Could not submit your Project100 application')
   return view(schedule, data as Project100ApplicationRow)
