@@ -67,6 +67,24 @@ html.light .awardee-dashboard .hub-count, .awardee-dashboard .hub-count { color:
 }
 @media (min-width: 1024px) { .awardee-dashboard .hub-desktop-nav a[aria-current=page] { background: var(--hub-brand); color: #fff; } }
 @media (prefers-reduced-motion: reduce) { .awardee-dashboard *, .awardee-dashboard *::before, .awardee-dashboard *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+.awardee-dashboard .project100-hero { position:relative; min-height:360px; isolation:isolate; display:flex; align-items:flex-end; background:#171412; }
+.awardee-dashboard .project100-hero-images, .awardee-dashboard .project100-hero-scrim { position:absolute; inset:0; z-index:-2; }
+.awardee-dashboard .project100-hero-image { object-fit:cover; opacity:0; animation:project100-crossfade 14s ease-in-out infinite; }
+.awardee-dashboard .project100-hero-image.is-current { opacity:1; animation-delay:-7s; }
+.awardee-dashboard .project100-hero-scrim { z-index:-1; background:linear-gradient(90deg,rgba(15,12,9,.82),rgba(15,12,9,.45) 68%,rgba(15,12,9,.62)); }
+.awardee-dashboard .project100-hero-content { width:100%; padding:24px; }
+.awardee-dashboard .project100-status-row { display:flex; gap:12px; align-items:flex-start; }
+.awardee-dashboard .project100-primary { background:linear-gradient(110deg,#f97316,#fb923c,#f59e0b); color:#171412; }
+.awardee-dashboard .project100-progress { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; list-style:none; margin:0; padding:0; }
+.awardee-dashboard .project100-progress li { min-width:0; color:#756e66; font-size:12px; line-height:1.25; }
+.awardee-dashboard .project100-progress li>span:first-child { display:grid; place-items:center; width:28px; height:28px; margin-bottom:7px; border:1px solid #d9d0c5; border-radius:999px; background:#fff; }
+.awardee-dashboard .project100-progress .is-active, .awardee-dashboard .project100-progress .is-complete { color:#171412; font-weight:600; }
+.awardee-dashboard .project100-progress .is-active>span:first-child { background:#171412; border-color:#171412; color:#fff; }
+.awardee-dashboard .project100-progress .is-complete>span:first-child { background:#ffedd5; border-color:#fed7aa; color:#9a3412; }
+.awardee-dashboard .project100-loading { min-height:180px; display:grid; place-items:center; border:1px solid #e7ddcf; border-radius:22px; background:#fff; color:#625b52; }
+@keyframes project100-crossfade { 0%,42% { opacity:1 } 50%,92% { opacity:0 } 100% { opacity:1 } }
+@media (max-width:640px) { .awardee-dashboard .project100-hero { min-height:390px; } .awardee-dashboard .project100-hero-content { padding:20px; } .awardee-dashboard .project100-progress li { font-size:11px; overflow-wrap:anywhere; } }
+@media (prefers-reduced-motion: reduce) { .awardee-dashboard .project100-hero-image { animation:none; } .awardee-dashboard .project100-hero-image:not(.is-current) { display:none; } }
 .awardee-dashboard .award-festival-gallery { display:grid; grid-template-columns:2fr 1fr; grid-template-rows:180px 180px; gap:12px; }
 .awardee-dashboard .award-festival-gallery figure { position:relative; overflow:hidden; border-radius:16px; margin:0; }
 .awardee-dashboard .award-festival-main { grid-row:span 2; }

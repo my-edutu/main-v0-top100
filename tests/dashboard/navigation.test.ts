@@ -41,7 +41,7 @@ describe('dashboard navigation', () => {
       'Members', 'Groups', 'Opportunities', 'Saved', 'Events', 'Magazine',
     ])
     expect(meNav.map(({ label }) => label)).toEqual([
-      'Profile', 'Portfolio cover', 'My award', 'Posts', 'Get featured', 'Settings',
+      'Profile', 'Portfolio cover', 'Project100 Scholarship', 'My award', 'Posts', 'Get featured', 'Settings',
     ])
     const hrefs = [...primaryDashboardNav, ...discoverNav, ...meNav].map(({ href }) => href)
     expect(new Set(hrefs).size).toBe(hrefs.length)
