@@ -12,7 +12,7 @@ import {
   type SetStateAction,
 } from 'react'
 
-import { fetchAwardOrder } from '@/lib/awards'
+import { fetchAwardPayment } from '@/lib/awards/payment'
 import { fetchConversations, fetchMemberHubState } from '@/lib/member-hub'
 import { useDashboardMember } from './dashboard-member'
 
@@ -38,7 +38,7 @@ export function DashboardBadgeProvider({ children }: { children: ReactNode }) {
     const [messagesResult, updatesResult, awardResult] = await Promise.allSettled([
       fetchConversations(),
       fetchMemberHubState(),
-      fetchAwardOrder(),
+      fetchAwardPayment(),
     ])
 
     if (messagesResult.status === 'fulfilled') {
@@ -56,7 +56,7 @@ export function DashboardBadgeProvider({ children }: { children: ReactNode }) {
     }
 
     if (awardResult.status === 'fulfilled') {
-      setAwardNeedsAttention(awardResult.value.needsClaim)
+      setAwardNeedsAttention(awardResult.value.needsPayment)
     }
   }, [member.id, member.status])
 

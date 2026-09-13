@@ -7,6 +7,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 
 import { Button } from '@/components/ui/button'
 import { supabase } from '@/lib/supabase/client'
+import { clearAwardReadyWelcome } from './_components/award-ready-welcome'
 
 export function SignOutControl({ menu = false }: { menu?: boolean }) {
   const [isLoading, setIsLoading] = useState(false)
@@ -26,6 +27,7 @@ export function SignOutControl({ menu = false }: { menu?: boolean }) {
         // The development-only endpoint is absent in production.
       }
       if (!demoSignedOut) await supabase.auth.signOut()
+      clearAwardReadyWelcome()
     } catch (error) {
       console.error('Failed to sign out:', error)
     } finally {

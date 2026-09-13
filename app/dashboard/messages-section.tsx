@@ -408,7 +408,7 @@ export default function MessagesSection({
         </div>
       ) : (
         <>
-          {threadHeader}
+          <div className="hub-thread-header">{threadHeader}</div>
 
           <div ref={scrollRef} role="log" aria-label="Conversation messages" aria-live="polite" className="hub-chat-history min-h-0 flex-1 space-y-3 overflow-y-auto">
             {composeRecipient ? (
@@ -510,16 +510,16 @@ export default function MessagesSection({
         <Button
           asChild
           variant="outline"
-          className="rounded-full border-orange-200 bg-white text-black hover:bg-orange-50"
+          className="hub-find-awardees rounded-full border-orange-200 bg-white text-black hover:bg-orange-50"
         >
           <Link href="/dashboard/discover/members">
             <Users className="mr-2 h-4 w-4" strokeWidth={2.6} />
-            Find awardees
+            <span>Find awardees</span>
           </Link>
         </Button>
       </div>
 
-      <div className="hub-chat-frame min-w-0 rounded-2xl border border-neutral-200 bg-white">
+      <div className="hub-chat-frame min-w-0 rounded-2xl bg-white">
         <div className="hub-chat-grid grid min-w-0 grid-cols-[minmax(0,1fr)] lg:grid-cols-[300px_minmax(0,1fr)]">
           {listPane}
           {threadPane}

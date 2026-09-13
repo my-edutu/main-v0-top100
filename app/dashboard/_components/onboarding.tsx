@@ -3,12 +3,23 @@
 import { useState } from 'react'
 import { ArrowLeft, ArrowRight, Check, LoaderCircle } from 'lucide-react'
 import type { MemberProfile } from '@/lib/member-hub'
-import { onboardingFields } from '@/lib/dashboard/onboarding'
+import { MAX_INTERESTS, MIN_INTERESTS, onboardingFields } from '@/lib/dashboard/onboarding'
 import { SignOutControl } from '../dashboard-header'
 import { getCountries } from 'libphonenumber-js/min'
+import { OnboardingWelcome } from './onboarding-welcome'
 
 const regionNames = new Intl.DisplayNames(['en'], { type: 'region' })
 const countryNames = getCountries().map(code => regionNames.of(code) || code).sort()
+const interestSuggestions = [
+  'Technology',
+  'Education',
+  'Climate Action',
+  'Public Health',
+  'Entrepreneurship',
+  'Creative Economy',
+  'Policy & Governance',
+  'Social Impact',
+]
 
 export function Onboarding({
   member,
@@ -18,6 +29,7 @@ export function Onboarding({
   onComplete: (member: MemberProfile) => void
 }) {
   const [step, setStep] = useState(Math.min(member.onboardingStep ?? 0, 4))
+  const [welcomeOpen, setWelcomeOpen] = useState((member.onboardingStep ?? 0) === 0)
   const [values, setValues] = useState({
     headline: member.headline,
     location: member.location,
@@ -28,12 +40,12 @@ export function Onboarding({
   const [error, setError] = useState('')
   const [interestInput, setInterestInput] = useState('')
   const interests = values.field.split(',').map(value => value.trim()).filter(Boolean)
-  function addInterest() {
-    const tag = interestInput.trim().replace(/,/g, ' ')
+  function addInterest(value = interestInput) {
+    const tag = value.trim().replace(/,/g, ' ')
     if (!tag) return
     if (tag.length > 28) { setError('Keep each interest to 28 characters.'); return }
     if (interests.some(value => value.toLowerCase() === tag.toLowerCase())) { setError('That interest is already added.'); return }
-    if (interests.length >= 5) { setError('You can add five interests. Remove one to change it.'); return }
+    if (interests.length >= MAX_INTERESTS) { setError(`You can add up to ${MAX_INTERESTS} interests. Remove one to change it.`); return }
     setValues({ ...values, field: [...interests, tag].join(', ') })
     setInterestInput('')
     setError('')
@@ -44,7 +56,8 @@ export function Onboarding({
     if (busy) return
     setError('')
     if (field) {
-      if (field.key === 'field' && interests.length !== 5) { setError('Add five interests before continuing.'); return }
+      if (field.key === 'field' && interests.length < MIN_INTERESTS) { setError('Add at least one interest before continuing.'); return }
+      if (field.key === 'field' && interests.length > MAX_INTERESTS) { setError(`You can add up to ${MAX_INTERESTS} interests.`); return }
       const answer = values[field.key].trim()
       if (answer.length < field.min || answer.length > field.max) {
         setError(`Please enter ${field.min}–${field.max} characters.`)
@@ -76,6 +89,7 @@ export function Onboarding({
   }
   return (
     <div className="min-h-dvh bg-white px-5 py-6 text-neutral-950 sm:px-10">
+      <OnboardingWelcome name={member.name} open={welcomeOpen} onOpenChange={setWelcomeOpen} />
       <header className="mx-auto flex max-w-5xl items-center justify-between gap-4">
         <img
           src="/Top100 Africa Future leaders Logo .png"
@@ -122,14 +136,30 @@ export function Onboarding({
                 </select>
               ) : field.key === 'field' ? (
                 <div>
-                  <div className="mb-4 flex flex-wrap gap-2" aria-label="Selected interests">
-                    {interests.map(tag => <button key={tag} type="button" aria-label={`Remove ${tag}`} onClick={() => setValues({ ...values, field:interests.filter(value => value !== tag).join(', ') })} className="min-h-11 rounded-full border border-orange-300 bg-orange-50 px-3 text-sm">{tag} <span aria-hidden="true" className="ml-2">×</span></button>)}
+                  <div className="mb-3 flex flex-wrap gap-1.5" aria-label="Selected interests">
+                    {interests.map(tag => <button key={tag} type="button" aria-label={`Remove ${tag}`} onClick={() => setValues({ ...values, field:interests.filter(value => value !== tag).join(', ') })} className="min-h-8 rounded-full border border-orange-300 bg-orange-50 px-2.5 text-xs leading-5">{tag} <span aria-hidden="true" className="ml-1">×</span></button>)}
                   </div>
                   <div className="flex gap-2">
-                    <input id="onboarding-field" value={interestInput} disabled={interests.length >= 5} onChange={event => setInterestInput(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && !event.nativeEvent.isComposing) { event.preventDefault(); addInterest() } }} placeholder="e.g. Technology" maxLength={28} className="h-14 min-w-0 flex-1 rounded-xl border border-neutral-300 px-4 text-base" />
-                    <button type="button" disabled={!interestInput.trim() || interests.length >= 5} onClick={addInterest} className="min-h-11 rounded-xl border border-orange-300 px-4 disabled:opacity-40">Add</button>
+                    <input id="onboarding-field" value={interestInput} disabled={interests.length >= MAX_INTERESTS} onChange={event => setInterestInput(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && !event.nativeEvent.isComposing) { event.preventDefault(); addInterest() } }} placeholder="e.g. Technology" maxLength={28} className="h-14 min-w-0 flex-1 rounded-xl border border-neutral-300 px-4 text-base" />
+                    <button type="button" disabled={!interestInput.trim() || interests.length >= MAX_INTERESTS} onClick={() => addInterest()} className="min-h-11 rounded-xl border border-orange-300 px-4 disabled:opacity-40">Add</button>
                   </div>
-                  <p className="mt-3 text-xs text-neutral-500" aria-live="polite">{interests.length} of 5 interests · Tap a tag to remove it.</p>
+                  <div className="mt-4" aria-label="Suggested interests">
+                    <p className="mb-2 text-xs font-medium text-neutral-500">Suggested interests</p>
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                      {interestSuggestions.filter(suggestion => !interests.some(value => value.toLowerCase() === suggestion.toLowerCase())).map(suggestion => (
+                        <button
+                          key={suggestion}
+                          type="button"
+                          disabled={interests.length >= MAX_INTERESTS}
+                          onClick={() => addInterest(suggestion)}
+                          className="min-h-10 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-left text-xs text-neutral-700 transition hover:border-orange-300 hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          + {suggestion}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <p className="mt-3 text-xs text-neutral-500" aria-live="polite">{interests.length} interest{interests.length === 1 ? '' : 's'} · Up to {MAX_INTERESTS} allowed · Tap a tag to remove it.</p>
                 </div>
               ) : field.key === 'bio' ? (
                 <textarea

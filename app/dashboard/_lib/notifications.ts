@@ -1,5 +1,12 @@
 import type { MemberNotification } from '@/lib/member-hub'
 
+export function isNotificationMarkingDisabled(
+  marking: string | 'all' | null,
+  notificationId: string,
+): boolean {
+  return marking === 'all' || marking === notificationId
+}
+
 export function notificationUnreadCount(
   notifications: readonly MemberNotification[],
   memberId: string,

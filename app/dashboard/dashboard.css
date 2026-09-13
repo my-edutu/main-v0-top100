@@ -40,8 +40,6 @@ html.light .awardee-dashboard .hub-count, .awardee-dashboard .hub-count { color:
 .awardee-dashboard .hub-welcome { padding: 8px 0 0; }
 .awardee-dashboard .hub-welcome h1 { font-size: clamp(28px, 5vw, 40px); line-height: 1.2; letter-spacing: -.04em; font-weight: 600; overflow-wrap: anywhere; }
 .awardee-dashboard .hub-welcome-description { margin-top: 8px; font-size: 14px; line-height: 1.6; color: #626262; }
-.awardee-dashboard .hub-profile-reminder { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; padding: 10px 10px 10px 14px; background: #fff5eb; border: 1px solid #fed7aa; border-radius: 14px; }
-.awardee-dashboard .hub-profile-reminder > div { min-width: 0; flex: 1; }
 .awardee-dashboard .hub-status { grid-column: 1 / -1; margin-top: -10px; }
 .awardee-dashboard .hub-panel { border: 1px solid var(--hub-line); background: #fff; border-radius: 18px; padding: 18px; }
 .awardee-dashboard .hub-panel-title { font-size: 19px; line-height: 1.3; letter-spacing: -.03em; font-weight: 600; }
@@ -111,13 +109,15 @@ html.light .awardee-dashboard .award-pay-button, .awardee-dashboard .award-pay-b
 .hub-messages .hub-chat-grid>div:first-child { padding:16px; }
 .hub-messages .hub-chat-thread>div:first-child:not(.hub-chat-history) { padding:16px; margin:0; border-color:#e5e5e5; }
 .hub-messages .hub-chat-thread h4 { font-weight:500; }
+.hub-messages .hub-thread-header { position:sticky; top:0; z-index:2; background:#fff; padding:14px 16px 0; }
+.hub-messages .hub-thread-header h4 { font-size:18px; }
 .hub-messages .hub-chat-history { background:#faf9f7; padding:16px; overscroll-behavior:contain; }
 .hub-messages .hub-chat-date { display:flex; justify-content:center; margin:8px 0 20px; color:#737373; font-size:11px; }
 .hub-messages .hub-chat-date time { padding:4px 10px; background:#fff; border-radius:20px; }
 html.light .hub-messages .hub-message-bubble.is-outgoing, .hub-messages .hub-message-bubble.is-outgoing { background:#ffedd5!important; color:#171717!important; border:1px solid #fed7aa; }
 html.light .hub-messages .hub-message-bubble.is-incoming, .hub-messages .hub-message-bubble.is-incoming { background:#fff!important; color:#171717!important; border:1px solid #e5e5e5; }
 html.light .hub-messages .hub-message-bubble p:last-child { color:#737373!important; font-weight:400; }
-.hub-messages .hub-chat-composer { padding:12px; border-top:1px solid #e5e5e5; background:white; }
+.hub-messages .hub-chat-composer { padding:12px; padding-bottom:max(12px, env(safe-area-inset-bottom)); border-top:1px solid #e5e5e5; background:white; }
 html.light .hub-messages .hub-chat-send, .hub-messages .hub-chat-send { background:linear-gradient(110deg,#f97316,#fb923c)!important; color:#171717!important; }
 .hub-messages .hub-chat-send:disabled { opacity:.4; }
 @media (min-width:1024px) { .hub-messages .hub-chat-thread { border-left:1px solid #e5e5e5; } }
@@ -126,14 +126,37 @@ html.light .hub-messages .hub-chat-send, .hub-messages .hub-chat-send { backgrou
  .hub-messages.has-open-thread .hub-chat-frame { margin-top:0; }
  .hub-messages.has-open-thread .hub-chat-grid { height:calc(100dvh - 220px); max-height:none; min-height:300px; }
 }
-.hub-messages .hub-chat-frame { overflow:hidden; }
+.hub-messages.has-open-thread .hub-thread-header { background:#fff; }
+.hub-messages .hub-chat-frame { overflow:hidden; border:0; }
 html.light .hub-messages .hub-chat-send { border-radius:14px!important; }
+.hub-messages .hub-find-awardees { min-height:44px; }
+@media (max-width:639px) {
+ .awardee-dashboard .hub-route-heading { min-height:0; margin:0; }
+ .awardee-dashboard .hub-route-heading > div:first-child { display:none; }
+ .awardee-dashboard .hub-route-heading:has(> div:only-child) { display:none; }
+ .awardee-dashboard .hub-messages .hub-inbox-heading > div:first-child { display:none; }
+ .hub-messages .hub-inbox-heading { align-items:center; }
+ .hub-messages .hub-find-awardees { width:44px; min-width:44px; padding:0; border-radius:999px; }
+ .hub-messages .hub-find-awardees svg { margin:0; }
+ .hub-messages .hub-find-awardees span { display:none; }
+ .hub-messages .hub-chat-grid>div:first-child { padding:0; }
+ .hub-messages .hub-chat-grid { height:calc(100dvh - 250px); max-height:none; }
+ .hub-messages .hub-chat-frame { background:transparent; }
+ .hub-messages .hub-thread-header { padding:12px 0 0; }
+ .hub-messages.has-open-thread .hub-chat-composer { position:sticky; bottom:0; z-index:3; box-shadow:0 -6px 18px rgba(23,23,23,.06); }
+ .hub-messages.has-open-thread .hub-chat-history { overscroll-behavior:contain; }
+}
 .hub-messages .hub-chat-thread h4 { font-weight:500!important; }
 .awardee-dashboard .hub-directory :is(button,a) { min-height:44px; font-weight:500; }
 .awardee-dashboard .hub-directory article :is(p,span) { font-weight:400; }
 .awardee-dashboard .hub-directory article .grid>a, .awardee-dashboard .hub-directory article .grid>button { min-width:0; padding-inline:8px; }
-html.light .awardee-dashboard .hub-cohort-filters button { background:#fff7ed!important; color:#171717!important; }
-html.light .awardee-dashboard .hub-cohort-filters button[aria-pressed=true] { background:#ffedd5!important; border-color:#f97316; }
+html.light .awardee-dashboard .hub-cohort-filters button { color:#171717!important; }
+html.light .awardee-dashboard .hub-cohort-filters button:nth-child(1) { background:#fff0df!important; }
+html.light .awardee-dashboard .hub-cohort-filters button:nth-child(2) { background:#e9e7ff!important; }
+html.light .awardee-dashboard .hub-cohort-filters button:nth-child(3) { background:#dff5e9!important; }
+html.light .awardee-dashboard .hub-cohort-filters button:nth-child(1)[aria-pressed=true] { background:#ffd9b5!important; border-color:#f97316; }
+html.light .awardee-dashboard .hub-cohort-filters button:nth-child(2)[aria-pressed=true] { background:#d9d4ff!important; border-color:#7167d9; }
+html.light .awardee-dashboard .hub-cohort-filters button:nth-child(3)[aria-pressed=true] { background:#c4ead7!important; border-color:#32946d; }
 .awardee-dashboard .hub-events-route :is(h3,h4) { font-size:18px; font-weight:500; }
 .awardee-dashboard .hub-events-route p { font-weight:400; }
 @media(max-width:639px) {
@@ -166,10 +189,16 @@ html.light .awardee-dashboard .award-cinema-detail { color:#ccc6ca!important; fo
 html.light .awardee-dashboard .award-cinema-cta { display:inline-flex; align-items:center; justify-content:center; gap:12px; min-height:50px; margin-top:24px; padding:12px 20px; border-radius:12px; background:linear-gradient(100deg,#f97316,#ffb347)!important; color:#171717!important; font-weight:500; }
 html.light .awardee-dashboard .award-cinema-note { color:#bfb5bc!important; font-size:12px; line-height:1.6; margin-top:14px; }
 @media(max-width:639px) {
- .awardee-dashboard .award-cinema-image { height:285px; }
- .awardee-dashboard .award-cinema-copy { margin-top:-35px; padding:0 22px 28px; }
- html.light .awardee-dashboard .award-cinema h1 { font-size:36px; }
+ .awardee-dashboard .award-cinema-image { height:clamp(180px,28dvh,245px); }
+ .awardee-dashboard .award-cinema-copy { margin-top:-28px; padding:0 20px 24px; }
+ html.light .awardee-dashboard .award-cinema h1 { font-size:clamp(28px,7.5vw,34px); }
  .awardee-dashboard .award-cinema-cta { width:100%; }
+}
+@media(min-width:1200px) {
+ .awardee-dashboard .award-cinema { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
+ .awardee-dashboard .award-cinema-image { height:auto; min-height:520px; }
+ .awardee-dashboard .award-cinema-copy { margin-top:0; padding:40px 32px; align-self:center; }
+ html.light .awardee-dashboard .award-cinema h1 { font-size:40px; }
 }
 /* Home shortcuts: decorative patterns, not stock photography. */
 .awardee-dashboard .hub-shortcuts .hub-card>img, .awardee-dashboard .hub-shortcuts .hub-card-scrim { display:none; }
@@ -183,7 +212,7 @@ html.light .awardee-dashboard .hub-shortcuts .hub-card-icon { background:#ffffff
 html.light .awardee-dashboard .hub-profile-save { background:linear-gradient(90deg,#f97316,#fb923c,#f59e0b)!important; color:#171717!important; }
 .awardee-dashboard .hub-profile-editor label { font-weight:500; }
 .awardee-dashboard .hub-next-move .hub-card>img, .awardee-dashboard .hub-next-move .hub-card-scrim, .awardee-dashboard .hub-next-move .hub-card-icon { display:none; }
-html.light .awardee-dashboard .hub-next-move .hub-card { min-height:112px!important; padding:20px 52px 20px 20px; background-color:#ffc28e!important; background-image:repeating-radial-gradient(circle at 100% 0,transparent 0 24px,#ffffff55 25px 27px)!important; color:#272018!important; border:0; box-shadow:none; }
+html.light .awardee-dashboard .hub-next-move .hub-card { min-height:112px!important; padding:20px 52px 20px 20px; background:#ffc28e!important; color:#272018!important; border:0; box-shadow:none; }
 html.light .awardee-dashboard .hub-next-move .hub-card :is(.hub-card-title,.hub-card-description,svg) { color:#272018!important; }
 .awardee-dashboard .hub-next-move .hub-card>svg { position:absolute; right:20px; top:20px; opacity:1; }
 html.light .awardee-dashboard .hub-shortcuts .hub-card:nth-child(5) { background-color:#c6ddff!important; }
@@ -224,9 +253,9 @@ html.light .discover-feed .discover-person h3, html.light .discover-feed .discov
 .discover-person h3 { font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
 .discover-person p { font-size: 12px; line-height: 1.5; margin-top: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .discover-connect { margin-top: auto; display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 44px; background: #fff0df; border-radius: 8px; font-size: 13px; font-weight: 600; }
-.discover-story { width: min(220px, 72%); align-self: flex-start; border: 1px solid #e8e4df; border-radius: 12px; overflow: hidden; }
-.discover-story > img { width: 100%; height: 110px; object-fit: cover; }
-.discover-story > div { padding: 12px; }
+.discover-story { width: min(220px, 72%); align-self: flex-start; display: flex; flex-direction: column; border: 1px solid #e8e4df; border-radius: 12px; overflow: hidden; }
+.discover-story > img { width: 100%; height: 128px; object-fit: cover; object-position: center; display: block; }
+.discover-story > div { display: flex; flex: 1; flex-direction: column; padding: 12px; }
 .discover-story h3 { font-size: 14px; font-weight: 600; line-height: 1.4; margin: 8px 0; }
 .discover-story .discover-cta { padding-top: 12px; min-height: 44px; }
 .discover-shortcuts a:nth-child(1) { background: #ffd0a2 !important; border-color: transparent; }
@@ -245,12 +274,133 @@ html.light .awardee-dashboard.hub-award-dark, .awardee-dashboard.hub-award-dark 
 html.light .hub-award-dark .hub-app-bar, .hub-award-dark .hub-app-bar { background: #101014 !important; border-color: #302d34 !important; color: #f5f5f5 !important; }
 html.light .hub-award-dark .hub-app-bar a, html.light .hub-award-dark .hub-app-bar button, html.light .hub-award-dark .hub-app-bar h1, html.light .hub-award-dark .hub-app-bar span { color: #f5f5f5 !important; }
 .hub-award-dark .hub-app-bar a:hover, .hub-award-dark .hub-app-bar button:hover { background: #302d34 !important; }
+html.light .awardee-dashboard .award-payment-receipt, .awardee-dashboard .award-payment-receipt {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  min-height: calc(100svh - 60px);
+  width: auto;
+  margin: -20px -16px -24px;
+  place-items: center;
+  overflow: hidden;
+  padding: clamp(28px, 7vw, 72px) 20px;
+  background: radial-gradient(circle at 15% 18%, #35212a 0, transparent 34%), radial-gradient(circle at 88% 82%, #4a241c 0, transparent 32%), #101014 !important;
+  color: #fff !important;
+}
+html.light .awardee-dashboard .award-payment-receipt-glow, .awardee-dashboard .award-payment-receipt-glow {
+  position: absolute;
+  z-index: -1;
+  width: min(70vw, 520px);
+  aspect-ratio: 1;
+  border-radius: 999px;
+  background: #f9731620;
+  filter: blur(70px);
+  pointer-events: none;
+}
+html.light .awardee-dashboard .award-payment-receipt-card, .awardee-dashboard .award-payment-receipt-card {
+  width: min(100%, 560px);
+  border: 1px solid #d4f5e8;
+  border-radius: 28px;
+  background: #f8fafc;
+  color: #171412;
+  padding: clamp(28px, 6vw, 52px);
+  box-shadow: 0 28px 80px #00000045;
+}
+html.light .awardee-dashboard .award-payment-receipt-icon, .awardee-dashboard .award-payment-receipt-icon {
+  display: grid;
+  width: 64px;
+  height: 64px;
+  place-items: center;
+  border-radius: 20px;
+  background: #c9f6e7;
+  color: #066b53;
+}
+html.light .awardee-dashboard .award-payment-receipt-kicker, .awardee-dashboard .award-payment-receipt-kicker {
+  margin-top: 24px;
+  color: #08745a !important;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+}
+html.light .awardee-dashboard .award-payment-receipt-card h1, .awardee-dashboard .award-payment-receipt-card h1 {
+  margin-top: 12px;
+  color: #171412 !important;
+  font-size: clamp(32px, 7vw, 52px);
+  font-weight: 600;
+  letter-spacing: -.055em;
+  line-height: 1.02;
+}
+html.light .awardee-dashboard .award-payment-receipt-lede, .awardee-dashboard .award-payment-receipt-lede {
+  margin-top: 16px;
+  color: #625b52 !important;
+  font-size: clamp(15px, 2vw, 18px);
+  line-height: 1.6;
+}
+html.light .awardee-dashboard .award-payment-receipt-rule, .awardee-dashboard .award-payment-receipt-rule {
+  height: 1px;
+  margin: 28px 0 4px;
+  background: #dedbd5;
+}
+html.light .awardee-dashboard .award-payment-receipt-details, .awardee-dashboard .award-payment-receipt-details {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin: 0;
+  padding: 20px 0 4px;
+}
+html.light .awardee-dashboard .award-payment-receipt-details > div, .awardee-dashboard .award-payment-receipt-details > div { min-width: 0; }
+html.light .awardee-dashboard .award-payment-receipt-details dt, .awardee-dashboard .award-payment-receipt-details dt {
+  color: #80786f;
+  font-size: 11px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+html.light .awardee-dashboard .award-payment-receipt-details dd, .awardee-dashboard .award-payment-receipt-details dd {
+  margin-top: 6px;
+  color: #171412;
+  font-size: 15px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+html.light .awardee-dashboard .award-payment-receipt-details dd span, .awardee-dashboard .award-payment-receipt-details dd span { color: #08745a; }
+html.light .awardee-dashboard .award-payment-receipt-note, .awardee-dashboard .award-payment-receipt-note {
+  margin-top: 24px;
+  border-radius: 16px;
+  background: #f2eee8;
+  color: #625b52 !important;
+  padding: 16px;
+  font-size: 13px;
+  line-height: 1.7;
+}
+html.light .awardee-dashboard .award-payment-receipt-link, .awardee-dashboard .award-payment-receipt-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 26px;
+  color: #9a3412 !important;
+  font-size: 14px;
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+@media (min-width: 640px) {
+  .awardee-dashboard .award-payment-receipt { margin: -24px -24px -32px; padding-inline: 32px; }
+}
+@media (max-width: 450px) {
+  .awardee-dashboard .award-payment-receipt-details { grid-template-columns: 1fr 1fr; row-gap: 18px; }
+  .awardee-dashboard .award-payment-receipt-details > div:last-child { grid-column: 1 / -1; }
+}
 html.light .awardee-dashboard .award-cinema-note a { color: inherit !important; text-decoration: underline; text-underline-offset: 3px; }
 html.light .hub-award-dark .hub-desktop-nav, .hub-award-dark .hub-desktop-nav { background: #101014 !important; border-color: #302d34 !important; }
 html.light .hub-award-dark .hub-desktop-nav a { color: #eee9ef !important; }
 html.light .award-welcome-backdrop, .award-welcome-backdrop { background: #f5f5f4 !important; opacity: 1 !important; animation: none !important; }
 .hub-events-rail { display:flex; gap:12px; overflow-x:auto; scroll-snap-type:x mandatory; padding:3px 2px 12px; scrollbar-width:thin; }
-.hub-upcoming-event { flex:0 0 min(280px, 85%); scroll-snap-align:start; display:flex; flex-direction:column; justify-content:space-between; gap:20px; min-height:140px; border:1px solid #e7ddcf; border-radius:14px; padding:20px; background:#fff7eb; }
+.hub-upcoming-event { flex:0 0 min(280px, 85%); scroll-snap-align:start; display:flex; flex-direction:column; justify-content:flex-end; gap:8px; min-height:190px; border:1px solid #e7ddcf; border-radius:18px; padding:20px; background-color:#1d2430; background-size:cover; background-position:center; overflow:hidden; }
+html.light .awardee-dashboard .hub-upcoming-event,
+.awardee-dashboard .hub-upcoming-event { color:#fff!important; }
+html.light .awardee-dashboard .hub-upcoming-event :is(span,p),
+.awardee-dashboard .hub-upcoming-event :is(span,p) { color:#fff!important; }
 .discover-feed > section:last-child .discover-rail { padding-bottom: 0; min-height: 0; align-items: flex-start; }
 .discover-feed > section:last-child { align-self: start; }
 @media (max-width: 639px) {
@@ -260,13 +410,6 @@ html.light .award-welcome-backdrop, .award-welcome-backdrop { background: #f5f5f
   .discover-person p { font-size: 11px; }
   .discover-person .discover-connect { font-size: 12px; margin-right: 10px; margin-left: 10px; }
 }
-.discover-ad { position:relative; overflow:hidden; border-radius:14px; min-height:160px; background:#151418 !important; }
-.discover-ad > img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
-.discover-ad > div { position:relative; padding:20px; background:linear-gradient(90deg,#101014e8,#10101480 55%,transparent); }
-html.light .discover-feed .discover-ad span, html.light .discover-feed .discover-ad h2, html.light .discover-feed .discover-ad p { color:#fff4e8 !important; }
-.discover-ad span { font-size:10px; text-transform:uppercase; letter-spacing:.1em; }
-.discover-ad h2 { font-size:23px; line-height:1.15; font-weight:500; margin:10px 0; }
-.discover-ad p { display:flex; align-items:center; gap:8px; font-size:12px; }
 .discover-feed .discover-person { width: 168px; padding: 0; border-radius: 0; gap: 0; }
 .discover-feed .discover-person-profile { aspect-ratio: 3 / 4; overflow: hidden; }
 .discover-feed .discover-person .discover-avatar { width: 100%; height: 100%; margin: 0; object-fit: cover; object-position: center top; }

@@ -11,7 +11,7 @@ import { legacySectionDestination } from '@/app/dashboard/_lib/legacy-sections'
 describe('dashboard navigation', () => {
   it('exposes exactly the approved four mobile destinations', () => {
     expect(primaryDashboardNav.map(({ label }) => label)).toEqual([
-      'Home', 'Discover', 'Messages', 'Me',
+      'Home', 'Discover', 'Awardees', 'Me',
     ])
   })
 
@@ -31,7 +31,7 @@ describe('dashboard navigation', () => {
     expect(primaryDashboardNav.map(({ label, color }) => [label, color])).toEqual([
       ['Home', 'ember'],
       ['Discover', 'saffron'],
-      ['Messages', 'cobalt'],
+      ['Awardees', 'cobalt'],
       ['Me', 'burgundy'],
     ])
   })
@@ -44,7 +44,9 @@ describe('dashboard navigation', () => {
       'Profile', 'Portfolio cover', 'Project100 Scholarship', 'My award', 'Posts', 'Get featured', 'Settings',
     ])
     const hrefs = [...primaryDashboardNav, ...discoverNav, ...meNav].map(({ href }) => href)
-    expect(new Set(hrefs).size).toBe(hrefs.length)
+    // Awardees is intentionally promoted to a primary destination while
+    // retaining the durable Members route used by Discover.
+    expect(new Set(hrefs).size).toBe(hrefs.length - 1)
   })
 
   it('routes every Discover destination to its approved durable URL', () => {
@@ -61,6 +63,8 @@ describe('dashboard navigation', () => {
   it('matches descendants without activating Home everywhere', () => {
     expect(isDashboardNavActive('/dashboard', '/dashboard')).toBe(true)
     expect(isDashboardNavActive('/dashboard/discover/events', '/dashboard/discover')).toBe(true)
+    expect(isDashboardNavActive('/dashboard/discover/members', '/dashboard/discover')).toBe(false)
+    expect(isDashboardNavActive('/dashboard/discover/members', '/dashboard/discover/members')).toBe(true)
     expect(isDashboardNavActive('/dashboard/messages/abc', '/dashboard/messages')).toBe(true)
     expect(isDashboardNavActive('/dashboard/me/profile', '/dashboard')).toBe(false)
   })

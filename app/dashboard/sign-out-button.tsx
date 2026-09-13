@@ -6,6 +6,7 @@ import { LogOut } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { supabase } from "@/lib/supabase/client"
+import { clearAwardReadyWelcome } from './_components/award-ready-welcome'
 
 export default function SignOutButton() {
   const [isLoading, setIsLoading] = useState(false)
@@ -26,6 +27,7 @@ export default function SignOutButton() {
         // The development-only endpoint is absent in production.
       }
       if (!demoSignedOut) await supabase.auth.signOut()
+      clearAwardReadyWelcome()
       router.push("/login")
       router.refresh()
     } catch (error) {

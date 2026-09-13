@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation'
 
 import { cn } from '@/lib/utils'
 import { isDashboardNavActive, primaryDashboardNav, type DashboardColor } from '../_lib/navigation'
-import { useDashboardBadges } from '../_providers/dashboard-badges'
 import { top100DashboardTheme } from '@/lib/dashboard/theme'
 
 const activeColorClasses: Record<DashboardColor, string> = {
@@ -19,8 +18,7 @@ const activeColorClasses: Record<DashboardColor, string> = {
 
 export function DashboardBottomNav() {
   const pathname = usePathname()
-  const { unreadMessages } = useDashboardBadges()
-  if (pathname === '/dashboard/me/award' || pathname.startsWith('/dashboard/me/award/') || pathname === '/dashboard/me/profile') return null
+  if (pathname === '/dashboard/me/award' || pathname.startsWith('/dashboard/me/award/') || pathname === '/dashboard/me/profile' || pathname.startsWith('/dashboard/messages/')) return null
 
   return (
     <nav
@@ -31,7 +29,7 @@ export function DashboardBottomNav() {
         {primaryDashboardNav.map((item) => {
           const Icon = item.icon
           const active = isDashboardNavActive(pathname, item.href)
-          const badge = item.id === 'messages' ? unreadMessages : 0
+          const badge = 0
 
           return (
             <Link

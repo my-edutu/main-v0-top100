@@ -1,20 +1,20 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, MapPin, MessageCircle, RefreshCw, Search, ShieldAlert } from 'lucide-react'
+import { ArrowRight, Mail, MapPin, RefreshCw, Search, ShieldAlert } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
 import type { Awardee } from '@/lib/awardees-shared'
 import type { MemberProfile } from '@/lib/member-hub'
 import { cn } from '@/lib/utils'
 
 const directoryCohorts = [
-  { year: 2024, title: '2024 Awardees', surface: 'bg-[#fffaf2]' },
-  { year: 2025, title: '2025 Awardees', surface: 'bg-[#f7f7f5]' },
-  { year: 2026, title: '2026 Awardees', surface: 'bg-[#fcfbf7]' },
+  { year: 2024, title: '2024 Awardees', surface: 'bg-[#fff0df]' },
+  { year: 2025, title: '2025 Awardees', surface: 'bg-[#e9e7ff]' },
+  { year: 2026, title: '2026 Awardees', surface: 'bg-[#dff5e9]' },
 ]
 
 export function DirectorySection({ member }: { member: MemberProfile }) {
@@ -25,7 +25,17 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
   const [loadFailed, setLoadFailed] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
   const [page, setPage] = useState(0)
-  useEffect(() => { setPage(0) }, [searchTerm, selectedYear])
+  const searchInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const focusSearch = () => {
+      searchInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      searchInputRef.current?.focus({ preventScroll: true })
+    }
+
+    window.addEventListener('dashboard:focus-awardee-search', focusSearch)
+    return () => window.removeEventListener('dashboard:focus-awardee-search', focusSearch)
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -86,18 +96,15 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
       <div className="space-y-5">
         {restrictedStatus ? <DirectoryRecoveryCard status={restrictedStatus} /> : null}
 
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div className="rounded-full bg-orange-50 px-4 py-2 text-sm font-semibold text-orange-700">
-            {loading ? 'Loading leaders' : `${filteredAwardees.length} leaders found`}
-          </div>
-        </div>
-
         <div className="hub-cohort-filters grid grid-cols-3 gap-2">
           {directoryCohorts.map((cohort) => (
             <button
               key={cohort.year}
               type="button"
-              onClick={() => setSelectedYear(current => current === cohort.year ? 'all' : cohort.year)}
+              onClick={() => {
+                setSelectedYear(current => current === cohort.year ? 'all' : cohort.year)
+                setPage(0)
+              }}
               aria-label={`${cohort.year} cohort${selectedYear === cohort.year ? ', selected; activate to show all years' : ''}`}
               aria-pressed={selectedYear === cohort.year}
               className={cn(
@@ -128,8 +135,12 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
             <div className="relative w-full lg:max-w-sm">
               <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-black/35" strokeWidth={2.8} />
               <Input
+                ref={searchInputRef}
                 value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
+                onChange={(event) => {
+                  setSearchTerm(event.target.value)
+                  setPage(0)
+                }}
                 placeholder="Search name, country, field..."
                 aria-label="Search awardees by name, country, or field"
                 className="h-12 rounded-full border-black/10 pl-11 text-base text-black placeholder:text-black/35"
@@ -176,18 +187,19 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
                       View BIO
                     </Link>
                   </Button>
-                  {awardee.profile_id && !messagingRestricted ? (
+                  {(awardee.email || awardee.personal_email) && !messagingRestricted ? (
                     <Button
                       asChild
                       variant="outline"
                       className="h-10 rounded-full border border-black/10 bg-white px-4 text-sm font-semibold text-black/75 shadow-none hover:bg-[#fafafa]"
                     >
                       <Link
-                        href={`/dashboard/messages?to=${encodeURIComponent(awardee.profile_id)}&name=${encodeURIComponent(awardee.name)}`}
-                        title={`Message ${awardee.name}`}
+                        href={`mailto:${awardee.email || awardee.personal_email}`}
+                        aria-label={`Email ${awardee.name}`}
+                        title={`Email ${awardee.name}`}
                       >
-                        <MessageCircle className="mr-1.5 h-4 w-4" strokeWidth={2.6} />
-                        Message
+                        <Mail className="mr-1.5 h-4 w-4" strokeWidth={2.6} />
+                        Email
                       </Link>
                     </Button>
                   ) : (
@@ -198,12 +210,12 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
                       title={
                         messagingRestricted
                           ? 'Messaging is paused for your membership'
-                          : 'Not on the member platform yet'
+                          : 'No public email address available'
                       }
                       className="h-10 rounded-full border border-black/10 bg-white px-4 text-sm font-semibold text-black/75 shadow-none disabled:opacity-50"
                     >
-                      <MessageCircle className="mr-1.5 h-4 w-4" strokeWidth={2.6} />
-                      Message
+                      <Mail className="mr-1.5 h-4 w-4" strokeWidth={2.6} />
+                      Email
                     </Button>
                   )}
                 </div>
@@ -212,17 +224,18 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
           </div>
 
           {loading ? (
-            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3" aria-hidden>
-              {[0, 1, 2].map((row) => (
-                <div key={row} className="animate-pulse rounded-[22px] border border-black/5 bg-white p-4">
+            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3" role="status" aria-label="Loading awardees">
+              {Array.from({ length: 6 }, (_, index) => (
+                <div key={index} className="rounded-2xl border border-neutral-200 bg-white p-4">
                   <div className="flex items-start gap-3">
-                    <div className="h-12 w-12 rounded-2xl bg-orange-100/70" />
+                    <Skeleton className="h-12 w-12 rounded-2xl bg-orange-100/70" />
                     <div className="flex-1 space-y-2 pt-1">
-                      <div className="h-3.5 w-1/2 rounded-full bg-orange-100/70" />
-                      <div className="h-3 w-4/5 rounded-full bg-orange-50" />
+                      <Skeleton className="h-4 w-3/5 rounded-full bg-orange-100/70" />
+                      <Skeleton className="h-3 w-4/5 rounded-full bg-orange-50" />
+                      <Skeleton className="h-3 w-2/5 rounded-full bg-orange-50" />
                     </div>
                   </div>
-                  <div className="mt-5 h-9 rounded-full bg-orange-50" />
+                  <Skeleton className="mt-5 h-10 w-full rounded-full bg-orange-50" />
                 </div>
               ))}
             </div>

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  isNotificationMarkingDisabled,
   markNotificationReadInList,
   notificationUnreadCount,
 } from '@/app/dashboard/_lib/notifications'
@@ -31,9 +32,13 @@ describe('routed notification inbox', () => {
       createDemoDashboardStore().notifications.map(
         (notification) => notification.ctaUrl,
       ),
-    ).toEqual([
-      '/dashboard/me/profile',
-      '/dashboard/discover/opportunities',
-    ])
+    ).toEqual(['/dashboard/me/profile'])
+  })
+
+  it('keeps other notification actions available while one update is being marked', () => {
+    expect(isNotificationMarkingDisabled('notification-a', 'notification-a')).toBe(true)
+    expect(isNotificationMarkingDisabled('notification-a', 'notification-b')).toBe(false)
+    expect(isNotificationMarkingDisabled('all', 'notification-b')).toBe(true)
+    expect(isNotificationMarkingDisabled(null, 'notification-b')).toBe(false)
   })
 })

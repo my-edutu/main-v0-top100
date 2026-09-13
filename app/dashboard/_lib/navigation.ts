@@ -4,7 +4,6 @@ import {
   Compass,
   FileText,
   Home,
-  MessageCircle,
   Newspaper,
   Settings,
   Trophy,
@@ -37,7 +36,7 @@ export type PrimaryDashboardNavItem = DashboardNavItem & {
 export const primaryDashboardNav: PrimaryDashboardNavItem[] = [
   { id: 'home', label: 'Home', href: '/dashboard', icon: Home, color: 'ember' },
   { id: 'discover', label: 'Discover', href: '/dashboard/discover', icon: Compass, color: 'saffron' },
-  { id: 'messages', label: 'Messages', href: '/dashboard/messages', icon: MessageCircle, color: 'cobalt' },
+  { id: 'messages', label: 'Awardees', href: '/dashboard/discover/members', icon: Users, color: 'cobalt' },
   { id: 'me', label: 'Me', href: '/dashboard/me', icon: UserRound, color: 'burgundy' },
 ]
 
@@ -69,6 +68,12 @@ export const meNav: DashboardNavItem[] = [
 const allDashboardNav = [...primaryDashboardNav, ...discoverNav, ...meNav]
 
 export function isDashboardNavActive(pathname: string, href: string) {
+  // The Awardees destination sits under Discover, but it is its own primary
+  // destination. Keep both tabs from appearing active on the directory route.
+  if (href === '/dashboard/discover' && pathname.startsWith('/dashboard/discover/members')) {
+    return false
+  }
+
   return href === '/dashboard'
     ? pathname === href
     : pathname === href || pathname.startsWith(`${href}/`)

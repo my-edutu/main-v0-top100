@@ -112,9 +112,11 @@ export function DashboardMemberProvider({ children }: { children: ReactNode }) {
     )
   }
 
+  const isLocalPreview = process.env.NODE_ENV !== 'production' && member.id === 'demo-member-1'
+
   return (
     <DashboardMemberContext.Provider value={{ member, refreshMember, replaceMember }}>
-      {member.id === 'demo-member-1' && <div className="bg-orange-50 px-4 py-2 text-center text-xs text-orange-900">Local preview · sample account and activity {member.onboardingCompletedAt && <button className="ml-2 underline" onClick={() => { void fetch('/api/member/onboarding', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reset: true }) }).then(async response => { if (response.ok) replaceMember((await response.json()).member) }) }}>Preview onboarding</button>}</div>}
+      {isLocalPreview && <div className="bg-orange-50 px-4 py-2 text-center text-xs text-orange-900">Local preview · sample account and activity {member.onboardingCompletedAt && <button className="ml-2 underline" onClick={() => { void fetch('/api/member/onboarding', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reset: true }) }).then(async response => { if (response.ok) replaceMember((await response.json()).member) }) }}>Preview onboarding</button>}</div>}
       {!member.onboardingCompletedAt ? <Onboarding member={member} onComplete={replaceMember} /> : children}
     </DashboardMemberContext.Provider>
   )

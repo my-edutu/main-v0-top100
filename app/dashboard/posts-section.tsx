@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import type { MemberProfile } from '@/lib/member-hub'
 import {
   MemberPostsSetupRequiredError,
@@ -65,6 +66,41 @@ const EMPTY_EDITOR: EditorState = {
   tags: '',
   coverUrl: '',
   body: '',
+}
+
+function PostsWelcome({ memberId, name }: { memberId: string; name: string }) {
+  const [open, setOpen] = useState(false)
+  const firstName = name.trim().split(/\s+/)[0] || 'there'
+
+  useEffect(() => {
+    try {
+      if (!window.sessionStorage.getItem(`afl:posts-welcome-seen:${memberId}`)) setOpen(true)
+    } catch {
+      setOpen(true)
+    }
+  }, [memberId])
+
+  function close() {
+    setOpen(false)
+    try { window.sessionStorage.setItem(`afl:posts-welcome-seen:${memberId}`, '1') } catch { /* Storage may be unavailable. */ }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(nextOpen) => nextOpen ? setOpen(true) : close()}>
+      <DialogContent className="w-[calc(100%_-_32px)] max-w-md rounded-3xl border-orange-100 bg-white p-6 text-neutral-950 sm:p-8">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-100 text-orange-700">
+          <PenSquare className="h-6 w-6" aria-hidden="true" />
+        </div>
+        <DialogTitle className="mt-4 text-2xl font-semibold leading-tight">Welcome to your writing space, {firstName}.</DialogTitle>
+        <DialogDescription className="text-sm leading-6 text-neutral-600">
+          Share the work, lessons, and ideas you want the Africa Future Leaders community to discover.
+        </DialogDescription>
+        <button type="button" onClick={close} className="mt-2 flex min-h-12 w-full items-center justify-center rounded-xl bg-orange-500 px-5 font-medium text-neutral-950 hover:bg-orange-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-orange-600">
+          Continue
+        </button>
+      </DialogContent>
+    </Dialog>
+  )
 }
 
 function editorFor(post: MemberPost): EditorState {
@@ -281,16 +317,19 @@ export default function PostsSection({
 
   return (
     <div className="space-y-5">
-      <section className="rounded-[30px] border border-orange-100 bg-white p-6 sm:p-8">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+      {mode === 'list' && posts.length === 0 && (member.dashboardLoginCount ?? 0) <= 1 ? (
+        <PostsWelcome memberId={member.id} name={member.name} />
+      ) : null}
+      <section className="rounded-[24px] border border-orange-100 bg-white p-4 sm:rounded-[30px] sm:p-8">
+        <div className="flex items-start justify-between gap-3 sm:gap-4">
           <div className="flex items-start gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-orange-500 text-[#fffaf0]">
-              <PenSquare className="h-7 w-7" strokeWidth={2.2} />
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-500 text-[#fffaf0] sm:h-14 sm:w-14">
+              <PenSquare className="h-6 w-6 sm:h-7 sm:w-7" strokeWidth={2.2} />
             </div>
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-600">Your writing</p>
-              <h3 className="mt-2 text-3xl font-bold tracking-tight text-black">Posts</h3>
-              <p className="mt-2 max-w-xl text-sm font-medium leading-6 text-black/60">
+              <h3 className="mt-1 text-2xl font-bold tracking-tight text-black sm:mt-2 sm:text-3xl">Posts</h3>
+              <p className="mt-2 max-w-xl text-sm font-medium leading-6 text-black/60 sm:text-base">
                 Write in your own words. Published posts appear on your public profile straight away —
                 our team reviews them afterwards.
               </p>
@@ -298,12 +337,9 @@ export default function PostsSection({
           </div>
 
           {mode === 'list' && !accountRestricted && (
-            <Button asChild
-              className="rounded-full bg-orange-500 px-6 py-6 text-[#fffaf0] hover:bg-orange-600"
-            >
+            <Button asChild size="icon" className="h-11 w-11 shrink-0 rounded-full bg-orange-500 text-[#fffaf0] hover:bg-orange-600" aria-label="Create post" title="Create post">
               <Link href="/dashboard/me/posts/new">
-                <Plus className="mr-2 h-4 w-4" />
-                Write a post
+                <Plus className="h-5 w-5" />
               </Link>
             </Button>
           )}

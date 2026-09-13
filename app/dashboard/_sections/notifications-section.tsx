@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { BellRing, CheckCheck, Loader2, RefreshCw } from 'lucide-react'
+import { ArrowUpRight, BellRing, Check, CheckCheck, Loader2, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -14,6 +14,7 @@ import {
 } from '@/lib/member-hub'
 import { cn } from '@/lib/utils'
 import {
+  isNotificationMarkingDisabled,
   markNotificationReadInList,
   notificationUnreadCount,
 } from '../_lib/notifications'
@@ -28,6 +29,12 @@ function formatNotificationDate(value: string) {
     month: 'short',
     year: 'numeric',
   }).format(date)
+}
+
+function displayNotificationDate(notification: MemberNotification, memberCreatedAt: string) {
+  return notification.title === 'Welcome to your awardee workspace'
+    ? memberCreatedAt
+    : notification.createdAt
 }
 
 export function NotificationsSection() {
@@ -113,7 +120,7 @@ export function NotificationsSection() {
     return (
       <section role="alert" className="rounded-[20px] border border-rose-200 bg-white p-5">
         <p className="text-sm font-bold text-rose-800">{error}</p>
-        <Button type="button" onClick={() => void loadNotifications()} className="mt-4 min-h-11 rounded-xl bg-[#171412] text-white hover:bg-[#312B27]">
+        <Button type="button" variant="outline" onClick={() => void loadNotifications()} className="mt-4 min-h-11 rounded-xl border-orange-300 bg-orange-50 font-medium text-orange-900 hover:bg-orange-100 hover:text-orange-950">
           <RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" />Retry
         </Button>
       </section>
@@ -122,10 +129,13 @@ export function NotificationsSection() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm font-bold text-[#625B52]">{unreadCount} unread {unreadCount === 1 ? 'update' : 'updates'}</p>
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[18px] border border-[#E7DDCF] bg-white px-4 py-3">
+        <p className="flex items-center gap-2 text-sm font-medium text-[#625B52]">
+          <span className={cn('h-2 w-2 rounded-full', unreadCount > 0 ? 'bg-orange-500' : 'bg-emerald-500')} aria-hidden="true" />
+          {unreadCount > 0 ? `${unreadCount} unread ${unreadCount === 1 ? 'update' : 'updates'}` : 'You’re all caught up'}
+        </p>
         {unreadCount > 0 ? (
-          <Button type="button" variant="outline" disabled={marking !== null} onClick={() => void markAll()} className="min-h-11 rounded-xl border-[#D4C7B6] bg-white text-[#171412]">
+          <Button type="button" variant="ghost" disabled={marking !== null} onClick={() => void markAll()} className="min-h-11 rounded-xl px-3 font-medium text-orange-900 hover:bg-orange-50 hover:text-orange-950">
             {marking === 'all' ? <Loader2 className="mr-2 h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <CheckCheck className="mr-2 h-4 w-4" aria-hidden="true" />}
             Mark all read
           </Button>
@@ -133,33 +143,39 @@ export function NotificationsSection() {
       </div>
 
       {notifications.length > 0 ? (
-        <ul className="space-y-3">
+        <ul className="space-y-3" aria-label="Member updates">
           {notifications.map((notification) => {
             const unread = !notification.readBy.includes(member.id)
             return (
-              <li key={notification.id} className={cn('rounded-[20px] border bg-white p-4 sm:p-5', unread ? 'border-amber-300' : 'border-[#E7DDCF]')}>
+              <li key={notification.id} className={cn('rounded-[18px] border p-4 transition-colors sm:p-5', unread ? 'border-orange-200 bg-[#FFF9F3]' : 'border-[#E7DDCF] bg-white')}>
                 <article className="flex items-start gap-3">
-                  <span className={cn('flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px]', unread ? 'bg-[#FFE49A] text-[#563700]' : 'bg-[#E8EBF0] text-[#252B35]')}>
+                  <span className={cn('flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px]', unread ? 'bg-orange-100 text-orange-800' : 'bg-[#F1F2F4] text-[#625B52]')}>
                     <BellRing className="h-5 w-5" aria-hidden="true" />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div>
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+                      <div className="flex min-w-0 items-start gap-2">
+                        {unread ? <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-orange-500" aria-hidden="true" /> : null}
+                        <div className="min-w-0">
                         {unread ? <span className="sr-only">Unread update. </span> : null}
-                        <h2 className="text-base font-extrabold text-[#171412]">{notification.title}</h2>
+                          <h2 className="text-base font-semibold leading-6 text-[#171412]">{notification.title}</h2>
+                        </div>
                       </div>
-                      <time dateTime={notification.createdAt} className="text-xs font-bold text-[#625B52]">{formatNotificationDate(notification.createdAt)}</time>
+                      <time dateTime={displayNotificationDate(notification, member.createdAt)} className="pl-4 text-xs font-normal text-[#746C63] sm:shrink-0 sm:pl-0 sm:pt-1">{formatNotificationDate(displayNotificationDate(notification, member.createdAt))}</time>
                     </div>
-                    <p className="mt-2 text-sm font-semibold leading-6 text-[#625B52]">{notification.message}</p>
+                    <p className="mt-2 text-sm font-normal leading-6 text-[#625B52]">{notification.message}</p>
                     <div className="mt-3 flex flex-wrap items-center gap-3">
                       {notification.ctaUrl && notification.ctaLabel ? (
-                        <Link href={notification.ctaUrl} className="flex min-h-11 items-center rounded-xl bg-[#171412] px-4 text-sm font-extrabold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-2">{notification.ctaLabel}</Link>
+                        <Link href={notification.ctaUrl} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-orange-300 bg-orange-50 px-4 text-sm font-medium text-orange-900 transition-colors hover:bg-orange-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-2">
+                          {notification.ctaLabel}<ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+                        </Link>
                       ) : null}
                       {unread ? (
-                        <button type="button" disabled={marking !== null} onClick={() => void markOne(notification.id)} className="min-h-11 rounded-xl px-2 text-sm font-extrabold text-[#6C2600] underline decoration-2 underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 disabled:opacity-50">
+                        <button type="button" disabled={isNotificationMarkingDisabled(marking, notification.id)} onClick={() => void markOne(notification.id)} className="inline-flex min-h-11 items-center gap-2 rounded-xl px-2 text-sm font-medium text-[#6C2600] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 disabled:opacity-50">
+                          {marking === notification.id ? <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Check className="h-4 w-4" aria-hidden="true" />}
                           {marking === notification.id ? 'Marking read...' : 'Mark as read'}
                         </button>
-                      ) : <span className="text-xs font-extrabold uppercase tracking-[0.12em] text-emerald-700">Read</span>}
+                      ) : <span className="inline-flex min-h-11 items-center gap-1.5 text-xs font-medium uppercase tracking-[0.1em] text-emerald-700"><Check className="h-4 w-4" aria-hidden="true" />Read</span>}
                     </div>
                   </div>
                 </article>

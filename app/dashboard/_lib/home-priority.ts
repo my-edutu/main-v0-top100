@@ -87,8 +87,8 @@ export function selectHomePriority({
   if (awardNeedsAttention) {
     return {
       kind: 'award',
-      title: 'Claim your AFL award',
-      description: 'Add your delivery details and continue your award journey.',
+      title: 'Pay your AFL award fee',
+      description: 'Pay the award fee securely; delivery is handled separately.',
       href: '/dashboard/me/award',
       color: 'ember',
     }

@@ -1,7 +1,7 @@
 'use client'
 
 import { type FormEvent, type ReactNode, useState } from 'react'
-import { Bell, Eye, Loader2, LockKeyhole, ShieldCheck, ChevronRight } from 'lucide-react'
+import { Bell, ChevronRight, Eye, Loader2, LockKeyhole, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 
@@ -19,7 +19,6 @@ import { useDashboardMember } from '../_providers/dashboard-member'
 export function SettingsOverview({ member }: { member: MemberProfile }) {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [confirmed, setConfirmed] = useState(false)
-  const updatesRemaining = Math.max(0, member.bioUpdateLimit - member.bioUpdateCount)
 
   return (
     <div className="space-y-5">
@@ -32,35 +31,31 @@ export function SettingsOverview({ member }: { member: MemberProfile }) {
       </nav>
       <section className="border-t border-neutral-200 pt-5">
         <h2 className="text-base font-medium">Your data</h2>
-        <button type="button" onClick={() => { setConfirmed(false); setDeleteOpen(true) }} className="mt-2 flex min-h-14 w-full items-center justify-between gap-3 text-left text-sm font-medium text-red-700">Delete my data <ChevronRight size={18} aria-hidden="true" /></button>
-        <p className="text-xs leading-5 text-neutral-500">Request removal of your personal data through the privacy team.</p>
+        <button
+          type="button"
+          onClick={() => { setConfirmed(false); setDeleteOpen(true) }}
+          className="mt-3 flex min-h-20 w-full items-center gap-3 rounded-xl border border-neutral-200 bg-white px-4 py-4 text-left transition hover:border-orange-300 hover:bg-orange-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600"
+        >
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-700">
+            <Trash2 size={19} aria-hidden="true" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-red-700">Delete my data</span>
+            <span className="mt-1 block text-xs leading-5 text-neutral-500">Request removal of your account, profile and personal data.</span>
+          </span>
+          <ChevronRight size={18} className="shrink-0 text-neutral-400" aria-hidden="true" />
+        </button>
       </section>
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent className="max-h-[85dvh] w-[calc(100%-32px)] max-w-md overflow-y-auto bg-white p-6">
           <DialogTitle>Request data deletion</DialogTitle>
-          <DialogDescription className="text-sm leading-6">This opens an email to our privacy team. You must send the email to submit your request. Nothing is deleted automatically.</DialogDescription>
-          <p className="text-sm leading-6 text-neutral-600">Ask the team to remove your account, public profile and associated personal data. They will verify your identity and explain any records that cannot be removed before processing your request.</p>
-          <label className="flex items-start gap-3 text-sm leading-6"><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} className="mt-1 h-5 w-5 shrink-0" />I understand that processed deletion may remove my profile and account access.</label>
-          <button type="button" disabled={!confirmed} onClick={() => { window.location.href = `mailto:partnership@top100afl.com?subject=${encodeURIComponent('Personal data deletion request')}&body=${encodeURIComponent(`Hello Top100 privacy team,\n\nI request deletion of my account, public profile and associated personal data. Please confirm the scope, any retained records, and the identity verification required.\n\nAccount name: ${member.name}\nAccount email: ${member.email}\n\nThank you.`)}` }} className="min-h-12 rounded-xl bg-red-700 px-4 font-medium text-white disabled:opacity-40" style={{backgroundColor:'#b91c1c',color:'#fff'}}>Open deletion request email</button>
+          <DialogDescription className="text-sm leading-6">Send an email to our privacy team to request deletion of your account, public profile and associated personal data. We’ll process your request in line with applicable data protection requirements.</DialogDescription>
+          <p className="text-sm leading-6 text-neutral-600">Your request can cover all personal data linked to your account. We’ll verify your identity and confirm when the deletion has been completed.</p>
+          <label className="flex items-start gap-3 text-sm leading-6"><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} className="mt-1 h-5 w-5 shrink-0" />I confirm that I want my account and associated personal data deleted.</label>
+          <button type="button" disabled={!confirmed} onClick={() => { window.location.href = `mailto:partnership@top100afl.com?subject=${encodeURIComponent('Personal data deletion request')}&body=${encodeURIComponent(`Hello Top100 privacy team,\n\nI request deletion of my account, public profile and all associated personal data. Please confirm receipt and completion of this request.\n\nAccount name: ${member.name}\nAccount email: ${member.email}\n\nThank you.`)}` }} className="min-h-12 rounded-xl bg-red-700 px-4 font-medium !text-white hover:bg-red-800 disabled:opacity-40">Open deletion request email</button>
           <p className="text-xs leading-5 text-neutral-500">No email app? Write to partnership@top100afl.com from your account email. <Link href="/legal/privacy" className="underline">Read our privacy policy</Link>.</p>
         </DialogContent>
       </Dialog>
-
-      <section className="rounded-[24px] border border-orange-200 bg-[#FFE7D5] p-5 sm:p-6">
-        <div className="flex items-start gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-[#171412] text-white"><ShieldCheck className="h-5 w-5" aria-hidden="true" /></span>
-          <div>
-            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#6C2600]">Account status</p>
-            <h2 className="mt-1 text-xl font-extrabold text-[#171412]">Your AFL membership</h2>
-          </div>
-        </div>
-        <dl className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <StatusItem label="Membership" value={member.status} />
-          <StatusItem label="BIO review" value={member.profileStatus} />
-          <StatusItem label="Invite code" value={member.inviteCode} />
-          <StatusItem label="BIO updates left" value={`${updatesRemaining} of ${member.bioUpdateLimit}`} />
-        </dl>
-      </section>
     </div>
   )
 }
@@ -151,22 +146,20 @@ function PreferenceForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <fieldset disabled={saving} className="grid gap-3 rounded-[24px] border border-[#E7DDCF] bg-white p-4 disabled:opacity-70 sm:p-6">
+      <fieldset disabled={saving} className="grid gap-3 disabled:opacity-70">
         {children}
       </fieldset>
 
-      <div className="sticky bottom-[calc(76px+env(safe-area-inset-bottom))] z-20 rounded-[18px] border border-[#E7DDCF] bg-white/95 p-3 shadow-lg backdrop-blur lg:bottom-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="min-h-5">
-            {saved ? <p role="status" className="text-sm font-bold text-emerald-700">{successMessage}</p> : null}
-            {error ? <p role="alert" className="text-sm font-bold text-rose-700">{error}</p> : null}
-            {warning ? <p role="status" className="text-sm font-bold text-amber-700">{warning}</p> : null}
-          </div>
-          <Button type="submit" disabled={saving} className="min-h-12 rounded-full bg-[#171412] px-8 font-extrabold text-white hover:bg-[#312B27]">
-            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : null}
-            {saving ? 'Saving...' : 'Save'}
-          </Button>
+      <div className="sticky bottom-[calc(76px+env(safe-area-inset-bottom))] z-20 flex flex-wrap items-center justify-between gap-3 py-2 lg:bottom-4">
+        <div className="min-h-5">
+          {saved ? <p role="status" className="text-sm font-bold text-emerald-700">{successMessage}</p> : null}
+          {error ? <p role="alert" className="text-sm font-bold text-rose-700">{error}</p> : null}
+          {warning ? <p role="status" className="text-sm font-bold text-amber-700">{warning}</p> : null}
         </div>
+        <Button type="submit" disabled={saving} className="min-h-11 rounded-xl px-7 font-semibold text-black hover:brightness-95" style={{ background: 'linear-gradient(90deg,#f97316,#f59e0b)', color: '#171412' }}>
+          {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : null}
+          {saving ? 'Saving...' : 'Save changes'}
+        </Button>
       </div>
     </form>
   )
@@ -181,14 +174,5 @@ function PreferenceToggle({ defaultChecked, description, label, name }: { defaul
       </span>
       <Switch name={name} defaultChecked={defaultChecked} className="shrink-0 data-[state=checked]:bg-orange-600" />
     </label>
-  )
-}
-
-function StatusItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-[14px] border border-orange-200 bg-white/70 px-4 py-3">
-      <dt className="text-xs font-bold text-[#625B52]">{label}</dt>
-      <dd className="mt-1 text-sm font-extrabold capitalize text-[#171412]">{value}</dd>
-    </div>
   )
 }

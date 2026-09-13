@@ -1,3 +1,5 @@
+import { isNigeria, nigeriaState } from '@/lib/awards/locations'
+
 export const AWARD_JOURNEY_STEPS = [
   'address',
   'review',
@@ -95,6 +97,8 @@ export function validateAwardAddress(
   if (values.city.trim().length < 2) errors.city = 'Enter your city.'
   if (values.state.trim().length < 2) {
     errors.state = 'Enter your state or region.'
+  } else if (isNigeria(values.country) && !nigeriaState(values.state)) {
+    errors.state = 'Select a valid Nigerian state or FCT.'
   }
   if (values.country.trim().length < 2) {
     errors.country = 'Enter your country.'

@@ -1,11 +1,12 @@
 'use client'
 
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Loader2 } from 'lucide-react'
+import { Loader2, UserRound } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
@@ -67,8 +68,13 @@ export function ProfileSection() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="hub-profile-editor space-y-5 bg-white">
-      <div className="flex items-center gap-4"><MemberAvatar src={member.avatarUrl} initials={member.avatarInitials} size={64} /><label className="min-w-0 text-sm font-medium">{uploading ? 'Saving photo…' : 'Your profile photo'}<input disabled={uploading || member.id === 'demo-member-1'} type="file" accept="image/*" onChange={event => void uploadPhoto(event.target.files?.[0])} className="mt-2 block w-full text-xs" /><span className="mt-1 block text-xs font-normal text-neutral-500">JPG, PNG or WebP, up to 5 MB{member.id === 'demo-member-1' ? ' · uploads are unavailable in preview' : ''}</span></label></div>
+    <>
+      {(member.dashboardLoginCount ?? 0) <= 1 ? <ProfileWelcome memberId={member.id} name={member.name} /> : null}
+      <form onSubmit={handleSubmit} className="hub-profile-editor space-y-5 bg-white">
+      <section aria-labelledby="profile-identity" className="space-y-4">
+        <div><h2 id="profile-identity" className="text-lg font-semibold text-[#171412]">Profile identity</h2><p className="mt-1 text-sm leading-6 text-neutral-500">This is how your awardee profile starts.</p></div>
+        <div className="flex items-center gap-4"><MemberAvatar src={member.avatarUrl} initials={member.avatarInitials} size={64} /><label className="min-w-0 text-sm font-medium">{uploading ? 'Saving photo…' : 'Your profile photo'}<input disabled={uploading || member.id === 'demo-member-1'} type="file" accept="image/*" onChange={event => void uploadPhoto(event.target.files?.[0])} className="mt-2 block w-full text-xs" /><span className="mt-1 block text-xs font-normal text-neutral-500">JPG, PNG or WebP, up to 5 MB{member.id === 'demo-member-1' ? ' · uploads are unavailable in preview' : ''}</span></label></div>
+      </section>
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-[16px] border border-orange-200 bg-[#FFF3E8] px-4 py-3">
         <div>
           <p className="text-sm font-extrabold text-[#171412]">Public profile sync</p>
@@ -80,9 +86,6 @@ export function ProfileSection() {
               <Link href={`/bio/${member.publicSlug}`}>View public profile</Link>
             </Button>
           ) : null}
-          <span className="rounded-full bg-white px-3 py-2 text-xs font-extrabold text-[#6C2600]">
-            {updatesRemaining} of {member.bioUpdateLimit} updates left
-          </span>
         </div>
       </div>
 
@@ -93,6 +96,8 @@ export function ProfileSection() {
       ) : null}
 
       <fieldset disabled={quotaExhausted || saving} className="space-y-5 disabled:opacity-65">
+        <legend className="mb-1 text-lg font-semibold text-[#171412]">Public profile details</legend>
+        <p className="-mt-3 text-sm leading-6 text-neutral-500">These fields appear on your public awardee page. Keep them clear and current.</p>
         <div className="grid gap-4 md:grid-cols-2">
           <ProfileField label="Headline" name="headline" defaultValue={member.headline} placeholder="Founder, researcher, changemaker" />
           <ProfileField label="Field" name="field" defaultValue={member.field} placeholder="Education, climate, health" />
@@ -105,6 +110,7 @@ export function ProfileSection() {
           <Textarea id="bio" name="bio" defaultValue={member.bio} placeholder="Write a concise awardee BIO for review." className="min-h-44 rounded-[16px] border-[#E7DDCF] text-base text-[#171412] placeholder:text-[#625B52]/60" />
         </div>
 
+        <div className="border-t border-[#E7DDCF] pt-5"><p className="text-lg font-semibold text-[#171412]">Who can find you?</p><p className="mt-1 text-sm leading-6 text-neutral-500">Choose how your public profile is discovered.</p></div>
         <div className="grid gap-3 sm:grid-cols-2">
           <ProfileToggle name="recruiterVisible" label="Recruiter visibility" defaultChecked={member.recruiterVisible} />
           <ProfileToggle name="emailVisible" label="Show email on profile" defaultChecked={member.emailVisible} />
@@ -121,7 +127,44 @@ export function ProfileSection() {
         {error ? <span role="alert" className="text-sm font-bold text-rose-700">{error}</span> : null}
         {warning ? <span role="status" className="text-sm font-bold text-amber-700">{warning}</span> : null}
       </div>
-    </form>
+      </form>
+    </>
+  )
+}
+
+function ProfileWelcome({ memberId, name }: { memberId: string; name: string }) {
+  const [open, setOpen] = useState(false)
+  const firstName = name.trim().split(/\s+/)[0] || 'there'
+  const storageKey = `afl:profile-welcome-seen:${memberId}`
+
+  useEffect(() => {
+    try {
+      if (!window.sessionStorage.getItem(storageKey)) setOpen(true)
+    } catch {
+      setOpen(true)
+    }
+  }, [storageKey])
+
+  function close() {
+    setOpen(false)
+    try { window.sessionStorage.setItem(storageKey, '1') } catch { /* Storage may be unavailable. */ }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(nextOpen) => nextOpen ? setOpen(true) : close()}>
+      <DialogContent className="w-[calc(100%_-_32px)] max-w-md rounded-3xl border-orange-100 bg-white p-6 text-neutral-950 sm:p-8">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-100 text-orange-700">
+          <UserRound className="h-6 w-6" aria-hidden="true" />
+        </div>
+        <DialogTitle className="mt-4 text-2xl font-semibold leading-tight">Welcome to your profile, {firstName}.</DialogTitle>
+        <DialogDescription className="text-sm leading-6 text-neutral-600">
+          This is where you shape how fellow awardees, partners, and recruiters discover your work. Add a clear photo, BIO, and public details to make your profile feel like you.
+        </DialogDescription>
+        <button type="button" onClick={close} className="mt-2 flex min-h-12 w-full items-center justify-center rounded-xl bg-orange-500 px-5 font-medium text-neutral-950 hover:bg-orange-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-orange-600">
+          Continue
+        </button>
+      </DialogContent>
+    </Dialog>
   )
 }
 

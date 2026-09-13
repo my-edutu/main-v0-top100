@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation'
 
 import { cn } from '@/lib/utils'
 import { isDashboardNavActive, primaryDashboardNav, type DashboardColor } from '../_lib/navigation'
-import { useDashboardBadges } from '../_providers/dashboard-badges'
 import { top100DashboardTheme } from '@/lib/dashboard/theme'
 
 const activeColorClasses: Record<DashboardColor, string> = {
@@ -19,7 +18,6 @@ const activeColorClasses: Record<DashboardColor, string> = {
 
 export function DashboardDesktopNav() {
   const pathname = usePathname()
-  const { unreadMessages } = useDashboardBadges()
 
   return (
     <aside className={`hub-desktop-nav hidden w-[88px] shrink-0 border-r lg:sticky lg:top-[60px] lg:flex lg:h-[calc(100dvh-60px)] lg:flex-col xl:w-[240px] ${top100DashboardTheme.nav}`}>
@@ -27,7 +25,7 @@ export function DashboardDesktopNav() {
         {primaryDashboardNav.map((item) => {
           const Icon = item.icon
           const active = isDashboardNavActive(pathname, item.href)
-          const badge = item.id === 'messages' ? unreadMessages : 0
+          const badge = 0
 
           return (
             <Link

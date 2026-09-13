@@ -5,14 +5,11 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   BellRing,
   ArrowUpRight,
-  X,
   CalendarDays,
-  Compass,
   MessageCircle,
   Sparkles,
   Trophy,
   UserRound,
-  type LucideIcon,
 } from 'lucide-react'
 
 import {
@@ -28,13 +25,10 @@ import {
 import { cn } from '@/lib/utils'
 import { DashboardCard } from './dashboard-card'
 import { discoverNav, meNav } from '../_lib/navigation'
-import {
-  selectHomePriority,
-  selectUpcomingInvitations,
-  type HomePriority,
-} from '../_lib/home-priority'
+import { selectUpcomingInvitations } from '../_lib/home-priority'
 import { useDashboardBadges } from '../_providers/dashboard-badges'
 import { useDashboardMember } from '../_providers/dashboard-member'
+import { AwardReadyWelcome } from './award-ready-welcome'
 
 type RecentItem = {
   id: string
@@ -46,21 +40,13 @@ type RecentItem = {
   unread: boolean
 }
 
-const priorityIcons: Record<HomePriority['kind'], LucideIcon> = {
-  membership: UserRound,
-  bio: UserRound,
-  award: Trophy,
-  messages: MessageCircle,
-  updates: BellRing,
-  discover: Compass,
-}
-
 const shortcutDescriptions: Record<string, string> = {
   Members: 'Meet fellow awardees',
   Opportunities: 'Find your next opening',
   Profile: 'Keep your BIO current',
-  'My award': 'Claim or track delivery',
+  'My award': 'Pay your award fee securely',
   'Portfolio cover': 'Create your magazine profile',
+  Posts: 'Write in your own words',
   'Get featured': 'Share your work with the team',
   'Schedule an interview': 'Email the team to arrange a time',
   'Contact the team': 'Ask a question or get support',
@@ -84,15 +70,12 @@ export function DashboardHome() {
   const { member } = useDashboardMember()
   const {
     awardNeedsAttention,
-    unreadMessages,
-    unreadUpdates,
     setUnreadMessages,
     setUnreadUpdates,
   } = useDashboardBadges()
   const [conversations, setConversations] = useState<ConversationSummary[]>([])
   const [invitations, setInvitations] = useState<EventInvitation[]>([])
   const [notifications, setNotifications] = useState<MemberNotification[]>([])
-  const [profileDismissed, setProfileDismissed] = useState(false)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
 
@@ -152,14 +135,7 @@ export function DashboardHome() {
     }
   }, [member.id, member.status, setUnreadMessages, setUnreadUpdates])
 
-  const profileNeedsAttention = !member.headline.trim() || !member.bio.trim() || member.profileStatus === 'draft'
-  const priority = selectHomePriority({
-    member,
-    awardNeedsAttention,
-    unreadMessages,
-    unreadUpdates,
-  })
-  const PriorityIcon = priorityIcons[priority.kind]
+  const showAwardWelcome = awardNeedsAttention
 
   const shortcuts = [discoverNav[0], discoverNav[2], meNav[0], meNav[1], meNav[4],
     { label:'Schedule an interview', href:'mailto:info@top100afl.com?subject=Interview%20scheduling%20request', icon:MessageCircle, color:'ember' as const },
@@ -177,6 +153,7 @@ export function DashboardHome() {
             ? 'Your RSVP is waiting'
             : `RSVP: ${invitation.rsvp}`,
         date: formatShortDate(invitation.event?.startAt),
+        cover: invitation.event?.cover ?? null,
         href: '/dashboard/discover/events',
       }))
 
@@ -216,15 +193,7 @@ export function DashboardHome() {
 
   return (
     <div className="hub-home">
-      {profileNeedsAttention && !profileDismissed && (
-        <aside className="hub-profile-reminder" aria-label="Profile reminder">
-          <div>
-            <p className="text-sm font-medium">Your story is still taking shape.</p>
-            <Link href="/dashboard/me/profile" className="inline-flex min-h-9 items-center text-xs font-medium underline decoration-1 underline-offset-4">Complete your profile</Link>
-          </div>
-          <button type="button" onClick={() => setProfileDismissed(true)} aria-label="Dismiss profile reminder" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full"><X size={18} aria-hidden="true" /></button>
-        </aside>
-      )}
+      {showAwardWelcome ? <AwardReadyWelcome memberId={member.id} name={member.name} /> : null}
       <section className="hub-welcome" aria-labelledby="hub-welcome-title">
         <h1 id="hub-welcome-title">{(member.dashboardLoginCount ?? 0) < 4 ? 'Congratulations' : 'Hey'}, {member.name.trim().split(/\s+/)[0]}.</h1>
         <p className="hub-welcome-description">Your people, opportunities, and latest updates.</p>
@@ -232,20 +201,22 @@ export function DashboardHome() {
       {loading && <p role="status" className="hub-status text-sm text-neutral-600">Loading your latest activity…</p>}
       {loadError && <p role="status" className="hub-status rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-sm leading-5 text-neutral-700">Some activity couldn’t load. We’ll retry automatically; you can also open Messages, Events, or Updates directly.</p>}
 
-      <section className="hub-next-move" aria-labelledby="next-move-title">
-        <p id="next-move-title" className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#625B52]">
-          Your next move
-        </p>
-        <DashboardCard
-          image={false}
-          href={member.status === 'pending' ? '/dashboard/me/award' : priority.href}
-          title={member.status === 'pending' || priority.kind === 'award' ? 'Get your award here' : priority.title}
-          description={member.status === 'pending' ? 'Explore your award and the next steps to receive it.' : priority.description}
-          icon={member.status === 'pending' ? Trophy : PriorityIcon}
-          color={priority.color}
-          compact
-        />
-      </section>
+      {awardNeedsAttention ? (
+        <section className="hub-next-move" aria-labelledby="next-move-title">
+          <p id="next-move-title" className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#625B52]">
+            Your next move
+          </p>
+          <DashboardCard
+            image={false}
+            href="/dashboard/me/award"
+            title="Your award is ready"
+            description="Pay the award fee with Bachs; delivery follows separately."
+            icon={Trophy}
+            color="saffron"
+            compact
+          />
+        </section>
+      ) : null}
 
       <section aria-labelledby="coming-up-title" className="hub-upcoming-events min-w-0 md:order-4">
         <div className="flex items-center justify-between gap-3">
@@ -260,12 +231,13 @@ export function DashboardHome() {
               key={item.id}
               href={item.href}
               className="hub-upcoming-event focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-2"
+              style={item.cover ? { backgroundImage: `linear-gradient(180deg, rgba(12,12,16,.08) 15%, rgba(12,12,16,.88) 100%), url(${item.cover})` } : undefined}
             >
-              <span className="min-w-0">
-                <span className="block break-words text-sm font-semibold text-[#171412]">{item.title}</span>
-                <span className="mt-0.5 block truncate text-xs font-normal text-[#625B52]">{item.detail}</span>
+              <span className="relative z-10 min-w-0 self-end text-white">
+                <span className="block break-words text-sm font-semibold text-white">{item.title}</span>
+                <span className="mt-0.5 block truncate text-xs font-normal text-white/80">{item.detail}</span>
               </span>
-              <span className="text-xs font-medium text-[#171717]">{item.date}</span>
+              <span className="relative z-10 text-xs font-medium text-white/90">{item.date}</span>
             </Link>
           )) : (
             <div className="py-3"><p className="text-sm text-[#625B52]">No upcoming events yet.</p><Link className="mt-1 inline-flex min-h-11 items-center gap-1 text-xs font-medium text-[#171717]" href="/dashboard/discover/events">View events <ArrowUpRight size={14} aria-hidden="true" /></Link></div>

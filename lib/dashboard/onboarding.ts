@@ -1,3 +1,6 @@
+export const MIN_INTERESTS = 1
+export const MAX_INTERESTS = 10
+
 export const onboardingFields = [
   {
     key: 'headline',
@@ -18,10 +21,10 @@ export const onboardingFields = [
   {
     key: 'field',
     title: 'What are your interests?',
-    hint: 'Add five interests. Each one becomes a tag on this form.',
+    hint: 'Add at least one interest. You can add up to ten, and each becomes a tag on this form.',
     placeholder: 'e.g. Education, technology or public health',
     min: 2,
-    max: 160,
+    max: 320,
   },
   {
     key: 'bio',
@@ -51,6 +54,15 @@ export function validateOnboarding(
         ? (values[field.key] as string).trim()
         : ''
     if (field.key === 'bio' && !value) continue
+    if (field.key === 'field') {
+      const interests = value.split(',').map(interest => interest.trim()).filter(Boolean)
+      if (interests.length < MIN_INTERESTS)
+        return `${field.title} Please add at least one interest.`
+      if (interests.length > MAX_INTERESTS)
+        return `${field.title} Please add no more than ${MAX_INTERESTS} interests.`
+      if (interests.some(interest => interest.length > 28))
+        return `${field.title} Keep each interest to 28 characters.`
+    }
     if (value.length < field.min || value.length > field.max)
       return `${field.title} Please use ${field.min}–${field.max} characters.`
   }

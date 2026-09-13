@@ -3,7 +3,8 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { ArrowLeft, Bell } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { ArrowLeft, Bell, Search } from 'lucide-react'
 
 import { resolveDashboardTitle } from '../_lib/navigation'
 import { useDashboardBadges } from '../_providers/dashboard-badges'
@@ -27,7 +28,19 @@ export function DashboardAppBar() {
   const { member } = useDashboardMember()
   const { unreadUpdates } = useDashboardBadges()
   const isHome = pathname === '/dashboard'
+  const isConversation = pathname.startsWith('/dashboard/messages/')
+  const isMembersRoute = pathname === '/dashboard/discover/members'
+  const [isScrolled, setIsScrolled] = useState(false)
   const title = resolveDashboardTitle(pathname)
+
+  useEffect(() => {
+    if (!isMembersRoute) return
+
+    const handleScroll = () => setIsScrolled(window.scrollY > 96)
+    handleScroll()
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [isMembersRoute])
 
   return (
     <header className={`hub-app-bar sticky top-0 z-40 h-[60px] border-b text-[#171412] ${top100DashboardTheme.appBar}`}>
@@ -58,11 +71,21 @@ export function DashboardAppBar() {
             >
               <ArrowLeft className="h-5 w-5" strokeWidth={2} aria-hidden="true" />
             </button>
-            <span className="truncate text-base font-semibold tracking-tight sm:text-lg">{title}</span>
+            {!isConversation && <span className="truncate text-base font-semibold tracking-tight sm:text-lg">{title}</span>}
           </div>
         )}
 
         <div className="ml-auto flex items-center gap-1">
+          {isMembersRoute && isScrolled ? (
+            <button
+              type="button"
+              aria-label="Search awardees"
+              onClick={() => window.dispatchEvent(new Event('dashboard:focus-awardee-search'))}
+              className="flex h-11 w-11 items-center justify-center rounded-xl text-[#171412] transition hover:bg-orange-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-2"
+            >
+              <Search className="h-5 w-5" strokeWidth={2.35} aria-hidden="true" />
+            </button>
+          ) : null}
           <Link
             href="/dashboard/updates"
             aria-label={unreadUpdates > 0 ? `Updates (${unreadUpdates} unread)` : 'Updates'}

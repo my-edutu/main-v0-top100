@@ -14,6 +14,8 @@ describe('mandatory onboarding', () => {
   it('rejects missing, whitespace-only, short and oversized fields before completion', () => {
     expect(validateOnboarding(profile)).toBeNull()
     for (const key of ['headline', 'location', 'field']) expect(validateOnboarding({ ...profile, [key]: ' ' })).not.toBeNull()
+    expect(validateOnboarding({ ...profile, field: 'Education, Climate Action' })).toBeNull()
+    expect(validateOnboarding({ ...profile, field: Array.from({ length: 11 }, (_, index) => `Interest ${index}`).join(', ') })).toContain('no more than 10')
     expect(validateOnboarding({ ...profile, bio: '' })).toBeNull()
     expect(validateOnboarding({ ...profile, bio: 'Too short' })).not.toBeNull()
     expect(validateOnboarding({ ...profile, headline: 'a'.repeat(161) })).not.toBeNull()
