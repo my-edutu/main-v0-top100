@@ -1,3 +1,4 @@
+import sharp from 'sharp'
 import { NextRequest } from 'next/server'
 import { beforeEach, describe, expect, it } from 'vitest'
 
@@ -277,6 +278,22 @@ describe('interactive local dashboard demo API', () => {
     const selected = await handleDemoMemberRequest(selectedRequest, [...path, id, 'select'], store, 'development')
     expect((await selected.json()).generation.status).toBe('selected')
     expect(store.profile.avatarInitials).toBe('AO')
+  })
+
+  it('renders valid demo portraits through the shared cover renderer', async () => {
+    const portrait = await sharp({ create: { width: 320, height: 480, channels: 3, background: '#c9a56a' } }).jpeg().toBuffer()
+    const form = new FormData()
+    form.set('portrait', new File([portrait], 'portrait.jpg', { type: 'image/jpeg' }))
+    form.set('tailoring', 'male')
+    form.set('consent', 'true')
+    form.set('fields', JSON.stringify({ name: 'Demo Leader', school: 'University of Lagos' }))
+    const request = new NextRequest('http://localhost:3000/api/member/portfolio-cover/generations', { method: 'POST', headers: { host: 'localhost:3000', cookie: `${DEV_DASHBOARD_COOKIE}=${DEV_DASHBOARD_COOKIE_VALUE}` }, body: form })
+    const response = await handleDemoMemberRequest(request, ['portfolio-cover', 'generations'], store, 'development')
+    const data = await response.json()
+
+    expect(response.status).toBe(202)
+    expect(data.generation.options['executive-charcoal']).toMatch(/^data:image\/png;base64,/)
+    expect(data.generation.options['leadership-ivory']).toMatch(/^data:image\/png;base64,/)
   })
 
   it('makes unsupported demo operations visible', async () => {

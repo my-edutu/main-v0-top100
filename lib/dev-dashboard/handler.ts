@@ -13,6 +13,8 @@ import { awardReturnPath } from '@/lib/awards/return-url'
 import { needsClaim } from '@/lib/awards/status'
 import { validateOnboarding } from '@/lib/dashboard/onboarding'
 import type { PortfolioCoverFields, PortfolioCoverGeneration, PortfolioVariant } from '@/lib/portfolio-cover/types'
+import { preparePortrait } from '@/lib/portfolio-cover/image'
+import { renderPortfolioCover } from '@/lib/portfolio-cover/render-cover'
 import { CONTRIBUTION_AREAS, contributionSchema } from '@/lib/community-contributions'
 
 function json(data: unknown, status = 200): Response {
@@ -560,6 +562,30 @@ function demoCoverData(label: string, name: string, fields: PortfolioCoverFields
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
 }
 
+async function demoCoverOption(input: {
+  label: string
+  name: string
+  fields: PortfolioCoverFields
+  tailoring: 'male' | 'female'
+  variant: PortfolioVariant
+  portrait: Buffer
+}) {
+  try {
+    const portrait = await preparePortrait(input.portrait)
+    const rendered = await renderPortfolioCover({
+      portrait,
+      memberName: input.name,
+      tailoring: input.tailoring,
+      variant: input.variant,
+      fields: input.fields,
+    })
+    return `data:image/png;base64,${rendered.toString('base64')}`
+  } catch {
+    // Keep the local harness usable with intentionally tiny or invalid test fixtures.
+    return demoCoverData(input.label, input.name, input.fields)
+  }
+}
+
 async function routePortfolioCover(request: NextRequest, path: string[], store: DemoDashboardStore) {
   if (path[1] !== 'generations') return null
   if (path.length === 3 && path[2] === 'current' && request.method === 'GET') return json({ enabled: true, generation: store.portfolioCover })
@@ -572,9 +598,15 @@ async function routePortfolioCover(request: NextRequest, path: string[], store: 
     if (!tailoring || form.get('consent') !== 'true') return json({ message: 'Choose Male or Female and accept consent.' }, 400)
     let fields: PortfolioCoverFields = {}
     try { fields = JSON.parse(String(form.get('fields') ?? '{}')) as PortfolioCoverFields } catch { return json({ message: 'Invalid details.' }, 400) }
+    const portrait = Buffer.from(await file.arrayBuffer())
     const id = nextId(store, 'demo-cover')
     const now = new Date().toISOString()
-    const generation: PortfolioCoverGeneration = { id, memberId: DEMO_MEMBER_ID, status: 'ready', tailoring, fields, attempt: 1, options: { 'executive-charcoal': demoCoverData('EXECUTIVE CHARCOAL', String(fields.name ?? store.profile.name), fields), 'leadership-ivory': demoCoverData('LEADERSHIP IVORY', String(fields.name ?? store.profile.name), fields) }, createdAt: now, updatedAt: now }
+    const name = String(fields.name ?? store.profile.name)
+    const [executiveCharcoal, leadershipIvory] = await Promise.all([
+      demoCoverOption({ label: 'EXECUTIVE CHARCOAL', name, fields, tailoring, variant: 'executive-charcoal', portrait }),
+      demoCoverOption({ label: 'LEADERSHIP IVORY', name, fields, tailoring, variant: 'leadership-ivory', portrait }),
+    ])
+    const generation: PortfolioCoverGeneration = { id, memberId: DEMO_MEMBER_ID, status: 'ready', tailoring, fields, attempt: 1, options: { 'executive-charcoal': executiveCharcoal, 'leadership-ivory': leadershipIvory }, createdAt: now, updatedAt: now }
     store.portfolioCover = generation
     return json({ generation }, 202)
   }
