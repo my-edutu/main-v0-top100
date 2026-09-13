@@ -22,6 +22,7 @@ type DashboardCardProps = {
   badge?: number | string
   compact?: boolean
   image?: boolean
+  external?: boolean
 }
 
 export function DashboardCard({
@@ -33,11 +34,14 @@ export function DashboardCard({
   badge,
   compact = false,
   image = true,
+  external = false,
 }: DashboardCardProps) {
   const photos: Record<string, string> = { Members: '/dashboard/cards/community.jpg', Groups: '/dashboard/cards/community.jpg', Opportunities: '/dashboard/cards/opportunities.jpg', Saved: '/dashboard/cards/portfolio.jpg', Events: '/dashboard/cards/community.jpg', Magazine: '/dashboard/cards/portfolio.jpg', Profile: '/dashboard/cards/profile.jpg', 'Portfolio cover': '/dashboard/cards/portfolio.jpg' }
   return (
     <Link
       href={href}
+      target={external ? '_blank' : undefined}
+      rel={external ? 'noopener noreferrer' : undefined}
       className={cn(
         'hub-card group relative flex rounded-[18px] border p-4 font-sans transition-colors duration-200 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#171412] focus-visible:ring-offset-2 focus-visible:ring-offset-[#FBF7EF] motion-reduce:transform-none motion-reduce:transition-none sm:p-5',
         compact ? 'min-h-[92px] items-center gap-3' : 'min-h-[156px] flex-col',

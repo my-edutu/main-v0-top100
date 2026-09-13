@@ -40,6 +40,8 @@ type RecentItem = {
   unread: boolean
 }
 
+const INTERVIEW_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSc-UAJ-UamjE4Lqa8fwv3Z9qNGebRZS8AZYLMAKNbKs4IJD5A/viewform'
+
 const shortcutDescriptions: Record<string, string> = {
   Members: 'Meet fellow awardees',
   Opportunities: 'Find your next opening',
@@ -138,7 +140,7 @@ export function DashboardHome() {
   const showAwardWelcome = awardNeedsAttention
 
   const shortcuts = [discoverNav[0], discoverNav[2], meNav[0], meNav[1], meNav[4],
-    { label:'Schedule an interview', href:'mailto:info@top100afl.com?subject=Interview%20scheduling%20request', icon:MessageCircle, color:'ember' as const },
+    { label:'Schedule an interview', href:INTERVIEW_FORM_URL, icon:MessageCircle, color:'ember' as const, external: true },
     { label:'Contact the team', href:'mailto:info@top100afl.com', icon:MessageCircle, color:'forest' as const },
     { label:'Partner with us', href:'/partnership', icon:UserRound, color:'cobalt' as const },
   ]
@@ -260,6 +262,7 @@ export function DashboardHome() {
               description={shortcutDescriptions[item.label]}
               icon={item.icon}
               color={item.color}
+              external={'external' in item ? item.external : undefined}
               compact
             />
           ))}
