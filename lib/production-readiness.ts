@@ -25,6 +25,16 @@ const GIG_SETTINGS = [
   'GIG_SENDER_CITY',
 ] as const
 
+// Award-fee launch is owned by Bachs. Courier configuration belongs to the
+// later delivery phase and is therefore deliberately kept out of this gate.
+const BACHS_SETTINGS = [
+  'BACHS_API_BASE_URL',
+  'BACHS_API_KEY',
+  'BACHS_WEBHOOK_SECRET',
+  'BACHS_ORGANIZATION_ID',
+  'BACHS_CHECKOUT_HOSTS',
+] as const
+
 const PORTFOLIO_SETTINGS = [
   'OPENAI_API_KEY',
   'PORTFOLIO_SOURCE_BUCKET',
@@ -104,22 +114,16 @@ export function evaluateProductionReadiness(
   if (options.requireAwards && !enabled(env.AWARD_CHECKOUT_ENABLED)) {
     issues.push({
       key: 'AWARD_CHECKOUT_ENABLED',
-      message: 'AWARD_CHECKOUT_ENABLED must be true for the full award launch scope.',
+      message: 'AWARD_CHECKOUT_ENABLED must be true for the full award-fee launch scope.',
     })
   }
 
-  if (
-    (options.requireAwards || enabled(env.AWARD_CHECKOUT_ENABLED)) &&
-    !present(env, 'PAYSTACK_SECRET_KEY')
-  ) {
-    issues.push({ key: 'PAYSTACK_SECRET_KEY', message: 'Paystack is required when award checkout is enabled.' })
-  }
+  const awardFeeLaunchRequested = options.requireAwards || enabled(env.AWARD_CHECKOUT_ENABLED)
 
-  if (options.requireAwards && !enabled(env.GIG_ENABLED)) {
-    issues.push({
-      key: 'GIG_ENABLED',
-      message: 'GIG_ENABLED must be true for the full award launch scope.',
-    })
+  if (awardFeeLaunchRequested) {
+    for (const key of BACHS_SETTINGS) {
+      if (!present(env, key)) issues.push({ key, message: `${key} is required when Bachs award checkout is enabled.` })
+    }
   }
 
   if (options.requirePortfolioImages && !enabled(env.PORTFOLIO_IMAGE_GENERATION_ENABLED)) {
@@ -150,7 +154,7 @@ export function evaluateProductionReadiness(
     }
   }
 
-  if (options.requireAwards || enabled(env.GIG_ENABLED)) {
+  if (enabled(env.GIG_ENABLED)) {
     for (const key of GIG_SETTINGS) {
       if (!present(env, key)) issues.push({ key, message: `${key} is required when GIG is enabled.` })
     }
@@ -160,7 +164,7 @@ export function evaluateProductionReadiness(
 }
 
 export function isAwardCheckoutEnabled(env: RuntimeEnvironment) {
-  return enabled(env.AWARD_CHECKOUT_ENABLED) && present(env, 'PAYSTACK_SECRET_KEY')
+  return enabled(env.AWARD_CHECKOUT_ENABLED) && BACHS_SETTINGS.every((key) => present(env, key))
 }
 
 export function captchaVerificationAllowed(env: RuntimeEnvironment, nodeEnv: string | undefined) {

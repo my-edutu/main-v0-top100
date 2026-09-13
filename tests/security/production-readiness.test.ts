@@ -40,20 +40,30 @@ describe('production readiness configuration', () => {
     expect(evaluateProductionReadiness(completeCoreEnv)).toEqual({ ready: true, issues: [] })
   })
 
-  it('requires Paystack when award checkout is explicitly enabled', () => {
+  it('requires Bachs when award checkout is explicitly enabled', () => {
     const result = evaluateProductionReadiness({
       ...completeCoreEnv,
       AWARD_CHECKOUT_ENABLED: 'true',
     })
 
     expect(result.ready).toBe(false)
-    expect(result.issues.map((issue) => issue.key)).toContain('PAYSTACK_SECRET_KEY')
+    expect(result.issues.map((issue) => issue.key)).toEqual([
+      'BACHS_API_BASE_URL',
+      'BACHS_API_KEY',
+      'BACHS_WEBHOOK_SECRET',
+      'BACHS_ORGANIZATION_ID',
+      'BACHS_CHECKOUT_HOSTS',
+    ])
     expect(isAwardCheckoutEnabled({ ...completeCoreEnv, AWARD_CHECKOUT_ENABLED: 'true' })).toBe(false)
     expect(
       isAwardCheckoutEnabled({
         ...completeCoreEnv,
         AWARD_CHECKOUT_ENABLED: 'true',
-        PAYSTACK_SECRET_KEY: 'paystack-secret-key',
+        BACHS_API_BASE_URL: 'https://sandbox-api.bachs.io',
+        BACHS_API_KEY: 'sk_sandbox_test-key',
+        BACHS_WEBHOOK_SECRET: 'bachs-webhook-secret',
+        BACHS_ORGANIZATION_ID: 'org-test',
+        BACHS_CHECKOUT_HOSTS: 'checkout.bachs.io',
       }),
     ).toBe(true)
   })
@@ -73,38 +83,30 @@ describe('production readiness configuration', () => {
     ])
   })
 
-  it('requires every payment and courier dependency for the full award launch scope', () => {
+  it('requires the feature flag and Bachs settings for the full award-fee launch scope', () => {
     const result = evaluateProductionReadiness(completeCoreEnv, { requireAwards: true })
 
     expect(result.ready).toBe(false)
     expect(result.issues.map((issue) => issue.key)).toEqual([
       'AWARD_CHECKOUT_ENABLED',
-      'PAYSTACK_SECRET_KEY',
-      'GIG_ENABLED',
-      'GIG_API_BASE_URL',
-      'GIG_API_USERNAME',
-      'GIG_API_PASSWORD',
-      'GIG_SENDER_NAME',
-      'GIG_SENDER_PHONE',
-      'GIG_SENDER_ADDRESS',
-      'GIG_SENDER_CITY',
+      'BACHS_API_BASE_URL',
+      'BACHS_API_KEY',
+      'BACHS_WEBHOOK_SECRET',
+      'BACHS_ORGANIZATION_ID',
+      'BACHS_CHECKOUT_HOSTS',
     ])
   })
 
-  it('accepts the full award launch scope only when checkout and courier are complete', () => {
+  it('accepts the award-fee launch without requiring courier credentials', () => {
     const result = evaluateProductionReadiness(
       {
         ...completeCoreEnv,
         AWARD_CHECKOUT_ENABLED: 'true',
-        PAYSTACK_SECRET_KEY: 'paystack-secret-key',
-        GIG_ENABLED: 'true',
-        GIG_API_BASE_URL: 'https://api.giglogistics.com',
-        GIG_API_USERNAME: 'gig-user',
-        GIG_API_PASSWORD: 'gig-password',
-        GIG_SENDER_NAME: 'Top100 AFL',
-        GIG_SENDER_PHONE: '+2348000000000',
-        GIG_SENDER_ADDRESS: 'Launch office',
-        GIG_SENDER_CITY: 'Lagos',
+        BACHS_API_BASE_URL: 'https://api.bachs.io',
+        BACHS_API_KEY: 'sk_live_test-key',
+        BACHS_WEBHOOK_SECRET: 'bachs-webhook-secret',
+        BACHS_ORGANIZATION_ID: 'org-live',
+        BACHS_CHECKOUT_HOSTS: 'checkout.bachs.io',
       },
       { requireAwards: true },
     )
