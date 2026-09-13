@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace new Paystack award checkout with a secure Bachs-hosted award-fee payment flow charging NGN 20,000 or USD 20, while keeping delivery and GIG Logistics entirely separate.
+**Goal:** Replace new Paystack award checkout with a secure Bachs-hosted award-fee payment flow charging NGN 25,000 or USD 20, while keeping delivery and GIG Logistics entirely separate.
 
 **Architecture:** Keep `award_orders` as the member-owned aggregate, add an additive payment summary plus one immutable row per checkout attempt, and use a separate webhook event ledger for at-least-once delivery. Bachs-specific HTTP/signature code lives in focused server-only modules; member APIs expose provider-neutral payment views; the dashboard renders unpaid, confirming, and confirmed panels without invoking delivery code.
 
@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - New member award payments use Bachs only; no new Paystack Checkout Session may be created.
-- NGN price is exactly `2000000` minor units (`20000.00`); USD price is exactly `2000` cents (`20.00`).
+- NGN price is exactly `2500000` minor units (`25000.00`); USD price is exactly `2000` cents (`20.00`).
 - The browser may send only `NGN` or `USD`; it never sends or controls an amount.
 - A redirect is never proof of payment; only a signature-, timestamp-, currency-, and amount-verified Bachs event confirms payment.
 - A Bachs payment path must never call GIG Logistics, collect a delivery address, book a shipment, or display tracking.
@@ -193,12 +193,12 @@ Cover exact defaults, overrides, formatting, and malformed decimals:
 
 ```ts
 expect(awardFee('NGN')).toEqual({
-  currency: 'NGN', amountMinor: 2_000_000, bachsAmount: '20000.00', display: '₦20,000',
+  currency: 'NGN', amountMinor: 2_500_000, bachsAmount: '25000.00', display: '₦25,000',
   priceVersion: 'afl-award-2026-v1',
 })
 expect(awardFee('USD').amountMinor).toBe(2_000)
 expect(parseBachsAmount('20.00', 'USD')).toBe(2_000)
-expect(parseBachsAmount('20000.00', 'NGN')).toBe(2_000_000)
+expect(parseBachsAmount('25000.00', 'NGN')).toBe(2_500_000)
 expect(() => parseBachsAmount('20.001', 'USD')).toThrow()
 expect(() => parseBachsAmount('NaN', 'USD')).toThrow()
 ```
@@ -277,7 +277,7 @@ Assert the exact server-owned payload for NGN and USD:
 
 ```ts
 expect(buildCheckoutRequest(ngnInput)).toMatchObject({
-  pricing: { currency: 'USD', amount: '20.00', currency_options: { NGN: '20000.00' } },
+  pricing: { currency: 'USD', amount: '20.00', currency_options: { NGN: '25000.00' } },
   billing_currency: 'NGN',
   reference: ngnInput.reference,
   metadata: {
@@ -486,7 +486,7 @@ Cover a table of outcomes:
 
 ```ts
 it.each([
-  ['NGN', '20000.00', 2_000_000],
+  ['NGN', '25000.00', 2_500_000],
   ['USD', '20.00', 2_000],
 ])('confirms exact %s payment once', async (currency, amount, minor) => { /* signed fixture */ })
 ```
@@ -646,7 +646,7 @@ Test:
 1. GET payment begins unpaid with NGN/USD options.
 2. POST checkout accepts only NGN/USD and returns a local dashboard callback URL.
 3. The simulated callback/next GET becomes paid exactly once.
-4. The stored amount is `2000000` NGN or `2000` USD.
+4. The stored amount is `2500000` NGN or `2000` USD.
 5. No shipping amount/address/GIG status appears.
 
 - [ ] **Step 2: Run the demo tests and verify old combined-flow failures**
@@ -761,7 +761,7 @@ BACHS_ORGANIZATION_ID=org_replace_me
 BACHS_WEBHOOK_TOLERANCE_SECONDS=300
 BACHS_CHECKOUT_HOSTS=checkout.bachs.io
 NEXT_PUBLIC_SITE_URL=https://your-domain.example
-AWARD_FEE_NGN_MINOR=2000000
+AWARD_FEE_NGN_MINOR=2500000
 AWARD_FEE_USD_MINOR=2000
 AWARD_PRICE_VERSION=afl-award-2026-v1
 ```

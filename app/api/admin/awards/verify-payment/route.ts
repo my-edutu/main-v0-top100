@@ -1,5 +1,5 @@
 // app/api/admin/awards/verify-payment/route.ts
-// Admin-only fallback for the case the signature-verified Paystack webhook
+// Admin-only fallback for the case the signature-verified legacy Paystack webhook
 // never arrives at all — most commonly because the webhook URL is
 // misconfigured in the Paystack dashboard, which cannot be verified from this
 // environment. Without this route, money captured in that scenario has zero
@@ -29,6 +29,12 @@ import { mapAwardOrder } from '@/lib/awards/server'
 
 export const runtime = 'nodejs'
 
+function isMissingPaymentAttemptTable(error: { code?: string; message?: string } | null): boolean {
+  if (!error) return false
+  if (error.code === 'PGRST204' || error.code === 'PGRST205' || error.code === '42P01') return true
+  return /relation .*award_payment_attempts.* does not exist|schema cache/i.test(error.message ?? '')
+}
+
 export async function POST(request: NextRequest) {
   const adminCheck = await requireAdmin(request)
   if ('error' in adminCheck) return adminCheck.error
@@ -40,8 +46,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Invalid request body.' }, { status: 400 })
   }
 
-  const { orderId } = body ?? {}
+  const { orderId, attemptId, provider } = body ?? {}
   if (!orderId) return NextResponse.json({ message: 'orderId is required.' }, { status: 400 })
+
+  // This endpoint is a temporary recovery path for historical Paystack
+  // references. A Bachs attempt is confirmed only by its signed webhook; it
+  // must never be routed through the old Paystack verifier.
+  if (provider && provider !== 'paystack') {
+    return NextResponse.json(
+      { message: 'Only historical Paystack payments can use this verification endpoint.' },
+      { status: 400 },
+    )
+  }
 
   const supabase = createAdminClient()
   const { data: order, error: lookupError } = await supabase
@@ -56,11 +72,69 @@ export async function POST(request: NextRequest) {
   }
   if (!order) return NextResponse.json({ message: 'Award order not found.' }, { status: 404 })
 
+  if (order.award_payment_status === 'paid' || order.award_paid_attempt_id) {
+    return NextResponse.json(
+      { message: 'This order has already been recorded as paid by the award payment flow.' },
+      { status: 409 },
+    )
+  }
+
+  // The summary guard above is the normal path. Also inspect the attempt
+  // ledger when available so a partially updated order cannot be confirmed
+  // through this legacy route after a Bachs success was already recorded.
+  let paymentAttempts: any[] = []
+  try {
+    const attemptsResult = await supabase
+      .from('award_payment_attempts')
+      .select('id, provider, status, charge_scope, provider_reference')
+      .eq('order_id', orderId)
+
+    if (attemptsResult.error) {
+      if (!isMissingPaymentAttemptTable(attemptsResult.error)) {
+        console.error('[admin-awards-verify] Failed to inspect payment attempts:', attemptsResult.error)
+        return NextResponse.json({ message: 'Could not validate this payment.' }, { status: 500 })
+      }
+    } else {
+      paymentAttempts = (attemptsResult.data ?? []) as any[]
+    }
+  } catch {
+    // A pre-cutover deployment may not have the additive attempt table yet.
+    // The stored Paystack reference remains the only historical evidence in
+    // that state, so the legacy recovery path can continue safely.
+  }
+
+  if (paymentAttempts.some((attempt) => attempt.provider === 'bachs' && ['succeeded', 'duplicate_succeeded'].includes(attempt.status))) {
+    return NextResponse.json(
+      { message: 'This order has a recorded Bachs payment and cannot be verified with Paystack.' },
+      { status: 409 },
+    )
+  }
+
   if (!order.paystack_reference) {
     return NextResponse.json(
       { message: 'This order has no Paystack reference to verify — the member has never started checkout.' },
       { status: 400 },
     )
+  }
+
+  if (attemptId) {
+    const attempt = paymentAttempts.find((candidate) => candidate.id === attemptId)
+
+    if (!attempt || attempt.provider !== 'paystack' || attempt.charge_scope !== 'legacy_award_plus_delivery') {
+      return NextResponse.json(
+        { message: 'Only a historical Paystack award attempt can be verified here.' },
+        { status: 400 },
+      )
+    }
+
+    // Never let a caller provide a provider reference that differs from the
+    // reference already stored on the legacy order.
+    if (attempt.provider_reference && attempt.provider_reference !== order.paystack_reference) {
+      return NextResponse.json(
+        { message: 'The requested Paystack attempt does not match this order.' },
+        { status: 400 },
+      )
+    }
   }
 
   let verification: { status: string; amountKobo: number }

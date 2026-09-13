@@ -30,14 +30,14 @@ export async function GET() {
   }
 
   if (!order) return NextResponse.json({ message: 'No award order found.' }, { status: 404 })
-  if (!order.gig_waybill) return NextResponse.json({ order: mapAwardOrder(order) })
+  if (!order.gig_waybill) return NextResponse.json({ order: mapAwardOrder(order), message: 'A waybill will be available once your award is dispatched.' })
 
   let tracking
   try {
     tracking = await getCourier().track(order.gig_waybill)
   } catch (trackingError) {
     console.error('[award-track] tracking lookup failed', order.id, trackingError)
-    return NextResponse.json({ order: mapAwardOrder(order) })
+    return NextResponse.json({ order: mapAwardOrder(order), message: 'The courier could not be reached. Showing the last saved delivery status.' })
   }
 
   const columns: Record<string, unknown> = {}
@@ -56,18 +56,25 @@ export async function GET() {
   }
 
   if (Object.keys(columns).length === 0) {
-    return NextResponse.json({ order: mapAwardOrder(order) })
+    return NextResponse.json({ order: mapAwardOrder(order), message: 'No new courier update is available. Showing the last saved delivery status.' })
   }
 
   const { data: updated, error } = await supabase
     .from('award_orders')
     .update(columns)
     .eq('id', order.id)
+    .eq('status', order.status)
     .select('*')
     .maybeSingle()
 
   if (error) {
     console.error('[award-track] failed to update status', order.id, error)
+    return NextResponse.json({ message: 'Could not save the delivery update. Please try again.' }, { status: 503 })
+  }
+  if (!updated) {
+    const latest = await loadOrderForUser(supabase, user.id)
+    if (latest.error || !latest.order) return NextResponse.json({ message: 'Your order changed. Please reload the page.' }, { status: 409 })
+    return NextResponse.json({ order: mapAwardOrder(latest.order) })
   }
 
   // Only once the courier-driven advance is actually persisted, and only for

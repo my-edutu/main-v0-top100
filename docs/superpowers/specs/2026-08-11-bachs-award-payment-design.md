@@ -1,6 +1,8 @@
 # Bachs Award Payment — Phase One
 
 **Date:** 2026-08-11
+
+**Updated 2026-09-08:** The user confirmed full Bachs cutover with the NGN award fee set to ₦25,000. USD remains $20; delivery stays separate. See `docs/bachs-integration.md` for current setup and rollout prerequisites.
 **Status:** Approved specification, ready for implementation planning
 
 ## Context
@@ -14,7 +16,7 @@ The product decision is now different:
 
 - Bachs completely replaces Paystack for all new member award payments.
 - The award fee is paid before delivery is arranged.
-- The award costs **NGN 20,000** when paying in NGN and **USD 20** when paying in USD.
+- The award costs **NGN 25,000** when paying in NGN and **USD 20** when paying in USD.
 - Every member outside the NGN path pays the USD price. The application supports only NGN and USD
   price selection in phase one; Bachs handles the payment methods available for the selected
   currency.
@@ -27,7 +29,7 @@ This is a payment cutover, not a visual redesign of the dashboard.
 
 1. Let an authenticated awardee pay the award fee from the Awards section through Bachs hosted
    checkout.
-2. Charge only a server-owned price: NGN 20,000 or USD 20.
+2. Charge only a server-owned price: NGN 25,000 or USD 20.
 3. Confirm payment only from a valid, signed, amount-checked Bachs webhook.
 4. Keep a durable, auditable record of every checkout attempt and webhook delivery.
 5. Separate award payment state from delivery state so later GIG work can evolve independently.
@@ -55,9 +57,9 @@ The card contains:
 - Africa Future Leaders Award;
 - a short explanation that the award fee and delivery are paid separately;
 - a two-option currency selector:
-  - `NGN — ₦20,000`
+  - `NGN — ₦25,000`
   - `USD — $20`;
-- a primary action such as `Pay ₦20,000 with Bachs` or `Pay $20 with Bachs`;
+- a primary action such as `Pay ₦25,000 with Bachs` or `Pay $20 with Bachs`;
 - reassurance that available payment methods are shown securely on Bachs checkout.
 
 NGN is the initial selection. The member can explicitly switch to USD. No automatic country
@@ -142,7 +144,7 @@ Create one immutable business record for every provider checkout attempt:
 | `charge_scope` | text not null | `award_fee`; legacy backfill uses `legacy_award_plus_delivery` |
 | `status` | text not null | `creating`, `open`, `processing`, `succeeded`, `duplicate_succeeded`, `failed`, `expired`, `cancelled`, `underpaid`, `overpaid`, `refunded`, `exception` |
 | `price_version` | text not null | `afl-award-2026-v1` |
-| `requested_amount_minor` | bigint not null | `2000000` for NGN or `2000` for USD |
+| `requested_amount_minor` | bigint not null | `2500000` for NGN or `2000` for USD |
 | `captured_amount_minor` | bigint nullable | Exact gross amount confirmed by Bachs |
 | `currency` | char(3) not null | `NGN` or `USD` |
 | `provider_reference` | text not null | Unique `AFL-AWARD-<order>-<attempt>` reference |
@@ -206,7 +208,7 @@ The price contract is server-side and versioned:
 
 | Selected currency | Display | Stored minor units | Bachs decimal string |
 | --- | --- | --- | --- |
-| NGN | `₦20,000` | `2000000` | `20000.00` |
+| NGN | `₦25,000` | `2500000` | `25000.00` |
 | USD | `$20` | `2000` | `20.00` |
 
 `lib/awards/money.ts` gains currency-aware helpers for fixed-decimal parsing and formatting. Bachs
@@ -224,7 +226,7 @@ The Bachs pricing request contains a USD base price and exact NGN override:
     "currency": "USD",
     "amount": "20.00",
     "currency_options": {
-      "NGN": "20000.00"
+      "NGN": "25000.00"
     }
   },
   "billing_currency": "NGN_OR_USD_FROM_SERVER_ALLOWLIST"
@@ -459,7 +461,7 @@ Server-side configuration:
 | `BACHS_WEBHOOK_TOLERANCE_SECONDS` | Defaults to `300` |
 | `BACHS_CHECKOUT_HOSTS` | HTTPS hostname allowlist observed in sandbox/live |
 | `NEXT_PUBLIC_SITE_URL` | Trusted absolute application origin used for redirects |
-| `AWARD_FEE_NGN_MINOR` | Defaults to `2000000` |
+| `AWARD_FEE_NGN_MINOR` | Defaults to `2500000` |
 | `AWARD_FEE_USD_MINOR` | Defaults to `2000` |
 | `AWARD_PRICE_VERSION` | Defaults to `afl-award-2026-v1` |
 
@@ -547,7 +549,7 @@ The implementation must explicitly test these rather than guess:
 Phase one is complete when:
 
 - every new dashboard award payment uses Bachs;
-- NGN checkout charges exactly NGN 20,000 and USD checkout charges exactly USD 20;
+- NGN checkout charges exactly NGN 25,000 and USD checkout charges exactly USD 20;
 - only a verified, exact-match Bachs event marks the award fee paid;
 - the dashboard confirms payment without claiming delivery has started;
 - no Bachs payment path calls GIG Logistics;

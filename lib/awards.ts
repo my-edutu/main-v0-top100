@@ -45,9 +45,20 @@ export type DeliveryDetails = {
   postalCode?: string
 }
 
+export class AwardRequestError extends Error {
+  constructor(message: string, public status: number, public quoteExpired = false) {
+    super(message)
+    this.name = 'AwardRequestError'
+  }
+}
+
 async function jsonOrThrow(res: Response) {
   const data = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error(data?.message || 'Request failed. Please try again.')
+  if (!res.ok) throw new AwardRequestError(
+    data?.message || 'Request failed. Please try again.',
+    res.status,
+    res.status === 409 && data?.expired === true,
+  )
   return data
 }
 
@@ -74,7 +85,7 @@ export async function startAwardCheckout(): Promise<{ authorizationUrl: string; 
   return (await jsonOrThrow(res)) as { authorizationUrl: string; reference: string }
 }
 
-export async function refreshAwardTracking(): Promise<{ order: AwardOrder }> {
+export async function refreshAwardTracking(): Promise<{ order: AwardOrder; message?: string }> {
   const res = await fetch('/api/member/award/track', { cache: 'no-store' })
-  return (await jsonOrThrow(res)) as { order: AwardOrder }
+  return (await jsonOrThrow(res)) as { order: AwardOrder; message?: string }
 }

@@ -45,7 +45,7 @@ import PageHeader from '../components/PageHeader'
 // imported here; the shape below is this page's own copy of what the GET
 // route actually returns.
 import { formatNaira, totalKobo } from '@/lib/awards/money'
-import { canTransition, isPaid, type AwardStatus } from '@/lib/awards/status'
+import { canTransition, type AwardStatus } from '@/lib/awards/status'
 
 type AwardOrder = {
   id: string
@@ -73,6 +73,35 @@ type AwardOrder = {
   memberEmail: string
   adminNote: string | null
   paystackReference: string | null
+  awardPaymentStatus: string
+  awardPaidAt: string | null
+  awardPaidAttemptId: string | null
+  awardPriceVersion: string | null
+  payment: AwardPaymentAttempt | null
+  paymentAttempts: AwardPaymentAttempt[]
+}
+
+type AwardPaymentAttempt = {
+  id: string | null
+  provider: string
+  providerLabel: string
+  chargeScope: string | null
+  status: string
+  priceVersion: string | null
+  requestedAmountMinor: number | null
+  selectedAmountMinor: number | null
+  capturedAmountMinor: number | null
+  currency: string | null
+  providerReference: string | null
+  reference: string | null
+  providerCheckoutId: string | null
+  checkoutId: string | null
+  providerChargeId: string | null
+  providerStatus: string | null
+  paidAt: string | null
+  failureReason: string | null
+  exceptionStatus: string | null
+  isLegacy: boolean
 }
 
 const ALL_STATUSES: AwardStatus[] = [
@@ -124,6 +153,45 @@ const STATUS_BADGE_VARIANT: Record<AwardStatus, 'default' | 'secondary' | 'destr
   in_transit: 'secondary',
   delivered: 'success',
   cancelled: 'outline',
+}
+
+const PAYMENT_EXCEPTION_STATUSES = new Set(['underpaid', 'overpaid', 'duplicate_succeeded', 'exception'])
+
+function formatMinorAmount(minor: number | null, currency: string | null): string {
+  if (minor == null || !Number.isSafeInteger(minor) || minor < 0) return '—'
+  const normalizedCurrency = currency?.toUpperCase() || 'NGN'
+  const major = Math.floor(minor / 100).toLocaleString('en-NG')
+  const decimals = String(minor % 100).padStart(2, '0')
+  const symbol = normalizedCurrency === 'NGN' ? '₦' : normalizedCurrency === 'USD' ? '$' : `${normalizedCurrency} `
+  return minor % 100 === 0 ? `${symbol}${major}` : `${symbol}${major}.${decimals}`
+}
+
+function paymentStatusLabel(status: string): string {
+  return status.replaceAll('_', ' ')
+}
+
+function isPaymentException(payment: AwardPaymentAttempt): boolean {
+  return Boolean(payment.exceptionStatus || PAYMENT_EXCEPTION_STATUSES.has(payment.status) || payment.failureReason)
+}
+
+function paymentAttemptsWithWarnings(order: AwardOrder): AwardPaymentAttempt[] {
+  return (order.paymentAttempts ?? []).filter(isPaymentException)
+}
+
+function canVerifyLegacyPayment(order: AwardOrder): boolean {
+  const hasLegacyReference = Boolean(
+    order.paystackReference || (order.paymentAttempts ?? []).some((attempt) => attempt.isLegacy),
+  )
+  const hasBachsSuccess = (order.paymentAttempts ?? []).some(
+    (attempt) => attempt.provider === 'bachs' && ['succeeded', 'duplicate_succeeded'].includes(attempt.status),
+  )
+  return hasLegacyReference && !hasBachsSuccess && order.awardPaymentStatus !== 'paid'
+}
+
+function legacyPaymentReference(order: AwardOrder): string {
+  return order.paystackReference
+    ?? (order.paymentAttempts ?? []).find((attempt) => attempt.isLegacy)?.providerReference
+    ?? 'stored legacy reference'
 }
 
 function isPaidWithoutWaybill(order: AwardOrder): boolean {
@@ -207,6 +275,7 @@ export default function AdminAwardsPage() {
       dispatchedOrLater: orders.filter((order) =>
         (['dispatched', 'in_transit', 'delivered'] as AwardStatus[]).includes(order.status),
       ).length,
+      paymentExceptions: orders.reduce((count, order) => count + paymentAttemptsWithWarnings(order).length, 0),
     }),
     [orders, paidWithoutWaybill],
   )
@@ -298,10 +367,8 @@ export default function AdminAwardsPage() {
     [patchOrder],
   )
 
-  // Fallback for when the webhook never arrives (most commonly a
-  // misconfigured webhook URL in the Paystack dashboard). Unlike patchOrder,
-  // this hits its own route — it asks Paystack whether the charge actually
-  // succeeded before writing anything, rather than trusting the admin's say-so.
+  // Historical recovery only. The route rejects Bachs attempts and orders
+  // already confirmed by the new award-payment state machine.
   const handleVerifyPayment = useCallback(
     async (order: AwardOrder) => {
       setSavingId(order.id)
@@ -309,25 +376,25 @@ export default function AdminAwardsPage() {
         const response = await fetch('/api/admin/awards/verify-payment', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ orderId: order.id }),
+          body: JSON.stringify({ orderId: order.id, provider: 'paystack' }),
         })
         const data = await response.json().catch(() => ({}))
 
         if (!response.ok) {
-          toast.error(data?.message || 'Could not verify this payment.')
+          toast.error(data?.message || 'Could not verify this historical payment.')
           return
         }
 
         if (data?.confirmed === false) {
-          toast.error(data?.message || 'Paystack does not confirm this payment.')
+          toast.error(data?.message || 'Paystack does not confirm this historical payment.')
           return
         }
 
-        toast.success(data?.message || 'Payment confirmed with Paystack.')
+        toast.success(data?.message || 'Historical Paystack payment confirmed.')
         await fetchOrders()
       } catch (error) {
-        console.error('Error verifying award payment:', error)
-        toast.error('Could not verify this payment.')
+        console.error('Error verifying historical award payment:', error)
+        toast.error('Could not verify this historical payment.')
       } finally {
         setSavingId(null)
       }
@@ -342,8 +409,8 @@ export default function AdminAwardsPage() {
           <Skeleton className="h-9 w-64 rounded-xl" />
           <Skeleton className="h-4 w-80 rounded-lg" />
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[0, 1, 2, 3].map((i) => (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          {[0, 1, 2, 3, 4].map((i) => (
             <Skeleton key={i} className="h-24 w-full rounded-xl" />
           ))}
         </div>
@@ -422,6 +489,9 @@ export default function AdminAwardsPage() {
           </article>
           <article className="award-metric">
             <span><AlertTriangle aria-hidden="true" /></span><div><strong>{stats.quoteFailed}</strong><p>Quote failed</p><small>Needs a manual price</small></div>
+          </article>
+          <article className={`award-metric ${stats.paymentExceptions > 0 ? 'award-metric-urgent' : ''}`}>
+            <span><AlertTriangle aria-hidden="true" /></span><div><strong>{stats.paymentExceptions}</strong><p>Payment exceptions</p><small>Needs reconciliation</small></div>
           </article>
           <article className="award-metric">
             <span><Truck aria-hidden="true" /></span><div><strong>{stats.dispatchedOrLater}</strong><p>On the move</p><small>Dispatched or delivered</small></div>
@@ -550,9 +620,9 @@ export default function AdminAwardsPage() {
                       </div>
                       <p className="text-sm text-muted-foreground">{order.memberEmail}</p>
                     </div>
-                    <div className="text-sm md:text-right">
-                      <p className="font-semibold">
-                        {order.totalAmountKobo != null ? formatNaira(order.totalAmountKobo) : 'Awaiting shipping quote'}
+                  <div className="text-sm md:text-right">
+                    <p className="font-semibold">
+                      {order.totalAmountKobo != null ? formatNaira(order.totalAmountKobo) : 'Awaiting shipping quote'}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         Award {formatNaira(order.awardAmountKobo)}
@@ -560,6 +630,97 @@ export default function AdminAwardsPage() {
                       </p>
                     </div>
                   </div>
+
+                  {/* Award-fee payment is its own state machine. Keep this
+                      provider-neutral projection separate from the legacy
+                      delivery total so a Bachs award payment is never read as
+                      a GIG-paid order. */}
+                  <section className="rounded-xl border border-border/60 p-3 space-y-3" aria-label="Award fee payment">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-semibold">Award fee payment</p>
+                        <p className="text-xs text-muted-foreground">Award fee and delivery are recorded separately.</p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {order.payment ? <Badge variant={isPaymentException(order.payment) ? 'destructive' : order.payment.status === 'succeeded' ? 'success' : 'warning'}>{order.payment.providerLabel}</Badge> : null}
+                        <Badge variant={order.awardPaymentStatus === 'paid' || order.payment?.status === 'succeeded' ? 'success' : 'outline'}>
+                          {paymentStatusLabel(order.awardPaymentStatus || 'unpaid')}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    {order.payment ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+                        <div>
+                          <span className="text-xs uppercase tracking-wide text-muted-foreground/70 block">Selected amount</span>
+                          {formatMinorAmount(order.payment.requestedAmountMinor, order.payment.currency)}
+                        </div>
+                        <div>
+                          <span className="text-xs uppercase tracking-wide text-muted-foreground/70 block">Captured amount</span>
+                          {formatMinorAmount(order.payment.capturedAmountMinor, order.payment.currency)}
+                        </div>
+                        <div>
+                          <span className="text-xs uppercase tracking-wide text-muted-foreground/70 block">Attempt reference</span>
+                          <span className="break-all">{order.payment.providerReference ?? '—'}</span>
+                        </div>
+                        <div>
+                          <span className="text-xs uppercase tracking-wide text-muted-foreground/70 block">Checkout ID</span>
+                          <span className="break-all">{order.payment.providerCheckoutId ?? '—'}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No award-fee payment attempt has been recorded.</p>
+                    )}
+
+                    {order.payment && (order.payment.paidAt || order.awardPaidAt || order.awardPriceVersion) ? (
+                      <p className="text-xs text-muted-foreground">
+                        {order.payment.paidAt || order.awardPaidAt ? `Paid ${formatDate(order.payment.paidAt || order.awardPaidAt || '')}` : 'Not confirmed'}
+                        {order.payment.priceVersion || order.awardPriceVersion ? ` · price ${order.payment.priceVersion || order.awardPriceVersion}` : ''}
+                        {order.payment.isLegacy ? ' · historical Paystack record' : ''}
+                      </p>
+                    ) : null}
+
+                    {paymentAttemptsWithWarnings(order).length > 0 && (
+                      <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-1 text-xs text-destructive">
+                        <p className="font-semibold">Payment reconciliation warning</p>
+                        {paymentAttemptsWithWarnings(order).map((attempt, index) => (
+                          <p key={`${attempt.id ?? attempt.providerReference ?? attempt.provider}-${index}`}>
+                            {attempt.providerLabel}: {paymentStatusLabel(attempt.exceptionStatus || attempt.status)}
+                            {attempt.failureReason ? ` — ${attempt.failureReason}` : ''}
+                            {attempt.providerReference ? ` · ${attempt.providerReference}` : ''}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+
+                  {canVerifyLegacyPayment(order) && (
+                    <div className="rounded-xl border border-border/60 p-3 space-y-2">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div>
+                          <label className="text-sm font-medium block">Verify historical Paystack payment</label>
+                          <p className="text-xs text-muted-foreground">
+                            This recovery action is limited to the stored legacy reference {legacyPaymentReference(order)}.
+                            New award payments are confirmed by Bachs webhooks.
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          disabled={savingId === order.id}
+                          onClick={() => handleVerifyPayment(order)}
+                          className="sm:shrink-0"
+                        >
+                          {savingId === order.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          ) : (
+                            <ShieldCheck className="h-4 w-4 mr-2" />
+                          )}
+                          Verify legacy payment
+                        </Button>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm text-muted-foreground">
                     <div>
@@ -637,42 +798,6 @@ export default function AdminAwardsPage() {
                           </p>
                         ) : null
                       })()}
-                    </div>
-                  )}
-
-                  {/* Fallback for a webhook that never arrives (most commonly
-                      a misconfigured webhook URL in the Paystack dashboard).
-                      Only offered while there is something to check — a
-                      Paystack reference — and only before this order is
-                      already recorded as paid, since the webhook is still the
-                      normal path and this route refuses to re-confirm a paid
-                      order anyway. */}
-                  {order.paystackReference && !isPaid(order.status) && (
-                    <div className="rounded-xl border border-border/60 p-3 space-y-2">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                        <div>
-                          <label className="text-sm font-medium block">Verify payment with Paystack</label>
-                          <p className="text-xs text-muted-foreground">
-                            Asks Paystack directly whether reference {order.paystackReference} actually succeeded —
-                            use this when a payment should have landed but the order is stuck (e.g. the webhook never
-                            arrived).
-                          </p>
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          disabled={savingId === order.id}
-                          onClick={() => handleVerifyPayment(order)}
-                          className="sm:shrink-0"
-                        >
-                          {savingId === order.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          ) : (
-                            <ShieldCheck className="h-4 w-4 mr-2" />
-                          )}
-                          Verify with Paystack
-                        </Button>
-                      </div>
                     </div>
                   )}
 

@@ -46,11 +46,13 @@ const ORDERED = [
 // so new feature migrations join the bootstrap without editing this list.
 const AUTO_FROM = '20260728'
 
-// The date test must be anchored to an 8-digit prefix. A bare `name >=
-// AUTO_FROM` string compare also matches undated files like
+// The date test must be anchored to a Supabase migration timestamp prefix.
+// Current CLI versions use fourteen digits (YYYYMMDDHHMMSS), while this repo
+// has older eight-digit (YYYYMMDD) migrations. A bare `name >= AUTO_FROM`
+// string compare also matches undated files like
 // `create_messages_table.sql`, because 'c' > '2' — which silently swept two
 // unrelated legacy files into the bootstrap.
-const DATED = /^(\d{8})_.*\.sql$/
+const DATED = /^(\d{8}(?:\d{6})?)_.*\.sql$/
 
 function autoDiscovered() {
   if (!existsSync(migrations)) return []

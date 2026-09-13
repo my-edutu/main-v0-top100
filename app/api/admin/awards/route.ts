@@ -10,8 +10,41 @@ import { assertTransition, type AwardStatus } from '@/lib/awards/status'
 import { quoteExpiresAt } from '@/lib/awards/quote'
 import { AWARD_SETUP_MESSAGE, isMissingAwardTable, mapAwardOrder } from '@/lib/awards/server'
 import { isAwardMilestone, notifyAwardStatus } from '@/lib/awards/notify'
+import {
+  mapAdminPaymentAttempt,
+  selectAdminPaymentAttempt,
+} from '@/lib/awards/admin-payment-view'
 
 export const runtime = 'nodejs'
+
+function nullableString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value : null
+}
+
+function isMissingPaymentAttemptTable(error: { code?: string; message?: string } | null): boolean {
+  if (!error) return false
+  if (error.code === 'PGRST204' || error.code === 'PGRST205' || error.code === '42P01') return true
+  return /relation .*award_payment_attempts.* does not exist|schema cache/i.test(error.message ?? '')
+}
+
+const ADMIN_PAYMENT_ATTEMPT_COLUMNS = [
+  'id',
+  'order_id',
+  'provider',
+  'charge_scope',
+  'status',
+  'price_version',
+  'requested_amount_minor',
+  'captured_amount_minor',
+  'currency',
+  'provider_reference',
+  'provider_checkout_id',
+  'provider_charge_id',
+  'provider_status',
+  'confirmed_at',
+  'failure_reason',
+  'created_at',
+].join(', ')
 
 export async function GET(request: NextRequest) {
   const adminCheck = await requireAdmin(request)
@@ -28,24 +61,69 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ message: 'Could not load award orders.' }, { status: 500 })
   }
 
+  const orderRows = data ?? []
+  const attemptsByOrder = new Map<string, any[]>()
+  const orderIds = orderRows.map((row: any) => row?.id).filter((id: unknown): id is string => typeof id === 'string')
+
+  if (orderIds.length > 0) {
+    try {
+      const attemptsResult = await supabase
+        .from('award_payment_attempts')
+        .select(ADMIN_PAYMENT_ATTEMPT_COLUMNS)
+        .in('order_id', orderIds)
+        .order('created_at', { ascending: false })
+
+      if (attemptsResult.error) {
+        // The additive migration may not have reached a deployment yet. Keep
+        // historical Paystack rows visible while the rest of the admin page
+        // continues to work against the existing award_orders table.
+        if (!isMissingPaymentAttemptTable(attemptsResult.error)) {
+          console.error('[admin-awards] Failed to load payment attempts:', attemptsResult.error)
+        }
+      } else {
+        for (const attempt of (attemptsResult.data ?? []) as any[]) {
+          const orderId = nullableString(attempt?.order_id)
+          if (!orderId) continue
+          const existing = attemptsByOrder.get(orderId) ?? []
+          existing.push(attempt)
+          attemptsByOrder.set(orderId, existing)
+        }
+      }
+    } catch (attemptError) {
+      // A partially deployed Supabase schema or a narrow test double should
+      // not hide the order queue; legacy fallback mapping remains available.
+      console.error('[admin-awards] Failed to load payment attempts:', attemptError)
+    }
+  }
+
   return NextResponse.json({
-    orders: (data ?? []).map((row: any) => ({
-      ...mapAwardOrder(row),
-      memberName: row.profiles?.full_name ?? row.recipient_name ?? 'Awardee',
-      memberEmail: row.profiles?.email ?? row.email ?? '',
-      // `mapAwardOrder` intentionally omits `admin_note` (it is a server-side
-      // operational trail, not part of the member-facing order shape it also
-      // backs). The admin console is the one consumer that must see it: the
-      // webhook writes courier-booking failures and duplicate-charge warnings
-      // here, and it is the only place those surface. Appended the same way
-      // `memberName`/`memberEmail` already are above.
-      adminNote: row.admin_note ?? null,
-      // Also intentionally omitted from `mapAwardOrder` for the same reason —
-      // it is what the admin console's "Verify payment with Paystack" action
-      // (POST /api/admin/awards/verify-payment) needs to know whether an
-      // unpaid order even has a Paystack transaction to check.
-      paystackReference: row.paystack_reference ?? null,
-    })),
+    orders: orderRows.map((row: any) => {
+      const rawAttempts = attemptsByOrder.get(row.id) ?? []
+      const payment = selectAdminPaymentAttempt(row, rawAttempts)
+      const legacyPaid = Boolean(
+        payment?.isLegacy &&
+          ['paid', 'success', 'successful', 'succeeded', 'complete', 'completed', 'accepted'].includes(payment.status.toLowerCase()),
+      ) || Boolean(row.status === 'paid' || row.paid_at)
+      return {
+        ...mapAwardOrder(row),
+        memberName: row.profiles?.full_name ?? row.recipient_name ?? 'Awardee',
+        memberEmail: row.profiles?.email ?? row.email ?? '',
+        adminNote: row.admin_note ?? null,
+        paystackReference: row.paystack_reference ?? null,
+        awardPaymentStatus:
+          nullableString(row.award_payment_status) ??
+          (payment?.provider === 'bachs' ? payment.status : legacyPaid ? 'paid' : 'unpaid'),
+        awardPaidAt: nullableString(row.award_paid_at) ?? (legacyPaid ? payment?.paidAt ?? nullableString(row.paid_at) : null),
+        awardPaidAttemptId: nullableString(row.award_paid_attempt_id),
+        awardPriceVersion: nullableString(row.award_price_version),
+        payment,
+        paymentAttempts: rawAttempts.length > 0
+          ? rawAttempts.map(mapAdminPaymentAttempt)
+          : payment
+            ? [payment]
+            : [],
+      }
+    }),
   })
 }
 

@@ -10,6 +10,7 @@ import { checkRateLimit, RATE_LIMITS, createRateLimitResponse } from '@/lib/rate
 import { awardPriceKobo, totalKobo } from '@/lib/awards/money'
 import { quoteExpiresAt } from '@/lib/awards/quote'
 import { getCourier, type QuoteResult } from '@/lib/courier'
+import { isNigeria, nigeriaState } from '@/lib/awards/locations'
 import {
   AWARD_SETUP_MESSAGE,
   isMissingAwardTable,
@@ -55,6 +56,12 @@ export async function POST(request: NextRequest) {
     )
   }
   const details = parsed.data
+  if (isNigeria(details.country)) {
+    const state = nigeriaState(details.state)
+    if (!state) return NextResponse.json({ message: 'Select a valid Nigerian state or FCT.' }, { status: 400 })
+    details.state = state.name
+    details.country = 'Nigeria'
+  }
 
   const supabase = createAdminClient()
   const { order: existing, error: loadError } = await loadOrderForUser(supabase, user.id)
@@ -94,7 +101,9 @@ export async function POST(request: NextRequest) {
 
   let quote: QuoteResult
   try {
-    quote = await getCourier().quote(details)
+    quote = isNigeria(details.country)
+      ? await getCourier().quote(details)
+      : { ok: false, reason: 'International delivery quote pending. Our team will confirm the delivery cost before you pay.', raw: null }
   } catch (error) {
     console.error('[award-quote] courier quote threw:', error)
     quote = { ok: false, reason: 'Our team will contact you about delivery.', raw: null }

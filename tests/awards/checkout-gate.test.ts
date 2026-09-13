@@ -10,13 +10,13 @@ vi.mock('@/lib/supabase/server', () => ({ createAdminClient }))
 
 import { POST } from '@/app/api/member/award/checkout/route'
 
-describe('award checkout launch gate', () => {
+describe('legacy award checkout cutover guard', () => {
   afterEach(() => {
     vi.unstubAllEnvs()
     createAdminClient.mockReset()
   })
 
-  it('fails closed before order or payment access when checkout is not explicitly enabled', async () => {
+  it('returns gone without touching auth, order, or a payment provider', async () => {
     vi.stubEnv('AWARD_CHECKOUT_ENABLED', '')
     vi.stubEnv('PAYSTACK_SECRET_KEY', '')
     createAdminClient.mockImplementation(() => {
@@ -29,9 +29,9 @@ describe('award checkout launch gate', () => {
       }),
     )
 
-    expect(response.status).toBe(503)
+    expect(response.status).toBe(410)
     await expect(response.json()).resolves.toEqual({
-      message: 'Award payment is temporarily unavailable. Please check back soon.',
+      message: 'This checkout has moved. Refresh the dashboard to pay with Bachs.',
     })
     expect(createAdminClient).not.toHaveBeenCalled()
   })
