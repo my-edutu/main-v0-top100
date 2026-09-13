@@ -1,6 +1,6 @@
 'use client'
 
-import { FormEvent, useEffect, useState } from 'react'
+import { FormEvent, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import {
@@ -76,6 +76,11 @@ export default function SignUpPage() {
   const [submitting, setSubmitting] = useState(false)
   const [captchaToken, setCaptchaToken] = useState('')
   const [captchaKey, setCaptchaKey] = useState(0)
+  const claimActions = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (captchaToken) claimActions.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [captchaToken])
 
   useEffect(() => {
     const search = query.trim().replace(/\s+/g, ' ')
@@ -132,14 +137,24 @@ export default function SignUpPage() {
 
   async function handleCreateAccount(event: FormEvent) {
     event.preventDefault()
+    if (submitting) return
     setError('')
+    const form = event.currentTarget as HTMLFormElement
+    const fields = new FormData(form)
+    // Read the submitted inputs so browser/password-manager autofill is included.
+    const submittedPassword = String(fields.get('password') ?? '')
+    const submittedConfirmation = String(fields.get('confirmPassword') ?? '')
 
-    if (password.length < 8) {
+    if (submittedPassword.length < 8) {
       setError('Password must be at least 8 characters.')
       return
     }
-    if (password !== confirmPassword) {
+    if (submittedPassword !== submittedConfirmation) {
       setError('Passwords do not match.')
+      return
+    }
+    if (fields.get('legalConsent') !== 'on') {
+      setError('Please agree to the Terms of Use and Privacy & Data Policy before creating your account.')
       return
     }
     if (!selected) {
@@ -164,7 +179,7 @@ export default function SignUpPage() {
         body: JSON.stringify(buildSignupPayload({
           awardeeId: selected.id,
           email,
-          password,
+          password: submittedPassword,
           inviteCode,
           captchaToken,
         })),
@@ -185,7 +200,7 @@ export default function SignUpPage() {
       // Auto sign-in so they land in the hub with a real session.
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
-        password,
+        password: submittedPassword,
       })
 
       // One-time welcome celebration on first dashboard visit.
@@ -444,7 +459,7 @@ export default function SignUpPage() {
 
             {/* STEP 3 — set a password */}
             {step === 3 && selected && (
-              <form onSubmit={handleCreateAccount} className="space-y-5">
+              <form noValidate onSubmit={handleCreateAccount} className="space-y-5">
                 <div>
                   <h2 className="text-lg font-bold text-slate-950">Secure your account</h2>
                   <p className="mt-1 text-sm text-slate-500">
@@ -457,6 +472,7 @@ export default function SignUpPage() {
                   <Label htmlFor="signup-password">Password</Label>
                   <Input
                     id="signup-password"
+                    name="password"
                     type="password"
                     required
                     minLength={8}
@@ -472,6 +488,7 @@ export default function SignUpPage() {
                   <Label htmlFor="signup-confirm">Confirm password</Label>
                   <Input
                     id="signup-confirm"
+                    name="confirmPassword"
                     type="password"
                     required
                     minLength={8}
@@ -491,12 +508,17 @@ export default function SignUpPage() {
                     key={captchaKey}
                     action="signup"
                     onVerify={(token) => { setCaptchaToken(token); setError('') }}
-                    onExpire={() => setCaptchaToken('')}
+                    onExpire={() => { setCaptchaToken(''); setError('The security check expired. Complete it again, then tap Claim my profile.') }}
                     onError={() => {
                       setCaptchaToken('')
                       setError('The security check could not load. Check your connection and try again.')
                     }}
                   />
+                  <p role="status" className="mt-3 text-sm text-slate-700">
+                    {captchaToken
+                      ? 'Security check complete. Tap Claim my profile below to create your account.'
+                      : 'Complete the security check, then tap Claim my profile below.'}
+                  </p>
                   {captchaUnavailable ? (
                     <p role="alert" className="text-sm text-red-700">
                       The security check is temporarily unavailable. Please try again shortly.
@@ -504,7 +526,8 @@ export default function SignUpPage() {
                   ) : null}
                 </div>
 
-                <div className="flex items-center justify-between gap-3 pt-2">
+                {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
+                <div ref={claimActions} className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
                   <Button
                     type="button"
                     variant="ghost"
@@ -521,7 +544,7 @@ export default function SignUpPage() {
                   </Button>
                   <Button
                     type="submit"
-                    disabled={submitting || captchaUnavailable || Boolean(captchaEnabled && !captchaToken)}
+                    disabled={submitting}
                     className="rounded-full bg-gradient-to-r from-orange-500 to-amber-500 px-6 text-white hover:opacity-95"
                   >
                     {submitting ? (

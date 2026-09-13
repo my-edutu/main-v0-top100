@@ -24,6 +24,7 @@ export default function SignInContent() {
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [captchaToken, setCaptchaToken] = useState('')
+  const [captchaKey, setCaptchaKey] = useState(0)
   const [captchaError, setCaptchaError] = useState(false)
   const [securityMessage, setSecurityMessage] = useState<{
     type: 'warning' | 'info'
@@ -88,8 +89,16 @@ export default function SignInContent() {
       }
 
       // Verify CAPTCHA first (if configured)
+      if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !captchaToken) {
+        setError('Complete the security check before signing in.')
+        setIsLoading(false)
+        return
+      }
       if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && captchaToken) {
         const captchaValid = await verifyCaptcha(captchaToken)
+        // Turnstile tokens are single-use, including when password sign-in fails.
+        setCaptchaToken('')
+        setCaptchaKey(key => key + 1)
         if (!captchaValid) {
           setError('CAPTCHA verification failed. Please try again.')
           setCaptchaError(true)
@@ -370,11 +379,12 @@ export default function SignInContent() {
 
             <div className="empty:hidden">
               <TurnstileCaptcha
+                key={captchaKey}
                 onVerify={(token) => {
                   setCaptchaToken(token)
                   setCaptchaError(false)
                 }}
-                onError={() => setCaptchaError(true)}
+                onError={() => { setCaptchaToken(''); setCaptchaError(true) }}
                 onExpire={() => setCaptchaToken('')}
               />
               {captchaError && (
