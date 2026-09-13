@@ -1,4 +1,4 @@
-# End-to-end test: admin invite → signup → dashboard → award → delivery
+# End-to-end test: admin invite → signup → dashboard → award payment
 
 How to actually walk the awardee journey, and what will and will not work.
 
@@ -41,14 +41,14 @@ degrades safely, but the feature it powers is inert without it.
 
 | Variable | Without it |
 |---|---|
-| `PAYSTACK_SECRET_KEY`, `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY` | Checkout cannot start. **No real payment is possible today.** Use Paystack *test* keys. |
-| `PAYSTACK_WEBHOOK_SECRET` (or the secret key) | The webhook cannot verify signatures, so orders never reach `paid`. |
+| `BACHS_API_KEY`, `BACHS_API_BASE_URL`, `BACHS_CHECKOUT_HOSTS`, `AWARD_CHECKOUT_ENABLED=true` | New award checkout cannot start. Use sandbox credentials first. |
+| `BACHS_WEBHOOK_SECRET`, `BACHS_ORGANIZATION_ID` | Signed Bachs confirmation cannot be accepted safely. See [Bachs setup](bachs-integration.md). |
 | `GIG_API_BASE_URL`, `GIG_API_USERNAME`, `GIG_API_PASSWORD` | `getCourier()` returns the manual adapter: every quote fails and every order lands in `quote_failed` for manual admin pricing. |
 | `GIG_ENABLED=true` | **Required in addition to the credentials.** Without it the GIG adapter stays off even when fully configured — see the warning below. |
 | `BREVO_API_KEY` | Award milestone emails are skipped (logged, not sent). In-app notifications still write. |
 | `TURNSTILE_SECRET_KEY` | Signup CAPTCHA is skipped entirely (`verifyCaptchaToken` returns `true` when unset). Fine for testing. |
 
-**Use Paystack test keys only.** ₦20,000 plus shipping is a live charge otherwise.
+**Use Bachs sandbox keys first.** The new award fee is ₦25,000 or $20; delivery is separate. Apply the Bachs payment migration before testing. Paystack keys are needed only for historical reconciliation.
 
 ### The GIG kill switch — read before setting `GIG_ENABLED`
 
@@ -98,27 +98,20 @@ Sections: Home, BIO, Directory, Messages, Opportunities, My Award, Get featured,
 Partnerships, Magazine, Notifications, Settings — plus Groups and Posts (see the plans in
 `docs/plans/`).
 
-### Step 4 — Claim the award
-Dashboard → **My Award** (a banner also pushes them there while `needsClaim` is true).
+### Step 4 — Pay the award fee
+Dashboard → **My Award**. The prompt remains until payment is confirmed.
 
-1. Enter the delivery address → `POST /api/member/award/quote`.
-2. **Without GIG credentials the quote always fails** and the order goes to `quote_failed` with
-   "Our team will contact you with a delivery cost." This is deliberate — the code never invents a
-   shipping price. An admin then sets it at `/admin/awards`, which returns the order to `quoted`.
-3. Totals panel shows award (₦20,000) + delivery + total.
-4. Pay → `POST /api/member/award/checkout` → Paystack → back to `/dashboard?section=awards&payment=done`.
-5. The dashboard polls for ~1 minute while the webhook lands, showing a confirming state with **no**
-   Pay button, so a member cannot pay twice.
+1. Choose NGN (₦25,000) or USD ($20). No delivery address or shipping quote is required.
+2. Pay → `POST /api/member/award/payment/checkout` → Bachs hosted checkout.
+3. Return to `/dashboard/me/award?payment=done`. The redirect does not confirm payment.
+4. The dashboard polls while `/api/webhooks/bachs` receives the signed event. There is no second pay button while confirmation is pending.
+5. Confirmed payment shows the captured amount/currency and a separate-delivery notice. The payment prompt disappears.
+6. Replay the event; it must not duplicate the successful payment or notification.
 
-Status machine (`lib/awards/status.ts`):
-`draft → quoted → awaiting_payment → paid → dispatched → in_transit → delivered`, with `quote_failed`
-and `cancelled` off to the side. `paid` is settable **only** by the signature-verified Paystack
-webhook — `/api/admin/awards` explicitly rejects a hand-set `paid` (403).
+Also test cancellation, expiry, failed payment, underpayment, currency mismatch and invalid signatures. See [Bachs integration](bachs-integration.md).
 
-### Step 5 — Dispatch
-`/admin/awards`. Paid-but-undispatched orders surface in a recovery queue. Record the waybill and
-mark dispatched in one PATCH. The member's tracking panel then shows the waybill, and "Refresh
-status" calls `GET /api/member/award/track`, which only ever advances status, never rewinds it.
+### Step 5 — Delivery remains separate
+A Bachs award-fee payment must not quote, book, or claim dispatch of a GIG shipment. Historical delivery records and admin recovery remain available for old Paystack orders; delivery payment for new awards is a later step.
 
 ### Step 6 — The rest of the network
 Events + invitations/RSVP, exclusive opportunities, groups, and member posts — see `docs/plans/`.
@@ -127,10 +120,7 @@ Events + invitations/RSVP, exclusive opportunities, groups, and member posts —
 
 Be clear-eyed about these:
 
-- **No real payment.** No Paystack keys are configured. With test keys you can exercise the full
-  path, but the webhook must be reachable from Paystack — use a tunnel (`ngrok`) or deploy, because
-  Paystack cannot reach `localhost`. Without the webhook the order stops at `awaiting_payment` and
-  the confirmation poll times out into the "Payment received / we'll confirm shortly" copy.
+- **Sandbox acceptance requires Bachs credentials** and an externally reachable registered webhook. Local demo payments are explicitly simulated. Without verified confirmation the dashboard continues to say it is confirming, never that payment was received.
 - **No real courier.** No GIG credentials exist and no API docs are in the repo. The adapter's field
   mapping is written against the documented public shape and is **unverified against a live
   account** — see `docs/gig-integration.md` for the first-call checklist. Every path and field name
