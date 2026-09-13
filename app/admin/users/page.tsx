@@ -63,6 +63,10 @@ export default function UserManagement() {
   const [updating, setUpdating] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false)
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviteName, setInviteName] = useState('')
+  const [inviting, setInviting] = useState(false)
 
   // Fetch users from API
   useEffect(() => {
@@ -200,6 +204,36 @@ export default function UserManagement() {
     }
   }
 
+  const handleInviteAdmin = async () => {
+    if (!inviteEmail.trim()) {
+      toast.error('Enter an email address to invite')
+      return
+    }
+
+    try {
+      setInviting(true)
+      const response = await fetch('/api/admin/users/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: inviteEmail, fullName: inviteName }),
+      })
+      const data = await response.json().catch(() => ({}))
+
+      if (!response.ok) throw new Error(data.message || 'Could not send admin invitation')
+
+      toast.success(`Admin invitation sent to ${inviteEmail.trim()}`)
+      setInviteDialogOpen(false)
+      setInviteEmail('')
+      setInviteName('')
+      await fetchUsers()
+    } catch (error) {
+      console.error('Error inviting admin:', error)
+      toast.error(error instanceof Error ? error.message : 'Could not send admin invitation')
+    } finally {
+      setInviting(false)
+    }
+  }
+
   const roleBadgeClass = (role: User['role']) => cn(
     'border-0 px-2.5 py-0.5 rounded-full uppercase text-[10px] tracking-wider font-bold',
     role === 'admin' ? 'bg-rose-100 text-rose-600' :
@@ -224,11 +258,43 @@ export default function UserManagement() {
           </p>
         </div>
 
-        <Button className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl h-11 px-6 shadow-lg shadow-orange-200 transition-all font-bold shrink-0">
+        <Button onClick={() => setInviteDialogOpen(true)} className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl h-11 px-6 shadow-lg shadow-orange-200 transition-all font-bold shrink-0">
           <UserPlus className="mr-2 h-4 w-4" />
           Invite User
         </Button>
       </div>
+
+      <Dialog open={inviteDialogOpen} onOpenChange={(open) => { if (!inviting) setInviteDialogOpen(open) }}>
+        <DialogContent className="bg-white border-orange-100 text-zinc-900 rounded-2xl sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-zinc-900">Invite an administrator</DialogTitle>
+            <DialogDescription className="text-zinc-500">
+              Send a secure setup link. The invitee will create their password before accessing the admin console.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="invite-email" className="text-zinc-700">Email address <span className="text-rose-500">*</span></Label>
+              <Input id="invite-email" type="email" autoComplete="email" placeholder="name@organisation.org" value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} disabled={inviting} className="bg-white border-zinc-200 text-zinc-900" />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="invite-name" className="text-zinc-700">Full name <span className="text-zinc-400 font-normal">(optional)</span></Label>
+              <Input id="invite-name" autoComplete="name" placeholder="e.g. Ada Admin" value={inviteName} onChange={(event) => setInviteName(event.target.value)} disabled={inviting} className="bg-white border-zinc-200 text-zinc-900" />
+            </div>
+            <div className="flex items-start gap-2 rounded-xl border border-rose-100 bg-rose-50 p-3 text-xs leading-relaxed text-rose-700">
+              <Shield className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>This invitation grants full administrative access, including user, content, and settings management.</span>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setInviteDialogOpen(false)} disabled={inviting} className="text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100">Cancel</Button>
+            <Button onClick={() => void handleInviteAdmin()} disabled={inviting || !inviteEmail.trim()} className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white">
+              {inviting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
+              {inviting ? 'Sending invite…' : 'Send admin invite'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* KPI Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
