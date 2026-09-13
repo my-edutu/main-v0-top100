@@ -9,8 +9,7 @@
 // Nothing here ever asks for a visibility tier — the server decides what this
 // member may see. The "Exclusive" badge simply reports what came back.
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Bookmark, BookmarkCheck, ExternalLink, Mail, RefreshCw, Search } from 'lucide-react'
-import { toast } from 'sonner'
+import { ExternalLink, Mail, RefreshCw, Search } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -19,8 +18,6 @@ import type { MemberProfile } from '@/lib/member-hub'
 import {
   OpportunitiesSetupRequiredError,
   fetchMemberOpportunities,
-  saveOpportunity,
-  unsaveOpportunity,
 } from '@/lib/opportunities/client'
 import {
   OPPORTUNITY_TYPES,
@@ -31,20 +28,16 @@ import {
 
 export default function OpportunitiesSection({
   member,
-  initialSavedOnly = false,
 }: {
   member: MemberProfile
-  initialSavedOnly?: boolean
 }) {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [setupMessage, setSetupMessage] = useState('')
   const [typeFilter, setTypeFilter] = useState<string>('')
-  const [savedOnly, setSavedOnly] = useState(initialSavedOnly)
   const [searchDraft, setSearchDraft] = useState('')
   const [search, setSearch] = useState('')
-  const [pendingSaveId, setPendingSaveId] = useState<string | null>(null)
 
   // Debounced so typing does not fire a request per keystroke.
   useEffect(() => {
@@ -60,7 +53,6 @@ export default function OpportunitiesSection({
       const rows = await fetchMemberOpportunities({
         type: typeFilter || undefined,
         q: search || undefined,
-        savedOnly,
       })
       setOpportunities(rows)
     } catch (loadError) {
@@ -73,7 +65,7 @@ export default function OpportunitiesSection({
     } finally {
       setLoading(false)
     }
-  }, [typeFilter, search, savedOnly])
+  }, [typeFilter, search])
 
   useEffect(() => {
     load()
@@ -83,36 +75,6 @@ export default function OpportunitiesSection({
     () => opportunities.filter((item) => item.visibility !== 'public').length,
     [opportunities],
   )
-
-  async function handleToggleSave(opportunity: Opportunity) {
-    const nextSaved = !opportunity.isSaved
-    setPendingSaveId(opportunity.id)
-    // Optimistic — the API is idempotent either way, so the worst case is a
-    // rollback rather than a wrong write.
-    setOpportunities((previous) =>
-      previous.map((item) => (item.id === opportunity.id ? { ...item, isSaved: nextSaved } : item)),
-    )
-
-    try {
-      if (nextSaved) {
-        await saveOpportunity(opportunity.id)
-        toast.success('Saved to your bookmarks.')
-      } else {
-        await unsaveOpportunity(opportunity.id)
-      }
-      // In the saved-only view an unsave should remove the card entirely.
-      if (!nextSaved && savedOnly) {
-        setOpportunities((previous) => previous.filter((item) => item.id !== opportunity.id))
-      }
-    } catch (saveError) {
-      setOpportunities((previous) =>
-        previous.map((item) => (item.id === opportunity.id ? { ...item, isSaved: !nextSaved } : item)),
-      )
-      toast.error(saveError instanceof Error ? saveError.message : 'Could not update your bookmark.')
-    } finally {
-      setPendingSaveId(null)
-    }
-  }
 
   return (
     <section className="space-y-5">
@@ -169,10 +131,6 @@ export default function OpportunitiesSection({
                   {type}
                 </FilterChip>
               ))}
-              <FilterChip active={savedOnly} onClick={() => setSavedOnly((previous) => !previous)}>
-                <Bookmark className={cn('mr-1.5 inline h-3.5 w-3.5', savedOnly && 'fill-current')} />
-                Saved
-              </FilterChip>
             </div>
           </div>
 
@@ -206,12 +164,10 @@ export default function OpportunitiesSection({
           ) : opportunities.length === 0 ? (
             <div className="rounded-[28px] border-2 border-dashed border-orange-200 bg-[#fffaf4] px-6 py-12 text-center">
               <p className="text-base font-bold text-black">
-                {savedOnly ? 'No saved opportunities yet' : 'No opportunities to show yet'}
+                No opportunities to show yet
               </p>
               <p className="mx-auto mt-2 max-w-md text-sm font-medium leading-6 text-black/60">
-                {savedOnly
-                  ? 'Bookmark a listing with the save icon and it will wait for you here.'
-                  : typeFilter || search
+                {typeFilter || search
                     ? 'Nothing matches these filters. Try clearing the search or picking another type.'
                     : `New listings are posted here as they open, ${member.name.split(' ')[0] || 'awardee'}. Check back soon.`}
               </p>
@@ -223,8 +179,6 @@ export default function OpportunitiesSection({
                   key={opportunity.id}
                   opportunity={opportunity}
                   index={index}
-                  saving={pendingSaveId === opportunity.id}
-                  onToggleSave={() => handleToggleSave(opportunity)}
                 />
               ))}
             </div>
@@ -264,13 +218,9 @@ function FilterChip({
 function OpportunityCard({
   opportunity,
   index,
-  saving,
-  onToggleSave,
 }: {
   opportunity: Opportunity
   index: number
-  saving: boolean
-  onToggleSave: () => void
 }) {
   // Kept from the original inline section so the feed still looks itself.
   // Text on every card is text-black — never text-white, which globals.css
@@ -306,21 +256,6 @@ function OpportunityCard({
               Exclusive
             </span>
           ) : null}
-          <button
-            type="button"
-            onClick={onToggleSave}
-            disabled={saving}
-            aria-pressed={opportunity.isSaved}
-            aria-label={opportunity.isSaved ? 'Remove bookmark' : 'Save this opportunity'}
-            title={opportunity.isSaved ? 'Remove bookmark' : 'Save this opportunity'}
-            className="grid h-8 w-8 place-items-center rounded-full bg-[#fffaf0] text-black transition-opacity hover:opacity-80 disabled:opacity-50"
-          >
-            {opportunity.isSaved ? (
-              <BookmarkCheck className="h-4 w-4" strokeWidth={2.2} />
-            ) : (
-              <Bookmark className="h-4 w-4" strokeWidth={2.2} />
-            )}
-          </button>
         </div>
       </div>
 

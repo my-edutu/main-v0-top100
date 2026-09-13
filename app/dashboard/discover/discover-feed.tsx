@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import Link from 'next/link'
-import { ArrowUpRight, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ArrowUpRight, ChevronLeft, ChevronRight, Trophy } from 'lucide-react'
 import type { Awardee } from '@/lib/awardees-shared'
 import { resolveStoryCover } from '@/lib/story-covers'
 import { discoverNav } from '../_lib/navigation'
@@ -62,6 +62,9 @@ export function DiscoverFeed({ posts }: { posts: Story[] }) {
   const [retry, setRetry] = useState(0)
   const [rotationWindow] = useState(() => Math.floor(Date.now() / (1000 * 60 * 60 * 24)))
   const stories = shuffleForMember(posts, member.id, rotationWindow)
+  const shortcutItems = discoverNav.map(item => item.label === 'Saved'
+    ? { ...item, label: 'Award', title: 'My award', href: '/dashboard/me/award', icon: Trophy }
+    : item)
   useEffect(() => {
     const controller = new AbortController()
     fetch('/api/awardees', { signal: controller.signal }).then(async response => {
@@ -77,7 +80,7 @@ export function DiscoverFeed({ posts }: { posts: Story[] }) {
   return <div className="discover-feed">
     <header><h1 className="text-xl font-semibold tracking-tight">Find your people. Make an impact.</h1></header>
     <nav aria-label="Discover shortcuts" className="discover-shortcuts">
-      {discoverNav.map(({ href, label, icon: Icon }) => <Link key={href} href={href}><Icon size={18} /><span>{label}</span><ArrowUpRight size={14} /></Link>)}
+      {shortcutItems.map(({ href, label, icon: Icon }) => <Link key={href} href={href}><Icon size={18} /><span>{label}</span><ArrowUpRight size={14} /></Link>)}
     </nav>
     <Rail title="Make a difference">
       {campaigns.map(campaign => <Link href={campaign.href} className="discover-campaign" key={campaign.label}><span className="discover-kicker">{campaign.label}</span><h3>{campaign.title}</h3><p>{campaign.description}</p><span className="discover-cta">{campaign.action} <ArrowUpRight size={18} /></span></Link>)}
