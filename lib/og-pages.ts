@@ -77,6 +77,12 @@ export const PAGE_OG: Record<string, OgCard> = {
     subtitle: "Leaders, stories, and moments creating lasting change across Africa.",
     hero: "/IMG_0679.jpg",
   },
+  "/impactseries": {
+    eyebrow: "Top100 Impact Series",
+    title: "Impact Series Interviews with Africa's Future Leaders",
+    subtitle: "Interviews with awardees building ideas, careers, and communities across Africa.",
+    hero: "/IMG_0679.jpg",
+  },
   "/initiatives": {
     eyebrow: "Initiatives",
     title: "Our Initiatives — Scholarships, Summits & Opportunities",

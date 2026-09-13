@@ -13,6 +13,7 @@ import HomeFeaturedAwardeesSection from "./components/HomeFeaturedAwardeesSectio
 import BlogSection from "./components/BlogSection"
 import MagazineSection from "./components/MagazineSection"
 import ImpactSection from "./components/ImpactSection"
+import ImpactSeriesSection from "./components/ImpactSeriesSection"
 import PartnershipHeroSection from "./components/PartnershipHeroSection"
 import InitiativeCards from "@/components/InitiativeCards"
 import NewsletterForm from "./components/NewsletterForm"
@@ -85,9 +86,7 @@ export default async function HomePage() {
           </div>
         </section>
 
-        <RotatingVisionSection images={VISION_IMAGES} />
-
-
+        <ImpactSeriesSection />
 
         <ImpactSection />
 
@@ -131,6 +130,8 @@ export default async function HomePage() {
             </div>
           </div>
         </section>
+
+        <RotatingVisionSection images={VISION_IMAGES} />
 
         <section id="initiatives" className="py-6">
           <div className="container space-y-6 sm:space-y-8">

@@ -10,7 +10,7 @@ const PARTNERSHIP_BACKGROUND_VIDEO_URL =
 
 export default function PartnershipHeroSection() {
   return (
-    <section id="partner-with-us" className="px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+    <section id="partner-with-us" className="px-0 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
       <div className="container">
         <div className="relative mx-auto overflow-hidden rounded-[32px] shadow-[0_24px_80px_-40px_rgba(15,23,42,0.78)]">
           <video

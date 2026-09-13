@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ComponentType, type SVGProps } from "react"
 import { motion, useReducedMotion } from "framer-motion"
-import { Globe, Users, Award } from "lucide-react"
+import { HeartHandshake, MapPinned, Medal } from "lucide-react"
 import Counter from "@/components/Counter"
 import { IMPACT_STATS } from "@/lib/impact-content"
 
@@ -14,17 +14,17 @@ type ImpactStatVisual = {
 
 const impactStatVisuals: Record<(typeof IMPACT_STATS)[number]["key"], ImpactStatVisual> = {
   countries: {
-    icon: Globe,
+    icon: MapPinned,
     gradient: "linear-gradient(145deg, rgba(255,179,71,0.95), rgba(255,131,87,0.92))",
     accent: "rgba(255,255,255,0.75)",
   },
   lives: {
-    icon: Users,
+    icon: HeartHandshake,
     gradient: "linear-gradient(145deg, rgba(101,200,255,0.95), rgba(80,130,255,0.92))",
     accent: "rgba(255,255,255,0.8)",
   },
   awardees: {
-    icon: Award,
+    icon: Medal,
     gradient: "linear-gradient(145deg, rgba(238,186,255,0.95), rgba(255,144,214,0.92))",
     accent: "rgba(255,255,255,0.8)",
   },

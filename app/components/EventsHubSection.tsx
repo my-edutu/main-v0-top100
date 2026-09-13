@@ -180,8 +180,15 @@ export default function EventsHubSection({ initialEvents, initialAnnouncements }
                                             className="object-cover transition-transform duration-500 group-hover:scale-105"
                                         />
                                     ) : (
-                                        <div className="w-full h-full bg-orange-50 flex items-center justify-center">
-                                            {item.type === 'event' ? <Calendar className="h-8 w-8 md:h-10 md:w-10 text-orange-200" /> : <Megaphone className="h-8 w-8 md:h-10 md:w-10 text-orange-200" />}
+                                        <div className="relative h-full w-full bg-orange-50">
+                                            <Image
+                                                src={item.type === 'event' ? '/Africa Future leaders festival.png' : '/IMG_0674.jpg'}
+                                                alt=""
+                                                fill
+                                                sizes="(max-width: 768px) 68vw, 33vw"
+                                                className="object-cover"
+                                            />
+                                            <div aria-hidden="true" className="absolute inset-0 bg-slate-950/25" />
                                         </div>
                                     )}
 

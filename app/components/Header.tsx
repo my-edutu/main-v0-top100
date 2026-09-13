@@ -342,6 +342,16 @@ export default function Header() {
                           />
                         ))}
                       </Accordion>
+
+                      <div className="mt-5 border-t border-orange-100 pt-5">
+                        <Link
+                          href="/signup"
+                          onClick={closeSheet}
+                          className="block rounded-2xl bg-orange-600 px-4 py-4 text-center text-sm font-semibold text-white shadow-sm transition hover:bg-orange-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 focus-visible:ring-offset-2"
+                        >
+                          New awardee? Sign up
+                        </Link>
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -83,13 +83,13 @@ export default function ImpactAwardeeSpotlight({ awardees }: { awardees: Awardee
     )
   }
 
-  return (
-    <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:mt-14 lg:grid-cols-3 lg:gap-6">
+    return (
+      <div className="mt-10 grid auto-cols-[82%] grid-flow-col grid-rows-2 gap-4 overflow-x-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:auto-cols-[48%] lg:mt-14 lg:auto-cols-[31%] lg:gap-6">
       {orderedAwardees.map((awardee, index) => (
         <Link
           key={awardee.slug}
           href={`/awardees/${awardee.slug}`}
-          className="group rounded-[1.75rem] border border-orange-100 bg-[#fff] p-5 shadow-[0_12px_45px_rgba(15,23,42,0.06)] transition hover:-translate-y-1 hover:border-orange-300 hover:shadow-[0_20px_55px_rgba(15,23,42,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-4 motion-reduce:transform-none motion-reduce:transition-none"
+          className="group min-w-0 snap-start rounded-[1.75rem] border border-orange-100 bg-[#fff] p-5 shadow-[0_12px_45px_rgba(15,23,42,0.06)] transition hover:-translate-y-1 hover:border-orange-300 hover:shadow-[0_20px_55px_rgba(15,23,42,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-4 motion-reduce:transform-none motion-reduce:transition-none"
         >
           <article className="flex h-full flex-col">
             <div className="flex items-start justify-between gap-4">
