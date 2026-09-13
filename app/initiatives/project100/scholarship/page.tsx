@@ -12,11 +12,11 @@ export const metadata: Metadata = {
 
 export default function ScholarshipPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-12">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-4 sm:py-6">
       <div className="container mx-auto px-4">
         {/* Breadcrumbs */}
-        <nav className="mb-8">
-          <div className="flex items-center space-x-2 text-sm text-gray-500">
+        <nav className="mb-4" aria-label="Breadcrumb">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs leading-5 text-gray-500">
             <Link href="/" className="hover:text-blue-600">Home</Link>
             <span>/</span>
             <Link href="/initiatives" className="hover:text-blue-600">Initiatives</Link>
@@ -75,27 +75,22 @@ export default function ScholarshipPage() {
               </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">For Students</h3>
-                <p className="text-gray-700 mb-4">
-                  Are you a talented student facing financial challenges? Apply for our scholarship to continue your education.
+            <section
+              className="relative mb-12 overflow-hidden rounded-xl bg-yellow-500 p-8 text-white shadow-sm sm:p-10"
+              style={{ backgroundImage: "linear-gradient(105deg, rgba(120, 53, 15, 0.96), rgba(234, 138, 12, 0.72)), url('/project100-out-of-school-youth.png')", backgroundPosition: 'center', backgroundSize: 'cover' }}
+              aria-labelledby="sponsor-project100-heading"
+            >
+              <div className="relative max-w-2xl">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-yellow-100">Project100 partners</p>
+                <h3 id="sponsor-project100-heading" className="mb-3 text-2xl font-semibold sm:text-3xl">Help a student move forward</h3>
+                <p className="mb-6 max-w-xl text-base leading-7 text-white/90">
+                  Sponsor a student&apos;s educational journey and help provide tuition, learning materials, and mentorship.
                 </p>
-                <Link href="/apply/awardee" className="text-blue-600 font-medium hover:underline">
-                  Apply Now →
+                <Link href="/sponsor" className="inline-flex items-center rounded-lg bg-white px-6 py-3 font-semibold text-orange-700 transition hover:bg-yellow-50">
+                  Become a sponsor <span aria-hidden="true" className="ml-2">→</span>
                 </Link>
               </div>
-              
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">For Sponsors</h3>
-                <p className="text-gray-700 mb-4">
-                  Become a sponsor and directly support a student's educational journey. Your contribution makes a difference.
-                </p>
-                <Link href="/sponsor" className="text-blue-600 font-medium hover:underline">
-                  Become a Sponsor →
-                </Link>
-              </div>
-            </div>
+            </section>
             
             <div className="bg-blue-50 border border-blue-100 rounded-xl p-6 text-center">
               <h3 className="text-xl font-semibold text-blue-900 mb-2">Have Questions?</h3>

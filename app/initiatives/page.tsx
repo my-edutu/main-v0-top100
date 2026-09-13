@@ -44,28 +44,28 @@ const initiatives: Initiative[] = [
     description: "Backing mission-driven undergraduates with funding, mentors, and global exposure.",
     href: "/initiatives/project100",
     badge: "Funding",
-    image: "/top100 magazine.webp",
-    alt: "Top100 Africa Future Leaders magazine cover",
-    imagePosition: "center 24%",
+    image: "/project100-out-of-school-youth.png",
+    alt: "Young people gathered outside a community learning center",
+    imagePosition: "center center",
     tint: "from-slate-950/80 via-slate-900/40 to-slate-950/15",
   },
   {
-    title: "Talk100 Live",
-    description: "Monthly conversations with policymakers and pioneers tackling Africa's biggest challenges.",
-    href: "/initiatives/talk100-live",
-    badge: "Conversation",
+    title: "Top100 Impact Series",
+    description: "Hear directly from Top100 awardees about the choices, challenges, and ideas shaping their work.",
+    href: "/impactseries",
+    badge: "Impact Series",
     image: "/young-african-man-business-leader.jpg",
-    alt: "Young African business leader portrait",
+    alt: "Young African leader featured in the Top100 Impact Series",
     imagePosition: "center 18%",
     tint: "from-violet-950/80 via-violet-900/35 to-slate-950/10",
   },
   {
-    title: "Future Leaders Summit 2025",
-    description: "Immersive leadership summit connecting awardees, partners, and investors.",
-    href: "/initiatives/summit",
-    badge: "Summit",
-    image: "/top100-africa-future-leaders-2024-magazine-cover-w.jpg",
-    alt: "Top100 Africa Future Leaders magazine cover for the summit archive",
+    title: "Africa Future Leaders Events",
+    description: "Explore summits, gatherings, and announcements connecting awardees, partners, and the wider community.",
+    href: "/events",
+    badge: "Events",
+    image: "/Africa Future leaders festival.png",
+    alt: "Africa Future Leaders event and festival artwork",
     imagePosition: "center center",
     tint: "from-amber-950/80 via-orange-900/35 to-slate-950/15",
   },
@@ -99,7 +99,7 @@ export default function InitiativesPage() {
         <div className="max-w-4xl mx-auto mb-16 text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-6">Our Initiatives</h1>
           <p className="text-lg text-muted-foreground">
-            Each initiative unlocks mentorship, funding, and opportunities tailored for Africa's youth.
+            Each initiative unlocks mentorship, funding, and opportunities tailored for Africa&apos;s youth.
           </p>
         </div>
 
