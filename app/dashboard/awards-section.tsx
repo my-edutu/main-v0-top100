@@ -19,6 +19,7 @@ import {
 import { AwardPaymentCard } from './award-payment-card'
 import { AwardPaymentConfirmation } from './award-payment-confirmation'
 import { AwardPaymentSuccess } from './award-payment-success'
+import { AwardCertificateCard } from './award-certificate-card'
 import type { AwardJourneyStep } from './_lib/award-journey'
 
 const PAYMENT_CONFIRMATION_POLL_MS = 4000
@@ -224,7 +225,12 @@ export default function AwardsSection({
   }
 
   if (screen === 'paid' && view?.confirmedPayment) {
-    return <AwardPaymentSuccess payment={view.confirmedPayment} />
+    return (
+      <div className="space-y-6">
+        <AwardPaymentSuccess payment={view.confirmedPayment} />
+        <AwardCertificateCard member={member} />
+      </div>
+    )
   }
 
   if (screen === 'paid') {
@@ -236,10 +242,13 @@ export default function AwardsSection({
   }
 
   return (
-    <AwardPaymentCard
-      view={view}
-      cancelled={resolvedReturnState === 'cancelled'}
-    />
+    <div className="space-y-6">
+      <AwardCertificateCard member={member} />
+      <AwardPaymentCard
+        view={view}
+        cancelled={resolvedReturnState === 'cancelled'}
+      />
+    </div>
   )
 }
 

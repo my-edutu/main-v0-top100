@@ -79,7 +79,7 @@ export function AwardPaymentCard({
           </span>
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#6C2600]">
-              Africa Future Leaders Award
+              Redeem your physical award
             </p>
             <h1
               id="award-payment-title"
@@ -88,8 +88,8 @@ export function AwardPaymentCard({
               Complete your award payment
             </h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-[#625B52] sm:text-base">
-              Pay the award fee securely through Bachs. Delivery and its charge
-              are handled separately in a later step.
+              Pay the award fee securely through Bachs to redeem the physical
+              award. Delivery details and its charge are handled separately.
             </p>
           </div>
         </div>
@@ -156,8 +156,9 @@ export function AwardPaymentCard({
 
         <div className="flex flex-col gap-3 border-t border-[#E7DDCF] pt-5 sm:flex-row sm:items-center sm:justify-between">
           <p className="max-w-md text-xs leading-5 text-[#625B52]">
-            Bachs will show the payment methods available for the currency you
-            choose. Your payment details stay on the hosted checkout.
+            This payment starts your physical award redemption. Bachs will show
+            the payment methods available for the currency you choose; your
+            payment details stay on the hosted checkout.
           </p>
           <Button
             type="button"

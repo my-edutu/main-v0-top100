@@ -137,6 +137,9 @@ const COUNTRY_CODES: { [key: string]: string } = {
   'United States': 'us',
 };
 
+// Keep country pickers consistent with the names used by the flag helpers.
+export const COUNTRY_OPTIONS = Object.keys(COUNTRY_CODES).sort((a, b) => a.localeCompare(b));
+
 // Alternate spellings that show up in awardee-submitted data.
 const COUNTRY_ALIASES: { [key: string]: string } = {
   "Cote d'Ivoire": 'Ivory Coast',
