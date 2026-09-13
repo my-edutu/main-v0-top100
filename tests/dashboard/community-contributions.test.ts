@@ -7,9 +7,10 @@ describe('community contribution validation', () => {
     expect(contributionSchema.safeParse(base).success).toBe(true)
     expect(contributionSchema.safeParse({ ...base, campaign: 'give-back' }).success).toBe(true)
   })
-  it('requires explicit consent and meaningful details', () => {
+  it('requires explicit consent and allows optional details', () => {
     expect(contributionSchema.safeParse({ ...base, consent: false }).success).toBe(false)
-    expect(contributionSchema.safeParse({ ...base, details: 'Hi' }).success).toBe(false)
+    expect(contributionSchema.safeParse({ ...base, details: '' }).success).toBe(true)
+    expect(contributionSchema.safeParse({ ...base, details: 'Hi' }).success).toBe(true)
   })
   it('validates cash amount and supported currency', () => {
     expect(contributionSchema.safeParse({ ...base, kind: 'cash', amount: '25.50', currency: 'USD' }).success).toBe(true)

@@ -1,4 +1,8 @@
 import type { AwardOrder } from '@/lib/awards'
+import type {
+  AwardPaymentCurrency,
+  AwardPaymentView,
+} from '@/lib/awards/payment'
 import type { EventInvitation } from '@/lib/events/invitations-client'
 import type { GroupMessageView, GroupSummary } from '@/lib/groups/types'
 import type {
@@ -16,6 +20,19 @@ import type { PortfolioCoverGeneration } from '@/lib/portfolio-cover/types'
 export const DEMO_MEMBER_ID = 'demo-member-1'
 export const DEMO_PUBLIC_SLUG = 'amara-okafor-demo'
 
+export const DEMO_AWARD_PRICE_OPTIONS: AwardPaymentView['priceOptions'] = [
+  { currency: 'NGN', amountMinor: 2_500_000, display: '₦25,000' },
+  { currency: 'USD', amountMinor: 2_000, display: '$20' },
+]
+
+export type DemoAwardPaymentState = {
+  status: AwardPaymentView['status']
+  selectedCurrency: AwardPaymentCurrency | null
+  attempt: AwardPaymentView['currentAttempt']
+  confirmedPayment: AwardPaymentView['confirmedPayment']
+  callbackConsumed: boolean
+}
+
 export type DemoConversation = {
   summary: ConversationSummary
   messages: DirectMessage[]
@@ -27,6 +44,18 @@ export type DemoGroup = {
   pendingMembers: Array<Record<string, unknown>>
 }
 
+export type DemoInboxMessage = {
+  id: string
+  name: string
+  email: string
+  subject: string
+  message: string
+  type: 'partnership' | 'volunteer'
+  status: 'unread' | 'read' | 'replied'
+  created_at: string
+  updated_at: string
+}
+
 export type DemoDashboardStore = {
   profile: MemberProfile
   notifications: MemberNotification[]
@@ -34,9 +63,11 @@ export type DemoDashboardStore = {
   posts: MemberPost[]
   conversations: DemoConversation[]
   groups: DemoGroup[]
+  messages: DemoInboxMessage[]
   opportunities: Opportunity[]
   invitations: EventInvitation[]
   awardOrder: AwardOrder | null
+  awardPayment: DemoAwardPaymentState
   portfolioCover: PortfolioCoverGeneration | null
   sequence: number
 }
@@ -82,23 +113,11 @@ export function createDemoDashboardStore(): DemoDashboardStore {
         message: 'Your profile is ready. Explore the community and update your BIO.',
         audience: 'approved',
         status: 'sent',
-        createdAt: '2026-08-10T10:00:00.000Z',
+        createdAt,
         readBy: [],
         category: 'member',
         ctaLabel: 'Update BIO',
         ctaUrl: '/dashboard/me/profile',
-      },
-      {
-        id: 'demo-notification-2',
-        title: 'New fellowship added',
-        message: 'The Pan-African Climate Fellowship is now accepting applications.',
-        audience: 'approved',
-        status: 'sent',
-        createdAt: '2026-08-09T14:30:00.000Z',
-        readBy: [DEMO_MEMBER_ID],
-        category: 'opportunity',
-        ctaLabel: 'View opportunity',
-        ctaUrl: '/dashboard/discover/opportunities',
       },
     ],
     featureSubmissions: [],
@@ -200,6 +219,7 @@ export function createDemoDashboardStore(): DemoDashboardStore {
         pendingMembers: [],
       },
     ],
+    messages: [],
     opportunities: [
       {
         id: 'demo-opportunity-1',
@@ -264,6 +284,13 @@ export function createDemoDashboardStore(): DemoDashboardStore {
       },
     ],
     awardOrder: null,
+    awardPayment: {
+      status: 'unpaid',
+      selectedCurrency: null,
+      attempt: null,
+      confirmedPayment: null,
+      callbackConsumed: false,
+    },
     portfolioCover: null,
     sequence: 100,
   }
@@ -278,6 +305,22 @@ export function getDemoDashboardStore(): DemoDashboardStore {
   if (!globalThis.__top100DemoDashboardStore) {
     globalThis.__top100DemoDashboardStore = createDemoDashboardStore()
   }
+
+  // Hot reloads keep the demo store on globalThis. Upgrade an existing local
+  // session created before the payment-only state was added.
+  if (!globalThis.__top100DemoDashboardStore.awardPayment) {
+    globalThis.__top100DemoDashboardStore.awardPayment = {
+      status: 'unpaid',
+      selectedCurrency: null,
+      attempt: null,
+      confirmedPayment: null,
+      callbackConsumed: false,
+    }
+  }
+  if (!globalThis.__top100DemoDashboardStore.messages) {
+    globalThis.__top100DemoDashboardStore.messages = []
+  }
+
   return globalThis.__top100DemoDashboardStore
 }
 

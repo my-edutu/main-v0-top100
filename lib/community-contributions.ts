@@ -1,10 +1,24 @@
 import { z } from 'zod'
 
+export const CONTRIBUTION_AREAS = [
+  { value: 'tech-and-it', label: 'Tech and IT' },
+  { value: 'programs', label: 'Programs' },
+  { value: 'partnership-team', label: 'Partnership team' },
+  { value: 'talent-management', label: 'Talent management' },
+  { value: 'publicity', label: 'Publicity' },
+  { value: 'impact-series', label: 'Impact series' },
+] as const
+
 export const contributionSchema = z.object({
   campaign: z.enum(['volunteer', 'give-back']),
   kind: z.enum(['cash', 'services']),
   name: z.string().trim().min(2).max(120),
-  details: z.string().trim().min(20, 'Please add at least 20 characters.').max(3000),
+  // Members choose the team or programme they want to support before adding details.
+  // Keep this optional at the API boundary so older clients can still submit.
+  area: z.string().trim().max(40).optional().default(''),
+  // Context helps the team review a contribution, but members can continue
+  // without writing a long description.
+  details: z.string().trim().max(3000).optional().default(''),
   amount: z.string().max(20).optional(),
   currency: z.string().trim().max(3).optional(),
   consent: z.literal(true),

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { ArrowUpRight, ChevronLeft, ChevronRight } from 'lucide-react'
 import type { Awardee } from '@/lib/awardees-shared'
+import { resolveStoryCover } from '@/lib/story-covers'
 import { discoverNav } from '../_lib/navigation'
 import { useDashboardMember } from '../_providers/dashboard-member'
 
@@ -29,38 +30,61 @@ function Rail({ title, children, href }: { title: string; children: ReactNode; h
   </section>
 }
 
+function seedFromString(value: string) {
+  let hash = 2166136261
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index)
+    hash = Math.imul(hash, 16777619)
+  }
+  return hash >>> 0
+}
+
+/**
+ * Keep the rail stable for a member during a rotation window while giving
+ * different members a different order. A daily window means returning members
+ * see a fresh set over time without causing cards to jump on every render.
+ */
+function shuffleForMember<T>(items: T[], memberId: string, rotationWindow: number) {
+  const shuffled = [...items]
+  let seed = seedFromString(`${memberId}:${rotationWindow}`)
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    seed = (Math.imul(seed ^ (seed >>> 16), 2246822519) + 3266489917) >>> 0
+    const swapIndex = seed % (index + 1)
+    ;[shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]]
+  }
+  return shuffled
+}
+
 export function DiscoverFeed({ posts }: { posts: Story[] }) {
   const { member } = useDashboardMember()
   const [people, setPeople] = useState<Awardee[]>([])
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading')
   const [retry, setRetry] = useState(0)
+  const [rotationWindow] = useState(() => Math.floor(Date.now() / (1000 * 60 * 60 * 24)))
+  const stories = shuffleForMember(posts, member.id, rotationWindow)
   useEffect(() => {
     const controller = new AbortController()
-    setState('loading')
     fetch('/api/awardees', { signal: controller.signal }).then(async response => {
       if (!response.ok) throw new Error('Directory unavailable')
       const data = await response.json()
       if (!Array.isArray(data)) throw new Error('Invalid directory')
-      setPeople(data.filter((person: Awardee) => person.profile_id !== member.id).sort((a: Awardee, b: Awardee) => Number(Boolean(b.profile_id)) - Number(Boolean(a.profile_id))).slice(0, 8))
+      const candidates = data.filter((person: Awardee) => person.profile_id !== member.id)
+      setPeople(shuffleForMember(candidates, member.id, rotationWindow).slice(0, 8))
       setState('ready')
     }).catch(() => { if (!controller.signal.aborted) setState('error') })
     return () => controller.abort()
-  }, [member.id, retry])
+  }, [member.id, retry, rotationWindow])
   return <div className="discover-feed">
     <header><h1 className="text-xl font-semibold tracking-tight">Find your people. Make an impact.</h1></header>
     <nav aria-label="Discover shortcuts" className="discover-shortcuts">
       {discoverNav.map(({ href, label, icon: Icon }) => <Link key={href} href={href}><Icon size={18} /><span>{label}</span><ArrowUpRight size={14} /></Link>)}
     </nav>
-    <Link href="/partnership" className="discover-ad" aria-label="Top100 promotion: Build Africa’s next chapter. Partner with us.">
-      <img src="/dashboard/community-ad.png" alt="" />
-      <div><span>Top100 promotion</span><h2>Build Africa’s<br />next chapter.</h2><p>Partner with us <ArrowUpRight size={16} /></p></div>
-    </Link>
     <Rail title="Make a difference">
       {campaigns.map(campaign => <Link href={campaign.href} className="discover-campaign" key={campaign.label}><span className="discover-kicker">{campaign.label}</span><h3>{campaign.title}</h3><p>{campaign.description}</p><span className="discover-cta">{campaign.action} <ArrowUpRight size={18} /></span></Link>)}
     </Rail>
     <Rail title="People to meet" href="/dashboard/discover/members">
       {state === 'loading' && <p className="discover-empty" role="status">Loading members…</p>}
-      {state === 'error' && <div className="discover-empty" role="status">Members couldn’t load. <button className="underline" onClick={() => setRetry(value => value + 1)}>Try again</button></div>}
+      {state === 'error' && <div className="discover-empty" role="status">Members couldn’t load. <button className="underline" onClick={() => { setState('loading'); setRetry(value => value + 1) }}>Try again</button></div>}
       {state === 'ready' && !people.length && <p className="discover-empty">Explore the <Link href="/dashboard/discover/members" className="underline">member directory</Link> to meet fellow awardees.</p>}
       {state === 'ready' && people.map(person => <Link href={`/awardees/${person.slug}`} aria-label={`View ${person.name}'s profile`} className="discover-person" key={person.slug}>
         <div className="discover-person-profile">
@@ -70,8 +94,8 @@ export function DiscoverFeed({ posts }: { posts: Story[] }) {
       </Link>)}
     </Rail>
     <Rail title="Stories & ideas" href="/blog">
-      {posts.length ? posts.map(post => <Link className="discover-story" href={`/blog/${post.slug}`} key={post.id}>
-        {post.coverImage && <img src={post.coverImage} alt="" loading="lazy" />}
+      {stories.length ? stories.map((post, index) => <Link className="discover-story" href={`/blog/${post.slug}`} key={post.id}>
+        <img src={resolveStoryCover(post, index)} alt={`${post.title} cover image`} loading="lazy" />
         <div><h3>{post.title}</h3><span className="discover-cta">Read story <ArrowUpRight size={16} /></span></div>
       </Link>) : <p className="discover-empty">New stories will appear here when published.</p>}
     </Rail>

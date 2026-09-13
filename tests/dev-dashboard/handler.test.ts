@@ -121,6 +121,26 @@ describe('interactive local dashboard demo API', () => {
     expect(me.data.featureSubmissions.at(-1).title).toBe('Climate founders to watch')
   })
 
+  it('saves community contributions for the admin inbox', async () => {
+    const submitted = await call(store, 'POST', 'contributions', {
+      campaign: 'volunteer',
+      kind: 'services',
+      area: 'partnership-team',
+      name: 'Amara Okafor',
+      details: '',
+      consent: true,
+    })
+
+    expect(submitted.response.status).toBe(201)
+    expect(submitted.data).toMatchObject({ saved: true, adminUrl: '/admin/messages' })
+    expect(store.messages[0]).toMatchObject({
+      type: 'volunteer',
+      status: 'unread',
+      subject: expect.stringContaining('Services'),
+    })
+    expect(store.messages[0].message).toContain('Focus area: Partnership team')
+  })
+
   it('creates groups, joins groups, and posts group messages', async () => {
     const created = await call(store, 'POST', 'groups', {
       name: 'Demo Builders Circle',
@@ -181,6 +201,63 @@ describe('interactive local dashboard demo API', () => {
     const completed = await call(store, 'GET', 'award')
     expect(completed.data.order.status).toBe('paid')
     expect(completed.data.order.paidAt).toEqual(expect.any(String))
+  })
+
+  it('simulates the Bachs award-fee contract without delivery data', async () => {
+    const initial = await call(store, 'GET', 'award/payment')
+    expect(initial.response.status).toBe(200)
+    expect(initial.data).toMatchObject({
+      status: 'unpaid',
+      needsPayment: true,
+      priceOptions: [
+        { currency: 'NGN', amountMinor: 2_500_000, display: '₦25,000' },
+        { currency: 'USD', amountMinor: 2_000, display: '$20' },
+      ],
+      currentAttempt: null,
+      confirmedPayment: null,
+    })
+    expect(JSON.stringify(initial.data)).not.toMatch(/shipping|gig|address/i)
+
+    const invalid = await call(store, 'POST', 'award/payment/checkout', {
+      currency: 'NGN',
+      amountMinor: 1,
+    })
+    expect(invalid.response.status).toBe(400)
+
+    const checkout = await call(store, 'POST', 'award/payment/checkout', {
+      currency: 'USD',
+    })
+    expect(checkout.response.status).toBe(200)
+    expect(checkout.data.checkoutUrl).toBe('/dashboard/me/award?payment=done&demo=1')
+    expect(checkout.data.attemptId).toEqual(expect.stringContaining('demo-bachs-attempt-'))
+
+    const pending = await call(store, 'GET', 'award/payment')
+    expect(pending.data).toMatchObject({
+      status: 'pending',
+      needsPayment: true,
+      currentAttempt: {
+        currency: 'USD',
+        amountMinor: 2_000,
+        status: 'open',
+      },
+      confirmedPayment: null,
+    })
+
+    const callback = await call(store, 'GET', 'award/payment?payment=done&demo=1')
+    expect(callback.data).toMatchObject({
+      status: 'paid',
+      needsPayment: false,
+      currentAttempt: null,
+      confirmedPayment: {
+        currency: 'USD',
+        amountMinor: 2_000,
+      },
+    })
+    expect(callback.data.confirmedPayment.paidAt).toEqual(expect.any(String))
+
+    const replay = await call(store, 'GET', 'award/payment?payment=done&demo=1')
+    expect(replay.data).toEqual(callback.data)
+    expect(JSON.stringify(replay.data)).not.toMatch(/shipping|gig|address/i)
   })
 
   it('creates two portfolio cover options and preserves the original member avatar state', async () => {

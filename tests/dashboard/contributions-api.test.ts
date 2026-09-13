@@ -11,6 +11,6 @@ beforeEach(() => { vi.clearAllMocks(); mocks.user.mockResolvedValue({ id: 'membe
 describe('contribution inbox API', () => {
   it('requires authentication', async () => { mocks.user.mockResolvedValue(null); expect((await POST(request(payload))).status).toBe(401); expect(mocks.insert).not.toHaveBeenCalled() })
   it('rejects invalid requests before storage', async () => { expect((await POST(request({ ...payload, amount: '-1' }))).status).toBe(400); expect(mocks.insert).not.toHaveBeenCalled() })
-  it('uses authenticated email and saves a reviewable pledge', async () => { expect((await POST(request({ ...payload, email: 'spoof@example.test' }))).status).toBe(201); expect(mocks.insert).toHaveBeenCalledWith(expect.objectContaining({ email: 'member@example.test', status: 'unread', type: 'partnership', message: expect.stringContaining('Pledge only. No payment collected.') })) })
+  it('uses authenticated email and saves a reviewable donation', async () => { expect((await POST(request({ ...payload, email: 'spoof@example.test' }))).status).toBe(201); expect(mocks.insert).toHaveBeenCalledWith(expect.objectContaining({ email: 'member@example.test', status: 'unread', type: 'partnership', subject: expect.stringContaining('Cash donation'), message: expect.stringContaining('Donation receipt: Not uploaded yet.') })) })
   it('does not report success if storage fails', async () => { mocks.insert.mockResolvedValue({ error: { message: 'offline' } }); expect((await POST(request(payload))).status).toBe(500) })
 })

@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server'
 import { hasValidDemoSession } from '@/lib/dev-dashboard/auth'
 import {
   DEMO_MEMBER_ID,
+  DEMO_AWARD_PRICE_OPTIONS,
   getDemoDashboardStore,
   type DemoDashboardStore,
 } from '@/lib/dev-dashboard/store'
@@ -12,6 +13,7 @@ import { awardReturnPath } from '@/lib/awards/return-url'
 import { needsClaim } from '@/lib/awards/status'
 import { validateOnboarding } from '@/lib/dashboard/onboarding'
 import type { PortfolioCoverFields, PortfolioCoverGeneration, PortfolioVariant } from '@/lib/portfolio-cover/types'
+import { CONTRIBUTION_AREAS, contributionSchema } from '@/lib/community-contributions'
 
 function json(data: unknown, status = 200): Response {
   return Response.json(data, { status })
@@ -358,7 +360,145 @@ async function routeInvitations(request: NextRequest, path: string[], store: Dem
   return null
 }
 
+async function routeContributions(request: NextRequest, path: string[], store: DemoDashboardStore) {
+  if (path.length !== 1 || request.method !== 'POST') return null
+
+  let payload: Record<string, unknown> | null = null
+  let receiptName = ''
+  if (request.headers.get('content-type')?.includes('multipart/form-data')) {
+    const formData = await request.formData()
+    const receipt = formData.get('receipt')
+    receiptName = receipt instanceof File ? receipt.name : ''
+    payload = {
+      campaign: String(formData.get('campaign') ?? ''),
+      kind: String(formData.get('kind') ?? ''),
+      area: String(formData.get('area') ?? ''),
+      name: String(formData.get('name') ?? ''),
+      details: String(formData.get('details') ?? ''),
+      amount: String(formData.get('amount') ?? ''),
+      currency: String(formData.get('currency') ?? ''),
+      consent: String(formData.get('consent') ?? '') === 'true',
+    }
+  } else {
+    payload = await readBody(request)
+  }
+
+  const parsed = contributionSchema.safeParse(payload)
+  if (!parsed.success) return json({ message: parsed.error.issues[0].message }, 400)
+  const data = parsed.data
+  const areaLabel = data.campaign === 'give-back' && data.area === 'partnership-team'
+    ? 'Partnership proposals'
+    : CONTRIBUTION_AREAS.find(option => option.value === data.area)?.label ?? (data.area || 'Not selected')
+  const receiptLine = data.kind === 'cash'
+    ? receiptName ? `Donation receipt: ${receiptName}` : 'Donation receipt: Not uploaded yet.'
+    : ''
+  const now = new Date().toISOString()
+  // Keep the route usable during dev-server hot reloads that retain a store
+  // created before the inbox collection was added.
+  store.messages ??= []
+  store.messages.unshift({
+    id: nextId(store, 'demo-contribution'),
+    name: data.name,
+    email: store.profile.email,
+    subject: `${data.campaign === 'volunteer' ? 'Top100 volunteer' : 'Social impact initiative'} — ${data.kind === 'cash' ? 'Cash donation' : 'Services'}`,
+    message: [
+      `Member ID: ${DEMO_MEMBER_ID}`,
+      `Support: ${data.kind}`,
+      `Focus area: ${areaLabel}`,
+      ...(data.kind === 'cash' ? [`Donation amount: ${data.currency} ${data.amount}`, receiptLine] : []),
+      '',
+      data.details,
+      '',
+      'Member agreed to be contacted about this submission.',
+    ].join('\n'),
+    type: data.campaign === 'volunteer' ? 'volunteer' : 'partnership',
+    status: 'unread',
+    created_at: now,
+    updated_at: now,
+  })
+  return json({ saved: true, adminUrl: '/admin/messages' }, 201)
+}
+
 async function routeAward(request: NextRequest, path: string[], store: DemoDashboardStore) {
+  if (path[1] === 'payment' && path.length === 2 && request.method === 'GET') {
+    const callback = requestUrl(request).searchParams.get('payment') === 'done'
+    const payment = store.awardPayment
+
+    // The local checkout is intentionally deterministic: only the explicit
+    // callback URL can complete the pending attempt, and it can do so once.
+    if (
+      callback &&
+      payment.status === 'pending' &&
+      payment.attempt &&
+      !payment.callbackConsumed
+    ) {
+      const paidAt = new Date().toISOString()
+      payment.status = 'paid'
+      payment.confirmedPayment = {
+        currency: payment.attempt.currency,
+        amountMinor: payment.attempt.amountMinor,
+        paidAt,
+      }
+      payment.attempt = null
+      payment.callbackConsumed = true
+    }
+
+    return json({
+      status: payment.status,
+      priceOptions: DEMO_AWARD_PRICE_OPTIONS,
+      currentAttempt: payment.status === 'paid' ? null : payment.attempt,
+      confirmedPayment: payment.confirmedPayment,
+      needsPayment: payment.status !== 'paid',
+    })
+  }
+
+  if (path[1] === 'payment' && path[2] === 'checkout' && path.length === 3 && request.method === 'POST') {
+    const body = await readBody(request)
+    const keys = body ? Object.keys(body) : []
+    const currency = body?.currency
+    if (
+      !body ||
+      keys.some((key) => key !== 'currency') ||
+      (currency !== 'NGN' && currency !== 'USD')
+    ) {
+      return json({ message: 'Choose NGN or USD to continue.' }, 400)
+    }
+
+    if (store.awardPayment.status === 'paid') {
+      return json({ message: 'Your award payment is already confirmed.' }, 409)
+    }
+
+    if (store.awardPayment.status === 'pending' && store.awardPayment.attempt) {
+      return json({ message: 'A payment checkout is already being confirmed.' }, 409)
+    }
+
+    const selectedOption = DEMO_AWARD_PRICE_OPTIONS.find(
+      (option) => option.currency === currency,
+    )
+    if (!selectedOption) return json({ message: 'Choose NGN or USD to continue.' }, 400)
+
+    const attemptId = nextId(store, 'demo-bachs-attempt')
+    store.awardPayment = {
+      status: 'pending',
+      selectedCurrency: selectedOption.currency,
+      attempt: {
+        id: attemptId,
+        currency: selectedOption.currency,
+        amountMinor: selectedOption.amountMinor,
+        status: 'open',
+        expiresAt: null,
+        checkoutUrl: awardReturnPath({ paymentDone: true, demo: true }),
+      },
+      confirmedPayment: null,
+      callbackConsumed: false,
+    }
+
+    return json({
+      checkoutUrl: awardReturnPath({ paymentDone: true, demo: true }),
+      attemptId,
+    })
+  }
+
   const awardPriceKobo = 2_500_000
   if (path.length === 1 && request.method === 'GET') {
     return json({
@@ -408,7 +548,7 @@ async function routeAward(request: NextRequest, path: string[], store: DemoDashb
   }
   if (path[1] === 'track' && request.method === 'GET') {
     if (!store.awardOrder) return json({ message: 'Award order not found.' }, 404)
-    return json({ order: store.awardOrder })
+    return json({ order: store.awardOrder, message: 'Preview tracking only. No real courier shipment has been created.' })
   }
   return null
 }
@@ -534,6 +674,9 @@ export async function handleDemoMemberRequest(
       break
     case 'event-invitations':
       response = await routeInvitations(request, path, store)
+      break
+    case 'contributions':
+      response = await routeContributions(request, path, store)
       break
     case 'award':
       response = await routeAward(request, path, store)
