@@ -11,8 +11,8 @@ type RenderInput = {
 }
 
 const variantTheme: Record<PortfolioVariant, { background: string; accent: string; text: string; kicker: string }> = {
-  'executive-charcoal': { background: '#111315', accent: '#F3C623', text: '#FFFDF7', kicker: '#F9D96A' },
-  'leadership-ivory': { background: '#F5F0E5', accent: '#B78900', text: '#171412', kicker: '#826600' },
+  'executive-charcoal': { background: '#111315', accent: '#F97316', text: '#FFFDF7', kicker: '#FDBA74' },
+  'leadership-ivory': { background: '#F5F0E5', accent: '#D95F0B', text: '#171412', kicker: '#9A3412' },
 }
 
 function escapeXml(value: string) {
@@ -35,7 +35,7 @@ function textLines(value: string | undefined, max = 54) {
   return lines.slice(0, 5)
 }
 
-function fieldRows(fields: PortfolioCoverFields, text: string, accent: string) {
+function fieldRows(fields: PortfolioCoverFields, text: string, accent: string, startY = 1550) {
   const rows = [
     ['SCHOOL', fields.school],
     ['CGPA', fields.cgpa],
@@ -47,7 +47,7 @@ function fieldRows(fields: PortfolioCoverFields, text: string, accent: string) {
 
   return rows.map(([label, value], index) => {
     const x = index % 2 === 0 ? 80 : 820
-    const y = 1550 + Math.floor(index / 2) * 76
+    const y = startY + Math.floor(index / 2) * 76
     return `<text x="${x}" y="${y}" fill="${accent}" font-family="Arial,sans-serif" font-size="18" letter-spacing="3">${escapeXml(label)}</text><text x="${x}" y="${y + 30}" fill="${text}" font-family="Arial,sans-serif" font-size="24" font-weight="700">${escapeXml(value)}</text>`
   }).join('')
 }
@@ -55,11 +55,16 @@ function fieldRows(fields: PortfolioCoverFields, text: string, accent: string) {
 export async function renderPortfolioCover({ portrait, memberName, variant, fields }: RenderInput) {
   const theme = variantTheme[variant]
   const name = memberName.trim() || 'Top100 Future Leader'
-  const headline = textLines(fields.headline, 37)
-  const impact = textLines(fields.impactStatement, 75)
+  const issueYear = fields.cohort?.trim() || '2026'
+  const headline = textLines(fields.headline || "Africa's future leaders", 32).slice(0, 3)
+  const impact = textLines(fields.impactStatement || 'Recognising the people creating meaningful change across Africa.', 75).slice(0, 3)
+  const headlineY = 1160
+  const impactY = headlineY + headline.length * 78 + 42
+  const kickerY = impactY + impact.length * 30 + 42
+  const fieldsY = Math.min(1610, kickerY + 38)
   const portraitData = (await sharp(portrait).resize(1600, 2000, { fit: 'cover', position: 'centre' }).png().toBuffer()).toString('base64')
-  const headlineMarkup = headline.map((line, index) => `<text x="80" y="${1240 + index * 78}" fill="${theme.text}" font-family="Georgia,serif" font-size="${index === 0 ? 78 : 70}" font-weight="700">${escapeXml(line)}</text>`).join('')
-  const impactMarkup = impact.map((line, index) => `<text x="80" y="${1430 + index * 30}" fill="${theme.text}" opacity=".88" font-family="Arial,sans-serif" font-size="22">${escapeXml(line)}</text>`).join('')
+  const headlineMarkup = headline.map((line, index) => `<text x="80" y="${headlineY + index * 78}" fill="${theme.text}" font-family="Georgia,serif" font-size="${index === 0 ? 78 : 70}" font-weight="700">${escapeXml(line)}</text>`).join('')
+  const impactMarkup = impact.map((line, index) => `<text x="80" y="${impactY + index * 30}" fill="${theme.text}" opacity=".88" font-family="Arial,sans-serif" font-size="22">${escapeXml(line)}</text>`).join('')
   const svg = `<svg width="1600" height="2000" viewBox="0 0 1600 2000" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <linearGradient id="veil" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${theme.background}" stop-opacity=".08"/><stop offset=".58" stop-color="${theme.background}" stop-opacity=".12"/><stop offset="1" stop-color="${theme.background}" stop-opacity=".98"/></linearGradient>
@@ -72,13 +77,13 @@ export async function renderPortfolioCover({ portrait, memberName, variant, fiel
     <text x="80" y="190" fill="${theme.text}" font-family="Georgia,serif" font-size="106" font-weight="700" letter-spacing="-3">TOP100</text>
     <circle cx="620" cy="151" r="14" fill="${theme.accent}"/>
     <text x="80" y="245" fill="${theme.kicker}" font-family="Arial,sans-serif" font-size="20" font-weight="700" letter-spacing="7">AFRICA FUTURE LEADERS</text>
-    <text x="1520" y="180" text-anchor="end" fill="${theme.text}" font-family="Arial,sans-serif" font-size="18" letter-spacing="3">VOL. 01 / 2026</text>
+    <text x="1520" y="180" text-anchor="end" fill="${theme.text}" font-family="Arial,sans-serif" font-size="18" letter-spacing="3">VOL. 01 / ${escapeXml(issueYear)}</text>
     <text x="1520" y="245" text-anchor="end" fill="${theme.text}" font-family="Arial,sans-serif" font-size="24" font-weight="700">${escapeXml(name)}</text>
     <rect x="80" y="1120" width="740" height="5" fill="url(#edge)"/>
     ${headlineMarkup}
     ${impactMarkup}
-    <text x="80" y="1510" fill="${theme.kicker}" font-family="Arial,sans-serif" font-size="17" letter-spacing="4">THE NEXT GENERATION OF IMPACT</text>
-    ${fieldRows(fields, theme.text, theme.kicker)}
+    <text x="80" y="${kickerY}" fill="${theme.kicker}" font-family="Arial,sans-serif" font-size="17" letter-spacing="4">THE NEXT GENERATION OF IMPACT</text>
+    ${fieldRows(fields, theme.text, theme.kicker, fieldsY)}
     <text x="1520" y="1900" text-anchor="end" fill="${theme.kicker}" font-family="Arial,sans-serif" font-size="16" letter-spacing="2">TOP100AFL.COM</text>
   </svg>`
 
