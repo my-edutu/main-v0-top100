@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { generatePortfolioCoverSet } from '@/lib/portfolio-cover/generate'
 
 describe('portfolio cover generation orchestration', () => {
-  it('edits one canonical portrait, renders both fixed variants from it, and persists ready state', async () => {
+  it('uses one AI edit and persists one finished branded cover', async () => {
     const repo = {
       update: vi.fn(async (_id: string, patch: Record<string, unknown>) => patch),
       uploadOption: vi.fn(async () => undefined),
@@ -17,10 +17,14 @@ describe('portfolio cover generation orchestration', () => {
 
     expect(editor.edit).toHaveBeenCalledTimes(1)
     expect(editor.edit.mock.calls[0][0].variant).toBe('executive-charcoal')
-    expect(render.mock.calls.map(([call]) => call.variant)).toEqual(['executive-charcoal', 'leadership-ivory'])
-    expect(render.mock.calls[0][0].portrait).toBe(render.mock.calls[1][0].portrait)
-    expect(repo.uploadOption).toHaveBeenCalledTimes(2)
-    expect(repo.update).toHaveBeenLastCalledWith('gen-1', expect.objectContaining({ status: 'ready', attempt: 1 }))
+    expect(render.mock.calls.map(([call]) => call.variant)).toEqual(['executive-charcoal'])
+    expect(repo.uploadOption).toHaveBeenCalledTimes(1)
+    expect(repo.update).toHaveBeenLastCalledWith('gen-1', expect.objectContaining({
+      status: 'ready',
+      attempt: 1,
+      option_paths: { 'executive-charcoal': 'member-1/gen-1/executive-charcoal.png' },
+      provider_request_ids: ['req'],
+    }))
   })
 
   it('marks a generation failed without exposing provider details', async () => {

@@ -26,15 +26,17 @@ export async function preparePortrait(source: Buffer) {
 }
 
 export async function prepareEditMask() {
-  // GPT Image requires an alpha channel and treats transparent pixels as the
-  // editable area. Keep the face and hair opaque, while leaving the lower
-  // wardrobe region transparent for the suit edit.
+  // GPT Image treats transparent pixels as editable. Preserve a generous
+  // centred face-and-hair oval while allowing the surrounding background and
+  // wardrobe to become one consistent editorial portrait.
   const width = 1024
   const height = 1536
   const pixels = Buffer.alloc(width * height * 4)
   for (let y = 0; y < height; y += 1) {
-    const alpha = y < 800 ? 255 : 0
     for (let x = 0; x < width; x += 1) {
+      const dx = (x - 512) / 250
+      const dy = (y - 470) / 360
+      const alpha = dx * dx + dy * dy <= 1 ? 255 : 0
       const offset = (y * width + x) * 4
       pixels[offset] = 255
       pixels[offset + 1] = 255

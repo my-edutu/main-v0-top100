@@ -12,11 +12,12 @@ export class PortfolioProviderError extends Error {
 export function buildVariantPrompt(tailoring: PortfolioEditInput['tailoring']) {
   const cut = tailoring === 'female' ? 'tailored feminine cut' : 'tailored masculine cut'
   return [
-    'Edit only the transparent lower wardrobe region into a premium charcoal corporate suit with a white shirt, subtle orange pocket square, and a tailored professional cut.',
-    `Use a ${cut} and extend a natural upper torso beneath the neckline when the source is a close portrait.`,
-    'Keep the original person exactly recognizable: do not change the face, facial features, skin tone, hair, age, body shape above the mask, pose, expression, or jewelry.',
-    'Preserve the original framing and lighting. Do not add text, logos, written facts, symbols, or extra people.',
-    'Use a premium Africa-focused magazine editorial finish with realistic fabric, natural shoulders, and clean edges. Return one vertical portrait.',
+    'Create one premium waist-up editorial portrait by editing only the transparent regions of the supplied image.',
+    'Replace the entire original background with a seamless charcoal-to-warm-grey photography studio backdrop, soft radial light behind the subject, and a subtle dark vignette.',
+    `Dress the subject in a premium charcoal corporate suit with a crisp white shirt, a ${cut}, and a restrained burnt-orange pocket square.`,
+    'Keep the protected face and hair exactly recognizable. Do not change the face, hair, identity, facial features, skin tone, age, expression, eyewear, or jewelry.',
+    'Reframe the body into a centred, confident magazine portrait with a natural upper torso and shoulders, realistic hands only when already visible, clean tailoring, and polished studio lighting.',
+    'Return a photorealistic vertical portrait with no text, no letters, no logos, no watermarks, no symbols, and no extra people.',
   ].join(' ')
 }
 

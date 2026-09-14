@@ -17,16 +17,19 @@ describe('OpenAI portfolio image editor', () => {
     expect(body.get('model')).toBe('gpt-image-2.5-sunburst')
     expect(body.get('size')).toBe('1024x1536')
     expect(String(body.get('prompt'))).toContain('premium charcoal corporate suit')
+    expect(String(body.get('prompt')).toLowerCase()).toContain('replace the entire original background')
+    expect(String(body.get('prompt')).toLowerCase()).toContain('no text')
     expect(String(body.get('prompt'))).not.toContain('Ada')
   })
 
   it('keeps prompts free of member profile fields', () => {
     const prompt = buildVariantPrompt('male')
+    const normalizedPrompt = prompt.toLowerCase()
     expect(prompt).toContain('premium charcoal corporate suit')
     expect(prompt).toContain('natural upper torso')
-    expect(prompt).toContain('do not change the face')
-    expect(prompt).not.toContain('name')
-    expect(prompt).not.toContain('school')
+    expect(normalizedPrompt).toContain('do not change the face')
+    expect(normalizedPrompt).not.toContain('name')
+    expect(normalizedPrompt).not.toContain('school')
   })
 
   it('classifies provider failures without returning raw response content', async () => {

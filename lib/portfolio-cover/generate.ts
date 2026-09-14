@@ -3,7 +3,7 @@ import { renderPortfolioCover } from './render-cover'
 import type { PortfolioImageEditor } from './providers/types'
 import type { PortfolioCoverFields, PortfolioTailoring, PortfolioVariant } from './types'
 
-export const PORTFOLIO_VARIANTS: PortfolioVariant[] = ['executive-charcoal', 'leadership-ivory']
+export const PORTFOLIO_VARIANTS: PortfolioVariant[] = ['executive-charcoal']
 
 type GenerationInput = {
   id: string
@@ -32,9 +32,8 @@ export async function generatePortfolioCoverSet(
   try {
     const optionPaths: Record<PortfolioVariant, string> = {} as Record<PortfolioVariant, string>
     const requestIds: string[] = []
-    // Generate the person's canonical dressed portrait once. Both magazine
-    // themes are deterministic renders of the same edited image, which keeps
-    // identity, pose, and wardrobe consistent across the options.
+    // One provider edit creates the canonical portrait. Branding and text are
+    // rendered deterministically so a cover costs exactly one AI image edit.
     const edited = await deps.editor.edit({
       portrait: input.portrait,
       mask: input.mask,

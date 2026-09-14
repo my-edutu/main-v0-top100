@@ -25,13 +25,14 @@ describe('portfolio cover portrait preparation', () => {
     expect(validatePortraitUpload(Buffer.alloc(8 * 1024 * 1024 + 1), 'image/jpeg')).toEqual({ ok: false, code: 'too_large' })
   })
 
-  it('creates an alpha mask that preserves the face and leaves the wardrobe region editable', async () => {
+  it('preserves the centred face while allowing the background and wardrobe to be replaced', async () => {
     const output = await prepareEditMask()
     const { data, info } = await sharp(output).raw().toBuffer({ resolveWithObject: true })
     const alphaAt = (x: number, y: number) => data[(y * info.width + x) * info.channels + 3]
 
     expect(info.channels).toBe(4)
-    expect(alphaAt(100, 400)).toBe(255)
+    expect(alphaAt(100, 400)).toBe(0)
+    expect(alphaAt(512, 470)).toBe(255)
     expect(alphaAt(100, 1200)).toBe(0)
   })
 })
