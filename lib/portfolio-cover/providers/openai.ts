@@ -20,14 +20,15 @@ export function buildVariantPrompt(tailoring: PortfolioEditInput['tailoring']) {
   ].join(' ')
 }
 
-export function createOpenAIImageEditor(options: { apiKey: string; fetchImpl?: FetchLike; timeoutMs?: number }): PortfolioImageEditor {
+export function createOpenAIImageEditor(options: { apiKey: string; fetchImpl?: FetchLike; timeoutMs?: number; model?: string }): PortfolioImageEditor {
   const fetchImpl = options.fetchImpl ?? fetch
   const timeoutMs = options.timeoutMs ?? 120_000
+  const model = options.model?.trim() || process.env.PORTFOLIO_IMAGE_MODEL?.trim() || 'gpt-image-2.5-sunburst'
 
   return {
     async edit(input): Promise<PortfolioEditResult> {
       const body = new FormData()
-      body.append('model', 'gpt-image-2')
+      body.append('model', model)
       body.append('size', '1024x1536')
       body.append('quality', 'medium')
       body.append('n', '1')
