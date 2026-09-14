@@ -9,14 +9,14 @@ export class PortfolioProviderError extends Error {
   }
 }
 
-export function buildVariantPrompt(tailoring: PortfolioEditInput['tailoring'], variant: PortfolioEditInput['variant']) {
-  const suit = variant === 'executive-charcoal' ? 'corporate charcoal suit' : 'corporate ivory suit'
+export function buildVariantPrompt(tailoring: PortfolioEditInput['tailoring']) {
   const cut = tailoring === 'female' ? 'tailored feminine cut' : 'tailored masculine cut'
   return [
-    `Edit only the lower clothing region into a ${suit} with a ${cut}.`,
-    'Keep the original person exactly recognizable: do not change the face, facial features, skin tone, hair, age, body shape, pose, expression, or jewelry.',
+    'Edit only the transparent lower wardrobe region into a premium charcoal corporate suit with a white shirt, subtle orange pocket square, and a tailored professional cut.',
+    `Use a ${cut} and extend a natural upper torso beneath the neckline when the source is a close portrait.`,
+    'Keep the original person exactly recognizable: do not change the face, facial features, skin tone, hair, age, body shape above the mask, pose, expression, or jewelry.',
     'Preserve the original framing and lighting. Do not add text, logos, written facts, symbols, or extra people.',
-    'Use a premium editorial studio finish with realistic fabric and natural edges. Return one vertical portrait.',
+    'Use a premium Africa-focused magazine editorial finish with realistic fabric, natural shoulders, and clean edges. Return one vertical portrait.',
   ].join(' ')
 }
 
@@ -31,7 +31,7 @@ export function createOpenAIImageEditor(options: { apiKey: string; fetchImpl?: F
       body.append('size', '1024x1536')
       body.append('quality', 'medium')
       body.append('n', '1')
-      body.append('prompt', buildVariantPrompt(input.tailoring, input.variant))
+      body.append('prompt', buildVariantPrompt(input.tailoring))
       body.append('image[]', new Blob([new Uint8Array(input.portrait)], { type: 'image/png' }), 'portrait.png')
       body.append('mask', new Blob([new Uint8Array(input.mask)], { type: 'image/png' }), 'mask.png')
 

@@ -32,9 +32,17 @@ export async function generatePortfolioCoverSet(
   try {
     const optionPaths: Record<PortfolioVariant, string> = {} as Record<PortfolioVariant, string>
     const requestIds: string[] = []
+    // Generate the person's canonical dressed portrait once. Both magazine
+    // themes are deterministic renders of the same edited image, which keeps
+    // identity, pose, and wardrobe consistent across the options.
+    const edited = await deps.editor.edit({
+      portrait: input.portrait,
+      mask: input.mask,
+      tailoring: input.tailoring,
+      variant: 'executive-charcoal',
+    })
+    if (edited.requestId) requestIds.push(edited.requestId)
     for (const variant of PORTFOLIO_VARIANTS) {
-      const edited = await deps.editor.edit({ portrait: input.portrait, mask: input.mask, tailoring: input.tailoring, variant })
-      if (edited.requestId) requestIds.push(edited.requestId)
       const cover = await render({ portrait: edited.image, memberName: input.memberName, tailoring: input.tailoring, variant, fields: input.fields })
       const path = portfolioObjectPath(input.memberId, input.id, variant)
       await deps.repo.uploadOption(path, cover)

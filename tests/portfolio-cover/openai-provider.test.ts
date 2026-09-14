@@ -16,13 +16,14 @@ describe('OpenAI portfolio image editor', () => {
     const body = request?.body as FormData
     expect(body.get('model')).toBe('gpt-image-2')
     expect(body.get('size')).toBe('1024x1536')
-    expect(String(body.get('prompt'))).toContain('corporate charcoal suit')
+    expect(String(body.get('prompt'))).toContain('premium charcoal corporate suit')
     expect(String(body.get('prompt'))).not.toContain('Ada')
   })
 
   it('keeps prompts free of member profile fields', () => {
-    const prompt = buildVariantPrompt('male', 'leadership-ivory')
-    expect(prompt).toContain('corporate ivory suit')
+    const prompt = buildVariantPrompt('male')
+    expect(prompt).toContain('premium charcoal corporate suit')
+    expect(prompt).toContain('natural upper torso')
     expect(prompt).toContain('do not change the face')
     expect(prompt).not.toContain('name')
     expect(prompt).not.toContain('school')

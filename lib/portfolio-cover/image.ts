@@ -26,6 +26,21 @@ export async function preparePortrait(source: Buffer) {
 }
 
 export async function prepareEditMask() {
-  const svg = `<svg width="1024" height="1536" xmlns="http://www.w3.org/2000/svg"><rect width="1024" height="1536" fill="black"/><rect x="0" y="800" width="1024" height="736" fill="white"/></svg>`
-  return sharp(Buffer.from(svg)).png().toBuffer()
+  // GPT Image requires an alpha channel and treats transparent pixels as the
+  // editable area. Keep the face and hair opaque, while leaving the lower
+  // wardrobe region transparent for the suit edit.
+  const width = 1024
+  const height = 1536
+  const pixels = Buffer.alloc(width * height * 4)
+  for (let y = 0; y < height; y += 1) {
+    const alpha = y < 800 ? 255 : 0
+    for (let x = 0; x < width; x += 1) {
+      const offset = (y * width + x) * 4
+      pixels[offset] = 255
+      pixels[offset + 1] = 255
+      pixels[offset + 2] = 255
+      pixels[offset + 3] = alpha
+    }
+  }
+  return sharp(pixels, { raw: { width, height, channels: 4 } }).png().toBuffer()
 }

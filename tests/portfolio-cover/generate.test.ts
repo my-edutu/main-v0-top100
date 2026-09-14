@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { generatePortfolioCoverSet } from '@/lib/portfolio-cover/generate'
 
 describe('portfolio cover generation orchestration', () => {
-  it('edits both fixed variants, renders deterministic covers, and persists ready state', async () => {
+  it('edits one canonical portrait, renders both fixed variants from it, and persists ready state', async () => {
     const repo = {
       update: vi.fn(async (_id: string, patch: Record<string, unknown>) => patch),
       uploadOption: vi.fn(async () => undefined),
@@ -15,8 +15,10 @@ describe('portfolio cover generation orchestration', () => {
       id: 'gen-1', memberId: 'member-1', memberName: 'Ada Lovelace', tailoring: 'female', fields: {}, portrait: Buffer.from('portrait'), mask: Buffer.from('mask'),
     }, { repo, editor, render })
 
-    expect(editor.edit).toHaveBeenCalledTimes(2)
-    expect(editor.edit.mock.calls.map(([call]) => call.variant)).toEqual(['executive-charcoal', 'leadership-ivory'])
+    expect(editor.edit).toHaveBeenCalledTimes(1)
+    expect(editor.edit.mock.calls[0][0].variant).toBe('executive-charcoal')
+    expect(render.mock.calls.map(([call]) => call.variant)).toEqual(['executive-charcoal', 'leadership-ivory'])
+    expect(render.mock.calls[0][0].portrait).toBe(render.mock.calls[1][0].portrait)
     expect(repo.uploadOption).toHaveBeenCalledTimes(2)
     expect(repo.update).toHaveBeenLastCalledWith('gen-1', expect.objectContaining({ status: 'ready', attempt: 1 }))
   })
