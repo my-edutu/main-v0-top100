@@ -36,24 +36,10 @@ function titleCase(value: string) {
   return value.replace(/\b\w/g, character => character.toUpperCase())
 }
 
-function factMarkup(fields: PortfolioCoverFields) {
-  const facts = [
-    ['FIELD', fields.fieldOfStudy],
-    ['COUNTRY', fields.country],
-    ['CLASS', fields.degreeClass],
-  ].filter(([, value]) => Boolean(value?.trim())) as [string, string][]
-
-  return facts.slice(0, 3).map(([label, value], index) => {
-    const x = 80 + index * 485
-    return `<text x="${x}" y="1858" fill="#FDBA74" font-family="Arial,sans-serif" font-size="20" font-weight="800" letter-spacing="4">${escapeXml(label)}</text>
-      <text x="${x}" y="1906" fill="#FFFFFF" font-family="Arial,sans-serif" font-size="32" font-weight="800">${escapeXml(value)}</text>`
-  }).join('')
-}
-
 export async function renderPortfolioCover({ portrait, memberName, fields }: RenderInput) {
   const name = titleCase(memberName.trim() || 'Top100 Future Leader')
   const issueYear = fields.cohort?.trim() || '2026'
-  const headline = textLines(fields.headline || "Africa's Future Leaders", 22, 3)
+  const headline = textLines(`Africa Future Leaders ${issueYear}`, 22, 3)
   const impact = textLines(fields.impactStatement || 'Recognising the people creating meaningful change across Africa.', 62, 3)
   const headlineStart = headline.length === 1 ? 1390 : headline.length === 2 ? 1300 : 1215
   const headlineSize = headline.some(line => line.length > 19) ? 94 : 116
@@ -79,10 +65,6 @@ export async function renderPortfolioCover({ portrait, memberName, fields }: Ren
     <rect y="650" width="1600" height="1350" fill="url(#bottomShade)"/>
     <rect x="48" y="48" width="1504" height="1904" fill="none" stroke="url(#brandOrange)" stroke-width="4"/>
 
-    <rect x="625" y="0" width="350" height="118" fill="url(#brandOrange)"/>
-    <text x="800" y="47" text-anchor="middle" fill="#171717" font-family="Arial,sans-serif" font-size="21" font-weight="900" letter-spacing="5">SPECIAL ISSUE</text>
-    <text x="800" y="84" text-anchor="middle" fill="#171717" font-family="Arial,sans-serif" font-size="18" font-weight="800" letter-spacing="3">CLASS OF ${escapeXml(issueYear)}</text>
-
     <text x="64" y="282" fill="#FFFFFF" font-family="Georgia,serif" font-size="218" font-weight="900" letter-spacing="-11" stroke="#FFFFFF" stroke-width="2">TOP100</text>
     <circle cx="790" cy="123" r="20" fill="#F97316"/>
     <text x="74" y="346" fill="#FDBA74" font-family="Arial,sans-serif" font-size="25" font-weight="800" letter-spacing="9">AFRICA FUTURE LEADERS</text>
@@ -96,9 +78,6 @@ export async function renderPortfolioCover({ portrait, memberName, fields }: Ren
     ${headlineMarkup}
     ${impactMarkup}
     <rect x="80" y="${impactStart + impact.length * 38 + 28}" width="220" height="10" fill="url(#brandOrange)"/>
-    <rect x="0" y="1730" width="1600" height="270" fill="#090A0C" fill-opacity=".82"/>
-    <text x="80" y="1804" fill="#FDBA74" font-family="Arial,sans-serif" font-size="22" font-weight="900" letter-spacing="6">THE NEXT GENERATION OF IMPACT</text>
-    ${factMarkup(fields)}
     <text x="1520" y="1960" text-anchor="end" fill="#FFFFFF" font-family="Arial,sans-serif" font-size="22" font-weight="900" letter-spacing="3">TOP100AFL.COM</text>
     <rect x="0" y="1990" width="1600" height="10" fill="url(#brandOrange)"/>
   </svg>`

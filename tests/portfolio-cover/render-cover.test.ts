@@ -27,7 +27,7 @@ describe('deterministic Top100 magazine cover renderer', () => {
     expect(charcoal.equals(ivory)).toBe(true)
   }, 15000)
 
-  it('keeps the footer readable with a dark base and orange brand accents', async () => {
+  it('keeps the simplified footer readable with an orange brand accent', async () => {
     const portrait = await sharp({ create: { width: 1024, height: 1536, channels: 3, background: '#f5f5f4' } }).png().toBuffer()
     const output = await renderPortfolioCover({
       portrait,
