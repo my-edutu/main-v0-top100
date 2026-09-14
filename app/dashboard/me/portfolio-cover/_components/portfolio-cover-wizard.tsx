@@ -78,6 +78,7 @@ export function PortfolioCoverWizard() {
   const setField = (key: keyof PortfolioCoverFields, value: string) => setFields((current) => ({ ...current, [key]: value }))
   const selected = generation?.status === 'selected' && generation.selectedUrl ? generation.selectedUrl : null
   const finishedCover = generation?.options['executive-charcoal']
+  const hasCompletedCover = Boolean((generation?.status === 'ready' && finishedCover) || selected)
   const progress = getPortfolioGenerationProgress(generationElapsed)
 
   async function submit() {
@@ -153,7 +154,7 @@ export function PortfolioCoverWizard() {
           </div>
         </DialogContent>
       </Dialog>
-      <h1 id="portfolio-cover-title" className="text-2xl font-medium">Create your cover</h1>
+      <h1 id="portfolio-cover-title" className={hasCompletedCover ? 'sr-only' : 'text-2xl font-medium'}>Create your cover</h1>
       {error ? <p role="alert" className="text-sm text-red-700">{error}</p> : null}
       {!generation || generation.status === 'rejected' || generation.status === 'failed' ? (
         <div className="mx-auto max-w-xl space-y-6">
@@ -207,7 +208,7 @@ export function PortfolioCoverWizard() {
         </div>
       ) : null}
 
-      {generation?.status === 'ready' && finishedCover ? <div className="mx-auto max-w-2xl space-y-5"><div className="text-center"><p className="text-xs font-medium uppercase tracking-[.24em] text-orange-700">Your Top100 cover</p><h2 className="mt-2 text-3xl font-semibold tracking-tight text-stone-950">One cover, made for you.</h2><p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-stone-600">Review the portrait and every detail before adding it to your profile.</p></div><div className="overflow-hidden rounded-[28px] border border-stone-200 bg-white p-3 shadow-sm"><img src={finishedCover} alt="Your generated Top100 Africa Future Leaders magazine cover" className="aspect-[4/5] w-full rounded-[20px] object-cover" /><div className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-medium text-stone-950">Top100 Special Issue</p><p className="text-sm text-stone-500">Corporate editorial portrait</p></div><Button type="button" onClick={() => void choose('executive-charcoal')} disabled={busy} className="cover-primary min-h-12 rounded-full px-6">Use this cover</Button></div></div><Button type="button" variant="outline" onClick={() => void reject()} disabled={busy} className="min-h-12 w-full rounded-full border-stone-300 font-medium text-stone-700">This doesn’t look like me</Button></div> : null}
+      {generation?.status === 'ready' && finishedCover ? <div className="mx-auto max-w-2xl space-y-4"><div className="text-center"><p className="text-[11px] font-medium uppercase tracking-[.2em] text-orange-700">Your Top100 cover</p><h2 className="mt-1 text-2xl font-semibold tracking-tight text-stone-950">One cover, made for you.</h2><p className="mx-auto mt-1 max-w-md text-xs leading-5 text-stone-600">Review it before adding it to your profile.</p></div><div className="overflow-hidden rounded-[28px] border border-stone-200 bg-white p-3 shadow-sm"><img src={finishedCover} alt="Your generated Top100 Africa Future Leaders magazine cover" className="aspect-[4/5] w-full rounded-[20px] object-cover" /><div className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-medium text-stone-950">Africa Future Leaders 2026</p><p className="text-sm text-stone-500">Corporate editorial portrait</p></div><Button type="button" onClick={() => void choose('executive-charcoal')} disabled={busy} className="cover-primary min-h-12 rounded-full px-6">Use this cover</Button></div></div><Button type="button" variant="outline" onClick={() => void reject()} disabled={busy} className="min-h-12 w-full rounded-full border-stone-300 font-medium text-stone-700">This doesn’t look like me</Button></div> : null}
       {selected ? <div className="grid gap-6 lg:grid-cols-[340px_minmax(0,1fr)]"><img src={selected} alt="Your selected Top100 Africa Future Leaders magazine cover" className="aspect-[4/5] w-full rounded-[24px] object-cover " /><div className="flex flex-col justify-center rounded-[24px] border border-amber-200 bg-amber-50 p-6"><p className="text-xs font-medium uppercase tracking-[.22em] text-amber-800">Selected cover</p><h2 className="mt-2 text-3xl font-medium text-stone-950">Ready for your portfolio.</h2><p className="mt-3 text-sm font-semibold leading-6 text-stone-700">Download it for your profile, or share your public cover link. Your original dashboard avatar is unchanged.</p><div className="mt-6 flex flex-wrap gap-3"><a href={selected} download="top100-africa-future-leaders-cover.png" className="cover-primary inline-flex min-h-12 items-center rounded-full px-5 text-sm font-medium"><Download className="mr-2 h-4 w-4" aria-hidden="true" />Download</a><Button type="button" onClick={() => void share()} className="min-h-12 rounded-full bg-white font-medium text-stone-950 hover:bg-white"><Share2 className="mr-2 h-4 w-4" aria-hidden="true" />Share cover</Button></div></div></div> : null}
     </section>
   )
