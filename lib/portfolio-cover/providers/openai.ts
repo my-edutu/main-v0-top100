@@ -12,14 +12,14 @@ export class PortfolioProviderError extends Error {
 export function buildVariantPrompt(tailoring: PortfolioEditInput['tailoring']) {
   const cut = tailoring === 'female' ? 'tailored feminine cut' : 'tailored masculine cut'
   return [
-    'Create one premium mid-thigh editorial magazine portrait using the supplied person as the identity reference.',
+    'Create one premium head-and-shoulders editorial magazine portrait using the supplied person as the identity reference.',
     'Recompose the subject standing upright and square to the camera, with both shoulders level, the head straight, and both eyes looking directly into the camera with a calm, confident expression.',
-    'Show the complete head, hair, shoulders, torso, and arms. Leave generous clean headroom equal to about twelve percent of the frame above the hair and do not crop the face, hair, chin, shoulders, or hands.',
+    'Frame the complete head, hair, neck, shoulders, chest, and upper torso with generous clean headroom equal to about twelve percent of the frame above the hair. Keep the face fully inside the frame with space around the chin and both shoulders; crop below the chest so hands and forearms are completely outside the frame.',
     'Isolate the complete subject on a transparent background; do not include a studio backdrop, scenery, floor, furniture, or shadows outside the person.',
     `Dress the subject in a premium charcoal corporate suit with a crisp white shirt, a ${cut}, and a restrained burnt-orange pocket square.`,
-    'Keep the person unmistakably recognizable by preserving their facial structure, skin tone, hair, age, eyewear, and distinctive features while correcting the pose to face forward.',
-    'Remove handheld objects, microphones, other people, furniture, scenery, and clothing from the source. Use a natural symmetrical pose, clean tailoring, realistic anatomy, and polished studio lighting.',
-    'Return a photorealistic vertical portrait with no text, no letters, no logos, no watermarks, no symbols, and no extra people.',
+    'Keep the person unmistakably recognizable: preserve their exact facial structure, proportions, skin tone, hairline, age, eyewear, and distinctive features. Never beautify, reshape, smooth, regenerate, or substitute the face; only correct lighting and the pose needed for a forward-facing portrait.',
+    'Remove handheld objects, microphones, other people, furniture, scenery, and clothing from the source. Use a natural symmetrical pose, clean tailoring, realistic anatomy, and soft even studio lighting on the face with catchlights in both eyes.',
+    'Return a photorealistic vertical portrait with no text, no letters, no logos, no watermarks, no symbols, no hands, no forearms, and no extra people.',
   ].join(' ')
 }
 

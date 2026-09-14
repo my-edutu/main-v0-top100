@@ -41,9 +41,28 @@ export async function renderPortfolioCover({ portrait, memberName, fields }: Ren
     readTemplate('template-background.png'),
     readTemplate('template-foreground.png'),
   ])
+  const portraitMetadata = await sharp(portrait).metadata()
   const subject = await sharp(portrait)
-    .resize(1600, 2000, { fit: 'contain', position: 'centre', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    // The AI output is intentionally cropped from the bottom: the cover should
+    // feature the face, shoulders, and chest while keeping hands out of frame.
+    .resize(1600, 2000, {
+      // Transparent AI cut-outs can be cropped from the bottom to keep hands
+      // out of frame. Opaque legacy/demo portraits retain their full image.
+      fit: portraitMetadata.channels === 4 ? 'cover' : 'contain',
+      position: 'top',
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    })
     .modulate({ saturation: 0.96, brightness: 0.99 })
+    .png()
+    .toBuffer()
+  const foregroundTop = await sharp(foreground)
+    .ensureAlpha()
+    .extract({ left: 0, top: 0, width: 1600, height: 520 })
+    .png()
+    .toBuffer()
+  const foregroundBottom = await sharp(foreground)
+    .ensureAlpha()
+    .extract({ left: 0, top: 520, width: 1600, height: 1480 })
     .png()
     .toBuffer()
   const dynamicProfile = await sharp(profileOverlay(memberName, fields)).png().toBuffer()
@@ -51,8 +70,11 @@ export async function renderPortfolioCover({ portrait, memberName, fields }: Ren
   return sharp(background)
     .resize(1600, 2000, { fit: 'fill' })
     .composite([
+      // Keep the bold TOP100 masthead behind the subject while preserving the
+      // footer and dark readability treatment above the person.
+      { input: foregroundTop, left: 0, top: 0 },
       { input: subject },
-      { input: foreground },
+      { input: foregroundBottom, left: 0, top: 520 },
       { input: dynamicProfile },
     ])
     .png({ compressionLevel: 9 })
