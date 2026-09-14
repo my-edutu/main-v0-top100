@@ -139,7 +139,7 @@ export function PortfolioCoverWizard() {
                   setPreview(URL.createObjectURL(photo))
                 }}
               />
-              <p className="text-xs leading-5 text-neutral-500">Use a clear portrait, up to 8 MB. Review the generated options for an accurate likeness.</p>
+              <p className="text-xs leading-5 text-neutral-500">Use a clear shoulders-to-waist portrait, up to 8 MB. Leave your upper body visible so the wardrobe edit can add the corporate clothing naturally.</p>
             </div>
             {preview && <img src={preview} alt="Selected portrait" className="h-32 w-24 rounded-xl object-cover" />}
             <fieldset className="space-y-3"><legend className="text-sm font-medium">Choose your gender</legend><p className="text-xs text-neutral-500">This selects the clothing treatment for your cover.</p><div className="flex gap-3">{(['male','female'] as const).map(value => <button key={value} type="button" aria-pressed={tailoring===value} onClick={()=>setTailoring(value)} className="min-h-12 flex-1 rounded-xl border px-4 capitalize aria-pressed:border-orange-500 aria-pressed:bg-orange-50">{value}</button>)}</div></fieldset>
