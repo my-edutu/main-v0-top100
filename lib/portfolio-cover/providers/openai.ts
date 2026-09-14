@@ -12,11 +12,13 @@ export class PortfolioProviderError extends Error {
 export function buildVariantPrompt(tailoring: PortfolioEditInput['tailoring']) {
   const cut = tailoring === 'female' ? 'tailored feminine cut' : 'tailored masculine cut'
   return [
-    'Create one premium waist-up editorial portrait by editing only the transparent regions of the supplied image.',
+    'Create one premium mid-thigh editorial magazine portrait using the supplied person as the identity reference.',
+    'Recompose the subject standing upright and square to the camera, with both shoulders level, the head straight, and both eyes looking directly into the camera with a calm, confident expression.',
+    'Show the complete head, hair, shoulders, torso, and arms. Leave generous clean headroom equal to about twelve percent of the frame above the hair and do not crop the face, hair, chin, shoulders, or hands.',
     'Replace the entire original background with a seamless charcoal-to-warm-grey photography studio backdrop, soft radial light behind the subject, and a subtle dark vignette.',
     `Dress the subject in a premium charcoal corporate suit with a crisp white shirt, a ${cut}, and a restrained burnt-orange pocket square.`,
-    'Keep the protected face and hair exactly recognizable. Do not change the face, hair, identity, facial features, skin tone, age, expression, eyewear, or jewelry.',
-    'Reframe the body into a centred, confident magazine portrait with a natural upper torso and shoulders, realistic hands only when already visible, clean tailoring, and polished studio lighting.',
+    'Keep the person unmistakably recognizable by preserving their facial structure, skin tone, hair, age, eyewear, and distinctive features while correcting the pose to face forward.',
+    'Remove handheld objects, microphones, other people, furniture, scenery, and clothing from the source. Use a natural symmetrical pose, clean tailoring, realistic anatomy, and polished studio lighting.',
     'Return a photorealistic vertical portrait with no text, no letters, no logos, no watermarks, no symbols, and no extra people.',
   ].join(' ')
 }
@@ -35,7 +37,6 @@ export function createOpenAIImageEditor(options: { apiKey: string; fetchImpl?: F
       body.append('n', '1')
       body.append('prompt', buildVariantPrompt(input.tailoring))
       body.append('image[]', new Blob([new Uint8Array(input.portrait)], { type: 'image/png' }), 'portrait.png')
-      body.append('mask', new Blob([new Uint8Array(input.mask)], { type: 'image/png' }), 'mask.png')
 
       const controller = new AbortController()
       const timeout = setTimeout(() => controller.abort(), timeoutMs)

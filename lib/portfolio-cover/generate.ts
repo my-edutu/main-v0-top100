@@ -12,7 +12,6 @@ type GenerationInput = {
   tailoring: PortfolioTailoring
   fields: PortfolioCoverFields
   portrait: Buffer
-  mask: Buffer
   attempt?: number
 }
 
@@ -36,7 +35,6 @@ export async function generatePortfolioCoverSet(
     // rendered deterministically so a cover costs exactly one AI image edit.
     const edited = await deps.editor.edit({
       portrait: input.portrait,
-      mask: input.mask,
       tailoring: input.tailoring,
       variant: 'executive-charcoal',
     })

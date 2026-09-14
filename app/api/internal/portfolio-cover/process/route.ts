@@ -5,7 +5,6 @@ import { portfolioCoverConfig } from '@/lib/portfolio-cover/config'
 import { isPortfolioWorkerAuthorized } from '@/lib/portfolio-cover/internal'
 import { createPortfolioCoverRepository } from '@/lib/portfolio-cover/repository'
 import { generatePortfolioCoverSet } from '@/lib/portfolio-cover/generate'
-import { prepareEditMask } from '@/lib/portfolio-cover/image'
 import { createDemoImageEditor } from '@/lib/portfolio-cover/providers/demo'
 import { createOpenAIImageEditor } from '@/lib/portfolio-cover/providers/openai'
 
@@ -46,7 +45,6 @@ export async function POST(request: NextRequest) {
   if (!config.enabled) return NextResponse.json({ message: 'Portfolio generation is not configured.' }, { status: 503 })
 
   const source = await repo.downloadSource(row.source_path)
-  const mask = await prepareEditMask()
   const profile = await createAdminClient().from('profiles').select('full_name').eq('id', body.memberId).maybeSingle()
   const memberName = String(profile.data?.full_name ?? row.fields?.name ?? 'Top100 Future Leader')
   const editor = config.demo
@@ -61,7 +59,6 @@ export async function POST(request: NextRequest) {
       tailoring: row.tailoring,
       fields: row.fields ?? {},
       portrait: source,
-      mask,
       attempt: body.attempt,
     },
     { repo, editor },

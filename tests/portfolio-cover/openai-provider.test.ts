@@ -8,7 +8,7 @@ describe('OpenAI portfolio image editor', () => {
   it('sends a server-owned wardrobe prompt and captures the provider request id', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ data: [{ b64_json: Buffer.from('png').toString('base64') }] }), { headers: { 'x-request-id': 'req_123' } }))
     const editor = createOpenAIImageEditor({ apiKey: 'test-key', fetchImpl: fetchMock, timeoutMs: 1000 })
-    const result = await editor.edit({ portrait: Buffer.from('portrait'), mask: Buffer.from('mask'), tailoring: 'female', variant: 'executive-charcoal' })
+    const result = await editor.edit({ portrait: Buffer.from('portrait'), tailoring: 'female', variant: 'executive-charcoal' })
 
     expect(result).toEqual({ image: Buffer.from('png'), requestId: 'req_123' })
     expect(fetchMock).toHaveBeenCalledTimes(1)
@@ -16,8 +16,13 @@ describe('OpenAI portfolio image editor', () => {
     const body = request?.body as FormData
     expect(body.get('model')).toBe('gpt-image-2.5-sunburst')
     expect(body.get('size')).toBe('1024x1536')
+    expect(body.get('input_fidelity')).toBeNull()
+    expect(body.get('mask')).toBeNull()
     expect(String(body.get('prompt'))).toContain('premium charcoal corporate suit')
     expect(String(body.get('prompt')).toLowerCase()).toContain('replace the entire original background')
+    expect(String(body.get('prompt')).toLowerCase()).toContain('looking directly into the camera')
+    expect(String(body.get('prompt')).toLowerCase()).toContain('headroom')
+    expect(String(body.get('prompt')).toLowerCase()).toContain('mid-thigh')
     expect(String(body.get('prompt')).toLowerCase()).toContain('no text')
     expect(String(body.get('prompt'))).not.toContain('Ada')
   })
@@ -26,8 +31,9 @@ describe('OpenAI portfolio image editor', () => {
     const prompt = buildVariantPrompt('male')
     const normalizedPrompt = prompt.toLowerCase()
     expect(prompt).toContain('premium charcoal corporate suit')
-    expect(prompt).toContain('natural upper torso')
-    expect(normalizedPrompt).toContain('do not change the face')
+    expect(prompt).toContain('square to the camera')
+    expect(normalizedPrompt).toContain('unmistakably recognizable')
+    expect(normalizedPrompt).toContain('remove handheld objects')
     expect(normalizedPrompt).not.toContain('name')
     expect(normalizedPrompt).not.toContain('school')
   })
@@ -35,6 +41,6 @@ describe('OpenAI portfolio image editor', () => {
   it('classifies provider failures without returning raw response content', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('upstream details', { status: 503 }))
     const editor = createOpenAIImageEditor({ apiKey: 'test-key', timeoutMs: 1000 })
-    await expect(editor.edit({ portrait: Buffer.from('portrait'), mask: Buffer.from('mask'), tailoring: 'male', variant: 'leadership-ivory' })).rejects.toMatchObject({ code: 'provider_unavailable', retryable: true })
+    await expect(editor.edit({ portrait: Buffer.from('portrait'), tailoring: 'male', variant: 'leadership-ivory' })).rejects.toMatchObject({ code: 'provider_unavailable', retryable: true })
   })
 })

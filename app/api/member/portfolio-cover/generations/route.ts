@@ -8,7 +8,7 @@ import { createAdminClient } from '@/lib/supabase/server'
 
 import { portfolioCoverConfig } from '@/lib/portfolio-cover/config'
 import { generatePortfolioCoverSet } from '@/lib/portfolio-cover/generate'
-import { prepareEditMask, preparePortrait, validatePortraitUpload } from '@/lib/portfolio-cover/image'
+import { preparePortrait, validatePortraitUpload } from '@/lib/portfolio-cover/image'
 import { createPortfolioCoverRepository, portfolioObjectPath } from '@/lib/portfolio-cover/repository'
 import { createDemoImageEditor } from '@/lib/portfolio-cover/providers/demo'
 import { createOpenAIImageEditor } from '@/lib/portfolio-cover/providers/openai'
@@ -49,10 +49,8 @@ export async function POST(request: NextRequest) {
 
   const id = crypto.randomUUID()
   let portrait: Buffer
-  let mask: Buffer
   try {
     portrait = await preparePortrait(original)
-    mask = await prepareEditMask()
   } catch {
     return NextResponse.json({ message: 'We could not decode that portrait. Upload a clear JPEG, PNG, or WebP image.' }, { status: 400 })
   }
@@ -74,7 +72,7 @@ export async function POST(request: NextRequest) {
   } else {
     after(async () => {
       try {
-        await generatePortfolioCoverSet({ id, memberId: user.id, memberName, tailoring: parsed.data.tailoring, fields, portrait, mask }, { repo, editor })
+        await generatePortfolioCoverSet({ id, memberId: user.id, memberName, tailoring: parsed.data.tailoring, fields, portrait }, { repo, editor })
       } catch (error) {
         if (process.env.NODE_ENV !== 'production') console.warn('[portfolio-cover] generation failed', error instanceof Error ? error.message : 'unknown')
       }

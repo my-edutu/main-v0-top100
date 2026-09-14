@@ -26,4 +26,22 @@ describe('deterministic Top100 magazine cover renderer', () => {
     const ivory = await renderPortfolioCover({ ...common, variant: 'leadership-ivory' })
     expect(charcoal.equals(ivory)).toBe(true)
   }, 15000)
+
+  it('keeps the footer readable with a dark base and orange brand accents', async () => {
+    const portrait = await sharp({ create: { width: 1024, height: 1536, channels: 3, background: '#f5f5f4' } }).png().toBuffer()
+    const output = await renderPortfolioCover({
+      portrait,
+      memberName: 'Ada Lovelace',
+      tailoring: 'female',
+      variant: 'executive-charcoal',
+      fields: { fieldOfStudy: 'Engineering', country: 'Nigeria', degreeClass: 'First Class' },
+    })
+    const { data, info } = await sharp(output).raw().toBuffer({ resolveWithObject: true })
+    const rgbAt = (x: number, y: number) => Array.from(data.subarray((y * info.width + x) * info.channels, (y * info.width + x) * info.channels + 3))
+
+    expect(rgbAt(20, 1940).every(channel => channel < 40)).toBe(true)
+    const accent = rgbAt(80, 1995)
+    expect(accent[0]).toBeGreaterThan(180)
+    expect(accent[0]).toBeGreaterThan(accent[2] * 2)
+  }, 15000)
 })

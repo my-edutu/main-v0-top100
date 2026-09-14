@@ -13,7 +13,7 @@ import { awardReturnPath } from '@/lib/awards/return-url'
 import { needsClaim } from '@/lib/awards/status'
 import { validateOnboarding } from '@/lib/dashboard/onboarding'
 import type { PortfolioCoverFields, PortfolioCoverGeneration, PortfolioVariant } from '@/lib/portfolio-cover/types'
-import { prepareEditMask, preparePortrait } from '@/lib/portfolio-cover/image'
+import { preparePortrait } from '@/lib/portfolio-cover/image'
 import { renderPortfolioCover } from '@/lib/portfolio-cover/render-cover'
 import { portfolioCoverConfig } from '@/lib/portfolio-cover/config'
 import { createOpenAIImageEditor } from '@/lib/portfolio-cover/providers/openai'
@@ -595,9 +595,8 @@ async function realLocalCover(input: {
   portrait: Buffer
 }) {
   const preparedPortrait = await preparePortrait(input.portrait)
-  const mask = await prepareEditMask()
   const editor = createOpenAIImageEditor({ apiKey: process.env.OPENAI_API_KEY! })
-  const edited = await editor.edit({ portrait: preparedPortrait, mask, tailoring: input.tailoring, variant: 'executive-charcoal' })
+  const edited = await editor.edit({ portrait: preparedPortrait, tailoring: input.tailoring, variant: 'executive-charcoal' })
   const rendered = await renderPortfolioCover({ portrait: edited.image, memberName: input.name, tailoring: input.tailoring, variant: 'executive-charcoal', fields: input.fields })
   return `data:image/png;base64,${Buffer.from(rendered).toString('base64')}`
 }

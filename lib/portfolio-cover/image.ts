@@ -24,25 +24,3 @@ export async function preparePortrait(source: Buffer) {
     .png({ compressionLevel: 9 })
     .toBuffer()
 }
-
-export async function prepareEditMask() {
-  // GPT Image treats transparent pixels as editable. Preserve a generous
-  // centred face-and-hair oval while allowing the surrounding background and
-  // wardrobe to become one consistent editorial portrait.
-  const width = 1024
-  const height = 1536
-  const pixels = Buffer.alloc(width * height * 4)
-  for (let y = 0; y < height; y += 1) {
-    for (let x = 0; x < width; x += 1) {
-      const dx = (x - 512) / 250
-      const dy = (y - 470) / 360
-      const alpha = dx * dx + dy * dy <= 1 ? 255 : 0
-      const offset = (y * width + x) * 4
-      pixels[offset] = 255
-      pixels[offset + 1] = 255
-      pixels[offset + 2] = 255
-      pixels[offset + 3] = alpha
-    }
-  }
-  return sharp(pixels, { raw: { width, height, channels: 4 } }).png().toBuffer()
-}

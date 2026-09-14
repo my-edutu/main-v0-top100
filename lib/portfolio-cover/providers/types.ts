@@ -2,7 +2,6 @@ import type { PortfolioTailoring, PortfolioVariant } from '../types'
 
 export type PortfolioEditInput = {
   portrait: Buffer
-  mask: Buffer
   tailoring: PortfolioTailoring
   variant: PortfolioVariant
 }
