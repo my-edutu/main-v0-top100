@@ -39,6 +39,10 @@ export function createOpenAIImageEditor(options: { apiKey: string; fetchImpl?: F
       const controller = new AbortController()
       const timeout = setTimeout(() => controller.abort(), timeoutMs)
       let response: Response
+      const startedAt = Date.now()
+      if (process.env.NODE_ENV !== 'production') {
+        console.info('[portfolio-cover] OpenAI edit started', { model, tailoring: input.tailoring, variant: input.variant })
+      }
       try {
         response = await fetchImpl('https://api.openai.com/v1/images/edits', {
           method: 'POST',
@@ -68,7 +72,11 @@ export function createOpenAIImageEditor(options: { apiKey: string; fetchImpl?: F
       }
       const image = Buffer.from(encoded, 'base64')
       if (!image.length) throw new PortfolioProviderError('invalid_provider_output', true)
-      return { image, requestId: response.headers.get('x-request-id') ?? undefined }
+      const requestId = response.headers.get('x-request-id') ?? undefined
+      if (process.env.NODE_ENV !== 'production') {
+        console.info('[portfolio-cover] OpenAI edit completed', { model, requestId: requestId ?? null, bytes: image.length, durationMs: Date.now() - startedAt })
+      }
+      return { image, requestId }
     },
   }
 }
