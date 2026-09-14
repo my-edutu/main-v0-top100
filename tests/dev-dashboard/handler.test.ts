@@ -1,6 +1,6 @@
 import sharp from 'sharp'
 import { NextRequest } from 'next/server'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { DEV_DASHBOARD_COOKIE, DEV_DASHBOARD_COOKIE_VALUE } from '@/lib/dev-dashboard/auth'
 import { handleDemoMemberRequest } from '@/lib/dev-dashboard/handler'
@@ -40,6 +40,7 @@ describe('interactive local dashboard demo API', () => {
   let store: DemoDashboardStore
 
   beforeEach(() => {
+    vi.stubEnv('PORTFOLIO_IMAGE_GENERATION_DEMO', '1')
     store = createDemoDashboardStore()
   })
 
@@ -261,7 +262,7 @@ describe('interactive local dashboard demo API', () => {
     expect(JSON.stringify(replay.data)).not.toMatch(/shipping|gig|address/i)
   })
 
-  it('creates two portfolio cover options and preserves the original member avatar state', async () => {
+  it('creates one portfolio cover and preserves the original member avatar state', async () => {
     const form = new FormData()
     form.set('portrait', new File([Buffer.from('portrait')], 'portrait.jpg', { type: 'image/jpeg' }))
     form.set('tailoring', 'female')
@@ -272,9 +273,9 @@ describe('interactive local dashboard demo API', () => {
     const created = await handleDemoMemberRequest(request, path, store, 'development')
     const createdData = await created.json()
     expect(created.status).toBe(202)
-    expect(Object.keys(createdData.generation.options)).toHaveLength(2)
+    expect(Object.keys(createdData.generation.options)).toEqual(['executive-charcoal'])
     const id = createdData.generation.id as string
-    const selectedRequest = demoRequest('POST', `portfolio-cover/generations/${id}/select`, { variant: 'leadership-ivory' })
+    const selectedRequest = demoRequest('POST', `portfolio-cover/generations/${id}/select`, { variant: 'executive-charcoal' })
     const selected = await handleDemoMemberRequest(selectedRequest, [...path, id, 'select'], store, 'development')
     expect((await selected.json()).generation.status).toBe('selected')
     expect(store.profile.avatarInitials).toBe('AO')
@@ -293,7 +294,7 @@ describe('interactive local dashboard demo API', () => {
 
     expect(response.status).toBe(202)
     expect(data.generation.options['executive-charcoal']).toMatch(/^data:image\/png;base64,/)
-    expect(data.generation.options['leadership-ivory']).toMatch(/^data:image\/png;base64,/)
+    expect(data.generation.options['leadership-ivory']).toBeUndefined()
   })
 
   it('makes unsupported demo operations visible', async () => {

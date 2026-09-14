@@ -1,7 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Download, Loader2, Share2 } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { Download, Share2 } from 'lucide-react'
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 
@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { getCurrentPortfolioCover, rejectPortfolioCover, selectPortfolioCover, startPortfolioCover } from '@/lib/portfolio-cover/client'
+import { getPortfolioGenerationProgress } from '@/lib/portfolio-cover/progress'
 import type { PortfolioCoverFields, PortfolioCoverGeneration, PortfolioTailoring, PortfolioVariant } from '@/lib/portfolio-cover/types'
 import { COUNTRY_OPTIONS } from '@/lib/avatars'
 
@@ -41,6 +42,8 @@ export function PortfolioCoverWizard() {
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview) }, [preview])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [generationStartedAt, setGenerationStartedAt] = useState<number | null>(null)
+  const [generationElapsed, setGenerationElapsed] = useState(0)
 
   const load = useCallback(async () => {
     try {
@@ -57,18 +60,34 @@ export function PortfolioCoverWizard() {
     return () => window.clearInterval(timer)
   }, [generation, load])
 
+  const isGenerating = busy || generation?.status === 'queued' || generation?.status === 'processing'
+  useEffect(() => {
+    if (!isGenerating) {
+      setGenerationElapsed(0)
+      setGenerationStartedAt(null)
+      return
+    }
+    const startedAt = generationStartedAt ?? Date.now()
+    if (generationStartedAt === null) setGenerationStartedAt(startedAt)
+    const update = () => setGenerationElapsed(Date.now() - startedAt)
+    update()
+    const timer = window.setInterval(update, 500)
+    return () => window.clearInterval(timer)
+  }, [generationStartedAt, isGenerating])
+
   const setField = (key: keyof PortfolioCoverFields, value: string) => setFields((current) => ({ ...current, [key]: value }))
   const selected = generation?.status === 'selected' && generation.selectedUrl ? generation.selectedUrl : null
-  const hasOptions = Boolean(generation?.options['executive-charcoal'] && generation?.options['leadership-ivory'])
+  const finishedCover = generation?.options['executive-charcoal']
+  const progress = getPortfolioGenerationProgress(generationElapsed)
 
   async function submit() {
     if (busy || !enabled) return
     if (!file || !tailoring || !consent) { setError('Upload a portrait, choose Male or Female, and accept the photo-edit consent to continue.'); return }
     try {
-      setBusy(true); setError('')
+      setBusy(true); setError(''); setGenerationStartedAt(Date.now())
       const result = await startPortfolioCover({ file, tailoring, fields: Object.fromEntries(Object.entries(fields).filter(([, value]) => value?.trim())) })
       setGeneration(result.generation)
-      toast.success('Your two cover options are being prepared.')
+      toast.success(result.generation.status === 'ready' ? 'Your Top100 cover is ready.' : 'Your Top100 cover is being prepared.')
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not start cover generation.') } finally { setBusy(false) }
   }
 
@@ -98,8 +117,6 @@ export function PortfolioCoverWizard() {
     } catch { toast.error('Could not prepare the share. Please try again.') }
   }
 
-  const statusCopy = useMemo(() => generation?.status === 'processing' || generation?.status === 'queued' ? 'Our studio is preparing two editorial options...' : '', [generation])
-
   return (
     <section className="cover-builder space-y-6" aria-labelledby="portfolio-cover-title">
 
@@ -107,9 +124,33 @@ export function PortfolioCoverWizard() {
         <DialogContent overlayClassName="bg-black/75 backdrop-blur-[2px]" className="cover-intro max-h-[85dvh] w-[calc(100%-32px)] max-w-md overflow-y-auto bg-white p-6">
           <img src="/dashboard/cover-builder/intro.png" alt="A portrait becomes a styled magazine cover" className="cover-intro-art mx-auto h-36 w-full object-contain" />
           <DialogTitle className="text-2xl font-medium">Make your portfolio cover.</DialogTitle>
-          <DialogDescription className="text-sm leading-6">Upload your portrait, choose a clothing style and add the facts you want shown. AI helps create two cover options for you to review. Your dashboard avatar stays unchanged.</DialogDescription>
+          <DialogDescription className="text-sm leading-6">Upload your portrait, choose a clothing style and add the facts you want shown. AI creates one polished Top100 cover for you to review. Your dashboard avatar stays unchanged.</DialogDescription>
           <label className="flex gap-3 text-sm leading-6"><input type="checkbox" checked={consent} onChange={event => setConsent(event.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-orange-600" />I agree to AI-assisted editing of my uploaded photo for this cover. I will review the result before using it.</label>
           <Button disabled={!consent} onClick={() => setWelcome(false)} className="cover-primary min-h-12">Agree and continue</Button>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={isGenerating} onOpenChange={() => undefined}>
+        <DialogContent
+          overlayClassName="bg-black/80 backdrop-blur-sm"
+          className="w-[calc(100%-32px)] max-w-md overflow-hidden rounded-[28px] border-0 bg-[#171717] p-0 text-white shadow-2xl [&>button]:hidden"
+          onEscapeKeyDown={event => event.preventDefault()}
+          onPointerDownOutside={event => event.preventDefault()}
+        >
+          <div className="h-2 bg-gradient-to-r from-orange-600 via-orange-400 to-amber-300" />
+          <div className="space-y-6 p-6 sm:p-8">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-500 text-xl font-semibold text-stone-950">100</div>
+            <div>
+              <DialogTitle className="text-2xl font-semibold tracking-tight text-white">{progress.title}</DialogTitle>
+              <DialogDescription className="mt-2 text-sm leading-6 text-stone-300">{progress.detail}</DialogDescription>
+            </div>
+            <div className="space-y-3">
+              <div className="h-3 overflow-hidden rounded-full bg-white/10" role="progressbar" aria-label="Cover generation progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress.value}>
+                <div className="h-full rounded-full bg-gradient-to-r from-orange-600 via-orange-400 to-amber-300 transition-[width] duration-700 ease-out" style={{ width: `${progress.value}%` }} />
+              </div>
+              <div className="flex justify-between text-xs text-stone-400"><span>One premium cover</span><span>{progress.value}%</span></div>
+            </div>
+            <p className="border-t border-white/10 pt-5 text-xs leading-5 text-stone-400">Keep this page open. Most covers finish in about 20–40 seconds.</p>
+          </div>
         </DialogContent>
       </Dialog>
       <h1 id="portfolio-cover-title" className="text-2xl font-medium">Create your cover</h1>
@@ -161,13 +202,12 @@ export function PortfolioCoverWizard() {
             if(step===0 && (!file || !tailoring || !consent)) {setError('Choose a portrait and gender, then agree to the photo-edit consent.');return}
             if(step===1) {if(cgpaValue && (!Number.isFinite(Number(cgpaValue)) || Number(cgpaValue)<0 || Number(cgpaValue)>Number(cgpaScale))) {setError('Your CGPA must be within the selected scale.');return} setField('cgpa',cgpaValue ? cgpaValue+' / '+cgpaScale : '')}
             if(step<3) setStep(step+1); else void submit()
-          }}>{busy ? 'Preparing…' : step===3 ? 'Generate two covers' : 'Continue'}</Button></div>
+          }}>{busy ? 'Preparing…' : step===3 ? 'Generate my cover' : 'Continue'}</Button></div>
           {step===3 && !enabled && <p role="status" className="text-sm text-neutral-600">Generation is currently unavailable. No photo has been submitted.</p>}
         </div>
       ) : null}
 
-      {statusCopy ? <div role="status" className="flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm font-bold text-amber-950"><Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />{statusCopy}</div> : null}
-      {generation?.status === 'ready' && hasOptions ? <div className="space-y-4"><div><p className="text-xs font-medium uppercase tracking-[.22em] text-amber-800">Choose your cover</p><h2 className="mt-1 text-2xl font-medium text-stone-950">Two editorial directions, one you.</h2></div><div className="grid gap-5 sm:grid-cols-2">{([['executive-charcoal', 'Executive Charcoal'], ['leadership-ivory', 'Leadership Ivory']] as const).map(([variant, label]) => <div key={variant} className="rounded-[24px] border border-stone-200 bg-white p-3 "><img src={generation.options[variant]} alt={`${label} Top100 magazine cover option`} className="aspect-[4/5] w-full rounded-[16px] object-cover" /><div className="flex items-center justify-between gap-3 p-3"><span className="text-sm font-medium text-stone-900">{label}</span><Button type="button" onClick={() => void choose(variant)} disabled={busy} className="rounded-full bg-stone-950 font-medium text-[#fffaf0] hover:bg-stone-800">Choose</Button></div></div>)}</div><Button type="button" variant="outline" onClick={() => void reject()} disabled={busy} className="rounded-full border-stone-300 font-medium text-stone-700">Neither looks like me</Button></div> : null}
+      {generation?.status === 'ready' && finishedCover ? <div className="mx-auto max-w-2xl space-y-5"><div className="text-center"><p className="text-xs font-medium uppercase tracking-[.24em] text-orange-700">Your Top100 cover</p><h2 className="mt-2 text-3xl font-semibold tracking-tight text-stone-950">One cover, made for you.</h2><p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-stone-600">Review the portrait and every detail before adding it to your profile.</p></div><div className="overflow-hidden rounded-[28px] border border-stone-200 bg-white p-3 shadow-sm"><img src={finishedCover} alt="Your generated Top100 Africa Future Leaders magazine cover" className="aspect-[4/5] w-full rounded-[20px] object-cover" /><div className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-medium text-stone-950">Top100 Special Issue</p><p className="text-sm text-stone-500">Corporate editorial portrait</p></div><Button type="button" onClick={() => void choose('executive-charcoal')} disabled={busy} className="cover-primary min-h-12 rounded-full px-6">Use this cover</Button></div></div><Button type="button" variant="outline" onClick={() => void reject()} disabled={busy} className="min-h-12 w-full rounded-full border-stone-300 font-medium text-stone-700">This doesn’t look like me</Button></div> : null}
       {selected ? <div className="grid gap-6 lg:grid-cols-[340px_minmax(0,1fr)]"><img src={selected} alt="Your selected Top100 Africa Future Leaders magazine cover" className="aspect-[4/5] w-full rounded-[24px] object-cover " /><div className="flex flex-col justify-center rounded-[24px] border border-amber-200 bg-amber-50 p-6"><p className="text-xs font-medium uppercase tracking-[.22em] text-amber-800">Selected cover</p><h2 className="mt-2 text-3xl font-medium text-stone-950">Ready for your portfolio.</h2><p className="mt-3 text-sm font-semibold leading-6 text-stone-700">Download it for your profile, or share your public cover link. Your original dashboard avatar is unchanged.</p><div className="mt-6 flex flex-wrap gap-3"><a href={selected} download="top100-africa-future-leaders-cover.png" className="cover-primary inline-flex min-h-12 items-center rounded-full px-5 text-sm font-medium"><Download className="mr-2 h-4 w-4" aria-hidden="true" />Download</a><Button type="button" onClick={() => void share()} className="min-h-12 rounded-full bg-white font-medium text-stone-950 hover:bg-white"><Share2 className="mr-2 h-4 w-4" aria-hidden="true" />Share cover</Button></div></div></div> : null}
     </section>
   )

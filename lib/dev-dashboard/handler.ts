@@ -588,7 +588,7 @@ async function demoCoverOption(input: {
   }
 }
 
-async function realLocalCoverOptions(input: {
+async function realLocalCover(input: {
   name: string
   fields: PortfolioCoverFields
   tailoring: 'male' | 'female'
@@ -598,11 +598,8 @@ async function realLocalCoverOptions(input: {
   const mask = await prepareEditMask()
   const editor = createOpenAIImageEditor({ apiKey: process.env.OPENAI_API_KEY! })
   const edited = await editor.edit({ portrait: preparedPortrait, mask, tailoring: input.tailoring, variant: 'executive-charcoal' })
-  const rendered = await Promise.all([
-    renderPortfolioCover({ portrait: edited.image, memberName: input.name, tailoring: input.tailoring, variant: 'executive-charcoal', fields: input.fields }),
-    renderPortfolioCover({ portrait: edited.image, memberName: input.name, tailoring: input.tailoring, variant: 'leadership-ivory', fields: input.fields }),
-  ])
-  return rendered.map(image => `data:image/png;base64,${Buffer.from(image).toString('base64')}`) as [string, string]
+  const rendered = await renderPortfolioCover({ portrait: edited.image, memberName: input.name, tailoring: input.tailoring, variant: 'executive-charcoal', fields: input.fields })
+  return `data:image/png;base64,${Buffer.from(rendered).toString('base64')}`
 }
 
 async function routePortfolioCover(request: NextRequest, path: string[], store: DemoDashboardStore) {
@@ -622,13 +619,10 @@ async function routePortfolioCover(request: NextRequest, path: string[], store: 
     const now = new Date().toISOString()
     const name = String(fields.name ?? store.profile.name)
     const config = portfolioCoverConfig()
-    const [executiveCharcoal, leadershipIvory] = config.demo
-      ? await Promise.all([
-          demoCoverOption({ label: 'EXECUTIVE CHARCOAL', name, fields, tailoring, variant: 'executive-charcoal', portrait }),
-          demoCoverOption({ label: 'LEADERSHIP IVORY', name, fields, tailoring, variant: 'leadership-ivory', portrait }),
-        ])
-      : await realLocalCoverOptions({ name, fields, tailoring, portrait })
-    const generation: PortfolioCoverGeneration = { id, memberId: DEMO_MEMBER_ID, status: 'ready', tailoring, fields, attempt: 1, options: { 'executive-charcoal': executiveCharcoal, 'leadership-ivory': leadershipIvory }, createdAt: now, updatedAt: now }
+    const executiveCharcoal = config.enabled && !config.demo
+      ? await realLocalCover({ name, fields, tailoring, portrait })
+      : await demoCoverOption({ label: 'TOP100 AFRICA FUTURE LEADER', name, fields, tailoring, variant: 'executive-charcoal', portrait })
+    const generation: PortfolioCoverGeneration = { id, memberId: DEMO_MEMBER_ID, status: 'ready', tailoring, fields, attempt: 1, options: { 'executive-charcoal': executiveCharcoal }, createdAt: now, updatedAt: now }
     store.portfolioCover = generation
     return json({ generation }, 202)
   }
@@ -637,7 +631,7 @@ async function routePortfolioCover(request: NextRequest, path: string[], store: 
   if (path[3] === 'select' && request.method === 'POST') {
     const body = await readBody(request)
     const variant = body?.variant as PortfolioVariant
-    if (!['executive-charcoal', 'leadership-ivory'].includes(variant)) return json({ message: 'Choose one of the two covers.' }, 400)
+    if (variant !== 'executive-charcoal') return json({ message: 'That cover is no longer available.' }, 400)
     store.portfolioCover = { ...store.portfolioCover, status: 'selected', selectedVariant: variant, selectedUrl: store.portfolioCover.options[variant], updatedAt: new Date().toISOString() }
     return json({ generation: store.portfolioCover })
   }
