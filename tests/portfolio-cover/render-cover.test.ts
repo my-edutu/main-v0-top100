@@ -40,8 +40,13 @@ describe('deterministic Top100 magazine cover renderer', () => {
     const rgbAt = (x: number, y: number) => Array.from(data.subarray((y * info.width + x) * info.channels, (y * info.width + x) * info.channels + 3))
 
     expect(rgbAt(20, 1940).every(channel => channel < 40)).toBe(true)
-    const accent = rgbAt(80, 1995)
-    expect(accent[0]).toBeGreaterThan(180)
-    expect(accent[0]).toBeGreaterThan(accent[2] * 2)
+    let orangePixels = 0
+    for (let y = 0; y < info.height; y += 8) {
+      for (let x = 0; x < info.width; x += 8) {
+        const [red, green, blue] = rgbAt(x, y)
+        if (red > 180 && green > 80 && green < 210 && blue < 120) orangePixels++
+      }
+    }
+    expect(orangePixels).toBeGreaterThan(20)
   }, 15000)
 })

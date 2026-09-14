@@ -15,7 +15,7 @@ export function buildVariantPrompt(tailoring: PortfolioEditInput['tailoring']) {
     'Create one premium mid-thigh editorial magazine portrait using the supplied person as the identity reference.',
     'Recompose the subject standing upright and square to the camera, with both shoulders level, the head straight, and both eyes looking directly into the camera with a calm, confident expression.',
     'Show the complete head, hair, shoulders, torso, and arms. Leave generous clean headroom equal to about twelve percent of the frame above the hair and do not crop the face, hair, chin, shoulders, or hands.',
-    'Replace the entire original background with a seamless charcoal-to-warm-grey photography studio backdrop, soft radial light behind the subject, and a subtle dark vignette.',
+    'Isolate the complete subject on a transparent background; do not include a studio backdrop, scenery, floor, furniture, or shadows outside the person.',
     `Dress the subject in a premium charcoal corporate suit with a crisp white shirt, a ${cut}, and a restrained burnt-orange pocket square.`,
     'Keep the person unmistakably recognizable by preserving their facial structure, skin tone, hair, age, eyewear, and distinctive features while correcting the pose to face forward.',
     'Remove handheld objects, microphones, other people, furniture, scenery, and clothing from the source. Use a natural symmetrical pose, clean tailoring, realistic anatomy, and polished studio lighting.',
@@ -34,6 +34,8 @@ export function createOpenAIImageEditor(options: { apiKey: string; fetchImpl?: F
       body.append('model', model)
       body.append('size', '1024x1536')
       body.append('quality', 'medium')
+      body.append('background', 'transparent')
+      body.append('output_format', 'png')
       body.append('n', '1')
       body.append('prompt', buildVariantPrompt(input.tailoring))
       body.append('image[]', new Blob([new Uint8Array(input.portrait)], { type: 'image/png' }), 'portrait.png')
