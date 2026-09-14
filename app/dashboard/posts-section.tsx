@@ -320,16 +320,16 @@ export default function PostsSection({
       {mode === 'list' && posts.length === 0 && (member.dashboardLoginCount ?? 0) <= 1 ? (
         <PostsWelcome memberId={member.id} name={member.name} />
       ) : null}
-      <section className="rounded-[24px] border border-orange-100 bg-white p-4 sm:rounded-[30px] sm:p-8">
-        <div className="flex items-start justify-between gap-3 sm:gap-4">
+      <section className="rounded-[24px] border border-orange-100 bg-white p-4 shadow-[0_8px_30px_rgba(23,20,18,0.04)] sm:rounded-[30px] sm:p-6">
+        <div className="flex items-start justify-between gap-3 sm:gap-5">
           <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-500 text-[#fffaf0] sm:h-14 sm:w-14">
-              <PenSquare className="h-6 w-6 sm:h-7 sm:w-7" strokeWidth={2.2} />
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-orange-500 text-[#fffaf0] sm:h-12 sm:w-12">
+              <PenSquare className="h-5 w-5 sm:h-6 sm:w-6" strokeWidth={2.2} />
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-600">Your writing</p>
-              <h3 className="mt-1 text-2xl font-bold tracking-tight text-black sm:mt-2 sm:text-3xl">Posts</h3>
-              <p className="mt-2 max-w-xl text-sm font-medium leading-6 text-black/60 sm:text-base">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-orange-600">Your writing</p>
+              <h3 className="mt-1 text-xl font-bold tracking-tight text-black sm:text-2xl">Posts</h3>
+              <p className="mt-1.5 max-w-xl text-sm leading-5 text-black/60 sm:mt-2 sm:leading-6">
                 Write in your own words. Published posts appear on your public profile straight away —
                 our team reviews them afterwards.
               </p>
@@ -337,7 +337,7 @@ export default function PostsSection({
           </div>
 
           {mode === 'list' && !accountRestricted && (
-            <Button asChild size="icon" className="h-11 w-11 shrink-0 rounded-full bg-orange-500 text-[#fffaf0] hover:bg-orange-600" aria-label="Create post" title="Create post">
+            <Button asChild size="icon" className="h-10 w-10 shrink-0 rounded-full bg-orange-500 text-[#fffaf0] hover:bg-orange-600" aria-label="Create post" title="Create post">
               <Link href="/dashboard/me/posts/new">
                 <Plus className="h-5 w-5" />
               </Link>
@@ -431,11 +431,11 @@ function PostRow({
     post.status === 'published' && publicSlug ? memberPostPath(publicSlug, post.slug) : null
 
   return (
-    <article className="rounded-[24px] border border-orange-100 bg-white p-5 sm:p-6">
+    <article className="rounded-[24px] border border-orange-100 bg-white p-4 shadow-[0_8px_30px_rgba(23,20,18,0.035)] sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h4 className="text-xl font-bold tracking-tight text-black">{post.title}</h4>
+            <h4 className="text-lg font-bold tracking-tight text-black sm:text-xl">{post.title}</h4>
             <span
               className={`rounded-full border px-3 py-0.5 text-xs font-semibold ${chip.className}`}
             >
@@ -450,13 +450,13 @@ function PostRow({
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
           {liveUrl && (
             <a
               href={liveUrl}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1.5 text-sm font-semibold text-orange-700 underline underline-offset-4"
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-orange-200 px-3 text-sm font-semibold text-orange-700 transition hover:bg-orange-50"
             >
               View live
               <ExternalLink className="h-3.5 w-3.5" />
@@ -465,7 +465,7 @@ function PostRow({
           {!removed && mutable && (
             <>
               <Button asChild variant="outline"
-                className="rounded-full border-orange-200 bg-white text-black hover:bg-orange-50"
+              className="min-h-9 rounded-full border-orange-200 bg-white px-4 text-sm text-black hover:bg-orange-50"
               >
                 <Link href={onEditHref}>Edit</Link>
               </Button>
@@ -475,7 +475,7 @@ function PostRow({
                 onClick={onDelete}
                 disabled={deleting}
                 aria-label={`Delete ${post.title}`}
-                className="rounded-full border-red-200 bg-white text-red-700 hover:bg-red-50"
+                className="h-9 w-9 rounded-full border-red-200 bg-white p-0 text-red-700 hover:bg-red-50"
               >
                 {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
               </Button>
@@ -485,7 +485,7 @@ function PostRow({
       </div>
 
       {post.excerpt && (
-        <p className="mt-3 text-sm font-medium leading-6 text-black/60">{post.excerpt}</p>
+        <p className="mt-3 border-t border-black/[0.06] pt-3 text-sm leading-6 text-black/60">{post.excerpt}</p>
       )}
 
       {(post.status === 'flagged' || post.status === 'removed') && (
