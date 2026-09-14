@@ -141,7 +141,7 @@ export function PortfolioCoverWizard() {
           <div className="space-y-6 p-6 sm:p-8">
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-500 text-xl font-semibold text-stone-950">100</div>
             <div>
-              <DialogTitle className="text-2xl font-semibold tracking-tight text-white">{progress.title}</DialogTitle>
+              <DialogTitle className="cover-progress-title text-2xl font-semibold tracking-tight">{progress.title}</DialogTitle>
               <DialogDescription className="mt-2 text-sm leading-6 text-stone-300">{progress.detail}</DialogDescription>
             </div>
             <div className="space-y-3">

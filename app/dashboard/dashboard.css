@@ -222,6 +222,7 @@ html.light .awardee-dashboard .hub-shortcuts .hub-card:nth-child(8) { background
 html.light .cover-primary { background:linear-gradient(90deg,#f97316,#fb923c,#f59e0b)!important; color:#171717!important; border-radius:12px!important; font-weight:500; white-space:normal; }
 .cover-primary:disabled { opacity:.45; }
 .cover-builder :is(input,select,textarea) { min-height:48px; font-size:16px; }
+html.light .cover-progress-title, .cover-progress-title { color:#fff!important; }
 .cover-intro-art { animation:cover-intro-reveal .7s ease-out both; }
 @keyframes cover-intro-reveal { from {opacity:0;transform:translateY(10px)} to {opacity:1;transform:translateY(0)} }
 @media(prefers-reduced-motion:reduce) { .cover-intro-art {animation:none;} }
