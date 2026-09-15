@@ -1,6 +1,15 @@
 export const MIN_INTERESTS = 1
 export const MAX_INTERESTS = 10
 
+export function finishDashboardOnboarding<T>(
+  member: T,
+  replaceMember: (member: T) => void,
+  navigate: (destination: string) => void,
+) {
+  replaceMember(member)
+  navigate('/dashboard')
+}
+
 export const onboardingFields = [
   {
     key: 'headline',

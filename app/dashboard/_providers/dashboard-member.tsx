@@ -11,6 +11,7 @@ import {
 import { LoaderCircle, RotateCcw } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { finishDashboardOnboarding } from '@/lib/dashboard/onboarding'
 import { fetchMemberHubState, type MemberProfile } from '@/lib/member-hub'
 import dynamic from 'next/dynamic'
 const Onboarding = dynamic(() => import('../_components/onboarding').then(module => module.Onboarding))
@@ -31,6 +32,11 @@ export function DashboardMemberProvider({ children }: { children: ReactNode }) {
     setMember(nextMember)
     setError('')
   }, [])
+  const completeOnboarding = useCallback((nextMember: MemberProfile) => {
+    finishDashboardOnboarding(nextMember, replaceMember, destination => {
+      window.location.replace(destination)
+    })
+  }, [replaceMember])
 
   const refreshMember = useCallback(async () => {
     setLoading(true)
@@ -117,7 +123,7 @@ export function DashboardMemberProvider({ children }: { children: ReactNode }) {
   return (
     <DashboardMemberContext.Provider value={{ member, refreshMember, replaceMember }}>
       {isLocalPreview && <div className="bg-orange-50 px-4 py-2 text-center text-xs text-orange-900">Local preview · sample account and activity {member.onboardingCompletedAt && <button className="ml-2 underline" onClick={() => { void fetch('/api/member/onboarding', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reset: true }) }).then(async response => { if (response.ok) replaceMember((await response.json()).member) }) }}>Preview onboarding</button>}</div>}
-      {!member.onboardingCompletedAt ? <Onboarding member={member} onComplete={replaceMember} /> : children}
+      {!member.onboardingCompletedAt ? <Onboarding member={member} onComplete={completeOnboarding} /> : children}
     </DashboardMemberContext.Provider>
   )
 }
