@@ -18,6 +18,8 @@ import { renderPortfolioCover } from '@/lib/portfolio-cover/render-cover'
 import { portfolioCoverConfig } from '@/lib/portfolio-cover/config'
 import { createOpenAIImageEditor } from '@/lib/portfolio-cover/providers/openai'
 import { CONTRIBUTION_AREAS, contributionSchema } from '@/lib/community-contributions'
+import { AVATAR_PRESET, processUpload } from '@/lib/image-processing'
+import { uploadMedia } from '@/lib/media/storage'
 
 function json(data: unknown, status = 200): Response {
   return Response.json(data, { status })
@@ -680,6 +682,45 @@ export async function handleDemoMemberRequest(
     case 'me':
       response = await routeMe(request, store)
       break
+    case 'avatar': {
+      if (request.method !== 'POST') break
+      const formData = await request.formData()
+      const file = formData.get('file')
+      if (!(file instanceof File) || file.size === 0) {
+        response = json({ error: 'No file provided.' }, 400)
+        break
+      }
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+        response = json({ error: 'Choose a JPG, PNG, or WebP image.' }, 400)
+        break
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        response = json({ error: 'File size too large. Maximum size is 5MB.' }, 400)
+        break
+      }
+
+      const processed = await processUpload(await file.arrayBuffer(), AVATAR_PRESET, file.type)
+      // Keep local preview usable even when a storage bucket is not configured.
+      // When storage is available, prefer the same persistent media path used
+      // by the production avatar endpoint.
+      let avatarUrl = `data:${processed.contentType};base64,${processed.data.toString('base64')}`
+      try {
+        const uploaded = await uploadMedia({
+          bucket: process.env.SUPABASE_AVATARS_BUCKET ?? 'avatars',
+          path: `users/${DEMO_MEMBER_ID}-${Date.now()}.${processed.extension}`,
+          body: processed.data,
+          contentType: processed.contentType,
+          cacheControl: String(60 * 60 * 24 * 365),
+          upsert: false,
+        })
+        if (uploaded.publicUrl) avatarUrl = uploaded.publicUrl
+      } catch (error) {
+        console.warn('[demo-avatar] storage unavailable; using local preview avatar', error)
+      }
+      store.profile.avatarUrl = avatarUrl
+      response = json({ url: avatarUrl })
+      break
+    }
     case 'posts':
       response = await routePosts(request, path, store)
       break

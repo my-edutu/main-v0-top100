@@ -70,7 +70,6 @@ export default function AdminInvitesPage() {
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data?.message || 'Could not generate a code.')
       setLatestCode(data.code.code)
-      setCopiedCode(data.code.code)
       setLabel('Awardee invite')
       setEmail('')
       await refresh()
@@ -146,9 +145,9 @@ export default function AdminInvitesPage() {
         ) : null}
 
         <section className="grid gap-5 lg:grid-cols-[0.75fr_1.25fr]">
-          <Card className="border-orange-100 bg-slate-950 text-white shadow-[0_24px_80px_-54px_rgba(15,23,42,0.75)]">
+          <Card className="border-orange-100 bg-white text-slate-950 shadow-[0_24px_80px_-54px_rgba(15,23,42,0.18)]">
             <CardHeader>
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-orange-200">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-100 text-orange-700">
                 <KeyRound className="h-5 w-5" />
               </div>
               <CardTitle className="text-2xl font-black">Generate code</CardTitle>
@@ -157,7 +156,7 @@ export default function AdminInvitesPage() {
               <Input
                 value={label}
                 onChange={(event) => setLabel(event.target.value)}
-                className="rounded-2xl border-white/10 bg-white/10 text-white placeholder:text-white/45"
+                className="rounded-2xl border-slate-200 bg-white text-slate-950 placeholder:text-slate-400"
                 placeholder="Code label"
               />
               <div className="grid grid-cols-2 gap-2" aria-label="Invite code type">
@@ -165,7 +164,7 @@ export default function AdminInvitesPage() {
                   type="button"
                   onClick={() => setMode('single_use')}
                   aria-pressed={mode === 'single_use'}
-                  className={cn('rounded-2xl border px-3 py-3 text-left text-sm font-bold transition', mode === 'single_use' ? 'border-orange-300 bg-orange-400/20 text-orange-100' : 'border-white/10 bg-white/5 text-white/60')}
+                  className={cn('rounded-2xl border px-3 py-3 text-left text-sm font-bold transition', mode === 'single_use' ? 'border-orange-400 bg-orange-100 text-orange-900 shadow-sm' : 'border-slate-200 bg-white text-slate-700 hover:border-orange-300 hover:bg-orange-50')}
                 >
                   Individual
                   <span className="mt-1 block text-xs font-medium opacity-70">One person, one use</span>
@@ -174,7 +173,7 @@ export default function AdminInvitesPage() {
                   type="button"
                   onClick={() => setMode('time_limited')}
                   aria-pressed={mode === 'time_limited'}
-                  className={cn('rounded-2xl border px-3 py-3 text-left text-sm font-bold transition', mode === 'time_limited' ? 'border-orange-300 bg-orange-400/20 text-orange-100' : 'border-white/10 bg-white/5 text-white/60')}
+                  className={cn('rounded-2xl border px-3 py-3 text-left text-sm font-bold transition', mode === 'time_limited' ? 'border-orange-400 bg-orange-100 text-orange-900 shadow-sm' : 'border-slate-200 bg-white text-slate-700 hover:border-orange-300 hover:bg-orange-50')}
                 >
                   Timed access
                   <span className="mt-1 block text-xs font-medium opacity-70">Reusable until expiry</span>
@@ -184,14 +183,14 @@ export default function AdminInvitesPage() {
                 <Input
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  className="rounded-2xl border-white/10 bg-white/10 text-white placeholder:text-white/45"
+                  className="rounded-2xl border-slate-200 bg-white text-slate-950 placeholder:text-slate-400"
                   placeholder="Recipient email"
                   type="email"
                   required
                 />
               ) : (
                 <div className="space-y-2">
-                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-white/55">Expires after</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Expires after</p>
                   <div className="grid grid-cols-2 gap-2">
                     {([1, 24] as const).map((hours) => (
                       <button
@@ -199,7 +198,7 @@ export default function AdminInvitesPage() {
                         type="button"
                         onClick={() => setDurationHours(hours)}
                         aria-pressed={durationHours === hours}
-                        className={cn('rounded-full border px-4 py-2 text-sm font-bold transition', durationHours === hours ? 'border-orange-300 bg-orange-400 text-slate-950' : 'border-white/10 bg-white/5 text-white/70')}
+                        className={cn('rounded-full border px-4 py-2 text-sm font-bold transition', durationHours === hours ? 'border-orange-400 bg-orange-500 text-white shadow-sm' : 'border-slate-200 bg-white text-slate-700 hover:border-orange-300 hover:bg-orange-50')}
                       >
                         {hours === 1 ? '1 hour' : '24 hours'}
                       </button>
@@ -207,12 +206,25 @@ export default function AdminInvitesPage() {
                   </div>
                 </div>
               )}
-              <Button onClick={handleGenerate} disabled={busy || (mode === 'single_use' && !email.trim())} className="w-full rounded-full bg-gradient-to-r from-orange-500 to-amber-500 py-6 text-white shadow-none hover:opacity-95">
+              <Button onClick={handleGenerate} disabled={busy || (mode === 'single_use' && !email.trim())} className="w-full rounded-full bg-gradient-to-r from-orange-500 to-amber-500 py-6 text-white shadow-none hover:opacity-95 disabled:opacity-50">
                 {busy ? 'Generating...' : 'Generate invite'}
               </Button>
               {latestCode ? (
-                <div className="rounded-2xl border border-white/10 bg-white/6 p-4 text-sm">
-                  Latest code: <span className="font-black text-orange-200">{latestCode}</span>
+                <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm">
+                  <p className="min-w-0 truncate text-slate-700">
+                    Latest code: <span className="font-black text-orange-700">{latestCode}</span>
+                  </p>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="shrink-0 rounded-full text-orange-700 hover:bg-orange-100"
+                    onClick={() => copyCode(latestCode)}
+                    aria-label="Copy latest invite code"
+                  >
+                    {copiedCode === latestCode ? <CheckCircle2 className="mr-2 h-3.5 w-3.5" /> : <Copy className="mr-2 h-3.5 w-3.5" />}
+                    {copiedCode === latestCode ? 'Copied' : 'Copy'}
+                  </Button>
                 </div>
               ) : null}
             </CardContent>

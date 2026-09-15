@@ -327,7 +327,7 @@ export function demoAwardeeDirectoryEntry(
     current_school: null,
     field_of_study: profile.field || null,
     bio: profile.bio || null,
-    avatar_url: null,
+    avatar_url: profile.avatarUrl ?? null,
     cover_image_url: null,
     portfolio_cover_url: store.portfolioCover?.selectedUrl ?? null,
     headline: profile.headline || null,
