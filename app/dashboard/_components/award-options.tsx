@@ -11,7 +11,7 @@ export function AwardOptions() {
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-orange-700">
           Your awards
         </p>
-        <h1 className="text-3xl font-semibold tracking-tight text-[#171412] sm:text-4xl">
+        <h1 className="text-2xl font-semibold tracking-tight text-[#171412] sm:text-3xl">
           Your recognition is ready.
         </h1>
         <p className="max-w-2xl text-sm leading-6 text-[#625B52] sm:text-base">
@@ -32,7 +32,7 @@ export function AwardOptions() {
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-orange-700">
                 Physical award
               </p>
-              <h2 id="physical-award-title" className="mt-2 text-2xl font-semibold tracking-tight text-[#171412]">
+              <h2 id="physical-award-title" className="mt-2 text-xl font-semibold tracking-tight text-[#171412] sm:text-2xl">
                 Arrange delivery of your award
               </h2>
               <p className="mt-2 max-w-xl text-sm leading-6 text-[#625B52]">

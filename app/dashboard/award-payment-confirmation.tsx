@@ -46,8 +46,8 @@ export function AwardPaymentConfirmation({
               : timedOut
               ? "Still confirming — please don't retry payment. Contact support if this does not update shortly."
               : resumeUrl
-                ? 'A payment checkout is still open. Continue that checkout to finish, or return here after Bachs confirms it.'
-                : "Bachs has returned you to Top100. We're waiting for the signed confirmation from Bachs. Please don't start another checkout."}
+                ? 'A payment checkout is still open. Continue that checkout to finish, or return here once your payment is confirmed.'
+                : "You've returned to Top100. We're waiting for your payment confirmation. Please don't start another checkout."}
           </p>
           {resumeUrl ? (
             <Link

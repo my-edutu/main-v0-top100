@@ -88,8 +88,9 @@ export function AwardPaymentCard({
               Complete your award payment
             </h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-[#625B52] sm:text-base">
-              Pay the award fee securely through Bachs to redeem the physical
-              award. Delivery details and its charge are handled separately.
+              Secure your physical award and take the next step in your Africa
+              Future Leaders recognition. Delivery details and charges are
+              handled separately.
             </p>
           </div>
         </div>
@@ -133,7 +134,7 @@ export function AwardPaymentCard({
                   />
                   <span className="min-w-0">
                     <span className="block text-sm font-semibold text-[#171412]">
-                      {option.currency}
+                      {option.currency === 'NGN' ? 'Naira (NGN)' : option.currency}
                     </span>
                     <span className="mt-0.5 block text-sm text-[#625B52]">
                       {option.display}
@@ -156,15 +157,14 @@ export function AwardPaymentCard({
 
         <div className="flex flex-col gap-3 border-t border-[#E7DDCF] pt-5 sm:flex-row sm:items-center sm:justify-between">
           <p className="max-w-md text-xs leading-5 text-[#625B52]">
-            This payment starts your physical award redemption. Bachs will show
-            the payment methods available for the currency you choose; your
-            payment details stay on the hosted checkout.
+            Choose your currency to continue securely. Your payment details
+            stay protected on the hosted checkout.
           </p>
           <Button
             type="button"
             onClick={() => void handleCheckout()}
             disabled={!selectedOption || submitting}
-            className="min-h-12 shrink-0 rounded-xl bg-[#171412] px-5 text-white hover:bg-[#312B27] disabled:bg-[#D4C7B6] disabled:text-[#625B52]"
+            className="min-h-12 shrink-0 rounded-xl bg-[linear-gradient(110deg,#f97316,#fb923c,#f59e0b)] px-5 font-semibold text-[#171412] shadow-sm transition hover:brightness-105 disabled:bg-[#D4C7B6] disabled:text-[#625B52]"
           >
             {submitting ? (
               <>
@@ -172,11 +172,11 @@ export function AwardPaymentCard({
                   className="mr-2 h-4 w-4 animate-spin motion-reduce:animate-none"
                   aria-hidden="true"
                 />
-                Opening Bachs checkout…
+                Opening secure checkout…
               </>
             ) : (
               <>
-                Pay {selectedOption?.display ?? 'award fee'} with Bachs
+                Pay {selectedOption?.display ?? 'award fee'}
                 <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
               </>
             )}

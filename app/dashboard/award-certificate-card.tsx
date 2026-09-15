@@ -12,7 +12,7 @@ export function AwardCertificateCard() {
           </span>
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-orange-700">Your recognition</p>
-            <h2 id="award-certificate-title" className="mt-2 text-2xl font-semibold tracking-tight text-[#171412]">Download your award certificate</h2>
+            <h2 id="award-certificate-title" className="mt-2 text-xl font-semibold tracking-tight text-[#171412] sm:text-2xl">Download your award certificate</h2>
             <p className="mt-2 max-w-xl text-sm leading-6 text-[#625B52]">Keep a digital certificate of your Top100 Africa Future Leaders recognition for your records and professional profiles.</p>
           </div>
         </div>
