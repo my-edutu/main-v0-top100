@@ -64,6 +64,8 @@ create table if not exists public.access_codes (
   label       text default 'Awardee invite',
   status      text not null default 'active'
               check (status in ('active', 'used', 'expired', 'revoked')),
+  redemption_mode text not null default 'single_use'
+              check (redemption_mode in ('single_use', 'time_limited')),
   uses_left   integer not null default 1,
   email       text,
   created_by  uuid,
@@ -72,6 +74,15 @@ create table if not exists public.access_codes (
   expires_at  timestamptz not null default (now() + interval '90 days'),
   created_at  timestamptz not null default now()
 );
+
+alter table public.access_codes
+  add column if not exists redemption_mode text not null default 'single_use';
+
+DO $$ BEGIN
+  alter table public.access_codes
+    add constraint access_codes_redemption_mode_check
+    check (redemption_mode in ('single_use', 'time_limited'));
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 create index if not exists access_codes_code_idx   on public.access_codes (code);
 create index if not exists access_codes_status_idx  on public.access_codes (status);
@@ -109,6 +120,10 @@ alter table public.profiles add column if not exists notification_prefs jsonb   
 alter table public.profiles add column if not exists organization text;
 alter table public.profiles add column if not exists field text;
 alter table public.profiles add column if not exists access_code text;
+alter table public.profiles add column if not exists user_id uuid;
+update public.profiles set user_id = id where user_id is null;
+alter table public.profiles alter column user_id drop not null;
+create unique index if not exists profiles_user_id_key on public.profiles (user_id);
 
 create index if not exists profiles_membership_status_idx on public.profiles (membership_status);
 

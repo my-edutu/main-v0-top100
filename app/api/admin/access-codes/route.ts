@@ -2,7 +2,7 @@
 // Admin-only management of signup access codes.
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/api/require-admin'
-import { generateCode, listCodes } from '@/lib/access-codes'
+import { generateCode, listCodes, parseAccessCodeRequest } from '@/lib/access-codes'
 
 export const runtime = 'nodejs'
 
@@ -34,24 +34,22 @@ export async function POST(request: NextRequest) {
     // empty body is fine — use defaults
   }
 
-  const label = typeof body.label === 'string' && body.label.trim() ? body.label.trim() : 'Awardee invite'
-  const email = typeof body.email === 'string' && body.email.trim() ? body.email.trim().toLowerCase() : null
-  const usesLeft = Number.isFinite(Number(body.usesLeft)) ? Math.max(1, Number(body.usesLeft)) : 1
-  const expiresInDays = Number.isFinite(Number(body.expiresInDays)) ? Math.max(1, Number(body.expiresInDays)) : 90
-
   try {
+    const options = parseAccessCodeRequest(body)
     const code = await generateCode({
-      label,
-      email,
-      usesLeft,
-      expiresInDays,
+      ...options,
       createdBy: adminCheck.user?.id ?? null,
     })
     return NextResponse.json({ code }, { status: 201 })
   } catch (error) {
+    const details = error instanceof Error ? error.message : undefined
+    const isValidationError = Boolean(details && /required|choose/i.test(details))
     return NextResponse.json(
-      { message: 'Could not generate an access code.', details: error instanceof Error ? error.message : undefined },
-      { status: 500 },
+      {
+        message: isValidationError ? details : 'Could not generate an access code.',
+        details: isValidationError ? undefined : details,
+      },
+      { status: isValidationError ? 400 : 500 },
     )
   }
 }

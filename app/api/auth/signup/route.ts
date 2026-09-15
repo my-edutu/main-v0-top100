@@ -9,7 +9,7 @@
 // failure we delete the just-created auth user (and profile) to avoid orphans.
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
-import { validateCode, consumeCode, normalizeCode } from '@/lib/access-codes'
+import { validateCode, consumeCode } from '@/lib/access-codes'
 import {
   checkRateLimit,
   getClientIdentifier,
@@ -18,6 +18,7 @@ import {
 } from '@/lib/rate-limit'
 import { sanitizeEmail, sanitizeInput } from '@/lib/security'
 import { verifySignupCaptcha } from '@/lib/auth/signup-turnstile'
+import { buildSignupProfile } from '@/lib/auth/signup-profile'
 
 export const runtime = 'nodejs'
 
@@ -130,34 +131,22 @@ export async function POST(request: NextRequest) {
     awardee.slug ||
     name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') ||
     userId.slice(0, 8)
-  const { error: profileError } = await supabase.from('profiles').insert({
-    id: userId,
+  const { error: profileError } = await supabase.from('profiles').insert(buildSignupProfile({
+    userId,
     email,
-    role: 'user',
-    full_name: name,
-    headline: headline || 'Top100 Africa Future Leaders awardee',
-    membership_status: 'pending',
+    name,
+    headline,
     slug,
-    is_public: true,
-    access_code: normalizeCode(rawCode),
-    location: awardee.country ?? null,
-    field: awardee.course ?? null,
-    field_of_study: awardee.course ?? null,
-    bio: awardee.bio ?? null,
-    avatar_url: awardee.image_url ?? null,
-    bio_update_count: 0,
-    bio_update_limit: 2,
-    notification_prefs: {
-      recruiterVisible: true,
-      emailVisible: false,
-      opportunityAlerts: true,
-      magazineAlerts: true,
-      messageAlerts: true,
-      eventReminders: true,
-    },
-  })
+    accessCode: rawCode,
+    awardee,
+  }))
 
   if (profileError) {
+    console.error('[signup] profile insert failed', {
+      code: profileError.code,
+      message: profileError.message,
+      awardeeId: awardee.id,
+    })
     await supabase.auth.admin.deleteUser(userId).catch(() => {})
     const dup = /duplicate|unique/i.test(profileError.message)
     return NextResponse.json(
@@ -182,7 +171,20 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  await consumeCode(rawCode, userId)
+  const codeConsumed = await consumeCode(rawCode, userId)
+  if (!codeConsumed) {
+    await supabase
+      .from('awardees')
+      .update({ profile_id: null, email: awardee.email ?? null })
+      .eq('id', awardee.id)
+      .eq('profile_id', userId)
+    await supabase.from('profiles').delete().eq('id', userId)
+    await supabase.auth.admin.deleteUser(userId).catch(() => {})
+    return NextResponse.json(
+      { message: 'This invite code is no longer available. Ask the admin team for a new one.' },
+      { status: 409 },
+    )
+  }
 
   return NextResponse.json(
     { message: 'Account created. You can now sign in.', userId, email, name },
