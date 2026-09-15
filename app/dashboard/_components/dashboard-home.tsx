@@ -7,7 +7,6 @@ import {
   ArrowUpRight,
   CalendarDays,
   Mail,
-  Sparkles,
   Trophy,
   UserRound,
 } from 'lucide-react'
@@ -35,7 +34,15 @@ type RecentItem = {
   unread: boolean
 }
 
-const INTERVIEW_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSc-UAJ-UamjE4Lqa8fwv3Z9qNGebRZS8AZYLMAKNbKs4IJD5A/viewform'
+const INTERVIEW_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSfA0yU8IK1jVBNZ-V1RRksZXJAkAh4XwL7Pk8mubZ31ZHMNlYQ/viewform?usp=header'
+const PARTNERSHIP_FORM_URL = 'https://docs.google.com/forms/d/1pabeSUOwN15Sr-VcAWIhl5k5_xwnKljFuzm90PCoEqQ/edit'
+
+const launchBanners = [
+  { title: 'Project100 Scholarship', description: 'Put your next chapter in motion.', href: '/dashboard/me/project100-scholarship', image: '/dashboard/banners/project100-scholarship-v2.png' },
+  { title: 'Impact Series Interviews', description: 'Share the work behind your impact.', href: INTERVIEW_FORM_URL, image: '/dashboard/banners/impact-series-v2.png', external: true },
+  { title: 'Get my AFL award', description: 'Complete your award journey.', href: '/dashboard/me/award', image: '/dashboard/banners/afl-award-v2.png' },
+  { title: 'Let your organization partner with Africa Future Leaders', description: 'Create more impact together.', href: PARTNERSHIP_FORM_URL, image: '/dashboard/banners/impact-series-v2.png', external: true },
+] as const
 
 const shortcutDescriptions: Record<string, string> = {
   Members: 'Meet fellow awardees',
@@ -187,7 +194,7 @@ export function DashboardHome() {
             image={false}
             href="/dashboard/me/award"
             title="Your award is ready"
-            description="Pay the award fee with Bachs; delivery follows separately."
+            description="Complete your award payment; delivery follows separately."
             icon={Trophy}
             color="saffron"
             compact
@@ -222,10 +229,36 @@ export function DashboardHome() {
         </div>
       </section>
 
+      <section className="hub-launch-rail min-w-0" aria-labelledby="launch-title">
+        <div className="mb-3 flex items-end justify-between gap-3">
+          <div>
+            <h2 id="launch-title" className="hub-panel-title mt-1">Keep going</h2>
+          </div>
+        </div>
+        <div className="flex snap-x gap-4 overflow-x-auto pb-2 pr-2" role="region" aria-label="Featured member actions">
+          {launchBanners.map((banner) => (
+            <Link
+              key={banner.title}
+              href={banner.href}
+              target={'external' in banner && banner.external ? '_blank' : undefined}
+              rel={'external' in banner && banner.external ? 'noopener noreferrer' : undefined}
+              className="group relative isolate flex min-h-[176px] min-w-[min(82vw,320px)] snap-start overflow-hidden rounded-[20px] border border-black/10 bg-black p-4 text-white shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-2"
+            >
+              <img src={banner.image} alt="" className="absolute inset-0 -z-10 h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+              <span className="absolute inset-0 -z-10 bg-gradient-to-t from-[#111827]/75 via-[#111827]/15 to-transparent" />
+              <span className="mt-auto max-w-[290px]">
+                <span style={{ color: '#fff' }} className="mt-1 block text-lg font-semibold leading-tight [text-shadow:0_1px_3px_rgba(0,0,0,.45)]">{banner.title}</span>
+                <span style={{ color: 'rgba(255,255,255,.9)' }} className="mt-1 block text-sm [text-shadow:0_1px_2px_rgba(0,0,0,.45)]">{banner.description}</span>
+              </span>
+              <ArrowUpRight className="absolute right-4 top-4 h-5 w-5 text-white/80 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true" />
+            </Link>
+          ))}
+        </div>
+      </section>
+
       <section className="hub-shortcuts" aria-labelledby="shortcuts-title">
         <div className="mb-3 flex items-center justify-between gap-3">
           <h2 id="shortcuts-title" className="hub-panel-title">Explore more</h2>
-          <Sparkles className="h-5 w-5 text-[#171717]" aria-hidden="true" />
         </div>
         <div className="grid grid-cols-2 gap-3 sm:gap-4">
           {shortcuts.map((item) => (

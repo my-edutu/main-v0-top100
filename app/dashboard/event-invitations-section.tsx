@@ -1,11 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
-import { CalendarDays, ArrowUpRight } from 'lucide-react'
-import { toast } from 'sonner'
+import { ArrowUpRight, CalendarDays, MapPin, Sparkles } from 'lucide-react'
 import type { MemberProfile } from '@/lib/member-hub'
-import { fetchEventInvitations, fetchPublicEvents, setInvitationRsvp, RSVP_CHOICES, RSVP_LABELS, type EventInvitation, type PublicEvent, type RsvpChoice } from '@/lib/events/invitations-client'
+import { fetchEventInvitations, fetchPublicEvents, type EventInvitation, type PublicEvent } from '@/lib/events/invitations-client'
+import { eventCoverUrl } from '@/lib/events/presentation'
 
 export default function EventInvitationsSection({ member }: { member: MemberProfile }) {
   const [invitations, setInvitations] = useState<EventInvitation[]>([])
@@ -13,7 +12,6 @@ export default function EventInvitationsSection({ member }: { member: MemberProf
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [retry, setRetry] = useState(0)
-  const [saving, setSaving] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -29,25 +27,15 @@ export default function EventInvitationsSection({ member }: { member: MemberProf
     return () => { cancelled = true }
   }, [member.id, retry])
 
-  async function respond(invitation: EventInvitation, choice: RsvpChoice) {
-    if (saving || invitation.rsvp === choice) return
-    setSaving(invitation.id)
-    try {
-      const saved = await setInvitationRsvp(invitation.id, choice)
-      setInvitations(current => current.map(item => item.id === saved.id ? saved : item))
-    } catch {
-      toast.error('Could not save your response. Please try again.')
-    } finally { setSaving(null) }
-  }
-
   const rows = new Map(events.map(event => [event.id, {
     id: event.id, title: event.title, summary: event.summary, startAt: event.start_at,
-    url: event.registration_url, label: event.registration_label, invitation: null as EventInvitation | null,
+    url: event.registration_url, label: event.registration_label, cover: event.cover || event.featured_image_url,
+    location: undefined as string | undefined, invitation: null as EventInvitation | null,
   }]))
   for (const invitation of invitations) {
     if (!invitation.event) continue
     const event = invitation.event
-    rows.set(invitation.eventId, { id: invitation.eventId, title: event.title, summary: event.summary ?? undefined, startAt: event.startAt ?? undefined, url: event.registrationUrl ?? undefined, label: event.registrationLabel, invitation })
+    rows.set(invitation.eventId, { id: invitation.eventId, title: event.title, summary: event.summary ?? undefined, startAt: event.startAt ?? undefined, url: event.registrationUrl ?? undefined, label: event.registrationLabel, cover: event.cover ?? undefined, location: event.location ?? undefined, invitation })
   }
   const sorted = [...rows.values()].sort((a, b) => {
     const time = (value?: string) => value && Number.isFinite(Date.parse(value)) ? Date.parse(value) : Infinity
@@ -65,19 +53,79 @@ export default function EventInvitationsSection({ member }: { member: MemberProf
         <h2 className="mt-4 text-lg font-medium">No upcoming events</h2>
         <p className="mt-2 text-sm text-stone-500">New events and invitations will appear here.</p>
       </div>}
-      <div className="divide-y divide-stone-200">{sorted.map(event => {
+      <div className="grid gap-5 md:grid-cols-2">{sorted.map((event, index) => {
         const past = Boolean(event.startAt && Date.parse(event.startAt) < Date.now())
-        return <article key={event.id} className="space-y-3 py-5">
-          <p className="text-xs text-stone-500">{event.startAt && Number.isFinite(Date.parse(event.startAt)) ? new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(event.startAt)) : 'Date to be announced'}{past ? ' · Past event' : ''}</p>
-          <h2 className="text-lg font-medium">{event.title}</h2>
-          {event.summary && <p className="text-sm leading-6 text-stone-600">{event.summary}</p>}
-          {event.invitation?.message && <p className="text-sm leading-6 text-stone-600">{event.invitation.message}</p>}
-          {event.invitation && <div className="flex flex-wrap gap-2" role="group" aria-label={`Respond to ${event.title}`}>
-            {RSVP_CHOICES.map(choice => <button key={choice} disabled={past || saving !== null} aria-pressed={event.invitation?.rsvp === choice} onClick={() => void respond(event.invitation!, choice)} className="min-h-11 rounded-lg border border-stone-200 px-4 text-sm aria-pressed:border-orange-500 aria-pressed:bg-orange-100 disabled:opacity-60">{RSVP_LABELS[choice]}</button>)}
-          </div>}
-          {event.url && <Link className="inline-flex min-h-11 items-center gap-2 text-sm font-medium underline underline-offset-4" href={event.url}>{event.label || 'View invitation'}<ArrowUpRight size={16} /></Link>}
-        </article>
+        return <EventCard key={event.id} event={event} index={index} past={past} />
       })}</div>
     </>}
   </section>
+}
+
+type EventCardData = {
+  id: string
+  title: string
+  summary?: string
+  startAt?: string
+  url?: string
+  label?: string
+  cover?: string | null
+  location?: string
+  invitation: EventInvitation | null
+}
+
+function EventCard({
+  event,
+  index,
+  past,
+}: {
+  event: EventCardData
+  index: number
+  past: boolean
+}) {
+  const date = event.startAt && Number.isFinite(Date.parse(event.startAt))
+    ? new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(event.startAt))
+    : 'Date to be announced'
+
+  const content = (
+    <>
+      <div
+        className="absolute inset-0 bg-cover bg-center opacity-25 grayscale-[0.2] transition duration-700 group-hover:scale-105 group-hover:opacity-35"
+        style={{ backgroundImage: `url("${eventCoverUrl({ cover: event.cover }, index)}")` }}
+        role="img"
+        aria-label={`${event.title} event cover`}
+      />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(30,30,29,0.88)_0%,rgba(30,30,29,0.78)_42%,rgba(14,14,14,0.96)_100%)]" />
+      <div className="relative flex min-h-[360px] flex-col justify-between p-5 sm:p-6">
+        <div className="flex items-center justify-between gap-3">
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/30 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white/85 backdrop-blur-md">
+            <span className="h-1.5 w-1.5 rounded-full bg-orange-400" />
+            {event.invitation ? 'Invitation' : 'AFL event'}
+          </span>
+          {past ? <span className="rounded-full bg-black/45 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/75 backdrop-blur-md">Past event</span> : null}
+        </div>
+
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">{date}</p>
+          <h2 className="mt-2 max-w-[18ch] text-2xl font-semibold leading-[1.05] tracking-[-0.03em] sm:text-3xl">{event.title}</h2>
+          {event.summary ? <p className="mt-3 line-clamp-2 max-w-lg text-sm leading-6 text-white/75">{event.summary}</p> : null}
+          {event.location ? <p className="mt-3 flex items-center gap-1.5 text-xs font-medium text-white/65"><MapPin className="h-3.5 w-3.5 text-orange-300" />{event.location}</p> : null}
+
+          {event.invitation?.message ? (
+            <div className="mt-4 flex gap-2 rounded-2xl border border-white/15 bg-black/25 px-3.5 py-3 backdrop-blur-md">
+              <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-orange-300" />
+              <p className="line-clamp-2 text-xs leading-5 text-white/80">{event.invitation.message}</p>
+            </div>
+          ) : null}
+
+          {event.url && !past ? <span className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black transition group-hover:bg-orange-100">
+            Register
+            <ArrowUpRight size={16} strokeWidth={2.5} />
+          </span> : null}
+        </div>
+      </div>
+    </>
+  )
+
+  const className = 'group relative block min-h-[360px] overflow-hidden rounded-[24px] border border-white/10 bg-[#111] text-white shadow-[0_18px_50px_-24px_rgba(0,0,0,0.75)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_60px_-22px_rgba(0,0,0,0.85)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-4 focus-visible:ring-offset-white'
+  return event.url ? <a className={className} href={event.url}>{content}</a> : <article className={className}>{content}</article>
 }

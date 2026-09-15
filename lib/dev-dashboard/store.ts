@@ -262,27 +262,7 @@ export function createDemoDashboardStore(): DemoDashboardStore {
         updatedAt: '2026-08-06T08:00:00.000Z',
       },
     ],
-    invitations: [
-      {
-        id: 'demo-invitation-1',
-        eventId: 'demo-event-1',
-        rsvp: 'pending',
-        rsvpAt: null,
-        seenAt: null,
-        message: 'You are invited to join the awardee founders roundtable.',
-        createdAt: '2026-08-09T10:00:00.000Z',
-        event: {
-          id: 'demo-event-1',
-          title: 'Awardee Founders Roundtable',
-          summary: 'A private conversation on scaling mission-led companies.',
-          startAt: '2026-09-12T15:00:00.000Z',
-          location: 'Lagos & online',
-          cover: null,
-          registrationUrl: 'https://example.com/roundtable',
-          registrationLabel: 'Event details',
-        },
-      },
-    ],
+    invitations: [],
     awardOrder: null,
     awardPayment: {
       status: 'unpaid',
@@ -320,6 +300,11 @@ export function getDemoDashboardStore(): DemoDashboardStore {
   if (!globalThis.__top100DemoDashboardStore.messages) {
     globalThis.__top100DemoDashboardStore.messages = []
   }
+  // Remove the retired roundtable fixture from demo stores kept alive by HMR.
+  globalThis.__top100DemoDashboardStore.invitations =
+    globalThis.__top100DemoDashboardStore.invitations.filter(
+      invitation => invitation.eventId !== 'demo-event-1',
+    )
 
   return globalThis.__top100DemoDashboardStore
 }

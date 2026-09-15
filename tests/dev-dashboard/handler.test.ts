@@ -166,7 +166,7 @@ describe('interactive local dashboard demo API', () => {
     expect(detail.data.messages.at(-1).body).toBe('Glad to join this demo group.')
   })
 
-  it('persists opportunity bookmarks and invitation RSVPs', async () => {
+  it('persists opportunity bookmarks and reflects the empty invitation state', async () => {
     const opportunities = await call(store, 'GET', 'opportunities')
     const opportunityId = opportunities.data.opportunities[0].id as string
     const saved = await call(store, 'POST', `opportunities/${opportunityId}`)
@@ -175,10 +175,7 @@ describe('interactive local dashboard demo API', () => {
     expect(savedOnly.data.opportunities.map((item: { id: string }) => item.id)).toContain(opportunityId)
 
     const invitations = await call(store, 'GET', 'event-invitations')
-    const invitationId = invitations.data.invitations[0].id as string
-    const rsvp = await call(store, 'PATCH', `event-invitations/${invitationId}`, { rsvp: 'attending' })
-    expect(rsvp.data.invitation.rsvp).toBe('attending')
-    expect(rsvp.data.invitation.rsvpAt).toEqual(expect.any(String))
+    expect(invitations.data.invitations).toEqual([])
   })
 
   it('simulates award quoting without an external provider', async () => {

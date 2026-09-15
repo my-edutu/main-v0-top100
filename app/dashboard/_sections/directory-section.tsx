@@ -47,7 +47,7 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
         const response = await fetch('/api/awardees', { cache: 'no-store' })
         if (!response.ok) throw new Error('Directory request failed')
         const payload = await response.json()
-        if (!cancelled) setAwardees(Array.isArray(payload) ? payload : [])
+        if (!cancelled) setAwardees(Array.isArray(payload) ? payload.filter((awardee) => !isQaFixture(awardee)) : [])
       } catch {
         if (!cancelled) {
           setAwardees([])
@@ -155,9 +155,7 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
                 className="min-w-0 rounded-2xl border border-neutral-200 bg-white p-4"
               >
                 <div className="flex items-start gap-3">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#050505] text-sm font-bold text-[#fffaf0]">
-                    {getInitials(awardee.name)}
-                  </div>
+                  <AwardeeThumbnail awardee={awardee} />
                   <div className="min-w-0 flex-1">
                     <h3 className="break-words text-base font-medium text-black">{awardee.name}</h3>
                     <p className="mt-1 line-clamp-2 text-[15px] font-medium leading-6 text-black/55">
@@ -304,4 +302,21 @@ function getInitials(name: string) {
       .map((part) => part[0]?.toUpperCase())
       .join('') || 'AF'
   )
+}
+
+function isQaFixture(awardee: Awardee) {
+  const value = [awardee.name, awardee.slug, awardee.headline, awardee.tagline, awardee.bio]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+  return value.includes('qa test account') || value.includes('not a real awardee') || value.includes('top100 test awardee')
+}
+
+function AwardeeThumbnail({ awardee }: { awardee: Awardee }) {
+  const [failed, setFailed] = useState(false)
+  const image = awardee.avatar_url || awardee.cover_image_url || (awardee as Awardee & { image_url?: string | null }).image_url
+  if (!image || failed) {
+    return <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#050505] text-sm font-bold text-[#fffaf0]">{getInitials(awardee.name)}</div>
+  }
+  return <img src={image} alt="" className="h-12 w-12 shrink-0 rounded-2xl object-cover" onError={() => setFailed(true)} />
 }
