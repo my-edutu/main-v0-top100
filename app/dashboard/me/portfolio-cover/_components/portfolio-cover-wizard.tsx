@@ -42,6 +42,7 @@ export function PortfolioCoverWizard() {
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview) }, [preview])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [shareFallbackText, setShareFallbackText] = useState('')
   const [generationStartedAt, setGenerationStartedAt] = useState<number | null>(null)
   const [generationElapsed, setGenerationElapsed] = useState(0)
 
@@ -107,27 +108,86 @@ export function PortfolioCoverWizard() {
   async function share() {
     if (!selected) return
     const text = 'I’m proud to share that I’ve been featured as a Top100 Africa Future Leader. This recognition celebrates the work young African leaders are doing to create meaningful change, and I’m grateful to be part of this community.'
-    const payload = { title: 'Featured as a Top100 Africa Future Leader', text, url: selected }
-    try {
-      if (navigator.share) {
-        try { await navigator.share(payload); return }
-        catch (cause) { if (cause instanceof Error && cause.name === 'AbortError') return }
+    const shareText = `${text}\n\n${selected}`
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'Featured as a Top100 Africa Future Leader', text, url: selected })
+        return
+      } catch (cause) {
+        // Some desktop and localhost browsers expose Web Share but reject it.
+        // Continue to the copy fallback unless the user explicitly cancelled.
+        if (cause instanceof Error && cause.name === 'AbortError') return
       }
-      await navigator.clipboard.writeText(`${text}\n\n${selected}`)
+    }
+
+    if (await copyShareText(shareText)) {
       toast.success('Share text and cover link copied.')
-    } catch { toast.error('Could not prepare the share. Please try again.') }
+      return
+    }
+
+    setShareFallbackText(shareText)
+  }
+
+  async function copyShareText(value: string) {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(value)
+        return true
+      }
+    } catch {
+      // Fall through to the legacy DOM copy path below.
+    }
+
+    try {
+      const input = document.createElement('textarea')
+      input.value = value
+      input.setAttribute('readonly', '')
+      input.style.position = 'fixed'
+      input.style.opacity = '0'
+      document.body.appendChild(input)
+      input.select()
+      const copied = document.execCommand('copy')
+      input.remove()
+      return copied
+    } catch {
+      return false
+    }
   }
 
   return (
     <section className="cover-builder space-y-6" aria-labelledby="portfolio-cover-title">
 
-      <Dialog open={welcome} onOpenChange={setWelcome}>
-        <DialogContent overlayClassName="bg-black/75 backdrop-blur-[2px]" className="cover-intro max-h-[85dvh] w-[calc(100%-32px)] max-w-md overflow-y-auto bg-white p-6">
+      <Dialog open onOpenChange={() => undefined}>
+        <DialogContent
+          overlayClassName="bg-black/75 backdrop-blur-[2px]"
+          className="cover-intro max-h-[85dvh] w-[calc(100%-32px)] max-w-md overflow-y-auto bg-white p-6 [&>button]:hidden"
+          onEscapeKeyDown={event => event.preventDefault()}
+          onPointerDownOutside={event => event.preventDefault()}
+          onInteractOutside={event => event.preventDefault()}
+        >
           <img src="/dashboard/cover-builder/intro.png" alt="A portrait becomes a styled magazine cover" className="cover-intro-art mx-auto h-36 w-full object-contain" />
           <DialogTitle className="text-2xl font-medium">Make your portfolio cover.</DialogTitle>
           <DialogDescription className="text-sm leading-6">Upload your portrait, choose a clothing style and add the facts you want shown. AI creates one polished Top100 cover for you to review. Your dashboard avatar stays unchanged.</DialogDescription>
-          <label className="flex gap-3 text-sm leading-6"><input type="checkbox" checked={consent} onChange={event => setConsent(event.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-orange-600" />I agree to AI-assisted editing of my uploaded photo for this cover. I will review the result before using it.</label>
-          <Button disabled={!consent} onClick={() => setWelcome(false)} className="cover-primary min-h-12">Agree and continue</Button>
+          <div className="rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3 text-center text-sm font-medium text-orange-900" role="status">Coming soon. Portfolio cover creation will open in a future version.</div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={Boolean(shareFallbackText)} onOpenChange={open => { if (!open) setShareFallbackText('') }}>
+        <DialogContent className="w-[calc(100%-32px)] max-w-md rounded-[24px] bg-white p-6 text-stone-950">
+          <DialogTitle className="text-xl font-semibold">Share your cover</DialogTitle>
+          <DialogDescription className="text-sm leading-6 text-stone-600">
+            Your browser blocked automatic sharing. Select the message below and copy it to share your cover.
+          </DialogDescription>
+          <Textarea
+            readOnly
+            value={shareFallbackText}
+            aria-label="Share message and cover link"
+            onFocus={event => event.currentTarget.select()}
+            className="min-h-36 rounded-2xl border-stone-300 text-sm leading-6"
+          />
+          <Button type="button" onClick={() => void copyShareText(shareFallbackText).then(copied => { if (copied) { toast.success('Share text and cover link copied.'); setShareFallbackText('') } })} className="min-h-12 rounded-full bg-stone-950 text-white hover:bg-stone-800">
+            Copy message
+          </Button>
         </DialogContent>
       </Dialog>
       <Dialog open={isGenerating} onOpenChange={() => undefined}>
