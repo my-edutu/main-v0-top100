@@ -603,8 +603,9 @@ async function realLocalCover(input: {
 
 async function routePortfolioCover(request: NextRequest, path: string[], store: DemoDashboardStore) {
   if (path[1] !== 'generations') return null
-  if (path.length === 3 && path[2] === 'current' && request.method === 'GET') return json({ enabled: true, generation: store.portfolioCover })
+  if (path.length === 3 && path[2] === 'current' && request.method === 'GET') return json({ enabled: true, generation: store.portfolioCover, usage: { used: store.portfolioCoverAttempts, limit: 2 } })
   if (path.length === 2 && request.method === 'POST') {
+    if (store.portfolioCoverAttempts >= 2) return json({ message: 'You have used both cover generations. Top up $2 / ₦2,000 for another attempt, or contact the AFL team to unlock more.' }, 402)
     if (store.portfolioCover && ['queued', 'processing', 'ready', 'selected'].includes(store.portfolioCover.status)) return json({ message: 'You already have a portfolio cover set.' }, 409)
     const form = await request.formData()
     const file = form.get('portrait')
@@ -623,6 +624,7 @@ async function routePortfolioCover(request: NextRequest, path: string[], store: 
       : await demoCoverOption({ label: 'TOP100 AFRICA FUTURE LEADER', name, fields, tailoring, variant: 'executive-charcoal', portrait })
     const generation: PortfolioCoverGeneration = { id, memberId: DEMO_MEMBER_ID, status: 'ready', tailoring, fields, attempt: 1, options: { 'executive-charcoal': executiveCharcoal }, createdAt: now, updatedAt: now }
     store.portfolioCover = generation
+    store.portfolioCoverAttempts += 1
     return json({ generation }, 202)
   }
   const id = path[2]

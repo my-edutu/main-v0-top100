@@ -71,6 +71,14 @@ export async function deletePost(postId: string): Promise<void> {
   await jsonOrThrow(res)
 }
 
+export async function uploadMemberPostCover(file: File): Promise<string> {
+  const form = new FormData()
+  form.set('file', file)
+  const res = await fetch('/api/member/posts/cover', { method: 'POST', body: form })
+  const data = await jsonOrThrow(res)
+  return String(data.url)
+}
+
 // --- admin -----------------------------------------------------------------
 
 export async function fetchAllMemberPosts(

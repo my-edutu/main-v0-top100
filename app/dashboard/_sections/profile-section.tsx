@@ -73,7 +73,7 @@ export function ProfileSection() {
       <form onSubmit={handleSubmit} className="hub-profile-editor space-y-5 bg-white">
       <section aria-labelledby="profile-identity" className="space-y-4">
         <div><h2 id="profile-identity" className="text-lg font-semibold text-[#171412]">Profile identity</h2><p className="mt-1 text-sm leading-6 text-neutral-500">This is how your awardee profile starts.</p></div>
-        <div className="flex items-center gap-4"><MemberAvatar src={member.avatarUrl} initials={member.avatarInitials} size={64} /><label className="min-w-0 text-sm font-medium">{uploading ? 'Saving photo…' : 'Your profile photo'}<input disabled={uploading || member.id === 'demo-member-1'} type="file" accept="image/*" onChange={event => void uploadPhoto(event.target.files?.[0])} className="mt-2 block w-full text-xs" /><span className="mt-1 block text-xs font-normal text-neutral-500">JPG, PNG or WebP, up to 5 MB{member.id === 'demo-member-1' ? ' · uploads are unavailable in preview' : ''}</span></label></div>
+      <div className="flex items-center gap-4"><MemberAvatar src={member.avatarUrl} initials={member.avatarInitials} size={64} /><label className="min-w-0 text-sm font-medium">{uploading ? 'Saving photo…' : 'Your profile photo'}<input disabled={uploading} type="file" accept="image/jpeg,image/png,image/webp" onChange={event => void uploadPhoto(event.target.files?.[0])} className="mt-2 block w-full text-xs" /><span className="mt-1 block text-xs font-normal text-neutral-500">JPG, PNG or WebP, up to 5 MB · stored in Cloudflare media storage</span></label></div>
       </section>
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-[16px] border border-orange-200 bg-[#FFF3E8] px-4 py-3">
         <div>

@@ -31,6 +31,11 @@ const coverBucket = () => process.env.PORTFOLIO_COVER_BUCKET || 'portfolio-cover
 export function createPortfolioCoverRepository() {
   const supabase = createAdminClient()
   return {
+    async countGenerations(memberId: string) {
+      const { count, error } = await supabase.from('portfolio_cover_generations').select('id', { count: 'exact', head: true }).eq('member_id', memberId)
+      if (error) throw error
+      return count ?? 0
+    },
     async create(input: { id?: string; memberId: string; tailoring: PortfolioTailoring; fields: PortfolioCoverFields; sourcePath: string; attempt?: number }) {
       const { data, error } = await supabase.from('portfolio_cover_generations').insert({
         ...(input.id ? { id: input.id } : {}),

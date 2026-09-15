@@ -69,6 +69,7 @@ export type DemoDashboardStore = {
   awardOrder: AwardOrder | null
   awardPayment: DemoAwardPaymentState
   portfolioCover: PortfolioCoverGeneration | null
+  portfolioCoverAttempts: number
   sequence: number
 }
 
@@ -272,6 +273,7 @@ export function createDemoDashboardStore(): DemoDashboardStore {
       callbackConsumed: false,
     },
     portfolioCover: null,
+    portfolioCoverAttempts: 0,
     sequence: 100,
   }
 }

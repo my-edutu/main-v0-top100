@@ -24,6 +24,7 @@ import {
   resolveAwardeeBySlug,
 } from '@/lib/member-posts/server'
 import { memberPostPath, readingMinutes, type MemberPost } from '@/lib/member-posts/types'
+import { DEMO_PUBLIC_SLUG, getDemoDashboardStore } from '@/lib/dev-dashboard/store'
 
 export const runtime = 'nodejs'
 export const revalidate = 300
@@ -40,6 +41,10 @@ type PageParams = { slug: string; postSlug: string }
 async function loadPost(
   params: PageParams,
 ): Promise<{ post: MemberPost; authorName: string } | null> {
+  if (process.env.NODE_ENV !== 'production' && params.slug === DEMO_PUBLIC_SLUG) {
+    const demoPost = getDemoDashboardStore().posts.find((candidate) => candidate.slug === params.postSlug && candidate.status === 'published')
+    return demoPost ? { post: demoPost, authorName: getDemoDashboardStore().profile.name } : null
+  }
   const awardee = await resolveAwardeeBySlug(params.slug)
   if (!awardee?.profileId) return null
 

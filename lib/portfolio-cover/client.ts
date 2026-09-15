@@ -7,7 +7,7 @@ async function readResponse<T>(response: Response): Promise<T> {
 }
 
 export async function getCurrentPortfolioCover() {
-  return readResponse<{ enabled: boolean; generation: PortfolioCoverGeneration | null }>(await fetch('/api/member/portfolio-cover/generations/current', { cache: 'no-store' }))
+  return readResponse<{ enabled: boolean; generation: PortfolioCoverGeneration | null; usage: { used: number; limit: number } }>(await fetch('/api/member/portfolio-cover/generations/current', { cache: 'no-store' }))
 }
 
 export async function startPortfolioCover(input: { file: File; tailoring: PortfolioTailoring; fields: PortfolioCoverFields }) {

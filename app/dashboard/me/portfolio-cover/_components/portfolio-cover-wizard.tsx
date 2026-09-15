@@ -35,7 +35,8 @@ export function PortfolioCoverWizard() {
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState('')
   const [consent, setConsent] = useState(false)
-  const [welcome, setWelcome] = useState(true)
+  const [welcome, setWelcome] = useState(false)
+  const [usage, setUsage] = useState({ used: 0, limit: 2 })
   const [step, setStep] = useState(0)
   const [cgpaValue, setCgpaValue] = useState('')
   const [cgpaScale, setCgpaScale] = useState('5.0')
@@ -51,6 +52,7 @@ export function PortfolioCoverWizard() {
       const result = await getCurrentPortfolioCover()
       setEnabled(result.enabled)
       setGeneration(result.generation)
+      setUsage(result.usage)
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not load portfolio cover status.') }
   }, [])
 
@@ -89,6 +91,7 @@ export function PortfolioCoverWizard() {
       setBusy(true); setError(''); setGenerationStartedAt(Date.now())
       const result = await startPortfolioCover({ file, tailoring, fields: Object.fromEntries(Object.entries(fields).filter(([, value]) => value?.trim())) })
       setGeneration(result.generation)
+      setUsage((current) => ({ ...current, used: Math.min(current.limit, current.used + 1) }))
       toast.success(result.generation.status === 'ready' ? 'Your Top100 cover is ready.' : 'Your Top100 cover is being prepared.')
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not start cover generation.') } finally { setBusy(false) }
   }
@@ -101,7 +104,7 @@ export function PortfolioCoverWizard() {
 
   async function reject() {
     if (!generation) return
-    try { setBusy(true); const result = await rejectPortfolioCover(generation.id); setGeneration(result.generation); toast.success('Thanks. An admin can reset your cover set for another try.') }
+    try { setBusy(true); const result = await rejectPortfolioCover(generation.id); setGeneration(result.generation); toast.success(usage.used >= usage.limit ? 'Both generations are used. Top up $2 / ₦2,000 for another attempt.' : 'Thanks. You have one cover generation remaining.') }
     catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not reject this cover set.') } finally { setBusy(false) }
   }
 
@@ -158,7 +161,7 @@ export function PortfolioCoverWizard() {
   return (
     <section className="cover-builder space-y-6" aria-labelledby="portfolio-cover-title">
 
-      <Dialog open onOpenChange={() => undefined}>
+      <Dialog open={welcome} onOpenChange={setWelcome}>
         <DialogContent
           overlayClassName="bg-black/75 backdrop-blur-[2px]"
           className="cover-intro max-h-[85dvh] w-[calc(100%-32px)] max-w-md overflow-y-auto bg-white p-6 [&>button]:hidden"
@@ -168,8 +171,8 @@ export function PortfolioCoverWizard() {
         >
           <img src="/dashboard/cover-builder/intro.png" alt="A portrait becomes a styled magazine cover" className="cover-intro-art mx-auto h-36 w-full object-contain" />
           <DialogTitle className="text-2xl font-medium">Make your portfolio cover.</DialogTitle>
-          <DialogDescription className="text-sm leading-6">Upload your portrait, choose a clothing style and add the facts you want shown. AI creates one polished Top100 cover for you to review. Your dashboard avatar stays unchanged.</DialogDescription>
-          <div className="rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3 text-center text-sm font-medium text-orange-900" role="status">Coming soon. Portfolio cover creation will open in a future version.</div>
+          <DialogDescription className="text-sm leading-6">Upload a high-fidelity portrait, choose a clothing style, and add the facts you want shown. Your face is preserved while the background and clothing are styled for the cover.</DialogDescription>
+          <button type="button" onClick={() => setWelcome(false)} className="mt-2 flex min-h-12 w-full items-center justify-center rounded-xl bg-orange-500 px-5 font-medium text-neutral-950 hover:bg-orange-400">Continue</button>
         </DialogContent>
       </Dialog>
       <Dialog open={Boolean(shareFallbackText)} onOpenChange={open => { if (!open) setShareFallbackText('') }}>
@@ -231,6 +234,7 @@ export function PortfolioCoverWizard() {
       {error ? <p role="alert" className="text-sm text-red-700">{error}</p> : null}
       {!generation || generation.status === 'rejected' || generation.status === 'failed' ? (
         <div className="mx-auto max-w-xl space-y-6">
+          {usage.used >= usage.limit ? <div role="status" className="rounded-2xl border border-amber-300 bg-amber-50 p-5 text-center"><h2 className="text-lg font-semibold text-amber-950">Your two cover generations are used</h2><p className="mt-2 text-sm leading-6 text-amber-900">Top up $2 / ₦2,000 for another attempt, or contact the AFL team to unlock more generations.</p></div> : <p className="text-xs font-medium text-stone-500">{usage.used} of {usage.limit} cover generations used</p>}
           <p className="text-sm text-orange-700">Step {step + 1} of 4 · {['Portrait', 'Education', 'About you', 'Review'][step]}</p>
           <img src="/dashboard/cover-builder/intro.png" alt="" aria-hidden="true" className="h-16 w-24 object-contain" />
           <div className="flex gap-2">{[0,1,2,3].map(index => <span key={index} className="h-1 flex-1 rounded" style={{background:index <= step ? '#f97316' : '#e5e5e5'}} />)}</div>
@@ -256,7 +260,7 @@ export function PortfolioCoverWizard() {
                   setPreview(URL.createObjectURL(photo))
                 }}
               />
-              <p className="text-xs leading-5 text-neutral-500">Use a clear shoulders-to-waist portrait, up to 8 MB. Leave your upper body visible so the wardrobe edit can add the corporate clothing naturally.</p>
+              <p className="text-xs leading-5 text-neutral-500">Upload a high-fidelity, straight-on face photo with good lighting, visible eyes, and no filters. Frame the head, shoulders, and chest; crop hands out. This helps preserve your identity.</p>
             </div>
             {preview && <img src={preview} alt="Selected portrait" className="h-32 w-24 rounded-xl object-cover" />}
             <fieldset className="space-y-3"><legend className="text-sm font-medium">Choose your gender</legend><p className="text-xs text-neutral-500">This selects the clothing treatment for your cover.</p><div className="flex gap-3">{(['male','female'] as const).map(value => <button key={value} type="button" aria-pressed={tailoring===value} onClick={()=>setTailoring(value)} className="min-h-12 flex-1 rounded-xl border px-4 capitalize aria-pressed:border-orange-500 aria-pressed:bg-orange-50">{value}</button>)}</div></fieldset>
@@ -271,7 +275,7 @@ export function PortfolioCoverWizard() {
           </div>}
           {step === 3 && <div className="mx-auto w-full max-w-2xl space-y-5 rounded-3xl border border-stone-200 bg-white p-4 shadow-sm sm:p-6"><div className="grid grid-cols-[88px_minmax(0,1fr)] items-start gap-4 sm:grid-cols-[180px_minmax(0,1fr)] sm:gap-6">{preview ? <img src={preview} alt="Portrait to be used" className="h-32 w-[88px] rounded-2xl object-cover sm:h-56 sm:w-44" /> : <div className="h-32 w-[88px] rounded-2xl bg-stone-100 sm:h-56 sm:w-44" aria-hidden="true" />}<div className="min-w-0"><h2 className="text-lg font-medium sm:text-xl">Review before generating</h2><p className="mt-1 text-sm capitalize text-stone-600">Clothing treatment: {tailoring}</p></div></div><dl className="divide-y border-y border-stone-100 text-left">{Object.entries(fields).filter(([,value])=>value).map(([key,value])=><div key={key} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.45fr)] items-baseline gap-3 py-2.5"><dt className="text-xs text-neutral-500">{fieldMeta.find(item=>item.key===key)?.label.replace(' (over 5.0)','')??'Impact statement'}</dt><dd className="break-words text-right text-sm text-stone-900">{value}</dd></div>)}</dl><button type="button" onClick={()=>setWelcome(true)} className="mx-auto flex min-h-11 items-center text-sm underline">Review photo-edit consent</button></div>}
           <div className="flex gap-3">{step>0 && <Button variant="outline" disabled={busy} onClick={()=>{setError('');setStep(step-1)}} className="min-h-12">Back</Button>}
-          <Button className="cover-primary min-h-12 flex-1" disabled={busy || (step===3 && (!enabled || !consent))} onClick={()=>{
+          <Button className="cover-primary min-h-12 flex-1" disabled={busy || usage.used >= usage.limit || (step===3 && (!enabled || !consent))} onClick={()=>{
             setError('');
             if(step===0 && (!file || !tailoring || !consent)) {setError('Choose a portrait and gender, then agree to the photo-edit consent.');return}
             if(step===1) {if(cgpaValue && (!Number.isFinite(Number(cgpaValue)) || Number(cgpaValue)<0 || Number(cgpaValue)>Number(cgpaScale))) {setError('Your CGPA must be within the selected scale.');return} setField('cgpa',cgpaValue ? cgpaValue+' / '+cgpaScale : '')}
