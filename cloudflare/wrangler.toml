@@ -2,6 +2,9 @@ name = "top100-afl-portfolio-generation"
 main = "portfolio-generation-consumer.js"
 compatibility_date = "2026-09-06"
 
+[observability]
+enabled = true
+
 [vars]
 APP_ORIGIN = "https://www.top100afl.com"
 
@@ -9,3 +12,5 @@ APP_ORIGIN = "https://www.top100afl.com"
 queue = "top100-afl-portfolio-generation"
 max_batch_size = 1
 max_retries = 3
+max_concurrency = 1
+dead_letter_queue = "top100-afl-portfolio-failed"

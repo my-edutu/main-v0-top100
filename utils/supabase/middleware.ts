@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { hasValidDemoSession } from '@/lib/dev-dashboard/auth'
 import { rejectCrossOriginMutation } from '@/lib/security/same-origin'
 import { isAdminRole, parseRole } from '@/lib/types/roles'
+import { resolveAuthorizationRole } from '@/lib/auth-utils'
 
 const MUTATION_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 
@@ -142,12 +143,11 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(url)
     }
 
-    // Role check: trust the JWT claim (app_metadata is service-role writable
-    // only), fall back to the profiles table when the claim is absent.
-    let role = parseRole((user as any).app_metadata?.role)
-    if (!isAdminRole(role)) {
-      role = parseRole(await getRoleFromDatabase((user as any).sub))
-    }
+    // Role check: use the database profile as the authority when present.
+    // JWT app_metadata is only a fallback for legacy accounts without a role.
+    const jwtRole = parseRole((user as any).app_metadata?.role)
+    const databaseRole = parseRole(await getRoleFromDatabase((user as any).sub))
+    const role = resolveAuthorizationRole(jwtRole, databaseRole)
 
     if (!isAdminRole(role)) {
       console.warn('[Security] Non-admin user attempted to access', pathname)

@@ -45,6 +45,17 @@ export async function POST(request: NextRequest) {
   const config = portfolioCoverConfig()
   if (!config.enabled) return NextResponse.json({ message: 'Portfolio generation is not configured.' }, { status: 503 })
 
+  if (row.status === 'processing' && Date.now() - Date.parse(row.updated_at) < 10 * 60_000) {
+    return NextResponse.json({ message: 'Generation is already processing.' }, { status: 503 })
+  }
+  // Compare-and-set prevents duplicate queue deliveries from starting concurrent paid edits.
+  const claim = await createAdminClient().from('portfolio_cover_generations')
+    .update({ status: 'processing', updated_at: new Date().toISOString() })
+    .eq('id', row.id).eq('member_id', row.member_id)
+    .eq('status', row.status).eq('updated_at', row.updated_at)
+    .select('id').maybeSingle()
+  if (claim.error || !claim.data) return NextResponse.json({ message: 'Generation is already claimed.' }, { status: 503 })
+
   const source = await repo.downloadSource(row.source_path)
   const mask = await prepareEditMask()
   const profile = await createAdminClient().from('profiles').select('full_name').eq('id', body.memberId).maybeSingle()

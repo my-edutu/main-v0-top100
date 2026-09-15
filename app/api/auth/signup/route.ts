@@ -18,6 +18,7 @@ import {
 } from '@/lib/rate-limit'
 import { sanitizeEmail, sanitizeInput } from '@/lib/security'
 import { captchaVerificationAllowed } from '@/lib/production-readiness'
+import { sendWelcomeEmail } from '@/lib/email/resend'
 
 export const runtime = 'nodejs'
 
@@ -212,6 +213,14 @@ export async function POST(request: NextRequest) {
 
   // 9. Consume the code (non-fatal if it races; account already exists).
   await consumeCode(rawCode, userId)
+
+  // Account creation is complete before the notification is attempted. A
+  // Resend outage must never turn a successful signup into a failed signup.
+  try {
+    await sendWelcomeEmail({ email, name })
+  } catch (emailError) {
+    console.error('[signup] welcome email failed after account creation', emailError)
+  }
 
   return NextResponse.json(
     { message: 'Account created. You can now sign in.', userId, email, name },

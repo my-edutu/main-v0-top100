@@ -1,13 +1,17 @@
 // lib/email/award-templates.ts
 // Pure, side-effect-free email builders for the four award milestones.
-// Every function returns { subject, html, text } and touches nothing else —
-// no env, no network, no clock — so they are directly testable.
+// Every function returns { subject, html, text } and performs no network or
+// clock work, so the rendered output remains directly testable. The shared
+// brand shell reads only presentation configuration such as the public logo URL.
 //
 // Everything interpolated here is member-supplied (recipient name, address
 // lines) or third-party-supplied (waybill, tracking URL from the courier), so
 // every value goes through escapeHtml before it reaches the HTML body.
 
 import { formatNaira } from '@/lib/awards/money'
+import { brandButton, brandEmail, escapeHtml } from '@/lib/email/brand'
+
+export { escapeHtml } from '@/lib/email/brand'
 
 /** The four order statuses that are worth telling the member about. */
 export type AwardMilestone = 'paid' | 'dispatched' | 'in_transit' | 'delivered'
@@ -33,19 +37,6 @@ export type AwardEmailInput = {
 const BRAND = 'Top100 Africa Future Leaders'
 
 /**
- * HTML-escape a value for interpolation into element text or a quoted
- * attribute. Ampersand first, or the escapes below would be double-escaped.
- */
-export function escapeHtml(value: unknown): string {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-}
-
-/**
  * Only ever emit http(s) hrefs. A courier response is third-party data; a
  * `javascript:` URL arriving from it must not become a live link in an email.
  */
@@ -68,33 +59,6 @@ function cleanName(name: string): string {
 
 function addressBlock(lines: string[]): string[] {
   return (lines ?? []).map((line) => (line ?? '').trim()).filter((line) => line.length > 0)
-}
-
-/** Shared cream/orange shell so all four emails look like one family. */
-function layout(heading: string, bodyHtml: string): string {
-  return `<!doctype html>
-<html>
-  <body style="margin:0;padding:0;background:#fffaf4;">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fffaf4;padding:32px 12px;">
-      <tr>
-        <td align="center">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #ffedd5;border-radius:24px;padding:32px;font-family:Helvetica,Arial,sans-serif;color:#1c1917;">
-            <tr>
-              <td>
-                <p style="margin:0 0 20px;font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#ea580c;">${escapeHtml(
-                  BRAND,
-                )}</p>
-                <h1 style="margin:0 0 20px;font-size:22px;line-height:1.3;color:#1c1917;">${escapeHtml(heading)}</h1>
-                ${bodyHtml}
-                <p style="margin:28px 0 0;font-size:13px;color:rgba(0,0,0,0.55);">— The ${escapeHtml(BRAND)} team</p>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
-  </body>
-</html>`
 }
 
 function paragraph(text: string): string {
@@ -126,9 +90,7 @@ function addressCard(lines: string[]): string {
 function trackingButton(url: string | null): string {
   const safe = safeUrl(url)
   if (!safe) return ''
-  return `<p style="margin:0 0 18px;"><a href="${escapeHtml(
-    safe,
-  )}" style="display:inline-block;background:#f97316;color:#fffaf0;text-decoration:none;font-size:14px;font-weight:600;padding:12px 24px;border-radius:999px;">Track your parcel</a></p>`
+  return brandButton('Track your parcel', safe)
 }
 
 /** Plain-text alternative. Empty lines are collapsed so nothing looks broken. */
@@ -141,30 +103,30 @@ export function paidEmail(input: AwardEmailInput): AwardEmail {
   const address = addressBlock(input.addressLines)
   const amount = money(input.totalAmountKobo)
 
-  const html = layout(
-    'Payment confirmed',
-    [
+  const html = brandEmail({
+    previewText: 'Thank you for your payment. Your Top100 award is being prepared for delivery.',
+    eyebrow: 'Award journey · Payment received',
+    heading: 'Your award journey has begun',
+    bodyHtml: [
       paragraph(`Hi ${name},`),
-      paragraph(`We have received your payment of ${amount}. Your award is now being prepared.`),
+      paragraph(`Thank you for making your payment of ${amount}. Your award is now reserved, and our team is preparing it for dispatch.`),
       detailCard([['Amount paid', amount]]),
       addressCard(address),
-      paragraph(
-        'What happens next: we pack and hand your award to our courier partner. As soon as it leaves us you will get an email with the waybill number and a tracking link.',
-      ),
-      paragraph('If any of the address details above are wrong, reply to this email straight away.'),
+      paragraph('What happens next: we will carefully pack your award and hand it to our courier partner. Once it leaves us, we will send your waybill number and tracking link.'),
+      paragraph('If any delivery detail above is incorrect, reply to this email as soon as possible.'),
     ].join('\n'),
-  )
+  })
 
   const text = textBody('Payment confirmed', [
     `Hi ${name},`,
     '',
-    `We have received your payment of ${amount}. Your award is now being prepared.`,
+    `Thank you for making your payment of ${amount}. Your award is now reserved, and our team is preparing it for dispatch.`,
     '',
     address.length ? 'Delivery address:' : null,
     ...address,
     '',
-    'What happens next: we pack and hand your award to our courier partner. As soon as it leaves us you will get an email with the waybill number and a tracking link.',
-    'If any of the address details above are wrong, reply to this email straight away.',
+    'What happens next: we will carefully pack your award and hand it to our courier partner. Once it leaves us, we will send your waybill number and tracking link.',
+    'If any delivery detail above is incorrect, reply to this email as soon as possible.',
   ])
 
   return { subject: 'Payment confirmed — your award is being prepared', html, text }
@@ -180,17 +142,19 @@ export function dispatchedEmail(input: AwardEmailInput): AwardEmail {
   const rows: Array<[string, string]> = [['Courier', courier]]
   if (waybill) rows.push(['Waybill', waybill])
 
-  const html = layout(
-    'Your award has been sent',
-    [
+  const html = brandEmail({
+    previewText: `Your award is on its way with ${courier}.`,
+    eyebrow: 'Award journey · Dispatched',
+    heading: 'Your award is on its way',
+    bodyHtml: [
       paragraph(`Hi ${name},`),
-      paragraph(`Your award is on its way with ${courier}.`),
+      paragraph(`Your Top100 award has left us and is now on its way with ${courier}.`),
       detailCard(rows),
       trackingButton(link),
       addressCard(address),
       paragraph('Delivery times vary by destination. Keep the waybill number handy if you need to contact the courier.'),
     ].join('\n'),
-  )
+  })
 
   const text = textBody('Your award has been sent', [
     `Hi ${name},`,
@@ -218,20 +182,22 @@ export function inTransitEmail(input: AwardEmailInput): AwardEmail {
   if (waybill) rows.push(['Waybill', waybill])
   rows.push(['Courier', courier])
 
-  const html = layout(
-    'Your award is on the way',
-    [
+  const html = brandEmail({
+    previewText: 'Your award is moving through the courier network.',
+    eyebrow: 'Award journey · In transit',
+    heading: 'Your award is moving',
+    bodyHtml: [
       paragraph(`Hi ${name},`),
-      paragraph('Your award is moving through the courier network and will reach you shortly.'),
+      paragraph('Your award is moving through the courier network. It is making its way to you now, and we will keep you updated as it progresses.'),
       detailCard(rows),
       trackingButton(link),
     ].join('\n'),
-  )
+  })
 
   const text = textBody('Your award is on the way', [
     `Hi ${name},`,
     '',
-    'Your award is moving through the courier network and will reach you shortly.',
+    'Your award is moving through the courier network. It is making its way to you now, and we will keep you updated as it progresses.',
     waybill ? `Waybill: ${waybill}` : null,
     link ? `Track it here: ${link}` : null,
   ])
@@ -243,27 +209,29 @@ export function deliveredEmail(input: AwardEmailInput): AwardEmail {
   const name = cleanName(input.recipientName)
   const waybill = (input.waybill ?? '').trim()
 
-  const html = layout(
-    'Your award has been delivered',
-    [
+  const html = brandEmail({
+    previewText: 'Your Africa Future Leaders award has been delivered.',
+    eyebrow: 'Award journey · Delivered',
+    heading: 'Your award has arrived',
+    bodyHtml: [
       paragraph(`Hi ${name},`),
-      paragraph('Your Africa Future Leaders award has been delivered. Congratulations once again.'),
+      paragraph('Your Africa Future Leaders award has been delivered. Congratulations once again — this recognition belongs to the work, courage, and impact that brought you here.'),
       detailCard(waybill ? [['Waybill', waybill]] : []),
       paragraph(
-        'We would love to see it — share a photo with us and tag Top100 Africa Future Leaders so we can celebrate with you.',
+        'We would love to see it — share a photo and tag Top100 Africa Future Leaders so we can celebrate your story with the community.',
       ),
-      paragraph('If it has not actually reached you, reply to this email and we will chase the courier.'),
+      paragraph('If it has not actually reached you, reply to this email and we will follow up with the courier.'),
     ].join('\n'),
-  )
+  })
 
   const text = textBody('Your award has been delivered', [
     `Hi ${name},`,
     '',
-    'Your Africa Future Leaders award has been delivered. Congratulations once again.',
+    'Your Africa Future Leaders award has been delivered. Congratulations once again — this recognition belongs to the work, courage, and impact that brought you here.',
     waybill ? `Waybill: ${waybill}` : null,
     '',
-    'We would love to see it — share a photo with us and tag Top100 Africa Future Leaders so we can celebrate with you.',
-    'If it has not actually reached you, reply to this email and we will chase the courier.',
+    'We would love to see it — share a photo and tag Top100 Africa Future Leaders so we can celebrate your story with the community.',
+    'If it has not actually reached you, reply to this email and we will follow up with the courier.',
   ])
 
   return { subject: 'Your award has been delivered', html, text }

@@ -43,7 +43,9 @@ export async function uploadMedia(options: UploadOptions) {
     const key = r2Key(options.bucket, options.path)
     const uploaded = await store.put(key, options.body, {
       contentType: options.contentType,
-      cacheControl: options.cacheControl,
+      cacheControl: options.cacheControl && /^\d+$/.test(options.cacheControl)
+        ? `public, max-age=${options.cacheControl}, immutable`
+        : options.cacheControl,
       upsert: options.upsert,
     })
     return { path: key, publicUrl: uploaded.url }

@@ -24,6 +24,8 @@ import { Label } from '@/components/ui/label'
 import { supabase } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import LegalConsent from '@/app/components/LegalConsent'
+import { TurnstileCaptcha } from '@/components/ui/turnstile'
+import { buildSignupPayload } from '@/lib/auth/signup-payload'
 import {
   CLAIM_DIRECTORY_RESULT_LIMIT,
   filterClaimDirectory,
@@ -72,6 +74,8 @@ export default function SignUpPage() {
   // Step 3 — credentials
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [captchaToken, setCaptchaToken] = useState('')
+  const [captchaError, setCaptchaError] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
@@ -143,17 +147,24 @@ export default function SignUpPage() {
       return
     }
 
+    if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !captchaToken) {
+      setCaptchaError(true)
+      setError('CAPTCHA verification is required.')
+      return
+    }
+
     setSubmitting(true)
     try {
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: JSON.stringify(buildSignupPayload({
           awardeeId: selected.id,
           email: email.trim(),
           password,
           inviteCode: inviteCode.trim(),
-        }),
+          captchaToken,
+        })),
       })
 
       const data = await response.json().catch(() => ({}))
@@ -257,6 +268,24 @@ export default function SignUpPage() {
                 {error}
               </div>
             ) : null}
+
+            <div className="empty:hidden">
+              <TurnstileCaptcha
+                onVerify={(token) => {
+                  setCaptchaToken(token)
+                  setCaptchaError(false)
+                  setError('')
+                }}
+                onError={() => {
+                  setCaptchaToken('')
+                  setCaptchaError(true)
+                }}
+                onExpire={() => setCaptchaToken('')}
+              />
+              {captchaError ? (
+                <p className="mt-2 text-center text-xs text-red-600">CAPTCHA verification required</p>
+              ) : null}
+            </div>
 
             {/* STEP 1 — pick yourself from the directory */}
             {step === 1 && (

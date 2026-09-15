@@ -13,7 +13,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 import type { AwardStatus } from '@/lib/awards/status'
-import { sendEmail } from '@/lib/email/brevo'
+import { sendEmail as sendBrevoEmail } from '@/lib/email/brevo'
+import { sendEmail as sendResendEmail } from '@/lib/email/resend'
 import { buildAwardEmail, type AwardEmailInput, type AwardMilestone } from '@/lib/email/award-templates'
 
 export type { AwardMilestone } from '@/lib/email/award-templates'
@@ -179,21 +180,27 @@ async function writeInAppNotification(
   return null
 }
 
-/** Email channel. A missing BREVO_API_KEY is a config gap, not an error state. */
+/** Email channel. Resend is preferred; Brevo remains a compatibility fallback. */
 async function sendMilestoneEmail(order: AwardOrderRow, milestone: AwardMilestone): Promise<string | null> {
   const to = (order.email ?? '').trim()
   if (!to) return 'email: the order has no email address'
 
+  const { subject, html, text } = buildAwardEmail(milestone, toEmailInput(order))
+
+  if (process.env.RESEND_API_KEY) {
+    await sendResendEmail({ to, subject, html, text })
+    return null
+  }
+
   if (!process.env.BREVO_API_KEY) {
-    console.warn('[award-notify] BREVO_API_KEY is not set — skipping the milestone email', {
+    console.warn('[award-notify] RESEND_API_KEY is not set — skipping the milestone email', {
       orderId: order.id,
       status: milestone,
     })
     return null
   }
 
-  const { subject, html, text } = buildAwardEmail(milestone, toEmailInput(order))
-  const sent = await sendEmail({ to, subject, html, text })
+  const sent = await sendBrevoEmail({ to, subject, html, text })
   return sent ? null : 'email: Brevo reported a failure'
 }
 
@@ -265,7 +272,7 @@ export async function notifyAwardStatus(
     try {
       const emailFailure = await sendMilestoneEmail(order, milestone)
       if (emailFailure) failures.push(emailFailure)
-      else if (process.env.BREVO_API_KEY) channels.push('email')
+      else if (process.env.RESEND_API_KEY || process.env.BREVO_API_KEY) channels.push('email')
     } catch (emailError) {
       console.error('[award-notify] email send failed', { orderId: order.id, error: emailError })
       failures.push(`email: ${describe(emailError)}`)

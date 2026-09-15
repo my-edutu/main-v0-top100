@@ -1,4 +1,5 @@
 import type { PortfolioCoverFields, PortfolioCoverGeneration, PortfolioTailoring, PortfolioVariant } from './types'
+import { directUpload } from '@/lib/media/upload-client'
 
 async function readResponse<T>(response: Response): Promise<T> {
   const body = await response.json().catch(() => ({})) as { message?: string }
@@ -12,7 +13,9 @@ export async function getCurrentPortfolioCover() {
 
 export async function startPortfolioCover(input: { file: File; tailoring: PortfolioTailoring; fields: PortfolioCoverFields }) {
   const form = new FormData()
-  form.set('portrait', input.file)
+  const direct = await directUpload(input.file, 'portrait')
+  if (direct) form.set('uploadTicket', direct.ticket)
+  else form.set('portrait', input.file)
   form.set('tailoring', input.tailoring)
   form.set('consent', 'true')
   form.set('fields', JSON.stringify(input.fields))

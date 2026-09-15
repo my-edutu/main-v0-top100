@@ -13,6 +13,7 @@ import { TurnstileCaptcha, verifyCaptcha } from '@/components/ui/turnstile'
 import { supabase } from '@/lib/supabase/client'
 import { isAdminRole } from '@/lib/types/roles'
 import { friendlySignInError, normalizeRole } from '@/lib/auth-utils'
+import { getCaptchaState } from '@/lib/auth/captcha-policy'
 
 /**
  * Administrator sign-in. Deliberately separate from the member /login page:
@@ -40,7 +41,13 @@ export default function AdminLoginContent() {
     setIsLoading(true)
 
     try {
-      if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && captchaToken) {
+      const captchaState = getCaptchaState(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY, captchaToken)
+      if (captchaState === 'missing') {
+        setError('CAPTCHA verification required. Please complete the challenge.')
+        setIsLoading(false)
+        return
+      }
+      if (captchaState === 'ready') {
         const captchaValid = await verifyCaptcha(captchaToken)
         if (!captchaValid) {
           setError('CAPTCHA verification failed. Please try again.')

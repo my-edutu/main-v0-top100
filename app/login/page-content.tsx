@@ -16,6 +16,7 @@ import { Role, isAdminRole } from '@/lib/types/roles'
 import { friendlySignInError, normalizeRole } from '@/lib/auth-utils'
 import { sanitizeDashboardRedirect } from '@/lib/dashboard/redirect'
 import { attemptLocalDashboardLogin } from '@/lib/dev-dashboard/login'
+import { getCaptchaState } from '@/lib/auth/captcha-policy'
 
 export default function SignInContent() {
   const [email, setEmail] = useState('')
@@ -87,8 +88,16 @@ export default function SignInContent() {
         return
       }
 
-      // Verify CAPTCHA first (if configured)
-      if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && captchaToken) {
+      // Verify CAPTCHA first (if configured). A configured challenge must not
+      // be bypassable by submitting before a token exists.
+      const captchaState = getCaptchaState(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY, captchaToken)
+      if (captchaState === 'missing') {
+        setError('CAPTCHA verification required. Please complete the challenge.')
+        setCaptchaError(true)
+        setIsLoading(false)
+        return
+      }
+      if (captchaState === 'ready') {
         const captchaValid = await verifyCaptcha(captchaToken)
         if (!captchaValid) {
           setError('CAPTCHA verification failed. Please try again.')
@@ -165,6 +174,12 @@ export default function SignInContent() {
           setIsLoading(false)
           return
         }
+
+        // The server derives the recipient from the verified session. Do not
+        // block sign-in if an email provider is unavailable.
+        await fetch('/api/auth/login-notification', { method: 'POST' }).catch((error) => {
+          console.warn('Sign-in notification could not be sent:', error)
+        })
 
         // For admin users, wait longer to ensure cookies are fully set
         const waitTime = isAdminRole(role) ? 1500 : 1000

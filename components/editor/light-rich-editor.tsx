@@ -91,19 +91,9 @@ export function LightRichEditor({ value, onChange, placeholder }: LightRichEdito
             if (!editor) return
             try {
                 setUploading(true)
-                const formData = new FormData()
-                formData.append('file', file)
-                const response = await fetch('/api/uploads', {
-                    method: 'POST',
-                    body: formData,
-                })
-
-                const payload = await response.json()
-                if (!response.ok || !payload?.url) {
-                    throw new Error(payload?.error ?? 'Upload failed')
-                }
-
-                editor.chain().focus().setImage({ src: payload.url }).run()
+                const { uploadImage } = await import('@/lib/media/upload-client')
+                const url = await uploadImage(file, 'editor')
+                editor.chain().focus().setImage({ src: url }).run()
             } catch (error) {
                 console.error('[editor] image upload failed', error)
             } finally {

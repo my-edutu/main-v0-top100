@@ -16,9 +16,26 @@ import {
 
 export const runtime = 'nodejs'
 
-async function loadLinkedAwardeeId(supabase: ReturnType<typeof createAdminClient>, userId: string) {
-  const { data } = await supabase.from('awardees').select('id').eq('profile_id', userId).maybeSingle()
-  return (data as { id: string } | null)?.id ?? null
+const LEGACY_AWARDEE_COLUMNS = 'id, profile_id, name, email, slug, headline, tagline, bio, country, course'
+
+async function loadLinkedAwardee(supabase: ReturnType<typeof createAdminClient>, userId: string) {
+  const { data } = await supabase
+    .from('awardees')
+    .select(LEGACY_AWARDEE_COLUMNS)
+    .eq('profile_id', userId)
+    .maybeSingle()
+  return data as {
+    id: string
+    profile_id: string | null
+    name: string | null
+    email: string | null
+    slug: string | null
+    headline: string | null
+    tagline: string | null
+    bio: string | null
+    country: string | null
+    course: string | null
+  } | null
 }
 
 export async function GET() {
@@ -35,8 +52,8 @@ export async function GET() {
     return NextResponse.json({ message: 'Profile not found. Contact the admin team.' }, { status: 404 })
   }
 
-  const [awardeeId, notificationsRes, featuresRes] = await Promise.all([
-    loadLinkedAwardeeId(supabase, user.id),
+  const [awardee, notificationsRes, featuresRes] = await Promise.all([
+    loadLinkedAwardee(supabase, user.id),
     supabase
       .from('user_notifications')
       .select('*')
@@ -51,7 +68,7 @@ export async function GET() {
   ])
 
   return NextResponse.json({
-    member: mapProfileToMember(profile, awardeeId),
+    member: mapProfileToMember(profile, awardee?.id ?? null, awardee),
     notifications: (notificationsRes.data ?? []).map(mapNotification),
     featureSubmissions: (featuresRes.data ?? []).map(mapFeature),
   })
@@ -119,28 +136,29 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ message: 'Could not save your update.' }, { status: 500 })
   }
 
-  const awardeeId = await loadLinkedAwardeeId(supabase, user.id)
+  const awardee = await loadLinkedAwardee(supabase, user.id)
 
   // Keep the public awardee record in sync with dashboard BIO edits. This runs
   // server-side with the service role — the dashboard session has no awardee
   // cookie, so it must never call /api/awardees/self-update itself.
-  if (awardeeId && bioChanged) {
+  if (awardee?.id && bioChanged) {
     const awardeePatch: Record<string, unknown> = { updated_at: new Date().toISOString() }
     if (typeof columns.headline === 'string') awardeePatch.headline = columns.headline
-    if (typeof columns.field === 'string') awardeePatch.tagline = columns.field
+    if (typeof columns.tagline === 'string') awardeePatch.tagline = columns.tagline
+    if (typeof columns.field_of_study === 'string') awardeePatch.course = columns.field_of_study
     if (typeof columns.bio === 'string') awardeePatch.bio = columns.bio
 
-    const { data: awardee } = await supabase
+    const { data: updatedAwardee } = await supabase
       .from('awardees')
       .update(awardeePatch)
-      .eq('id', awardeeId)
+      .eq('id', awardee.id)
       .select('slug')
       .maybeSingle()
 
-    if (awardee?.slug) revalidatePath(`/awardees/${awardee.slug}`)
+    if (updatedAwardee?.slug) revalidatePath(`/awardees/${updatedAwardee.slug}`)
     revalidatePath('/awardees')
     revalidateTag('awardees')
   }
 
-  return NextResponse.json({ member: mapProfileToMember(updated, awardeeId) })
+  return NextResponse.json({ member: mapProfileToMember(updated, awardee?.id ?? null, awardee) })
 }

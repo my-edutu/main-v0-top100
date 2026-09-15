@@ -1,7 +1,9 @@
 import { after } from 'next/server'
+import { readDirectUpload } from '@/lib/media/direct-upload'
 import { NextRequest, NextResponse } from 'next/server'
 
 import { getCurrentUser } from '@/lib/auth-server'
+import { hasConfirmedAwardPayment } from '@/lib/awards/access-server'
 import { checkRateLimit, createRateLimitResponse, getClientIdentifier, RATE_LIMITS } from '@/lib/rate-limit'
 import { rejectCrossOriginMutation } from '@/lib/security/same-origin'
 import { createAdminClient } from '@/lib/supabase/server'
@@ -23,6 +25,13 @@ export async function POST(request: NextRequest) {
   if (blocked) return blocked
   const user = await getCurrentUser()
   if (!user?.id) return NextResponse.json({ message: 'Authentication required.' }, { status: 401 })
+  try {
+    if (!(await hasConfirmedAwardPayment(user.id))) {
+      return NextResponse.json({ message: 'Pay your award fee before generating a portfolio cover.' }, { status: 402 })
+    }
+  } catch {
+    return NextResponse.json({ message: 'Could not verify award payment access.' }, { status: 503 })
+  }
   const config = portfolioCoverConfig()
   if (!config.enabled) return NextResponse.json({ message: 'Portfolio cover generation is not available yet.' }, { status: 503 })
 
@@ -37,9 +46,23 @@ export async function POST(request: NextRequest) {
   const parsed = portfolioCoverRequestSchema.safeParse({ tailoring: String(form.get('tailoring') ?? ''), consent: form.get('consent') === 'true', fields: fieldsInput })
   if (!parsed.success) return NextResponse.json({ message: 'Choose Male or Female, provide valid details, and accept the photo-edit consent.' }, { status: 400 })
   const file = form.get('portrait')
-  if (!(file instanceof File)) return NextResponse.json({ message: 'A portrait photo is required.' }, { status: 400 })
-  const original = Buffer.from(await file.arrayBuffer())
-  const validation = validatePortraitUpload(original, file.type)
+  const uploadTicket = form.get('uploadTicket')
+  let original: Buffer
+  let contentType: string
+  try {
+    if (typeof uploadTicket === 'string') {
+      const uploaded = await readDirectUpload(uploadTicket, user.id, 'portrait')
+      original = uploaded.bytes
+      contentType = uploaded.contentType
+      await uploaded.remove()
+    } else if (file instanceof File) {
+      original = Buffer.from(await file.arrayBuffer())
+      contentType = file.type
+    } else return NextResponse.json({ message: 'A portrait photo is required.' }, { status: 400 })
+  } catch {
+    return NextResponse.json({ message: 'Portrait upload expired or failed. Please upload it again.' }, { status: 400 })
+  }
+  const validation = validatePortraitUpload(original, contentType)
   if (!validation.ok) return NextResponse.json({ message: validation.code === 'too_large' ? 'Portrait must be 8 MB or smaller.' : 'Upload a valid JPEG, PNG, or WebP portrait.' }, { status: 400 })
 
   const fields = normalizePortfolioCoverFields(parsed.data.fields ?? {})

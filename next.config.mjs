@@ -98,7 +98,7 @@ const nextConfig = {
               // The browser SDK talks to in-automate.brevo.com and
               // sibautomation.com — api.brevo.com is only ever called
               // server-side, so allowing it alone left the SDK mute.
-              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.brevo.com https://in-automate.brevo.com https://sibautomation.com https://challenges.cloudflare.com",
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.brevo.com https://in-automate.brevo.com https://sibautomation.com https://challenges.cloudflare.com https://*.r2.cloudflarestorage.com",
               // Frames: Turnstile CAPTCHA widget + YouTube players (Impact
               // Interviews, awardee profile videos). Without youtube-nocookie.com
               // here the embeds are silently blocked by CSP in production.

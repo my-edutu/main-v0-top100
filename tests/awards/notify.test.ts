@@ -386,7 +386,7 @@ describe('award email templates', () => {
 
   it('escapes hostile address lines', () => {
     const email = paidEmail({ ...TEMPLATE_INPUT, addressLines: ['<img src=x onerror=alert(1)>'] })
-    expect(email.html).not.toContain('<img')
+    expect(email.html).not.toContain('<img src=x onerror=alert(1)>')
     expect(email.html).toContain('&lt;img')
   })
 

@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getServerSession } from "@/lib/auth-server";
 import { isAdminRole } from "@/lib/types/roles";
-import { extractRoleFromSession, normalizeRole } from "@/lib/auth-utils";
+import { extractRoleFromSession, normalizeRole, resolveAuthorizationRole } from "@/lib/auth-utils";
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, createRateLimitResponse } from "@/lib/rate-limit";
 
 type RequireAdminSuccess = {
@@ -218,11 +218,17 @@ export const requireAdmin = async (
       dbIsAdmin: isAdminRole(roleFromDB),
     });
 
-    // Prefer JWT role, fall back to DB role
-    const effectiveRole = roleFromJWT || roleFromDB;
+    // The database profile is authoritative when available. JWT app_metadata
+    // is only a fallback for legacy accounts without a database role.
+    const normalizedJwtRole = normalizeRole(roleFromJWT);
+    const normalizedDbRole = normalizeRole(roleFromDB);
+    const effectiveRole = resolveAuthorizationRole(
+      normalizedJwtRole,
+      normalizedDbRole,
+    );
 
     if (isAdminRole(effectiveRole)) {
-      const roleSource = roleFromJWT ? "jwt" : "database";
+      const roleSource = normalizedDbRole ? "database" : "jwt";
       console.log(`[requireAdmin] ✅ AUTHORIZED via ${roleSource} role:`, effectiveRole);
 
       // ⚠️  WARNING: Role mismatch detected

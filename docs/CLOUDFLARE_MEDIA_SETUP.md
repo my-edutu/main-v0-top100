@@ -1,5 +1,35 @@
 # Cloudflare media pipeline
 
+## Deployment status — 8 September 2026
+
+- Live: signup/upload burst protection (30 matching POST requests per IP per
+  10 seconds; 10-second block). Payment webhooks and internal processing are excluded.
+- Deployed: `top100-afl-portfolio-generation` Worker with logs enabled, one
+  concurrent consumer, three retries, and `top100-afl-portfolio-failed` dead-letter queue.
+- **Queue delivery is paused** pending production configuration and verification.
+  Unconsumed jobs expire after the account's 24-hour retention period. Keep
+  portfolio generation disabled until activation; pause is not permanent job storage.
+- Prepared in code: direct browser uploads for avatars, editor raster images,
+  and portfolio portraits. Originals land under `incoming/` in the private
+  bucket. A signed receipt binds the object to the authenticated user, purpose,
+  MIME type, byte size and expiry. Validation/resizing precedes public publishing.
+- Live: private-bucket CORS permits PUT from the two production origins and
+  localhost:3000. Abandoned `incoming/` objects expire after one day; other
+  sources/options are not covered by that deletion rule. Public r2.dev access
+  is disabled on the private bucket.
+- Pending: deploy these application changes, install matching
+  `PORTFOLIO_WORKER_SECRET` in Vercel and the Worker, configure the Vercel queue
+  producer token, test uploads/generation, and resume queue delivery.
+
+The connected Vercel team `nwosupaul3-gmailcoms-projects` currently returns no
+projects. Reconnect the account that owns top100afl.com to finish activation.
+The browser session also currently requires Vercel login. No new secret was
+created or stored in this repository.
+
+Direct uploads use the existing R2 credentials; no extra upload secret is needed.
+Preview origins must be explicitly added to private-bucket CORS before testing
+browser uploads on a preview domain. Non-R2 deployments retain server uploads.
+
 This project now supports Cloudflare R2 for new awardee/profile media while
 keeping existing Supabase URLs and legacy buckets working.
 

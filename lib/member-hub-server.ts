@@ -43,25 +43,60 @@ function bool(value: unknown, fallback: boolean): boolean {
 }
 
 /** Map a `profiles` row (+ optional linked awardee id) to a MemberProfile. */
-export function mapProfileToMember(row: any, awardeeId?: string | null): MemberProfile {
+export function mapProfileToMember(
+  row: any,
+  awardeeId?: string | null,
+  legacyAwardee?: LegacyAwardeeRow | null,
+): MemberProfile {
+  return mapProfileToMemberWithLegacy(row, awardeeId, legacyAwardee)
+}
+
+type LegacyAwardeeRow = {
+  name?: string | null
+  email?: string | null
+  slug?: string | null
+  headline?: string | null
+  tagline?: string | null
+  bio?: string | null
+  country?: string | null
+  course?: string | null
+}
+
+function firstText(...values: unknown[]): string {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) return value
+  }
+  return ''
+}
+
+/**
+ * Legacy awardees were often imported before the member profile existed.
+ * Treat the linked awardee row as a read-through source for empty profile
+ * fields so those members can see and edit the information they already had.
+ */
+export function mapProfileToMemberWithLegacy(
+  row: any,
+  awardeeId?: string | null,
+  legacyAwardee?: LegacyAwardeeRow | null,
+): MemberProfile {
   const prefs = (row?.notification_prefs ?? {}) as Record<string, unknown>
-  const name = row?.full_name || row?.email || 'Awardee'
+  const name = firstText(row?.full_name, legacyAwardee?.name, row?.email, legacyAwardee?.email) || 'Awardee'
   const status = (row?.membership_status ?? 'pending') as MemberStatus
 
   return {
     id: row.id,
     name,
-    email: row?.email ?? '',
+    email: firstText(row?.email, legacyAwardee?.email),
     inviteCode: row?.access_code ?? '',
     awardeeId: awardeeId ?? undefined,
-    publicSlug: row?.slug ?? undefined,
+    publicSlug: firstText(row?.slug, legacyAwardee?.slug) || undefined,
     status,
     profileStatus: status === 'approved' ? 'approved' : 'submitted',
-    headline: row?.headline ?? '',
-    bio: row?.bio ?? '',
-    location: row?.location ?? '',
-    organization: row?.organization ?? '',
-    field: row?.field ?? '',
+    headline: firstText(row?.headline, legacyAwardee?.headline),
+    bio: firstText(row?.bio, legacyAwardee?.bio),
+    location: firstText(row?.location, legacyAwardee?.country),
+    organization: firstText(row?.organization, row?.tagline, legacyAwardee?.tagline),
+    field: firstText(row?.field, row?.field_of_study, legacyAwardee?.course),
     avatarInitials: initials(name),
     recruiterVisible: bool(prefs.recruiterVisible, PREF_DEFAULTS.recruiterVisible),
     emailVisible: bool(prefs.emailVisible, PREF_DEFAULTS.emailVisible),
@@ -122,7 +157,11 @@ export function buildProfileUpdate(patch: Record<string, unknown>, existingPrefs
   if (typeof patch.bio === 'string') columns.bio = patch.bio
   if (typeof patch.location === 'string') columns.location = patch.location
   if (typeof patch.organization === 'string') columns.organization = patch.organization
-  if (typeof patch.field === 'string') columns.field = patch.field
+  if (typeof patch.organization === 'string') columns.tagline = patch.organization
+  if (typeof patch.field === 'string') {
+    columns.field = patch.field
+    columns.field_of_study = patch.field
+  }
 
   const prefs = { ...existingPrefs }
   for (const key of PREF_KEYS) {

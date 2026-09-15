@@ -22,6 +22,15 @@ export function normalizeRole(role: any): Role | null {
 }
 
 /**
+ * Database profile roles are authoritative when present. JWT app_metadata can
+ * be stale after an admin changes a user's role, so it is only a fallback for
+ * accounts that do not yet have a database role.
+ */
+export function resolveAuthorizationRole(jwtRole: Role | null, databaseRole: Role | null): Role | null {
+  return databaseRole ?? jwtRole
+}
+
+/**
  * Extract role from a Supabase session object.
  * Checks the trusted locations where role might be stored:
  * 1. user.app_metadata.role (service-role writable only)

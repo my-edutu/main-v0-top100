@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 import { getCurrentUser } from '@/lib/auth-server'
+import { hasConfirmedAwardPayment } from '@/lib/awards/access-server'
 import { rejectCrossOriginMutation } from '@/lib/security/same-origin'
 import { createPortfolioCoverRepository } from '@/lib/portfolio-cover/repository'
 import { z } from 'zod'
@@ -12,6 +13,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (blocked) return blocked
   const user = await getCurrentUser()
   if (!user?.id) return NextResponse.json({ message: 'Authentication required.' }, { status: 401 })
+  try {
+    if (!(await hasConfirmedAwardPayment(user.id))) {
+      return NextResponse.json({ message: 'Pay your award fee before selecting a portfolio cover.' }, { status: 402 })
+    }
+  } catch {
+    return NextResponse.json({ message: 'Could not verify award payment access.' }, { status: 503 })
+  }
   const body = await request.json().catch(() => null) as { variant?: unknown } | null
   const parsed = z.object({ variant: z.enum(['executive-charcoal', 'leadership-ivory']) }).safeParse(body)
   if (!parsed.success) return NextResponse.json({ message: 'Choose one of the two available covers.' }, { status: 400 })

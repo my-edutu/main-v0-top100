@@ -14,7 +14,7 @@ describe('OpenAI portfolio image editor', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1)
     const request = fetchMock.mock.calls[0][1]
     const body = request?.body as FormData
-    expect(body.get('model')).toBe('gpt-image-2')
+    expect(body.get('model')).toBe('gpt-image-2.5-sunburst')
     expect(body.get('size')).toBe('1024x1536')
     expect(String(body.get('prompt'))).toContain('corporate charcoal suit')
     expect(String(body.get('prompt'))).not.toContain('Ada')

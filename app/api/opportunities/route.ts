@@ -1,5 +1,11 @@
 import { NextRequest } from 'next/server'
 
+import {
+  extractEdutuOpportunities,
+  normalizeEdutuOpportunity,
+  type EdutuOpportunityPayload,
+} from '@/lib/opportunities/edutu-proxy'
+
 export const runtime = 'nodejs'
 
 type ExternalOpportunity = {
@@ -26,44 +32,6 @@ const fallbackOpportunities: ExternalOpportunity[] = [
     deadline: 'Aug 12',
   },
 ]
-
-type RawOpportunity = {
-  id?: unknown
-  title?: unknown
-  name?: unknown
-  type?: unknown
-  category?: unknown
-  location?: unknown
-  deadline?: unknown
-  closesAt?: unknown
-  closing_date?: unknown
-}
-
-function asText(value: unknown, fallback: string) {
-  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : fallback
-}
-
-function normalizeOpportunity(item: RawOpportunity, index: number): ExternalOpportunity {
-  return {
-    id: asText(item.id, `edutu-${index + 1}`),
-    title: asText(item.title, asText(item.name, 'Scholarship opportunity')),
-    type: asText(item.type, asText(item.category, 'Scholarship')),
-    location: asText(item.location, 'Online'),
-    deadline: asText(item.deadline, asText(item.closesAt, asText(item.closing_date, 'Rolling'))),
-  }
-}
-
-function pickOpportunityArray(payload: unknown): RawOpportunity[] {
-  if (Array.isArray(payload)) return payload as RawOpportunity[]
-
-  if (typeof payload !== 'object' || payload === null) return []
-
-  const record = payload as Record<string, unknown>
-  const candidates = [record.opportunities, record.scholarships, record.items, record.data, record.results]
-  const match = candidates.find(Array.isArray)
-
-  return match ? match as RawOpportunity[] : []
-}
 
 export async function GET(request: NextRequest) {
   const endpoint = process.env.EDUTU_SCHOLARSHIP_API_URL
@@ -99,7 +67,9 @@ export async function GET(request: NextRequest) {
     }
 
     const payload = await response.json()
-    const opportunities = pickOpportunityArray(payload).map(normalizeOpportunity)
+    const opportunities = extractEdutuOpportunities(payload).map((item: EdutuOpportunityPayload, index) =>
+      normalizeEdutuOpportunity(item, index),
+    )
 
     return Response.json({
       mode: 'live',

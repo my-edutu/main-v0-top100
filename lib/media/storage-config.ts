@@ -39,6 +39,7 @@ export function getMediaStorageConfig(env: Environment = process.env): MediaStor
   if (missing.length > 0) {
     throw new Error(`R2 media storage is incomplete. Missing: ${missing.join(', ')}`)
   }
+  if (bucket === privateBucket) throw new Error('Public and private R2 buckets must be different.')
 
   return { provider: 'r2', accountId, accessKeyId, secretAccessKey, bucket, privateBucket, publicUrl }
 }

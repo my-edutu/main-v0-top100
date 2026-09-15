@@ -4,6 +4,7 @@ import { useState, useRef, ChangeEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Upload, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { uploadImage } from '@/lib/media/upload-client';
 
 interface AvatarUploadProps {
   value: string | undefined;
@@ -41,21 +42,7 @@ export default function AvatarUpload({ value, onChange, onFileChange, disabled }
       // Upload the file to our API
       setIsUploading(true);
       try {
-        const formData = new FormData();
-        formData.append('file', file);
-
-        const response = await fetch('/api/profiles/avatar', {
-          method: 'POST',
-          body: formData,
-        });
-
-        const result = await response.json();
-
-        if (!response.ok) {
-          throw new Error(result.error || 'Failed to upload image');
-        }
-
-        onChange(result.url); // Update the form field with the uploaded URL
+        onChange(await uploadImage(file, 'avatar'));
         toast.success('Profile picture updated successfully!');
       } catch (error: any) {
         console.error('Upload error:', error);
