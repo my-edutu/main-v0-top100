@@ -72,9 +72,9 @@ export function AwardPaymentSuccess({ payment }: AwardPaymentSuccessProps) {
         </p>
 
         <div className="flex flex-wrap items-center gap-4">
-          <a href="mailto:info@top100afl.com?subject=Physical%20award%20delivery" className="award-payment-receipt-link">
+          <Link href="/dashboard/me/award/delivery" className="award-payment-receipt-link">
             Arrange physical delivery <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
-          </a>
+          </Link>
           <Link href="/dashboard" className="award-payment-receipt-link">
             Return to dashboard <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
           </Link>

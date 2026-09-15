@@ -13,14 +13,12 @@ import {
 } from 'react'
 
 import { fetchAwardPayment } from '@/lib/awards/payment'
-import { fetchConversations, fetchMemberHubState } from '@/lib/member-hub'
+import { fetchMemberHubState } from '@/lib/member-hub'
 import { useDashboardMember } from './dashboard-member'
 
 type DashboardBadgeContextValue = {
-  unreadMessages: number
   unreadUpdates: number
   awardNeedsAttention: boolean
-  setUnreadMessages: Dispatch<SetStateAction<number>>
   setUnreadUpdates: Dispatch<SetStateAction<number>>
   setAwardNeedsAttention: Dispatch<SetStateAction<boolean>>
   refreshBadges: () => Promise<void>
@@ -30,20 +28,14 @@ const DashboardBadgeContext = createContext<DashboardBadgeContextValue | null>(n
 
 export function DashboardBadgeProvider({ children }: { children: ReactNode }) {
   const { member } = useDashboardMember()
-  const [unreadMessages, setUnreadMessages] = useState(0)
   const [unreadUpdates, setUnreadUpdates] = useState(0)
   const [awardNeedsAttention, setAwardNeedsAttention] = useState(false)
 
   const refreshBadges = useCallback(async () => {
-    const [messagesResult, updatesResult, awardResult] = await Promise.allSettled([
-      fetchConversations(),
+    const [updatesResult, awardResult] = await Promise.allSettled([
       fetchMemberHubState(),
       fetchAwardPayment(),
     ])
-
-    if (messagesResult.status === 'fulfilled') {
-      setUnreadMessages(messagesResult.value.unreadTotal)
-    }
 
     if (updatesResult.status === 'fulfilled') {
       const unreadCount = updatesResult.value.notifications.filter(
@@ -73,15 +65,13 @@ export function DashboardBadgeProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(
     () => ({
-      unreadMessages,
       unreadUpdates,
       awardNeedsAttention,
-      setUnreadMessages,
       setUnreadUpdates,
       setAwardNeedsAttention,
       refreshBadges,
     }),
-    [awardNeedsAttention, refreshBadges, unreadMessages, unreadUpdates],
+    [awardNeedsAttention, refreshBadges, unreadUpdates],
   )
 
   return (

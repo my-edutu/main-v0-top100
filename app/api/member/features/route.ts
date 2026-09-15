@@ -5,6 +5,7 @@ import { getCurrentUser } from '@/lib/auth-server'
 import { createAdminClient } from '@/lib/supabase/server'
 import { mapFeature } from '@/lib/member-hub-server'
 import { sanitizeInput } from '@/lib/security'
+import { hasConfirmedAwardPayment } from '@/lib/awards/access-server'
 
 export const runtime = 'nodejs'
 
@@ -13,6 +14,13 @@ const CATEGORIES = ['bio', 'story', 'product', 'project'] as const
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser()
   if (!user?.id) return NextResponse.json({ message: 'Authentication required.' }, { status: 401 })
+  try {
+    if (!(await hasConfirmedAwardPayment(user.id))) {
+      return NextResponse.json({ message: 'Complete your award payment to apply for the 2026 magazine feature.' }, { status: 402 })
+    }
+  } catch {
+    return NextResponse.json({ message: 'Could not verify award access. Please try again shortly.' }, { status: 503 })
+  }
 
   let body: Record<string, unknown> = {}
   try {

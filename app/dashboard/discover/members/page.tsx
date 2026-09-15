@@ -11,7 +11,7 @@ export default function MembersPage() {
     <RouteSection
       className="hub-members-route"
       title="Member directory"
-      description="Find awardees by cohort, country or field and continue the conversation in Messages."
+      description="Find awardees by cohort, country or field."
     >
       <DirectorySection member={member} />
     </RouteSection>

@@ -69,7 +69,6 @@ export function VisibilitySettingsSection() {
       buildPatch={buildVisibilityPatch}
     >
       <PreferenceToggle name="showInDirectory" label="Show profile in awardee directory" description="Keep your public profile discoverable by fellow Africa Future Leaders." defaultChecked={member.showInDirectory} />
-      <PreferenceToggle name="allowDirectMessages" label="Allow direct message requests" description="Let approved awardees start a conversation from your profile." defaultChecked={member.allowDirectMessages} />
     </PreferenceForm>
   )
 }
@@ -84,7 +83,6 @@ export function NotificationSettingsSection() {
     >
       <PreferenceToggle name="opportunityAlerts" label="Opportunity alerts" description="Scholarships, fellowships, grants, and member-only calls." defaultChecked={member.opportunityAlerts} />
       <PreferenceToggle name="magazineAlerts" label="Magazine team updates" description="Submission status, feature requests, and new edition notices." defaultChecked={member.magazineAlerts} />
-      <PreferenceToggle name="messageAlerts" label="Message notifications" description="Inbox updates from fellow awardees and the AFL team." defaultChecked={member.messageAlerts} />
       <PreferenceToggle name="eventReminders" label="Event reminders" description="Summits, live sessions, and partner events." defaultChecked={member.eventReminders} />
     </PreferenceForm>
   )

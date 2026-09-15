@@ -12,11 +12,13 @@ const meDescriptions: Record<string, string> = {
   Profile: 'Edit your public BIO and visibility',
   'Portfolio cover': 'Create a shareable Top100 magazine profile',
   'Project100 Scholarship': 'Apply and save your scholarship application',
-  'My award': 'Pay the award fee and see its confirmation',
+  'My award': 'Complete your award and see its confirmation',
   Posts: 'Write and manage your stories',
   'Get featured': 'Pitch your work to the AFL team',
   Settings: 'Choose alerts, privacy and security',
 }
+
+const FEATURE_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSfA0yU8IK1jVBNZ-V1RRksZXJAkAh4XwL7Pk8mubZ31ZHMNlYQ/viewform?usp=header'
 
 export default function MePage() {
   const { member } = useDashboardMember()
@@ -39,10 +41,14 @@ export default function MePage() {
         </div>
       </header>
       <div className="divide-y divide-neutral-200 rounded-2xl border border-neutral-200">
-        {meNav.map((item) => (
-          <Link
+        {meNav.map((item) => {
+          const external = item.label === 'Get featured'
+          const href = external ? FEATURE_FORM_URL : item.href
+          return <Link
             key={item.href}
-            href={item.href}
+            href={href}
+            target={external ? '_blank' : undefined}
+            rel={external ? 'noopener noreferrer' : undefined}
             className="flex min-h-20 items-center gap-4 px-4 py-4 hover:bg-orange-50 focus-visible:outline-orange-600"
           >
             <item.icon
@@ -58,7 +64,7 @@ export default function MePage() {
             </span>
             <ArrowUpRight size={18} className="shrink-0 text-neutral-400" />
           </Link>
-        ))}
+        })}
       </div>
 
       <div className="space-y-3 border-t border-[#E7DDCF] pt-5">

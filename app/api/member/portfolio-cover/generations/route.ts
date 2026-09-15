@@ -8,12 +8,13 @@ import { createAdminClient } from '@/lib/supabase/server'
 
 import { portfolioCoverConfig } from '@/lib/portfolio-cover/config'
 import { generatePortfolioCoverSet } from '@/lib/portfolio-cover/generate'
-import { prepareEditMask, preparePortrait, validatePortraitUpload } from '@/lib/portfolio-cover/image'
+import { preparePortrait, validatePortraitUpload } from '@/lib/portfolio-cover/image'
 import { createPortfolioCoverRepository, portfolioObjectPath } from '@/lib/portfolio-cover/repository'
 import { createDemoImageEditor } from '@/lib/portfolio-cover/providers/demo'
 import { createOpenAIImageEditor } from '@/lib/portfolio-cover/providers/openai'
 import { portfolioCoverRequestSchema, normalizePortfolioCoverFields } from '@/lib/portfolio-cover/validation'
 import { enqueuePortfolioGeneration, portfolioQueueConfigured } from '@/lib/portfolio-cover/queue'
+import { hasConfirmedAwardPayment } from '@/lib/awards/access-server'
 
 export const runtime = 'nodejs'
 export const maxDuration = 300
@@ -23,6 +24,11 @@ export async function POST(request: NextRequest) {
   if (blocked) return blocked
   const user = await getCurrentUser()
   if (!user?.id) return NextResponse.json({ message: 'Authentication required.' }, { status: 401 })
+  try {
+    if (!(await hasConfirmedAwardPayment(user.id))) return NextResponse.json({ message: 'Complete your award payment to unlock your portfolio cover.' }, { status: 402 })
+  } catch {
+    return NextResponse.json({ message: 'Could not verify award access. Please try again shortly.' }, { status: 503 })
+  }
   const config = portfolioCoverConfig()
   if (!config.enabled) return NextResponse.json({ message: 'Portfolio cover generation is not available yet.' }, { status: 503 })
 
@@ -49,10 +55,8 @@ export async function POST(request: NextRequest) {
 
   const id = crypto.randomUUID()
   let portrait: Buffer
-  let mask: Buffer
   try {
     portrait = await preparePortrait(original)
-    mask = await prepareEditMask()
   } catch {
     return NextResponse.json({ message: 'We could not decode that portrait. Upload a clear JPEG, PNG, or WebP image.' }, { status: 400 })
   }
@@ -74,7 +78,7 @@ export async function POST(request: NextRequest) {
   } else {
     after(async () => {
       try {
-        await generatePortfolioCoverSet({ id, memberId: user.id, memberName, tailoring: parsed.data.tailoring, fields, portrait, mask }, { repo, editor })
+        await generatePortfolioCoverSet({ id, memberId: user.id, memberName, tailoring: parsed.data.tailoring, fields, portrait }, { repo, editor })
       } catch (error) {
         if (process.env.NODE_ENV !== 'production') console.warn('[portfolio-cover] generation failed', error instanceof Error ? error.message : 'unknown')
       }

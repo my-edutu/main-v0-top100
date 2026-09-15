@@ -24,8 +24,3 @@ export async function preparePortrait(source: Buffer) {
     .png({ compressionLevel: 9 })
     .toBuffer()
 }
-
-export async function prepareEditMask() {
-  const svg = `<svg width="1024" height="1536" xmlns="http://www.w3.org/2000/svg"><rect width="1024" height="1536" fill="black"/><rect x="0" y="800" width="1024" height="736" fill="white"/></svg>`
-  return sharp(Buffer.from(svg)).png().toBuffer()
-}

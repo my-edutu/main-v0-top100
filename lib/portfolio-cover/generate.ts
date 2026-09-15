@@ -3,7 +3,7 @@ import { renderPortfolioCover } from './render-cover'
 import type { PortfolioImageEditor } from './providers/types'
 import type { PortfolioCoverFields, PortfolioTailoring, PortfolioVariant } from './types'
 
-export const PORTFOLIO_VARIANTS: PortfolioVariant[] = ['executive-charcoal', 'leadership-ivory']
+export const PORTFOLIO_VARIANTS: PortfolioVariant[] = ['executive-charcoal']
 
 type GenerationInput = {
   id: string
@@ -12,7 +12,6 @@ type GenerationInput = {
   tailoring: PortfolioTailoring
   fields: PortfolioCoverFields
   portrait: Buffer
-  mask: Buffer
   attempt?: number
 }
 
@@ -32,9 +31,15 @@ export async function generatePortfolioCoverSet(
   try {
     const optionPaths: Record<PortfolioVariant, string> = {} as Record<PortfolioVariant, string>
     const requestIds: string[] = []
+    // One provider edit creates the canonical portrait. Branding and text are
+    // rendered deterministically so a cover costs exactly one AI image edit.
+    const edited = await deps.editor.edit({
+      portrait: input.portrait,
+      tailoring: input.tailoring,
+      variant: 'executive-charcoal',
+    })
+    if (edited.requestId) requestIds.push(edited.requestId)
     for (const variant of PORTFOLIO_VARIANTS) {
-      const edited = await deps.editor.edit({ portrait: input.portrait, mask: input.mask, tailoring: input.tailoring, variant })
-      if (edited.requestId) requestIds.push(edited.requestId)
       const cover = await render({ portrait: edited.image, memberName: input.memberName, tailoring: input.tailoring, variant, fields: input.fields })
       const path = portfolioObjectPath(input.memberId, input.id, variant)
       await deps.repo.uploadOption(path, cover)

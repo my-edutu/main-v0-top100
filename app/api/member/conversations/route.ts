@@ -15,10 +15,12 @@ import {
   orderPair,
 } from '@/lib/dm-server'
 import { notifyNewMessage } from '@/lib/email/dm-notification'
+import { DIRECT_MESSAGING_ENABLED, DIRECT_MESSAGING_PAUSED_MESSAGE } from '@/lib/messaging/config'
 
 export const runtime = 'nodejs'
 
 export async function GET() {
+  if (!DIRECT_MESSAGING_ENABLED) return NextResponse.json({ message: DIRECT_MESSAGING_PAUSED_MESSAGE }, { status: 503 })
   const user = await getCurrentUser()
   if (!user?.id) return NextResponse.json({ message: 'Authentication required.' }, { status: 401 })
 
@@ -91,6 +93,7 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  if (!DIRECT_MESSAGING_ENABLED) return NextResponse.json({ message: DIRECT_MESSAGING_PAUSED_MESSAGE }, { status: 503 })
   const user = await getCurrentUser()
   if (!user?.id) return NextResponse.json({ message: 'Authentication required.' }, { status: 401 })
 

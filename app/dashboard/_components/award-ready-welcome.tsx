@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { ArrowRight, Award } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 
@@ -48,18 +48,14 @@ export function AwardReadyWelcome({ memberId, name }: { memberId: string; name: 
           </span>
         </div>
         <div className="space-y-4 px-6 pb-7 text-center sm:px-9 sm:pb-9">
-          <div className="mx-auto -mt-9 flex h-16 w-16 items-center justify-center rounded-full border-4 border-white bg-neutral-950 text-amber-300 shadow-sm">
-            <Award className="h-8 w-8" aria-hidden="true" />
-          </div>
           <p className="text-sm font-medium text-orange-800">Congratulations, {firstName}!</p>
           <DialogTitle className="text-3xl font-semibold leading-tight">Your Africa Future Leaders award is ready.</DialogTitle>
           <DialogDescription className="text-sm leading-6 text-neutral-600">
-            Pay the award fee securely through Bachs. Delivery and its charge will be handled separately in a later step.
+            Celebrate your recognition, strengthen your profile, and connect with the Africa Future Leaders community.
           </DialogDescription>
           <Link href="/dashboard/me/award" onClick={() => changeOpen(false)} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-amber-400 px-5 font-medium text-neutral-950 hover:bg-amber-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-orange-700">
             View my award <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </Link>
-          <button type="button" onClick={() => changeOpen(false)} className="min-h-10 text-sm text-neutral-500 underline underline-offset-4 hover:text-neutral-800">I’ll view it later</button>
         </div>
       </DialogContent>
     </Dialog>

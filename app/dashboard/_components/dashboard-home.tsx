@@ -6,18 +6,12 @@ import {
   BellRing,
   ArrowUpRight,
   CalendarDays,
-  MessageCircle,
-  Sparkles,
+  Mail,
   Trophy,
   UserRound,
 } from 'lucide-react'
 
-import {
-  fetchConversations,
-  fetchMemberHubState,
-  type ConversationSummary,
-  type MemberNotification,
-} from '@/lib/member-hub'
+import { fetchMemberHubState, type MemberNotification } from '@/lib/member-hub'
 import {
   fetchEventInvitations,
   type EventInvitation,
@@ -32,7 +26,7 @@ import { AwardReadyWelcome } from './award-ready-welcome'
 
 type RecentItem = {
   id: string
-  kind: 'message' | 'update'
+  kind: 'update'
   title: string
   description: string
   date: string
@@ -40,7 +34,15 @@ type RecentItem = {
   unread: boolean
 }
 
-const INTERVIEW_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSc-UAJ-UamjE4Lqa8fwv3Z9qNGebRZS8AZYLMAKNbKs4IJD5A/viewform'
+const INTERVIEW_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSfA0yU8IK1jVBNZ-V1RRksZXJAkAh4XwL7Pk8mubZ31ZHMNlYQ/viewform?usp=header'
+const PARTNERSHIP_FORM_URL = 'https://docs.google.com/forms/d/1pabeSUOwN15Sr-VcAWIhl5k5_xwnKljFuzm90PCoEqQ/edit'
+
+const launchBanners = [
+  { title: 'Project100 Scholarship', description: 'Put your next chapter in motion.', href: '/dashboard/me/project100-scholarship', image: '/dashboard/banners/project100-scholarship-v2.png' },
+  { title: 'Impact Series Interviews', description: 'Share the work behind your impact.', href: INTERVIEW_FORM_URL, image: '/dashboard/banners/impact-series-v2.png', external: true },
+  { title: 'Get my AFL award', description: 'Complete your award journey.', href: '/dashboard/me/award', image: '/dashboard/banners/afl-award-v2.png' },
+  { title: 'Let your organization partner with Africa Future Leaders', description: 'Create more impact together.', href: PARTNERSHIP_FORM_URL, image: '/dashboard/banners/impact-series-v2.png', external: true },
+] as const
 
 const shortcutDescriptions: Record<string, string> = {
   Members: 'Meet fellow awardees',
@@ -72,10 +74,8 @@ export function DashboardHome() {
   const { member } = useDashboardMember()
   const {
     awardNeedsAttention,
-    setUnreadMessages,
     setUnreadUpdates,
   } = useDashboardBadges()
-  const [conversations, setConversations] = useState<ConversationSummary[]>([])
   const [invitations, setInvitations] = useState<EventInvitation[]>([])
   const [notifications, setNotifications] = useState<MemberNotification[]>([])
   const [loading, setLoading] = useState(true)
@@ -88,9 +88,8 @@ export function DashboardHome() {
     async function loadPreviews() {
       if (inFlight) return
       inFlight = true
-      const [conversationResult, invitationResult, hubResult] =
+      const [invitationResult, hubResult] =
         await Promise.allSettled([
-          fetchConversations(),
           fetchEventInvitations(),
           fetchMemberHubState(),
         ])
@@ -98,12 +97,7 @@ export function DashboardHome() {
       inFlight = false
       if (cancelled) return
       setLoading(false)
-      setLoadError([conversationResult, invitationResult, hubResult].some(result => result.status === 'rejected'))
-
-      if (conversationResult.status === 'fulfilled') {
-        setConversations(conversationResult.value.conversations)
-        setUnreadMessages(conversationResult.value.unreadTotal)
-      }
+      setLoadError([invitationResult, hubResult].some(result => result.status === 'rejected'))
 
       if (invitationResult.status === 'fulfilled') {
         setInvitations(invitationResult.value.invitations)
@@ -135,13 +129,13 @@ export function DashboardHome() {
       window.removeEventListener('focus', refresh)
       window.clearInterval(interval)
     }
-  }, [member.id, member.status, setUnreadMessages, setUnreadUpdates])
+  }, [member.id, member.status, setUnreadUpdates])
 
   const showAwardWelcome = awardNeedsAttention
 
   const shortcuts = [discoverNav[0], discoverNav[2], meNav[0], meNav[1], meNav[4],
-    { label:'Schedule an interview', href:INTERVIEW_FORM_URL, icon:MessageCircle, color:'ember' as const, external: true },
-    { label:'Contact the team', href:'mailto:info@top100afl.com', icon:MessageCircle, color:'forest' as const },
+    { label:'Schedule an interview', href:INTERVIEW_FORM_URL, icon:Mail, color:'ember' as const, external: true },
+    { label:'Contact the team', href:'mailto:info@top100afl.com', icon:Mail, color:'forest' as const },
     { label:'Partner with us', href:'/partnership', icon:UserRound, color:'cobalt' as const },
   ]
 
@@ -163,18 +157,6 @@ export function DashboardHome() {
   }, [invitations])
 
   const recentItems = useMemo<RecentItem[]>(() => {
-    const messageRows: RecentItem[] = conversations
-      .filter((conversation) => conversation.lastMessage)
-      .map((conversation) => ({
-        id: `message-${conversation.id}`,
-        kind: 'message',
-        title: conversation.otherMember.name,
-        description: conversation.lastMessage?.body ?? 'Open conversation',
-        date: conversation.lastMessageAt,
-        href: `/dashboard/messages/${conversation.id}`,
-        unread: conversation.unreadCount > 0,
-      }))
-
     const updateRows: RecentItem[] = notifications.map((notification) => ({
       id: `update-${notification.id}`,
       kind: 'update',
@@ -185,13 +167,13 @@ export function DashboardHome() {
       unread: !notification.readBy.includes(member.id),
     }))
 
-    return [...messageRows, ...updateRows]
+    return updateRows
       .sort(
         (left, right) =>
           new Date(right.date).getTime() - new Date(left.date).getTime(),
       )
       .slice(0, 3)
-  }, [conversations, member.id, notifications])
+  }, [member.id, notifications])
 
   return (
     <div className="hub-home">
@@ -201,7 +183,7 @@ export function DashboardHome() {
         <p className="hub-welcome-description">Your people, opportunities, and latest updates.</p>
       </section>
       {loading && <p role="status" className="hub-status text-sm text-neutral-600">Loading your latest activity…</p>}
-      {loadError && <p role="status" className="hub-status rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-sm leading-5 text-neutral-700">Some activity couldn’t load. We’ll retry automatically; you can also open Messages, Events, or Updates directly.</p>}
+      {loadError && <p role="status" className="hub-status rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-sm leading-5 text-neutral-700">Some activity couldn’t load. We’ll retry automatically; you can also open Events or Updates directly.</p>}
 
       {awardNeedsAttention ? (
         <section className="hub-next-move" aria-labelledby="next-move-title">
@@ -212,7 +194,7 @@ export function DashboardHome() {
             image={false}
             href="/dashboard/me/award"
             title="Your award is ready"
-            description="Pay the award fee with Bachs; delivery follows separately."
+            description="Complete your award payment; delivery follows separately."
             icon={Trophy}
             color="saffron"
             compact
@@ -247,10 +229,36 @@ export function DashboardHome() {
         </div>
       </section>
 
+      <section className="hub-launch-rail min-w-0" aria-labelledby="launch-title">
+        <div className="mb-3 flex items-end justify-between gap-3">
+          <div>
+            <h2 id="launch-title" className="hub-panel-title mt-1">Keep going</h2>
+          </div>
+        </div>
+        <div className="flex snap-x gap-4 overflow-x-auto pb-2 pr-2" role="region" aria-label="Featured member actions">
+          {launchBanners.map((banner) => (
+            <Link
+              key={banner.title}
+              href={banner.href}
+              target={'external' in banner && banner.external ? '_blank' : undefined}
+              rel={'external' in banner && banner.external ? 'noopener noreferrer' : undefined}
+              className="group relative isolate flex min-h-[176px] min-w-[min(82vw,320px)] snap-start overflow-hidden rounded-[20px] border border-black/10 bg-black p-4 text-white shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-2"
+            >
+              <img src={banner.image} alt="" className="absolute inset-0 -z-10 h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+              <span className="absolute inset-0 -z-10 bg-gradient-to-t from-[#111827]/75 via-[#111827]/15 to-transparent" />
+              <span className="mt-auto max-w-[290px]">
+                <span style={{ color: '#fff' }} className="mt-1 block text-lg font-semibold leading-tight [text-shadow:0_1px_3px_rgba(0,0,0,.45)]">{banner.title}</span>
+                <span style={{ color: 'rgba(255,255,255,.9)' }} className="mt-1 block text-sm [text-shadow:0_1px_2px_rgba(0,0,0,.45)]">{banner.description}</span>
+              </span>
+              <ArrowUpRight className="absolute right-4 top-4 h-5 w-5 text-white/80 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true" />
+            </Link>
+          ))}
+        </div>
+      </section>
+
       <section className="hub-shortcuts" aria-labelledby="shortcuts-title">
         <div className="mb-3 flex items-center justify-between gap-3">
           <h2 id="shortcuts-title" className="hub-panel-title">Explore more</h2>
-          <Sparkles className="h-5 w-5 text-[#171717]" aria-hidden="true" />
         </div>
         <div className="grid grid-cols-2 gap-3 sm:gap-4">
           {shortcuts.map((item) => (
@@ -270,10 +278,10 @@ export function DashboardHome() {
       </section>
 
       <section aria-labelledby="recent-title" className="hub-panel md:order-5">
-        <div className="flex items-center justify-between"><h2 id="recent-title" className="hub-panel-title">In the loop</h2><Link href="/dashboard/updates" className="inline-flex min-h-11 items-center gap-1 text-xs font-semibold text-[#171717]">All updates <ArrowUpRight size={15} aria-hidden="true" /></Link></div>
+        <div className="flex items-center justify-between"><h2 id="recent-title" className="hub-panel-title">Latest updates</h2><Link href="/dashboard/updates" className="inline-flex min-h-11 items-center gap-1 text-xs font-semibold text-[#171717]">All updates <ArrowUpRight size={15} aria-hidden="true" /></Link></div>
         <div className="mt-3 divide-y divide-[#E7DDCF]">
           {recentItems.length > 0 ? recentItems.map((item) => {
-            const Icon = item.kind === 'message' ? MessageCircle : BellRing
+            const Icon = BellRing
 
             return (
               <Link
@@ -284,9 +292,7 @@ export function DashboardHome() {
                 {item.unread ? <span className="sr-only">Unread. </span> : null}
                 <span className={cn(
                   'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
-                  item.kind === 'message'
-                    ? 'bg-orange-100 text-orange-900'
-                    : 'bg-amber-100 text-amber-900',
+                  'bg-amber-100 text-amber-900',
                 )}>
                   <Icon className="h-5 w-5" aria-hidden="true" />
                 </span>
@@ -301,7 +307,7 @@ export function DashboardHome() {
               </Link>
             )
           }) : (
-            <div className="hub-empty"><span className="hub-empty-icon" aria-hidden="true"><MessageCircle size={26} strokeWidth={1.5} /></span><div><p className="text-sm font-semibold">Good conversations start with hello.</p><p className="mt-1 text-xs leading-5 text-[#625B52]">Connect with another awardee. Your messages and community updates will appear here.</p><Link href="/dashboard/discover/members" className="mt-1 inline-flex min-h-11 items-center gap-1 text-xs font-bold text-[#171717]">Meet the community <ArrowUpRight size={14} aria-hidden="true" /></Link></div></div>
+            <div className="hub-empty"><span className="hub-empty-icon" aria-hidden="true"><BellRing size={26} strokeWidth={1.5} /></span><div><p className="text-sm font-semibold">No updates yet.</p><p className="mt-1 text-xs leading-5 text-[#625B52]">News and announcements from the AFL team will appear here.</p><Link href="/dashboard/updates" className="mt-1 inline-flex min-h-11 items-center gap-1 text-xs font-bold text-[#171717]">View updates <ArrowUpRight size={14} aria-hidden="true" /></Link></div></div>
           )}
         </div>
       </section>

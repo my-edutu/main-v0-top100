@@ -18,8 +18,6 @@ import {
 } from './award-payment-view'
 import { AwardPaymentCard } from './award-payment-card'
 import { AwardPaymentConfirmation } from './award-payment-confirmation'
-import { AwardPaymentSuccess } from './award-payment-success'
-import { AwardCertificateCard } from './award-certificate-card'
 import type { AwardJourneyStep } from './_lib/award-journey'
 
 const PAYMENT_CONFIRMATION_POLL_MS = 4000
@@ -169,6 +167,12 @@ export default function AwardsSection({
     }
   }, [readPayment, shouldPoll])
 
+  useEffect(() => {
+    if (!step && screen === 'paid' && view?.confirmedPayment) {
+      router.replace('/dashboard/me/award/complete')
+    }
+  }, [router, screen, step, view?.confirmedPayment])
+
   if (step) {
     return <AwardRouteLoading label="Opening your award payment" />
   }
@@ -225,12 +229,7 @@ export default function AwardsSection({
   }
 
   if (screen === 'paid' && view?.confirmedPayment) {
-    return (
-      <div className="space-y-6">
-        <AwardPaymentSuccess payment={view.confirmedPayment} />
-        <AwardCertificateCard member={member} />
-      </div>
-    )
+    return <AwardRouteLoading label="Preparing your award options" />
   }
 
   if (screen === 'paid') {
@@ -243,7 +242,6 @@ export default function AwardsSection({
 
   return (
     <div className="space-y-6">
-      <AwardCertificateCard member={member} />
       <AwardPaymentCard
         view={view}
         cancelled={resolvedReturnState === 'cancelled'}

@@ -37,7 +37,7 @@ function AwardOverviewContent() {
   }, [demoReturn, introComplete, pathname, returnState, router])
 
   if (showIntroduction) {
-    return <AwardIntroduction continueTo={`${pathname}?intro=continued`} />
+    return <AwardIntroduction />
   }
 
   return (

@@ -47,7 +47,7 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
         const response = await fetch('/api/awardees', { cache: 'no-store' })
         if (!response.ok) throw new Error('Directory request failed')
         const payload = await response.json()
-        if (!cancelled) setAwardees(Array.isArray(payload) ? payload : [])
+        if (!cancelled) setAwardees(Array.isArray(payload) ? payload.filter((awardee) => !isQaFixture(awardee)) : [])
       } catch {
         if (!cancelled) {
           setAwardees([])
@@ -89,7 +89,7 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
   const currentPage = Math.min(page, pageCount - 1)
   const visibleAwardees = filteredAwardees.slice(currentPage * 12, (currentPage + 1) * 12)
   const restrictedStatus = member.status === 'suspended' || member.status === 'rejected' ? member.status : null
-  const messagingRestricted = restrictedStatus !== null
+  const contactRestricted = restrictedStatus !== null
 
   return (
     <div className="hub-directory min-w-0">
@@ -155,9 +155,7 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
                 className="min-w-0 rounded-2xl border border-neutral-200 bg-white p-4"
               >
                 <div className="flex items-start gap-3">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#050505] text-sm font-bold text-[#fffaf0]">
-                    {getInitials(awardee.name)}
-                  </div>
+                  <AwardeeThumbnail awardee={awardee} />
                   <div className="min-w-0 flex-1">
                     <h3 className="break-words text-base font-medium text-black">{awardee.name}</h3>
                     <p className="mt-1 line-clamp-2 text-[15px] font-medium leading-6 text-black/55">
@@ -187,7 +185,7 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
                       View BIO
                     </Link>
                   </Button>
-                  {(awardee.email || awardee.personal_email) && !messagingRestricted ? (
+                  {(awardee.email || awardee.personal_email) && !contactRestricted ? (
                     <Button
                       asChild
                       variant="outline"
@@ -208,8 +206,8 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
                       variant="outline"
                       disabled
                       title={
-                        messagingRestricted
-                          ? 'Messaging is paused for your membership'
+                        contactRestricted
+                          ? 'Contact options are paused for your membership'
                           : 'No public email address available'
                       }
                       className="h-10 rounded-full border border-black/10 bg-white px-4 text-sm font-semibold text-black/75 shadow-none disabled:opacity-50"
@@ -282,12 +280,12 @@ function DirectoryRecoveryCard({ status }: { status: 'suspended' | 'rejected' })
         <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
         <div>
           <p className="text-sm font-bold">
-            {status === 'suspended' ? 'Messaging is paused' : 'Messaging is not available'}
+            {status === 'suspended' ? 'Directory access is limited' : 'Directory access is not available'}
           </p>
           <p className="mt-1 text-sm font-medium leading-6 text-red-900/80">
             {status === 'suspended'
-              ? 'Your membership is suspended. You can still browse awardee profiles, but direct messages stay disabled until the AFL team restores access.'
-              : 'Your membership was not approved. You can still browse awardee profiles, but direct messages are unavailable. Contact the AFL team if you believe this needs review.'}
+              ? 'Your membership is suspended. You can still browse awardee profiles, but contact options stay disabled until the AFL team restores access.'
+              : 'Your membership was not approved. You can still browse awardee profiles, but contact options are unavailable. Contact the AFL team if you believe this needs review.'}
           </p>
         </div>
       </div>
@@ -304,4 +302,21 @@ function getInitials(name: string) {
       .map((part) => part[0]?.toUpperCase())
       .join('') || 'AF'
   )
+}
+
+function isQaFixture(awardee: Awardee) {
+  const value = [awardee.name, awardee.slug, awardee.headline, awardee.tagline, awardee.bio]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+  return value.includes('qa test account') || value.includes('not a real awardee') || value.includes('top100 test awardee')
+}
+
+function AwardeeThumbnail({ awardee }: { awardee: Awardee }) {
+  const [failed, setFailed] = useState(false)
+  const image = awardee.avatar_url || awardee.cover_image_url || (awardee as Awardee & { image_url?: string | null }).image_url
+  if (!image || failed) {
+    return <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#050505] text-sm font-bold text-[#fffaf0]">{getInitials(awardee.name)}</div>
+  }
+  return <img src={image} alt="" className="h-12 w-12 shrink-0 rounded-2xl object-cover" onError={() => setFailed(true)} />
 }

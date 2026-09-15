@@ -71,7 +71,17 @@ export function DiscoverFeed({ posts }: { posts: Story[] }) {
       if (!response.ok) throw new Error('Directory unavailable')
       const data = await response.json()
       if (!Array.isArray(data)) throw new Error('Invalid directory')
-      const candidates = data.filter((person: Awardee) => person.profile_id !== member.id)
+      // The directory API also serves admin screens and therefore includes
+      // private/hidden records. Discover is a public-facing surface: only
+      // link to entries that the public profile route can actually resolve.
+      // Without this guard, hidden awardees appeared in the rail and their
+      // cards opened the public "Awardee not found" state.
+      const candidates = data.filter((person: Awardee) =>
+        person.profile_id !== member.id &&
+        person.is_public !== false &&
+        typeof person.slug === 'string' &&
+        person.slug.trim().length > 0,
+      )
       setPeople(shuffleForMember(candidates, member.id, rotationWindow).slice(0, 8))
       setState('ready')
     }).catch(() => { if (!controller.signal.aborted) setState('error') })

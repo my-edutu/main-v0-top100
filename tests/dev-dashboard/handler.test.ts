@@ -1,6 +1,6 @@
 import sharp from 'sharp'
 import { NextRequest } from 'next/server'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { DEV_DASHBOARD_COOKIE, DEV_DASHBOARD_COOKIE_VALUE } from '@/lib/dev-dashboard/auth'
 import { handleDemoMemberRequest } from '@/lib/dev-dashboard/handler'
@@ -40,6 +40,7 @@ describe('interactive local dashboard demo API', () => {
   let store: DemoDashboardStore
 
   beforeEach(() => {
+    vi.stubEnv('PORTFOLIO_IMAGE_GENERATION_DEMO', '1')
     store = createDemoDashboardStore()
   })
 
@@ -165,7 +166,7 @@ describe('interactive local dashboard demo API', () => {
     expect(detail.data.messages.at(-1).body).toBe('Glad to join this demo group.')
   })
 
-  it('persists opportunity bookmarks and invitation RSVPs', async () => {
+  it('persists opportunity bookmarks and reflects the empty invitation state', async () => {
     const opportunities = await call(store, 'GET', 'opportunities')
     const opportunityId = opportunities.data.opportunities[0].id as string
     const saved = await call(store, 'POST', `opportunities/${opportunityId}`)
@@ -174,10 +175,7 @@ describe('interactive local dashboard demo API', () => {
     expect(savedOnly.data.opportunities.map((item: { id: string }) => item.id)).toContain(opportunityId)
 
     const invitations = await call(store, 'GET', 'event-invitations')
-    const invitationId = invitations.data.invitations[0].id as string
-    const rsvp = await call(store, 'PATCH', `event-invitations/${invitationId}`, { rsvp: 'attending' })
-    expect(rsvp.data.invitation.rsvp).toBe('attending')
-    expect(rsvp.data.invitation.rsvpAt).toEqual(expect.any(String))
+    expect(invitations.data.invitations).toEqual([])
   })
 
   it('simulates award quoting without an external provider', async () => {
@@ -261,7 +259,7 @@ describe('interactive local dashboard demo API', () => {
     expect(JSON.stringify(replay.data)).not.toMatch(/shipping|gig|address/i)
   })
 
-  it('creates two portfolio cover options and preserves the original member avatar state', async () => {
+  it('creates one portfolio cover and preserves the original member avatar state', async () => {
     const form = new FormData()
     form.set('portrait', new File([Buffer.from('portrait')], 'portrait.jpg', { type: 'image/jpeg' }))
     form.set('tailoring', 'female')
@@ -272,9 +270,9 @@ describe('interactive local dashboard demo API', () => {
     const created = await handleDemoMemberRequest(request, path, store, 'development')
     const createdData = await created.json()
     expect(created.status).toBe(202)
-    expect(Object.keys(createdData.generation.options)).toHaveLength(2)
+    expect(Object.keys(createdData.generation.options)).toEqual(['executive-charcoal'])
     const id = createdData.generation.id as string
-    const selectedRequest = demoRequest('POST', `portfolio-cover/generations/${id}/select`, { variant: 'leadership-ivory' })
+    const selectedRequest = demoRequest('POST', `portfolio-cover/generations/${id}/select`, { variant: 'executive-charcoal' })
     const selected = await handleDemoMemberRequest(selectedRequest, [...path, id, 'select'], store, 'development')
     expect((await selected.json()).generation.status).toBe('selected')
     expect(store.profile.avatarInitials).toBe('AO')
@@ -293,7 +291,7 @@ describe('interactive local dashboard demo API', () => {
 
     expect(response.status).toBe(202)
     expect(data.generation.options['executive-charcoal']).toMatch(/^data:image\/png;base64,/)
-    expect(data.generation.options['leadership-ivory']).toMatch(/^data:image\/png;base64,/)
+    expect(data.generation.options['leadership-ivory']).toBeUndefined()
   })
 
   it('makes unsupported demo operations visible', async () => {

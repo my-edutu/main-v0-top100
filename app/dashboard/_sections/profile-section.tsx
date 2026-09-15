@@ -78,7 +78,9 @@ export function ProfileSection() {
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-[16px] border border-orange-200 bg-[#FFF3E8] px-4 py-3">
         <div>
           <p className="text-sm font-extrabold text-[#171412]">Public profile sync</p>
-          <p className="mt-1 text-xs font-normal leading-5 text-[#625B52]">These details update your public awardee profile. Public content may appear in search engines; search ranking is not guaranteed.</p>
+          <p className="mt-1 max-w-2xl text-xs font-normal leading-5 text-[#625B52]">
+            Existing awardee details are prefilled here. Saving updates this account and its linked public awardee profile together.
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {member.publicSlug ? (

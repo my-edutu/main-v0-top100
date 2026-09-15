@@ -7,8 +7,60 @@ import {
   buildVisibilityPatch,
   saveSettingsForm,
 } from '@/app/dashboard/_lib/profile-patches'
+import { buildProfileUpdate, mapProfileToMemberWithLegacy } from '@/lib/member-hub-server'
 
 describe('dashboard profile patches', () => {
+  it('prefills empty member fields from the linked legacy awardee record', () => {
+    const member = mapProfileToMemberWithLegacy(
+      {
+        id: 'member-legacy',
+        full_name: '',
+        email: 'old@example.com',
+        slug: null,
+        headline: '',
+        bio: '',
+        location: '',
+        organization: '',
+        field: '',
+        notification_prefs: {},
+      },
+      'awardee-legacy',
+      {
+        name: 'Legacy Awardee',
+        slug: 'legacy-awardee',
+        headline: 'Climate technology founder',
+        tagline: 'Green Horizon Labs',
+        bio: 'Building climate tools for African cities.',
+        country: 'Lagos, Nigeria',
+        course: 'Climate Technology',
+      },
+    )
+
+    expect(member).toMatchObject({
+      name: 'Legacy Awardee',
+      publicSlug: 'legacy-awardee',
+      headline: 'Climate technology founder',
+      organization: 'Green Horizon Labs',
+      field: 'Climate Technology',
+      location: 'Lagos, Nigeria',
+      bio: 'Building climate tools for African cities.',
+    })
+  })
+
+  it('writes edited field and organization values to public-profile columns', () => {
+    const update = buildProfileUpdate(
+      { field: 'Climate Technology', organization: 'Green Horizon Labs' },
+      {},
+    )
+
+    expect(update.columns).toMatchObject({
+      field: 'Climate Technology',
+      field_of_study: 'Climate Technology',
+      organization: 'Green Horizon Labs',
+      tagline: 'Green Horizon Labs',
+    })
+  })
+
   it('does not reset settings that are absent from the BIO form', () => {
     const form = new FormData()
     form.set('headline', 'Climate founder')

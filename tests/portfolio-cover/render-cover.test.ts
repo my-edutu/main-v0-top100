@@ -19,11 +19,34 @@ describe('deterministic Top100 magazine cover renderer', () => {
     expect(output.toString('utf8')).not.toContain('undefined')
   }, 15000)
 
-  it('renders the two fixed visual variants', async () => {
+  it('uses one canonical branded cover style for legacy variant inputs', async () => {
     const portrait = await sharp({ create: { width: 1024, height: 1536, channels: 3, background: '#b9b0a4' } }).png().toBuffer()
     const common = { portrait, memberName: 'Ada Lovelace', tailoring: 'female' as const, fields: {} }
     const charcoal = await renderPortfolioCover({ ...common, variant: 'executive-charcoal' })
     const ivory = await renderPortfolioCover({ ...common, variant: 'leadership-ivory' })
-    expect(charcoal.equals(ivory)).toBe(false)
+    expect(charcoal.equals(ivory)).toBe(true)
+  }, 15000)
+
+  it('keeps the simplified footer readable with an orange brand accent', async () => {
+    const portrait = await sharp({ create: { width: 1024, height: 1536, channels: 3, background: '#f5f5f4' } }).png().toBuffer()
+    const output = await renderPortfolioCover({
+      portrait,
+      memberName: 'Ada Lovelace',
+      tailoring: 'female',
+      variant: 'executive-charcoal',
+      fields: { fieldOfStudy: 'Engineering', country: 'Nigeria', degreeClass: 'First Class' },
+    })
+    const { data, info } = await sharp(output).raw().toBuffer({ resolveWithObject: true })
+    const rgbAt = (x: number, y: number) => Array.from(data.subarray((y * info.width + x) * info.channels, (y * info.width + x) * info.channels + 3))
+
+    expect(rgbAt(20, 1940).every(channel => channel < 40)).toBe(true)
+    let orangePixels = 0
+    for (let y = 0; y < info.height; y += 8) {
+      for (let x = 0; x < info.width; x += 8) {
+        const [red, green, blue] = rgbAt(x, y)
+        if (red > 180 && green > 80 && green < 210 && blue < 120) orangePixels++
+      }
+    }
+    expect(orangePixels).toBeGreaterThan(20)
   }, 15000)
 })

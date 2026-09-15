@@ -43,7 +43,7 @@ export function DashboardCard({
       target={external ? '_blank' : undefined}
       rel={external ? 'noopener noreferrer' : undefined}
       className={cn(
-        'hub-card group relative flex rounded-[18px] border p-4 font-sans transition-colors duration-200 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#171412] focus-visible:ring-offset-2 focus-visible:ring-offset-[#FBF7EF] motion-reduce:transform-none motion-reduce:transition-none sm:p-5',
+        'hub-card group relative flex rounded-[20px] border p-3.5 font-sans transition-colors duration-200 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#171412] focus-visible:ring-offset-2 focus-visible:ring-offset-[#FBF7EF] motion-reduce:transform-none motion-reduce:transition-none sm:p-4',
         compact ? 'min-h-[92px] items-center gap-3' : 'min-h-[156px] flex-col',
         dashboardColorClasses[color], 'hub-image-card isolate overflow-hidden',
       )}
