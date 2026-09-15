@@ -6,18 +6,13 @@ import {
   BellRing,
   ArrowUpRight,
   CalendarDays,
-  MessageCircle,
+  Mail,
   Sparkles,
   Trophy,
   UserRound,
 } from 'lucide-react'
 
-import {
-  fetchConversations,
-  fetchMemberHubState,
-  type ConversationSummary,
-  type MemberNotification,
-} from '@/lib/member-hub'
+import { fetchMemberHubState, type MemberNotification } from '@/lib/member-hub'
 import {
   fetchEventInvitations,
   type EventInvitation,
@@ -32,7 +27,7 @@ import { AwardReadyWelcome } from './award-ready-welcome'
 
 type RecentItem = {
   id: string
-  kind: 'message' | 'update'
+  kind: 'update'
   title: string
   description: string
   date: string
@@ -72,10 +67,8 @@ export function DashboardHome() {
   const { member } = useDashboardMember()
   const {
     awardNeedsAttention,
-    setUnreadMessages,
     setUnreadUpdates,
   } = useDashboardBadges()
-  const [conversations, setConversations] = useState<ConversationSummary[]>([])
   const [invitations, setInvitations] = useState<EventInvitation[]>([])
   const [notifications, setNotifications] = useState<MemberNotification[]>([])
   const [loading, setLoading] = useState(true)
@@ -88,9 +81,8 @@ export function DashboardHome() {
     async function loadPreviews() {
       if (inFlight) return
       inFlight = true
-      const [conversationResult, invitationResult, hubResult] =
+      const [invitationResult, hubResult] =
         await Promise.allSettled([
-          fetchConversations(),
           fetchEventInvitations(),
           fetchMemberHubState(),
         ])
@@ -98,12 +90,7 @@ export function DashboardHome() {
       inFlight = false
       if (cancelled) return
       setLoading(false)
-      setLoadError([conversationResult, invitationResult, hubResult].some(result => result.status === 'rejected'))
-
-      if (conversationResult.status === 'fulfilled') {
-        setConversations(conversationResult.value.conversations)
-        setUnreadMessages(conversationResult.value.unreadTotal)
-      }
+      setLoadError([invitationResult, hubResult].some(result => result.status === 'rejected'))
 
       if (invitationResult.status === 'fulfilled') {
         setInvitations(invitationResult.value.invitations)
@@ -135,13 +122,13 @@ export function DashboardHome() {
       window.removeEventListener('focus', refresh)
       window.clearInterval(interval)
     }
-  }, [member.id, member.status, setUnreadMessages, setUnreadUpdates])
+  }, [member.id, member.status, setUnreadUpdates])
 
   const showAwardWelcome = awardNeedsAttention
 
   const shortcuts = [discoverNav[0], discoverNav[2], meNav[0], meNav[1], meNav[4],
-    { label:'Schedule an interview', href:INTERVIEW_FORM_URL, icon:MessageCircle, color:'ember' as const, external: true },
-    { label:'Contact the team', href:'mailto:info@top100afl.com', icon:MessageCircle, color:'forest' as const },
+    { label:'Schedule an interview', href:INTERVIEW_FORM_URL, icon:Mail, color:'ember' as const, external: true },
+    { label:'Contact the team', href:'mailto:info@top100afl.com', icon:Mail, color:'forest' as const },
     { label:'Partner with us', href:'/partnership', icon:UserRound, color:'cobalt' as const },
   ]
 
@@ -163,18 +150,6 @@ export function DashboardHome() {
   }, [invitations])
 
   const recentItems = useMemo<RecentItem[]>(() => {
-    const messageRows: RecentItem[] = conversations
-      .filter((conversation) => conversation.lastMessage)
-      .map((conversation) => ({
-        id: `message-${conversation.id}`,
-        kind: 'message',
-        title: conversation.otherMember.name,
-        description: conversation.lastMessage?.body ?? 'Open conversation',
-        date: conversation.lastMessageAt,
-        href: `/dashboard/messages/${conversation.id}`,
-        unread: conversation.unreadCount > 0,
-      }))
-
     const updateRows: RecentItem[] = notifications.map((notification) => ({
       id: `update-${notification.id}`,
       kind: 'update',
@@ -185,13 +160,13 @@ export function DashboardHome() {
       unread: !notification.readBy.includes(member.id),
     }))
 
-    return [...messageRows, ...updateRows]
+    return updateRows
       .sort(
         (left, right) =>
           new Date(right.date).getTime() - new Date(left.date).getTime(),
       )
       .slice(0, 3)
-  }, [conversations, member.id, notifications])
+  }, [member.id, notifications])
 
   return (
     <div className="hub-home">
@@ -201,7 +176,7 @@ export function DashboardHome() {
         <p className="hub-welcome-description">Your people, opportunities, and latest updates.</p>
       </section>
       {loading && <p role="status" className="hub-status text-sm text-neutral-600">Loading your latest activity…</p>}
-      {loadError && <p role="status" className="hub-status rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-sm leading-5 text-neutral-700">Some activity couldn’t load. We’ll retry automatically; you can also open Messages, Events, or Updates directly.</p>}
+      {loadError && <p role="status" className="hub-status rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-sm leading-5 text-neutral-700">Some activity couldn’t load. We’ll retry automatically; you can also open Events or Updates directly.</p>}
 
       {awardNeedsAttention ? (
         <section className="hub-next-move" aria-labelledby="next-move-title">
@@ -270,10 +245,10 @@ export function DashboardHome() {
       </section>
 
       <section aria-labelledby="recent-title" className="hub-panel md:order-5">
-        <div className="flex items-center justify-between"><h2 id="recent-title" className="hub-panel-title">In the loop</h2><Link href="/dashboard/updates" className="inline-flex min-h-11 items-center gap-1 text-xs font-semibold text-[#171717]">All updates <ArrowUpRight size={15} aria-hidden="true" /></Link></div>
+        <div className="flex items-center justify-between"><h2 id="recent-title" className="hub-panel-title">Latest updates</h2><Link href="/dashboard/updates" className="inline-flex min-h-11 items-center gap-1 text-xs font-semibold text-[#171717]">All updates <ArrowUpRight size={15} aria-hidden="true" /></Link></div>
         <div className="mt-3 divide-y divide-[#E7DDCF]">
           {recentItems.length > 0 ? recentItems.map((item) => {
-            const Icon = item.kind === 'message' ? MessageCircle : BellRing
+            const Icon = BellRing
 
             return (
               <Link
@@ -284,9 +259,7 @@ export function DashboardHome() {
                 {item.unread ? <span className="sr-only">Unread. </span> : null}
                 <span className={cn(
                   'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
-                  item.kind === 'message'
-                    ? 'bg-orange-100 text-orange-900'
-                    : 'bg-amber-100 text-amber-900',
+                  'bg-amber-100 text-amber-900',
                 )}>
                   <Icon className="h-5 w-5" aria-hidden="true" />
                 </span>
@@ -301,7 +274,7 @@ export function DashboardHome() {
               </Link>
             )
           }) : (
-            <div className="hub-empty"><span className="hub-empty-icon" aria-hidden="true"><MessageCircle size={26} strokeWidth={1.5} /></span><div><p className="text-sm font-semibold">Good conversations start with hello.</p><p className="mt-1 text-xs leading-5 text-[#625B52]">Connect with another awardee. Your messages and community updates will appear here.</p><Link href="/dashboard/discover/members" className="mt-1 inline-flex min-h-11 items-center gap-1 text-xs font-bold text-[#171717]">Meet the community <ArrowUpRight size={14} aria-hidden="true" /></Link></div></div>
+            <div className="hub-empty"><span className="hub-empty-icon" aria-hidden="true"><BellRing size={26} strokeWidth={1.5} /></span><div><p className="text-sm font-semibold">No updates yet.</p><p className="mt-1 text-xs leading-5 text-[#625B52]">News and announcements from the AFL team will appear here.</p><Link href="/dashboard/updates" className="mt-1 inline-flex min-h-11 items-center gap-1 text-xs font-bold text-[#171717]">View updates <ArrowUpRight size={14} aria-hidden="true" /></Link></div></div>
           )}
         </div>
       </section>

@@ -89,7 +89,7 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
   const currentPage = Math.min(page, pageCount - 1)
   const visibleAwardees = filteredAwardees.slice(currentPage * 12, (currentPage + 1) * 12)
   const restrictedStatus = member.status === 'suspended' || member.status === 'rejected' ? member.status : null
-  const messagingRestricted = restrictedStatus !== null
+  const contactRestricted = restrictedStatus !== null
 
   return (
     <div className="hub-directory min-w-0">
@@ -187,7 +187,7 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
                       View BIO
                     </Link>
                   </Button>
-                  {(awardee.email || awardee.personal_email) && !messagingRestricted ? (
+                  {(awardee.email || awardee.personal_email) && !contactRestricted ? (
                     <Button
                       asChild
                       variant="outline"
@@ -208,8 +208,8 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
                       variant="outline"
                       disabled
                       title={
-                        messagingRestricted
-                          ? 'Messaging is paused for your membership'
+                        contactRestricted
+                          ? 'Contact options are paused for your membership'
                           : 'No public email address available'
                       }
                       className="h-10 rounded-full border border-black/10 bg-white px-4 text-sm font-semibold text-black/75 shadow-none disabled:opacity-50"
@@ -282,12 +282,12 @@ function DirectoryRecoveryCard({ status }: { status: 'suspended' | 'rejected' })
         <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
         <div>
           <p className="text-sm font-bold">
-            {status === 'suspended' ? 'Messaging is paused' : 'Messaging is not available'}
+            {status === 'suspended' ? 'Directory access is limited' : 'Directory access is not available'}
           </p>
           <p className="mt-1 text-sm font-medium leading-6 text-red-900/80">
             {status === 'suspended'
-              ? 'Your membership is suspended. You can still browse awardee profiles, but direct messages stay disabled until the AFL team restores access.'
-              : 'Your membership was not approved. You can still browse awardee profiles, but direct messages are unavailable. Contact the AFL team if you believe this needs review.'}
+              ? 'Your membership is suspended. You can still browse awardee profiles, but contact options stay disabled until the AFL team restores access.'
+              : 'Your membership was not approved. You can still browse awardee profiles, but contact options are unavailable. Contact the AFL team if you believe this needs review.'}
           </p>
         </div>
       </div>

@@ -43,21 +43,9 @@ describe('Home priority', () => {
       selectHomePriority({
         member,
         awardNeedsAttention: true,
-        unreadMessages: 4,
         unreadUpdates: 2,
       }).kind,
     ).toBe('award')
-  })
-
-  it('uses messages when membership work is complete', () => {
-    expect(
-      selectHomePriority({
-        member,
-        awardNeedsAttention: false,
-        unreadMessages: 4,
-        unreadUpdates: 2,
-      }).href,
-    ).toBe('/dashboard/messages')
   })
 
   it('puts a membership restriction ahead of every member action', () => {
@@ -65,7 +53,6 @@ describe('Home priority', () => {
       selectHomePriority({
         member: { ...member, status: 'pending' },
         awardNeedsAttention: true,
-        unreadMessages: 4,
         unreadUpdates: 2,
       }).kind,
     ).toBe('membership')
@@ -76,18 +63,16 @@ describe('Home priority', () => {
       selectHomePriority({
         member: { ...member, profileStatus: 'draft', bio: '', headline: '' },
         awardNeedsAttention: true,
-        unreadMessages: 4,
         unreadUpdates: 2,
       }).href,
     ).toBe('/dashboard/me/profile')
   })
 
-  it('uses unread updates after messages are clear', () => {
+  it('uses unread updates when there is member activity', () => {
     expect(
       selectHomePriority({
         member,
         awardNeedsAttention: false,
-        unreadMessages: 0,
         unreadUpdates: 2,
       }).kind,
     ).toBe('updates')
@@ -98,7 +83,6 @@ describe('Home priority', () => {
       selectHomePriority({
         member,
         awardNeedsAttention: false,
-        unreadMessages: 0,
         unreadUpdates: 0,
       }),
     ).toMatchObject({

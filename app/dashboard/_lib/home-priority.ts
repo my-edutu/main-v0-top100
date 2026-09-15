@@ -16,12 +16,11 @@ type HomePriorityMember = Pick<
 type HomePriorityInput = {
   member: HomePriorityMember
   awardNeedsAttention: boolean
-  unreadMessages: number
   unreadUpdates: number
 }
 
 export type HomePriority = {
-  kind: 'membership' | 'bio' | 'award' | 'messages' | 'updates' | 'discover'
+  kind: 'membership' | 'bio' | 'award' | 'updates' | 'discover'
   title: string
   description: string
   href: string
@@ -52,7 +51,6 @@ export function selectUpcomingInvitations(
 export function selectHomePriority({
   member,
   awardNeedsAttention,
-  unreadMessages,
   unreadUpdates,
 }: HomePriorityInput): HomePriority {
   if (member.status !== 'approved') {
@@ -91,16 +89,6 @@ export function selectHomePriority({
       description: 'Pay the award fee securely; delivery is handled separately.',
       href: '/dashboard/me/award',
       color: 'ember',
-    }
-  }
-
-  if (unreadMessages > 0) {
-    return {
-      kind: 'messages',
-      title: 'Reply to your messages',
-      description: `${unreadMessages} unread ${unreadMessages === 1 ? 'conversation is' : 'conversations are'} waiting for you.`,
-      href: '/dashboard/messages',
-      color: 'cobalt',
     }
   }
 
