@@ -148,17 +148,9 @@ export default function EventsHubSection({ initialEvents, initialAnnouncements }
                     </div>
                 </div>
 
-                {/* Compact snap-carousel below md, single-row grid from md up */}
+                {/* Keep events in one horizontal rail at every viewport size. */}
                 <div
-                    className={cn(
-                        "flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 snap-x snap-mandatory",
-                        "md:mx-0 md:grid md:gap-6 md:overflow-visible md:px-0 md:pb-0",
-                        items.length === 1
-                            ? "md:grid-cols-1 md:max-w-md md:mx-auto"
-                            : items.length === 2
-                                ? "md:grid-cols-2"
-                                : "md:grid-cols-3"
-                    )}
+                    className="-mx-4 flex snap-x snap-mandatory gap-5 overflow-x-auto px-4 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                 >
                     {items.map((item) => {
                         const isClosed = item.type === 'event' && item.registration_open === false
@@ -167,7 +159,7 @@ export default function EventsHubSection({ initialEvents, initialAnnouncements }
                             <Link
                                 key={`${item.type}-${item.id}`}
                                 href={item.type === 'announcement' ? `/announcements/${item.id}` : (item.cta_url || '#')}
-                                className="group relative flex flex-col bg-zinc-50 rounded-2xl md:rounded-[1.75rem] overflow-hidden border border-zinc-100 transition-all duration-300 hover:shadow-xl hover:shadow-orange-500/10 hover:-translate-y-1 snap-center flex-shrink-0 w-[68vw] max-w-[260px] sm:w-[280px] sm:max-w-none md:w-auto md:flex-shrink"
+                                className="group relative flex w-[min(82vw,360px)] shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-zinc-100 bg-zinc-50 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-orange-500/10 md:rounded-[1.75rem]"
                             >
                                 {/* Image Container */}
                                 <div className="relative aspect-[16/9] overflow-hidden flex-shrink-0">

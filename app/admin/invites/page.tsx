@@ -15,6 +15,7 @@ type AccessCode = {
   code: string
   label: string | null
   status: 'active' | 'used' | 'expired' | 'revoked'
+  redemption_mode: 'single_use' | 'time_limited'
   uses_left: number
   email: string | null
   expires_at: string
@@ -25,6 +26,8 @@ export default function AdminInvitesPage() {
   const [codes, setCodes] = useState<AccessCode[] | null>(null)
   const [label, setLabel] = useState('Awardee invite')
   const [email, setEmail] = useState('')
+  const [mode, setMode] = useState<'single_use' | 'time_limited'>('single_use')
+  const [durationHours, setDurationHours] = useState<1 | 24>(1)
   const [copiedCode, setCopiedCode] = useState('')
   const [latestCode, setLatestCode] = useState('')
   const [error, setError] = useState('')
@@ -57,7 +60,12 @@ export default function AdminInvitesPage() {
       const res = await fetch('/api/admin/access-codes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ label: label || 'Awardee invite', email: email.trim() || null }),
+        body: JSON.stringify({
+          label: label || 'Awardee invite',
+          mode,
+          email: mode === 'single_use' ? email.trim() : null,
+          durationHours: mode === 'time_limited' ? durationHours : undefined,
+        }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data?.message || 'Could not generate a code.')
@@ -121,7 +129,7 @@ export default function AdminInvitesPage() {
               </Badge>
               <h1 className="mt-3 text-4xl font-black tracking-tight text-slate-950">Awardee codes</h1>
               <p className="mt-2 max-w-xl text-sm text-slate-600">
-                Generate a code and share it with a qualified awardee. They redeem it once at signup — no code, no account.
+                Create a one-person code or open a reusable signup window for 1 or 24 hours.
               </p>
             </div>
           </div>
@@ -152,14 +160,54 @@ export default function AdminInvitesPage() {
                 className="rounded-2xl border-white/10 bg-white/10 text-white placeholder:text-white/45"
                 placeholder="Code label"
               />
-              <Input
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                className="rounded-2xl border-white/10 bg-white/10 text-white placeholder:text-white/45"
-                placeholder="Bind to email (optional)"
-                type="email"
-              />
-              <Button onClick={handleGenerate} disabled={busy} className="w-full rounded-full bg-gradient-to-r from-orange-500 to-amber-500 py-6 text-white shadow-none hover:opacity-95">
+              <div className="grid grid-cols-2 gap-2" aria-label="Invite code type">
+                <button
+                  type="button"
+                  onClick={() => setMode('single_use')}
+                  aria-pressed={mode === 'single_use'}
+                  className={cn('rounded-2xl border px-3 py-3 text-left text-sm font-bold transition', mode === 'single_use' ? 'border-orange-300 bg-orange-400/20 text-orange-100' : 'border-white/10 bg-white/5 text-white/60')}
+                >
+                  Individual
+                  <span className="mt-1 block text-xs font-medium opacity-70">One person, one use</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMode('time_limited')}
+                  aria-pressed={mode === 'time_limited'}
+                  className={cn('rounded-2xl border px-3 py-3 text-left text-sm font-bold transition', mode === 'time_limited' ? 'border-orange-300 bg-orange-400/20 text-orange-100' : 'border-white/10 bg-white/5 text-white/60')}
+                >
+                  Timed access
+                  <span className="mt-1 block text-xs font-medium opacity-70">Reusable until expiry</span>
+                </button>
+              </div>
+              {mode === 'single_use' ? (
+                <Input
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  className="rounded-2xl border-white/10 bg-white/10 text-white placeholder:text-white/45"
+                  placeholder="Recipient email"
+                  type="email"
+                  required
+                />
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-white/55">Expires after</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {([1, 24] as const).map((hours) => (
+                      <button
+                        key={hours}
+                        type="button"
+                        onClick={() => setDurationHours(hours)}
+                        aria-pressed={durationHours === hours}
+                        className={cn('rounded-full border px-4 py-2 text-sm font-bold transition', durationHours === hours ? 'border-orange-300 bg-orange-400 text-slate-950' : 'border-white/10 bg-white/5 text-white/70')}
+                      >
+                        {hours === 1 ? '1 hour' : '24 hours'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <Button onClick={handleGenerate} disabled={busy || (mode === 'single_use' && !email.trim())} className="w-full rounded-full bg-gradient-to-r from-orange-500 to-amber-500 py-6 text-white shadow-none hover:opacity-95">
                 {busy ? 'Generating...' : 'Generate invite'}
               </Button>
               {latestCode ? (
@@ -177,7 +225,7 @@ export default function AdminInvitesPage() {
                 How the gate works
               </div>
               <p>Codes are stored and validated server-side. A code can only be redeemed while it is <strong>active</strong> and unexpired.</p>
-              <p>Once redeemed the code flips to <strong>used</strong>. Revoke a code any time to cancel it before it is redeemed.</p>
+              <p>Individual codes become <strong>used</strong> after one successful signup. Timed codes stay reusable until their selected expiry.</p>
               <p>Approve or suspend the resulting awardee accounts from the <Link href="/admin/member-hub" className="font-black underline">Member hub</Link>.</p>
             </CardContent>
           </Card>
@@ -197,6 +245,9 @@ export default function AdminInvitesPage() {
                     <div>
                       <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-400">{invite.label}</p>
                       <p className="mt-2 text-xl font-black text-slate-950">{invite.code}</p>
+                      <p className="mt-1 text-xs font-bold text-orange-700">
+                        {invite.redemption_mode === 'time_limited' ? 'Reusable timed code' : 'Individual one-use code'}
+                      </p>
                       {invite.email ? <p className="mt-1 text-xs font-medium text-slate-500">for {invite.email}</p> : null}
                     </div>
                     <span className={cn(
@@ -207,10 +258,12 @@ export default function AdminInvitesPage() {
                     </span>
                   </div>
                   <p className="mt-3 text-xs font-medium text-slate-400">
-                    Expires {new Date(invite.expires_at).toLocaleDateString()}
+                    Expires {new Date(invite.expires_at).toLocaleString()}
                   </p>
                   <div className="mt-4 flex items-center justify-between">
-                    <span className="text-xs font-semibold text-slate-500">Uses left: {invite.uses_left}</span>
+                    <span className="text-xs font-semibold text-slate-500">
+                      {invite.redemption_mode === 'time_limited' ? 'Reusable until expiry' : `Uses left: ${invite.uses_left}`}
+                    </span>
                     <div className="flex items-center gap-1">
                       <Button variant="ghost" size="sm" className="rounded-full text-orange-700 hover:bg-orange-50" onClick={() => copyCode(invite.code)}>
                         {copiedCode === invite.code ? <CheckCircle2 className="mr-2 h-3.5 w-3.5" /> : <Copy className="mr-2 h-3.5 w-3.5" />}

@@ -513,25 +513,29 @@ export default function AwardeesManagement() {
       return;
     }
 
+    const selectedIds = Array.from(selectedAwardees);
+    const selectedCount = selectedIds.length;
+
     try {
-      toast.loading(`${featured ? 'Featuring' : 'Unfeaturing'} ${selectedAwardees.size} awardees...`, { id: 'bulk-feature' });
+      toast.loading(`${featured ? 'Featuring' : 'Unfeaturing'} ${selectedCount} awardees...`, { id: 'bulk-feature' });
 
-      const promises = Array.from(selectedAwardees).map(id =>
-        fetch('/api/awardees', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ id, featured })
-        })
-      );
+      const response = await fetch('/api/awardees', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ ids: selectedIds, featured })
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result?.message || 'Failed to update featured status');
+      }
 
-      await Promise.all(promises);
       await fetchAwardees({ withSpinner: false });
       setSelectedAwardees(new Set());
-      toast.success(`Successfully ${featured ? 'featured' : 'unfeatured'} ${selectedAwardees.size} awardees`, { id: 'bulk-feature' });
+      toast.success(`Successfully ${featured ? 'featured' : 'unfeatured'} ${selectedCount} awardees`, { id: 'bulk-feature' });
     } catch (error) {
       console.error('Error bulk updating featured status:', error);
-      toast.error('Failed to update featured status', { id: 'bulk-feature' });
+      handleAuthError(error, 'bulk-feature');
     }
   };
 
@@ -541,25 +545,29 @@ export default function AwardeesManagement() {
       return;
     }
 
+    const selectedIds = Array.from(selectedAwardees);
+    const selectedCount = selectedIds.length;
+
     try {
-      toast.loading(`${isPublic ? 'Showing' : 'Hiding'} ${selectedAwardees.size} awardees...`, { id: 'bulk-visibility' });
+      toast.loading(`${isPublic ? 'Showing' : 'Hiding'} ${selectedCount} awardees...`, { id: 'bulk-visibility' });
 
-      const promises = Array.from(selectedAwardees).map(id =>
-        fetch('/api/awardees', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ id, is_public: isPublic })
-        })
-      );
+      const response = await fetch('/api/awardees', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ ids: selectedIds, is_public: isPublic })
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result?.message || 'Failed to update visibility');
+      }
 
-      await Promise.all(promises);
       await fetchAwardees({ withSpinner: false });
       setSelectedAwardees(new Set());
-      toast.success(`Successfully ${isPublic ? 'showed' : 'hid'} ${selectedAwardees.size} awardees`, { id: 'bulk-visibility' });
+      toast.success(`Successfully ${isPublic ? 'showed' : 'hid'} ${selectedCount} awardees`, { id: 'bulk-visibility' });
     } catch (error) {
       console.error('Error bulk updating visibility:', error);
-      toast.error('Failed to update visibility', { id: 'bulk-visibility' });
+      handleAuthError(error, 'bulk-visibility');
     }
   };
 

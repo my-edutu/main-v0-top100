@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { onboardingComplete, validateOnboarding } from '@/lib/dashboard/onboarding'
+import {
+  finishDashboardOnboarding,
+  onboardingComplete,
+  validateOnboarding,
+} from '@/lib/dashboard/onboarding'
 
 const profile = { headline: 'Community organiser', location: 'Lagos, Nigeria', field: 'Education', bio: 'I support young people with mentoring and access to learning opportunities.' }
 describe('mandatory onboarding', () => {
@@ -10,6 +14,20 @@ describe('mandatory onboarding', () => {
   })
   it('requires a saved completion timestamp', () => {
     expect(onboardingComplete({ onboardingCompletedAt: '2026-09-06T10:00:00.000Z' })).toBe(true)
+  })
+  it('opens the real dashboard immediately after onboarding completes', () => {
+    const completedMember = { id: 'member-one' }
+    const replaced: unknown[] = []
+    const destinations: string[] = []
+
+    finishDashboardOnboarding(
+      completedMember,
+      member => replaced.push(member),
+      destination => destinations.push(destination),
+    )
+
+    expect(replaced).toEqual([completedMember])
+    expect(destinations).toEqual(['/dashboard'])
   })
   it('rejects missing, whitespace-only, short and oversized fields before completion', () => {
     expect(validateOnboarding(profile)).toBeNull()

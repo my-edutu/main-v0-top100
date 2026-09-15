@@ -15,6 +15,7 @@ import { createOpenAIImageEditor } from '@/lib/portfolio-cover/providers/openai'
 import { portfolioCoverRequestSchema, normalizePortfolioCoverFields } from '@/lib/portfolio-cover/validation'
 import { enqueuePortfolioGeneration, portfolioQueueConfigured } from '@/lib/portfolio-cover/queue'
 import { hasConfirmedAwardPayment } from '@/lib/awards/access-server'
+import { MAX_PORTFOLIO_COVER_GENERATIONS } from '@/lib/portfolio-cover/policy'
 
 export const runtime = 'nodejs'
 export const maxDuration = 300
@@ -50,6 +51,8 @@ export async function POST(request: NextRequest) {
 
   const fields = normalizePortfolioCoverFields(parsed.data.fields ?? {})
   const repo = createPortfolioCoverRepository()
+  const generationCount = await repo.countGenerations(user.id)
+  if (generationCount >= MAX_PORTFOLIO_COVER_GENERATIONS) return NextResponse.json({ message: 'You have used both cover generations. Top up $2 / ₦2,000 for another attempt, or contact the AFL team to unlock more.' }, { status: 402 })
   const current = await repo.getCurrent(user.id)
   if (current && ['queued', 'processing', 'ready', 'selected'].includes(current.status)) return NextResponse.json({ message: 'You already have a portfolio cover set in progress or ready to choose.' }, { status: 409 })
 

@@ -56,7 +56,7 @@ export default function BlogCover({
     // to a near-white under html.light, which used to leave the fallback cover
     // rendering white-on-white.
     <div
-      className={cn("relative isolate overflow-hidden", className)}
+      className={cn("relative isolate h-full w-full overflow-hidden", className)}
       style={{
         backgroundImage:
           "linear-gradient(135deg, #fbbf24 0%, #f59e0b 52%, #d97706 100%)",

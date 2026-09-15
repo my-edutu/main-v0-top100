@@ -16,6 +16,9 @@ export async function GET() {
     return NextResponse.json({ message: 'Could not verify award access. Please try again shortly.' }, { status: 503 })
   }
   const config = portfolioCoverConfig()
-  const generation = config.enabled ? await createPortfolioCoverRepository().getCurrent(user.id) : null
-  return NextResponse.json({ enabled: config.enabled, generation })
+  if (!config.enabled) return NextResponse.json({ enabled: false, generation: null, usage: { used: 0, limit: 2 } })
+  const repo = createPortfolioCoverRepository()
+  const generation = await repo.getCurrent(user.id)
+  const used = await repo.countGenerations(user.id)
+  return NextResponse.json({ enabled: true, generation, usage: { used, limit: 2 } })
 }

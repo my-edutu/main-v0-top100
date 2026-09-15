@@ -350,9 +350,13 @@ export async function PUT(request: NextRequest) {
 
   try {
     const body = await request.json();
-    console.log('[PUT /api/awardees] Request body:', { id: body.id, fields: Object.keys(body) });
+    const ids = Array.from(new Set(
+      (Array.isArray(body.ids) ? body.ids : body.id ? [body.id] : [])
+        .filter((id: unknown): id is string => typeof id === 'string' && id.trim().length > 0),
+    ));
+    console.log('[PUT /api/awardees] Request body:', { ids, fields: Object.keys(body) });
 
-    if (!body.id) {
+    if (ids.length === 0) {
       return Response.json({
         success: false,
         message: 'Awardee ID is required'
@@ -389,8 +393,7 @@ export async function PUT(request: NextRequest) {
     const { data: existing, error: checkError } = await supabase
       .from('awardees')
       .select('id')
-      .eq('id', body.id)
-      .maybeSingle();
+      .in('id', ids);
 
     if (checkError) {
       console.error('[PUT /api/awardees] Error checking awardee existence:', checkError);
@@ -402,12 +405,12 @@ export async function PUT(request: NextRequest) {
       }, { status: 500 });
     }
 
-    if (!existing) {
-      console.error('[PUT /api/awardees] Awardee not found:', body.id);
+    if (!existing || existing.length !== ids.length) {
+      console.error('[PUT /api/awardees] Awardee not found:', ids);
       return Response.json({
         success: false,
         message: 'Awardee not found',
-        error: `No awardee found with id: ${body.id}`
+        error: `No awardee found with id: ${ids.join(', ')}`
       }, { status: 404 });
     }
 
@@ -415,9 +418,8 @@ export async function PUT(request: NextRequest) {
     const { data: updateResult, error: updateError } = await supabase
       .from('awardees')
       .update(updateData)
-      .eq('id', body.id)
-      .select()
-      .single();
+      .in('id', ids)
+      .select();
 
     console.log('[PUT /api/awardees] Update result:', { data: updateResult, error: updateError });
 
@@ -435,22 +437,23 @@ export async function PUT(request: NextRequest) {
     const updatedAwardee = updateResult;
 
     // Sync to profile if needed
-    if (updatedAwardee) {
-      await syncProfileFromAwardee(supabase, updatedAwardee.id);
+    if (updatedAwardee?.length === 1) {
+      await syncProfileFromAwardee(supabase, updatedAwardee[0].id);
     }
 
     // Revalidate pages that display awardee data
     revalidatePath('/');
     revalidatePath('/awardees');
     revalidateTag('awardees');
-    if (updatedAwardee.slug) {
-      revalidatePath(`/awardees/${updatedAwardee.slug}`);
-    }
+    updatedAwardee?.forEach((awardee: AwardeeRecord) => {
+      if (awardee.slug) revalidatePath(`/awardees/${awardee.slug}`);
+    });
 
     return Response.json({
       success: true,
       message: 'Awardee updated successfully',
-      awardee: updatedAwardee
+      awardee: updatedAwardee?.length === 1 ? updatedAwardee[0] : undefined,
+      awardees: updatedAwardee,
     });
   } catch (error) {
     console.error('Error in awardees PUT:', error);

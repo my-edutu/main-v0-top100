@@ -1,5 +1,7 @@
 import type { PortfolioGenerationStatus } from './types'
 
+export const MAX_PORTFOLIO_COVER_GENERATIONS = 2
+
 export function canCreatePortfolioGeneration(input: {
   active: boolean
   successful: boolean

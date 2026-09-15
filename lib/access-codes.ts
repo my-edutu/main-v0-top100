@@ -5,12 +5,14 @@
 import { createAdminClient } from '@/lib/supabase/server'
 
 export type AccessCodeStatus = 'active' | 'used' | 'expired' | 'revoked'
+export type AccessCodeMode = 'single_use' | 'time_limited'
 
 export interface AccessCode {
   id: string
   code: string
   label: string | null
   status: AccessCodeStatus
+  redemption_mode: AccessCodeMode
   uses_left: number
   email: string | null
   created_by: string | null
@@ -23,6 +25,74 @@ export interface AccessCode {
 export type ValidateResult =
   | { ok: true; code: AccessCode }
   | { ok: false; reason: 'not_found' | 'inactive' | 'exhausted' | 'expired' | 'email_mismatch' }
+
+type AccessCodeDecision = { ok: true } | { ok: false; reason: Exclude<ValidateResult, { ok: true }>['reason'] }
+
+export function evaluateAccessCode(record: AccessCode, email?: string, now = Date.now()): AccessCodeDecision {
+  if (record.status !== 'active') return { ok: false, reason: 'inactive' }
+  if (record.redemption_mode === 'single_use' && record.uses_left < 1) {
+    return { ok: false, reason: 'exhausted' }
+  }
+  if (record.expires_at && new Date(record.expires_at).getTime() < now) {
+    return { ok: false, reason: 'expired' }
+  }
+  if (record.email && email && record.email.toLowerCase() !== email.toLowerCase()) {
+    return { ok: false, reason: 'email_mismatch' }
+  }
+  return { ok: true }
+}
+
+export function buildAccessCodeInsert(opts: {
+  mode: AccessCodeMode
+  email?: string | null
+  durationHours?: 1 | 24
+  now?: Date
+}) {
+  const now = opts.now ?? new Date()
+  const durationHours = opts.mode === 'time_limited' ? (opts.durationHours ?? 1) : 90 * 24
+
+  return {
+    redemption_mode: opts.mode,
+    email: opts.mode === 'single_use' ? (opts.email?.trim().toLowerCase() || null) : null,
+    uses_left: 1,
+    expires_at: new Date(now.getTime() + durationHours * 60 * 60 * 1000).toISOString(),
+  }
+}
+
+export function buildAccessCodeConsumption(record: AccessCode, userId: string, now = new Date()) {
+  const usesLeft = record.redemption_mode === 'single_use'
+    ? Math.max(0, record.uses_left - 1)
+    : record.uses_left
+
+  return {
+    uses_left: usesLeft,
+    status: record.redemption_mode === 'single_use' && usesLeft < 1 ? 'used' as const : 'active' as const,
+    used_by: userId,
+    used_at: now.toISOString(),
+  }
+}
+
+export function parseAccessCodeRequest(body: Record<string, unknown>) {
+  if (body.mode !== undefined && body.mode !== 'single_use' && body.mode !== 'time_limited') {
+    throw new Error('Choose a valid invite code type.')
+  }
+  const mode: AccessCodeMode = body.mode === 'time_limited' ? 'time_limited' : 'single_use'
+  const label = typeof body.label === 'string' && body.label.trim() ? body.label.trim() : 'Awardee invite'
+
+  if (mode === 'single_use') {
+    const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+      throw new Error('A valid recipient email is required for an individual code.')
+    }
+    return { mode, label, email }
+  }
+
+  const durationHours = Number(body.durationHours)
+  if (durationHours !== 1 && durationHours !== 24) {
+    throw new Error('Choose a reusable-code duration of 1 or 24 hours.')
+  }
+  return { mode, label, email: null, durationHours: durationHours as 1 | 24 }
+}
 
 /** Normalize a code for storage/lookup: trimmed + uppercased. */
 export function normalizeCode(code: string): string {
@@ -67,27 +137,16 @@ export async function validateCode(rawCode: string, email?: string): Promise<Val
 
   const record = data as AccessCode
 
-  if (record.status !== 'active') return { ok: false, reason: 'inactive' }
-  if (record.uses_left < 1) return { ok: false, reason: 'exhausted' }
-  if (record.expires_at && new Date(record.expires_at).getTime() < Date.now()) {
-    return { ok: false, reason: 'expired' }
-  }
-  if (record.email && email && record.email.toLowerCase() !== email.toLowerCase()) {
-    return { ok: false, reason: 'email_mismatch' }
-  }
+  const decision = evaluateAccessCode(record, email)
+  if (!decision.ok) return decision
 
   return { ok: true, code: record }
 }
 
 /**
- * Consume one use of a code and attribute it to the redeeming user.
- * Marks the code 'used' when no uses remain.
- *
- * Concurrency: this is a compare-and-swap, not a read-then-write. The UPDATE
- * only matches while uses_left is still the value we read, so of N concurrent
- * redemptions of the same code exactly one wins per use — the losers match 0
- * rows and retry against the new value. A plain decrement would let N signups
- * share a single decrement and redeem a 1-use code many times over.
+ * Record a successful redemption. Individual codes use a compare-and-swap
+ * decrement so only one concurrent signup can win. Timed codes remain active
+ * and reusable, but the guarded update still verifies they have not expired.
  */
 export async function consumeCode(rawCode: string, userId: string): Promise<boolean> {
   const supabase = createAdminClient()
@@ -96,30 +155,31 @@ export async function consumeCode(rawCode: string, userId: string): Promise<bool
   for (let attempt = 0; attempt < 5; attempt++) {
     const { data } = await supabase
       .from('access_codes')
-      .select('uses_left')
+      .select('*')
       .eq('code', code)
       .eq('status', 'active')
       .maybeSingle()
 
     if (!data) return false
 
-    const observed = (data as { uses_left: number }).uses_left
-    if (observed < 1) return false
-
-    const usesLeft = observed - 1
-
-    const { data: updated, error } = await supabase
+    const record = data as AccessCode
+    const decision = evaluateAccessCode(record)
+    if (!decision.ok) return false
+    const consumedAt = new Date()
+    const update = buildAccessCodeConsumption(record, userId, consumedAt)
+    let updateQuery = supabase
       .from('access_codes')
-      .update({
-        uses_left: usesLeft,
-        status: usesLeft < 1 ? 'used' : 'active',
-        used_by: userId,
-        used_at: new Date().toISOString(),
-      })
+      .update(update)
       .eq('code', code)
       .eq('status', 'active')
-      .eq('uses_left', observed) // CAS: lose the race -> 0 rows -> retry
-      .select('id')
+
+    if (record.redemption_mode === 'single_use') {
+      updateQuery = updateQuery.eq('uses_left', record.uses_left)
+    } else {
+      updateQuery = updateQuery.gt('expires_at', consumedAt.toISOString())
+    }
+
+    const { data: updated, error } = await updateQuery.select('id')
 
     if (error) return false
     if (updated && updated.length > 0) return true
@@ -134,14 +194,16 @@ export async function consumeCode(rawCode: string, userId: string): Promise<bool
 export async function generateCode(opts: {
   label?: string
   email?: string | null
-  usesLeft?: number
-  expiresInDays?: number
+  mode?: AccessCodeMode
+  durationHours?: 1 | 24
   createdBy?: string | null
 }): Promise<AccessCode> {
   const supabase = createAdminClient()
-
-  const expiresInDays = opts.expiresInDays ?? 90
-  const expiresAt = new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000).toISOString()
+  const policy = buildAccessCodeInsert({
+    mode: opts.mode ?? 'single_use',
+    email: opts.email,
+    durationHours: opts.durationHours,
+  })
 
   // Retry a couple times on the (very unlikely) unique collision.
   let lastError: unknown = null
@@ -152,9 +214,7 @@ export async function generateCode(opts: {
       .insert({
         code: candidate,
         label: opts.label ?? 'Awardee invite',
-        email: opts.email ?? null,
-        uses_left: opts.usesLeft ?? 1,
-        expires_at: expiresAt,
+        ...policy,
         created_by: opts.createdBy ?? null,
       })
       .select('*')

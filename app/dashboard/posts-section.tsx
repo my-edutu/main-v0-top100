@@ -6,7 +6,7 @@
 // from /api/member/posts itself.
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { ExternalLink, Loader2, PenSquare, Plus, RefreshCw, Trash2 } from 'lucide-react'
+import { Bold, ExternalLink, Italic, Loader2, Maximize2, Plus, Quote, RefreshCw, Trash2, List } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -21,6 +21,7 @@ import {
   deletePost,
   fetchMyPosts,
   updatePost,
+  uploadMemberPostCover,
 } from '@/lib/member-posts/client'
 import {
   BODY_MAX,
@@ -66,41 +67,6 @@ const EMPTY_EDITOR: EditorState = {
   tags: '',
   coverUrl: '',
   body: '',
-}
-
-function PostsWelcome({ memberId, name }: { memberId: string; name: string }) {
-  const [open, setOpen] = useState(false)
-  const firstName = name.trim().split(/\s+/)[0] || 'there'
-
-  useEffect(() => {
-    try {
-      if (!window.sessionStorage.getItem(`afl:posts-welcome-seen:${memberId}`)) setOpen(true)
-    } catch {
-      setOpen(true)
-    }
-  }, [memberId])
-
-  function close() {
-    setOpen(false)
-    try { window.sessionStorage.setItem(`afl:posts-welcome-seen:${memberId}`, '1') } catch { /* Storage may be unavailable. */ }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={(nextOpen) => nextOpen ? setOpen(true) : close()}>
-      <DialogContent className="w-[calc(100%_-_32px)] max-w-md rounded-3xl border-orange-100 bg-white p-6 text-neutral-950 sm:p-8">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-100 text-orange-700">
-          <PenSquare className="h-6 w-6" aria-hidden="true" />
-        </div>
-        <DialogTitle className="mt-4 text-2xl font-semibold leading-tight">Welcome to your writing space, {firstName}.</DialogTitle>
-        <DialogDescription className="text-sm leading-6 text-neutral-600">
-          Share the work, lessons, and ideas you want the Africa Future Leaders community to discover.
-        </DialogDescription>
-        <button type="button" onClick={close} className="mt-2 flex min-h-12 w-full items-center justify-center rounded-xl bg-orange-500 px-5 font-medium text-neutral-950 hover:bg-orange-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-orange-600">
-          Continue
-        </button>
-      </DialogContent>
-    </Dialog>
-  )
 }
 
 function editorFor(post: MemberPost): EditorState {
@@ -317,34 +283,11 @@ export default function PostsSection({
 
   return (
     <div className="space-y-5">
-      {mode === 'list' && posts.length === 0 && (member.dashboardLoginCount ?? 0) <= 1 ? (
-        <PostsWelcome memberId={member.id} name={member.name} />
-      ) : null}
-      <section className="rounded-[24px] border border-orange-100 bg-white p-4 shadow-[0_8px_30px_rgba(23,20,18,0.04)] sm:rounded-[30px] sm:p-6">
-        <div className="flex items-start justify-between gap-3 sm:gap-5">
-          <div className="flex items-start gap-4">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-orange-500 text-[#fffaf0] sm:h-12 sm:w-12">
-              <PenSquare className="h-5 w-5 sm:h-6 sm:w-6" strokeWidth={2.2} />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-orange-600">Your writing</p>
-              <h3 className="mt-1 text-xl font-bold tracking-tight text-black sm:text-2xl">Posts</h3>
-              <p className="mt-1.5 max-w-xl text-sm leading-5 text-black/60 sm:mt-2 sm:leading-6">
-                Write in your own words. Published posts appear on your public profile straight away —
-                our team reviews them afterwards.
-              </p>
-            </div>
-          </div>
-
-          {mode === 'list' && !accountRestricted && (
-            <Button asChild size="icon" className="h-10 w-10 shrink-0 rounded-full bg-orange-500 text-[#fffaf0] hover:bg-orange-600" aria-label="Create post" title="Create post">
-              <Link href="/dashboard/me/posts/new">
-                <Plus className="h-5 w-5" />
-              </Link>
-            </Button>
-          )}
-        </div>
-      </section>
+      {mode === 'list' && !accountRestricted && (
+        <Button asChild size="icon" className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-5 z-20 h-12 w-12 rounded-full bg-orange-500 text-[#fffaf0] shadow-lg shadow-orange-500/25 hover:bg-orange-600" aria-label="Create post" title="Create post">
+          <Link href="/dashboard/me/posts/new"><Plus className="h-5 w-5" /></Link>
+        </Button>
+      )}
 
       {member.status === 'pending' && (
         <div role="status" className="rounded-[24px] border border-amber-200 bg-amber-50 px-5 py-4">
@@ -535,10 +478,55 @@ function PostEditor({
   // the click and the submit are batched into the same render, so a state
   // update here would still read as its previous value inside onSubmit.
   const intentRef = useRef<'draft' | 'published'>('draft')
+  const bodyRef = useRef<HTMLTextAreaElement>(null)
+  const [fullscreen, setFullscreen] = useState(false)
+  const [uploadingCover, setUploadingCover] = useState(false)
   const saving = savingAs !== null
   const bodyLength = editor.body.trim().length
   const bodyTooShort = bodyLength > 0 && bodyLength < BODY_MIN
   const bodyTooLong = bodyLength > BODY_MAX
+
+  function formatBody(prefix: string, suffix = '') {
+    const textarea = bodyRef.current
+    if (!textarea) return
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+    const selected = editor.body.slice(start, end) || 'your text'
+    const nextBody = `${editor.body.slice(0, start)}${prefix}${selected}${suffix}${editor.body.slice(end)}`
+    onChange({ ...editor, body: nextBody })
+    requestAnimationFrame(() => {
+      textarea.focus()
+      textarea.setSelectionRange(start + prefix.length, start + prefix.length + selected.length)
+    })
+  }
+
+  const editorTools = (
+    <div className="flex flex-wrap items-center gap-1 rounded-xl border border-orange-100 bg-orange-50/40 p-1">
+      <button type="button" onClick={() => formatBody('**', '**')} className="inline-flex h-9 items-center gap-1 rounded-lg px-3 text-xs font-semibold text-black/70 hover:bg-white" title="Bold"><Bold className="h-4 w-4" /> Bold</button>
+      <button type="button" onClick={() => formatBody('*', '*')} className="inline-flex h-9 items-center gap-1 rounded-lg px-3 text-xs font-semibold text-black/70 hover:bg-white" title="Italic"><Italic className="h-4 w-4" /> Italic</button>
+      <button type="button" onClick={() => formatBody('> ')} className="inline-flex h-9 items-center gap-1 rounded-lg px-3 text-xs font-semibold text-black/70 hover:bg-white" title="Quote"><Quote className="h-4 w-4" /> Quote</button>
+      <button type="button" onClick={() => formatBody('- ')} className="inline-flex h-9 items-center gap-1 rounded-lg px-3 text-xs font-semibold text-black/70 hover:bg-white" title="List"><List className="h-4 w-4" /> List</button>
+      <button type="button" onClick={() => setFullscreen(true)} className="ml-auto inline-flex h-9 items-center gap-1 rounded-lg px-3 text-xs font-semibold text-black/70 hover:bg-white" title="Open full editor"><Maximize2 className="h-4 w-4" /> Fullscreen</button>
+    </div>
+  )
+
+  const bodyEditor = (fullscreenMode = false) => (
+    <div className="space-y-2">
+      {!fullscreenMode ? <Label htmlFor="post-body" className="font-semibold text-black">Your post</Label> : null}
+      {editorTools}
+      <Textarea
+        ref={bodyRef}
+        id={fullscreenMode ? 'post-body-fullscreen' : 'post-body'}
+        required={!fullscreenMode}
+        rows={fullscreenMode ? 24 : 14}
+        value={editor.body}
+        onChange={(event) => onChange({ ...editor, body: event.target.value })}
+        placeholder="Write in markdown. Leave a blank line between paragraphs."
+        className="rounded-2xl border-orange-100 text-base text-black placeholder:text-black/40 focus-visible:border-orange-300 focus-visible:ring-1 focus-visible:ring-orange-300 focus-visible:ring-offset-0"
+      />
+      {!fullscreenMode ? <p className={`text-xs font-medium ${bodyTooShort || bodyTooLong ? 'text-red-600' : 'text-black/45'}`}>{bodyLength.toLocaleString()} / {BODY_MAX.toLocaleString()} characters{bodyTooShort ? ` — at least ${BODY_MIN} needed` : ''}{bodyTooLong ? ' — too long' : ''}</p> : null}
+    </div>
+  )
 
   return (
     <form
@@ -561,7 +549,7 @@ function PostEditor({
             value={editor.title}
             onChange={(event) => onChange({ ...editor, title: event.target.value })}
             placeholder="What is this post about?"
-            className="h-14 rounded-2xl border-orange-100 text-base text-black placeholder:text-black/40"
+            className="h-14 rounded-2xl border-orange-100 text-base text-black placeholder:text-black/40 focus-visible:border-orange-300 focus-visible:ring-1 focus-visible:ring-orange-300 focus-visible:ring-offset-0"
           />
         </div>
 
@@ -575,7 +563,7 @@ function PostEditor({
             value={editor.excerpt}
             onChange={(event) => onChange({ ...editor, excerpt: event.target.value })}
             placeholder="One or two lines shown on your profile"
-            className="h-14 rounded-2xl border-orange-100 text-base text-black placeholder:text-black/40"
+            className="h-14 rounded-2xl border-orange-100 text-base text-black placeholder:text-black/40 focus-visible:border-orange-300 focus-visible:ring-1 focus-visible:ring-orange-300 focus-visible:ring-offset-0"
           />
         </div>
 
@@ -589,7 +577,7 @@ function PostEditor({
               value={editor.tags}
               onChange={(event) => onChange({ ...editor, tags: event.target.value })}
               placeholder="climate, founders, lagos"
-              className="h-14 rounded-2xl border-orange-100 text-base text-black placeholder:text-black/40"
+              className="h-14 rounded-2xl border-orange-100 text-base text-black placeholder:text-black/40 focus-visible:border-orange-300 focus-visible:ring-1 focus-visible:ring-orange-300 focus-visible:ring-offset-0"
             />
             <p className="text-xs font-medium text-black/45">
               Up to {TAGS_MAX} tags, {TAG_MAX_LENGTH} characters each.
@@ -597,44 +585,22 @@ function PostEditor({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="post-cover" className="font-semibold text-black">
-              Cover image URL (optional)
-            </Label>
-            <Input
-              id="post-cover"
-              type="url"
-              value={editor.coverUrl}
-              onChange={(event) => onChange({ ...editor, coverUrl: event.target.value })}
-              placeholder="https://..."
-              className="h-14 rounded-2xl border-orange-100 text-base text-black placeholder:text-black/40"
-            />
+            <Label htmlFor="post-cover" className="font-semibold text-black">Cover image (optional)</Label>
+            <Input id="post-cover" type="file" accept="image/jpeg,image/png,image/webp" disabled={uploadingCover} onChange={async (event) => { const file = event.target.files?.[0]; if (!file) return; try { setUploadingCover(true); const url = await uploadMemberPostCover(file); onChange({ ...editor, coverUrl: url }) } catch (cause) { toast.error(cause instanceof Error ? cause.message : 'Could not upload the cover image.') } finally { setUploadingCover(false) } }} className="h-14 cursor-pointer rounded-2xl border-orange-100 p-0 text-sm text-black file:mr-4 file:h-full file:border-0 file:border-r file:border-orange-100 file:bg-orange-50 file:px-4 file:font-semibold file:text-orange-800 focus-visible:border-orange-300 focus-visible:ring-1 focus-visible:ring-orange-300 focus-visible:ring-offset-0" />
+            <p className="text-xs font-medium text-black/45">JPG, PNG or WebP up to 8 MB · stored in Cloudflare media storage{uploadingCover ? ' · uploading…' : editor.coverUrl ? ' · uploaded' : ''}</p>
           </div>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="post-body" className="font-semibold text-black">
-            Your post
-          </Label>
-          <Textarea
-            id="post-body"
-            required
-            rows={14}
-            value={editor.body}
-            onChange={(event) => onChange({ ...editor, body: event.target.value })}
-            placeholder="Write in markdown. Leave a blank line between paragraphs."
-            className="rounded-2xl border-orange-100 text-base text-black placeholder:text-black/40"
-          />
-          <p
-            className={`text-xs font-medium ${
-              bodyTooShort || bodyTooLong ? 'text-red-600' : 'text-black/45'
-            }`}
-          >
-            {bodyLength.toLocaleString()} / {BODY_MAX.toLocaleString()} characters
-            {bodyTooShort ? ` — at least ${BODY_MIN} needed` : ''}
-            {bodyTooLong ? ' — too long' : ''}
-          </p>
-        </div>
+        {bodyEditor()}
       </div>
+
+      <Dialog open={fullscreen} onOpenChange={setFullscreen}>
+        <DialogContent className="h-[calc(100dvh-32px)] w-[calc(100%-32px)] max-w-5xl rounded-3xl border-orange-100 bg-white p-5 text-black sm:p-8">
+          <DialogTitle className="text-2xl font-bold">Full editor</DialogTitle>
+          <DialogDescription className="text-sm text-black/55">Write and format your post in a distraction-free view.</DialogDescription>
+          <div className="mt-4 min-h-0 flex-1 overflow-y-auto">{bodyEditor(true)}</div>
+        </DialogContent>
+      </Dialog>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <Button

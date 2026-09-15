@@ -15,8 +15,16 @@ import {
   resolveAwardeeBySlug,
 } from '@/lib/member-posts/server'
 import { memberPostPath, type MemberPost } from '@/lib/member-posts/types'
+import { DEMO_PUBLIC_SLUG, getDemoDashboardStore } from '@/lib/dev-dashboard/store'
 
 async function loadPosts(slug: string): Promise<MemberPost[]> {
+  // The local preview uses an in-memory member store instead of Supabase. Keep
+  // the public profile and its blog links in sync with the member dashboard in
+  // that environment as well.
+  if (process.env.NODE_ENV !== 'production' && slug === DEMO_PUBLIC_SLUG) {
+    return getDemoDashboardStore().posts.filter((post) => post.status === 'published')
+  }
+
   try {
     const awardee = await resolveAwardeeBySlug(slug)
     if (!awardee?.profileId) return []

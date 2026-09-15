@@ -55,7 +55,7 @@ export default function JoinPage() {
               Claim your awardee profile →
             </Link>
             <p className="mt-1 text-xs text-zinc-500">
-              You&apos;ll need the one-time invite code from the admin team.
+              You&apos;ll need an active invite code from the admin team.
             </p>
           </div>
         </div>

@@ -46,7 +46,13 @@ export default function ImpactSeriesSection({ videos = defaultVideos, stacked = 
   const pageSize = 3
   const pageCount = stacked ? Math.max(1, Math.ceil(videos.length / pageSize)) : 1
   const safeCurrentPage = Math.min(currentPage, pageCount - 1)
-  const visibleVideos = stacked ? videos.slice(safeCurrentPage * pageSize, (safeCurrentPage + 1) * pageSize) : videos
+  const pageVideos = stacked ? videos.slice(safeCurrentPage * pageSize, (safeCurrentPage + 1) * pageSize) : videos
+  const visibleVideos = !stacked && activeVideo
+    ? [
+        ...videos.filter((video) => video.href === activeVideo),
+        ...videos.filter((video) => video.href !== activeVideo),
+      ]
+    : pageVideos
 
   return (
     <section className={stacked ? "relative overflow-hidden bg-white py-14 text-slate-950 sm:py-20" : "relative overflow-hidden bg-[#10151f] py-16 text-white sm:py-20"}>
@@ -132,16 +138,23 @@ export default function ImpactSeriesSection({ videos = defaultVideos, stacked = 
               )
             }
 
-            return activeVideo === video.href ? <div key={video.title}>{card}</div> : (
-              <button
-                key={video.title}
-                type="button"
-                className="block min-w-[86vw] snap-start text-left md:min-w-0"
-                onClick={() => video.href && setActiveVideo(video.href)}
-                aria-label={`Play ${video.title}`}
-              >
-                {card}
-              </button>
+            return (
+              <div key={video.title} className="space-y-3">
+                {activeVideo === video.href ? <div>{card}</div> : (
+                  <button
+                    type="button"
+                    className="block min-w-[86vw] snap-start text-left md:min-w-0"
+                    onClick={() => video.href && setActiveVideo(video.href)}
+                    aria-label={`Play ${video.title}`}
+                  >
+                    {card}
+                  </button>
+                )}
+                <div className="px-1">
+                  <h3 className="line-clamp-2 text-base font-semibold leading-tight text-white sm:text-lg">{video.title}</h3>
+                  {video.author ? <p className="mt-1 text-xs text-white/60">Interview with {video.author}</p> : null}
+                </div>
+              </div>
             )
           })}
         </div>
