@@ -1,13 +1,10 @@
 // lib/courier/gig.ts
-// GIG Logistics ("Agility" third-party) courier adapter.
+// GIG Logistics (Agility third-party) courier adapter.
 //
 // ============================ READ THIS FIRST ============================
-// THE WIRE FORMAT BELOW IS UNVERIFIED AGAINST A LIVE GIG ACCOUNT. There are no
-// GIG credentials in this environment, so not one line of this file has ever
-// been executed against the real API. It is written against the shape used by
-// GIG's own WooCommerce plugin and a second independent client — see
-// docs/gig-integration.md for the citations and for the first-call
-// verification checklist.
+// The wire format follows GIG's current public third-party API reference. A
+// live test call is still required to confirm the account's station ids and
+// response field names before enabling paid member checkout.
 //
 // Consequently: every endpoint path, every response field name and the status
 // lookup table are read from environment variables with the documented value
@@ -30,6 +27,7 @@ import {
   pickFirstNumber,
   pickFirstString,
   pickValue,
+  splitPaths,
   type HttpResult,
 } from './http'
 import type {
@@ -52,9 +50,10 @@ const MEMBER_SAFE_QUOTE_FAILURE =
 // ---------------------------------------------------------------------------
 const paths = {
   quote: () => env('GIG_PATH_QUOTE', 'price'),
-  book: () => env('GIG_PATH_BOOK', 'captureshipment'),
-  track: () => env('GIG_PATH_TRACK', 'TrackAllShipment/{waybill}'),
+  book: () => env('GIG_PATH_BOOK', 'capture/preshipment'),
+  track: () => env('GIG_PATH_TRACK', 'track/mobileShipment'),
   geocode: () => env('GIG_PATH_GEOCODE', 'getaddressdetails'),
+  stations: () => env('GIG_PATH_STATIONS', 'localstations/get'),
 }
 
 // ---------------------------------------------------------------------------
@@ -90,18 +89,22 @@ const DEFAULT_STATUS_MAP: Record<string, CourierStatus> = {
   upcoming: 'dispatched',
   accepted: 'dispatched',
   assigned: 'dispatched',
+  mapt: 'dispatched',
+  crt: 'dispatched',
   'shipment created': 'dispatched',
   'shipment scheduled': 'dispatched',
   processing: 'dispatched',
   // Moving.
   started: 'in_transit',
-  mcrt: 'in_transit',
+  mcrt: 'dispatched',
   arrived: 'in_transit',
   'in transit': 'in_transit',
   intransit: 'in_transit',
   'out for delivery': 'in_transit',
   'shipment departed': 'in_transit',
   'shipment arrived final destination': 'in_transit',
+  mahd: 'delivered',
+  okc: 'delivered',
   // Done.
   ended: 'delivered',
   delivered: 'delivered',
@@ -134,12 +137,116 @@ const STATUS_RANK: Record<CourierStatus, number> = { unknown: 0, dispatched: 1, 
 // Request bodies
 // ---------------------------------------------------------------------------
 
-type Coordinates = { Latitude: string; Longitude: string }
+type Coordinates = { Latitude: number; Longitude: number }
+
+type GigStation = {
+  id: number
+  name: string
+  code: string
+  state: string
+}
+
+let stationCache: { expiresAt: number; stations: GigStation[] } | null = null
+let inflightStations: Promise<GigStation[]> | null = null
+
+function normalizedLocation(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/ state$/i, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+}
+
+function stationFromPayload(value: unknown): GigStation | null {
+  if (!value || typeof value !== 'object') return null
+  const record = value as Record<string, unknown>
+  const id = Number(record.StationId)
+  if (!Number.isSafeInteger(id) || id <= 0) return null
+  return {
+    id,
+    name: typeof record.StationName === 'string' ? record.StationName : '',
+    code: typeof record.StationCode === 'string' ? record.StationCode : '',
+    state: typeof record.StateName === 'string' ? record.StateName : '',
+  }
+}
+
+async function loadStations(): Promise<GigStation[]> {
+  if (stationCache && stationCache.expiresAt > Date.now()) return stationCache.stations
+  if (!inflightStations) {
+    inflightStations = (async () => {
+      const result = await gigAuthedRequest(paths.stations(), {
+        method: 'GET',
+        retries: envNumber('GIG_RETRIES', 2),
+      })
+      if (!result.ok) throw new Error(`GIG station lookup failed: ${result.error}`)
+
+      const candidates = [
+        pickValue(result.data, 'data.data'),
+        pickValue(result.data, 'data'),
+        pickValue(result.data, 'Object.data'),
+        pickValue(result.data, 'Object'),
+      ]
+      const raw = candidates.find(Array.isArray)
+      const stations = Array.isArray(raw)
+        ? raw.map(stationFromPayload).filter((station): station is GigStation => station !== null)
+        : []
+      if (stations.length === 0) throw new Error('GIG station lookup returned no usable stations.')
+      stationCache = { stations, expiresAt: Date.now() + envNumber('GIG_STATION_CACHE_MS', 86_400_000) }
+      return stations
+    })().finally(() => {
+      inflightStations = null
+    })
+  }
+  return inflightStations
+}
+
+export function resetGigStationCache(): void {
+  stationCache = null
+  inflightStations = null
+}
+
+async function receiverStationId(input: QuoteInput): Promise<number> {
+  // A single explicit id is retained for Postman/testing and emergency
+  // operations. Production should leave it unset so user destinations are
+  // resolved below.
+  const explicit = process.env.GIG_RECEIVER_STATION_ID?.trim()
+  if (explicit && /^\d+$/.test(explicit)) return Number(explicit)
+  const state = normalizedLocation(input.state)
+  const city = normalizedLocation(input.city)
+  const overrides = envJsonObject('GIG_RECEIVER_STATION_MAP_JSON')
+  const override = overrides[`${state}:${city}`] ?? overrides[city]
+  if (typeof override === 'number' && Number.isSafeInteger(override) && override > 0) return override
+  if (typeof override === 'string' && /^\d+$/.test(override.trim())) return Number(override)
+
+  const stations = await loadStations()
+  const inState = stations.filter((station) => normalizedLocation(station.state) === state)
+  const exact = inState.filter((station) => {
+    const names = [station.name, station.code].map(normalizedLocation).filter(Boolean)
+    return names.includes(city)
+  })
+  if (exact.length === 1) return exact[0].id
+
+  const partial = inState.filter((station) => {
+    const names = [station.name, station.code].map(normalizedLocation).filter(Boolean)
+    return names.some((name) => name.includes(city) || city.includes(name))
+  })
+  if (partial.length === 1) return partial[0].id
+  if (inState.length === 1) return inState[0].id
+
+  throw new Error(
+    `GIG has multiple or no stations for ${input.city}, ${input.state}. ` +
+      'Set GIG_RECEIVER_STATION_MAP_JSON for this destination or use manual pricing.',
+  )
+}
 
 function senderCoordinates(): Coordinates | null {
-  const lat = env('GIG_SENDER_LATITUDE', '')
-  const lng = env('GIG_SENDER_LONGITUDE', '')
-  return lat && lng ? { Latitude: lat, Longitude: lng } : null
+  const lat = Number(env('GIG_SENDER_LATITUDE', ''))
+  const lng = Number(env('GIG_SENDER_LONGITUDE', ''))
+  return Number.isFinite(lat) && Number.isFinite(lng) ? { Latitude: lat, Longitude: lng } : null
+}
+
+function stationId(name: string, fallback: number): number {
+  return envNumber(name, fallback)
 }
 
 function receiverAddressLine(input: QuoteInput): string {
@@ -169,8 +276,8 @@ async function geocode(address: string): Promise<Coordinates | null> {
     return null
   }
 
-  const lat = pickFirstString(result.data, env('GIG_FIELD_GEOCODE_LATITUDE', 'Object.Latitude,Latitude'))
-  const lng = pickFirstString(result.data, env('GIG_FIELD_GEOCODE_LONGITUDE', 'Object.Longitude,Longitude'))
+  const lat = pickFirstNumber(result.data, env('GIG_FIELD_GEOCODE_LATITUDE', 'Object.Latitude,Latitude'))
+  const lng = pickFirstNumber(result.data, env('GIG_FIELD_GEOCODE_LONGITUDE', 'Object.Longitude,Longitude'))
   return lat && lng ? { Latitude: lat.value, Longitude: lng.value } : null
 }
 
@@ -183,37 +290,79 @@ async function buildShipmentBody(input: QuoteInput, extraEnvVar: string): Promis
   const receiverAddress = receiverAddressLine(input)
   const receiverLocation = await geocode(receiverAddress)
   const senderLocation = senderCoordinates()
+  const receiverId = await receiverStationId(input)
 
   const items = [
     {
-      SpecialPackageId: '0',
+      SpecialPackageId: 0,
       Quantity: envNumber('GIG_ITEM_QUANTITY', 1),
-      Weight: env('GIG_ITEM_WEIGHT_KG', '1'),
-      ItemType: env('GIG_ITEM_TYPE', 'Normal'),
-      WeightRange: '0',
+      Weight: envNumber('GIG_ITEM_WEIGHT_KG', 1),
       ItemName: env('GIG_ITEM_NAME', 'Award plaque'),
-      Value: env('GIG_ITEM_VALUE_NAIRA', '0'),
-      ShipmentType: env('GIG_SHIPMENT_TYPE', 'Regular'),
+      Description: env('GIG_ITEM_DESCRIPTION', 'Award plaque'),
+      IsVolumetric: false,
+      Value: envNumber('GIG_ITEM_VALUE_NAIRA', 0),
+      ShipmentType: envNumber('GIG_SHIPMENT_TYPE', 1),
     },
   ]
 
   return {
-    ReceiverName: input.recipientName,
-    ReceiverPhoneNumber: input.phone,
-    ReceiverAddress: receiverAddress,
-    ReceiverStateName: input.state,
-    ReceiverLocality: input.city,
     ...(receiverLocation ? { ReceiverLocation: receiverLocation } : {}),
-    SenderName: env('GIG_SENDER_NAME', ''),
-    SenderPhoneNumber: env('GIG_SENDER_PHONE', ''),
-    SenderAddress: env('GIG_SENDER_ADDRESS', ''),
-    SenderLocality: env('GIG_SENDER_CITY', ''),
     ...(senderLocation ? { SenderLocation: senderLocation } : {}),
-    VehicleType: env('GIG_VEHICLE_TYPE', 'BIKE'),
-    SenderStationId: env('GIG_SENDER_STATION_ID', '4'),
-    ReceiverStationId: env('GIG_RECEIVER_STATION_ID', '4'),
-    PreShipmentItems: items,
+    VehicleType: envNumber('GIG_VEHICLE_TYPE', 1),
+    SenderStationId: stationId('GIG_SENDER_STATION_ID', 4),
+    ReceiverStationId: receiverId,
+    CustomerType: envNumber('GIG_CUSTOMER_TYPE', 0),
+    PickUpOptions: envNumber('GIG_PICKUP_OPTION', 0),
+    DeliveryOptionIds: [envNumber('GIG_DELIVERY_OPTION_ID', 0)],
+    IsFromAgility: envFlag('GIG_IS_FROM_AGILITY', false),
+    ShipmentItems: items,
+    Value: envNumber('GIG_ITEM_VALUE_NAIRA', 0),
     ...envJsonObject(extraEnvVar),
+  }
+}
+
+async function buildBookBody(input: BookInput): Promise<Record<string, unknown>> {
+  const receiverAddress = receiverAddressLine(input)
+  const receiverLocation = await geocode(receiverAddress)
+  const receiverId = await receiverStationId(input)
+  const senderAddress = env('GIG_SENDER_ADDRESS', '')
+  const senderLocation = senderCoordinates()
+  return {
+    SenderDetails: {
+      SenderName: env('GIG_SENDER_NAME', ''),
+      SenderPhoneNumber: env('GIG_SENDER_PHONE', ''),
+      SenderStationId: stationId('GIG_SENDER_STATION_ID', 4),
+      SenderAddress: senderAddress,
+      InputtedSenderAddress: senderAddress,
+      SenderLocality: env('GIG_SENDER_CITY', ''),
+      ...(senderLocation ? { SenderLocation: senderLocation } : {}),
+    },
+    ReceiverDetails: {
+      ReceiverStationId: receiverId,
+      ReceiverName: input.recipientName,
+      ReceiverPhoneNumber: input.phone,
+      ReceiverAddress: receiverAddress,
+      InputtedReceiverAddress: receiverAddress,
+      ...(receiverLocation ? { ReceiverLocation: receiverLocation } : {}),
+    },
+    ShipmentDetails: {
+      VehicleType: envNumber('GIG_VEHICLE_TYPE', 1),
+      IsFromAgility: envNumber('GIG_IS_FROM_AGILITY_NUMBER', 0),
+      IsBatchPickUp: 0,
+    },
+    ShipmentItems: [
+      {
+        Quantity: envNumber('GIG_ITEM_QUANTITY', 1),
+        ShipmentType: envNumber('GIG_SHIPMENT_TYPE', 1),
+        ItemName: env('GIG_ITEM_NAME', 'Award plaque'),
+        Description: env('GIG_ITEM_DESCRIPTION', `Award plaque for order ${input.orderId}`),
+        Weight: envNumber('GIG_ITEM_WEIGHT_KG', 1),
+        Value: envNumber('GIG_ITEM_VALUE_NAIRA', 0),
+        IsVolumetric: false,
+        SpecialPackageId: 0,
+      },
+    ],
+    ...envJsonObject('GIG_BOOK_EXTRA_JSON'),
   }
 }
 
@@ -224,8 +373,8 @@ function withAccount(
 ): Record<string, unknown> {
   return {
     ...body,
-    ...(auth.userId ? { UserId: auth.userId } : {}),
     ...(auth.customerCode ? { CustomerCode: auth.customerCode } : {}),
+    ...(envFlag('GIG_INCLUDE_USER_ID', false) && auth.userId ? { UserId: auth.userId } : {}),
   }
 }
 
@@ -283,7 +432,7 @@ export const gigCourier: CourierAdapter = {
 
     const amount = pickFirstNumber(
       result.data,
-      env('GIG_FIELD_QUOTE_AMOUNT', 'Object.GrandTotal,Object.DeliveryPrice,Object.Total'),
+      env('GIG_FIELD_QUOTE_AMOUNT', 'data.data.GrandTotal,data.GrandTotal,Object.GrandTotal,data.data.DeliverPrice,Object.DeliveryPrice,Object.Total'),
     )
     if (!amount) {
       console.error('[gig] quote response carried no readable amount. Check GIG_FIELD_QUOTE_AMOUNT.')
@@ -306,9 +455,7 @@ export const gigCourier: CourierAdapter = {
 
   async book(input: BookInput): Promise<BookResult> {
     const auth = await getGigAuth()
-    const body = withAccount(await buildShipmentBody(input, 'GIG_BOOK_EXTRA_JSON'), auth)
-    body.ReceiverEmail = input.email
-    body.CustomerReference = input.orderId
+    const body = await buildBookBody(input)
 
     // retries: 0 is load-bearing. A retried booking books a second parcel and
     // the member is charged once for two shipments.
@@ -321,7 +468,10 @@ export const gigCourier: CourierAdapter = {
 
     const waybill = pickFirstString(
       result.data,
-      env('GIG_FIELD_WAYBILL', 'Object.waybill,Object.Waybill,Object.WaybillNumber,waybill'),
+      env(
+        'GIG_FIELD_WAYBILL',
+        'data.data.waybill,data.data.Waybill,data.data.WaybillNumber,data.waybill,data.Waybill,data.WaybillNumber,data.Shipments.0.Waybill,Object.waybill,Object.Waybill,Object.WaybillNumber,waybill',
+      ),
     )
     if (!waybill) {
       // A 2xx with no waybill may well be a real shipment we cannot identify.
@@ -344,7 +494,10 @@ export const gigCourier: CourierAdapter = {
   async track(waybill: string): Promise<TrackResult> {
     let result: HttpResult
     try {
-      const path = paths.track().replace('{waybill}', encodeURIComponent(waybill))
+      const configuredPath = paths.track()
+      const path = configuredPath.includes('{waybill}')
+        ? configuredPath.replace('{waybill}', encodeURIComponent(waybill))
+        : `${configuredPath}?Waybill=${encodeURIComponent(waybill)}&fetchOption=${encodeURIComponent(envNumber('GIG_TRACK_FETCH_OPTION', 1))}`
       result = await gigAuthedRequest(path, { method: 'GET', retries: envNumber('GIG_RETRIES', 2) })
     } catch (error) {
       console.error('[gig] track could not be attempted:', (error as Error)?.message ?? error)
@@ -370,8 +523,9 @@ export const gigCourier: CourierAdapter = {
     )
     if (topLevel) candidates.push(topLevel.value)
 
-    const events = pickValue(result.data, env('GIG_FIELD_TRACK_EVENTS', 'Object.MobileShipmentTrackings'))
-    const eventField = env('GIG_FIELD_TRACK_EVENT_STATUS', 'Status')
+    const eventPaths = splitPaths(env('GIG_FIELD_TRACK_EVENTS', 'data.0.MobileShipmentTrackings,data.data.0.MobileShipmentTrackings,Object.MobileShipmentTrackings,MobileShipmentTrackings'))
+    const events = eventPaths.map((path) => pickValue(result.data, path)).find(Array.isArray)
+    const eventField = env('GIG_FIELD_TRACK_EVENT_STATUS', 'Status,Code,Reason')
     if (Array.isArray(events)) {
       for (const event of events) {
         const text = pickFirstString(event, eventField)

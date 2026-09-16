@@ -260,12 +260,10 @@ async function login(): Promise<GigAuth> {
   }
 
   const url = joinUrl(baseUrl, env('GIG_PATH_LOGIN', 'login'))
-  // Observed login body shape: { username, Password, SessionObj }. The casing
-  // is deliberate and matches the reference client; do not "fix" it.
+  // GIG's current third-party API reference documents email/password.
   const body = {
-    username,
-    Password: password,
-    SessionObj: '',
+    email: username,
+    password,
     ...envJsonObject('GIG_LOGIN_EXTRA_JSON'),
   }
 
@@ -284,7 +282,10 @@ async function login(): Promise<GigAuth> {
     throw new Error(`GIG login failed: ${result.error}`)
   }
 
-  const token = pickFirstString(result.data, env('GIG_FIELD_TOKEN', 'Object.access_token,access_token,Object.Token,token'))
+  const token = pickFirstString(
+    result.data,
+    env('GIG_FIELD_TOKEN', 'data.data.access-token,data.access-token,Object.access_token,access_token,Object.Token,token'),
+  )
   if (!token) {
     throw new Error('GIG login succeeded but no access token was found in the response.')
   }
@@ -292,7 +293,10 @@ async function login(): Promise<GigAuth> {
   // Token lifetime is unverified. If the response carries an expiry we use it,
   // otherwise we fall back to a short conservative TTL — a token we drop too
   // early costs one extra login; one we hold too long costs a failed dispatch.
-  const expiresInSeconds = pickFirstNumber(result.data, env('GIG_FIELD_TOKEN_EXPIRY', 'Object.expires_in,expires_in,Object.ExpiresIn'))
+  const expiresInSeconds = pickFirstNumber(
+    result.data,
+    env('GIG_FIELD_TOKEN_EXPIRY', 'data.data.expires_in,data.expires_in,Object.expires_in,expires_in,Object.ExpiresIn'),
+  )
   const ttlMs =
     expiresInSeconds && expiresInSeconds.value > 0
       ? expiresInSeconds.value * 1000
@@ -301,9 +305,9 @@ async function login(): Promise<GigAuth> {
 
   return {
     token: token.value,
-    userId: pickFirstString(result.data, env('GIG_FIELD_USER_ID', 'Object.UserId,Object.userId'))?.value ?? null,
+    userId: pickFirstString(result.data, env('GIG_FIELD_USER_ID', 'data.data.Id,data.Id,Object.UserId,Object.userId'))?.value ?? null,
     customerCode:
-      pickFirstString(result.data, env('GIG_FIELD_CUSTOMER_CODE', 'Object.UserName,Object.CustomerCode'))?.value ?? null,
+      pickFirstString(result.data, env('GIG_FIELD_CUSTOMER_CODE', 'data.data.UserName,data.UserName,Object.UserName,Object.CustomerCode'))?.value ?? null,
     // Refresh early rather than late, and never produce an already-expired entry.
     expiresAt: Date.now() + Math.max(1_000, ttlMs - skewMs),
   }
@@ -361,7 +365,7 @@ export async function gigAuthedRequest(path: string, options: AuthedRequestOptio
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
-          Authorization: `Bearer ${auth.token}`,
+          'access-token': auth.token,
         },
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
       },

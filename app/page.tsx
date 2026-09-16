@@ -1,6 +1,7 @@
 import Link from "next/link"
 import Image from "next/image"
 import { ArrowRight } from "lucide-react"
+import type { Metadata } from "next"
 
 import { Button } from "@/components/ui/button"
 import { getHomepagePosts } from "@/lib/posts/server"
@@ -22,6 +23,40 @@ import EventsHubSection from "./components/EventsHubSection"
 import RotatingVisionSection from "./components/RotatingVisionSection"
 import TeamRail from "./components/TeamRail"
 import { TEAM_MEMBERS, VISION_IMAGES } from "@/lib/impact-content"
+import { SITE_URL } from "@/lib/site"
+
+const homepageTitle = "Top100 Africa Future Leaders Hub | Awards, Events & Opportunities"
+const homepageDescription =
+  "Top100 Africa Future Leaders Hub celebrates exceptional young African leaders through awards, events, opportunities, and a continent-wide community."
+
+export const metadata: Metadata = {
+  title: { absolute: homepageTitle },
+  description: homepageDescription,
+  alternates: {
+    canonical: SITE_URL,
+  },
+  openGraph: {
+    title: homepageTitle,
+    description: homepageDescription,
+    url: SITE_URL,
+    siteName: "Top100 Africa Future Leaders Hub",
+    type: "website",
+    images: [
+      {
+        url: "/og-home.png",
+        width: 2400,
+        height: 1260,
+        alt: "Top100 Africa Future Leaders Hub homepage hero",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: homepageTitle,
+    description: homepageDescription,
+    images: ["/og-home.png"],
+  },
+}
 
 type Initiative = {
   title: string
