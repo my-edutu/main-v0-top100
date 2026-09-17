@@ -150,9 +150,9 @@ export default function ImpactSeriesSection({ videos = defaultVideos, stacked = 
                     {card}
                   </button>
                 )}
-                <div className="px-1">
+                <div className="px-1 text-white">
                   <h3 className="line-clamp-2 text-base font-semibold leading-tight text-white sm:text-lg">{video.title}</h3>
-                  {video.author ? <p className="mt-1 text-xs text-white/60">Interview with {video.author}</p> : null}
+                  {video.author ? <p className="mt-1 text-xs text-white">Interview with {video.author}</p> : null}
                 </div>
               </div>
             )
