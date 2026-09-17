@@ -71,10 +71,10 @@ export default function ImpactSeriesSection({ videos = defaultVideos, stacked = 
           </div>
         </div>}
 
-        <div className={stacked ? 'grid grid-cols-1 gap-10 md:gap-14' : '-mx-1 flex snap-x snap-mandatory gap-4 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:grid-cols-[minmax(0,1.35fr)_minmax(0,0.85fr)_minmax(0,0.85fr)] md:overflow-visible md:px-0 md:pb-0'}>
+        <div className={stacked ? 'grid grid-cols-1 gap-10 md:gap-14' : '-mx-1 flex snap-x snap-mandatory gap-4 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:grid-cols-3 md:gap-8 md:overflow-visible md:px-0 md:pb-0'}>
           {visibleVideos.map((video, index) => {
             const card = (
-              <article className={stacked ? "group relative aspect-video overflow-hidden rounded-xl bg-slate-100 ring-1 ring-slate-200" : "group relative min-h-[270px] overflow-hidden rounded-2xl bg-white/5"}>
+              <article className={stacked ? "group relative aspect-video w-full overflow-hidden rounded-xl bg-slate-100 ring-1 ring-slate-200" : "group relative aspect-[16/10] w-full overflow-hidden rounded-2xl bg-white/5"}>
                 {activeVideo === video.href ? (
                   <iframe
                     className="absolute inset-0 h-full w-full"
@@ -93,7 +93,7 @@ export default function ImpactSeriesSection({ videos = defaultVideos, stacked = 
                       priority={index === 0}
                       className="object-cover transition duration-700 group-hover:scale-105"
                     />
-                    <div className={stacked ? "relative flex h-full items-center justify-center p-5" : "relative flex min-h-[270px] items-center justify-center p-5"}>
+                    <div className="relative flex h-full items-center justify-center p-5">
                       <span className="flex size-16 items-center justify-center rounded-full bg-white text-slate-950 shadow-xl transition duration-300 group-hover:scale-110 group-hover:bg-orange-400" aria-hidden="true">
                         {video.href ? <Play className="ml-1 size-6 fill-current" /> : <ArrowUpRight className="size-5" />}
                       </span>
@@ -143,7 +143,7 @@ export default function ImpactSeriesSection({ videos = defaultVideos, stacked = 
                 {activeVideo === video.href ? <div>{card}</div> : (
                   <button
                     type="button"
-                    className="block min-w-[86vw] snap-start text-left md:min-w-0"
+                    className="block w-full min-w-[86vw] snap-start text-left md:min-w-0"
                     onClick={() => video.href && setActiveVideo(video.href)}
                     aria-label={`Play ${video.title}`}
                   >
