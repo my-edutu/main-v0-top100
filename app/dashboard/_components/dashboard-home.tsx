@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   BellRing,
   ArrowUpRight,
-  CalendarDays,
   Mail,
   Trophy,
   UserRound,
@@ -232,7 +231,9 @@ export function DashboardHome() {
           <div>
             <h2 id="coming-up-title" className="hub-panel-title">Upcoming events</h2>
           </div>
-          <CalendarDays className="h-6 w-6 text-[#171717]" aria-hidden="true" />
+          <Link href="/dashboard/discover/events" className="inline-flex min-h-11 items-center gap-1 text-xs font-semibold text-[#8e3a12] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-2">
+            See more <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+          </Link>
         </div>
         <div className="hub-events-rail mt-3" tabIndex={0} role="region" aria-label="Upcoming events, scroll horizontally">
           {comingUp.length > 0 ? comingUp.map((item) => (

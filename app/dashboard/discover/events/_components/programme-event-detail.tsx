@@ -34,7 +34,6 @@ export function ProgrammeEventDetail({ event }: { event: MemberProgrammeEvent })
       <aside className="programme-detail-aside">
         <SpeakerBlock speaker={event.speaker} />
         <CalendarAction eventId={event.id} title={event.title} startAt={event.startAt} endAt={event.endAt} timezone={event.timezone} meetingUrl={event.registrationUrl} calendarUrl={event.calendarUrl} />
-        <p className="text-xs leading-5 text-stone-500">Calendar entries are snapshots. If the programme changes, add the event again to refresh your device calendar.</p>
       </aside>
     </div>
   </article>

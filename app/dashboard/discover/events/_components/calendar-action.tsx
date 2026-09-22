@@ -25,7 +25,6 @@ export function CalendarAction({ eventId, title, startAt, endAt, calendarUrl }: 
         <Download aria-hidden="true" className="h-3.5 w-3.5" />
         <span>ICS</span>
       </a>
-      <span className="sr-only">Add to calendar. Calendar entries are snapshots and will not automatically update if the schedule changes.</span>
     </div>
   )
 }
