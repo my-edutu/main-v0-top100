@@ -5,6 +5,7 @@
 
 import { fetchWithTimeout } from '@/lib/http/fetch-with-timeout'
 import { dashboardRead } from '@/lib/http/dashboard-read'
+import { toMemberProgrammeEvent, type MemberProgrammeEvent } from './programme-api'
 
 export type Rsvp = 'pending' | 'attending' | 'declined' | 'maybe'
 export type RsvpChoice = 'attending' | 'declined' | 'maybe'
@@ -52,6 +53,7 @@ export type EventInvitationsResponse = {
 /** The public events listing, as /api/events returns it. */
 export type PublicEvent = {
   id: string
+  slug?: string
   title: string
   summary?: string
   start_at?: string
@@ -59,6 +61,33 @@ export type PublicEvent = {
   registration_label?: string
   cover?: string
   featured_image_url?: string
+  subtitle?: string | null
+  description?: string | null
+  end_at?: string | null
+  location?: string | null
+  status?: string | null
+  visibility?: string | null
+  programme_label?: string | null
+  session_number?: number | null
+  learning_outcomes?: string[]
+  timezone?: string | null
+  reminder_minutes?: number | null
+  calendar_url?: string
+  speaker?: MemberProgrammeEvent['speaker']
+}
+
+export function publicEventToProgrammeEvent(event: PublicEvent): MemberProgrammeEvent {
+  return toMemberProgrammeEvent({
+    ...event,
+    slug: event.slug ?? event.id,
+    featured_image_url: event.featured_image_url ?? event.cover ?? null,
+    programme_label: event.programme_label ?? null,
+    session_number: event.session_number ?? null,
+    learning_outcomes: event.learning_outcomes ?? [],
+    timezone: event.timezone ?? 'Africa/Lagos',
+    reminder_minutes: event.reminder_minutes ?? null,
+    speaker: event.speaker ?? null,
+  })
 }
 
 async function readError(response: Response, fallback: string): Promise<string> {

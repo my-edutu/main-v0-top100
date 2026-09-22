@@ -19,3 +19,7 @@ Task 3: in_progress
 Ruling: Replace the deprecated `add-to-calendar-button-react` wrapper with maintained `add-to-calendar-button` v3 — npm explicitly marks the wrapper deprecated and the direct package supports current React/Next usage.
 
 Task 3: complete — 44 admin tests and TypeScript typecheck pass; maintained calendar dependency, clock-style WAT scheduling fields, one-hour validation, reminder controls, and editable speaker form are committed.
+
+Task 4: complete — 25 dashboard/event test files pass; member timeline cards, programme detail route, speaker profile route, responsive styles, placeholder speaker state, and calendar actions are implemented.
+
+Task 5: in_progress
