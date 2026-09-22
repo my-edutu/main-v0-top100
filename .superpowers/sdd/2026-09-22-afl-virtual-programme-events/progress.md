@@ -22,4 +22,6 @@ Task 3: complete — 44 admin tests and TypeScript typecheck pass; maintained ca
 
 Task 4: complete — 25 dashboard/event test files pass; member timeline cards, programme detail route, speaker profile route, responsive styles, placeholder speaker state, and calendar actions are implemented.
 
-Task 5: in_progress
+Task 5: complete — 11 coordinated orange-gradient raster covers are stored under `public/programme/afl-october-2026/`, exact artwork metadata is tested, and `ProgrammeCover` renders deterministic session/title overlays.
+
+Task 6: in_progress

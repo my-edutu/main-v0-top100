@@ -14,11 +14,10 @@ export default function EventInvitationsSection({ member }: { member: MemberProf
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [retry, setRetry] = useState(0)
+  const [now] = useState(() => Date.now())
 
   useEffect(() => {
     let cancelled = false
-    setLoading(true)
-    setError('')
     Promise.allSettled([fetchEventInvitations(), fetchPublicEvents(Number.MAX_SAFE_INTEGER)]).then(([invites, published]) => {
       if (cancelled) return
       setInvitations(invites.status === 'fulfilled' ? invites.value.invitations : [])
@@ -34,7 +33,7 @@ export default function EventInvitationsSection({ member }: { member: MemberProf
     const time = (value: string | null) => value && Number.isFinite(Date.parse(value)) ? Date.parse(value) : Infinity
     return time(a.startAt) - time(b.startAt)
   }), [events])
-  const nextEvent = sorted.find(event => event.startAt && Date.parse(event.startAt) >= Date.now())
+  const nextEvent = sorted.find(event => event.startAt && Date.parse(event.startAt) >= now)
 
   return <section aria-label="Events" className="space-y-5">
     {loading ? <p role="status" className="py-8 text-sm text-stone-500">Loading events…</p> : <>
@@ -52,7 +51,7 @@ export default function EventInvitationsSection({ member }: { member: MemberProf
               <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-orange-600" aria-hidden="true" />
               <p>{invitationByEvent.get(event.id)?.message}</p>
             </div> : null}
-            <ProgrammeEventCard event={event} completed={Boolean(event.startAt && Date.parse(event.startAt) < Date.now())} index={index} />
+            <ProgrammeEventCard event={event} completed={Boolean(event.startAt && Date.parse(event.startAt) < now)} index={index} />
           </div>)}
         </div>
       </> : null}

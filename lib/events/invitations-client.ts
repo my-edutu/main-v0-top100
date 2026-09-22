@@ -3,7 +3,6 @@
 // from client components — it must never pull in lib/events/invitations.ts,
 // which is server-side.
 
-import { fetchWithTimeout } from '@/lib/http/fetch-with-timeout'
 import { dashboardRead } from '@/lib/http/dashboard-read'
 import { toMemberProgrammeEvent, type MemberProgrammeEvent } from './programme-api'
 
