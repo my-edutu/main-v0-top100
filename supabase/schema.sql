@@ -329,14 +329,52 @@ create table if not exists public.events (
   visibility text not null default 'public',
   is_featured boolean not null default false,
   metadata jsonb default '{}'::jsonb,
+  programme_label text,
+  session_number integer,
+  learning_outcomes jsonb not null default '[]'::jsonb,
+  timezone text not null default 'Africa/Lagos',
+  reminder_minutes integer,
+  speaker_id uuid,
   created_at timestamp with time zone not null default now(),
   updated_at timestamp with time zone not null default now()
 );
+
+create table if not exists public.programme_speakers (
+  id uuid primary key default gen_random_uuid(),
+  slug text unique not null,
+  name text not null,
+  portrait_url text,
+  role text,
+  organisation text,
+  biography text,
+  website_url text,
+  linkedin_url text,
+  social_url text,
+  status text not null default 'draft',
+  created_at timestamp with time zone not null default now(),
+  updated_at timestamp with time zone not null default now()
+);
+
+do $$ begin
+  alter table public.events
+    add constraint events_speaker_id_fkey
+    foreign key (speaker_id) references public.programme_speakers(id) on delete set null;
+exception when duplicate_object then null; end $$;
+
+alter table public.events
+  drop constraint if exists events_reminder_minutes_check;
+
+alter table public.events
+  add constraint events_reminder_minutes_check
+  check (reminder_minutes is null or reminder_minutes in (15, 30, 60, 1440));
 
 create index if not exists events_status_idx on public.events (status);
 create index if not exists events_start_at_idx on public.events (start_at);
 create index if not exists events_is_featured_idx on public.events (is_featured);
 create index if not exists events_visibility_idx on public.events (visibility);
+create index if not exists events_programme_session_idx on public.events (programme_label, session_number);
+create index if not exists events_speaker_id_idx on public.events (speaker_id);
+create index if not exists programme_speakers_status_idx on public.programme_speakers (status);
 
 create or replace function public.handle_event_updated()
 returns trigger as $$
@@ -352,6 +390,7 @@ create trigger on_event_updated
   for each row execute function public.handle_event_updated();
 
 alter table public.events enable row level security;
+alter table public.programme_speakers enable row level security;
 
 DO $$ BEGIN
   create policy "Public published events" on public.events
@@ -360,6 +399,17 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
   create policy "Service manages events" on public.events
+    for all using (auth.role() = 'service_role')
+    with check (auth.role() = 'service_role');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  create policy "Published programme speakers" on public.programme_speakers
+    for select using (status = 'published');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  create policy "Service manages programme speakers" on public.programme_speakers
     for all using (auth.role() = 'service_role')
     with check (auth.role() = 'service_role');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
