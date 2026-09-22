@@ -66,6 +66,24 @@ describe('interactive local dashboard demo API', () => {
     expect(reloaded.data.member.headline).toBe('Building inclusive climate technology')
   })
 
+  it('treats the sample account as already onboarded and only reopens setup on reset', async () => {
+    const initial = await call(store, 'GET', 'me')
+    expect(initial.data.member.onboardingCompletedAt).toEqual(expect.any(String))
+
+    const reset = await call(store, 'POST', 'onboarding', { reset: true })
+    expect(reset.data.member.onboardingCompletedAt).toBeNull()
+
+    const completed = await call(store, 'POST', 'onboarding', {
+      headline: store.profile.headline,
+      location: store.profile.location,
+      field: store.profile.field,
+      bio: store.profile.bio,
+      step: 4,
+      complete: true,
+    })
+    expect(completed.data.member.onboardingCompletedAt).toEqual(expect.any(String))
+  })
+
   it('creates, updates, and deletes member posts', async () => {
     const created = await call(store, 'POST', 'posts', {
       title: 'Notes from the demo workspace',

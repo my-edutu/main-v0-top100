@@ -92,6 +92,8 @@ export function createDemoDashboardStore(): DemoDashboardStore {
       organization: 'GreenGrid Africa',
       field: 'Climate Technology',
       avatarInitials: 'AO',
+      onboardingCompletedAt: createdAt,
+      onboardingStep: 4,
       recruiterVisible: true,
       emailVisible: false,
       showInDirectory: true,
