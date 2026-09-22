@@ -17,7 +17,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     .maybeSingle()
 
   if (error) {
-    console.error('[events/slug] Failed to load event:', error)
+    console.error('[events/by-slug] Failed to load event:', error)
     return NextResponse.json({ message: 'Could not load this event.' }, { status: 500 })
   }
   if (!data) return NextResponse.json({ message: 'Event not found.' }, { status: 404 })

@@ -4,6 +4,7 @@ import { ArrowUpRight, CalendarDays, Clock3, Video } from 'lucide-react'
 import type { MemberProgrammeEvent } from '@/lib/events/programme-api'
 import { CalendarAction } from './calendar-action'
 import { SpeakerBlock } from './speaker-block'
+import { ProgrammeCover } from './programme-cover'
 
 const dateTime = (value: string | null, timeZone: string, options: Intl.DateTimeFormatOptions) => value
   ? new Intl.DateTimeFormat('en', { ...options, timeZone }).format(new Date(value))
@@ -18,11 +19,8 @@ export function ProgrammeEventCard({ event, completed = false, index = 0 }: { ev
   return (
     <article className={`programme-event-card ${completed ? 'is-completed' : ''}`}>
       <Link href={`/dashboard/discover/events/${event.slug}`} className="programme-event-card-link group">
-        <div className={`programme-event-art programme-event-art-${index % 4}`} style={event.featuredImageUrl ? { backgroundImage: `url("${event.featuredImageUrl}")` } : undefined}>
-          <div className="programme-event-art-wash" />
-          <span className="programme-event-number">{event.sessionNumber === 0 ? 'ONBOARDING' : `SESSION ${String(event.sessionNumber ?? '').padStart(2, '0')}`}</span>
-          <ArrowUpRight aria-hidden="true" className="programme-event-arrow h-5 w-5" />
-        </div>
+        <ProgrammeCover sessionNumber={event.sessionNumber} title={event.title} date={date} className={`programme-event-art programme-event-art-${index % 4}`} />
+        <ArrowUpRight aria-hidden="true" className="programme-event-arrow h-5 w-5" />
         <div className="programme-event-copy">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-orange-700">
             <span className="inline-flex items-center gap-1"><CalendarDays aria-hidden="true" className="h-3.5 w-3.5" />{date}</span>

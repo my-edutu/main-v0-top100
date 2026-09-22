@@ -24,4 +24,4 @@ Task 4: complete — 25 dashboard/event test files pass; member timeline cards, 
 
 Task 5: complete — 11 coordinated orange-gradient raster covers are stored under `public/programme/afl-october-2026/`, exact artwork metadata is tested, and `ProgrammeCover` renders deterministic session/title overlays.
 
-Task 6: in_progress
+Task 6: complete — re-runnable October programme seed and seed-contract test are committed; 46 focused event/dashboard tests pass, typecheck passes, and production build completes. Shared Supabase migration/seed execution remains an explicit environment step.
