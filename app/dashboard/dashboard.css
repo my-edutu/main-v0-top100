@@ -456,12 +456,20 @@ html.light .awardee-dashboard .hub-upcoming-event :is(span,p),
 .programme-speaker-copy a { color:#8e3a12; font-size:12px; font-weight:650; text-decoration:underline; text-underline-offset:3px; }
 .programme-speaker-copy span { display:block; overflow:hidden; color:#766e67; font-size:11px; text-overflow:ellipsis; white-space:nowrap; }
 .programme-calendar-action { display:flex; align-items:center; gap:7px; flex:none; min-width:0; }
-.programme-calendar-action add-to-calendar-button { display:inline-block !important; width:auto !important; height:auto !important; min-width:0 !important; --btn-background:#171412; --btn-text:#fff; --btn-border-radius:999px; --btn-padding:9px 14px; font-size:12px; }
-.programme-calendar-action add-to-calendar-button button { min-height:38px !important; max-width:100% !important; white-space:nowrap !important; }
+.programme-calendar-primary { display:inline-flex; min-height:38px; align-items:center; gap:7px; border-radius:999px; background:#171412; padding:9px 14px; color:#fff; font-size:12px; font-weight:650; text-decoration:none; transition:background .2s ease,transform .2s ease; }
+.programme-calendar-primary:hover { background:#8e3a12; transform:translateY(-1px); }
 .programme-calendar-fallback { display:inline-flex; align-items:center; gap:4px; color:#8e3a12; font-size:11px; font-weight:700; }
 .programme-detail { max-width:1040px; margin:0 auto; }
 .programme-back-link { display:inline-flex; align-items:center; gap:7px; color:#8e3a12; font-size:13px; font-weight:650; }
 .programme-detail-hero { position:relative; isolation:isolate; min-height:360px; display:flex; align-items:flex-end; overflow:hidden; margin-top:20px; padding:32px; border-radius:28px; background:radial-gradient(circle at 75% 20%,#ffb24d,#dd581b 34%,#35151b 78%); background-size:cover; background-position:center; }
+.programme-detail-hero::after { content:''; position:absolute; inset:0; z-index:-1; background:linear-gradient(180deg,#100b1480 0%,transparent 28%,#100b14e8 100%); }
+.programme-detail-hero-copy { max-width:760px; }
+.programme-detail-hero-copy h1,
+html.light .programme-detail-hero-copy h1 { color:#fff !important; text-wrap:balance; text-shadow:0 2px 18px #120c16aa; }
+.programme-detail-hero-copy .programme-kicker,
+html.light .programme-detail-hero-copy .programme-kicker { color:#ffe5c5 !important; text-shadow:0 1px 8px #120c16aa; }
+.programme-detail-hero-copy > p:last-child,
+html.light .programme-detail-hero-copy > p:last-child { color:#fff1e4 !important; text-shadow:0 1px 8px #120c16aa; }
 .programme-detail-grid { display:grid; grid-template-columns:minmax(0,1fr) 290px; gap:52px; padding:40px 16px; }
 .programme-detail-meta { display:flex; flex-wrap:wrap; gap:10px 18px; color:#6f665d; font-size:12px; font-weight:600; }
 .programme-detail-meta span { display:inline-flex; align-items:center; gap:6px; }
@@ -477,7 +485,9 @@ html.light .awardee-dashboard .hub-upcoming-event :is(span,p),
  .programme-event-art { min-height:150px; }
  .programme-event-copy { padding:20px; }
  .programme-event-footer { align-items:flex-start; flex-direction:column; padding:14px 20px 18px; }
- .programme-detail-hero { min-height:330px; padding:24px; }
+ .programme-detail-hero { min-height:350px; padding:22px; }
+ .programme-detail-hero-copy h1 { margin-top:16px; font-size:clamp(2.25rem, 10vw, 3.5rem); line-height:1.02; letter-spacing:-.045em; }
+ .programme-detail-hero-copy > p:last-child { margin-top:14px; font-size:1rem; line-height:1.5; }
  .programme-detail-grid { grid-template-columns:1fr; gap:28px; padding:28px 4px; }
  .programme-speaker-hero { align-items:flex-start; flex-direction:column; }
 }

@@ -16,7 +16,7 @@ export function ProgrammeEventDetail({ event }: { event: MemberProgrammeEvent })
     <Link href="/dashboard/discover/events" className="programme-back-link"><ArrowLeft aria-hidden="true" className="h-4 w-4" />Back to events</Link>
     <div className="programme-detail-hero" style={event.featuredImageUrl ? { backgroundImage: `url("${event.featuredImageUrl}")` } : undefined}>
       <div className="programme-detail-hero-wash" />
-      <div className="relative z-10 max-w-3xl">
+      <div className="programme-detail-hero-copy relative z-10 max-w-3xl">
         <p className="programme-kicker">{event.sessionNumber === 0 ? 'Onboarding' : `Session ${String(event.sessionNumber ?? '').padStart(2, '0')}`} · Africa Future Leaders</p>
         <h1 className="mt-5 text-4xl font-semibold leading-[1.02] tracking-[-0.05em] text-white sm:text-6xl">{event.title}</h1>
         {event.subtitle ? <p className="mt-4 max-w-2xl text-lg text-orange-50/80">{event.subtitle}</p> : null}
