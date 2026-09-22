@@ -6,6 +6,10 @@ import { Button } from '@/components/ui/button'
 import { Loader2, CheckCircle, AlertCircle, Mail } from 'lucide-react'
 import LegalConsent from '@/app/components/LegalConsent'
 
+export function shouldShowNewsletterConsent(email: string) {
+  return email.trim().length > 0
+}
+
 export default function NewsletterForm() {
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
@@ -92,10 +96,14 @@ export default function NewsletterForm() {
         </Button>
         </div>
 
-        <LegalConsent
-          id="newsletter-legal-consent"
-          extra="I consent to receiving the newsletter until I unsubscribe."
-        />
+        {shouldShowNewsletterConsent(email) ? (
+          <div className="animate-in fade-in slide-in-from-top-1 duration-200">
+            <LegalConsent
+              id="newsletter-legal-consent"
+              extra="I consent to receiving the newsletter until I unsubscribe."
+            />
+          </div>
+        ) : null}
       </form>
 
       {/* Status Message */}
