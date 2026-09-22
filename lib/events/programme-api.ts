@@ -1,4 +1,5 @@
 import type { ReminderMinutes } from './programme'
+import { PROGRAMME_LABEL } from './programme'
 
 export type ProgrammeSpeaker = {
   id: string
@@ -46,6 +47,10 @@ export type AdminProgrammeEvent = MemberProgrammeEvent & {
   capacity: number | null
   isFeatured: boolean
   speakerId: string | null
+}
+
+export function isAfricaFutureLeadersProgrammeEvent(row: { programme_label?: string | null; session_number?: number | null }): boolean {
+  return row.programme_label === PROGRAMME_LABEL && typeof row.session_number === 'number' && row.session_number >= 0 && row.session_number <= 10
 }
 
 type SpeakerRow = Partial<{

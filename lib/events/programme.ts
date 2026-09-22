@@ -1,4 +1,5 @@
 export const PROGRAMME_SESSION_MINUTES = 60
+export const PROGRAMME_LABEL = 'Africa Future Leaders October 2026'
 export const REMINDER_MINUTES = [15, 30, 60, 1440] as const
 
 export type ReminderMinutes = (typeof REMINDER_MINUTES)[number]

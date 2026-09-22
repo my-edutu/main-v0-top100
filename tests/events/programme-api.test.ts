@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { toAdminProgrammeEvent, toMemberProgrammeEvent } from '@/lib/events/programme-api'
+import { isAfricaFutureLeadersProgrammeEvent, toAdminProgrammeEvent, toMemberProgrammeEvent } from '@/lib/events/programme-api'
 
 describe('programme event API projections', () => {
   it('hides a draft speaker from the member projection', () => {
@@ -22,6 +22,11 @@ describe('programme event API projections', () => {
       learningOutcomes: [],
       timezone: 'Africa/Lagos',
     })
+  })
+
+  it('does not classify unrelated legacy events as programme sessions', () => {
+    expect(isAfricaFutureLeadersProgrammeEvent({ programme_label: null, session_number: null })).toBe(false)
+    expect(isAfricaFutureLeadersProgrammeEvent({ programme_label: 'Africa Future Leaders October 2026', session_number: 10 })).toBe(true)
   })
 
   it('keeps full speaker fields available to the admin projection', () => {

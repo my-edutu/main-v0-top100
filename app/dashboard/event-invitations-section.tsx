@@ -5,6 +5,7 @@ import { CalendarDays, Sparkles } from 'lucide-react'
 import type { MemberProfile } from '@/lib/member-hub'
 import { fetchEventInvitations, fetchPublicEvents, publicEventToProgrammeEvent, type EventInvitation } from '@/lib/events/invitations-client'
 import type { MemberProgrammeEvent } from '@/lib/events/programme-api'
+import { isAfricaFutureLeadersProgrammeEvent } from '@/lib/events/programme-api'
 import { ProgrammeEventCard } from './discover/events/_components/programme-event-card'
 import { ProgrammeHeader } from './discover/events/_components/programme-header'
 
@@ -21,7 +22,9 @@ export default function EventInvitationsSection({ member }: { member: MemberProf
     Promise.allSettled([fetchEventInvitations(), fetchPublicEvents(Number.MAX_SAFE_INTEGER)]).then(([invites, published]) => {
       if (cancelled) return
       setInvitations(invites.status === 'fulfilled' ? invites.value.invitations : [])
-      setEvents(published.status === 'fulfilled' ? published.value.map(publicEventToProgrammeEvent) : [])
+      setEvents(published.status === 'fulfilled'
+        ? published.value.filter(isAfricaFutureLeadersProgrammeEvent).map(publicEventToProgrammeEvent)
+        : [])
       if (invites.status === 'rejected' || published.status === 'rejected') setError('Some events could not load. Please try again.')
       setLoading(false)
     })
