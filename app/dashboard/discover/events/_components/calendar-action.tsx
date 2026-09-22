@@ -38,7 +38,6 @@ export function CalendarAction({ eventId, title, startAt, endAt, timezone, meeti
         options: "['google','apple','ical','ms365','outlookcom']",
         'list-style': 'modal',
         trigger: 'click',
-        inline: true,
         'button-style': 'flat',
         'light-mode': 'bodyScheme',
         identifier: `programme-${eventId}`,

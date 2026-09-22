@@ -7,7 +7,6 @@ import { fetchEventInvitations, fetchPublicEvents, publicEventToProgrammeEvent, 
 import type { MemberProgrammeEvent } from '@/lib/events/programme-api'
 import { isAfricaFutureLeadersProgrammeEvent } from '@/lib/events/programme-api'
 import { ProgrammeEventCard } from './discover/events/_components/programme-event-card'
-import { ProgrammeHeader } from './discover/events/_components/programme-header'
 
 export default function EventInvitationsSection({ member }: { member: MemberProfile }) {
   const [invitations, setInvitations] = useState<EventInvitation[]>([])
@@ -36,8 +35,6 @@ export default function EventInvitationsSection({ member }: { member: MemberProf
     const time = (value: string | null) => value && Number.isFinite(Date.parse(value)) ? Date.parse(value) : Infinity
     return time(a.startAt) - time(b.startAt)
   }), [events])
-  const nextEvent = sorted.find(event => event.startAt && Date.parse(event.startAt) >= now)
-
   return <section aria-label="Events" className="space-y-5">
     {loading ? <p role="status" className="py-8 text-sm text-stone-500">Loading events…</p> : <>
       {error && <div role="alert" className="border-b py-4 text-sm"><p>{error}</p><button onClick={() => setRetry(value => value + 1)} className="mt-2 min-h-11 underline">Try again</button></div>}
@@ -47,7 +44,6 @@ export default function EventInvitationsSection({ member }: { member: MemberProf
         <p className="mt-2 text-sm text-stone-500">New events and invitations will appear here.</p>
       </div>}
       {sorted.length ? <>
-        <ProgrammeHeader nextTitle={nextEvent?.title ?? null} />
         <div className="space-y-4">
           {sorted.map((event, index) => <div key={event.id} className="space-y-3">
             {invitationByEvent.get(event.id)?.message ? <div className="flex gap-2 rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-950">

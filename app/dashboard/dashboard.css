@@ -455,8 +455,9 @@ html.light .awardee-dashboard .hub-upcoming-event :is(span,p),
 .programme-speaker-copy { min-width:0; }
 .programme-speaker-copy a { color:#8e3a12; font-size:12px; font-weight:650; text-decoration:underline; text-underline-offset:3px; }
 .programme-speaker-copy span { display:block; overflow:hidden; color:#766e67; font-size:11px; text-overflow:ellipsis; white-space:nowrap; }
-.programme-calendar-action { display:flex; align-items:center; gap:7px; flex:none; }
-.programme-calendar-action add-to-calendar-button { --btn-background:#171412; --btn-text:#fff; --btn-border-radius:999px; --btn-padding:9px 14px; font-size:12px; }
+.programme-calendar-action { display:flex; align-items:center; gap:7px; flex:none; min-width:0; }
+.programme-calendar-action add-to-calendar-button { display:inline-block !important; width:auto !important; height:auto !important; min-width:0 !important; --btn-background:#171412; --btn-text:#fff; --btn-border-radius:999px; --btn-padding:9px 14px; font-size:12px; }
+.programme-calendar-action add-to-calendar-button button { min-height:38px !important; max-width:100% !important; white-space:nowrap !important; }
 .programme-calendar-fallback { display:inline-flex; align-items:center; gap:4px; color:#8e3a12; font-size:11px; font-weight:700; }
 .programme-detail { max-width:1040px; margin:0 auto; }
 .programme-back-link { display:inline-flex; align-items:center; gap:7px; color:#8e3a12; font-size:13px; font-weight:650; }

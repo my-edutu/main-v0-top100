@@ -14,8 +14,11 @@ import {
 import { fetchMemberHubState, type MemberNotification } from '@/lib/member-hub'
 import {
   fetchEventInvitations,
+  fetchPublicEvents,
   type EventInvitation,
+  type PublicEvent,
 } from '@/lib/events/invitations-client'
+import { isAfricaFutureLeadersProgrammeEvent } from '@/lib/events/programme-api'
 import { cn } from '@/lib/utils'
 import { DashboardCard } from './dashboard-card'
 import { discoverNav, meNav } from '../_lib/navigation'
@@ -77,6 +80,7 @@ export function DashboardHome() {
     setUnreadUpdates,
   } = useDashboardBadges()
   const [invitations, setInvitations] = useState<EventInvitation[]>([])
+  const [programmeEvents, setProgrammeEvents] = useState<PublicEvent[]>([])
   const [notifications, setNotifications] = useState<MemberNotification[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
@@ -88,19 +92,24 @@ export function DashboardHome() {
     async function loadPreviews() {
       if (inFlight) return
       inFlight = true
-      const [invitationResult, hubResult] =
+      const [invitationResult, programmeResult, hubResult] =
         await Promise.allSettled([
           fetchEventInvitations(),
+          fetchPublicEvents(12, 'awardees'),
           fetchMemberHubState(),
         ])
 
       inFlight = false
       if (cancelled) return
       setLoading(false)
-      setLoadError([invitationResult, hubResult].some(result => result.status === 'rejected'))
+      setLoadError([invitationResult, programmeResult, hubResult].some(result => result.status === 'rejected'))
 
       if (invitationResult.status === 'fulfilled') {
         setInvitations(invitationResult.value.invitations)
+      }
+
+      if (programmeResult.status === 'fulfilled') {
+        setProgrammeEvents(programmeResult.value.filter(isAfricaFutureLeadersProgrammeEvent))
       }
 
       if (hubResult.status === 'fulfilled') {
@@ -153,8 +162,24 @@ export function DashboardHome() {
         href: '/dashboard/discover/events',
       }))
 
-    return datedInvitations
-  }, [invitations])
+    const invitationIds = new Set(invitations.map((invitation) => invitation.eventId))
+    const programmePreviews = programmeEvents
+      .filter((event) => event.start_at && new Date(event.start_at).getTime() >= Date.now())
+      .filter((event) => !invitationIds.has(event.id))
+      .sort((left, right) => new Date(left.start_at!).getTime() - new Date(right.start_at!).getTime())
+      .map((event) => ({
+        id: `programme-${event.id}`,
+        title: event.title,
+        detail: event.session_number === 0 ? 'Onboarding' : `Session ${String(event.session_number ?? '').padStart(2, '0')}`,
+        date: formatShortDate(event.start_at),
+        cover: event.cover ?? event.featured_image_url ?? null,
+        href: `/dashboard/discover/events/${event.slug ?? event.id}`,
+      }))
+
+    return [...datedInvitations, ...programmePreviews]
+      .sort((left, right) => new Date(left.date).getTime() - new Date(right.date).getTime())
+      .slice(0, 6)
+  }, [invitations, programmeEvents])
 
   const recentItems = useMemo<RecentItem[]>(() => {
     const updateRows: RecentItem[] = notifications.map((notification) => ({
