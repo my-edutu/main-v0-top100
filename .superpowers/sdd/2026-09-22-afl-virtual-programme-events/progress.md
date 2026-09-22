@@ -9,3 +9,7 @@ Task 1: in_progress
 Ruling: Update `supabase/schema.sql` alongside the forward migration — it is the repository's setup baseline and omitting the new programme fields would make fresh environments diverge from migrated environments.
 
 Task 1: complete — 39 event tests pass; programme schedule, one-hour validation, WAT calendar serialization, migration, and setup baseline are committed.
+
+Task 2: in_progress
+
+Task 2: complete — 42 event tests and TypeScript typecheck pass; public/admin projections, slug detail route, calendar route, and speaker admin routes are committed.

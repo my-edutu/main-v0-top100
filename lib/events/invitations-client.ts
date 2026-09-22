@@ -26,6 +26,11 @@ export type InvitationEvent = {
   cover: string | null
   registrationUrl: string | null
   registrationLabel: string
+  programmeLabel: string | null
+  sessionNumber: number | null
+  learningOutcomes: string[]
+  timezone: string
+  reminderMinutes: number | null
 }
 
 export type EventInvitation = {

@@ -21,7 +21,7 @@ export const runtime = 'nodejs'
 // The embedded event columns the dashboard card needs. Named explicitly rather
 // than `events(*)` so the payload does not carry admin-only fields.
 const EVENT_COLUMNS =
-  'id, title, summary, start_at, end_at, location, city, country, featured_image_url, registration_url, registration_label'
+  'id, title, summary, start_at, end_at, location, city, country, featured_image_url, registration_url, registration_label, programme_label, session_number, learning_outcomes, timezone, reminder_minutes'
 
 export async function GET() {
   const user = await getCurrentUser()

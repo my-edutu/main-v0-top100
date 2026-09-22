@@ -4,6 +4,8 @@ import { revalidatePath, revalidateTag } from 'next/cache'
 import { requireAdmin } from '@/lib/api/require-admin'
 import { getHomepageEvents } from '@/lib/homepage-feed'
 import { createAdminClient } from '@/lib/supabase/server'
+import { toMemberEventRow } from '@/lib/events/programme-api'
+import { validateProgrammeEventInput } from '@/lib/events/programme'
 
 
 
@@ -34,6 +36,12 @@ type SanitizedEventPayload = {
   visibility: string
   is_featured: boolean
   metadata: Record<string, unknown>
+  programme_label: string | null
+  session_number: number | null
+  learning_outcomes: string[]
+  timezone: string
+  reminder_minutes: number | null
+  speaker_id: string | null
 }
 
 const slugify = (value: string) =>
@@ -61,6 +69,14 @@ const toBoolean = (value: unknown, fallback = false) => {
   return fallback
 }
 
+const toNullableText = (value: unknown) => typeof value === 'string' && value.trim() ? value.trim() : null
+
+const toLearningOutcomes = (value: unknown) => Array.isArray(value)
+  ? value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0).map((item) => item.trim())
+  : []
+
+const toReminderMinutes = (value: unknown) => value === 15 || value === 30 || value === 60 || value === 1440 ? value : null
+
 const sanitizePayload = (raw: RawEventPayload, opts: { isUpdate?: boolean } = {}): SanitizedEventPayload => {
   const { isUpdate = false } = opts
   const title = typeof raw.title === 'string' ? raw.title.trim() : ''
@@ -86,6 +102,11 @@ const sanitizePayload = (raw: RawEventPayload, opts: { isUpdate?: boolean } = {}
     ? raw.visibility.trim().toLowerCase()
     : 'public'
 
+  const endAt = isoOrNull(raw.end_at ?? raw.endAt ?? raw.ends_at)
+  if (startAt && endAt && raw.programme_label) {
+    validateProgrammeEventInput({ startAt, endAt })
+  }
+
   return {
     title,
     slug,
@@ -97,7 +118,7 @@ const sanitizePayload = (raw: RawEventPayload, opts: { isUpdate?: boolean } = {}
     country: typeof raw.country === 'string' && raw.country.trim().length > 0 ? raw.country.trim() : null,
     is_virtual: toBoolean(raw.is_virtual ?? raw.isVirtual ?? raw.virtual, false),
     start_at: startAt ?? new Date().toISOString(),
-    end_at: isoOrNull(raw.end_at ?? raw.endAt ?? raw.ends_at),
+    end_at: endAt,
     registration_url: typeof raw.registration_url === 'string' && raw.registration_url.trim().length > 0
       ? raw.registration_url.trim()
       : typeof raw.registrationUrl === 'string' && raw.registrationUrl.trim().length > 0
@@ -124,6 +145,16 @@ const sanitizePayload = (raw: RawEventPayload, opts: { isUpdate?: boolean } = {}
     metadata: typeof raw.metadata === 'object' && raw.metadata !== null && !Array.isArray(raw.metadata)
       ? (raw.metadata as Record<string, unknown>)
       : {},
+    programme_label: toNullableText(raw.programme_label ?? raw.programmeLabel),
+    session_number: typeof raw.session_number === 'number' && Number.isInteger(raw.session_number) && raw.session_number >= 0
+      ? raw.session_number
+      : typeof raw.sessionNumber === 'number' && Number.isInteger(raw.sessionNumber) && raw.sessionNumber >= 0
+        ? raw.sessionNumber
+        : null,
+    learning_outcomes: toLearningOutcomes(raw.learning_outcomes ?? raw.learningOutcomes),
+    timezone: toNullableText(raw.timezone) ?? 'Africa/Lagos',
+    reminder_minutes: toReminderMinutes(raw.reminder_minutes ?? raw.reminderMinutes),
+    speaker_id: toNullableText(raw.speaker_id ?? raw.speakerId),
   }
 }
 
@@ -140,7 +171,9 @@ export async function GET(req: NextRequest) {
 
   const query = supabase
     .from('events')
-    .select('*')
+    .select(scope === 'admin'
+      ? '*, programme_speakers(*)'
+      : '*, programme_speakers(id, slug, name, portrait_url, role, organisation, status)')
     .order('start_at', { ascending: false })
 
   if (scope !== 'admin') {
@@ -154,7 +187,10 @@ export async function GET(req: NextRequest) {
     return toJsonResponse(await getHomepageEvents())
   }
 
-  return toJsonResponse(data ?? [])
+  return toJsonResponse(scope === 'admin' ? data ?? [] : (data ?? []).map((row) => toMemberEventRow({
+    ...row,
+    speaker: row.programme_speakers,
+  })))
 }
 
 export async function POST(req: NextRequest) {
@@ -429,7 +465,6 @@ export async function DELETE(req: NextRequest) {
     return toJsonResponse({ message: 'Failed to delete event', error: message }, 400)
   }
 }
-
 
 
 

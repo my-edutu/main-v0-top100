@@ -35,6 +35,7 @@
 
 **Files:**
 - Create: `supabase/migrations/20260922090000_afl_virtual_programme_events.sql`
+- Modify: `supabase/schema.sql`
 - Create: `lib/events/programme.ts`
 - Create: `lib/events/calendar.ts`
 - Create: `tests/events/programme.test.ts`

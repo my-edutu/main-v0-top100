@@ -89,6 +89,12 @@ export type EventRow = {
   featured_image_url?: string | null
   registration_url?: string | null
   registration_label?: string | null
+  programme_label?: string | null
+  session_number?: number | null
+  learning_outcomes?: unknown
+  timezone?: string | null
+  reminder_minutes?: number | null
+  programme_speakers?: unknown
 }
 
 export type RsvpRejection = { ok: false; status: number; message: string }
@@ -154,6 +160,11 @@ export type InvitationView = {
     cover: string | null
     registrationUrl: string | null
     registrationLabel: string
+    programmeLabel: string | null
+    sessionNumber: number | null
+    learningOutcomes: string[]
+    timezone: string
+    reminderMinutes: number | null
   } | null
 }
 
@@ -193,6 +204,15 @@ export function mapInvitation(row: InvitationRow): InvitationView {
           cover: event.featured_image_url ?? null,
           registrationUrl: event.registration_url ?? null,
           registrationLabel: event.registration_label?.trim() || 'Event details',
+          programmeLabel: event.programme_label ?? null,
+          sessionNumber: typeof event.session_number === 'number' ? event.session_number : null,
+          learningOutcomes: Array.isArray(event.learning_outcomes)
+            ? event.learning_outcomes.filter((item): item is string => typeof item === 'string')
+            : [],
+          timezone: event.timezone?.trim() || 'Africa/Lagos',
+          reminderMinutes: event.reminder_minutes === 15 || event.reminder_minutes === 30 || event.reminder_minutes === 60 || event.reminder_minutes === 1440
+            ? event.reminder_minutes
+            : null,
         }
       : null,
   }
