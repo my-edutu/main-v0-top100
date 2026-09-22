@@ -728,3 +728,31 @@ html.light .top100-admin .event-metric, .top100-admin .event-metric { min-width:
   .notification-metric-date strong { font-size:21px; }
   .notification-metric p { margin-top:6px; font-size:13px; }
 }
+.programme-time-picker .react-time-picker,
+.programme-time-picker .react-time-picker__wrapper {
+  width: 100%;
+}
+
+.programme-time-picker .react-time-picker__wrapper {
+  border: 0;
+}
+
+.programme-time-picker .react-time-picker__inputGroup {
+  color: #fff;
+}
+
+.programme-time-picker .react-time-picker__inputGroup__input,
+.programme-time-picker .react-time-picker__inputGroup__amPm {
+  color: #fff;
+  background: transparent;
+}
+
+.programme-time-picker .react-time-picker__clock {
+  z-index: 70;
+}
+
+.programme-time-picker .react-clock {
+  border-radius: 999px;
+  background: #18181b;
+  border-color: #3f3f46;
+}

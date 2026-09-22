@@ -6,7 +6,7 @@
 
 **Architecture:** Keep the existing `events` and invitation system as the source of truth, add validated programme fields plus a normalized `programme_speakers` table, and expose a slug-based member detail route. Put calendar serialization and schedule validation in pure libraries, keep provider-specific UI client-side, and keep database/admin mutations behind the existing service-role/admin boundaries.
 
-**Tech Stack:** Next.js 16 App Router, React 19, TypeScript, Supabase/Postgres, Vitest, Tailwind CSS, `react-time-picker`, `react-clock`, and `add-to-calendar-button-react`.
+**Tech Stack:** Next.js 16 App Router, React 19, TypeScript, Supabase/Postgres, Vitest, Tailwind CSS, `react-time-picker`, `react-clock`, and maintained `add-to-calendar-button` v3.
 
 **Spec:** `docs/superpowers/specs/2026-09-22-afl-virtual-programme-events-design.md`
 
@@ -166,7 +166,7 @@ Expected: PASS. Commit with `feat: expose programme event and speaker APIs`.
 
 - [ ] **Step 1: Add dependencies and write failing form validation tests**
 
-Install `react-time-picker`, `react-clock`, and `add-to-calendar-button-react` using the existing package manager. Add tests for a 60-minute valid session, a 61-minute rejection, and a time change that retains the selected date.
+Install `react-time-picker`, `react-clock`, and maintained `add-to-calendar-button` v3 using the existing package manager. Add tests for a 60-minute valid session, a 61-minute rejection, and a time change that retains the selected date.
 
 ```ts
 it('allows exactly 60 minutes and rejects 61 minutes', () => {
@@ -239,7 +239,7 @@ Use async App Router pages and `Link` navigation. Add loading and not-found stat
 
 - [ ] **Step 4: Add provider calendar action and run tests**
 
-Use `add-to-calendar-button-react` for provider options, with the first-party ICS endpoint as the deterministic fallback. Show the snapshot limitation in a small accessible hint. Run `npx vitest run tests/dashboard/programme-events.test.tsx tests/events` and commit with `feat: build member programme events experience`.
+Use maintained `add-to-calendar-button` v3 for provider options, with the first-party ICS endpoint as the deterministic fallback. Show the snapshot limitation in a small accessible hint. Run `npx vitest run tests/dashboard/programme-events.test.tsx tests/events` and commit with `feat: build member programme events experience`.
 
 ### Task 5: Generate and wire the coordinated programme artwork
 

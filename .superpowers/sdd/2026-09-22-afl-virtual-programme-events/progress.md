@@ -13,3 +13,9 @@ Task 1: complete — 39 event tests pass; programme schedule, one-hour validatio
 Task 2: in_progress
 
 Task 2: complete — 42 event tests and TypeScript typecheck pass; public/admin projections, slug detail route, calendar route, and speaker admin routes are committed.
+
+Task 3: in_progress
+
+Ruling: Replace the deprecated `add-to-calendar-button-react` wrapper with maintained `add-to-calendar-button` v3 — npm explicitly marks the wrapper deprecated and the direct package supports current React/Next usage.
+
+Task 3: complete — 44 admin tests and TypeScript typecheck pass; maintained calendar dependency, clock-style WAT scheduling fields, one-hour validation, reminder controls, and editable speaker form are committed.

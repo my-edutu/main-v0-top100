@@ -1,6 +1,8 @@
 import { cookies } from 'next/headers'
 import AdminShell from './components/AdminShell'
 import './admin.css'
+import 'react-time-picker/dist/TimePicker.css'
+import 'react-clock/dist/Clock.css'
 
 export default async function AdminLayout({
   children,

@@ -47,6 +47,9 @@ import {
   Edit2,
   Send,
 } from "lucide-react"
+import { EventTimeFields, mergeDateAndTime, validateProgrammeForm } from "./event-time-fields"
+import { emptyProgrammeSpeaker, ProgrammeSpeakerForm, type ProgrammeSpeakerDraft } from "./programme-speaker-form"
+import { PROGRAMME_SESSION_MINUTES } from "@/lib/events/programme"
 
 const formatDateForInput = (value?: string | null) => {
   if (!value) return ""
@@ -61,6 +64,11 @@ const toISOString = (value: string) => {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return ""
   return date.toISOString()
+}
+
+const toLocalDateTimeInput = (date: Date) => {
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+  return local.toISOString().slice(0, 16)
 }
 
 const normalizeTags = (value: string) =>
@@ -89,6 +97,13 @@ const defaultForm = () => ({
   status: "draft" as "draft" | "published" | "archived",
   visibility: "public" as "public" | "private",
   isFeatured: false,
+  programmeLabel: "",
+  sessionNumber: "",
+  learningOutcomes: "",
+  timezone: "Africa/Lagos",
+  reminderMinutes: "1440",
+  durationMinutes: PROGRAMME_SESSION_MINUTES,
+  speakerId: undefined as string | undefined,
 })
 
 type EventFormState = ReturnType<typeof defaultForm>
@@ -116,6 +131,27 @@ type AdminEvent = {
   is_featured: boolean
   created_at: string
   updated_at: string
+  programme_label?: string | null
+  session_number?: number | null
+  learning_outcomes?: string[] | null
+  timezone?: string | null
+  reminder_minutes?: number | null
+  speaker_id?: string | null
+  programme_speakers?: ProgrammeSpeakerRecord | ProgrammeSpeakerRecord[] | null
+}
+
+type ProgrammeSpeakerRecord = {
+  id: string
+  slug: string
+  name: string
+  portrait_url: string | null
+  role: string | null
+  organisation: string | null
+  biography: string | null
+  website_url: string | null
+  linkedin_url: string | null
+  social_url: string | null
+  status: 'draft' | 'published' | 'archived'
 }
 
 type Stats = {
@@ -165,6 +201,15 @@ const mapEventToForm = (event: AdminEvent): EventFormState => ({
   status: event.status,
   visibility: event.visibility,
   isFeatured: Boolean(event.is_featured),
+  programmeLabel: event.programme_label ?? "",
+  sessionNumber: typeof event.session_number === "number" ? String(event.session_number) : "",
+  learningOutcomes: Array.isArray(event.learning_outcomes) ? event.learning_outcomes.join("\n") : "",
+  timezone: event.timezone ?? "Africa/Lagos",
+  reminderMinutes: event.reminder_minutes ? String(event.reminder_minutes) : "1440",
+  durationMinutes: event.start_at && event.end_at
+    ? Math.max(1, Math.round((new Date(event.end_at).getTime() - new Date(event.start_at).getTime()) / 60000))
+    : PROGRAMME_SESSION_MINUTES,
+  speakerId: event.speaker_id ?? undefined,
 })
 
 const buildPayload = (form: EventFormState) => {
@@ -182,6 +227,14 @@ const buildPayload = (form: EventFormState) => {
   }
 
   const endAtIso = form.endAt ? toISOString(form.endAt) : null
+
+  if (form.programmeLabel.trim()) {
+    const programmeValidation = validateProgrammeForm({ startAt: form.startAt, endAt: form.endAt })
+    if (!programmeValidation.ok) throw new Error(programmeValidation.message)
+    if (form.durationMinutes > PROGRAMME_SESSION_MINUTES) {
+      throw new Error(`Programme sessions cannot exceed ${PROGRAMME_SESSION_MINUTES} minutes.`)
+    }
+  }
 
   return {
     id: form.id,
@@ -205,6 +258,12 @@ const buildPayload = (form: EventFormState) => {
     is_featured: form.isFeatured,
     gallery: [],
     metadata: {},
+    programme_label: form.programmeLabel.trim() || null,
+    session_number: form.sessionNumber ? Number.parseInt(form.sessionNumber, 10) : null,
+    learning_outcomes: form.learningOutcomes.split("\n").map((item) => item.trim()).filter(Boolean),
+    timezone: form.timezone || "Africa/Lagos",
+    reminder_minutes: form.programmeLabel.trim() && form.reminderMinutes ? Number.parseInt(form.reminderMinutes, 10) : null,
+    speaker_id: form.speakerId || null,
   }
 }
 
@@ -248,6 +307,7 @@ function AdminEventsPageContent() {
   const [submitting, setSubmitting] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [eventToDelete, setEventToDelete] = useState<AdminEvent | null>(null)
+  const [speakerDraft, setSpeakerDraft] = useState<ProgrammeSpeakerDraft>(emptyProgrammeSpeaker)
   const [mode, setMode] = useState<"create" | "edit">("create")
   const createFlag = searchParams.get("create")
 
@@ -293,6 +353,7 @@ function AdminEventsPageContent() {
     if (!dialogOpen && (normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "new")) {
       setMode("create")
       setFormState(defaultForm())
+      setSpeakerDraft(emptyProgrammeSpeaker())
       setDialogOpen(true)
       if (pathname) {
         router.replace(pathname)
@@ -323,12 +384,27 @@ function AdminEventsPageContent() {
   const openCreateDialog = () => {
     setMode("create")
     setFormState(defaultForm())
+    setSpeakerDraft(emptyProgrammeSpeaker())
     setDialogOpen(true)
   }
 
   const openEditDialog = (event: AdminEvent) => {
     setMode("edit")
     setFormState(mapEventToForm(event))
+    const speaker = Array.isArray(event.programme_speakers) ? event.programme_speakers[0] : event.programme_speakers
+    setSpeakerDraft(speaker ? {
+      id: speaker.id,
+      name: speaker.name ?? '',
+      slug: speaker.slug ?? '',
+      portraitUrl: speaker.portrait_url ?? '',
+      role: speaker.role ?? '',
+      organisation: speaker.organisation ?? '',
+      biography: speaker.biography ?? '',
+      websiteUrl: speaker.website_url ?? '',
+      linkedinUrl: speaker.linkedin_url ?? '',
+      socialUrl: speaker.social_url ?? '',
+      status: speaker.status,
+    } : emptyProgrammeSpeaker())
     setDialogOpen(true)
   }
 
@@ -340,7 +416,29 @@ function AdminEventsPageContent() {
   const handleSubmit = async () => {
     try {
       setSubmitting(true)
-      const payload = buildPayload(formState)
+      let speakerId = speakerDraft.name.trim() ? formState.speakerId : undefined
+      if (speakerDraft.name.trim()) {
+        const speakerResponse = await fetch(speakerDraft.id ? `/api/admin/programme-speakers/${speakerDraft.id}` : "/api/admin/programme-speakers", {
+          method: speakerDraft.id ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: speakerDraft.name,
+            slug: speakerDraft.slug || speakerDraft.name,
+            portrait_url: speakerDraft.portraitUrl,
+            role: speakerDraft.role,
+            organisation: speakerDraft.organisation,
+            biography: speakerDraft.biography,
+            website_url: speakerDraft.websiteUrl,
+            linkedin_url: speakerDraft.linkedinUrl,
+            social_url: speakerDraft.socialUrl,
+            status: speakerDraft.status,
+          }),
+        })
+        const speakerPayload = await speakerResponse.json().catch(() => ({}))
+        if (!speakerResponse.ok) throw new Error(speakerPayload?.message ?? "Failed to save speaker")
+        speakerId = speakerPayload?.speaker?.id ?? speakerId
+      }
+      const payload = buildPayload({ ...formState, speakerId })
 
       const response = await fetch("/api/events", {
         method: mode === "create" ? "POST" : "PUT",
@@ -356,6 +454,7 @@ function AdminEventsPageContent() {
       toast.success(mode === "create" ? "Event created" : "Event updated")
       setDialogOpen(false)
       setFormState(defaultForm())
+      setSpeakerDraft(emptyProgrammeSpeaker())
       fetchEvents({ withSpinner: false })
     } catch (error) {
       console.error("Failed to save event", error)
@@ -870,28 +969,81 @@ function AdminEventsPageContent() {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="startAt" className="text-zinc-400">Start Date</Label>
-                <Input
-                  id="startAt"
-                  type="datetime-local"
-                  value={formState.startAt}
-                  onChange={(event) => setFormState((prev) => ({ ...prev, startAt: event.target.value }))}
-                  className="bg-zinc-900 border-zinc-800 text-white"
-                />
+            <div className="grid gap-4 rounded-2xl border border-orange-500/20 bg-orange-500/5 p-4">
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div className="grid gap-2">
+                  <Label htmlFor="programmeLabel" className="text-zinc-400">Programme label</Label>
+                  <Input
+                    id="programmeLabel"
+                    value={formState.programmeLabel}
+                    onChange={(event) => setFormState((prev) => ({ ...prev, programmeLabel: event.target.value }))}
+                    placeholder="Africa Future Leaders October 2026"
+                    className="bg-zinc-900 border-zinc-800 text-white"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="sessionNumber" className="text-zinc-400">Session number</Label>
+                  <Input
+                    id="sessionNumber"
+                    type="number"
+                    min={0}
+                    value={formState.sessionNumber}
+                    onChange={(event) => setFormState((prev) => ({ ...prev, sessionNumber: event.target.value }))}
+                    placeholder="1"
+                    className="bg-zinc-900 border-zinc-800 text-white"
+                  />
+                </div>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="endAt" className="text-zinc-400">End Date</Label>
-                <Input
-                  id="endAt"
-                  type="datetime-local"
-                  value={formState.endAt}
-                  onChange={(event) => setFormState((prev) => ({ ...prev, endAt: event.target.value }))}
-                  className="bg-zinc-900 border-zinc-800 text-white"
-                />
+              <EventTimeFields
+                dateValue={formState.startAt.slice(0, 10)}
+                timeValue={formState.startAt.slice(11, 16)}
+                durationMinutes={formState.durationMinutes}
+                timezone={formState.timezone}
+                onDateChange={(dateValue) => setFormState((prev) => {
+                  const timeValue = prev.startAt.slice(11, 16) || '16:00'
+                  const startAt = mergeDateAndTime(dateValue, timeValue)
+                  const start = new Date(startAt)
+                  return { ...prev, startAt, endAt: Number.isNaN(start.getTime()) ? prev.endAt : toLocalDateTimeInput(new Date(start.getTime() + prev.durationMinutes * 60000)) }
+                })}
+                onTimeChange={(timeValue) => setFormState((prev) => {
+                  const startAt = mergeDateAndTime(prev.startAt.slice(0, 10), timeValue)
+                  const start = new Date(startAt)
+                  return { ...prev, startAt, endAt: Number.isNaN(start.getTime()) ? prev.endAt : toLocalDateTimeInput(new Date(start.getTime() + prev.durationMinutes * 60000)) }
+                })}
+                onDurationChange={(durationMinutes) => setFormState((prev) => {
+                  const start = new Date(prev.startAt)
+                  return { ...prev, durationMinutes, endAt: Number.isNaN(start.getTime()) ? prev.endAt : toLocalDateTimeInput(new Date(start.getTime() + durationMinutes * 60000)) }
+                })}
+              />
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div className="grid gap-2">
+                  <Label htmlFor="learningOutcomes" className="text-zinc-400">Learning outcomes</Label>
+                  <Textarea
+                    id="learningOutcomes"
+                    value={formState.learningOutcomes}
+                    onChange={(event) => setFormState((prev) => ({ ...prev, learningOutcomes: event.target.value }))}
+                    placeholder="One outcome per line"
+                    rows={3}
+                    className="bg-zinc-900 border-zinc-800 text-white"
+                  />
+                </div>
+                <div className="grid content-start gap-2">
+                  <Label className="text-zinc-400">Calendar reminder</Label>
+                  <Select value={formState.reminderMinutes} onValueChange={(reminderMinutes) => setFormState((prev) => ({ ...prev, reminderMinutes }))}>
+                    <SelectTrigger className="bg-zinc-900 border-zinc-800 text-white"><SelectValue /></SelectTrigger>
+                    <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
+                      <SelectItem value="15">15 minutes before</SelectItem>
+                      <SelectItem value="30">30 minutes before</SelectItem>
+                      <SelectItem value="60">1 hour before</SelectItem>
+                      <SelectItem value="1440">24 hours before</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs leading-5 text-zinc-500">Members receive this reminder when they add the event to their calendar.</p>
+                </div>
               </div>
             </div>
+
+            <ProgrammeSpeakerForm value={speakerDraft} onChange={setSpeakerDraft} />
 
             {/* Location Group */}
             <div className="space-y-3 bg-zinc-900/50 p-4 rounded-xl border border-white/5">
