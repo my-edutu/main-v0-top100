@@ -398,7 +398,8 @@ html.light .hub-award-dark .hub-desktop-nav, .hub-award-dark .hub-desktop-nav { 
 html.light .hub-award-dark .hub-desktop-nav a { color: #eee9ef !important; }
 html.light .award-welcome-backdrop, .award-welcome-backdrop { background: #f5f5f4 !important; opacity: 1 !important; animation: none !important; }
 .hub-events-rail { display:flex; gap:12px; overflow-x:auto; scroll-snap-type:x mandatory; padding:3px 2px 12px; scrollbar-width:thin; }
-.hub-upcoming-event { flex:0 0 min(280px, 85%); scroll-snap-align:start; display:flex; flex-direction:column; justify-content:flex-end; gap:8px; min-height:190px; border:1px solid #e7ddcf; border-radius:18px; padding:20px; background-color:#1d2430; background-size:cover; background-position:center; overflow:hidden; }
+.hub-upcoming-event { position:relative; flex:0 0 min(280px, 85%); scroll-snap-align:start; display:flex; flex-direction:column; justify-content:flex-end; gap:8px; min-height:190px; border:1px solid #e7ddcf; border-radius:18px; padding:20px; background-color:#1d2430; background-size:cover; background-position:center; overflow:hidden; }
+.hub-upcoming-event-label { position:absolute; left:20px; top:18px; max-width:calc(100% - 40px); border:1px solid #ffffff55; border-radius:999px; background:#17111699; padding:5px 9px; color:#fff; font-size:10px; font-weight:700; letter-spacing:.12em; line-height:1; text-transform:uppercase; }
 html.light .awardee-dashboard .hub-upcoming-event,
 .awardee-dashboard .hub-upcoming-event { color:#fff!important; }
 html.light .awardee-dashboard .hub-upcoming-event :is(span,p),

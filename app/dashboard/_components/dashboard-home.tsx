@@ -243,11 +243,11 @@ export function DashboardHome() {
               className="hub-upcoming-event focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-2"
               style={item.cover ? { backgroundImage: `linear-gradient(180deg, rgba(12,12,16,.08) 15%, rgba(12,12,16,.88) 100%), url(${item.cover})` } : undefined}
             >
+              <span className="hub-upcoming-event-label relative z-10 self-start">{item.detail}</span>
               <span className="relative z-10 min-w-0 self-end text-white">
                 <span className="block break-words text-sm font-semibold text-white">{item.title}</span>
-                <span className="mt-0.5 block truncate text-xs font-normal text-white/80">{item.detail}</span>
+                <span className="mt-2 block text-xs font-medium text-white/90">{item.date}</span>
               </span>
-              <span className="relative z-10 text-xs font-medium text-white/90">{item.date}</span>
             </Link>
           )) : (
             <div className="py-3"><p className="text-sm text-[#625B52]">No upcoming events yet.</p><Link className="mt-1 inline-flex min-h-11 items-center gap-1 text-xs font-medium text-[#171717]" href="/dashboard/discover/events">View events <ArrowUpRight size={14} aria-hidden="true" /></Link></div>
