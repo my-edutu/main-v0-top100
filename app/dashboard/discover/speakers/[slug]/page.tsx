@@ -8,7 +8,7 @@ export default async function ProgrammeSpeakerPage({ params }: { params: Promise
   const db = createAdminClient()
   const { data: speaker, error } = await db.from('programme_speakers').select('*').eq('slug', slug).eq('status', 'published').maybeSingle()
   if (error || !speaker) notFound()
-  const { data: events } = await db.from('events').select('slug, title, start_at').eq('speaker_id', speaker.id).eq('status', 'published').eq('visibility', 'public').order('start_at')
+  const { data: events } = await db.from('events').select('slug, title, start_at').eq('speaker_id', speaker.id).eq('status', 'published').in('visibility', ['public', 'awardee_only']).order('start_at')
 
   return <article className="programme-speaker-page">
     <Link href="/dashboard/discover/events" className="programme-back-link"><ArrowLeft aria-hidden="true" className="h-4 w-4" />Back to events</Link>

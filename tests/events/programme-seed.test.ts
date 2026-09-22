@@ -10,5 +10,6 @@ describe('programme seed contract', () => {
       expect(item.durationMinutes).toBe(60)
     }
     expect(seed).toContain("'Africa/Lagos'")
+    expect(seed).toContain("set visibility = 'awardee_only'")
   })
 })

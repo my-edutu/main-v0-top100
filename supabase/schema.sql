@@ -248,7 +248,7 @@ create table if not exists public.posts (
   read_time integer,
   is_featured boolean default false,
   status text not null default 'draft',
-  visibility text not null default 'public',
+  visibility text not null default 'public' check (visibility in ('public', 'awardee_only', 'private')),
   scheduled_at timestamp with time zone,
   author_id uuid references public.profiles (id),
   meta_title text,

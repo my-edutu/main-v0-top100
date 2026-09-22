@@ -3,6 +3,7 @@ import "server-only"
 import { unstable_cache } from "next/cache"
 
 import { createAdminClient } from "@/lib/supabase/server"
+import { PROGRAMME_LABEL } from "@/lib/events/programme"
 
 export interface HomepageEvent {
   id: string
@@ -283,7 +284,9 @@ export const getHomepageEvents = unstable_cache(
         return loadStaticHomepageEvents()
       }
 
-      return (data as Record<string, unknown>[]).map(mapHomepageEvent)
+      return (data as Record<string, unknown>[])
+        .filter(record => record.programme_label !== PROGRAMME_LABEL)
+        .map(mapHomepageEvent)
     } catch (error) {
       console.warn("[homepage-feed] Events unavailable", error)
       return loadStaticHomepageEvents()

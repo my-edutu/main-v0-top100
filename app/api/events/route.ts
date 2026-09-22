@@ -5,12 +5,15 @@ import { requireAdmin } from '@/lib/api/require-admin'
 import { getHomepageEvents } from '@/lib/homepage-feed'
 import { createAdminClient } from '@/lib/supabase/server'
 import { toMemberEventRow } from '@/lib/events/programme-api'
-import { validateProgrammeEventInput } from '@/lib/events/programme'
+import { PROGRAMME_LABEL, validateProgrammeEventInput } from '@/lib/events/programme'
+import { EVENT_VISIBILITIES, type EventVisibility } from '@/lib/events/visibility'
+import { getCurrentUser } from '@/lib/auth-server'
+import { hasValidDemoSession, isLoopbackDevelopment } from '@/lib/dev-dashboard/auth'
 
 
 
 const ALLOWED_STATUSES = new Set(['draft', 'published', 'archived'])
-const ALLOWED_VISIBILITY = new Set(['public', 'private'])
+const ALLOWED_VISIBILITY = new Set<EventVisibility>(EVENT_VISIBILITIES)
 
 type RawEventPayload = Record<string, unknown>
 
@@ -33,7 +36,7 @@ type SanitizedEventPayload = {
   tags: string[]
   capacity: number | null
   status: string
-  visibility: string
+  visibility: EventVisibility
   is_featured: boolean
   metadata: Record<string, unknown>
   programme_label: string | null
@@ -98,8 +101,8 @@ const sanitizePayload = (raw: RawEventPayload, opts: { isUpdate?: boolean } = {}
   const normalizedStatus = typeof raw.status === 'string' && ALLOWED_STATUSES.has(raw.status.trim().toLowerCase())
     ? raw.status.trim().toLowerCase()
     : 'draft'
-  const normalizedVisibility = typeof raw.visibility === 'string' && ALLOWED_VISIBILITY.has(raw.visibility.trim().toLowerCase())
-    ? raw.visibility.trim().toLowerCase()
+  const normalizedVisibility: EventVisibility = typeof raw.visibility === 'string' && ALLOWED_VISIBILITY.has(raw.visibility.trim().toLowerCase() as EventVisibility)
+    ? raw.visibility.trim().toLowerCase() as EventVisibility
     : 'public'
 
   const endAt = isoOrNull(raw.end_at ?? raw.endAt ?? raw.ends_at)
@@ -177,7 +180,16 @@ export async function GET(req: NextRequest) {
     .order('start_at', { ascending: false })
 
   if (scope !== 'admin') {
-    query.eq('status', 'published').eq('visibility', 'public')
+    query.eq('status', 'published')
+    const audience = searchParams.get('audience')
+    if (audience === 'awardees') {
+      const user = await getCurrentUser()
+      const isDemo = isLoopbackDevelopment(req) && hasValidDemoSession(req)
+      if (user?.id || isDemo) query.in('visibility', ['public', 'awardee_only'])
+      else query.eq('visibility', 'public')
+    } else {
+      query.eq('visibility', 'public')
+    }
   }
 
   const { data, error } = await query
@@ -187,7 +199,11 @@ export async function GET(req: NextRequest) {
     return toJsonResponse(await getHomepageEvents())
   }
 
-  return toJsonResponse(scope === 'admin' ? data ?? [] : (data ?? []).map((row) => toMemberEventRow({
+  const visibleRows = scope === 'admin' || searchParams.get('audience') === 'awardees'
+    ? data ?? []
+    : (data ?? []).filter(row => row.programme_label !== PROGRAMME_LABEL)
+
+  return toJsonResponse(scope === 'admin' ? data ?? [] : visibleRows.map((row) => toMemberEventRow({
     ...row,
     speaker: row.programme_speakers,
   })))
@@ -321,8 +337,8 @@ export async function PATCH(req: NextRequest) {
       updates.status = body.status.trim().toLowerCase()
     }
 
-    if (typeof body.visibility === 'string' && ALLOWED_VISIBILITY.has(body.visibility.trim().toLowerCase())) {
-      updates.visibility = body.visibility.trim().toLowerCase()
+    if (typeof body.visibility === 'string' && ALLOWED_VISIBILITY.has(body.visibility.trim().toLowerCase() as EventVisibility)) {
+      updates.visibility = body.visibility.trim().toLowerCase() as EventVisibility
     }
 
     if (Object.prototype.hasOwnProperty.call(body, 'is_featured')) {
@@ -465,9 +481,6 @@ export async function DELETE(req: NextRequest) {
     return toJsonResponse({ message: 'Failed to delete event', error: message }, 400)
   }
 }
-
-
-
 
 
 

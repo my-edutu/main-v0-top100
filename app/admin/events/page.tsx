@@ -95,7 +95,7 @@ const defaultForm = () => ({
   tags: "",
   capacity: "",
   status: "draft" as "draft" | "published" | "archived",
-  visibility: "public" as "public" | "private",
+  visibility: "public" as "public" | "awardee_only" | "private",
   isFeatured: false,
   programmeLabel: "",
   sessionNumber: "",
@@ -127,7 +127,7 @@ type AdminEvent = {
   tags: string[]
   capacity: number | null
   status: "draft" | "published" | "archived"
-  visibility: "public" | "private"
+  visibility: "public" | "awardee_only" | "private"
   is_featured: boolean
   created_at: string
   updated_at: string
@@ -1174,7 +1174,7 @@ function AdminEventsPageContent() {
                 <Label className="text-zinc-400">Visibility</Label>
                 <Select
                   value={formState.visibility}
-                  onValueChange={(visibility: "public" | "private") =>
+                  onValueChange={(visibility: "public" | "awardee_only" | "private") =>
                     setFormState((prev) => ({ ...prev, visibility }))
                   }
                 >
@@ -1183,6 +1183,7 @@ function AdminEventsPageContent() {
                   </SelectTrigger>
                   <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
                     <SelectItem value="public">Public</SelectItem>
+                    <SelectItem value="awardee_only">Awardee only</SelectItem>
                     <SelectItem value="private">Private</SelectItem>
                   </SelectContent>
                 </Select>

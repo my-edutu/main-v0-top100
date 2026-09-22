@@ -19,7 +19,7 @@ export default function EventInvitationsSection({ member }: { member: MemberProf
 
   useEffect(() => {
     let cancelled = false
-    Promise.allSettled([fetchEventInvitations(), fetchPublicEvents(Number.MAX_SAFE_INTEGER)]).then(([invites, published]) => {
+    Promise.allSettled([fetchEventInvitations(), fetchPublicEvents(Number.MAX_SAFE_INTEGER, 'awardees')]).then(([invites, published]) => {
       if (cancelled) return
       setInvitations(invites.status === 'fulfilled' ? invites.value.invitations : [])
       setEvents(published.status === 'fulfilled'

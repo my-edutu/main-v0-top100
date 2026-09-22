@@ -10,7 +10,7 @@ export default async function ProgrammeEventPage({ params }: { params: Promise<{
     .select('*, programme_speakers(id, slug, name, portrait_url, role, organisation, biography, website_url, linkedin_url, social_url, status)')
     .eq('slug', slug)
     .eq('status', 'published')
-    .eq('visibility', 'public')
+    .in('visibility', ['public', 'awardee_only'])
     .maybeSingle()
 
   if (error || !data) notFound()
