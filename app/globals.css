@@ -213,6 +213,13 @@ html.light .site-header .text-zinc-200 {
   color: #ffffff !important;
 }
 
+/* The homepage impact series is intentionally dark even in light theme. */
+html.light .impact-series-dark,
+html.light .impact-series-dark .text-white,
+html.light .impact-series-dark .text-white\/70 {
+  color: #ffffff !important;
+}
+
 @layer base {
   * {
     @apply border-border;

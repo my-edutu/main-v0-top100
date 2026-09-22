@@ -55,7 +55,7 @@ export default function ImpactSeriesSection({ videos = defaultVideos, stacked = 
     : pageVideos
 
   return (
-    <section className={stacked ? "relative overflow-hidden bg-white py-14 text-slate-950 sm:py-20" : "relative overflow-hidden bg-[#10151f] py-16 text-white sm:py-20"}>
+    <section className={stacked ? "relative overflow-hidden bg-white py-14 text-slate-950 sm:py-20" : "impact-series-dark relative overflow-hidden bg-[#10151f] py-16 text-white sm:py-20"}>
       {!stacked && <>
         <div aria-hidden="true" className="pointer-events-none absolute -left-32 top-10 h-72 w-72 rounded-full bg-orange-700/20 blur-3xl" />
         <div aria-hidden="true" className="pointer-events-none absolute -right-24 bottom-0 h-80 w-80 rounded-full bg-amber-300/10 blur-3xl" />
