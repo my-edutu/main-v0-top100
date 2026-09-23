@@ -16,9 +16,7 @@ import {
   UserRoundCheck,
 } from 'lucide-react'
 
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { supabase } from '@/lib/supabase/client'
@@ -226,60 +224,62 @@ export default function SignUpPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.12),transparent_28%),linear-gradient(180deg,#fffaf4_0%,#ffffff_48%,#f8f1e7_100%)] px-4 py-12">
-      <div className="mx-auto max-w-2xl">
-        <div className="mb-8 flex items-center justify-between">
-          <Badge variant="soft" className="border-orange-200 bg-white/80 text-orange-700">
-            Invite only
-          </Badge>
-          <Link
-            href="/login"
-            className="text-sm font-medium text-slate-500 underline-offset-4 hover:text-slate-900 hover:underline"
-          >
-            Already have an account? Sign in
-          </Link>
+    <main className="min-h-[calc(100dvh-5rem)] bg-[#fcfaf7] px-4 pb-16 pt-6 text-[#1d1b1a] sm:px-6 sm:pt-10 lg:py-16">
+      <div className="mx-auto grid max-w-6xl gap-7 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)] lg:gap-14 xl:gap-20">
+        <div className="min-w-0 lg:pt-4">
+          <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-3 lg:items-start lg:justify-start">
+            <span className="inline-flex min-h-8 items-center rounded-full border border-[#f1c49f] bg-[#fff1e6] px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#a53d0a]">
+              Invite only
+            </span>
+            <Link href="/login" className="inline-flex min-h-10 items-center text-sm font-medium text-[#8f350d] underline-offset-4 hover:underline focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600">
+              Already a member? Sign in <ArrowRight aria-hidden="true" className="ml-1 h-4 w-4" />
+            </Link>
+          </div>
+
+          <h1 className="mt-5 max-w-[15ch] text-[clamp(2.15rem,5vw,3.7rem)] font-semibold leading-[1.06] tracking-[-0.045em] text-[#201c1a] lg:mt-12">
+            Claim your awardee profile.
+          </h1>
+          <p className="mt-4 max-w-lg text-[15px] leading-6 text-[#625a55] sm:text-base sm:leading-7">
+            Find your profile in the Top100 directory, verify your identity with the code from our team, and make it yours.
+          </p>
+          <div className="mt-7 hidden border-t border-[#e9dcd1] pt-5 text-sm leading-6 text-[#756b63] lg:block">
+            Your profile is already in the directory. You&apos;ll need your invite code to finish claiming it.
+          </div>
         </div>
 
-        <h1 className="text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
-          Claim your awardee profile.
-        </h1>
-        <p className="mt-2 max-w-lg text-sm leading-6 text-slate-600">
-          Your profile already exists in the Top100 directory. Find yourself, verify it&apos;s really
-          you with the code from the admin team, and take control of it.
-        </p>
-
+        <div className="min-w-0">
         {/* Stepper */}
-        <ol className="mt-8 flex items-center gap-2">
-          {STEPS.map((s, index) => {
+        <ol aria-label="Claim profile progress" className="grid grid-cols-3 gap-2 sm:gap-3">
+          {STEPS.map((s) => {
             const state = step === s.id ? 'current' : step > s.id ? 'done' : 'todo'
             return (
-              <li key={s.id} className="flex flex-1 items-center gap-2">
+              <li key={s.id} aria-current={state === 'current' ? 'step' : undefined} className={cn('min-w-0 rounded-2xl border px-2 py-2.5 sm:px-3', state === 'current' ? 'border-[#ecaa78] bg-[#fff1e6]' : 'border-[#e9e2da] bg-white')}>
+                <span className="flex items-center gap-2">
                 <span
                   className={cn(
-                    'flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-bold',
-                    state === 'done' && 'border-orange-500 bg-orange-500 text-white',
-                    state === 'current' && 'border-orange-500 bg-orange-50 text-orange-700',
-                    state === 'todo' && 'border-slate-200 bg-white text-slate-400'
+                    'flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-semibold',
+                    state === 'done' && 'border-[#c14b14] bg-[#c14b14] text-white',
+                    state === 'current' && 'border-[#c14b14] bg-white text-[#a53d0a]',
+                    state === 'todo' && 'border-[#ded7d0] bg-white text-[#756b63]'
                   )}
                 >
                   {state === 'done' ? <BadgeCheck className="h-4 w-4" /> : s.id}
                 </span>
                 <span
                   className={cn(
-                    'hidden text-xs font-semibold sm:block',
-                    state === 'todo' ? 'text-slate-400' : 'text-slate-800'
+                    'min-w-0 text-[11px] font-medium leading-tight sm:text-xs',
+                    state === 'todo' ? 'text-[#756b63]' : 'text-[#382d27]'
                   )}
                 >
                   {s.title}
                 </span>
-                {index < STEPS.length - 1 && <span className="h-px flex-1 bg-slate-200" />}
+                </span>
               </li>
             )
           })}
         </ol>
 
-        <Card className="mt-6 border-orange-100 bg-white/95 shadow-[0_24px_70px_-46px_rgba(15,23,42,0.55)]">
-          <CardContent className="p-6 sm:p-8">
+        <div className="mt-4 rounded-[24px] border border-[#ecded1] bg-white p-5 shadow-[0_18px_48px_-36px_rgba(68,37,18,0.35)] sm:p-7 lg:mt-5 lg:p-8">
             {error ? (
               <div
                 role="alert"
@@ -291,26 +291,29 @@ export default function SignUpPage() {
 
             {/* STEP 1 — pick yourself from the directory */}
             {step === 1 && (
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <div>
-                  <h2 className="text-lg font-bold text-slate-950">Who are you?</h2>
-                  <p className="mt-1 text-sm text-slate-500">
-                    Choose your name from the list of awardees who haven&apos;t claimed their profile yet.
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#a53d0a]">Step 1 of 3</p>
+                  <h2 className="mt-2 text-[22px] font-semibold tracking-tight text-[#201c1a]">Find your profile</h2>
+                  <p className="mt-1 text-sm leading-6 text-[#625a55]">
+                    Search for your name in the awardee directory.
                   </p>
                 </div>
 
-                <div className="relative">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <div className="relative space-y-2">
+                  <Label htmlFor="signup-directory-search" className="text-sm font-medium text-[#382d27]">Your full name</Label>
+                  <Search className="pointer-events-none absolute left-4 top-[38px] h-5 w-5 text-[#8a8076]" aria-hidden="true" />
                   <Input
+                    id="signup-directory-search"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Search your full name…"
-                    className="rounded-2xl pl-10"
-                    autoFocus
+                    autoComplete="name"
+                    className="h-12 rounded-xl border-[#d9cfc5] bg-white pl-12 text-base focus-visible:ring-orange-600"
                   />
                 </div>
 
-                <div className="max-h-80 space-y-2 overflow-y-auto pr-1" role="listbox" aria-label="Awardee directory">
+                <div className="max-h-[min(42vh,320px)] space-y-2 overflow-y-auto pr-1" role="listbox" aria-label="Awardee directory">
                   {directoryLoading && (
                     <div className="flex items-center justify-center gap-2 py-10 text-sm text-slate-500">
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -321,8 +324,8 @@ export default function SignUpPage() {
                     <p className="py-8 text-center text-sm font-medium text-red-600">{directoryError}</p>
                   )}
                   {!directoryLoading && !directoryError && query.trim().length < 2 && (
-                    <p className="py-8 text-center text-sm text-slate-500">
-                      Enter at least two letters of your name to search.
+                    <p className="rounded-xl bg-[#faf6f1] px-4 py-4 text-sm leading-6 text-[#625a55]">
+                      Type at least two letters to find your profile.
                     </p>
                   )}
                   {!directoryLoading && !directoryError && query.trim().length >= 2 && directory.length === 0 && (
@@ -342,7 +345,7 @@ export default function SignUpPage() {
                         role="option"
                         aria-selected={selected?.id === awardee.id}
                         onClick={() => choose(awardee)}
-                        className="flex w-full items-center gap-3 rounded-2xl border border-slate-100 bg-white px-4 py-3 text-left transition-colors hover:border-orange-200 hover:bg-orange-50/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40"
+                        className="flex min-h-16 w-full items-center gap-3 rounded-xl border border-[#e9e2da] bg-white px-3 py-3 text-left transition-colors hover:border-orange-300 hover:bg-orange-50/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600"
                       >
                         {isPersistentAvatarUrl(awardee.imageUrl) ? (
                           <Image
@@ -358,7 +361,7 @@ export default function SignUpPage() {
                           </span>
                         )}
                         <span className="min-w-0">
-                          <span className="block truncate text-sm font-semibold text-slate-900">{awardee.name}</span>
+                          <span className="block break-words text-sm font-semibold text-slate-900">{awardee.name}</span>
                           <span className="block truncate text-xs text-slate-500">
                             {[awardee.country, awardee.course].filter(Boolean).join(' · ') || 'Top100 awardee'}
                           </span>
@@ -379,8 +382,9 @@ export default function SignUpPage() {
             {step === 2 && selected && (
               <form onSubmit={handleVerifyStep} className="space-y-5">
                 <div>
-                  <h2 className="text-lg font-bold text-slate-950">Verify it&apos;s you</h2>
-                  <p className="mt-1 text-sm text-slate-500">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#a53d0a]">Step 2 of 3</p>
+                  <h2 className="mt-2 text-[22px] font-semibold tracking-tight text-[#201c1a]">Verify it&apos;s you</h2>
+                  <p className="mt-1 text-sm leading-6 text-[#625a55]">
                     Confirm the email on record and enter the one-time code issued by the admin team.
                   </p>
                 </div>
@@ -390,7 +394,7 @@ export default function SignUpPage() {
                     {initials(selected.name)}
                   </span>
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-slate-900">{selected.name}</p>
+                    <p className="break-words text-sm font-semibold text-slate-900">{selected.name}</p>
                     <p className="truncate text-xs text-slate-500">
                       {[selected.country, selected.course].filter(Boolean).join(' · ') || 'Top100 awardee'}
                     </p>
@@ -398,7 +402,7 @@ export default function SignUpPage() {
                   <button
                     type="button"
                     onClick={() => setStep(1)}
-                    className="ml-auto shrink-0 text-xs font-semibold text-orange-700 underline-offset-4 hover:underline"
+                    className="ml-auto min-h-11 shrink-0 text-xs font-semibold text-orange-700 underline-offset-4 hover:underline"
                   >
                     Not you?
                   </button>
@@ -416,7 +420,7 @@ export default function SignUpPage() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="you@example.com"
-                      className="rounded-2xl pl-10"
+                      className="h-12 rounded-xl border-[#d9cfc5] bg-white pl-10 focus-visible:ring-orange-600"
                     />
                   </div>
                   {selected.emailHint && (
@@ -436,7 +440,7 @@ export default function SignUpPage() {
                       value={inviteCode}
                       onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
                       placeholder="AFL-XXXXX-XXXXX"
-                      className="rounded-2xl pl-10 uppercase tracking-wider"
+                      className="h-12 rounded-xl border-[#d9cfc5] bg-white pl-10 uppercase tracking-wider focus-visible:ring-orange-600"
                     />
                   </div>
                   <p className="text-xs text-slate-500">
@@ -444,12 +448,12 @@ export default function SignUpPage() {
                   </p>
                 </div>
 
-                <div className="flex items-center justify-between gap-3 pt-2">
-                  <Button type="button" variant="ghost" onClick={() => setStep(1)} className="rounded-full text-slate-600">
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                  <Button type="button" variant="ghost" onClick={() => setStep(1)} className="min-h-11 rounded-xl text-slate-600">
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Back
                   </Button>
-                  <Button type="submit" className="rounded-full bg-gradient-to-r from-orange-500 to-amber-500 px-6 text-white hover:opacity-95">
+                  <Button type="submit" className="min-h-11 rounded-xl bg-[#ef7b29] px-6 font-semibold text-[#25180f] hover:bg-[#f59a46]">
                     Continue
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
@@ -461,8 +465,9 @@ export default function SignUpPage() {
             {step === 3 && selected && (
               <form noValidate onSubmit={handleCreateAccount} className="space-y-5">
                 <div>
-                  <h2 className="text-lg font-bold text-slate-950">Secure your account</h2>
-                  <p className="mt-1 text-sm text-slate-500">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#a53d0a]">Step 3 of 3</p>
+                  <h2 className="mt-2 text-[22px] font-semibold tracking-tight text-[#201c1a]">Secure your account</h2>
+                  <p className="mt-1 text-sm leading-6 text-[#625a55]">
                     Set a password for <span className="font-semibold text-slate-800">{email}</span>. From here on,
                     you control your profile.
                   </p>
@@ -480,7 +485,7 @@ export default function SignUpPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Minimum 8 characters"
-                    className="rounded-2xl"
+                    className="h-12 rounded-xl border-[#d9cfc5] bg-white focus-visible:ring-orange-600"
                   />
                 </div>
 
@@ -496,7 +501,7 @@ export default function SignUpPage() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Repeat your password"
-                    className="rounded-2xl"
+                    className="h-12 rounded-xl border-[#d9cfc5] bg-white focus-visible:ring-orange-600"
                   />
                 </div>
 
@@ -537,7 +542,7 @@ export default function SignUpPage() {
                       setStep(2)
                     }}
                     disabled={submitting}
-                    className="rounded-full text-slate-600"
+                    className="min-h-11 rounded-xl text-slate-600"
                   >
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Back
@@ -545,7 +550,7 @@ export default function SignUpPage() {
                   <Button
                     type="submit"
                     disabled={submitting}
-                    className="rounded-full bg-gradient-to-r from-orange-500 to-amber-500 px-6 text-white hover:opacity-95"
+                    className="min-h-11 rounded-xl bg-[#ef7b29] px-6 font-semibold text-[#25180f] hover:bg-[#f59a46]"
                   >
                     {submitting ? (
                       <>
@@ -562,8 +567,8 @@ export default function SignUpPage() {
                 </div>
               </form>
             )}
-          </CardContent>
-        </Card>
+        </div>
+        </div>
       </div>
     </main>
   )
