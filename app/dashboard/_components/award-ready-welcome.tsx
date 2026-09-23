@@ -30,8 +30,8 @@ export function AwardReadyWelcome({ memberId, name }: { memberId: string; name: 
   const firstName = name.trim().split(/\s+/)[0] || 'there'
   return (
     <Dialog open={open} onOpenChange={changeOpen}>
-      <DialogContent className="max-h-[90dvh] w-[calc(100%_-_32px)] max-w-lg overflow-y-auto rounded-3xl border-amber-200 bg-white p-0 text-neutral-950">
-        <div className="relative h-48 overflow-hidden rounded-t-3xl bg-[#ffc51b] sm:h-56">
+      <DialogContent className="max-h-[min(88dvh,720px)] w-[calc(100%_-_32px)] max-w-md gap-0 overflow-y-auto rounded-[24px] border border-[#e8dccf] bg-white p-0 text-neutral-950 shadow-2xl">
+        <div className="relative h-36 overflow-hidden rounded-t-[24px] bg-[#ffc51b] sm:h-44">
           <Image
             src="/blog/Top100 Africa Future Leaders patners with one young world.png"
             alt="One Young World and Africa Future Leaders"
@@ -47,13 +47,13 @@ export function AwardReadyWelcome({ memberId, name }: { memberId: string; name: 
             26
           </span>
         </div>
-        <div className="space-y-4 px-6 pb-7 text-center sm:px-9 sm:pb-9">
-          <p className="text-sm font-medium text-orange-800">Congratulations, {firstName}!</p>
-          <DialogTitle className="text-3xl font-semibold leading-tight">Your Africa Future Leaders award is ready.</DialogTitle>
+        <div className="space-y-3 px-5 pb-6 pt-5 text-left sm:px-7 sm:pb-7 sm:pt-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.13em] text-orange-800">Congratulations, {firstName}</p>
+          <DialogTitle className="max-w-[18ch] text-[26px] font-semibold leading-[1.12] tracking-[-0.035em] sm:text-[30px]">Your Africa Future Leaders award is ready.</DialogTitle>
           <DialogDescription className="text-sm leading-6 text-neutral-600">
             Celebrate your recognition, strengthen your profile, and connect with the Africa Future Leaders community.
           </DialogDescription>
-          <Link href="/dashboard/me/award" onClick={() => changeOpen(false)} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-amber-400 px-5 font-medium text-neutral-950 hover:bg-amber-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-orange-700">
+          <Link href="/dashboard/me/award" onClick={() => changeOpen(false)} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-amber-400 px-5 font-semibold text-neutral-950 transition-colors hover:bg-amber-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-orange-700">
             View my award <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </Link>
         </div>

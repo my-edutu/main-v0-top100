@@ -226,7 +226,7 @@ export function DashboardHome() {
         </section>
       ) : null}
 
-      <section aria-labelledby="coming-up-title" className="hub-upcoming-events min-w-0 md:order-4">
+      <section aria-labelledby="coming-up-title" className="hub-upcoming-events min-w-0">
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 id="coming-up-title" className="hub-panel-title">Upcoming events</h2>
@@ -303,7 +303,7 @@ export function DashboardHome() {
         </div>
       </section>
 
-      <section aria-labelledby="recent-title" className="hub-panel md:order-5">
+      <section aria-labelledby="recent-title" className="hub-panel hub-updates-panel">
         <div className="flex items-center justify-between"><h2 id="recent-title" className="hub-panel-title">Latest updates</h2><Link href="/dashboard/updates" className="inline-flex min-h-11 items-center gap-1 text-xs font-semibold text-[#171717]">All updates <ArrowUpRight size={15} aria-hidden="true" /></Link></div>
         <div className="mt-3 divide-y divide-[#E7DDCF]">
           {recentItems.length > 0 ? recentItems.map((item) => {
