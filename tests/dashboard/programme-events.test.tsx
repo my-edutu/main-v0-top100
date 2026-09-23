@@ -35,4 +35,12 @@ describe('member programme event cards', () => {
     expect(markup).toContain('Add to calendar')
     expect(markup).toContain('/dashboard/discover/events/global-talent-playbook')
   })
+
+  it('shows each event title and date only once while retaining its artwork and actions', () => {
+    const markup = renderToStaticMarkup(<ProgrammeEventCard event={fixtureWithoutSpeaker} />)
+    expect(markup.match(/>The Global Talent Playbook: How to Become Competitive Beyond Africa</g)).toHaveLength(1)
+    expect(markup.match(/>Sun, Oct 11</g)).toHaveLength(1)
+    expect(markup).toContain('global-talent-playbook.png')
+    expect(markup).toContain('Add to calendar')
+  })
 })

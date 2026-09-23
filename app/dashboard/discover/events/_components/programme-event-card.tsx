@@ -19,16 +19,12 @@ export function ProgrammeEventCard({ event, completed = false, index = 0 }: { ev
   return (
     <article className={`programme-event-card ${completed ? 'is-completed' : ''}`}>
       <Link href={`/dashboard/discover/events/${event.slug}`} className="programme-event-card-link group">
-        <ProgrammeCover sessionNumber={event.sessionNumber} title={event.title} date={date} className={`programme-event-art programme-event-art-${index % 4}`} />
-        <ArrowUpRight aria-hidden="true" className="programme-event-arrow h-5 w-5" />
+        <ProgrammeCover sessionNumber={event.sessionNumber} className={`programme-event-art programme-event-art-${index % 4}`} />
         <div className="programme-event-copy">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-orange-700">
-            <span className="inline-flex items-center gap-1"><CalendarDays aria-hidden="true" className="h-3.5 w-3.5" />{date}</span>
-            <span className="inline-flex items-center gap-1"><Clock3 aria-hidden="true" className="h-3.5 w-3.5" />60 min</span>
-          </div>
-          <h3 className="mt-3 text-xl font-semibold leading-tight tracking-[-0.03em] text-stone-950">{event.title}</h3>
-          {event.summary ? <p className="mt-2 line-clamp-2 text-sm leading-6 text-stone-600">{event.summary}</p> : null}
-          <div className="mt-4 flex items-center gap-2 text-xs font-medium text-stone-500"><Video aria-hidden="true" className="h-4 w-4 text-orange-500" />Virtual · {time} WAT</div>
+          <div className="programme-event-date"><CalendarDays aria-hidden="true" className="h-4 w-4" />{date}</div>
+          <div className="programme-event-heading"><h3>{event.title}</h3><ArrowUpRight aria-hidden="true" className="programme-event-arrow" /></div>
+          {event.summary ? <p className="programme-event-summary">{event.summary}</p> : null}
+          <div className="programme-event-meta"><span><Clock3 aria-hidden="true" className="h-4 w-4" />{time} WAT</span><span><Video aria-hidden="true" className="h-4 w-4" />Virtual</span></div>
         </div>
       </Link>
       <div className="programme-event-footer">
