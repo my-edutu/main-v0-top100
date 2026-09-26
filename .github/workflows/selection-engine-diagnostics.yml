@@ -1,0 +1,132 @@
+name: Selection Engine Diagnostics
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/selection-engine-diagnostics.yml'
+      - 'app/admin/selection/**'
+      - 'app/api/admin/selection/**'
+      - 'app/api/cron/selection-worker/**'
+      - 'app/selection-results/**'
+      - 'lib/selection/**'
+      - 'supabase/migrations/20260824*.sql'
+      - 'tests/admin/nav-config.test.ts'
+      - 'tests/security/selection-*.test.ts'
+      - 'tests/selection/**'
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-local-dev-key
+      SUPABASE_SERVICE_ROLE_KEY: placeholder-ci-service-role-key
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prepare diagnostics
+        run: mkdir -p selection-diagnostics
+
+      - name: Run tests with captured output
+        id: tests
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          npm test 2>&1 | tee selection-diagnostics/tests.log
+          exit_code=${PIPESTATUS[0]}
+          set -e
+          echo "exit_code=$exit_code" >> selection-diagnostics/outcomes.txt
+          exit "$exit_code"
+
+      - name: Run changed-line lint with captured output
+        id: lint
+        continue-on-error: true
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          mapfile -d '' files < <(
+            git diff --name-only --diff-filter=ACMR -z "$BASE_SHA" "$HEAD_SHA" -- \
+              '*.js' '*.jsx' '*.ts' '*.tsx' '*.mjs' '*.cjs'
+          )
+
+          if (( ${#files[@]} == 0 )); then
+            echo "No lintable files changed." | tee selection-diagnostics/lint.log
+            echo "lint_exit_code=0" >> selection-diagnostics/outcomes.txt
+            exit 0
+          fi
+
+          set +e
+          npx eslint --format json --output-file selection-diagnostics/eslint-changed.json "${files[@]}"
+          eslint_exit=$?
+          git diff --unified=0 --diff-filter=ACMR "$BASE_SHA" "$HEAD_SHA" -- "${files[@]}" > selection-diagnostics/changed.diff
+          npx tsx scripts/lint-changed-lines.ts selection-diagnostics/eslint-changed.json selection-diagnostics/changed.diff \
+            2>&1 | tee selection-diagnostics/lint.log
+          gate_exit=${PIPESTATUS[0]}
+          set -e
+
+          echo "eslint_exit_code=$eslint_exit" >> selection-diagnostics/outcomes.txt
+          echo "lint_gate_exit_code=$gate_exit" >> selection-diagnostics/outcomes.txt
+          if (( eslint_exit > 1 )); then
+            exit "$eslint_exit"
+          fi
+          exit "$gate_exit"
+
+      - name: Run production build with captured output
+        id: build
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          npm run build 2>&1 | tee selection-diagnostics/build.log
+          exit_code=${PIPESTATUS[0]}
+          set -e
+          echo "build_exit_code=$exit_code" >> selection-diagnostics/outcomes.txt
+          exit "$exit_code"
+
+      - name: Record step outcomes
+        if: always()
+        run: |
+          cat >> selection-diagnostics/outcomes.txt <<'EOF'
+          tests_outcome=${{ steps.tests.outcome }}
+          lint_outcome=${{ steps.lint.outcome }}
+          build_outcome=${{ steps.build.outcome }}
+          EOF
+          cat selection-diagnostics/outcomes.txt
+
+      - name: Upload diagnostic bundle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selection-engine-diagnostics
+          path: selection-diagnostics
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: Enforce diagnostics
+        if: always()
+        shell: bash
+        run: |
+          failed=0
+          [[ "${{ steps.tests.outcome }}" == "success" ]] || failed=1
+          [[ "${{ steps.lint.outcome }}" == "success" ]] || failed=1
+          [[ "${{ steps.build.outcome }}" == "success" ]] || failed=1
+          exit "$failed"
