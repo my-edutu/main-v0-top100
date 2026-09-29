@@ -88,13 +88,13 @@ export function bachsConfig(env: Environment = process.env): BachsConfig {
   }
   if (/\s/.test(apiKey)) throw new Error('BACHS_API_KEY must not contain whitespace.')
 
-  const webhookSecret = required(env, 'BACHS_WEBHOOK_SECRET')
   const siteUrl = parseSiteUrl(required(env, 'NEXT_PUBLIC_SITE_URL'), env.NODE_ENV)
 
   return {
     apiKey,
     apiBaseUrl,
-    webhookSecret,
+    awardWebhookSecret: env.BACHS_AWARD_WEBHOOK_SECRET?.trim() || null,
+    magazineWebhookSecret: env.BACHS_MAGAZINE_WEBHOOK_SECRET?.trim() || null,
     organizationId: env.BACHS_ORGANIZATION_ID?.trim() || null,
     webhookToleranceSeconds: parseTolerance(env.BACHS_WEBHOOK_TOLERANCE_SECONDS),
     checkoutHosts: parseCheckoutHosts(env.BACHS_CHECKOUT_HOSTS, env.NODE_ENV),

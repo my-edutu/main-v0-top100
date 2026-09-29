@@ -82,7 +82,17 @@ function trustedSiteUrl(input: CreateCheckoutInput): string {
 }
 
 function callbackUrl(siteUrl: string, path: string): string {
+  if (!path.startsWith('/') || path.startsWith('//')) {
+    throw new Error('Bachs checkout callback path must be a local path.')
+  }
   return new URL(path, `${siteUrl.replace(/\/$/, '')}/`).toString()
+}
+
+function amountString(amountMinor: number): string {
+  if (!Number.isSafeInteger(amountMinor) || amountMinor < 1) {
+    throw new Error('Bachs checkout price must be a positive integer minor-unit amount.')
+  }
+  return `${Math.floor(amountMinor / 100)}.${String(amountMinor % 100).padStart(2, '0')}`
 }
 
 /** Build the exact server-owned body for a hosted Bachs award checkout. */
@@ -95,7 +105,12 @@ export function buildCheckoutRequest(input: CreateCheckoutInput): BachsCheckoutR
   const email = asNonEmptyString(input.customer.email, 'customer email', 320)
   if (!email.includes('@')) throw new Error('customer email must be valid.')
   const siteUrl = trustedSiteUrl(input)
-  const fee = awardFee(input.currency)
+  const purpose = input.purpose ?? 'afl_award_fee_v1'
+  const prices = input.priceMinorByCurrency ?? {
+    NGN: awardFee('NGN').amountMinor,
+    USD: awardFee('USD').amountMinor,
+  }
+  const billingCurrency = input.currency
 
   const customer: BachsCheckoutRequest['customer'] = { email }
   if (input.customer.name?.trim()) customer.name = input.customer.name.trim()
@@ -104,15 +119,15 @@ export function buildCheckoutRequest(input: CreateCheckoutInput): BachsCheckoutR
   return {
     pricing: {
       currency: 'USD',
-      amount: awardFee('USD').bachsAmount,
-      currency_options: { NGN: awardFee('NGN').bachsAmount },
+      amount: amountString(prices.USD),
+      currency_options: { NGN: amountString(prices.NGN) },
     },
-    billing_currency: fee.currency,
+    billing_currency: billingCurrency,
     customer,
     reference,
-    metadata: { order_id: orderId, payment_attempt_id: attemptId, purpose: 'afl_award_fee_v1' },
-    success_url: callbackUrl(siteUrl, BACHS_AWARD_SUCCESS_PATH),
-    cancel_url: callbackUrl(siteUrl, BACHS_AWARD_CANCEL_PATH),
+    metadata: { order_id: orderId, payment_attempt_id: attemptId, purpose },
+    success_url: callbackUrl(siteUrl, input.successPath ?? BACHS_AWARD_SUCCESS_PATH),
+    cancel_url: callbackUrl(siteUrl, input.cancelPath ?? BACHS_AWARD_CANCEL_PATH),
     expires_in_minutes: 60,
   }
 }

@@ -16,7 +16,8 @@ export type AwardFee = {
 export type BachsConfig = {
   apiKey: string
   apiBaseUrl: 'https://sandbox-api.bachs.io' | 'https://api.bachs.io'
-  webhookSecret: string
+  awardWebhookSecret: string | null
+  magazineWebhookSecret: string | null
   organizationId: string | null
   webhookToleranceSeconds: number
   checkoutHosts: ReadonlySet<string>
@@ -44,7 +45,7 @@ export type BachsCheckoutRequest = {
   metadata: {
     order_id: string
     payment_attempt_id: string
-    purpose: 'afl_award_fee_v1'
+    purpose: 'afl_award_fee_v1' | 'afl_magazine_feature_v1'
   }
   success_url: string
   cancel_url: string
@@ -58,6 +59,11 @@ export type CreateCheckoutInput = {
   idempotencyKey: string
   reference: string
   currency: AwardPaymentCurrency
+  /** Only set by the server-side magazine feature checkout service. */
+  purpose?: 'afl_award_fee_v1' | 'afl_magazine_feature_v1'
+  priceMinorByCurrency?: { NGN: number; USD: number }
+  successPath?: string
+  cancelPath?: string
   customer: {
     email: string
     name?: string

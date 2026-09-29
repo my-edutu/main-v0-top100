@@ -157,7 +157,8 @@ function depsFor(state: DbState, notify = vi.fn()): BachsWebhookDeps {
     config: {
       apiKey: 'sk_sandbox_test',
       apiBaseUrl: 'https://sandbox-api.bachs.io',
-      webhookSecret: SECRET,
+      awardWebhookSecret: SECRET,
+      magazineWebhookSecret: 'magazine-secret',
       organizationId: 'org-1',
       webhookToleranceSeconds: 300,
       checkoutHosts: new Set(['checkout.bachs.io']),
@@ -212,6 +213,20 @@ describe('handleBachsEvent', () => {
 
     expect(result.status).toBe('rejected')
     expect(result.httpStatus).toBe(401)
+    expect(state.rpcCalls).toHaveLength(0)
+  })
+
+  it('fails closed when the award webhook destination has no signing secret', async () => {
+    const state: DbState = { attempt: attemptFor('NGN'), updates: [], rpcCalls: [] }
+    const rawBody = JSON.stringify(eventFor('NGN', '25000.00'))
+    const verifySignature = vi.fn(() => true)
+    const result = await handleBachsEvent(rawBody, signedHeaders(rawBody), {
+      ...depsFor(state),
+      config: { ...depsFor(state).config!, awardWebhookSecret: null },
+      verifySignature,
+    })
+    expect(result).toMatchObject({ status: 'configuration_error', httpStatus: 503 })
+    expect(verifySignature).not.toHaveBeenCalled()
     expect(state.rpcCalls).toHaveLength(0)
   })
 

@@ -13,7 +13,7 @@ const config = bachsConfig({
   NODE_ENV: 'test',
   BACHS_API_KEY: 'sk_sandbox_test-key',
   BACHS_API_BASE_URL: 'https://sandbox-api.bachs.io',
-  BACHS_WEBHOOK_SECRET: 'webhook-secret',
+  BACHS_AWARD_WEBHOOK_SECRET: 'award-webhook-secret',
   BACHS_CHECKOUT_HOSTS: 'checkout.bachs.io',
   NEXT_PUBLIC_SITE_URL: 'https://top100afl.com',
 })
@@ -54,6 +54,23 @@ describe('buildCheckoutRequest', () => {
     const request = buildCheckoutRequest({ ...ngnInput, currency: 'USD' })
     expect(request.billing_currency).toBe('USD')
     expect(request.pricing).toEqual({ currency: 'USD', amount: '20.00', currency_options: { NGN: '25000.00' } })
+  })
+
+  it('builds a separately scoped magazine checkout from server-supplied campaign prices', () => {
+    const request = buildCheckoutRequest({
+      ...ngnInput,
+      purpose: 'afl_magazine_feature_v1',
+      priceMinorByCurrency: { NGN: 1_000_000, USD: 1_000 },
+      successPath: '/dashboard/me/feature?payment=done',
+      cancelPath: '/dashboard/me/feature?payment=cancelled',
+    })
+    expect(request).toMatchObject({
+      pricing: { currency: 'USD', amount: '10.00', currency_options: { NGN: '10000.00' } },
+      billing_currency: 'NGN',
+      metadata: { order_id: ngnInput.orderId, payment_attempt_id: ngnInput.attemptId, purpose: 'afl_magazine_feature_v1' },
+      success_url: 'https://top100afl.com/dashboard/me/feature?payment=done',
+      cancel_url: 'https://top100afl.com/dashboard/me/feature?payment=cancelled',
+    })
   })
 
   it('does not include shipping, address, courier, or client amount fields', () => {

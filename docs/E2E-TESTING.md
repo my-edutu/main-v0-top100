@@ -42,7 +42,8 @@ degrades safely, but the feature it powers is inert without it.
 | Variable | Without it |
 |---|---|
 | `BACHS_API_KEY`, `BACHS_API_BASE_URL`, `BACHS_CHECKOUT_HOSTS`, `AWARD_CHECKOUT_ENABLED=true` | New award checkout cannot start. Use sandbox credentials first. |
-| `BACHS_WEBHOOK_SECRET`, `BACHS_ORGANIZATION_ID` | Signed Bachs confirmation cannot be accepted safely. See [Bachs setup](bachs-integration.md). |
+| `MAGAZINE_CHECKOUT_ENABLED=true` | Magazine feature checkout cannot start until the independent Bachs configuration and magazine webhook secret are present. |
+| `BACHS_AWARD_WEBHOOK_SECRET`, `BACHS_MAGAZINE_WEBHOOK_SECRET`, `BACHS_ORGANIZATION_ID` | The corresponding signed Bachs confirmation cannot be accepted safely. See [Bachs setup](bachs-integration.md). |
 | `GIG_API_BASE_URL`, `GIG_API_USERNAME`, `GIG_API_PASSWORD` | `getCourier()` returns the manual adapter: every quote fails and every order lands in `quote_failed` for manual admin pricing. |
 | `GIG_ENABLED=true` | **Required in addition to the credentials.** Without it the GIG adapter stays off even when fully configured — see the warning below. |
 | `BREVO_API_KEY` | Award milestone emails are skipped (logged, not sent). In-app notifications still write. |

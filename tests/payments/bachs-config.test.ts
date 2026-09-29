@@ -6,7 +6,8 @@ const baseEnv = {
   NODE_ENV: 'test',
   BACHS_API_KEY: 'sk_sandbox_test-key',
   BACHS_API_BASE_URL: 'https://sandbox-api.bachs.io',
-  BACHS_WEBHOOK_SECRET: 'webhook-secret',
+  BACHS_AWARD_WEBHOOK_SECRET: 'award-webhook-secret',
+  BACHS_MAGAZINE_WEBHOOK_SECRET: 'magazine-webhook-secret',
   BACHS_ORGANIZATION_ID: 'acct_test',
   BACHS_CHECKOUT_HOSTS: 'checkout.bachs.io, sandbox-checkout.bachs.io',
   NEXT_PUBLIC_SITE_URL: 'https://top100afl.com',
@@ -18,6 +19,8 @@ describe('bachsConfig', () => {
 
     expect(config.apiBaseUrl).toBe('https://sandbox-api.bachs.io')
     expect(config.apiKey).toBe('sk_sandbox_test-key')
+    expect(config.awardWebhookSecret).toBe('award-webhook-secret')
+    expect(config.magazineWebhookSecret).toBe('magazine-webhook-secret')
     expect(config.webhookToleranceSeconds).toBe(300)
     expect(config.checkoutHosts).toEqual(new Set(['checkout.bachs.io', 'sandbox-checkout.bachs.io']))
     expect(config.siteUrl).toBe('https://top100afl.com')
@@ -31,7 +34,8 @@ describe('bachsConfig', () => {
   it('rejects unknown API roots and malformed secrets', () => {
     expect(() => bachsConfig({ ...baseEnv, BACHS_API_BASE_URL: 'https://evil.example/v1' })).toThrow(/base url/i)
     expect(() => bachsConfig({ ...baseEnv, BACHS_API_KEY: 'pk_sandbox_test-key' })).toThrow(/prefix/i)
-    expect(() => bachsConfig({ ...baseEnv, BACHS_WEBHOOK_SECRET: ' ' })).toThrow(/webhook/i)
+    expect(bachsConfig({ ...baseEnv, BACHS_AWARD_WEBHOOK_SECRET: undefined }).awardWebhookSecret).toBeNull()
+    expect(bachsConfig({ ...baseEnv, BACHS_MAGAZINE_WEBHOOK_SECRET: undefined }).magazineWebhookSecret).toBeNull()
   })
 
   it('requires HTTPS site URLs outside local development', () => {

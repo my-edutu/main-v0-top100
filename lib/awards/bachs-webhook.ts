@@ -268,6 +268,9 @@ export async function handleBachsEvent(
 
   const timestampHeader = headerValue(headers, 'x-bachs-timestamp')
   const signatureHeader = headerValue(headers, 'x-bachs-signature')
+  if (!config.awardWebhookSecret) {
+    return { status: 'configuration_error', httpStatus: 503, error: 'award webhook secret unavailable' }
+  }
   const nowSeconds = dependencies.nowSeconds?.() ?? Math.floor(Date.now() / 1000)
   const verify = dependencies.verifySignature ?? (verifyBachsSignature as unknown as (input: Record<string, unknown>) => boolean)
 
@@ -277,7 +280,7 @@ export async function handleBachsEvent(
       rawBody,
       timestampHeader,
       signatureHeader,
-      secret: configValue(config, 'webhookSecret'),
+      secret: config.awardWebhookSecret,
       nowSeconds,
       toleranceSeconds: configValue(config, 'webhookToleranceSeconds'),
     })
