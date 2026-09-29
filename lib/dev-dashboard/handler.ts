@@ -12,14 +12,67 @@ import { slugifyTitle } from '@/lib/member-posts/types'
 import { awardReturnPath } from '@/lib/awards/return-url'
 import { needsClaim } from '@/lib/awards/status'
 import { validateOnboarding } from '@/lib/dashboard/onboarding'
-import type { PortfolioCoverFields, PortfolioCoverGeneration, PortfolioVariant } from '@/lib/portfolio-cover/types'
-import { preparePortrait } from '@/lib/portfolio-cover/image'
+import type { PortfolioCoverFields } from '@/lib/portfolio-cover/types'
+import { preparePortrait, validatePortraitUpload } from '@/lib/portfolio-cover/image'
 import { renderPortfolioCover } from '@/lib/portfolio-cover/render-cover'
-import { portfolioCoverConfig } from '@/lib/portfolio-cover/config'
-import { createOpenAIImageEditor } from '@/lib/portfolio-cover/providers/openai'
 import { CONTRIBUTION_AREAS, contributionSchema } from '@/lib/community-contributions'
 import { AVATAR_PRESET, processUpload } from '@/lib/image-processing'
 import { uploadMedia } from '@/lib/media/storage'
+import { deriveAwardeeJourney } from '@/lib/dashboard/awardee-journey'
+import { DEFAULT_AWARDEE_JOURNEY_SETTINGS } from '@/lib/dashboard/awardee-journey-settings'
+import { magazineBillingCurrency } from '@/lib/magazine/billing-country'
+import { MEMBER_GROUPS_ENABLED, memberGroupsLockedResponse } from '@/lib/groups/access'
+import type { AwardPaymentCurrency } from '@/lib/payments/bachs/types'
+
+function routeAwardeeJourney(request: NextRequest, store: DemoDashboardStore) {
+  if (request.method === 'GET') {
+    const state = deriveAwardeeJourney({
+      profile: {
+        fullName: store.profile.name,
+        headline: store.profile.headline,
+        bio: store.profile.bio,
+        location: store.profile.location,
+        organization: store.profile.organization,
+        field: store.profile.field,
+        avatarUrl: store.profile.avatarUrl ?? null,
+      },
+      welcomeReadAt: store.welcomeReadAt,
+      hasPublishedIntroPost: store.posts.some((post) => post.status === 'published' && post.tags.includes('afl-introduction')),
+      externalShareConfirmedAt: store.externalShareConfirmedAt,
+      externalSharePlatform: store.externalSharePlatform,
+      magazine: {
+        paymentStatus: store.magazinePayment.status,
+        applicationStatus: store.featureSubmissions[0]?.status ?? null,
+      },
+      award: { paymentStatus: store.awardPayment.status, certificateAvailable: false },
+    })
+    return json({ journey: { state, settings: DEFAULT_AWARDEE_JOURNEY_SETTINGS } })
+  }
+  if (request.method !== 'PATCH') return null
+
+  return readBody(request).then((body) => {
+    if (!body || Object.keys(body).some((key) => !['welcomeRead', 'externalShareConfirmed', 'externalSharePlatform'].includes(key))) {
+      return json({ message: 'Choose a supported onboarding update.' }, 400)
+    }
+    if (body.welcomeRead !== undefined && body.welcomeRead !== true) return json({ message: 'Choose a supported onboarding update.' }, 400)
+    if (body.externalShareConfirmed !== undefined) {
+      if (typeof body.externalShareConfirmed !== 'boolean') return json({ message: 'Choose a supported onboarding update.' }, 400)
+      if (body.externalShareConfirmed && !['linkedin', 'facebook', 'instagram', 'other'].includes(body.externalSharePlatform)) {
+        return json({ message: 'Choose a supported onboarding update.' }, 400)
+      }
+    }
+    const now = new Date().toISOString()
+    if (body.welcomeRead === true) store.welcomeReadAt ??= now
+    if (body.externalShareConfirmed === true) {
+      store.externalShareConfirmedAt = now
+      store.externalSharePlatform = String(body.externalSharePlatform)
+    } else if (body.externalShareConfirmed === false) {
+      store.externalShareConfirmedAt = null
+      store.externalSharePlatform = null
+    }
+    return json({ saved: true })
+  })
+}
 
 function json(data: unknown, status = 200): Response {
   return Response.json(data, { status })
@@ -227,6 +280,8 @@ async function routeConversations(request: NextRequest, path: string[], store: D
 }
 
 async function routeGroups(request: NextRequest, path: string[], store: DemoDashboardStore) {
+  if (!MEMBER_GROUPS_ENABLED) return memberGroupsLockedResponse()
+
   if (path.length === 1 && request.method === 'GET') {
     return json({ groups: store.groups.map((item) => item.summary) })
   }
@@ -559,88 +614,108 @@ async function routeAward(request: NextRequest, path: string[], store: DemoDashb
   return null
 }
 
-function demoCoverData(label: string, name: string, fields: PortfolioCoverFields) {
-  const safe = (value: string) => value.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' })[character] ?? character)
-  const facts = [fields.school, fields.cgpa, fields.degreeClass, fields.fieldOfStudy, fields.country, fields.cohort].filter(Boolean).map((value, index) => `<text x="80" y="${700 + index * 32}" fill="#f5d76e" font-family="Arial" font-size="23">${safe(String(value))}</text>`).join('')
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1000"><defs><linearGradient id="g" x2="0" y2="1"><stop stop-color="#3a3d43"/><stop offset=".7" stop-color="#111315"/></linearGradient></defs><rect width="800" height="1000" fill="url(#g)"/><circle cx="400" cy="430" r="190" fill="#b98b72"/><path d="M160 100h480v80H160z" fill="#f3c623" opacity=".9"/><text x="60" y="130" font-family="Georgia" font-weight="bold" font-size="75" fill="white">TOP100</text><text x="60" y="215" font-family="Arial" font-size="18" letter-spacing="5" fill="#f5d76e">AFRICA FUTURE LEADERS</text><path d="M160 610h480v310H160z" fill="#24272b"/><text x="60" y="730" font-family="Georgia" font-weight="bold" font-size="46" fill="white">${safe(label)}</text><text x="60" y="790" font-family="Arial" font-weight="bold" font-size="28" fill="white">${safe(name)}</text><text x="60" y="860" font-family="Arial" font-size="19" fill="#f5d76e">${facts ? safe(String(fields.school ?? 'Top100 Future Leader')) : 'TOP100 FUTURE LEADER'}</text></svg>`
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
-}
+function routeMagazinePayment(request: NextRequest, path: string[], store: DemoDashboardStore) {
+  if (path[1] !== 'payment') return null
 
-async function demoCoverOption(input: {
-  label: string
-  name: string
-  fields: PortfolioCoverFields
-  tailoring: 'male' | 'female'
-  variant: PortfolioVariant
-  portrait: Buffer
-}) {
-  try {
-    const portrait = await preparePortrait(input.portrait)
-    const rendered = await renderPortfolioCover({
-      portrait,
-      memberName: input.name,
-      tailoring: input.tailoring,
-      variant: input.variant,
-      fields: input.fields,
+  if (path.length === 2 && request.method === 'GET') {
+    const params = requestUrl(request).searchParams
+    if (params.get('payment') === 'done' && params.get('demo') === '1'
+      && store.magazinePayment.status === 'pending' && store.magazinePayment.attempt
+      && !store.magazinePayment.callbackConsumed) {
+      store.magazinePayment.status = 'paid'
+      store.magazinePayment.attempt.status = 'succeeded'
+      store.magazinePayment.callbackConsumed = true
+    }
+    const campaign = DEFAULT_AWARDEE_JOURNEY_SETTINGS.magazineCampaign
+    const attempt = store.magazinePayment.attempt
+    return json({
+      payment: {
+        campaign,
+        orderStatus: store.magazinePayment.status,
+        applicationEligible: store.magazinePayment.status === 'paid',
+        currentAttempt: store.magazinePayment.status === 'paid' || !attempt ? null : {
+          id: attempt.id,
+          status: attempt.status,
+          currency: attempt.currency,
+          amountMinor: attempt.amountMinor,
+          expiresAt: null,
+          checkoutUrl: attempt.checkoutUrl,
+        },
+      },
     })
-    return `data:image/png;base64,${rendered.toString('base64')}`
-  } catch {
-    // Keep the local harness usable with intentionally tiny or invalid test fixtures.
-    return demoCoverData(input.label, input.name, input.fields)
   }
-}
 
-async function realLocalCover(input: {
-  name: string
-  fields: PortfolioCoverFields
-  tailoring: 'male' | 'female'
-  portrait: Buffer
-}) {
-  const preparedPortrait = await preparePortrait(input.portrait)
-  const editor = createOpenAIImageEditor({ apiKey: process.env.OPENAI_API_KEY! })
-  const edited = await editor.edit({ portrait: preparedPortrait, tailoring: input.tailoring, variant: 'executive-charcoal' })
-  const rendered = await renderPortfolioCover({ portrait: edited.image, memberName: input.name, tailoring: input.tailoring, variant: 'executive-charcoal', fields: input.fields })
-  return `data:image/png;base64,${Buffer.from(rendered).toString('base64')}`
+  if (path.length === 3 && path[2] === 'checkout' && request.method === 'POST') {
+    return readBody(request).then((body) => {
+      if (!body || Object.keys(body).some((key) => !['name', 'email', 'countryCode'].includes(key))
+        || Object.keys(body).length !== 3
+        || typeof body.name !== 'string' || !body.name.trim()
+        || typeof body.email !== 'string' || !/^\S+@\S+\.\S+$/.test(body.email.trim())
+        || typeof body.countryCode !== 'string') {
+        return json({ message: 'Enter your name, a valid email, and country to continue.' }, 400)
+      }
+      if (store.magazinePayment.status === 'paid') return json({ message: 'Your magazine payment is already confirmed.' }, 409)
+      if (store.magazinePayment.status === 'pending' && store.magazinePayment.attempt) {
+        return json({ message: 'A magazine payment is already being confirmed.' }, 409)
+      }
+
+      const campaign = DEFAULT_AWARDEE_JOURNEY_SETTINGS.magazineCampaign
+      if (!campaign.applicationOpen) return json({ message: 'This magazine campaign is closed to new payments.' }, 409)
+      let currency: AwardPaymentCurrency
+      try {
+        currency = magazineBillingCurrency(body.countryCode)
+      } catch {
+        return json({ message: 'Select a valid country.' }, 400)
+      }
+      const amountMinor = currency === 'NGN' ? campaign.ngnAmountMinor : campaign.usdAmountMinor
+      const attemptId = nextId(store, 'demo-magazine-payment')
+      const checkoutUrl = '/dashboard/me/feature?payment=done&demo=1'
+      store.magazinePayment = {
+        status: 'pending',
+        selectedCurrency: currency,
+        attempt: { id: attemptId, currency, amountMinor, status: 'open', checkoutUrl },
+        callbackConsumed: false,
+      }
+      return json({ checkoutUrl, attemptId })
+    })
+  }
+
+  return null
 }
 
 async function routePortfolioCover(request: NextRequest, path: string[], store: DemoDashboardStore) {
+  if (path[1] === 'download' && request.method === 'GET') {
+    const coverUrl = store.profile.portfolioCoverUrl ?? ''
+    const match = coverUrl.match(/^data:image\/png;base64,([A-Za-z0-9+/]+=*)$/)
+    if (!match) return json({ message: 'Create your cover before downloading it.' }, 404)
+    const image = Buffer.from(match[1], 'base64')
+    return new Response(image, {
+      headers: {
+        'Cache-Control': 'private, no-store',
+        'Content-Disposition': 'attachment; filename="afl-2026-cover.png"',
+        'Content-Length': String(image.byteLength),
+        'Content-Type': 'image/png',
+        'X-Content-Type-Options': 'nosniff',
+      },
+    })
+  }
   if (path[1] !== 'generations') return null
-  if (path.length === 3 && path[2] === 'current' && request.method === 'GET') return json({ enabled: true, generation: store.portfolioCover, usage: { used: store.portfolioCoverAttempts, limit: 2 } })
+  if (path.length === 3 && path[2] === 'current' && request.method === 'GET') return json({ enabled: true, coverUrl: store.profile.portfolioCoverUrl ?? null })
   if (path.length === 2 && request.method === 'POST') {
-    if (store.portfolioCoverAttempts >= 2) return json({ message: 'You have used both cover generations. Top up $2 / ₦2,000 for another attempt, or contact the AFL team to unlock more.' }, 402)
-    if (store.portfolioCover && ['queued', 'processing', 'ready', 'selected'].includes(store.portfolioCover.status)) return json({ message: 'You already have a portfolio cover set.' }, 409)
     const form = await request.formData()
     const file = form.get('portrait')
-    if (!(file instanceof File)) return json({ message: 'A portrait photo is required.' }, 400)
-    const tailoring = form.get('tailoring') === 'female' ? 'female' : form.get('tailoring') === 'male' ? 'male' : null
-    if (!tailoring || form.get('consent') !== 'true') return json({ message: 'Choose Male or Female and accept consent.' }, 400)
+    if (!(file instanceof File)) return json({ message: 'Choose a portrait photo to continue.' }, 400)
+    if (form.get('consent') !== 'true') return json({ message: 'Confirm that you have permission to use this photo.' }, 400)
     let fields: PortfolioCoverFields = {}
-    try { fields = JSON.parse(String(form.get('fields') ?? '{}')) as PortfolioCoverFields } catch { return json({ message: 'Invalid details.' }, 400) }
-    const portrait = Buffer.from(await file.arrayBuffer())
-    const id = nextId(store, 'demo-cover')
-    const now = new Date().toISOString()
-    const name = String(fields.name ?? store.profile.name)
-    const config = portfolioCoverConfig()
-    const executiveCharcoal = config.enabled && !config.demo
-      ? await realLocalCover({ name, fields, tailoring, portrait })
-      : await demoCoverOption({ label: 'TOP100 AFRICA FUTURE LEADER', name, fields, tailoring, variant: 'executive-charcoal', portrait })
-    const generation: PortfolioCoverGeneration = { id, memberId: DEMO_MEMBER_ID, status: 'ready', tailoring, fields, attempt: 1, options: { 'executive-charcoal': executiveCharcoal }, createdAt: now, updatedAt: now }
-    store.portfolioCover = generation
-    store.portfolioCoverAttempts += 1
-    return json({ generation }, 202)
-  }
-  const id = path[2]
-  if (!store.portfolioCover || store.portfolioCover.id !== id) return json({ message: 'Cover set not found.' }, 404)
-  if (path[3] === 'select' && request.method === 'POST') {
-    const body = await readBody(request)
-    const variant = body?.variant as PortfolioVariant
-    if (variant !== 'executive-charcoal') return json({ message: 'That cover is no longer available.' }, 400)
-    store.portfolioCover = { ...store.portfolioCover, status: 'selected', selectedVariant: variant, selectedUrl: store.portfolioCover.options[variant], updatedAt: new Date().toISOString() }
-    return json({ generation: store.portfolioCover })
-  }
-  if (path[3] === 'reject' && request.method === 'POST') {
-    store.portfolioCover = { ...store.portfolioCover, status: 'rejected', updatedAt: new Date().toISOString() }
-    return json({ generation: store.portfolioCover })
+    try { fields = JSON.parse(String(form.get('fields') ?? '{}')) as PortfolioCoverFields } catch { return json({ message: 'Check the name shown on your cover.' }, 400) }
+    const original = Buffer.from(await file.arrayBuffer())
+    const validation = validatePortraitUpload(original, file.type)
+    if (!validation.ok) return json({ message: validation.code === 'too_large' ? 'Portrait must be 8 MB or smaller.' : 'Upload a valid JPG, PNG or WebP image.' }, 400)
+    const portrait = await preparePortrait(original)
+    const rendered = await renderPortfolioCover({ portrait, memberName: fields.name || store.profile.name, fields })
+    const coverUrl = `data:image/png;base64,${rendered.toString('base64')}`
+    store.profile.portfolioCoverUrl = coverUrl
+    return json({ coverUrl })
   }
   return json({ message: 'Local portfolio cover demo route not implemented.' }, 501)
 }
@@ -657,6 +732,9 @@ export async function handleDemoMemberRequest(
 
   let response: Response | null = null
   switch (path[0]) {
+    case 'onboarding-journey':
+      response = await routeAwardeeJourney(request, store)
+      break
     case 'visits':
       response = json({ count: 1 })
       break
@@ -739,6 +817,9 @@ export async function handleDemoMemberRequest(
       break
     case 'features':
       if (request.method === 'POST') {
+        if (store.magazinePayment.status !== 'paid') {
+          return json({ message: 'Pay the separate magazine feature fee before submitting your application.' }, 402)
+        }
         const body = await readBody(request)
         if (!body?.title || !body?.summary) return json({ message: 'Add a title and summary.' }, 400)
         const submission = {
@@ -770,6 +851,9 @@ export async function handleDemoMemberRequest(
       break
     case 'award':
       response = await routeAward(request, path, store)
+      break
+    case 'magazine':
+      response = await routeMagazinePayment(request, path, store)
       break
     case 'portfolio-cover':
       response = await routePortfolioCover(request, path, store)

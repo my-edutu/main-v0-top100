@@ -15,7 +15,6 @@ import type {
 import type { MemberPost } from '@/lib/member-posts/types'
 import type { Opportunity } from '@/lib/opportunities/types'
 import type { AwardeeDirectoryEntry } from '@/types/profile'
-import type { PortfolioCoverGeneration } from '@/lib/portfolio-cover/types'
 
 export const DEMO_MEMBER_ID = 'demo-member-1'
 export const DEMO_PUBLIC_SLUG = 'amara-okafor-demo'
@@ -30,6 +29,13 @@ export type DemoAwardPaymentState = {
   selectedCurrency: AwardPaymentCurrency | null
   attempt: AwardPaymentView['currentAttempt']
   confirmedPayment: AwardPaymentView['confirmedPayment']
+  callbackConsumed: boolean
+}
+
+export type DemoMagazinePaymentState = {
+  status: 'unpaid' | 'pending' | 'paid'
+  selectedCurrency: AwardPaymentCurrency | null
+  attempt: { id: string; currency: AwardPaymentCurrency; amountMinor: number; status: 'open' | 'succeeded'; checkoutUrl: string } | null
   callbackConsumed: boolean
 }
 
@@ -68,8 +74,10 @@ export type DemoDashboardStore = {
   invitations: EventInvitation[]
   awardOrder: AwardOrder | null
   awardPayment: DemoAwardPaymentState
-  portfolioCover: PortfolioCoverGeneration | null
-  portfolioCoverAttempts: number
+  magazinePayment: DemoMagazinePaymentState
+  welcomeReadAt: string | null
+  externalShareConfirmedAt: string | null
+  externalSharePlatform: string | null
   sequence: number
 }
 
@@ -274,8 +282,15 @@ export function createDemoDashboardStore(): DemoDashboardStore {
       confirmedPayment: null,
       callbackConsumed: false,
     },
-    portfolioCover: null,
-    portfolioCoverAttempts: 0,
+    magazinePayment: {
+      status: 'unpaid',
+      selectedCurrency: null,
+      attempt: null,
+      callbackConsumed: false,
+    },
+    welcomeReadAt: null,
+    externalShareConfirmedAt: null,
+    externalSharePlatform: null,
     sequence: 100,
   }
 }
@@ -304,6 +319,15 @@ export function getDemoDashboardStore(): DemoDashboardStore {
   if (!globalThis.__top100DemoDashboardStore.messages) {
     globalThis.__top100DemoDashboardStore.messages = []
   }
+  globalThis.__top100DemoDashboardStore.welcomeReadAt ??= null
+  globalThis.__top100DemoDashboardStore.externalShareConfirmedAt ??= null
+  globalThis.__top100DemoDashboardStore.externalSharePlatform ??= null
+  globalThis.__top100DemoDashboardStore.magazinePayment ??= {
+    status: 'unpaid',
+    selectedCurrency: null,
+    attempt: null,
+    callbackConsumed: false,
+  }
   // Remove the retired roundtable fixture from demo stores kept alive by HMR.
   globalThis.__top100DemoDashboardStore.invitations =
     globalThis.__top100DemoDashboardStore.invitations.filter(
@@ -331,7 +355,7 @@ export function demoAwardeeDirectoryEntry(
     bio: profile.bio || null,
     avatar_url: profile.avatarUrl ?? null,
     cover_image_url: null,
-    portfolio_cover_url: store.portfolioCover?.selectedUrl ?? null,
+    portfolio_cover_url: store.profile.portfolioCoverUrl ?? null,
     headline: profile.headline || null,
     tagline: profile.organization || null,
     location: profile.location || null,

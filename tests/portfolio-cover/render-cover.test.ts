@@ -4,49 +4,37 @@ import { describe, expect, it } from 'vitest'
 import { renderPortfolioCover } from '@/lib/portfolio-cover/render-cover'
 
 describe('deterministic Top100 magazine cover renderer', () => {
-  it('renders an exact vertical cover and omits missing fields', async () => {
+  it('renders the supplied 2026 banner at its original 4:5 dimensions', async () => {
     const portrait = await sharp({ create: { width: 1024, height: 1536, channels: 3, background: '#b9b0a4' } }).png().toBuffer()
-    const output = await renderPortfolioCover({
-      portrait,
-      memberName: 'Ada Lovelace',
-      tailoring: 'female',
-      variant: 'executive-charcoal',
-      fields: { school: 'University of Lagos', cgpa: '4.82 / 5.0' },
-    })
+    const output = await renderPortfolioCover({ portrait, memberName: 'Ada Lovelace', fields: {} })
     const metadata = await sharp(output).metadata()
-    expect(metadata.width).toBe(1600)
-    expect(metadata.height).toBe(2000)
+
+    expect(metadata.width).toBe(1080)
+    expect(metadata.height).toBe(1350)
     expect(output.toString('utf8')).not.toContain('undefined')
   }, 15000)
 
-  it('uses one canonical branded cover style for legacy variant inputs', async () => {
-    const portrait = await sharp({ create: { width: 1024, height: 1536, channels: 3, background: '#b9b0a4' } }).png().toBuffer()
-    const common = { portrait, memberName: 'Ada Lovelace', tailoring: 'female' as const, fields: {} }
-    const charcoal = await renderPortfolioCover({ ...common, variant: 'executive-charcoal' })
-    const ivory = await renderPortfolioCover({ ...common, variant: 'leadership-ivory' })
-    expect(charcoal.equals(ivory)).toBe(true)
+  it('places the uploaded portrait inside the template image area and keeps the banner outside it', async () => {
+    const portrait = await sharp({ create: { width: 300, height: 300, channels: 3, background: '#d02080' } }).png().toBuffer()
+    const output = await renderPortfolioCover({ portrait, memberName: 'Ada Lovelace', fields: {} })
+    const { data, info } = await sharp(output).removeAlpha().raw().toBuffer({ resolveWithObject: true })
+    const pixelAt = (x: number, y: number) => Array.from(data.subarray((y * info.width + x) * info.channels, (y * info.width + x) * info.channels + 3))
+
+    expect(pixelAt(300, 400)).toEqual([208, 32, 128])
+    expect(pixelAt(100, 400)).not.toEqual([208, 32, 128])
   }, 15000)
 
-  it('keeps the simplified footer readable with an orange brand accent', async () => {
-    const portrait = await sharp({ create: { width: 1024, height: 1536, channels: 3, background: '#f5f5f4' } }).png().toBuffer()
-    const output = await renderPortfolioCover({
-      portrait,
-      memberName: 'Ada Lovelace',
-      tailoring: 'female',
-      variant: 'executive-charcoal',
-      fields: { fieldOfStudy: 'Engineering', country: 'Nigeria', degreeClass: 'First Class' },
-    })
-    const { data, info } = await sharp(output).raw().toBuffer({ resolveWithObject: true })
-    const rgbAt = (x: number, y: number) => Array.from(data.subarray((y * info.width + x) * info.channels, (y * info.width + x) * info.channels + 3))
+  it('renders the awardee name in the template nameplate', async () => {
+    const portrait = await sharp({ create: { width: 300, height: 300, channels: 3, background: '#d02080' } }).png().toBuffer()
+    const common = { portrait, fields: {} }
+    const ada = await renderPortfolioCover({ ...common, memberName: 'Ada Lovelace' })
+    const grace = await renderPortfolioCover({ ...common, memberName: 'Grace Hopper' })
+    const crop = { left: 266, top: 873, width: 548, height: 91 }
+    const [adaNameplate, graceNameplate] = await Promise.all([
+      sharp(ada).extract(crop).png().toBuffer(),
+      sharp(grace).extract(crop).png().toBuffer(),
+    ])
 
-    expect(rgbAt(20, 1940).every(channel => channel < 40)).toBe(true)
-    let orangePixels = 0
-    for (let y = 0; y < info.height; y += 8) {
-      for (let x = 0; x < info.width; x += 8) {
-        const [red, green, blue] = rgbAt(x, y)
-        if (red > 180 && green > 80 && green < 210 && blue < 120) orangePixels++
-      }
-    }
-    expect(orangePixels).toBeGreaterThan(20)
+    expect(adaNameplate.equals(graceNameplate)).toBe(false)
   }, 15000)
 })

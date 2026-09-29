@@ -94,6 +94,7 @@ export function mapProfileToMemberWithLegacy(
     field: firstText(row?.field, row?.field_of_study, legacyAwardee?.course),
     avatarInitials: initials(name),
     avatarUrl: row?.avatar_url ?? null,
+    portfolioCoverUrl: row?.portfolio_cover_url ?? null,
     onboardingCompletedAt: typeof prefs.onboardingCompletedAt === 'string' ? prefs.onboardingCompletedAt : null,
     onboardingStep: typeof prefs.onboardingStep === 'number' ? prefs.onboardingStep : 0,
     dashboardLoginCount: typeof prefs.dashboardLoginCount === 'number' ? prefs.dashboardLoginCount : 0,

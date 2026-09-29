@@ -14,6 +14,7 @@ export type ProfileStatus = 'draft' | 'submitted' | 'approved'
 
 export type MemberProfile = {
   avatarUrl?: string | null
+  portfolioCoverUrl?: string | null
   onboardingCompletedAt?: string | null
   onboardingStep?: number
   dashboardLoginCount?: number

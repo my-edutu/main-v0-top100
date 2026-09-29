@@ -84,6 +84,30 @@ describe('interactive local dashboard demo API', () => {
     expect(completed.data.member.onboardingCompletedAt).toEqual(expect.any(String))
   })
 
+  it('serves and persists the awardee onboarding journey in the local demo', async () => {
+    const initial = await call(store, 'GET', 'onboarding-journey')
+    expect(initial.response.status).toBe(200)
+    expect(initial.data.journey.settings.founderName).toBe('Nwosu Paul Light')
+    expect(initial.data.journey.state.coreSteps).toHaveLength(3)
+    expect(initial.data.journey.state.coreSteps[1]).toMatchObject({ complete: false, status: 'Add your BIO and profile photo' })
+
+    const saved = await call(store, 'PATCH', 'onboarding-journey', { welcomeRead: true })
+    expect(saved.data.saved).toBe(true)
+    const reloaded = await call(store, 'GET', 'onboarding-journey')
+    expect(reloaded.data.journey.state.coreSteps[0].complete).toBe(true)
+  })
+
+  it('keeps Groups locked and prevents local-demo group mutations', async () => {
+    const initialGroupCount = store.groups.length
+    const list = await call(store, 'GET', 'groups')
+    const create = await call(store, 'POST', 'groups', { name: 'A new group' })
+
+    expect(list.response.status).toBe(423)
+    expect(list.data).toMatchObject({ locked: true })
+    expect(create.response.status).toBe(423)
+    expect(store.groups).toHaveLength(initialGroupCount)
+  })
+
   it('creates, updates, and deletes member posts', async () => {
     const created = await call(store, 'POST', 'posts', {
       title: 'Notes from the demo workspace',
@@ -126,6 +150,8 @@ describe('interactive local dashboard demo API', () => {
     const marked = await call(store, 'PATCH', 'notifications', { all: true })
     expect(marked.data.ok).toBe(true)
 
+    store.magazinePayment.status = 'paid'
+
     const feature = await call(store, 'POST', 'features', {
       memberId: 'demo-member-1',
       memberName: 'Amara Okafor',
@@ -159,29 +185,6 @@ describe('interactive local dashboard demo API', () => {
       subject: expect.stringContaining('Services'),
     })
     expect(store.messages[0].message).toContain('Focus area: Partnership team')
-  })
-
-  it('creates groups, joins groups, and posts group messages', async () => {
-    const created = await call(store, 'POST', 'groups', {
-      name: 'Demo Builders Circle',
-      description: 'Testing group interactions locally.',
-      topic: 'Product',
-      visibility: 'open',
-    })
-    expect(created.response.status).toBe(201)
-    expect(created.data.group.membership.role).toBe('owner')
-
-    const groups = await call(store, 'GET', 'groups')
-    const discover = groups.data.groups.find((group: { membership: unknown }) => group.membership === null)
-    const joined = await call(store, 'POST', `groups/${discover.id}/membership`)
-    expect(joined.data.status).toBe('active')
-
-    const posted = await call(store, 'POST', `groups/${discover.id}/messages`, {
-      body: 'Glad to join this demo group.',
-    })
-    expect(posted.data.message.mine).toBe(true)
-    const detail = await call(store, 'GET', `groups/${discover.id}`)
-    expect(detail.data.messages.at(-1).body).toBe('Glad to join this demo group.')
   })
 
   it('persists opportunity bookmarks and reflects the empty invitation state', async () => {
@@ -277,39 +280,96 @@ describe('interactive local dashboard demo API', () => {
     expect(JSON.stringify(replay.data)).not.toMatch(/shipping|gig|address/i)
   })
 
-  it('creates one portfolio cover and preserves the original member avatar state', async () => {
+  it('simulates the separate magazine payment locally and unlocks applications only after return', async () => {
+    const initial = await call(store, 'GET', 'magazine/payment')
+    expect(initial.response.status).toBe(200)
+    expect(initial.data.payment).toMatchObject({
+      campaign: { id: 'afl-magazine-2026', ngnAmountMinor: 1_000_000, usdAmountMinor: 1_000, applicationOpen: true },
+      orderStatus: 'unpaid',
+      applicationEligible: false,
+      currentAttempt: null,
+    })
+
+    const blocked = await call(store, 'POST', 'features', { title: 'A member story', summary: 'A sufficiently long magazine story summary.' })
+    expect(blocked.response.status).toBe(402)
+
+    const invalid = await call(store, 'POST', 'magazine/payment/checkout', { name: 'Amara Okafor', email: 'demo@top100.local', countryCode: 'NG', currency: 'USD' })
+    expect(invalid.response.status).toBe(400)
+
+    const invalidCountry = await call(store, 'POST', 'magazine/payment/checkout', { name: 'Amara Okafor', email: 'demo@top100.local', countryCode: 'ZZ' })
+    expect(invalidCountry.response.status).toBe(400)
+
+    const checkout = await call(store, 'POST', 'magazine/payment/checkout', { name: 'Amara Okafor', email: 'amara@example.com', countryCode: 'NG' })
+    expect(checkout.response.status).toBe(200)
+    expect(checkout.data).toMatchObject({ checkoutUrl: '/dashboard/me/feature?payment=done&demo=1' })
+
+    const pending = await call(store, 'GET', 'magazine/payment')
+    expect(pending.data.payment).toMatchObject({
+      orderStatus: 'pending',
+      applicationEligible: false,
+      currentAttempt: { currency: 'NGN', amountMinor: 1_000_000, status: 'open' },
+    })
+
+    const callback = await call(store, 'GET', 'magazine/payment?payment=done&demo=1')
+    expect(callback.data.payment).toMatchObject({ orderStatus: 'paid', applicationEligible: true, currentAttempt: null })
+    expect((await call(store, 'GET', 'onboarding-journey')).data.journey.state.recommendedActions.find((item: { id: string }) => item.id === 'magazine').status).toBe('Payment confirmed — apply now')
+
+    const application = await call(store, 'POST', 'features', { title: 'A member story', summary: 'A sufficiently long magazine story summary.' })
+    expect(application.response.status).toBe(201)
+    expect(application.data.submission.title).toBe('A member story')
+
+    const replay = await call(store, 'GET', 'magazine/payment?payment=done&demo=1')
+    expect(replay.data.payment).toEqual(callback.data.payment)
+  })
+
+  it('simulates international magazine checkout in USD based on the selected country', async () => {
+    const checkout = await call(store, 'POST', 'magazine/payment/checkout', { name: 'Amara Okafor', email: 'amara@example.com', countryCode: 'GB' })
+    expect(checkout.response.status).toBe(200)
+    const pending = await call(store, 'GET', 'magazine/payment')
+    expect(pending.data.payment.currentAttempt).toMatchObject({ currency: 'USD', amountMinor: 1_000 })
+  })
+
+  it('creates a template cover without changing the original member avatar', async () => {
+    const portrait = await sharp({ create: { width: 160, height: 240, channels: 3, background: '#c9a56a' } }).jpeg().toBuffer()
     const form = new FormData()
-    form.set('portrait', new File([Buffer.from('portrait')], 'portrait.jpg', { type: 'image/jpeg' }))
-    form.set('tailoring', 'female')
+    form.set('portrait', new File([portrait], 'portrait.jpg', { type: 'image/jpeg' }))
     form.set('consent', 'true')
     form.set('fields', JSON.stringify({ name: 'Amara Okafor', school: 'University of Lagos', cgpa: '4.8 / 5.0' }))
     const request = new NextRequest('http://localhost:3000/api/member/portfolio-cover/generations', { method: 'POST', headers: { host: 'localhost:3000', cookie: `${DEV_DASHBOARD_COOKIE}=${DEV_DASHBOARD_COOKIE_VALUE}` }, body: form })
     const path = ['portfolio-cover', 'generations']
     const created = await handleDemoMemberRequest(request, path, store, 'development')
     const createdData = await created.json()
-    expect(created.status).toBe(202)
-    expect(Object.keys(createdData.generation.options)).toEqual(['executive-charcoal'])
-    const id = createdData.generation.id as string
-    const selectedRequest = demoRequest('POST', `portfolio-cover/generations/${id}/select`, { variant: 'executive-charcoal' })
-    const selected = await handleDemoMemberRequest(selectedRequest, [...path, id, 'select'], store, 'development')
-    expect((await selected.json()).generation.status).toBe('selected')
+    expect(created.status).toBe(200)
+    expect(createdData.coverUrl).toMatch(/^data:image\/png;base64,/)
+    expect(store.profile.portfolioCoverUrl).toBe(createdData.coverUrl)
     expect(store.profile.avatarInitials).toBe('AO')
+  })
+
+  it('downloads the saved demo cover as an attachment', async () => {
+    store.profile.portfolioCoverUrl = `data:image/png;base64,${Buffer.from('cover-image').toString('base64')}`
+    const request = new NextRequest('http://localhost:3000/api/member/portfolio-cover/download', {
+      headers: { host: 'localhost:3000', cookie: `${DEV_DASHBOARD_COOKIE}=${DEV_DASHBOARD_COOKIE_VALUE}` },
+    })
+
+    const response = await handleDemoMemberRequest(request, ['portfolio-cover', 'download'], store, 'development')
+
+    expect(response.status).toBe(200)
+    expect(response.headers.get('Content-Disposition')).toContain('attachment')
+    expect(Buffer.from(await response.arrayBuffer()).toString()).toBe('cover-image')
   })
 
   it('renders valid demo portraits through the shared cover renderer', async () => {
     const portrait = await sharp({ create: { width: 320, height: 480, channels: 3, background: '#c9a56a' } }).jpeg().toBuffer()
     const form = new FormData()
     form.set('portrait', new File([portrait], 'portrait.jpg', { type: 'image/jpeg' }))
-    form.set('tailoring', 'male')
     form.set('consent', 'true')
     form.set('fields', JSON.stringify({ name: 'Demo Leader', school: 'University of Lagos' }))
     const request = new NextRequest('http://localhost:3000/api/member/portfolio-cover/generations', { method: 'POST', headers: { host: 'localhost:3000', cookie: `${DEV_DASHBOARD_COOKIE}=${DEV_DASHBOARD_COOKIE_VALUE}` }, body: form })
     const response = await handleDemoMemberRequest(request, ['portfolio-cover', 'generations'], store, 'development')
     const data = await response.json()
 
-    expect(response.status).toBe(202)
-    expect(data.generation.options['executive-charcoal']).toMatch(/^data:image\/png;base64,/)
-    expect(data.generation.options['leadership-ivory']).toBeUndefined()
+    expect(response.status).toBe(200)
+    expect(data.coverUrl).toMatch(/^data:image\/png;base64,/)
   })
 
   it('makes unsupported demo operations visible', async () => {

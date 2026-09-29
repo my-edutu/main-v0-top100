@@ -1,91 +1,109 @@
-import { after } from 'next/server'
 import { NextRequest, NextResponse } from 'next/server'
 
 import { getCurrentUser } from '@/lib/auth-server'
+import { hasConfirmedAwardPayment } from '@/lib/awards/access-server'
 import { checkRateLimit, createRateLimitResponse, getClientIdentifier, RATE_LIMITS } from '@/lib/rate-limit'
 import { rejectCrossOriginMutation } from '@/lib/security/same-origin'
 import { createAdminClient } from '@/lib/supabase/server'
-
-import { portfolioCoverConfig } from '@/lib/portfolio-cover/config'
-import { generatePortfolioCoverSet } from '@/lib/portfolio-cover/generate'
+import { uploadMedia } from '@/lib/media/storage'
+import { renderPortfolioCover } from '@/lib/portfolio-cover/render-cover'
+import { normalizePortfolioCoverFields, portfolioCoverFieldsSchema } from '@/lib/portfolio-cover/validation'
 import { preparePortrait, validatePortraitUpload } from '@/lib/portfolio-cover/image'
-import { createPortfolioCoverRepository, portfolioObjectPath } from '@/lib/portfolio-cover/repository'
-import { createDemoImageEditor } from '@/lib/portfolio-cover/providers/demo'
-import { createOpenAIImageEditor } from '@/lib/portfolio-cover/providers/openai'
-import { portfolioCoverRequestSchema, normalizePortfolioCoverFields } from '@/lib/portfolio-cover/validation'
-import { enqueuePortfolioGeneration, portfolioQueueConfigured } from '@/lib/portfolio-cover/queue'
-import { hasConfirmedAwardPayment } from '@/lib/awards/access-server'
-import { MAX_PORTFOLIO_COVER_GENERATIONS } from '@/lib/portfolio-cover/policy'
 
 export const runtime = 'nodejs'
-export const maxDuration = 300
+export const maxDuration = 30
 
 export async function POST(request: NextRequest) {
   const blocked = rejectCrossOriginMutation(request)
   if (blocked) return blocked
+
   const user = await getCurrentUser()
   if (!user?.id) return NextResponse.json({ message: 'Authentication required.' }, { status: 401 })
+
   try {
-    if (!(await hasConfirmedAwardPayment(user.id))) return NextResponse.json({ message: 'Complete your award payment to unlock your portfolio cover.' }, { status: 402 })
+    if (!(await hasConfirmedAwardPayment(user.id))) {
+      return NextResponse.json({ message: 'Complete your award payment to unlock your portfolio cover.' }, { status: 402 })
+    }
   } catch {
     return NextResponse.json({ message: 'Could not verify award access. Please try again shortly.' }, { status: 503 })
   }
-  const config = portfolioCoverConfig()
-  if (!config.enabled) return NextResponse.json({ message: 'Portfolio cover generation is not available yet.' }, { status: 503 })
 
-  const rate = await checkRateLimit({ ...RATE_LIMITS.UPLOAD, identifier: `portfolio-cover:${getClientIdentifier(request.headers)}:${user.id}` })
-  if (!rate.success) return createRateLimitResponse(rate, 'Too many image generations. Please try again later.')
+  const rate = await checkRateLimit({
+    ...RATE_LIMITS.UPLOAD,
+    identifier: `portfolio-cover:${getClientIdentifier(request.headers)}:${user.id}`,
+  })
+  if (!rate.success) return createRateLimitResponse(rate, 'Too many photo uploads. Please wait a few minutes.')
 
   let form: FormData
-  try { form = await request.formData() } catch { return NextResponse.json({ message: 'Invalid form submission.' }, { status: 400 }) }
-  const rawFields = String(form.get('fields') ?? '{}')
-  let fieldsInput: unknown
-  try { fieldsInput = JSON.parse(rawFields) } catch { return NextResponse.json({ message: 'Invalid profile details.' }, { status: 400 }) }
-  const parsed = portfolioCoverRequestSchema.safeParse({ tailoring: String(form.get('tailoring') ?? ''), consent: form.get('consent') === 'true', fields: fieldsInput })
-  if (!parsed.success) return NextResponse.json({ message: 'Choose Male or Female, provide valid details, and accept the photo-edit consent.' }, { status: 400 })
+  try {
+    form = await request.formData()
+  } catch {
+    return NextResponse.json({ message: 'Choose a portrait photo to continue.' }, { status: 400 })
+  }
+
+  if (form.get('consent') !== 'true') {
+    return NextResponse.json({ message: 'Confirm that you have permission to use this photo.' }, { status: 400 })
+  }
+
+  let fieldsInput: unknown = {}
+  const rawFields = form.get('fields')
+  if (typeof rawFields === 'string') {
+    try {
+      fieldsInput = JSON.parse(rawFields)
+    } catch {
+      return NextResponse.json({ message: 'Check the name shown on your cover.' }, { status: 400 })
+    }
+  }
+  const parsedFields = portfolioCoverFieldsSchema.safeParse(fieldsInput)
+  if (!parsedFields.success) return NextResponse.json({ message: 'The cover name is invalid or too long.' }, { status: 400 })
+  const fields = normalizePortfolioCoverFields(parsedFields.data)
+
   const file = form.get('portrait')
-  if (!(file instanceof File)) return NextResponse.json({ message: 'A portrait photo is required.' }, { status: 400 })
+  if (!(file instanceof File)) return NextResponse.json({ message: 'Choose a portrait photo to continue.' }, { status: 400 })
   const original = Buffer.from(await file.arrayBuffer())
   const validation = validatePortraitUpload(original, file.type)
-  if (!validation.ok) return NextResponse.json({ message: validation.code === 'too_large' ? 'Portrait must be 8 MB or smaller.' : 'Upload a valid JPEG, PNG, or WebP portrait.' }, { status: 400 })
+  if (!validation.ok) {
+    const message = validation.code === 'too_large'
+      ? 'Portrait must be 8 MB or smaller.'
+      : 'Upload a valid JPG, PNG or WebP image.'
+    return NextResponse.json({ message }, { status: 400 })
+  }
 
-  const fields = normalizePortfolioCoverFields(parsed.data.fields ?? {})
-  const repo = createPortfolioCoverRepository()
-  const generationCount = await repo.countGenerations(user.id)
-  if (generationCount >= MAX_PORTFOLIO_COVER_GENERATIONS) return NextResponse.json({ message: 'You have used both cover generations. Top up $2 / ₦2,000 for another attempt, or contact the AFL team to unlock more.' }, { status: 402 })
-  const current = await repo.getCurrent(user.id)
-  if (current && ['queued', 'processing', 'ready', 'selected'].includes(current.status)) return NextResponse.json({ message: 'You already have a portfolio cover set in progress or ready to choose.' }, { status: 409 })
+  const supabase = createAdminClient()
+  const { data: profile, error: profileReadError } = await supabase
+    .from('profiles')
+    .select('full_name')
+    .eq('id', user.id)
+    .maybeSingle()
+  if (profileReadError || !profile) {
+    return NextResponse.json({ message: 'We could not load your profile name. Refresh and try again.' }, { status: 503 })
+  }
 
-  const id = crypto.randomUUID()
-  let portrait: Buffer
   try {
-    portrait = await preparePortrait(original)
-  } catch {
-    return NextResponse.json({ message: 'We could not decode that portrait. Upload a clear JPEG, PNG, or WebP image.' }, { status: 400 })
-  }
-  const sourcePath = portfolioObjectPath(user.id, id, 'source')
-  await repo.uploadSource(sourcePath, portrait)
-  const generation = await repo.create({ id, memberId: user.id, tailoring: parsed.data.tailoring, fields, sourcePath })
-
-  const profile = await createAdminClient().from('profiles').select('full_name').eq('id', user.id).maybeSingle()
-  const memberName = String(profile.data?.full_name ?? fields.name ?? 'Top100 Future Leader')
-  const editor = config.demo ? createDemoImageEditor() : createOpenAIImageEditor({ apiKey: process.env.OPENAI_API_KEY! })
-  if (portfolioQueueConfigured()) {
-    try {
-      await enqueuePortfolioGeneration({ generationId: id, memberId: user.id, attempt: 1 })
-    } catch (error) {
-      await repo.update(id, { status: 'failed', failure_code: 'queue_unavailable' })
-      console.error('[portfolio-cover] queue enqueue failed', error)
-      return NextResponse.json({ message: 'We could not start image generation. Please try again.' }, { status: 503 })
-    }
-  } else {
-    after(async () => {
-      try {
-        await generatePortfolioCoverSet({ id, memberId: user.id, memberName, tailoring: parsed.data.tailoring, fields, portrait }, { repo, editor })
-      } catch (error) {
-        if (process.env.NODE_ENV !== 'production') console.warn('[portfolio-cover] generation failed', error instanceof Error ? error.message : 'unknown')
-      }
+    const memberName = fields.name || profile.full_name || 'Africa Future Leader'
+    const portrait = await preparePortrait(original)
+    const cover = await renderPortfolioCover({ portrait, memberName, fields })
+    const path = `${user.id}/afl-2026-cover.png`
+    const uploaded = await uploadMedia({
+      bucket: process.env.PORTFOLIO_COVER_BUCKET || 'portfolio-covers',
+      path,
+      body: cover,
+      contentType: 'image/png',
+      cacheControl: '3600',
+      upsert: true,
     })
+    const coverUrl = new URL(uploaded.publicUrl)
+    coverUrl.searchParams.set('v', Date.now().toString())
+
+    const { error: profileUpdateError } = await supabase
+      .from('profiles')
+      .update({ portfolio_cover_url: coverUrl.toString() })
+      .eq('id', user.id)
+    if (profileUpdateError) throw profileUpdateError
+
+    return NextResponse.json({ coverUrl: coverUrl.toString() })
+  } catch (error) {
+    console.error('[portfolio-cover] template cover save failed', { memberId: user.id, error })
+    return NextResponse.json({ message: 'We could not save your cover. Please try again.' }, { status: 503 })
   }
-  return NextResponse.json({ generation }, { status: 202 })
 }
