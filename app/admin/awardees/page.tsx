@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase/client';
+import AwardeeShareReviewDialog from './awardee-share-review-dialog';
 import {
   Plus,
   Edit,
@@ -40,7 +41,7 @@ import {
   EyeOff,
   Eye,
   Star,
-  FileText
+  Share2,
 } from 'lucide-react';
 
 interface Awardee {
@@ -83,15 +84,13 @@ export default function AwardeesManagement() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredAwardees, setFilteredAwardees] = useState<Awardee[]>([]);
-  const [file, setFile] = useState<File | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
   const [stats, setStats] = useState<Stats | null>(null);
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [selectedAwardees, setSelectedAwardees] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 100;
   const [loadingStates, setLoadingStates] = useState<Record<string, 'visibility' | 'featured'>>({});
+  const [shareReviewAwardeeId, setShareReviewAwardeeId] = useState<string | null>(null);
   // Which delete confirmation is open: an awardee id, 'bulk', or null
   const [deleteTarget, setDeleteTarget] = useState<string | 'bulk' | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -267,61 +266,6 @@ export default function AwardeesManagement() {
     });
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const selectedFile = e.target.files[0];
-      if (selectedFile.name.endsWith('.xlsx') || selectedFile.name.endsWith('.xls')) {
-        setFile(selectedFile);
-        toast.success(`Selected file: ${selectedFile.name}`);
-      } else {
-        toast.error('Please select a valid Excel file (.xlsx or .xls)');
-      }
-    }
-  };
-
-  const handleImport = async () => {
-    if (!file) {
-      toast.error('Please select an Excel file first');
-      return;
-    }
-
-    try {
-      setUploading(true);
-      toast.loading('Importing awardees...', { id: 'import-awardees' });
-
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await fetch('/api/awardees/import', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const result = await response.json().catch(() => null);
-      const isSuccessful = response.ok && result?.success;
-
-      if (isSuccessful) {
-        const message = result?.message || `Imported ${result?.imported ?? 0} awardees successfully`;
-        toast.success(message, { id: 'import-awardees' });
-        setFile(null);
-
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-        }
-
-        await fetchAwardees({ withSpinner: false });
-      } else {
-        const errorMessage = result?.error || result?.message || 'Failed to import awardees';
-        throw new Error(errorMessage);
-      }
-    } catch (error) {
-      console.error('Error importing awardees:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to import awardees', { id: 'import-awardees' });
-    } finally {
-      setUploading(false);
-    }
-  };
-
   const handleExport = () => {
     // Download the Excel file
     window.location.href = '/api/awardees/export';
@@ -483,10 +427,12 @@ export default function AwardeesManagement() {
     }
   };
 
-  const handleFileUploadClick = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
+  const openShareReview = (awardee: Awardee) => {
+    if (awardee.is_public === false) {
+      toast.error('Make this awardee profile public before sharing it.');
+      return;
     }
+    setShareReviewAwardeeId(awardee.id);
   };
 
   const handleSelectAll = () => {
@@ -753,38 +699,15 @@ export default function AwardeesManagement() {
                 <p className="text-xs text-zinc-500">Import records via Excel or export current view.</p>
               </div>
               <div className="flex flex-wrap gap-2 mt-4">
-                <div className="flex-1 min-w-[200px] flex gap-2">
-                  <Input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                    accept=".xlsx,.xls"
-                    className="hidden"
-                  />
-                  <Button
-                    variant="outline"
-                    onClick={handleFileUploadClick}
-                    disabled={uploading}
-                    className="flex-1 bg-white border-zinc-200 hover:bg-orange-50 hover:border-orange-200 text-zinc-600 truncate"
-                  >
-                    {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin shrink-0" /> : <Upload className="mr-2 h-4 w-4 shrink-0" />}
-                    <span className="truncate">{file ? file.name : 'Select Excel'}</span>
+                <Link href="/admin/awardees/import" className="flex-1 min-w-[200px]">
+                  <Button variant="outline" className="w-full bg-white border-zinc-200 hover:bg-orange-50 hover:border-orange-200 text-zinc-600">
+                    <Upload className="mr-2 h-4 w-4" /> Import with preview
                   </Button>
-                  {file && (
-                    <Button onClick={handleImport} disabled={uploading} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-                      Import
-                    </Button>
-                  )}
-                </div>
+                </Link>
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={handleExport} className="bg-white border-zinc-200 hover:bg-orange-50 hover:border-orange-200 text-zinc-600">
                     <Download className="mr-2 h-4 w-4" /> Export
                   </Button>
-                  <a href="/top100 Africa future Leaders 2025.xlsx" download>
-                    <Button variant="ghost" size="icon" className="text-zinc-400 hover:text-orange-600 hover:bg-orange-50" aria-label="Download import template" title="Download Template">
-                      <FileText className="h-4 w-4" />
-                    </Button>
-                  </a>
                 </div>
               </div>
             </div>
@@ -933,6 +856,17 @@ export default function AwardeesManagement() {
                   className: 'text-right pr-6',
                   cell: (awardee) => (
                     <div className="flex items-center justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openShareReview(awardee)}
+                        aria-label={`Review and share ${awardee.name}'s spotlight`}
+                        title={awardee.is_public === false ? 'Make this profile public before sharing' : 'Review and share this spotlight'}
+                        disabled={awardee.is_public === false}
+                        className="h-8 w-8 text-[#0a66c2] hover:bg-blue-50 rounded-lg"
+                      >
+                        <Share2 className="h-4 w-4" />
+                      </Button>
                       <Button variant="ghost" size="icon" onClick={() => handleEdit(awardee.id)} aria-label={`Edit ${awardee.name}`} className="h-8 w-8 text-zinc-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg">
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -988,6 +922,17 @@ export default function AwardeesManagement() {
                         <Button
                           variant="ghost"
                           size="icon"
+                          onClick={() => openShareReview(awardee)}
+                          aria-label={`Review and share ${awardee.name}'s spotlight`}
+                          title={awardee.is_public === false ? 'Make this profile public before sharing' : 'Review and share this spotlight'}
+                          disabled={awardee.is_public === false}
+                          className="h-11 w-11 rounded-full bg-blue-50 text-[#0a66c2] hover:bg-blue-100"
+                        >
+                          <Share2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           aria-label={awardee.featured ? `Unfeature ${awardee.name}` : `Feature ${awardee.name}`}
                           onClick={() => handleToggleFeatured(awardee.id, awardee.featured || false)}
                           disabled={loadingStates[awardee.id] === 'featured'}
@@ -1035,6 +980,7 @@ export default function AwardeesManagement() {
       </Card>
 
       {/* Delete confirmation */}
+      {shareReviewAwardeeId && <AwardeeShareReviewDialog key={shareReviewAwardeeId} awardeeId={shareReviewAwardeeId} onClose={() => setShareReviewAwardeeId(null)} />}
       <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
         <AlertDialogContent className="bg-white border-orange-100 rounded-2xl">
           <AlertDialogHeader>
