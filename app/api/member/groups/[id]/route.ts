@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 import { getCurrentUser } from '@/lib/auth-server'
+import { MEMBER_GROUPS_ENABLED, memberGroupsLockedResponse } from '@/lib/groups/access'
 import { createAdminClient } from '@/lib/supabase/server'
 import {
   GROUPS_SETUP_MESSAGE,
@@ -32,6 +33,7 @@ export const runtime = 'nodejs'
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser()
   if (!user?.id) return NextResponse.json({ message: 'Authentication required.' }, { status: 401 })
+  if (!MEMBER_GROUPS_ENABLED) return memberGroupsLockedResponse()
 
   const { id } = await params
   const supabase = createAdminClient()

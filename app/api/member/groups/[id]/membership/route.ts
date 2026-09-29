@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 import { getCurrentUser } from '@/lib/auth-server'
+import { MEMBER_GROUPS_ENABLED, memberGroupsLockedResponse } from '@/lib/groups/access'
 import { createAdminClient } from '@/lib/supabase/server'
 import { checkRateLimit, createRateLimitResponse } from '@/lib/rate-limit'
 import {
@@ -32,6 +33,7 @@ const SETUP_RESPONSE = () =>
 export async function POST(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser()
   if (!user?.id) return NextResponse.json({ message: 'Authentication required.' }, { status: 401 })
+  if (!MEMBER_GROUPS_ENABLED) return memberGroupsLockedResponse()
 
   const { id } = await params
 
@@ -113,6 +115,7 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
 export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser()
   if (!user?.id) return NextResponse.json({ message: 'Authentication required.' }, { status: 401 })
+  if (!MEMBER_GROUPS_ENABLED) return memberGroupsLockedResponse()
 
   const { id } = await params
   const supabase = createAdminClient()
@@ -148,6 +151,7 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser()
   if (!user?.id) return NextResponse.json({ message: 'Authentication required.' }, { status: 401 })
+  if (!MEMBER_GROUPS_ENABLED) return memberGroupsLockedResponse()
 
   const { id } = await params
 

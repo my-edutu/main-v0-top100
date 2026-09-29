@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import Link from 'next/link'
-import { ArrowUpRight, ChevronLeft, ChevronRight, Trophy } from 'lucide-react'
+import { ArrowUpRight, ChevronLeft, ChevronRight, LockKeyhole, Trophy } from 'lucide-react'
 import type { Awardee } from '@/lib/awardees-shared'
 import { resolveStoryCover } from '@/lib/story-covers'
+import { MEMBER_GROUPS_ENABLED, MEMBER_GROUPS_LOCKED_MESSAGE } from '@/lib/groups/access'
 import { discoverNav } from '../_lib/navigation'
 import { useDashboardMember } from '../_providers/dashboard-member'
 
@@ -90,7 +91,9 @@ export function DiscoverFeed({ posts }: { posts: Story[] }) {
   return <div className="discover-feed">
     <header><h1 className="text-xl font-semibold tracking-tight">Find your people. Make an impact.</h1></header>
     <nav aria-label="Discover shortcuts" className="discover-shortcuts">
-      {shortcutItems.map(({ href, label, icon: Icon }) => <Link key={href} href={href}><Icon size={18} /><span>{label}</span><ArrowUpRight size={14} /></Link>)}
+      {shortcutItems.map(({ href, label, icon: Icon }) => label === 'Groups' && !MEMBER_GROUPS_ENABLED
+        ? <div key={href} className="discover-shortcut-locked" role="group" aria-label={`Groups. ${MEMBER_GROUPS_LOCKED_MESSAGE}`} title={MEMBER_GROUPS_LOCKED_MESSAGE}><Icon size={18} aria-hidden="true" /><span>{label}</span><span className="sr-only">{MEMBER_GROUPS_LOCKED_MESSAGE}</span><LockKeyhole size={15} aria-hidden="true" /></div>
+        : <Link key={href} href={href}><Icon size={18} /><span>{label}</span><ArrowUpRight size={14} /></Link>)}
     </nav>
     <Rail title="Make a difference">
       {campaigns.map(campaign => <Link href={campaign.href} className="discover-campaign" key={campaign.label}><span className="discover-kicker">{campaign.label}</span><h3>{campaign.title}</h3><p>{campaign.description}</p><span className="discover-cta">{campaign.action} <ArrowUpRight size={18} /></span></Link>)}
