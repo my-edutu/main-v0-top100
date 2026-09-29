@@ -4,6 +4,7 @@ import {
   captchaVerificationAllowed,
   evaluateProductionReadiness,
   isAwardCheckoutEnabled,
+  isMagazineCheckoutEnabled,
 } from '@/lib/production-readiness'
 
 const completeCoreEnv = {
@@ -50,9 +51,9 @@ describe('production readiness configuration', () => {
     expect(result.issues.map((issue) => issue.key)).toEqual([
       'BACHS_API_BASE_URL',
       'BACHS_API_KEY',
-      'BACHS_WEBHOOK_SECRET',
       'BACHS_ORGANIZATION_ID',
       'BACHS_CHECKOUT_HOSTS',
+      'BACHS_AWARD_WEBHOOK_SECRET',
     ])
     expect(isAwardCheckoutEnabled({ ...completeCoreEnv, AWARD_CHECKOUT_ENABLED: 'true' })).toBe(false)
     expect(
@@ -61,7 +62,7 @@ describe('production readiness configuration', () => {
         AWARD_CHECKOUT_ENABLED: 'true',
         BACHS_API_BASE_URL: 'https://sandbox-api.bachs.io',
         BACHS_API_KEY: 'sk_sandbox_test-key',
-        BACHS_WEBHOOK_SECRET: 'bachs-webhook-secret',
+        BACHS_AWARD_WEBHOOK_SECRET: 'award-webhook-secret',
         BACHS_ORGANIZATION_ID: 'org-test',
         BACHS_CHECKOUT_HOSTS: 'checkout.bachs.io',
       }),
@@ -83,6 +84,46 @@ describe('production readiness configuration', () => {
     ])
   })
 
+  it('keeps magazine checkout independently gated and requires its own webhook secret', () => {
+    const shared = {
+      ...completeCoreEnv,
+      BACHS_API_BASE_URL: 'https://sandbox-api.bachs.io',
+      BACHS_API_KEY: 'sk_sandbox_test-key',
+      BACHS_ORGANIZATION_ID: 'org-test',
+      BACHS_CHECKOUT_HOSTS: 'checkout.bachs.io',
+    }
+    expect(isMagazineCheckoutEnabled({ ...shared, MAGAZINE_CHECKOUT_ENABLED: 'true' })).toBe(false)
+    expect(isMagazineCheckoutEnabled({ ...shared, MAGAZINE_CHECKOUT_ENABLED: 'true', BACHS_MAGAZINE_WEBHOOK_SECRET: 'mag-secret' })).toBe(true)
+    expect(isAwardCheckoutEnabled({ ...shared, MAGAZINE_CHECKOUT_ENABLED: 'true', BACHS_MAGAZINE_WEBHOOK_SECRET: 'mag-secret' })).toBe(false)
+    const result = evaluateProductionReadiness({ ...shared, MAGAZINE_CHECKOUT_ENABLED: 'true' })
+    expect(result.issues.map((issue) => issue.key)).toContain('BACHS_MAGAZINE_WEBHOOK_SECRET')
+  })
+
+  it('requires magazine checkout configuration when validating the magazine launch scope', () => {
+    const result = evaluateProductionReadiness(completeCoreEnv, { requireMagazine: true })
+    expect(result.issues.map((issue) => issue.key)).toEqual([
+      'MAGAZINE_CHECKOUT_ENABLED',
+      'BACHS_API_BASE_URL',
+      'BACHS_API_KEY',
+      'BACHS_ORGANIZATION_ID',
+      'BACHS_CHECKOUT_HOSTS',
+      'BACHS_MAGAZINE_WEBHOOK_SECRET',
+    ])
+  })
+
+  it('accepts an independent magazine-only launch configuration', () => {
+    const result = evaluateProductionReadiness({
+      ...completeCoreEnv,
+      MAGAZINE_CHECKOUT_ENABLED: 'true',
+      BACHS_API_BASE_URL: 'https://api.bachs.io',
+      BACHS_API_KEY: 'sk_live_test-key',
+      BACHS_MAGAZINE_WEBHOOK_SECRET: 'magazine-webhook-secret',
+      BACHS_ORGANIZATION_ID: 'org-live',
+      BACHS_CHECKOUT_HOSTS: 'checkout.bachs.io',
+    }, { requireMagazine: true })
+    expect(result).toEqual({ ready: true, issues: [] })
+  })
+
   it('requires the feature flag and Bachs settings for the full award-fee launch scope', () => {
     const result = evaluateProductionReadiness(completeCoreEnv, { requireAwards: true })
 
@@ -91,9 +132,9 @@ describe('production readiness configuration', () => {
       'AWARD_CHECKOUT_ENABLED',
       'BACHS_API_BASE_URL',
       'BACHS_API_KEY',
-      'BACHS_WEBHOOK_SECRET',
       'BACHS_ORGANIZATION_ID',
       'BACHS_CHECKOUT_HOSTS',
+      'BACHS_AWARD_WEBHOOK_SECRET',
     ])
   })
 
@@ -104,7 +145,7 @@ describe('production readiness configuration', () => {
         AWARD_CHECKOUT_ENABLED: 'true',
         BACHS_API_BASE_URL: 'https://api.bachs.io',
         BACHS_API_KEY: 'sk_live_test-key',
-        BACHS_WEBHOOK_SECRET: 'bachs-webhook-secret',
+        BACHS_AWARD_WEBHOOK_SECRET: 'bachs-webhook-secret',
         BACHS_ORGANIZATION_ID: 'org-live',
         BACHS_CHECKOUT_HOSTS: 'checkout.bachs.io',
       },

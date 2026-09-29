@@ -4,12 +4,13 @@ import { evaluateProductionReadiness } from '../lib/production-readiness'
 loadEnvConfig(process.cwd())
 
 const requireAwards = process.argv.includes('--require-awards')
+const requireMagazine = process.argv.includes('--require-magazine')
 const requirePortfolioImages = process.argv.includes('--require-portfolio-images')
-const result = evaluateProductionReadiness(process.env, { requireAwards, requirePortfolioImages })
+const result = evaluateProductionReadiness(process.env, { requireAwards, requireMagazine, requirePortfolioImages })
 
 if (result.ready) {
   console.log(
-    requireAwards
+    requireAwards || requireMagazine
       ? 'Production configuration is ready for the requested launch scope.'
       : 'Production configuration is ready for the controlled member launch scope.',
   )

@@ -1,7 +1,7 @@
 export type RuntimeEnvironment = Record<string, string | undefined>
 
 export type ReadinessIssue = { key: string; message: string }
-export type ReadinessOptions = { requireAwards?: boolean; requirePortfolioImages?: boolean }
+export type ReadinessOptions = { requireAwards?: boolean; requireMagazine?: boolean; requirePortfolioImages?: boolean }
 
 const CORE_SETTINGS = [
   'NEXT_PUBLIC_SUPABASE_URL',
@@ -27,10 +27,9 @@ const GIG_SETTINGS = [
 
 // Award-fee launch is owned by Bachs. Courier configuration belongs to the
 // later delivery phase and is therefore deliberately kept out of this gate.
-const BACHS_SETTINGS = [
+const BACHS_SHARED_SETTINGS = [
   'BACHS_API_BASE_URL',
   'BACHS_API_KEY',
-  'BACHS_WEBHOOK_SECRET',
   'BACHS_ORGANIZATION_ID',
   'BACHS_CHECKOUT_HOSTS',
 ] as const
@@ -118,12 +117,28 @@ export function evaluateProductionReadiness(
     })
   }
 
-  const awardFeeLaunchRequested = options.requireAwards || enabled(env.AWARD_CHECKOUT_ENABLED)
+  if (options.requireMagazine && !enabled(env.MAGAZINE_CHECKOUT_ENABLED)) {
+    issues.push({
+      key: 'MAGAZINE_CHECKOUT_ENABLED',
+      message: 'MAGAZINE_CHECKOUT_ENABLED must be true for the requested magazine-payment launch scope.',
+    })
+  }
 
-  if (awardFeeLaunchRequested) {
-    for (const key of BACHS_SETTINGS) {
-      if (!present(env, key)) issues.push({ key, message: `${key} is required when Bachs award checkout is enabled.` })
+  const awardFeeLaunchRequested = options.requireAwards || enabled(env.AWARD_CHECKOUT_ENABLED)
+  const magazineLaunchRequested = options.requireMagazine || enabled(env.MAGAZINE_CHECKOUT_ENABLED)
+
+  if (awardFeeLaunchRequested || magazineLaunchRequested) {
+    for (const key of BACHS_SHARED_SETTINGS) {
+      if (!present(env, key)) issues.push({ key, message: `${key} is required when a Bachs checkout is enabled.` })
     }
+  }
+
+  if (awardFeeLaunchRequested && !present(env, 'BACHS_AWARD_WEBHOOK_SECRET')) {
+    issues.push({ key: 'BACHS_AWARD_WEBHOOK_SECRET', message: 'BACHS_AWARD_WEBHOOK_SECRET is required when award checkout is enabled.' })
+  }
+
+  if (magazineLaunchRequested && !present(env, 'BACHS_MAGAZINE_WEBHOOK_SECRET')) {
+    issues.push({ key: 'BACHS_MAGAZINE_WEBHOOK_SECRET', message: 'BACHS_MAGAZINE_WEBHOOK_SECRET is required when magazine checkout is enabled.' })
   }
 
   if (options.requirePortfolioImages && !enabled(env.PORTFOLIO_IMAGE_GENERATION_ENABLED)) {
@@ -164,7 +179,15 @@ export function evaluateProductionReadiness(
 }
 
 export function isAwardCheckoutEnabled(env: RuntimeEnvironment) {
-  return enabled(env.AWARD_CHECKOUT_ENABLED) && BACHS_SETTINGS.every((key) => present(env, key))
+  return enabled(env.AWARD_CHECKOUT_ENABLED)
+    && BACHS_SHARED_SETTINGS.every((key) => present(env, key))
+    && present(env, 'BACHS_AWARD_WEBHOOK_SECRET')
+}
+
+export function isMagazineCheckoutEnabled(env: RuntimeEnvironment) {
+  return enabled(env.MAGAZINE_CHECKOUT_ENABLED)
+    && BACHS_SHARED_SETTINGS.every((key) => present(env, key))
+    && present(env, 'BACHS_MAGAZINE_WEBHOOK_SECRET')
 }
 
 export function captchaVerificationAllowed(env: RuntimeEnvironment, nodeEnv: string | undefined) {

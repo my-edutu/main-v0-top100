@@ -33,8 +33,8 @@ export function FeatureSection({ member }: { member:MemberProfile }) {
   finally {setSaving(false)}
  }
  return <div className="mx-auto max-w-xl space-y-8">
- <p className="text-sm leading-6 text-stone-600">Have more than one story? Submit each separately. Top100 can feature multiple posts from you, subject to editorial review.</p>
- {saved ? <div className="space-y-4 py-4"><p role="status">Your pitch has been sent to the AFL team for editorial review.</p><button type="button" className="min-h-12 rounded-xl border px-5" onClick={()=>{setTitle('');setSummary('');setCategory('bio');setStep(0);setError('');setSaved(false)}}>Submit another story</button></div> : <form onSubmit={submit} className="space-y-6 py-4">
+ <p className="text-sm leading-6 text-stone-600">Submit one application for this magazine campaign. The AFL editorial team will review your pitch before deciding whether to feature it.</p>
+ {saved ? <div className="space-y-4 py-4"><p role="status">Your application has been sent to the AFL team for editorial review. You can follow its status below.</p></div> : <form onSubmit={submit} className="space-y-6 py-4">
   <p className="text-sm text-orange-700">Your story · {step+1} of 4</p>
   <h2 className="text-2xl font-medium">{['Give your story a title.','What kind of story is it?','Tell us why it matters.','Review your pitch.'][step]}</h2>
   {step===0 && <input aria-label="Feature title" autoFocus required value={title} onChange={e=>setTitle(e.target.value)} placeholder="My climate project for rural schools" className="h-14 w-full rounded-xl border px-4 text-base" />}
