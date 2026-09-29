@@ -5,7 +5,7 @@ const adminClient = vi.hoisted(() => vi.fn())
 
 vi.mock('@/lib/supabase/server', () => ({ createAdminClient: adminClient }))
 
-import { POST } from '@/app/api/auth/signup/route'
+import { POST } from '@/app/api/auth/claim-request/route'
 
 describe('signup CAPTCHA production boundary', () => {
   afterEach(() => {
@@ -21,12 +21,11 @@ describe('signup CAPTCHA production boundary', () => {
     })
 
     const response = await POST(
-      new NextRequest('https://top100afl.com/api/auth/signup', {
+      new NextRequest('https://top100afl.com/api/auth/claim-request', {
         method: 'POST',
         headers: { 'content-type': 'application/json', 'x-forwarded-for': '198.51.100.2' },
         body: JSON.stringify({
           email: 'awardee@example.com',
-          password: 'safe-password',
           inviteCode: 'AFL-READY',
           awardeeId: '00000000-0000-4000-8000-000000000000',
         }),
