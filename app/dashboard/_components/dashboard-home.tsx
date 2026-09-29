@@ -6,7 +6,6 @@ import {
   BellRing,
   ArrowUpRight,
   Mail,
-  Trophy,
   UserRound,
 } from 'lucide-react'
 
@@ -24,7 +23,7 @@ import { discoverNav, meNav } from '../_lib/navigation'
 import { selectUpcomingInvitations } from '../_lib/home-priority'
 import { useDashboardBadges } from '../_providers/dashboard-badges'
 import { useDashboardMember } from '../_providers/dashboard-member'
-import { AwardReadyWelcome } from './award-ready-welcome'
+import { AwardeeOnboardingJourney } from './awardee-onboarding-journey'
 
 type RecentItem = {
   id: string
@@ -75,7 +74,6 @@ function formatShortDate(value: string | null | undefined) {
 export function DashboardHome() {
   const { member } = useDashboardMember()
   const {
-    awardNeedsAttention,
     setUnreadUpdates,
   } = useDashboardBadges()
   const [invitations, setInvitations] = useState<EventInvitation[]>([])
@@ -139,8 +137,6 @@ export function DashboardHome() {
     }
   }, [member.id, member.status, setUnreadUpdates])
 
-  const showAwardWelcome = awardNeedsAttention
-
   const shortcuts = [discoverNav[0], discoverNav[2], meNav[0], meNav[1], meNav[4],
     { label:'Schedule an interview', href:INTERVIEW_FORM_URL, icon:Mail, color:'ember' as const, external: true },
     { label:'Contact the team', href:'mailto:info@top100afl.com', icon:Mail, color:'forest' as const },
@@ -201,30 +197,13 @@ export function DashboardHome() {
 
   return (
     <div className="hub-home">
-      {showAwardWelcome ? <AwardReadyWelcome memberId={member.id} name={member.name} /> : null}
       <section className="hub-welcome" aria-labelledby="hub-welcome-title">
         <h1 id="hub-welcome-title">{(member.dashboardLoginCount ?? 0) < 4 ? 'Congratulations' : 'Hey'}, {member.name.trim().split(/\s+/)[0]}.</h1>
         <p className="hub-welcome-description">Your people, opportunities, and latest updates.</p>
       </section>
+      <AwardeeOnboardingJourney name={member.name} />
       {loading && <p role="status" className="hub-status text-sm text-neutral-600">Loading your latest activity…</p>}
       {loadError && <p role="status" className="hub-status rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-sm leading-5 text-neutral-700">Some activity couldn’t load. We’ll retry automatically; you can also open Events or Updates directly.</p>}
-
-      {awardNeedsAttention ? (
-        <section className="hub-next-move" aria-labelledby="next-move-title">
-          <p id="next-move-title" className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#625B52]">
-            Your next move
-          </p>
-          <DashboardCard
-            image={false}
-            href="/dashboard/me/award"
-            title="Your award is ready"
-            description="Complete your award payment; delivery follows separately."
-            icon={Trophy}
-            color="saffron"
-            compact
-          />
-        </section>
-      ) : null}
 
       <section aria-labelledby="coming-up-title" className="hub-upcoming-events min-w-0">
         <div className="flex items-center justify-between gap-3">

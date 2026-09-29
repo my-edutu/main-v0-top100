@@ -1,189 +1,322 @@
 'use client'
 
-import { type FormEvent, useEffect, useState } from 'react'
+import { useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
-import { Loader2, UserRound } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Loader2, UserRound } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
-import { updateMemberProfile } from '@/lib/member-hub'
-import { buildBioPatch } from '../_lib/profile-patches'
+import { updateMemberProfile, type MemberProfile } from '@/lib/member-hub'
 import { persistThenRefresh } from '../_lib/persistence-workflows'
+import { buildProfileUpdatePatch, getProfileWizardSteps, type ProfileEditStep } from '../_lib/profile-wizard'
 import { useDashboardMember } from '../_providers/dashboard-member'
 import { MemberAvatar } from '../_components/member-avatar'
 
+type ProfileDraft = Pick<
+  MemberProfile,
+  'headline' | 'field' | 'location' | 'organization' | 'bio' | 'emailVisible' | 'recruiterVisible'
+>
+
+function draftFromMember(member: MemberProfile): ProfileDraft {
+  return {
+    headline: member.headline,
+    field: member.field,
+    location: member.location,
+    organization: member.organization,
+    bio: member.bio,
+    emailVisible: member.emailVisible,
+    recruiterVisible: member.recruiterVisible,
+  }
+}
+
+async function uploadProfilePhoto(file: File): Promise<string> {
+  const form = new FormData()
+  form.set('file', file)
+  const response = await fetch('/api/member/avatar', { method: 'POST', body: form })
+  const data = await response.json()
+  if (!response.ok || typeof data.url !== 'string') {
+    throw new Error(data.error || 'Could not upload your photo.')
+  }
+  return data.url
+}
+
+const stepCopy: Record<Exclude<ProfileEditStep, 'photo' | 'visibility'>, { title: string; detail: string }> = {
+  headline: { title: 'What should people know you for?', detail: 'A short line that introduces your work.' },
+  field: { title: 'What field do you work in?', detail: 'For example, education, climate, health, or technology.' },
+  location: { title: 'Where are you based?', detail: 'Add your city and country, if you would like to share them.' },
+  organization: { title: 'Where do you work or study?', detail: 'Add an organization, institution, or leave this blank.' },
+  bio: { title: 'Tell your story.', detail: 'Write a brief BIO for your public awardee profile.' },
+}
+
 export function ProfileSection() {
   const { member, refreshMember, replaceMember } = useDashboardMember()
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState<ProfileDraft>(() => draftFromMember(member))
+  const [stepIndex, setStepIndex] = useState(0)
+  const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
   const [warning, setWarning] = useState('')
-  const [uploading, setUploading] = useState(false)
-  async function uploadPhoto(file?: File) {
-    if (!file) return
-    setUploading(true); setError('')
-    try {
-      const form = new FormData(); form.set('file', file)
-      const response = await fetch('/api/member/avatar', { method: 'POST', body: form })
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.error || 'Could not upload your photo.')
-      replaceMember({ ...member, avatarUrl: data.url })
-      toast.success('Profile photo updated.')
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not save your photo.') }
-    finally { setUploading(false) }
-  }
   const updatesRemaining = Math.max(0, member.bioUpdateLimit - member.bioUpdateCount)
-  const quotaExhausted = updatesRemaining === 0
+  const steps = getProfileWizardSteps(updatesRemaining > 0)
+  const currentStep = steps[stepIndex] ?? steps[0]
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    if (quotaExhausted) return
+  function startEditing() {
+    setDraft(draftFromMember(member))
+    setPhotoFile(null)
+    setStepIndex(0)
+    setError('')
+    setWarning('')
+    setEditing(true)
+  }
+
+  function updateDraft<Key extends keyof ProfileDraft>(key: Key, value: ProfileDraft[Key]) {
+    setDraft((current) => ({ ...current, [key]: value }))
+  }
+
+  function selectPhoto(file?: File) {
+    if (!file) return
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
+      setPhotoFile(null)
+      setError('Choose a JPG, PNG or WebP image under 5 MB.')
+      return
+    }
+    setError('')
+    setPhotoFile(file)
+  }
+
+  async function saveProfile() {
+    if (saving) return
+    setSaving(true)
+    setError('')
+    setWarning('')
+    let uploadedAvatarUrl: string | null = null
 
     try {
-      setSaving(true)
-      setSaved(false)
-      setError('')
-      setWarning('')
+      if (photoFile) {
+        uploadedAvatarUrl = await uploadProfilePhoto(photoFile)
+        setPhotoFile(null)
+      }
+
       const result = await persistThenRefresh({
-        persist: () => updateMemberProfile(member.id, buildBioPatch(new FormData(event.currentTarget))),
-        applyPersisted: replaceMember,
+        persist: () => updateMemberProfile(member.id, buildProfileUpdatePatch(draft, updatesRemaining > 0)),
+        applyPersisted: (persisted) => replaceMember({
+          ...persisted,
+          ...(uploadedAvatarUrl ? { avatarUrl: uploadedAvatarUrl } : {}),
+        }),
         refresh: refreshMember,
-        refreshWarning: 'Your BIO was saved, but we could not refresh the latest account view.',
+        refreshWarning: 'Your profile was saved, but we could not refresh the latest account view.',
       })
-      setSaved(true)
-      toast.success('BIO saved for review.')
+
       setWarning(result.warning)
+      setEditing(false)
+      toast.success('Your profile has been updated.')
     } catch (cause) {
-      const message = cause instanceof Error ? cause.message : 'Could not save your BIO.'
-      setError(message)
-      toast.error(message)
+      const message = cause instanceof Error ? cause.message : 'Could not save your profile.'
+      if (uploadedAvatarUrl) {
+        replaceMember({ ...member, avatarUrl: uploadedAvatarUrl })
+        setError(`Your photo was updated, but the rest of your profile was not saved. ${message}`)
+      } else {
+        setError(message)
+      }
+      toast.error(uploadedAvatarUrl ? 'Your photo was updated; other profile changes need another try.' : message)
     } finally {
       setSaving(false)
     }
   }
 
-  return (
-    <>
-      {(member.dashboardLoginCount ?? 0) <= 1 ? <ProfileWelcome memberId={member.id} name={member.name} /> : null}
-      <form onSubmit={handleSubmit} className="hub-profile-editor space-y-5 bg-white">
-      <section aria-labelledby="profile-identity" className="space-y-4">
-        <div><h2 id="profile-identity" className="text-lg font-semibold text-[#171412]">Profile identity</h2><p className="mt-1 text-sm leading-6 text-neutral-500">This is how your awardee profile starts.</p></div>
-      <div className="flex items-center gap-4"><MemberAvatar src={member.avatarUrl} initials={member.avatarInitials} size={64} /><label className="min-w-0 text-sm font-medium">{uploading ? 'Saving photo…' : 'Your profile photo'}<input disabled={uploading} type="file" accept="image/jpeg,image/png,image/webp" onChange={event => { const file = event.target.files?.[0]; event.currentTarget.value = ''; void uploadPhoto(file) }} className="mt-2 block w-full text-xs" /><span className="mt-1 block text-xs font-normal text-neutral-500">JPG, PNG or WebP, up to 5 MB · stored in Cloudflare media storage</span></label></div>
-      </section>
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[16px] border border-orange-200 bg-[#FFF3E8] px-4 py-3">
-        <div>
-          <p className="text-sm font-extrabold text-[#171412]">Public profile sync</p>
-          <p className="mt-1 max-w-2xl text-xs font-normal leading-5 text-[#625B52]">
-            Existing awardee details are prefilled here. Saving updates this account and its linked public awardee profile together.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {member.publicSlug ? (
-            <Button asChild variant="outline" className="rounded-full border-orange-200 bg-white text-[#171412] hover:bg-white">
-              <Link href={`/bio/${member.publicSlug}`}>View public profile</Link>
-            </Button>
-          ) : null}
-        </div>
-      </div>
-
-      {quotaExhausted ? (
-        <div role="status" className="rounded-[16px] border border-amber-300 bg-[#FFF3C7] p-4 text-sm font-semibold leading-6 text-[#563700]">
-          Your BIO update allowance is used up. Ask the admin team to reset it. Your settings pages remain available.
-        </div>
-      ) : null}
-
-      <fieldset disabled={quotaExhausted || saving} className="space-y-5 disabled:opacity-65">
-        <legend className="mb-1 text-lg font-semibold text-[#171412]">Public profile details</legend>
-        <p className="-mt-3 text-sm leading-6 text-neutral-500">These fields appear on your public awardee page. Keep them clear and current.</p>
-        <div className="grid gap-4 md:grid-cols-2">
-          <ProfileField label="Headline" name="headline" defaultValue={member.headline} placeholder="Founder, researcher, changemaker" />
-          <ProfileField label="Field" name="field" defaultValue={member.field} placeholder="Education, climate, health" />
-          <ProfileField label="Location" name="location" defaultValue={member.location} placeholder="City, country" />
-          <ProfileField label="Organization" name="organization" defaultValue={member.organization} placeholder="Company or institution" />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="bio" className="font-bold text-[#171412]">BIO</Label>
-          <Textarea id="bio" name="bio" defaultValue={member.bio} placeholder="Write a concise awardee BIO for review." className="min-h-44 rounded-[16px] border-[#E7DDCF] text-base text-[#171412] placeholder:text-[#625B52]/60" />
-        </div>
-
-        <div className="border-t border-[#E7DDCF] pt-5"><p className="text-lg font-semibold text-[#171412]">Who can find you?</p><p className="mt-1 text-sm leading-6 text-neutral-500">Choose how your public profile is discovered.</p></div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <ProfileToggle name="recruiterVisible" label="Recruiter visibility" defaultChecked={member.recruiterVisible} />
-          <ProfileToggle name="emailVisible" label="Show email on profile" defaultChecked={member.emailVisible} />
-        </div>
-        <div className="space-y-2"><p className="text-sm font-medium">Account email</p><p className="break-all text-sm text-neutral-600">{member.email}</p><p className="text-xs leading-5 text-neutral-500">Keep “Show email on profile” off if you do not want your email displayed publicly.</p></div>
-      </fieldset>
-
-      <div className="flex flex-wrap items-center gap-3">
-        <Button type="submit" disabled={quotaExhausted || saving} className="hub-profile-save min-h-12 w-full rounded-xl px-7 font-medium sm:w-auto">
-          {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : null}
-          {saving ? 'Saving...' : 'Save profile for review'}
-        </Button>
-        {saved ? <span role="status" className="text-sm font-bold text-emerald-700">Saved for review.</span> : null}
-        {error ? <span role="alert" className="text-sm font-bold text-rose-700">{error}</span> : null}
-        {warning ? <span role="status" className="text-sm font-bold text-amber-700">{warning}</span> : null}
-      </div>
-      </form>
-    </>
-  )
-}
-
-function ProfileWelcome({ memberId, name }: { memberId: string; name: string }) {
-  const [open, setOpen] = useState(false)
-  const firstName = name.trim().split(/\s+/)[0] || 'there'
-  const storageKey = `afl:profile-welcome-seen:${memberId}`
-
-  useEffect(() => {
-    try {
-      if (!window.sessionStorage.getItem(storageKey)) setOpen(true)
-    } catch {
-      setOpen(true)
-    }
-  }, [storageKey])
-
-  function close() {
-    setOpen(false)
-    try { window.sessionStorage.setItem(storageKey, '1') } catch { /* Storage may be unavailable. */ }
+  if (!editing) {
+    return (
+      <ProfileOverview member={member} onEdit={startEditing} />
+    )
   }
 
+  const isLastStep = stepIndex === steps.length - 1
+
   return (
-    <Dialog open={open} onOpenChange={(nextOpen) => nextOpen ? setOpen(true) : close()}>
-      <DialogContent className="w-[calc(100%_-_32px)] max-w-md rounded-3xl border-orange-100 bg-white p-6 text-neutral-950 sm:p-8">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-100 text-orange-700">
-          <UserRound className="h-6 w-6" aria-hidden="true" />
+    <section className="hub-profile-editor mx-auto w-full max-w-2xl space-y-5" aria-labelledby="profile-update-title">
+      <header className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs font-medium uppercase tracking-[.14em] text-orange-800">Update your profile</p>
+          <h2 id="profile-update-title" className="mt-1 text-xl font-semibold tracking-tight text-neutral-950 sm:text-2xl">One question at a time</h2>
         </div>
-        <DialogTitle className="mt-4 text-2xl font-semibold leading-tight">Welcome to your profile, {firstName}.</DialogTitle>
-        <DialogDescription className="text-sm leading-6 text-neutral-600">
-          This is where you shape how fellow awardees, partners, and recruiters discover your work. Add a clear photo, BIO, and public details to make your profile feel like you.
-        </DialogDescription>
-        <button type="button" onClick={close} className="mt-2 flex min-h-12 w-full items-center justify-center rounded-xl bg-orange-500 px-5 font-medium text-neutral-950 hover:bg-orange-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-orange-600">
-          Continue
-        </button>
-      </DialogContent>
-    </Dialog>
+      </header>
+
+      <div className="space-y-2" aria-live="polite">
+        <div className="flex items-center justify-between gap-3 text-sm text-neutral-600">
+          <span>Question {stepIndex + 1} of {steps.length}</span>
+          <span>{Math.round(((stepIndex + 1) / steps.length) * 100)}%</span>
+        </div>
+        <div className="h-1.5 overflow-hidden rounded-full bg-neutral-100" role="progressbar" aria-valuemin={1} aria-valuemax={steps.length} aria-valuenow={stepIndex + 1} aria-label="Profile update progress">
+          <div className="h-full rounded-full bg-orange-600 transition-[width]" style={{ width: `${((stepIndex + 1) / steps.length) * 100}%` }} />
+        </div>
+      </div>
+
+      {updatesRemaining === 0 ? (
+        <p role="status" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-5 text-amber-900">
+          Your profile text update allowance is used up. You can still update your photo and visibility settings; ask the admin team to reset text edits.
+        </p>
+      ) : null}
+
+      <div className="min-h-64 rounded-2xl border border-neutral-200 bg-white p-4 sm:p-6">
+        {currentStep === 'photo' ? (
+          <section aria-labelledby="profile-question-photo" className="space-y-5">
+            <div>
+              <h3 id="profile-question-photo" className="text-lg font-semibold text-neutral-950">Would you like to update your photo?</h3>
+              <p className="mt-1 text-sm leading-5 text-neutral-600">Choose a clear JPG, PNG, or WebP image up to 5 MB. Your award cover stays separate.</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <MemberAvatar src={member.avatarUrl} initials={member.avatarInitials} size={64} />
+              <div className="min-w-0 flex-1 space-y-2">
+                <Label htmlFor="profile-photo">Profile photo</Label>
+                <Input id="profile-photo" type="file" accept="image/jpeg,image/png,image/webp" disabled={saving} onChange={(event) => { selectPhoto(event.currentTarget.files?.[0]); event.currentTarget.value = '' }} className="min-h-11 cursor-pointer p-0 text-sm file:mr-3 file:h-11 file:border-0 file:border-r file:border-neutral-200 file:bg-orange-50 file:px-3 file:font-medium file:text-orange-900" />
+                {photoFile ? <p className="break-all text-xs text-neutral-600">Selected: {photoFile.name}</p> : null}
+              </div>
+            </div>
+          </section>
+        ) : currentStep === 'visibility' ? (
+          <section aria-labelledby="profile-question-visibility" className="space-y-5">
+            <div>
+              <h3 id="profile-question-visibility" className="text-lg font-semibold text-neutral-950">Who can find you?</h3>
+              <p className="mt-1 text-sm leading-5 text-neutral-600">Choose how your public profile can be discovered and whether your email is shown.</p>
+            </div>
+            <div className="divide-y divide-neutral-100 rounded-xl border border-neutral-200 px-4">
+              <VisibilityOption label="Recruiters can find my profile" checked={draft.recruiterVisible} onChange={(checked) => updateDraft('recruiterVisible', checked)} />
+              <VisibilityOption label="Show my email on my public profile" checked={draft.emailVisible} onChange={(checked) => updateDraft('emailVisible', checked)} />
+            </div>
+            <p className="break-all text-xs text-neutral-500">Account email: {member.email}</p>
+          </section>
+        ) : (
+          <ProfileQuestion
+            step={currentStep}
+            value={draft[currentStep]}
+            onChange={(value) => updateDraft(currentStep, value)}
+          />
+        )}
+      </div>
+
+      {error ? <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-5 text-red-800">{error}</p> : null}
+      {warning ? <p role="status" className="text-sm leading-5 text-amber-800">{warning}</p> : null}
+
+      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <Button type="button" variant="outline" onClick={() => { setError(''); if (stepIndex === 0) setEditing(false); else setStepIndex((index) => index - 1) }} disabled={saving} className="min-h-11 w-full gap-2 border-neutral-300 sm:w-auto">
+          <ArrowLeft className="size-4" aria-hidden="true" />
+          {stepIndex === 0 ? 'Cancel update' : 'Previous'}
+        </Button>
+        {isLastStep ? (
+          <Button type="button" onClick={() => void saveProfile()} disabled={saving} className="min-h-11 w-full bg-orange-600 font-semibold text-white hover:bg-orange-700 sm:w-auto sm:min-w-44">
+            {saving ? <Loader2 className="mr-2 size-4 animate-spin" aria-hidden="true" /> : null}
+            {saving ? 'Saving profile…' : 'Save profile'}
+          </Button>
+        ) : (
+          <Button type="button" onClick={() => { setError(''); setStepIndex((index) => Math.min(index + 1, steps.length - 1)) }} disabled={saving} className="min-h-11 w-full gap-2 bg-orange-600 font-semibold text-white hover:bg-orange-700 sm:w-auto sm:min-w-44">
+            Next question <ArrowRight className="size-4" aria-hidden="true" />
+          </Button>
+        )}
+      </div>
+    </section>
   )
 }
 
-function ProfileField({ defaultValue, label, name, placeholder }: { defaultValue: string; label: string; name: string; placeholder: string }) {
+function ProfileOverview({ member, onEdit }: { member: MemberProfile; onEdit: () => void }) {
   return (
-    <div className="space-y-2">
-      <Label htmlFor={name} className="font-bold text-[#171412]">{label}</Label>
-      <Input id={name} name={name} defaultValue={defaultValue} placeholder={placeholder} className="h-14 rounded-[14px] border-[#E7DDCF] text-base text-[#171412] placeholder:text-[#625B52]/60" />
+    <section className="mx-auto w-full max-w-3xl space-y-6" aria-labelledby="profile-overview-title">
+      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 pb-5">
+        <div className="flex min-w-0 items-center gap-4">
+          <MemberAvatar src={member.avatarUrl} initials={member.avatarInitials} size={60} />
+          <div className="min-w-0">
+            <h2 id="profile-overview-title" className="truncate text-xl font-semibold tracking-tight text-neutral-950">{member.name}</h2>
+            <p className="mt-1 break-words text-sm text-neutral-600">{member.headline || 'Add a headline to introduce yourself.'}</p>
+          </div>
+        </div>
+        <Button type="button" onClick={onEdit} className="min-h-11 w-full bg-orange-600 font-semibold text-white hover:bg-orange-700 sm:w-auto">
+          Update profile
+        </Button>
+      </header>
+
+      {member.portfolioCoverUrl ? (
+        <figure className="flex items-start gap-4">
+          <Image src={member.portfolioCoverUrl} alt={`${member.name}'s Africa Future Leaders award cover`} width={180} height={225} sizes="(max-width: 640px) 96px, 120px" unoptimized className="aspect-[4/5] w-24 rounded-lg border border-neutral-200 object-cover sm:w-28" />
+          <figcaption className="pt-1">
+            <p className="text-sm font-medium text-neutral-900">Award cover</p>
+            <p className="mt-1 text-sm leading-5 text-neutral-600">Your generated cover appears on your public awardee profile.</p>
+            <Link href="/dashboard/me/portfolio-cover" className="mt-3 inline-flex min-h-10 items-center text-sm font-medium text-orange-800 underline-offset-4 hover:underline">View or update cover</Link>
+          </figcaption>
+        </figure>
+      ) : (
+        <div className="flex items-center gap-3 rounded-xl border border-dashed border-neutral-300 px-4 py-3">
+          <UserRound className="size-5 shrink-0 text-neutral-500" aria-hidden="true" />
+          <p className="min-w-0 flex-1 text-sm leading-5 text-neutral-600">You haven’t created your award cover yet.</p>
+          <Link href="/dashboard/me/portfolio-cover" className="shrink-0 text-sm font-medium text-orange-800 underline-offset-4 hover:underline">Create cover</Link>
+        </div>
+      )}
+
+      <section className="space-y-3" aria-labelledby="profile-details-title">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 id="profile-details-title" className="text-base font-semibold text-neutral-950">Public profile details</h3>
+          {member.publicSlug ? <Link href={`/bio/${member.publicSlug}`} className="min-h-10 inline-flex items-center text-sm font-medium text-orange-800 underline-offset-4 hover:underline">View public profile</Link> : null}
+        </div>
+        <dl className="grid min-w-0 grid-cols-1 divide-y divide-neutral-100 border-y border-neutral-200 sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+          <ProfileValue label="Field" value={member.field} />
+          <ProfileValue label="Location" value={member.location} />
+          <ProfileValue label="Organization" value={member.organization} />
+          <ProfileValue label="Recruiter visibility" value={member.recruiterVisible ? 'Visible to recruiters' : 'Hidden from recruiters'} />
+          <ProfileValue label="Email visibility" value={member.emailVisible ? 'Shown on public profile' : 'Not shown publicly'} />
+          <ProfileValue label="Account email" value={member.email} />
+        </dl>
+        <div className="space-y-1 py-2">
+          <h4 className="text-sm font-medium text-neutral-800">BIO</h4>
+          <p className="whitespace-pre-wrap break-words text-sm leading-6 text-neutral-600">{member.bio || 'Add a short BIO to tell people about your work.'}</p>
+        </div>
+      </section>
+    </section>
+  )
+}
+
+function ProfileValue({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0 py-3 sm:px-4 first:sm:pl-0">
+      <dt className="text-xs font-medium text-neutral-500">{label}</dt>
+      <dd className="mt-1 break-words text-sm leading-5 text-neutral-900">{value || 'Not added yet'}</dd>
     </div>
   )
 }
 
-function ProfileToggle({ defaultChecked, label, name }: { defaultChecked: boolean; label: string; name: string }) {
+function ProfileQuestion({ step, value, onChange }: {
+  step: Exclude<ProfileEditStep, 'photo' | 'visibility'>
+  value: string
+  onChange: (value: string) => void
+}) {
+  const copy = stepCopy[step]
+  const multiline = step === 'bio'
   return (
-    <label className="flex min-h-14 items-center justify-between gap-3 rounded-[16px] border border-[#E7DDCF] bg-[#FBF7EF] p-4">
-      <span className="text-sm font-bold text-[#171412]">{label}</span>
-      <Switch name={name} defaultChecked={defaultChecked} className="data-[state=checked]:bg-orange-600" />
+    <section className="space-y-5" aria-labelledby={`profile-question-${step}`}>
+      <div>
+        <h3 id={`profile-question-${step}`} className="text-lg font-semibold text-neutral-950">{copy.title}</h3>
+        <p className="mt-1 text-sm leading-5 text-neutral-600">{copy.detail}</p>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor={`profile-answer-${step}`}>{step === 'bio' ? 'Your BIO' : step === 'field' ? 'Field' : step === 'organization' ? 'Organization' : step === 'location' ? 'Location' : 'Headline'}</Label>
+        {multiline ? (
+          <Textarea id={`profile-answer-${step}`} value={value} onChange={(event) => onChange(event.target.value)} placeholder="Share the work you do, who it helps, and what motivates you." className="min-h-48 resize-y text-base leading-6" />
+        ) : (
+          <Input id={`profile-answer-${step}`} value={value} onChange={(event) => onChange(event.target.value)} placeholder={step === 'headline' ? 'Founder, researcher, changemaker' : step === 'field' ? 'Education, climate, health' : step === 'organization' ? 'Company or institution' : 'City, country'} className="min-h-12 text-base" />
+        )}
+      </div>
+    </section>
+  )
+}
+
+function VisibilityOption({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {
+  return (
+    <label className="flex min-h-14 items-center justify-between gap-4 py-3 text-sm leading-5 text-neutral-800">
+      <span>{label}</span>
+      <Switch checked={checked} onCheckedChange={onChange} aria-label={label} className="data-[state=checked]:bg-orange-600" />
     </label>
   )
 }
