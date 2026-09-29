@@ -46,7 +46,7 @@ export default function InterviewGrid({ interviews }: { interviews: InterviewCar
           first set.
         </p>
         <Link
-          href="#apply"
+          href="/interviews/apply"
           className="mt-6 inline-flex items-center rounded-full bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-3 text-sm font-semibold text-white transition hover:opacity-95"
         >
           Apply to be interviewed

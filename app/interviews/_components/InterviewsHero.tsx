@@ -3,7 +3,7 @@ import { ArrowRight, Play } from 'lucide-react'
 
 export default function InterviewsHero() {
   return (
-    <section className="relative overflow-hidden rounded-[32px] bg-[#05060f] px-6 py-16 text-center sm:px-12 sm:py-20">
+    <section className="interviews-hero relative overflow-hidden rounded-[32px] bg-[#05060f] px-6 py-16 text-center sm:px-12 sm:py-20">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 opacity-70"
@@ -25,7 +25,7 @@ export default function InterviewsHero() {
         </p>
         <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Link
-            href="#apply"
+            href="/interviews/apply"
             className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 px-7 py-3.5 text-sm font-semibold text-white transition hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#05060f] sm:w-auto"
           >
             Apply to be interviewed

@@ -165,7 +165,7 @@ export default async function InterviewDetailPage({ params }: PageProps) {
 
         <div className="mt-16 text-center">
           <Link
-            href="/interviews#apply"
+            href="/interviews/apply"
             className="inline-flex items-center gap-2 rounded-full border border-orange-200 px-7 py-3.5 text-sm font-semibold text-orange-700 transition hover:bg-orange-50"
           >
             Apply to be interviewed

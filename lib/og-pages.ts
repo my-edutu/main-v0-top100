@@ -157,6 +157,12 @@ export const PAGE_OG: Record<string, OgCard> = {
     subtitle: "Awardees on the work behind the recognition.",
     hero: "/IMG_0683.jpg",
   },
+  "/interviews/apply": {
+    eyebrow: "Interviews",
+    title: "Apply for an Impact Interview",
+    subtitle: "Share the work, turning points, and ideas behind your impact.",
+    hero: "/IMG_0683.jpg",
+  },
   "/join": {
     eyebrow: "Join",
     title: "Join the Top100 Africa Future Leaders Network",

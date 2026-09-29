@@ -4,7 +4,6 @@ import { getPublishedInterviews } from '@/lib/interviews/queries'
 import { pickFeatured, toCardView } from '@/lib/interviews/mappers'
 import { SITE_URL } from '@/lib/site'
 
-import ApplyForm from './_components/ApplyForm'
 import EligibilityBands from './_components/EligibilityBands'
 import FeaturedInterview from './_components/FeaturedInterview'
 import InterviewCard from './_components/InterviewCard'
@@ -68,21 +67,6 @@ export default async function InterviewsPage() {
         </section>
 
         <EligibilityBands />
-
-        <section id="apply" className="scroll-mt-24">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">
-              Apply to be interviewed
-            </h2>
-            <p className="mt-3 text-sm leading-relaxed text-slate-600">
-              Open to Top100 awardees from every cohort. Tell us what the interview would be about
-              and we will come back to you either way.
-            </p>
-          </div>
-          <div className="mx-auto mt-9 max-w-3xl">
-            <ApplyForm />
-          </div>
-        </section>
 
         <div className="mx-auto max-w-3xl">
           <InterviewsFaq />
