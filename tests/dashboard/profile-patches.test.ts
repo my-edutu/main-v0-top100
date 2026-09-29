@@ -10,6 +10,17 @@ import {
 import { buildProfileUpdate, mapProfileToMemberWithLegacy } from '@/lib/member-hub-server'
 
 describe('dashboard profile patches', () => {
+  it('maps the selected portfolio cover separately from the uploaded profile portrait', () => {
+    const member = mapProfileToMemberWithLegacy({
+      id: 'member-cover',
+      avatar_url: 'https://media.example/uploaded-portrait.webp',
+      portfolio_cover_url: 'https://media.example/generated-cover.png',
+    })
+
+    expect(member.avatarUrl).toBe('https://media.example/uploaded-portrait.webp')
+    expect(member.portfolioCoverUrl).toBe('https://media.example/generated-cover.png')
+  })
+
   it('prefills empty member fields from the linked legacy awardee record', () => {
     const member = mapProfileToMemberWithLegacy(
       {
