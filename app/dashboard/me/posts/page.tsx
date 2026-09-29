@@ -8,7 +8,7 @@ export default function PostsPage() {
   const { member } = useDashboardMember()
 
   return (
-    <RouteSection eyebrow="Your writing" title="Posts" description="Manage drafts and published stories at durable links.">
+    <RouteSection eyebrow="Your writing" title="Posts" description="Your shared writing, all in one place.">
       <PostsSection member={member} mode="list" />
     </RouteSection>
   )

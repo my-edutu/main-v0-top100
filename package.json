@@ -13,6 +13,7 @@
     "check:production": "tsx scripts/check-production-readiness.ts",
     "check:portfolio-images": "tsx scripts/check-production-readiness.ts --require-portfolio-images",
     "check:launch": "tsx scripts/check-production-readiness.ts --require-awards",
+    "check:magazine-launch": "tsx scripts/check-production-readiness.ts --require-magazine",
     "launch:smoke": "tsx scripts/prepare-launch-smoke.ts",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -77,6 +78,7 @@
     "jwt-decode": "^4.0.0",
     "libphonenumber-js": "1.13.12",
     "lucide-react": "^0.454.0",
+    "markdown-it": "^14.3.2",
     "next": "^16.3.1",
     "next-themes": "^0.4.4",
     "ng-geo-data": "1.0.0",
@@ -95,6 +97,7 @@
     "sonner": "^1.7.1",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
+    "tiptap-markdown": "^0.8.10",
     "vaul": "^1.1.2",
     "xlsx": "npm:@e965/xlsx@^0.20.3",
     "zod": "^3.25.76"

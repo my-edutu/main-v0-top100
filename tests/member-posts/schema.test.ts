@@ -9,6 +9,7 @@ import {
   TITLE_MAX,
   TITLE_MIN,
   createMemberPostSchema,
+  deriveMemberPostTitle,
   moderateMemberPostSchema,
   updateMemberPostSchema,
 } from '@/lib/member-posts/types'
@@ -78,6 +79,24 @@ describe('createMemberPostSchema', () => {
     expect(() =>
       createMemberPostSchema.parse({ ...valid, body: `   ${'a'.repeat(BODY_MIN - 5)}   ` }),
     ).toThrow()
+  })
+})
+
+describe('deriveMemberPostTitle', () => {
+  it('uses the first non-empty line as a heading-free social post title', () => {
+    expect(deriveMemberPostTitle('\n# Building safer streets\nOur first project starts today.')).toBe('Building safer streets')
+  })
+
+  it('truncates a long first line without exceeding the persisted title limit', () => {
+    const title = deriveMemberPostTitle(`${'community impact '.repeat(20)}\nMore detail follows.`)
+
+    expect(title.length).toBeLessThanOrEqual(TITLE_MAX)
+    expect(title.length).toBeGreaterThan(100)
+    expect(title.endsWith('…')).toBe(true)
+  })
+
+  it('keeps a very short opening line valid for the existing post-title field', () => {
+    expect(deriveMemberPostTitle('Hi\n\nI have a longer update to share with the community.')).toBe('Hi — update')
   })
 })
 

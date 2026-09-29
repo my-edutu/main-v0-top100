@@ -63,6 +63,25 @@ export const EXCERPT_MAX = 320
 export const TAGS_MAX = 6
 export const TAG_MAX_LENGTH = 24
 
+/** Supplies the legacy post-title field from the first line of a social-style post. */
+export function deriveMemberPostTitle(body: string): string {
+  const firstLine = body
+    .trim()
+    .split(/\r?\n/)
+    .find((line) => line.trim())
+    ?.replace(/^\s{0,3}(?:#{1,6}\s+|>\s+|[-*+]\s+)/, '')
+    .replace(/[*_`~]/g, '')
+    .trim()
+  const candidate = firstLine || 'Awardee update'
+  const title = candidate.length < TITLE_MIN ? `${candidate} — update` : candidate
+  if (title.length <= TITLE_MAX) return title
+
+  const limit = TITLE_MAX - 1
+  const shortened = title.slice(0, limit)
+  const lastSpace = shortened.lastIndexOf(' ')
+  return `${shortened.slice(0, lastSpace > limit * 0.6 ? lastSpace : limit).trimEnd()}…`
+}
+
 const titleSchema = z.string().trim().min(TITLE_MIN).max(TITLE_MAX)
 const bodySchema = z.string().trim().min(BODY_MIN).max(BODY_MAX)
 

@@ -6,15 +6,16 @@
 // from /api/member/posts itself.
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { Bold, ExternalLink, Italic, Loader2, Maximize2, Plus, Quote, RefreshCw, Trash2, List } from 'lucide-react'
+import { ExternalLink, ImagePlus, Loader2, Plus, RefreshCw, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
+import { MediumPostEditor } from '@/components/editor/medium-post-editor'
 import type { MemberProfile } from '@/lib/member-hub'
+import { MemberAvatar } from '@/app/dashboard/_components/member-avatar'
+import { renderMemberPostBody } from '@/lib/member-posts/content'
 import {
   MemberPostsSetupRequiredError,
   createPost,
@@ -26,11 +27,9 @@ import {
 import {
   BODY_MAX,
   BODY_MIN,
-  EXCERPT_MAX,
-  TAGS_MAX,
-  TAG_MAX_LENGTH,
   TITLE_MAX,
   REMOVED_POST_MESSAGE,
+  deriveMemberPostTitle,
   memberPostPath,
   type MemberPost,
   type MemberPostStatus,
@@ -100,16 +99,6 @@ export function resolvePostEditorState(
 export function postMembershipCapabilities(status: MemberProfile['status']) {
   const canWrite = status === 'approved' || status === 'pending'
   return { canWrite, canPublish: status === 'approved' }
-}
-
-/** "one, two , three" -> ['one', 'two', 'three'] */
-function parseTags(raw: string): string[] {
-  return raw
-    .split(',')
-    .map((tag) => tag.trim())
-    .filter(Boolean)
-    .slice(0, TAGS_MAX)
-    .map((tag) => tag.slice(0, TAG_MAX_LENGTH))
 }
 
 function formatDate(iso: string | null): string {
@@ -184,11 +173,9 @@ export default function PostsSection({
     if (!editor) return
 
     const payload = {
-      title: editor.title.trim(),
+      title: editor.postId ? editor.title.trim() : deriveMemberPostTitle(editor.body.trim()),
       body: editor.body.trim(),
-      excerpt: editor.excerpt.trim(),
       coverUrl: editor.coverUrl.trim(),
-      tags: parseTags(editor.tags),
       status,
     }
 
@@ -283,10 +270,16 @@ export default function PostsSection({
 
   return (
     <div className="space-y-5">
-      {mode === 'list' && !accountRestricted && (
-        <Button asChild size="icon" className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-5 z-20 h-12 w-12 rounded-full bg-orange-500 text-[#fffaf0] shadow-lg shadow-orange-500/25 hover:bg-orange-600" aria-label="Create post" title="Create post">
-          <Link href="/dashboard/me/posts/new"><Plus className="h-5 w-5" /></Link>
-        </Button>
+      {mode === 'list' && !accountRestricted && posts.length > 0 && (
+        <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center justify-between gap-3 rounded-xl border border-neutral-200 bg-white px-4 py-3 sm:px-5">
+          <div>
+            <h2 className="text-base font-semibold text-neutral-900">Your posts</h2>
+            <p className="mt-0.5 text-sm text-neutral-500">Updates and stories you have shared.</p>
+          </div>
+          <Button asChild className="min-h-10 rounded-full bg-orange-600 px-4 text-white shadow-none hover:bg-orange-700">
+            <Link href="/dashboard/me/posts/new"><Plus className="mr-2 h-4 w-4" />Write a post</Link>
+          </Button>
+        </div>
       )}
 
       {member.status === 'pending' && (
@@ -311,6 +304,7 @@ export default function PostsSection({
       {editor && !accountRestricted && (
         <PostEditor
           editor={editor}
+          member={member}
           onChange={(nextEditor) => setRouteState({ kind: 'editor', editor: nextEditor })}
           onCancel={exitEditor}
           onSubmit={handleSubmit}
@@ -326,7 +320,7 @@ export default function PostsSection({
             Share what you are building, what you have learned, or the story behind your work.
           </p>
           <Button asChild
-            className="mt-5 rounded-full bg-orange-500 px-6 py-6 text-[#fffaf0] hover:bg-orange-600"
+            className="mt-5 rounded-full bg-orange-600 px-6 py-6 text-white shadow-none hover:bg-orange-700"
           >
             <Link href="/dashboard/me/posts/new">
               <Plus className="mr-2 h-4 w-4" />
@@ -335,11 +329,12 @@ export default function PostsSection({
           </Button>
         </div>
       ) : mode === 'list' ? (
-        <div className="space-y-3">
+        <div aria-label="Your posts" className="mx-auto w-full max-w-3xl space-y-4">
           {posts.map((post) => (
             <PostRow
               key={post.id}
               post={post}
+              member={member}
               publicSlug={member.publicSlug}
               onEditHref={`/dashboard/me/posts/${encodeURIComponent(post.id)}/edit`}
               onDelete={() => void handleDelete(post)}
@@ -353,8 +348,9 @@ export default function PostsSection({
   )
 }
 
-function PostRow({
+export function PostRow({
   post,
+  member,
   publicSlug,
   onEditHref,
   onDelete,
@@ -362,6 +358,7 @@ function PostRow({
   mutable,
 }: {
   post: MemberPost
+  member: Pick<MemberProfile, 'name' | 'headline' | 'avatarInitials' | 'avatarUrl'>
   publicSlug?: string
   onEditHref: string
   onDelete: () => void
@@ -372,63 +369,78 @@ function PostRow({
   const removed = post.status === 'removed'
   const liveUrl =
     post.status === 'published' && publicSlug ? memberPostPath(publicSlug, post.slug) : null
+  const postDate = post.publishedAt || post.createdAt
 
   return (
-    <article className="rounded-[24px] border border-orange-100 bg-white p-4 shadow-[0_8px_30px_rgba(23,20,18,0.035)] sm:p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h4 className="text-lg font-bold tracking-tight text-black sm:text-xl">{post.title}</h4>
-            <span
-              className={`rounded-full border px-3 py-0.5 text-xs font-semibold ${chip.className}`}
-            >
+    <article className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+      <div className="flex items-start gap-3 px-4 pt-4 sm:px-5 sm:pt-5">
+        <MemberAvatar src={member.avatarUrl} initials={member.avatarInitials} size={44} />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <p className="truncate text-[15px] font-semibold leading-5 text-neutral-900">{member.name}</p>
+            <span className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${chip.className}`}>
               {chip.label}
             </span>
           </div>
-          <p className="mt-1 text-xs font-medium text-black/45">
-            {post.publishedAt
-              ? `Published ${formatDate(post.publishedAt)}`
-              : `Created ${formatDate(post.createdAt)}`}
-            {post.status === 'published' ? ` · ${post.viewCount} view${post.viewCount === 1 ? '' : 's'}` : ''}
+          {member.headline && <p className="mt-0.5 line-clamp-2 text-sm leading-5 text-neutral-600">{member.headline}</p>}
+          <p className="mt-1 text-xs text-neutral-500">
+            <time dateTime={postDate}>{formatDate(postDate)}</time>
+            {post.status === 'published' && <span aria-hidden="true"> · </span>}
+            {post.status === 'published' && <span>{post.viewCount} view{post.viewCount === 1 ? '' : 's'}</span>}
           </p>
         </div>
+      </div>
 
-        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+      <div className="px-4 pb-4 pt-3 sm:px-5 sm:pb-5">
+        <h3 className="text-lg font-semibold leading-6 tracking-tight text-neutral-900">{post.title}</h3>
+        <div
+          className="post-feed-body mt-2 text-[15px] leading-6 text-neutral-700 [&_a]:text-orange-700 [&_a]:underline [&_blockquote]:border-l-2 [&_blockquote]:border-orange-300 [&_blockquote]:pl-3 [&_li]:ml-5 [&_ol]:list-decimal [&_p]:mb-3 [&_p:last-child]:mb-0 [&_ul]:list-disc"
+          dangerouslySetInnerHTML={{ __html: renderMemberPostBody(post.excerpt || post.body) }}
+        />
+      </div>
+
+      {post.coverUrl && (
+        <img
+          src={post.coverUrl}
+          alt={`Cover image for ${post.title}`}
+          loading="lazy"
+          className="max-h-[32rem] w-full border-y border-neutral-100 bg-neutral-50 object-cover"
+        />
+      )}
+
+      {(liveUrl || (!removed && mutable)) && (
+        <div className="flex flex-wrap items-center gap-2 border-t border-neutral-200 px-4 py-3 sm:px-5">
           {liveUrl && (
             <a
               href={liveUrl}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-orange-200 px-3 text-sm font-semibold text-orange-700 transition hover:bg-orange-50"
+              className="inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-sm font-semibold text-neutral-700 transition hover:bg-neutral-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600"
             >
               View live
-              <ExternalLink className="h-3.5 w-3.5" />
+              <ExternalLink className="h-4 w-4" aria-hidden="true" />
             </a>
           )}
           {!removed && mutable && (
             <>
-              <Button asChild variant="outline"
-              className="min-h-9 rounded-full border-orange-200 bg-white px-4 text-sm text-black hover:bg-orange-50"
+              <Button asChild variant="ghost"
+              className="min-h-10 rounded-lg px-3 text-sm font-semibold text-neutral-700 shadow-none hover:bg-neutral-100 hover:text-neutral-900"
               >
                 <Link href={onEditHref}>Edit</Link>
               </Button>
               <Button
                 type="button"
-                variant="outline"
+                variant="ghost"
                 onClick={onDelete}
                 disabled={deleting}
                 aria-label={`Delete ${post.title}`}
-                className="h-9 w-9 rounded-full border-red-200 bg-white p-0 text-red-700 hover:bg-red-50"
+                className="ml-auto h-10 w-10 rounded-lg p-0 text-neutral-500 shadow-none hover:bg-red-50 hover:text-red-700"
               >
                 {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
               </Button>
             </>
           )}
         </div>
-      </div>
-
-      {post.excerpt && (
-        <p className="mt-3 border-t border-black/[0.06] pt-3 text-sm leading-6 text-black/60">{post.excerpt}</p>
       )}
 
       {(post.status === 'flagged' || post.status === 'removed') && (
@@ -458,8 +470,9 @@ function PostRow({
   )
 }
 
-function PostEditor({
+export function PostEditor({
   editor,
+  member,
   onChange,
   onCancel,
   onSubmit,
@@ -467,150 +480,105 @@ function PostEditor({
   canPublish,
 }: {
   editor: EditorState
+  member: MemberProfile
   onChange: (next: EditorState) => void
   onCancel: () => void
   onSubmit: (event: FormEvent<HTMLFormElement>, status: 'draft' | 'published') => void
   savingAs: 'draft' | 'published' | null
   canPublish: boolean
 }) {
-  // Which button was pressed, read by the single form onSubmit below so both
-  // actions share one validation pass and one submit path. A ref, not state:
-  // the click and the submit are batched into the same render, so a state
-  // update here would still read as its previous value inside onSubmit.
   const intentRef = useRef<'draft' | 'published'>('draft')
-  const bodyRef = useRef<HTMLTextAreaElement>(null)
-  const [fullscreen, setFullscreen] = useState(false)
   const [uploadingCover, setUploadingCover] = useState(false)
   const saving = savingAs !== null
   const bodyLength = editor.body.trim().length
   const bodyTooShort = bodyLength > 0 && bodyLength < BODY_MIN
   const bodyTooLong = bodyLength > BODY_MAX
 
-  function formatBody(prefix: string, suffix = '') {
-    const textarea = bodyRef.current
-    if (!textarea) return
-    const start = textarea.selectionStart
-    const end = textarea.selectionEnd
-    const selected = editor.body.slice(start, end) || 'your text'
-    const nextBody = `${editor.body.slice(0, start)}${prefix}${selected}${suffix}${editor.body.slice(end)}`
-    onChange({ ...editor, body: nextBody })
-    requestAnimationFrame(() => {
-      textarea.focus()
-      textarea.setSelectionRange(start + prefix.length, start + prefix.length + selected.length)
-    })
-  }
-
-  const editorTools = (
-    <div className="flex flex-wrap items-center gap-1 rounded-xl border border-orange-100 bg-orange-50/40 p-1">
-      <button type="button" onClick={() => formatBody('**', '**')} className="inline-flex h-9 items-center gap-1 rounded-lg px-3 text-xs font-semibold text-black/70 hover:bg-white" title="Bold"><Bold className="h-4 w-4" /> Bold</button>
-      <button type="button" onClick={() => formatBody('*', '*')} className="inline-flex h-9 items-center gap-1 rounded-lg px-3 text-xs font-semibold text-black/70 hover:bg-white" title="Italic"><Italic className="h-4 w-4" /> Italic</button>
-      <button type="button" onClick={() => formatBody('> ')} className="inline-flex h-9 items-center gap-1 rounded-lg px-3 text-xs font-semibold text-black/70 hover:bg-white" title="Quote"><Quote className="h-4 w-4" /> Quote</button>
-      <button type="button" onClick={() => formatBody('- ')} className="inline-flex h-9 items-center gap-1 rounded-lg px-3 text-xs font-semibold text-black/70 hover:bg-white" title="List"><List className="h-4 w-4" /> List</button>
-      <button type="button" onClick={() => setFullscreen(true)} className="ml-auto inline-flex h-9 items-center gap-1 rounded-lg px-3 text-xs font-semibold text-black/70 hover:bg-white" title="Open full editor"><Maximize2 className="h-4 w-4" /> Fullscreen</button>
-    </div>
-  )
-
-  const bodyEditor = (fullscreenMode = false) => (
-    <div className="space-y-2">
-      {!fullscreenMode ? <Label htmlFor="post-body" className="font-semibold text-black">Your post</Label> : null}
-      {editorTools}
-      <Textarea
-        ref={bodyRef}
-        id={fullscreenMode ? 'post-body-fullscreen' : 'post-body'}
-        required={!fullscreenMode}
-        rows={fullscreenMode ? 24 : 14}
-        value={editor.body}
-        onChange={(event) => onChange({ ...editor, body: event.target.value })}
-        placeholder="Write in markdown. Leave a blank line between paragraphs."
-        className="rounded-2xl border-orange-100 text-base text-black placeholder:text-black/40 focus-visible:border-orange-300 focus-visible:ring-1 focus-visible:ring-orange-300 focus-visible:ring-offset-0"
-      />
-      {!fullscreenMode ? <p className={`text-xs font-medium ${bodyTooShort || bodyTooLong ? 'text-red-600' : 'text-black/45'}`}>{bodyLength.toLocaleString()} / {BODY_MAX.toLocaleString()} characters{bodyTooShort ? ` — at least ${BODY_MIN} needed` : ''}{bodyTooLong ? ' — too long' : ''}</p> : null}
-    </div>
-  )
-
   return (
-    <form
-      onSubmit={(event) => onSubmit(event, intentRef.current)}
-      className="rounded-[28px] border border-orange-100 bg-white p-5 sm:p-6"
-    >
-      <h4 className="text-2xl font-bold tracking-tight text-black">
-        {editor.postId ? 'Edit post' : 'Write a post'}
-      </h4>
+    <form onSubmit={(event) => onSubmit(event, intentRef.current)} className="mx-auto w-full max-w-3xl">
+      <h4 className="sr-only">{editor.postId ? 'Edit post' : 'Create a post'}</h4>
 
-      <div className="mt-6 space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="post-title" className="font-semibold text-black">
-            Title
-          </Label>
+      <div className="bg-white">
+        <div className="flex items-center gap-3 border-b border-neutral-200 px-1 pb-4 pt-2 sm:px-2">
+          <MemberAvatar src={member.avatarUrl} initials={member.avatarInitials} size={44} />
+          <div className="min-w-0">
+            <p className="truncate text-[15px] font-semibold leading-5 text-[#171717]">{member.name}</p>
+            <p className="break-words text-xs leading-4 text-neutral-600">{member.headline || 'Africa Future Leaders awardee'}</p>
+          </div>
+        </div>
+
+        {editor.postId ? <details className="mb-4 mt-3 rounded-lg border border-neutral-200 px-3 py-2">
+          <summary className="cursor-pointer text-xs font-medium text-neutral-600">Edit post title</summary>
+          <Label htmlFor="post-title" className="sr-only">Post title</Label>
           <Input
             id="post-title"
             required
             maxLength={TITLE_MAX}
             value={editor.title}
             onChange={(event) => onChange({ ...editor, title: event.target.value })}
-            placeholder="What is this post about?"
-            className="h-14 rounded-2xl border-orange-100 text-base text-black placeholder:text-black/40 focus-visible:border-orange-300 focus-visible:ring-1 focus-visible:ring-orange-300 focus-visible:ring-offset-0"
+            className="mt-2 min-h-11 border-neutral-200 text-sm text-[#171717]"
           />
+        </details> : null}
+
+        <MediumPostEditor
+          value={editor.body}
+          onChange={(body) => onChange({ ...editor, body })}
+        />
+
+        {editor.coverUrl ? <div className="relative mb-4 mt-4 overflow-hidden rounded-lg border border-black/10">
+          <img src={editor.coverUrl} alt="Photo attached to your post" className="max-h-96 w-full object-cover" />
+          <button type="button" aria-label="Remove attached photo" onClick={() => onChange({ ...editor, coverUrl: '' })} className="absolute right-3 top-3 grid size-9 place-items-center rounded-full bg-white text-neutral-800 shadow-sm hover:bg-neutral-100">
+            <X className="size-4" aria-hidden="true" />
+          </button>
+        </div> : null}
+
+        <div className="flex items-center justify-between gap-3 py-3">
+          <p className={`text-xs ${bodyTooShort || bodyTooLong ? 'text-red-700' : 'text-neutral-500'}`}>
+            {bodyLength.toLocaleString()} / {BODY_MAX.toLocaleString()}{bodyTooShort ? ` · ${BODY_MIN} characters minimum` : ''}{bodyTooLong ? ' · too long' : ''}
+          </p>
+          <p className="hidden text-xs text-neutral-500 sm:block">Published posts appear on your awardee profile.</p>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="post-excerpt" className="font-semibold text-black">
-            Excerpt (optional)
-          </Label>
-          <Input
-            id="post-excerpt"
-            maxLength={EXCERPT_MAX}
-            value={editor.excerpt}
-            onChange={(event) => onChange({ ...editor, excerpt: event.target.value })}
-            placeholder="One or two lines shown on your profile"
-            className="h-14 rounded-2xl border-orange-100 text-base text-black placeholder:text-black/40 focus-visible:border-orange-300 focus-visible:ring-1 focus-visible:ring-orange-300 focus-visible:ring-offset-0"
-          />
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="post-tags" className="font-semibold text-black">
-              Tags (optional, comma separated)
-            </Label>
+        <div role="group" aria-label="Post actions" className="flex flex-col items-stretch gap-2 border-t border-neutral-200 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+          <div className="flex items-center">
             <Input
-              id="post-tags"
-              value={editor.tags}
-              onChange={(event) => onChange({ ...editor, tags: event.target.value })}
-              placeholder="climate, founders, lagos"
-              className="h-14 rounded-2xl border-orange-100 text-base text-black placeholder:text-black/40 focus-visible:border-orange-300 focus-visible:ring-1 focus-visible:ring-orange-300 focus-visible:ring-offset-0"
+              id="post-cover"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              disabled={uploadingCover || saving}
+              aria-label="Add a photo to your post"
+              onChange={async (event) => {
+                const file = event.target.files?.[0]
+                if (!file) return
+                try {
+                  setUploadingCover(true)
+                  const url = await uploadMemberPostCover(file)
+                  onChange({ ...editor, coverUrl: url })
+                } catch (cause) {
+                  toast.error(cause instanceof Error ? cause.message : 'Could not upload the photo.')
+                } finally {
+                  setUploadingCover(false)
+                  event.target.value = ''
+                }
+              }}
+              className="peer sr-only"
+              style={{ width: 1, height: 1 }}
             />
-            <p className="text-xs font-medium text-black/45">
-              Up to {TAGS_MAX} tags, {TAG_MAX_LENGTH} characters each.
-            </p>
+            <label htmlFor="post-cover" className={`inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg px-3 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-orange-700 ${uploadingCover ? 'pointer-events-none opacity-60' : ''}`}>
+              {uploadingCover ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <ImagePlus className="size-4" aria-hidden="true" />}
+              {uploadingCover ? 'Adding photo…' : editor.coverUrl ? 'Change photo' : 'Add a photo'}
+            </label>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="post-cover" className="font-semibold text-black">Cover image (optional)</Label>
-            <Input id="post-cover" type="file" accept="image/jpeg,image/png,image/webp" disabled={uploadingCover} onChange={async (event) => { const file = event.target.files?.[0]; if (!file) return; try { setUploadingCover(true); const url = await uploadMemberPostCover(file); onChange({ ...editor, coverUrl: url }) } catch (cause) { toast.error(cause instanceof Error ? cause.message : 'Could not upload the cover image.') } finally { setUploadingCover(false) } }} className="h-14 cursor-pointer rounded-2xl border-orange-100 p-0 text-sm text-black file:mr-4 file:h-full file:border-0 file:border-r file:border-orange-100 file:bg-orange-50 file:px-4 file:font-semibold file:text-orange-800 focus-visible:border-orange-300 focus-visible:ring-1 focus-visible:ring-orange-300 focus-visible:ring-offset-0" />
-            <p className="text-xs font-medium text-black/45">JPG, PNG or WebP up to 8 MB · stored in Cloudflare media storage{uploadingCover ? ' · uploading…' : editor.coverUrl ? ' · uploaded' : ''}</p>
-          </div>
-        </div>
-
-        {bodyEditor()}
-      </div>
-
-      <Dialog open={fullscreen} onOpenChange={setFullscreen}>
-        <DialogContent className="h-[calc(100dvh-32px)] w-[calc(100%-32px)] max-w-5xl rounded-3xl border-orange-100 bg-white p-5 text-black sm:p-8">
-          <DialogTitle className="text-2xl font-bold">Full editor</DialogTitle>
-          <DialogDescription className="text-sm text-black/55">Write and format your post in a distraction-free view.</DialogDescription>
-          <div className="mt-4 min-h-0 flex-1 overflow-y-auto">{bodyEditor(true)}</div>
-        </DialogContent>
-      </Dialog>
-
-      <div className="mt-6 flex flex-wrap items-center gap-3">
+          <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto">
         <Button
           type="submit"
           onClick={() => {
             intentRef.current = 'draft'
           }}
-          disabled={saving}
+          disabled={saving || bodyTooLong}
           variant="outline"
-          className="rounded-full border-orange-200 bg-white px-6 py-6 text-black hover:bg-orange-50"
+          className="min-h-11 rounded-[10px] border-transparent bg-transparent px-3 text-sm text-neutral-700 shadow-none hover:border-transparent hover:bg-neutral-100 hover:text-[#171717]"
         >
           {savingAs === 'draft' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
           Save draft
@@ -622,7 +590,7 @@ function PostEditor({
             intentRef.current = 'published'
           }}
           disabled={saving || !canPublish || bodyTooShort || bodyTooLong}
-          className="rounded-full bg-orange-500 px-8 py-6 text-[#fffaf0] hover:bg-orange-600 disabled:bg-orange-200 disabled:text-black/45"
+          className="min-h-11 rounded-[10px] bg-orange-600 px-5 text-sm text-white shadow-none hover:bg-orange-700 disabled:bg-orange-200 disabled:text-neutral-700"
         >
           {savingAs === 'published' ? (
             <>
@@ -632,7 +600,7 @@ function PostEditor({
           ) : editor.postId ? (
             'Update & publish'
           ) : (
-            'Publish'
+            'Post'
           )}
         </Button>
 
@@ -641,10 +609,12 @@ function PostEditor({
           variant="ghost"
           onClick={onCancel}
           disabled={saving}
-          className="rounded-full text-black/60 hover:bg-orange-50 hover:text-black"
+          className="min-h-11 rounded-full text-neutral-600 hover:bg-orange-50 hover:text-[#171717]"
         >
           Cancel
         </Button>
+          </div>
+        </div>
       </div>
     </form>
   )

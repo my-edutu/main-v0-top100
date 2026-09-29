@@ -31,6 +31,7 @@ import {
   type MemberPostWithAuthor,
 } from '@/lib/member-posts/types'
 import { moderateMemberPost } from '@/lib/member-posts/client'
+import { renderMemberPostBody } from '@/lib/member-posts/content'
 
 const STATUS_LABELS: Record<MemberPostStatus, string> = {
   draft: 'Draft',
@@ -270,9 +271,10 @@ export default function AdminMemberPostsPage() {
 
                 <details className="rounded-lg border border-border/60 p-3">
                   <summary className="text-sm font-medium cursor-pointer">Read the full post</summary>
-                  <div className="mt-3 whitespace-pre-wrap text-sm text-muted-foreground">
-                    {post.body}
-                  </div>
+                  <div
+                    className="member-post-rendered mt-3 text-sm text-muted-foreground"
+                    dangerouslySetInnerHTML={{ __html: renderMemberPostBody(post.body) }}
+                  />
                 </details>
 
                 {post.status === 'published' && post.authorSlug && (

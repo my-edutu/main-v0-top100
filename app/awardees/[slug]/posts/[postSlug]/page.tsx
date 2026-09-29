@@ -1,13 +1,8 @@
 // app/awardees/[slug]/posts/[postSlug]/page.tsx
 // A single member-authored post on its author's public profile.
 //
-// Rendering note: the body is raw markdown written by a member. It is stored
-// verbatim and escaped here, never sanitised on write. This deliberately does
-// NOT use the `dangerouslySetInnerHTML` path that app/blog/[slug]/page.tsx
-// uses — that content is admin-authored HTML, this is not. Paragraphs are
-// split and rendered as text nodes, exactly as the awardee profile page
-// already renders a member's bio, so React escapes everything and no new
-// markdown or HTML-sanitiser dependency is introduced.
+// Member-authored bodies use Markdown. The shared renderer disables raw HTML
+// and validates links before returning markup for this public page.
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -17,6 +12,7 @@ import { ArrowLeft, CalendarDays, Clock } from 'lucide-react'
 import { createAdminClient } from '@/lib/supabase/server'
 import { ogMetadata } from '@/lib/og'
 import { SITE_NAME, SITE_URL } from '@/lib/site'
+import { renderMemberPostBody } from '@/lib/member-posts/content'
 import {
   bumpViewCount,
   loadPublishedPost,
@@ -121,8 +117,6 @@ export default async function MemberPostPage({ params }: { params: Promise<PageP
     console.error('[member-posts] Could not increment view_count:', error)
   }
 
-  const paragraphs = post.body.split(/\n\n+/).map((entry) => entry.trim()).filter(Boolean)
-
   return (
     <div className="min-h-screen bg-white py-16">
       <div className="container mx-auto max-w-3xl px-4">
@@ -180,17 +174,10 @@ export default async function MemberPostPage({ params }: { params: Promise<PageP
               <p className="text-lg font-medium leading-relaxed text-zinc-600">{post.excerpt}</p>
             )}
 
-            {/* Text nodes, not HTML — see the file header. */}
-            <div className="space-y-5">
-              {paragraphs.map((paragraph, index) => (
-                <p
-                  key={index}
-                  className="whitespace-pre-wrap text-lg leading-relaxed text-zinc-700"
-                >
-                  {paragraph}
-                </p>
-              ))}
-            </div>
+            <div
+              className="member-post-rendered"
+              dangerouslySetInnerHTML={{ __html: renderMemberPostBody(post.body) }}
+            />
 
             {post.tags.length > 0 && (
               <div className="flex flex-wrap gap-2 pt-2">
