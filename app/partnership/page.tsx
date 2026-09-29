@@ -117,9 +117,9 @@ export default function PartnershipPage() {
   return (
     <div className="bg-[linear-gradient(180deg,#ffffff_0%,#fffaf4_46%,#f7f3ec_100%)]">
       {/* ============================ HERO ============================ */}
-      <section className="px-4 pt-6 sm:px-6 sm:pt-8 lg:px-8 lg:pt-10">
+      <section className="px-3 pt-4 sm:px-6 sm:pt-8 lg:px-8 lg:pt-10">
         <div className="container">
-          <div className="relative mx-auto overflow-hidden rounded-[32px] bg-[#05060f]">
+          <div className="relative mx-auto overflow-hidden rounded-[24px] bg-[#05060f] sm:rounded-[32px]">
             {/* Layered light-fan backdrop */}
             <div
               aria-hidden
@@ -138,18 +138,18 @@ export default function PartnershipPage() {
               }}
             />
 
-            <div className="relative z-10 flex min-h-[440px] flex-col items-center justify-center px-6 py-16 text-center sm:min-h-[500px] sm:px-8 lg:min-h-[560px]">
+            <div className="relative z-10 flex min-h-0 flex-col items-center justify-center px-5 py-12 text-center sm:min-h-[500px] sm:px-8 sm:py-16 lg:min-h-[560px]">
               <p className="text-[11px] font-semibold uppercase tracking-[0.42em] text-[rgba(255,255,255,0.6)]">
                 Partnerships
               </p>
-              <h1 className="mt-6 max-w-4xl text-balance text-[2.6rem] font-semibold leading-[1.02] tracking-tight text-[#fff] drop-shadow-[0_2px_20px_rgba(0,0,0,0.4)] sm:text-6xl lg:text-7xl">
+              <h1 className="mt-5 max-w-4xl text-balance text-[2.25rem] font-semibold leading-[1.06] tracking-tight text-[#fff] drop-shadow-[0_2px_20px_rgba(0,0,0,0.4)] sm:mt-6 sm:text-6xl sm:leading-tight lg:text-7xl">
                 Partner with Top100 on a shared mission.
               </h1>
-              <p className="mt-6 max-w-2xl text-base leading-8 text-[rgba(255,255,255,0.72)] sm:text-lg">
+              <p className="mt-5 max-w-2xl text-lg leading-7 text-[rgba(255,255,255,0.72)] sm:mt-6 sm:leading-8">
                 We identify, empower, and celebrate Africa&apos;s youth leaders. Bring your
                 brand, resources, or platform alongside a network that already spans 31 countries.
               </p>
-              <div className="mt-9">
+              <div className="mt-7 sm:mt-9">
                 <Button
                   asChild
                   className="h-14 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 px-8 text-base text-[#fff] shadow-none hover:opacity-95"

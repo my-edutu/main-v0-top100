@@ -108,7 +108,7 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
               aria-label={`${cohort.year} cohort${selectedYear === cohort.year ? ', selected; activate to show all years' : ''}`}
               aria-pressed={selectedYear === cohort.year}
               className={cn(
-                'group flex min-h-16 flex-col justify-center rounded-xl border p-3 text-left text-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 focus-visible:ring-offset-2',
+                'group flex min-h-16 flex-col justify-center rounded-[20px] border p-3 text-left text-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 focus-visible:ring-offset-2',
                 cohort.surface,
                 selectedYear === cohort.year ? 'border-black/15 ring-1 ring-black/10' : 'border-black/5',
               )}

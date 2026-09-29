@@ -128,14 +128,20 @@ export function NotificationsSection() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[18px] border border-[#E7DDCF] bg-white px-4 py-3">
-        <p className="flex items-center gap-2 text-sm font-medium text-[#625B52]">
-          <span className={cn('h-2 w-2 rounded-full', unreadCount > 0 ? 'bg-orange-500' : 'bg-emerald-500')} aria-hidden="true" />
-          {unreadCount > 0 ? `${unreadCount} unread ${unreadCount === 1 ? 'update' : 'updates'}` : 'You’re all caught up'}
-        </p>
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-[#E8E4DD] pb-4">
+        <div>
+          <p className="text-sm font-medium text-[#27241F]">
+            {unreadCount > 0 ? `${unreadCount} unread ${unreadCount === 1 ? 'update' : 'updates'}` : 'You’re all caught up'}
+          </p>
+          <p className="mt-1 text-xs leading-5 text-[#716B62]">
+            {notifications.length > 0
+              ? `${notifications.length} ${notifications.length === 1 ? 'message' : 'messages'} from the AFL team`
+              : 'New messages from the AFL team will appear here.'}
+          </p>
+        </div>
         {unreadCount > 0 ? (
-          <Button type="button" variant="ghost" disabled={marking !== null} onClick={() => void markAll()} className="min-h-11 rounded-xl px-3 font-medium text-orange-900 hover:bg-orange-50 hover:text-orange-950">
+          <Button type="button" variant="ghost" disabled={marking !== null} onClick={() => void markAll()} className="min-h-11 rounded-lg px-3 font-medium text-[#8A350C] hover:bg-orange-50 hover:text-[#6C2600]">
             {marking === 'all' ? <Loader2 className="mr-2 h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <CheckCheck className="mr-2 h-4 w-4" aria-hidden="true" />}
             Mark all read
           </Button>
@@ -147,36 +153,36 @@ export function NotificationsSection() {
           {notifications.map((notification) => {
             const unread = !notification.readBy.includes(member.id)
             return (
-              <li key={notification.id} className={cn('rounded-[18px] border p-4 transition-colors sm:p-5', unread ? 'border-orange-200 bg-[#FFF9F3]' : 'border-[#E7DDCF] bg-white')}>
-                <article className="flex items-start gap-3">
-                  <span className={cn('flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px]', unread ? 'bg-orange-100 text-orange-800' : 'bg-[#F1F2F4] text-[#625B52]')}>
-                    <BellRing className="h-5 w-5" aria-hidden="true" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
-                      <div className="flex min-w-0 items-start gap-2">
-                        {unread ? <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-orange-500" aria-hidden="true" /> : null}
-                        <div className="min-w-0">
-                        {unread ? <span className="sr-only">Unread update. </span> : null}
-                          <h2 className="text-base font-semibold leading-6 text-[#171412]">{notification.title}</h2>
+              <li key={notification.id} className={cn('relative overflow-hidden rounded-2xl border bg-white transition-colors', unread ? 'border-[#E9C9AE]' : 'border-[#E8E4DD]')}>
+                {unread ? <span className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-[#F36D21] to-[#F5A313]" aria-hidden="true" /> : null}
+                <article className="p-4 pl-5 sm:p-5 sm:pl-6">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <span className={cn('mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl', unread ? 'bg-[#FFF2E8] text-[#943A0A]' : 'bg-[#F4F3F1] text-[#716B62]')}>
+                      <BellRing className="h-[18px] w-[18px]" strokeWidth={1.8} aria-hidden="true" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                        <div className="flex min-w-0 items-start gap-2">
+                          <h2 className="min-w-0 text-[15px] font-semibold leading-6 text-[#171412]">{unread ? <span className="sr-only">Unread update. </span> : null}{notification.title}</h2>
+                          {unread ? <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#E96717]" aria-label="Unread" /> : null}
                         </div>
+                        <time dateTime={displayNotificationDate(notification, member.createdAt)} className="text-xs font-normal text-[#716B62] sm:shrink-0 sm:pt-1">{formatNotificationDate(displayNotificationDate(notification, member.createdAt))}</time>
                       </div>
-                      <time dateTime={displayNotificationDate(notification, member.createdAt)} className="pl-4 text-xs font-normal text-[#746C63] sm:shrink-0 sm:pl-0 sm:pt-1">{formatNotificationDate(displayNotificationDate(notification, member.createdAt))}</time>
-                    </div>
-                    <p className="mt-2 text-sm font-normal leading-6 text-[#625B52]">{notification.message}</p>
-                    <div className="mt-3 flex flex-wrap items-center gap-3">
+                      <p className="mt-2 max-w-3xl text-sm font-normal leading-6 text-[#625B52]">{notification.message}</p>
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
                       {notification.ctaUrl && notification.ctaLabel ? (
-                        <Link href={notification.ctaUrl} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-orange-300 bg-orange-50 px-4 text-sm font-medium text-orange-900 transition-colors hover:bg-orange-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-2">
+                        <Link href={notification.ctaUrl} className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-[#FFF2E8] px-3 text-sm font-medium text-[#84330B] transition-colors hover:bg-[#FFE6D4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-2">
                           {notification.ctaLabel}<ArrowUpRight className="h-4 w-4" aria-hidden="true" />
                         </Link>
                       ) : null}
                       {unread ? (
-                        <button type="button" disabled={isNotificationMarkingDisabled(marking, notification.id)} onClick={() => void markOne(notification.id)} className="inline-flex min-h-11 items-center gap-2 rounded-xl px-2 text-sm font-medium text-[#6C2600] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 disabled:opacity-50">
+                        <button type="button" disabled={isNotificationMarkingDisabled(marking, notification.id)} onClick={() => void markOne(notification.id)} className="inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-sm font-medium text-[#625B52] hover:bg-[#F7F6F4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 disabled:opacity-50">
                           {marking === notification.id ? <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Check className="h-4 w-4" aria-hidden="true" />}
                           {marking === notification.id ? 'Marking read...' : 'Mark as read'}
                         </button>
-                      ) : <span className="inline-flex min-h-11 items-center gap-1.5 text-xs font-medium uppercase tracking-[0.1em] text-emerald-700"><Check className="h-4 w-4" aria-hidden="true" />Read</span>}
+                      ) : <span className="inline-flex min-h-10 items-center gap-1.5 px-3 text-xs font-medium text-[#55705A]"><Check className="h-4 w-4" aria-hidden="true" />Read</span>}
                     </div>
+                  </div>
                   </div>
                 </article>
               </li>
@@ -184,10 +190,12 @@ export function NotificationsSection() {
           })}
         </ul>
       ) : (
-        <div className="flex min-h-[calc(100dvh-380px)] flex-col items-center justify-center px-4 py-8 text-center">
-          <BellRing className="mx-auto h-7 w-7 text-[#6C2600]" aria-hidden="true" />
-          <h2 className="mt-3 text-xl font-medium text-[#171412]">You are all caught up</h2>
-          <p className="mt-2 max-w-xs text-sm font-normal leading-6 text-[#625B52]">Member news and award updates will appear here.</p>
+        <div className="flex min-h-[260px] flex-col items-center justify-center rounded-2xl border border-dashed border-[#DED8CE] bg-white px-5 py-10 text-center">
+          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#FFF2E8] text-[#943A0A]">
+            <BellRing className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <h2 className="mt-4 text-lg font-medium text-[#171412]">You’re all caught up</h2>
+          <p className="mt-1 max-w-xs text-sm font-normal leading-6 text-[#625B52]">Member news and award updates will appear here when there’s something new.</p>
         </div>
       )}
     </div>
