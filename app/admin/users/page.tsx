@@ -39,8 +39,11 @@ import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
-import { Search, User, Shield, Eye, EyeOff, Edit, Trash2, Users, UserCheck, UserPlus, Loader2 } from 'lucide-react'
+import { Search, User, Shield, Eye, EyeOff, Edit, Trash2, Users, UserCheck, UserPlus, Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { getPageItems, getPageSlice } from '@/lib/admin/user-pagination'
+
+const USERS_PER_PAGE = 20
 
 interface User {
   id: string
@@ -57,6 +60,7 @@ export default function UserManagement() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [filteredUsers, setFilteredUsers] = useState<User[]>([])
+  const [currentPage, setCurrentPage] = useState(1)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [newRole, setNewRole] = useState<'admin' | 'editor' | 'user'>('user')
@@ -104,6 +108,11 @@ export default function UserManagement() {
       setFilteredUsers(users)
     }
   }, [searchTerm, users])
+
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / USERS_PER_PAGE))
+  const activePage = Math.min(currentPage, totalPages)
+  const pageStartIndex = (activePage - 1) * USERS_PER_PAGE
+  const pageUsers = getPageSlice(filteredUsers, activePage, USERS_PER_PAGE)
 
   const handleDelete = async (id: string) => {
     try {
@@ -347,7 +356,7 @@ export default function UserManagement() {
                   id="user-search"
                   placeholder="Search users..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1) }}
                   className="pl-9 bg-white border-zinc-200 text-sm text-zinc-900 rounded-xl focus:ring-1 focus:ring-orange-300 focus:border-orange-300"
                 />
               </div>
@@ -381,7 +390,7 @@ export default function UserManagement() {
               </div>
             ) : (
               <ResponsiveTable
-                data={filteredUsers}
+                data={pageUsers}
                 breakpoint="lg"
                 getRowKey={(user) => user.id}
                 className="[&>div:first-child]:rounded-none [&>div:first-child]:border-0 [&>div:last-child]:p-4"
@@ -502,6 +511,53 @@ export default function UserManagement() {
                   </div>
                 )}
               />
+            )}
+            {!loading && filteredUsers.length > USERS_PER_PAGE && (
+              <div className="flex flex-col gap-3 border-t border-orange-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                <p className="text-xs text-zinc-500" aria-live="polite">
+                  Showing {pageStartIndex + 1}–{Math.min(pageStartIndex + USERS_PER_PAGE, filteredUsers.length)} of {filteredUsers.length} users
+                </p>
+                <nav aria-label="User pagination" className="flex items-center gap-1 self-start sm:self-auto">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    aria-label="Previous page"
+                    onClick={() => setCurrentPage(activePage - 1)}
+                    disabled={activePage === 1}
+                    className="h-9 w-9"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  {getPageItems(activePage, totalPages).map((item, index) => item === 'ellipsis' ? (
+                    <span key={`ellipsis-${index}`} aria-hidden="true" className="flex h-9 w-5 items-center justify-center text-sm text-zinc-400">…</span>
+                  ) : (
+                    <Button
+                      key={item}
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      aria-label={`Page ${item}`}
+                      aria-current={activePage === item ? 'page' : undefined}
+                      onClick={() => setCurrentPage(item)}
+                      className={cn('h-9 w-9', activePage === item && 'border-orange-500 bg-orange-50 text-orange-700 hover:bg-orange-100')}
+                    >
+                      {item}
+                    </Button>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    aria-label="Next page"
+                    onClick={() => setCurrentPage(activePage + 1)}
+                    disabled={activePage === totalPages}
+                    className="h-9 w-9"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </nav>
+              </div>
             )}
           </CardContent>
         </Card>

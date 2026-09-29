@@ -174,6 +174,10 @@ function isPaymentException(payment: AwardPaymentAttempt): boolean {
   return Boolean(payment.exceptionStatus || PAYMENT_EXCEPTION_STATUSES.has(payment.status) || payment.failureReason)
 }
 
+function needsPaymentReconciliation(payment: AwardPaymentAttempt): boolean {
+  return Boolean(payment.exceptionStatus || PAYMENT_EXCEPTION_STATUSES.has(payment.status))
+}
+
 function paymentAttemptsWithWarnings(order: AwardOrder): AwardPaymentAttempt[] {
   return (order.paymentAttempts ?? []).filter(isPaymentException)
 }
@@ -275,7 +279,9 @@ export default function AdminAwardsPage() {
       dispatchedOrLater: orders.filter((order) =>
         (['dispatched', 'in_transit', 'delivered'] as AwardStatus[]).includes(order.status),
       ).length,
-      paymentExceptions: orders.reduce((count, order) => count + paymentAttemptsWithWarnings(order).length, 0),
+      paymentExceptions: orders.filter((order) =>
+        (order.paymentAttempts ?? []).some(needsPaymentReconciliation),
+      ).length,
     }),
     [orders, paidWithoutWaybill],
   )
@@ -460,12 +466,6 @@ export default function AdminAwardsPage() {
         eyebrow="Awards & delivery"
         title="Award orders"
         description="Track every payment, resolve delivery issues, and keep awards moving."
-        actions={
-          <Button variant="outline" onClick={fetchOrders}>
-            <RefreshCw className="h-4 w-4" />
-            Refresh orders
-          </Button>
-        }
       />
 
       {/* Stats */}
