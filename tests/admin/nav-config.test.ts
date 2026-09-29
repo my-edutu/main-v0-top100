@@ -17,6 +17,7 @@ describe('navGroups', () => {
       '/admin/invites',
       '/admin/member-posts',
       '/admin/opportunities',
+      '/admin/social',
     ]) {
       expect(hrefs).toContain(href)
     }

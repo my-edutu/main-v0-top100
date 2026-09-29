@@ -19,6 +19,8 @@ import {
   Bell,
   BarChart3,
   Settings,
+  HeartHandshake,
+  Share2,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -68,6 +70,7 @@ export const navGroups: NavGroup[] = [
       { label: 'Interviews', href: '/admin/interviews', icon: Mic },
       { label: 'Opportunities', href: '/admin/opportunities', icon: Briefcase },
       { label: 'Feature Requests', href: '/admin/feature-requests', icon: Newspaper },
+      { label: 'Awardee onboarding', href: '/admin/onboarding', icon: HeartHandshake },
     ],
   },
   {
@@ -78,6 +81,7 @@ export const navGroups: NavGroup[] = [
       { label: 'Announcements', href: '/admin/announcements', icon: Megaphone },
       { label: 'Homepage', href: '/admin/homepage', icon: Home },
       { label: 'Member Posts', href: '/admin/member-posts', icon: ImageIcon },
+      { label: 'Social Sharing', href: '/admin/social', icon: Share2 },
     ],
   },
   {
