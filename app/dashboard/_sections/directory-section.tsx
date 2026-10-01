@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { Awardee } from '@/lib/awardees-shared'
+import { shuffleAwardees } from '@/lib/awardees/shuffle'
 import type { MemberProfile } from '@/lib/member-hub'
 import { cn } from '@/lib/utils'
 
@@ -47,7 +48,12 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
         const response = await fetch('/api/awardees', { cache: 'no-store' })
         if (!response.ok) throw new Error('Directory request failed')
         const payload = await response.json()
-        if (!cancelled) setAwardees(Array.isArray(payload) ? payload.filter((awardee) => !isQaFixture(awardee)) : [])
+        if (!cancelled) {
+          const eligibleAwardees = Array.isArray(payload)
+            ? payload.filter((awardee) => !isQaFixture(awardee))
+            : []
+          setAwardees(shuffleAwardees(eligibleAwardees))
+        }
       } catch {
         if (!cancelled) {
           setAwardees([])

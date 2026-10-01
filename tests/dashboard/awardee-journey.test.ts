@@ -78,7 +78,23 @@ describe('awardee journey progress', () => {
     expect(state.progress.completed).toBe(3)
     expect(state.recommendedActions.find((step) => step.id === 'opportunities')?.complete).toBe(false)
     expect(state.recommendedActions.find((step) => step.id === 'magazine')?.status).toBe('Application submitted')
-    expect(state.recommendedActions.find((step) => step.id === 'award')?.status).toBe('Award payment needed')
+    expect(state.recommendedActions.find((step) => step.id === 'award')).toMatchObject({
+      label: 'Get your award',
+      complete: false,
+      status: 'Award payment needed',
+    })
+  })
+
+  it('keeps the award priority visible with its confirmed payment status', () => {
+    const state = deriveAwardeeJourney(input({
+      award: { paymentStatus: 'paid', certificateAvailable: false },
+    }))
+
+    expect(state.recommendedActions.find((step) => step.id === 'award')).toMatchObject({
+      label: 'Get your award',
+      complete: false,
+      status: 'Award fee paid',
+    })
   })
 
   it('labels a member-confirmed external share as self-reported', () => {

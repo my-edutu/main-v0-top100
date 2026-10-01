@@ -85,7 +85,7 @@ export function deriveAwardeeJourney(input: AwardeeJourneyInput): AwardeeJourney
     recommendedActions: [
       { id: 'opportunities', label: 'Discover opportunities', complete: false, status: 'Explore opportunities' },
       { id: 'magazine', label: 'Apply to be featured in the magazine', complete: applicationStatus !== null, status: magazineStatus },
-      { id: 'award', label: 'Get your award and certificate', complete: input.award.certificateAvailable, status: awardStatus },
+      { id: 'award', label: 'Get your award', complete: input.award.certificateAvailable, status: awardStatus },
     ],
     shareConfirmation: input.externalShareConfirmedAt && input.externalSharePlatform
       ? { platform: input.externalSharePlatform, label: 'Marked complete by you' }

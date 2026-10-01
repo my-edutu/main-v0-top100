@@ -177,30 +177,6 @@ html.light .awardee-dashboard .hub-cohort-filters button:nth-child(3)[aria-press
  .awardee-dashboard .award-fixed-actions>:last-child { flex:1; }
  .awardee-dashboard .award-fixed-actions :is(a,button) { min-height:48px; white-space:normal; text-align:center; justify-content:center; }
 }
-html.light .awardee-dashboard .award-cinema, .awardee-dashboard .award-cinema { position:relative; isolation:isolate; overflow:hidden; border-radius:24px; background:radial-gradient(ellipse at 100% 100%,#582419 0%,#22141e 35%,#101014 70%)!important; color:#fff!important; }
-.awardee-dashboard .award-cinema-image { position:relative; height:390px; }
-.awardee-dashboard .award-cinema-image img { object-position:center 40%; }
-.awardee-dashboard .award-cinema-shade { position:absolute; inset:0; background:linear-gradient(180deg,#10101400 25%,#10101455 65%,#101014 100%); }
-.awardee-dashboard .award-cinema-copy { position:relative; margin-top:-65px; padding:0 40px 40px; max-width:740px; }
-html.light .awardee-dashboard .award-cinema h1 { color:#fff!important; font-size:48px; line-height:1.06; font-weight:500; letter-spacing:-.04em; margin:16px 0; }
-html.light .awardee-dashboard .award-cinema-kicker { color:#ffb77e!important; font-size:11px; letter-spacing:.12em; text-transform:uppercase; }
-html.light .awardee-dashboard .award-cinema-lead { color:#fff!important; font-size:18px; margin:16px 0 12px; }
-html.light .awardee-dashboard .award-cinema-detail { color:#ccc6ca!important; font-size:14px; line-height:1.8; max-width:550px; }
-html.light .awardee-dashboard .award-cinema-cta { display:inline-flex; align-items:center; justify-content:center; gap:12px; min-height:50px; margin-top:24px; padding:12px 20px; border-radius:12px; background:linear-gradient(100deg,#f97316,#ffb347)!important; color:#171717!important; font-weight:500; }
-html.light .awardee-dashboard .award-cinema-cta-disabled { background:#3a363b!important; color:#c7c0c5!important; cursor:default; }
-html.light .awardee-dashboard .award-cinema-note { color:#bfb5bc!important; font-size:12px; line-height:1.6; margin-top:14px; }
-@media(max-width:639px) {
- .awardee-dashboard .award-cinema-image { height:clamp(180px,28dvh,245px); }
- .awardee-dashboard .award-cinema-copy { margin-top:-28px; padding:0 20px 24px; }
- html.light .awardee-dashboard .award-cinema h1 { font-size:clamp(28px,7.5vw,34px); }
- .awardee-dashboard .award-cinema-cta { width:100%; }
-}
-@media(min-width:1200px) {
- .awardee-dashboard .award-cinema { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
- .awardee-dashboard .award-cinema-image { height:auto; min-height:520px; }
- .awardee-dashboard .award-cinema-copy { margin-top:0; padding:40px 32px; align-self:center; }
- html.light .awardee-dashboard .award-cinema h1 { font-size:40px; }
-}
 /* Home shortcuts: decorative patterns, not stock photography. */
 .awardee-dashboard .hub-shortcuts .hub-card>img, .awardee-dashboard .hub-shortcuts .hub-card-scrim { display:none; }
 html.light .awardee-dashboard .hub-shortcuts .hub-card { background-color:#ffd5ab!important; background-image:repeating-linear-gradient(135deg,transparent 0 20px,#ffffff35 20px 22px)!important; border:0; box-shadow:none; color:#302013!important; }
@@ -276,6 +252,8 @@ html.light .discover-feed a, html.light .discover-feed h1, html.light .discover-
 @media (min-width: 768px) { .discover-shortcuts { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 html.light .awardee-dashboard.hub-award-dark, .awardee-dashboard.hub-award-dark { background: #101014 !important; color: #fff !important; }
 .awardee-dashboard.hub-award-dark > div > main { background: #101014 !important; padding-bottom: max(24px, env(safe-area-inset-bottom)); }
+.award-preview-dark { background: #17151b !important; border-bottom: 1px solid #302d34; color: #d0c9d0 !important; }
+.award-preview-dark button { color: #ffb77e !important; }
 html.light .hub-award-dark .hub-app-bar, .hub-award-dark .hub-app-bar { background: #101014 !important; border-color: #302d34 !important; color: #f5f5f5 !important; }
 html.light .hub-award-dark .hub-app-bar a, html.light .hub-award-dark .hub-app-bar button, html.light .hub-award-dark .hub-app-bar h1, html.light .hub-award-dark .hub-app-bar span { color: #f5f5f5 !important; }
 .hub-award-dark .hub-app-bar a:hover, .hub-award-dark .hub-app-bar button:hover { background: #302d34 !important; }

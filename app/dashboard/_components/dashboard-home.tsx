@@ -3,13 +3,12 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import {
-  BellRing,
   ArrowUpRight,
   Mail,
   UserRound,
 } from 'lucide-react'
 
-import { fetchMemberHubState, type MemberNotification } from '@/lib/member-hub'
+import { fetchMemberHubState } from '@/lib/member-hub'
 import {
   fetchEventInvitations,
   fetchPublicEvents,
@@ -17,23 +16,12 @@ import {
   type PublicEvent,
 } from '@/lib/events/invitations-client'
 import { isAfricaFutureLeadersProgrammeEvent } from '@/lib/events/programme-api'
-import { cn } from '@/lib/utils'
 import { DashboardCard } from './dashboard-card'
 import { discoverNav, meNav } from '../_lib/navigation'
 import { selectUpcomingInvitations } from '../_lib/home-priority'
 import { useDashboardBadges } from '../_providers/dashboard-badges'
 import { useDashboardMember } from '../_providers/dashboard-member'
 import { AwardeeOnboardingJourney } from './awardee-onboarding-journey'
-
-type RecentItem = {
-  id: string
-  kind: 'update'
-  title: string
-  description: string
-  date: string
-  href: string
-  unread: boolean
-}
 
 const INTERVIEW_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSfA0yU8IK1jVBNZ-V1RRksZXJAkAh4XwL7Pk8mubZ31ZHMNlYQ/viewform?usp=header'
 const PARTNERSHIP_FORM_URL = 'https://docs.google.com/forms/d/1pabeSUOwN15Sr-VcAWIhl5k5_xwnKljFuzm90PCoEqQ/edit'
@@ -78,7 +66,6 @@ export function DashboardHome() {
   } = useDashboardBadges()
   const [invitations, setInvitations] = useState<EventInvitation[]>([])
   const [programmeEvents, setProgrammeEvents] = useState<PublicEvent[]>([])
-  const [notifications, setNotifications] = useState<MemberNotification[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
 
@@ -99,7 +86,7 @@ export function DashboardHome() {
       inFlight = false
       if (cancelled) return
       setLoading(false)
-      setLoadError([invitationResult, programmeResult, hubResult].some(result => result.status === 'rejected'))
+      setLoadError([invitationResult, programmeResult].some(result => result.status === 'rejected'))
 
       if (invitationResult.status === 'fulfilled') {
         setInvitations(invitationResult.value.invitations)
@@ -115,7 +102,6 @@ export function DashboardHome() {
             notification.status === 'sent' &&
             (notification.audience === 'all' || member.status === 'approved'),
         )
-        setNotifications(visibleNotifications)
         setUnreadUpdates(
           visibleNotifications.filter(
             (notification) => !notification.readBy.includes(member.id),
@@ -176,34 +162,15 @@ export function DashboardHome() {
       .slice(0, 6)
   }, [invitations, programmeEvents])
 
-  const recentItems = useMemo<RecentItem[]>(() => {
-    const updateRows: RecentItem[] = notifications.map((notification) => ({
-      id: `update-${notification.id}`,
-      kind: 'update',
-      title: notification.title,
-      description: notification.message,
-      date: notification.createdAt,
-      href: '/dashboard/updates',
-      unread: !notification.readBy.includes(member.id),
-    }))
-
-    return updateRows
-      .sort(
-        (left, right) =>
-          new Date(right.date).getTime() - new Date(left.date).getTime(),
-      )
-      .slice(0, 3)
-  }, [member.id, notifications])
-
   return (
     <div className="hub-home">
       <section className="hub-welcome" aria-labelledby="hub-welcome-title">
         <h1 id="hub-welcome-title">{(member.dashboardLoginCount ?? 0) < 4 ? 'Congratulations' : 'Hey'}, {member.name.trim().split(/\s+/)[0]}.</h1>
-        <p className="hub-welcome-description">Your people, opportunities, and latest updates.</p>
+        <p className="hub-welcome-description">Your people and opportunities.</p>
       </section>
       <AwardeeOnboardingJourney name={member.name} />
-      {loading && <p role="status" className="hub-status text-sm text-neutral-600">Loading your latest activity…</p>}
-      {loadError && <p role="status" className="hub-status rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-sm leading-5 text-neutral-700">Some activity couldn’t load. We’ll retry automatically; you can also open Events or Updates directly.</p>}
+      {loading && <p role="status" className="hub-status text-sm text-neutral-600">Loading your events…</p>}
+      {loadError && <p role="status" className="hub-status rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-sm leading-5 text-neutral-700">Some events couldn’t load. We’ll retry automatically; you can also open Events directly.</p>}
 
       <section aria-labelledby="coming-up-title" className="hub-upcoming-events min-w-0">
         <div className="flex items-center justify-between gap-3">
@@ -282,40 +249,6 @@ export function DashboardHome() {
         </div>
       </section>
 
-      <section aria-labelledby="recent-title" className="hub-panel hub-updates-panel">
-        <div className="flex items-center justify-between"><h2 id="recent-title" className="hub-panel-title">Latest updates</h2><Link href="/dashboard/updates" className="inline-flex min-h-11 items-center gap-1 text-xs font-semibold text-[#171717]">All updates <ArrowUpRight size={15} aria-hidden="true" /></Link></div>
-        <div className="mt-3 divide-y divide-[#E7DDCF]">
-          {recentItems.length > 0 ? recentItems.map((item) => {
-            const Icon = BellRing
-
-            return (
-              <Link
-                key={item.id}
-                href={item.href}
-                className="flex min-h-16 items-center gap-3 rounded-lg py-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#171412] focus-visible:ring-offset-2"
-              >
-                {item.unread ? <span className="sr-only">Unread. </span> : null}
-                <span className={cn(
-                  'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
-                  'bg-amber-100 text-amber-900',
-                )}>
-                  <Icon className="h-5 w-5" aria-hidden="true" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-2">
-                    <span className="truncate text-sm font-semibold">{item.title}</span>
-                    {item.unread ? <span className="h-2 w-2 shrink-0 rounded-full bg-[#171717]" aria-hidden="true" /> : null}
-                  </span>
-                  <span className="mt-0.5 block truncate text-xs font-normal text-[#625B52]">{item.description}</span>
-                </span>
-                <span className="hidden shrink-0 text-[11px] font-medium text-[#625B52] sm:block">{formatShortDate(item.date)}</span>
-              </Link>
-            )
-          }) : (
-            <div className="hub-empty"><span className="hub-empty-icon" aria-hidden="true"><BellRing size={26} strokeWidth={1.5} /></span><div><p className="text-sm font-semibold">No updates yet.</p><p className="mt-1 text-xs leading-5 text-[#625B52]">News and announcements from the AFL team will appear here.</p><Link href="/dashboard/updates" className="mt-1 inline-flex min-h-11 items-center gap-1 text-xs font-bold text-[#171717]">View updates <ArrowUpRight size={14} aria-hidden="true" /></Link></div></div>
-          )}
-        </div>
-      </section>
     </div>
   )
 }

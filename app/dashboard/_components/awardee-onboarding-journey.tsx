@@ -96,6 +96,7 @@ export function AwardeeOnboardingJourney({ name }: Props) {
   }, [member.portfolioCoverUrl, shareOpen])
 
   const state = payload?.state
+  const awardAction = state?.recommendedActions.find((action) => action.id === 'award')
   const settings = payload?.settings ?? DEFAULT_AWARDEE_JOURNEY_SETTINGS
   const coverFile = preparedCover && preparedCover.url === member.portfolioCoverUrl ? preparedCover.file : null
   const coverPreparing = Boolean(shareOpen && member.portfolioCoverUrl && preparedCover?.url !== member.portfolioCoverUrl)
@@ -198,6 +199,12 @@ export function AwardeeOnboardingJourney({ name }: Props) {
             <div className="h-full rounded-full bg-gradient-to-r from-[#F36D21] to-[#F5A313] transition-[width] duration-500 motion-reduce:transition-none" style={{ width: `${state.progress.percent}%` }} />
           </div>
 
+          {awardAction ? <Link href={actionMeta.award.href} className="mt-3 flex min-h-16 items-center gap-3 rounded-2xl border border-[#F3C8A9] bg-[#FFF6EE] px-3 py-2.5 transition-colors hover:bg-[#FFF0E3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-offset-2">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#FFE5D0] text-[#9A4619]"><Trophy className="h-5 w-5" aria-hidden="true" /></span>
+            <span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-[#25211D]">{awardAction.label}</span><span className="mt-0.5 block text-xs text-[#716B62]">{awardAction.status}</span></span>
+            <ArrowRight className="h-4 w-4 shrink-0 text-[#9A4619]" aria-hidden="true" />
+          </Link> : null}
+
           {state.coreSteps.some((step) => !step.complete) ? <ol className="mt-2 divide-y divide-[#EEE7DF] border-y border-[#EEE7DF]" aria-label="Awardee onboarding checklist">
             {state.coreSteps.map((step, index) => ({ step, index })).filter(({ step }) => !step.complete).map(({ step, index }) => {
               const href = coreDestinations[step.id as keyof typeof coreDestinations]
@@ -231,7 +238,7 @@ export function AwardeeOnboardingJourney({ name }: Props) {
                 <ChevronDown className="h-4 w-4 text-[#716B62] transition-transform group-open:rotate-180" aria-hidden="true" />
               </summary>
               <ul className="divide-y divide-[#EEE7DF] border-t border-[#EEE7DF] pb-1">
-                {state.recommendedActions.map((action) => {
+                {state.recommendedActions.filter((action) => action.id !== 'award').map((action) => {
                   const meta = actionMeta[action.id]
                   if (!meta) return null
                   const Icon = meta.icon

@@ -1,6 +1,6 @@
 'use client'
 
-import { ExternalLink, HandHeart, Linkedin } from 'lucide-react'
+import { ExternalLink, Linkedin } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
@@ -26,10 +26,7 @@ export function FounderWelcomeDialog({
           <span className="absolute -right-12 -top-24 h-64 w-64 rounded-full border border-white/20" aria-hidden="true" />
           <span className="absolute -right-2 -top-14 h-44 w-44 rounded-full border border-white/15" aria-hidden="true" />
           <div className="relative z-10 max-w-xl">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/25 bg-white/15">
-              <HandHeart className="h-5 w-5" aria-hidden="true" />
-            </div>
-            <p className="mt-5 text-xs font-semibold uppercase tracking-[0.16em] text-white/85">A personal welcome</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/85">A personal welcome</p>
             <DialogTitle className="mt-2 max-w-lg text-2xl font-semibold leading-tight tracking-[-0.025em] text-white sm:text-3xl">{settings.welcomeTitle}</DialogTitle>
             <DialogDescription className="mt-2 text-sm leading-6 text-white/85">A note from {settings.founderName}, {settings.founderTitle}.</DialogDescription>
           </div>

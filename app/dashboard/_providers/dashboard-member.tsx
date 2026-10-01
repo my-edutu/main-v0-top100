@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react'
 import { LoaderCircle, RotateCcw } from 'lucide-react'
+import { usePathname } from 'next/navigation'
 
 import { Button } from '@/components/ui/button'
 import { finishDashboardOnboarding } from '@/lib/dashboard/onboarding'
@@ -25,6 +26,7 @@ type DashboardMemberContextValue = {
 const DashboardMemberContext = createContext<DashboardMemberContextValue | null>(null)
 
 export function DashboardMemberProvider({ children }: { children: ReactNode }) {
+  const pathname = usePathname()
   const [member, setMember] = useState<MemberProfile | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
@@ -119,10 +121,13 @@ export function DashboardMemberProvider({ children }: { children: ReactNode }) {
   }
 
   const isLocalPreview = process.env.NODE_ENV !== 'production' && member.id === 'demo-member-1'
+  const awardDark =
+    pathname === '/dashboard/me/award' ||
+    pathname.startsWith('/dashboard/me/award/payment')
 
   return (
     <DashboardMemberContext.Provider value={{ member, refreshMember, replaceMember }}>
-      {isLocalPreview && <div className="bg-orange-50 px-4 py-2 text-center text-xs text-orange-900">Local preview · sample account and activity {member.onboardingCompletedAt && <button className="ml-2 underline" onClick={() => { void fetch('/api/member/onboarding', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reset: true }) }).then(async response => { if (response.ok) replaceMember((await response.json()).member) }) }}>Preview onboarding</button>}</div>}
+      {isLocalPreview && <div className={`award-preview-banner px-4 py-2 text-center text-xs text-orange-900 ${awardDark ? 'award-preview-dark' : 'bg-orange-50'}`}>Local preview · sample account and activity {member.onboardingCompletedAt && <button className="ml-2 underline" onClick={() => { void fetch('/api/member/onboarding', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reset: true }) }).then(async response => { if (response.ok) replaceMember((await response.json()).member) }) }}>Preview onboarding</button>}</div>}
       {!member.onboardingCompletedAt ? <Onboarding member={member} onComplete={completeOnboarding} /> : children}
     </DashboardMemberContext.Provider>
   )
