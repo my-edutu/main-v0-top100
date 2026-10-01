@@ -220,6 +220,20 @@ html.light .impact-series-dark .text-white\/70 {
   color: #ffffff !important;
 }
 
+/* These award components intentionally use dark surfaces inside the light dashboard. */
+html.light .award-cinema .text-white,
+html.light .award-payment-faq .text-white,
+html.light .award-payment-card .text-white {
+  color: #ffffff !important;
+}
+
+/* The award journey keeps its white typography across payment and completion steps. */
+html.light .hub-award-dark .text-white,
+html.light .hub-award-dark .text-zinc-100,
+html.light .hub-award-dark .text-zinc-200 {
+  color: #ffffff !important;
+}
+
 /* The interviews hero keeps its white title on the dark panel in light mode. */
 html.light .interviews-hero h1 {
   color: #ffffff !important;
@@ -426,6 +440,7 @@ html.light a.awardee-linkedin-button {
 .member-post-prose ul { list-style: disc; }
 .member-post-prose ol { list-style: decimal; }
 .member-post-prose a { color: #9a3412; text-decoration: underline; text-underline-offset: 3px; }
+.member-post-prose img, .post-feed-body img { display: block; max-width: 100%; height: auto; margin: 1.5rem auto; border-radius: 12px; }
 
 .member-post-rendered { color: #404040; font-size: 1.125rem; line-height: 1.8; overflow-wrap: anywhere; }
 .member-post-rendered > * + * { margin-top: 1.25rem; }

@@ -28,6 +28,7 @@ export function DashboardAppBar() {
   const { member } = useDashboardMember()
   const { unreadUpdates } = useDashboardBadges()
   const isHome = pathname === '/dashboard'
+  const isNewPost = pathname === '/dashboard/me/posts/new'
   const isConversation = pathname.startsWith('/dashboard/messages/')
   const isMembersRoute = pathname === '/dashboard/discover/members'
   const [isScrolled, setIsScrolled] = useState(false)
@@ -94,13 +95,24 @@ export function DashboardAppBar() {
             <Bell className="h-5 w-5" strokeWidth={2.35} aria-hidden="true" />
             <CountBadge count={unreadUpdates} />
           </Link>
-          <Link
-            href="/dashboard/me"
-            aria-label={`Open ${member.name}'s account`}
-            className="flex h-11 w-11 items-center justify-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-800 focus-visible:ring-offset-2"
-          >
-            <MemberAvatar src={member.avatarUrl} initials={member.avatarInitials} />
-          </Link>
+          {isNewPost ? (
+            <button
+              type="submit"
+              form="member-post-form"
+              aria-label={member.status === 'approved' ? 'Publish post' : 'Save post'}
+              className="inline-flex min-h-11 items-center justify-center rounded-full bg-orange-500 px-5 text-sm font-semibold text-[#171412] transition hover:bg-orange-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-2"
+            >
+              {member.status === 'approved' ? 'Post' : 'Save'}
+            </button>
+          ) : (
+            <Link
+              href="/dashboard/me"
+              aria-label={`Open ${member.name}'s account`}
+              className="flex h-11 w-11 items-center justify-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-800 focus-visible:ring-offset-2"
+            >
+              <MemberAvatar src={member.avatarUrl} initials={member.avatarInitials} />
+            </Link>
+          )}
         </div>
       </div>
     </header>

@@ -1,16 +1,21 @@
 'use client'
 
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { EditorContent, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Link from '@tiptap/extension-link'
 import Placeholder from '@tiptap/extension-placeholder'
-import { Bold, Heading2, Italic, Link2, List, Quote } from 'lucide-react'
+import Image from '@tiptap/extension-image'
+import { Bold, Heading2, ImagePlus, Italic, Link2, List, Loader2, Quote } from 'lucide-react'
 import { Markdown } from 'tiptap-markdown'
+import { toast } from 'sonner'
 
 type MediumPostEditorProps = {
   value: string
   onChange: (value: string) => void
+  onUploadImage: (file: File) => Promise<string>
+  onUploadingChange?: (uploading: boolean) => void
+  fullScreen?: boolean
 }
 
 function FormatButton({
@@ -44,15 +49,23 @@ function FormatButton({
   )
 }
 
-export function MediumPostEditor({ value, onChange }: MediumPostEditorProps) {
+export function MediumPostEditor({ value, onChange, onUploadImage, onUploadingChange, fullScreen = false }: MediumPostEditorProps) {
   const onChangeRef = useRef(onChange)
-  onChangeRef.current = onChange
+  const onUploadImageRef = useRef(onUploadImage)
+  const imageInputRef = useRef<HTMLInputElement>(null)
+  const [uploadingImage, setUploadingImage] = useState(false)
+
+  useEffect(() => {
+    onChangeRef.current = onChange
+    onUploadImageRef.current = onUploadImage
+  }, [onChange, onUploadImage])
 
   const editor = useEditor(
     {
       immediatelyRender: false,
       extensions: [
         StarterKit.configure({ heading: { levels: [2, 3] } }),
+        Image.configure({ inline: false, allowBase64: false }),
         Link.configure({ autolink: true, openOnClick: false }),
         Placeholder.configure({ placeholder: 'Tell your story…' }),
         Markdown.configure({ html: false, breaks: true, transformPastedText: true }),
@@ -60,7 +73,9 @@ export function MediumPostEditor({ value, onChange }: MediumPostEditorProps) {
       content: value || '',
       editorProps: {
         attributes: {
-          class: 'member-post-prose min-h-[300px] px-5 py-5 text-[18px] leading-8 outline-none sm:min-h-[360px] sm:px-8 sm:py-7',
+          class: fullScreen
+            ? 'member-post-prose min-h-[calc(100dvh-205px)] px-5 py-5 text-[18px] leading-8 outline-none sm:min-h-[calc(100dvh-220px)] sm:px-8 sm:py-7'
+            : 'member-post-prose min-h-[300px] px-5 py-5 text-[18px] leading-8 outline-none sm:min-h-[360px] sm:px-8 sm:py-7',
           'aria-label': 'Write your post',
           role: 'textbox',
           'aria-multiline': 'true',
@@ -93,8 +108,24 @@ export function MediumPostEditor({ value, onChange }: MediumPostEditorProps) {
 
   const disabled = !editor
 
+  async function handleImageSelected(file: File | undefined) {
+    if (!file || !editor) return
+    try {
+      setUploadingImage(true)
+      onUploadingChange?.(true)
+      const src = await onUploadImageRef.current(file)
+      editor.chain().focus().setImage({ src, alt: file.name.replace(/\.[^.]+$/, '') }).run()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not upload the image.')
+    } finally {
+      setUploadingImage(false)
+      onUploadingChange?.(false)
+      if (imageInputRef.current) imageInputRef.current.value = ''
+    }
+  }
+
   return (
-    <section className="member-post-editor overflow-hidden rounded-xl border border-neutral-200 bg-white" aria-label="Post writing area">
+    <section className={`member-post-editor overflow-hidden bg-white ${fullScreen ? 'flex min-h-0 flex-1 flex-col' : 'rounded-xl border border-neutral-200'}`} aria-label="Post writing area">
       <div className="flex min-h-12 items-center gap-1 overflow-x-auto border-b border-neutral-200 px-3 py-1.5" role="toolbar" aria-label="Formatting options">
         <FormatButton label="Bold" disabled={disabled} active={editor?.isActive('bold')} onClick={() => editor?.chain().focus().toggleBold().run()}>
           <Bold className="size-[18px]" aria-hidden="true" />
@@ -115,11 +146,23 @@ export function MediumPostEditor({ value, onChange }: MediumPostEditorProps) {
         <FormatButton label="Add link" disabled={disabled} active={editor?.isActive('link')} onClick={toggleLink}>
           <Link2 className="size-[18px]" aria-hidden="true" />
         </FormatButton>
+        <span className="mx-1 h-5 w-px shrink-0 bg-neutral-200" aria-hidden="true" />
+        <FormatButton label={uploadingImage ? 'Uploading image' : 'Add image'} disabled={disabled || uploadingImage} onClick={() => imageInputRef.current?.click()}>
+          {uploadingImage ? <Loader2 className="size-[18px] animate-spin" aria-hidden="true" /> : <ImagePlus className="size-[18px]" aria-hidden="true" />}
+        </FormatButton>
+        <input
+          ref={imageInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          aria-label="Choose an image for your post"
+          className="sr-only"
+          onChange={(event) => void handleImageSelected(event.target.files?.[0])}
+        />
       </div>
       {editor ? (
         <EditorContent editor={editor} />
       ) : (
-        <div aria-hidden="true" className="min-h-[300px] px-5 py-5 font-serif text-lg leading-8 text-neutral-400 sm:min-h-[360px] sm:px-8 sm:py-7">
+        <div aria-hidden="true" className={`${fullScreen ? 'min-h-[calc(100dvh-205px)] sm:min-h-[calc(100dvh-220px)]' : 'min-h-[300px] sm:min-h-[360px]'} px-5 py-5 font-serif text-lg leading-8 text-neutral-400 sm:px-8 sm:py-7`}>
           Tell your story…
         </div>
       )}

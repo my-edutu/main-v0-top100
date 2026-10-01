@@ -1,10 +1,10 @@
 'use client'
 
 // app/dashboard/posts-section.tsx
-// The member's own posts: write, save a draft, publish, update, delete, and
+// The member's own posts: write, publish, update, delete, and
 // jump to the live public URL. Self-contained — it fetches everything it needs
 // from /api/member/posts itself.
-import { FormEvent, useCallback, useEffect, useRef, useState } from 'react'
+import { FormEvent, useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ExternalLink, ImagePlus, Loader2, Plus, RefreshCw, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
@@ -170,7 +170,7 @@ export default function PostsSection({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>, status: 'draft' | 'published') {
     event.preventDefault()
-    if (!editor) return
+    if (!editor || savingAs) return
 
     const payload = {
       title: editor.postId ? editor.title.trim() : deriveMemberPostTitle(editor.body.trim()),
@@ -269,7 +269,7 @@ export default function PostsSection({
   }
 
   return (
-    <div className="space-y-5">
+    <div className={mode === 'new' ? 'min-h-[calc(100dvh-60px)]' : 'space-y-5'}>
       {mode === 'list' && !accountRestricted && posts.length > 0 && (
         <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center justify-between gap-3 rounded-xl border border-neutral-200 bg-white px-4 py-3 sm:px-5">
           <div>
@@ -304,12 +304,13 @@ export default function PostsSection({
       {editor && !accountRestricted && (
         <PostEditor
           editor={editor}
-          member={member}
           onChange={(nextEditor) => setRouteState({ kind: 'editor', editor: nextEditor })}
           onCancel={exitEditor}
           onSubmit={handleSubmit}
           savingAs={savingAs}
           canPublish={canPublish}
+          fullScreen={mode === 'new'}
+          onUploadImage={uploadMemberPostCover}
         />
       )}
 
@@ -472,41 +473,48 @@ export function PostRow({
 
 export function PostEditor({
   editor,
-  member,
   onChange,
   onCancel,
   onSubmit,
   savingAs,
   canPublish,
+  fullScreen = false,
+  onUploadImage,
 }: {
   editor: EditorState
-  member: MemberProfile
   onChange: (next: EditorState) => void
   onCancel: () => void
   onSubmit: (event: FormEvent<HTMLFormElement>, status: 'draft' | 'published') => void
   savingAs: 'draft' | 'published' | null
   canPublish: boolean
+  fullScreen?: boolean
+  onUploadImage: (file: File) => Promise<string>
 }) {
-  const intentRef = useRef<'draft' | 'published'>('draft')
-  const [uploadingCover, setUploadingCover] = useState(false)
   const saving = savingAs !== null
+  const [uploadingCover, setUploadingCover] = useState(false)
+  const [uploadingInlineImage, setUploadingInlineImage] = useState(false)
   const bodyLength = editor.body.trim().length
-  const bodyTooShort = bodyLength > 0 && bodyLength < BODY_MIN
+  const bodyTooShort = bodyLength < BODY_MIN
   const bodyTooLong = bodyLength > BODY_MAX
+  function submitPost(event: FormEvent<HTMLFormElement>) {
+    if (event.currentTarget.dataset.uploadingImage === 'true') {
+      event.preventDefault()
+      toast.error('Wait for the image to finish uploading before posting.')
+      return
+    }
+    if (bodyTooShort || bodyTooLong) {
+      event.preventDefault()
+      toast.error(bodyTooLong ? 'Your post is too long.' : `Write at least ${BODY_MIN} characters before posting.`)
+      return
+    }
+    onSubmit(event, canPublish ? 'published' : 'draft')
+  }
 
   return (
-    <form onSubmit={(event) => onSubmit(event, intentRef.current)} className="mx-auto w-full max-w-3xl">
+    <form id={fullScreen ? 'member-post-form' : undefined} data-uploading-image={uploadingInlineImage} onSubmit={submitPost} className={fullScreen ? 'flex min-h-[calc(100dvh-60px)] w-full flex-col' : 'mx-auto w-full max-w-3xl'}>
       <h4 className="sr-only">{editor.postId ? 'Edit post' : 'Create a post'}</h4>
 
-      <div className="bg-white">
-        <div className="flex items-center gap-3 border-b border-neutral-200 px-1 pb-4 pt-2 sm:px-2">
-          <MemberAvatar src={member.avatarUrl} initials={member.avatarInitials} size={44} />
-          <div className="min-w-0">
-            <p className="truncate text-[15px] font-semibold leading-5 text-[#171717]">{member.name}</p>
-            <p className="break-words text-xs leading-4 text-neutral-600">{member.headline || 'Africa Future Leaders awardee'}</p>
-          </div>
-        </div>
-
+      <div className={`bg-white ${fullScreen ? 'flex min-h-[calc(100dvh-60px)] flex-1 flex-col' : ''}`}>
         {editor.postId ? <details className="mb-4 mt-3 rounded-lg border border-neutral-200 px-3 py-2">
           <summary className="cursor-pointer text-xs font-medium text-neutral-600">Edit post title</summary>
           <Label htmlFor="post-title" className="sr-only">Post title</Label>
@@ -523,73 +531,59 @@ export function PostEditor({
         <MediumPostEditor
           value={editor.body}
           onChange={(body) => onChange({ ...editor, body })}
+          onUploadImage={onUploadImage}
+          onUploadingChange={setUploadingInlineImage}
+          fullScreen={fullScreen}
         />
 
-        {editor.coverUrl ? <div className="relative mb-4 mt-4 overflow-hidden rounded-lg border border-black/10">
-          <img src={editor.coverUrl} alt="Photo attached to your post" className="max-h-96 w-full object-cover" />
-          <button type="button" aria-label="Remove attached photo" onClick={() => onChange({ ...editor, coverUrl: '' })} className="absolute right-3 top-3 grid size-9 place-items-center rounded-full bg-white text-neutral-800 shadow-sm hover:bg-neutral-100">
-            <X className="size-4" aria-hidden="true" />
-          </button>
-        </div> : null}
+        {!fullScreen && <div className="mt-4">
+          {editor.coverUrl ? <div className="relative overflow-hidden rounded-lg border border-black/10">
+            <img src={editor.coverUrl} alt="Photo attached to your post" className="max-h-96 w-full object-cover" />
+            <button type="button" aria-label="Remove attached photo" onClick={() => onChange({ ...editor, coverUrl: '' })} className="absolute right-3 top-3 grid size-9 place-items-center rounded-full bg-white text-neutral-800 shadow-sm hover:bg-neutral-100">
+              <X className="size-4" aria-hidden="true" />
+            </button>
+          </div> : null}
+          <Input
+            id="post-cover"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            disabled={uploadingCover || saving}
+            aria-label="Add a cover photo to your post"
+            onChange={async (event) => {
+              const file = event.target.files?.[0]
+              if (!file) return
+              try {
+                setUploadingCover(true)
+                const url = await uploadMemberPostCover(file)
+                onChange({ ...editor, coverUrl: url })
+              } catch (cause) {
+                toast.error(cause instanceof Error ? cause.message : 'Could not upload the photo.')
+              } finally {
+                setUploadingCover(false)
+                event.target.value = ''
+              }
+            }}
+            className="peer sr-only"
+            style={{ width: 1, height: 1 }}
+          />
+          <label htmlFor="post-cover" className={`mt-2 inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg px-3 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-orange-700 ${uploadingCover ? 'pointer-events-none opacity-60' : ''}`}>
+            {uploadingCover ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <ImagePlus className="size-4" aria-hidden="true" />}
+            {uploadingCover ? 'Adding photo…' : editor.coverUrl ? 'Change cover photo' : 'Add a cover photo'}
+          </label>
+        </div>}
 
         <div className="flex items-center justify-between gap-3 py-3">
           <p className={`text-xs ${bodyTooShort || bodyTooLong ? 'text-red-700' : 'text-neutral-500'}`}>
             {bodyLength.toLocaleString()} / {BODY_MAX.toLocaleString()}{bodyTooShort ? ` · ${BODY_MIN} characters minimum` : ''}{bodyTooLong ? ' · too long' : ''}
           </p>
-          <p className="hidden text-xs text-neutral-500 sm:block">Published posts appear on your awardee profile.</p>
+          {!fullScreen && <p className="hidden text-xs text-neutral-500 sm:block">Published posts appear on your awardee profile.</p>}
         </div>
 
-        <div role="group" aria-label="Post actions" className="flex flex-col items-stretch gap-2 border-t border-neutral-200 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-          <div className="flex items-center">
-            <Input
-              id="post-cover"
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              disabled={uploadingCover || saving}
-              aria-label="Add a photo to your post"
-              onChange={async (event) => {
-                const file = event.target.files?.[0]
-                if (!file) return
-                try {
-                  setUploadingCover(true)
-                  const url = await uploadMemberPostCover(file)
-                  onChange({ ...editor, coverUrl: url })
-                } catch (cause) {
-                  toast.error(cause instanceof Error ? cause.message : 'Could not upload the photo.')
-                } finally {
-                  setUploadingCover(false)
-                  event.target.value = ''
-                }
-              }}
-              className="peer sr-only"
-              style={{ width: 1, height: 1 }}
-            />
-            <label htmlFor="post-cover" className={`inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg px-3 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-orange-700 ${uploadingCover ? 'pointer-events-none opacity-60' : ''}`}>
-              {uploadingCover ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <ImagePlus className="size-4" aria-hidden="true" />}
-              {uploadingCover ? 'Adding photo…' : editor.coverUrl ? 'Change photo' : 'Add a photo'}
-            </label>
-          </div>
-
+        {!fullScreen && <div role="group" aria-label="Post actions" className="flex flex-col items-stretch gap-2 border-t border-neutral-200 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
           <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto">
         <Button
           type="submit"
-          onClick={() => {
-            intentRef.current = 'draft'
-          }}
-          disabled={saving || bodyTooLong}
-          variant="outline"
-          className="min-h-11 rounded-[10px] border-transparent bg-transparent px-3 text-sm text-neutral-700 shadow-none hover:border-transparent hover:bg-neutral-100 hover:text-[#171717]"
-        >
-          {savingAs === 'draft' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          Save draft
-        </Button>
-
-        <Button
-          type="submit"
-          onClick={() => {
-            intentRef.current = 'published'
-          }}
-          disabled={saving || !canPublish || bodyTooShort || bodyTooLong}
+          disabled={saving || bodyTooShort || bodyTooLong}
           className="min-h-11 rounded-[10px] bg-orange-600 px-5 text-sm text-white shadow-none hover:bg-orange-700 disabled:bg-orange-200 disabled:text-neutral-700"
         >
           {savingAs === 'published' ? (
@@ -597,10 +591,15 @@ export function PostEditor({
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Publishing...
             </>
+          ) : savingAs === 'draft' ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Saving...
+            </>
           ) : editor.postId ? (
-            'Update & publish'
+            canPublish ? 'Update & publish' : 'Save'
           ) : (
-            'Post'
+            canPublish ? 'Post' : 'Save'
           )}
         </Button>
 
@@ -614,7 +613,7 @@ export function PostEditor({
           Cancel
         </Button>
           </div>
-        </div>
+        </div>}
       </div>
     </form>
   )

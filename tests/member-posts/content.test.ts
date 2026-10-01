@@ -18,6 +18,14 @@ describe('member post body rendering', () => {
     )
   })
 
+  it('renders images inserted into post text', () => {
+    const rendered = renderMemberPostBody('Before the image.\n\n![Community workshop](https://media.example.test/workshop.webp)\n\nAfter the image.')
+
+    expect(rendered).toContain('<img src="https://media.example.test/workshop.webp" alt="Community workshop">')
+    expect(rendered.indexOf('<img')).toBeGreaterThan(rendered.indexOf('Before the image.'))
+    expect(rendered.indexOf('<img')).toBeLessThan(rendered.indexOf('After the image.'))
+  })
+
   it('escapes raw HTML and rejects unsafe link protocols', () => {
     const rendered = renderMemberPostBody(
       '<img src=x onerror=alert(1)>\n\n[unsafe](javascript:alert(1))',
