@@ -2,8 +2,9 @@
 
 import { FormEvent, useEffect, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, ArrowRight, Loader2, Search, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Loader2, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -174,16 +175,14 @@ export default function SignUpPage() {
     <main className="min-h-[calc(100dvh-5rem)] bg-[#fcfaf7] px-4 py-10 text-[#211a15] sm:px-6">
       <div className="mx-auto grid max-w-5xl gap-10 lg:grid-cols-[0.8fr_1fr] lg:gap-20">
         <div className="pt-4">
-          <span className="rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-orange-800">AFL winners</span>
-          <h1 className="mt-7 text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">Your story is already here.</h1>
+          <h1 className="mt-0 text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">Your story is already here.</h1>
           <p className="mt-5 max-w-md text-base leading-7 text-stone-600">Find your winner record, verify your email, and enter your account with your profile details ready.</p>
-          <p className="mt-7 text-sm text-stone-600">Already have an account? <Link className="font-semibold text-orange-800 underline" href="/login">Sign in</Link>, then return here to claim your record.</p>
         </div>
 
         <section className="rounded-3xl border border-stone-200 bg-white p-5 shadow-sm sm:p-8" aria-label="Claim your winner profile">
           <div className="mb-7 flex items-center justify-between gap-3 border-b border-stone-100 pb-5">
             <div><p className="text-xs font-bold uppercase tracking-widest text-orange-700">Step {step} of 3</p><h2 className="mt-1 text-2xl font-semibold">{step === 1 ? 'Find yourself' : step === 2 ? 'Confirm your identity' : 'Verify your email'}</h2></div>
-            <ShieldCheck className="h-7 w-7 text-orange-700" aria-hidden="true" />
+            <Image src="/illustrations/winner-record.svg" alt="" aria-hidden="true" width={48} height={48} className="h-12 w-12 shrink-0" />
           </div>
           {selected && step > 1 && <div className="mb-6 rounded-2xl bg-orange-50 p-4"><p className="font-semibold">{selected.name}</p><p className="text-sm text-stone-600">{[selected.country, selected.course].filter(Boolean).join(' · ')}</p></div>}
           {error && <p role="alert" className="mb-5 rounded-xl bg-red-50 p-3 text-sm text-red-800">{error}</p>}
@@ -214,6 +213,7 @@ export default function SignUpPage() {
             <div className="flex justify-between gap-3"><Button type="button" variant="ghost" onClick={() => setStep(2)}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button><Button disabled={busy}>{busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Claim my profile<ArrowRight className="ml-2 h-4 w-4" /></Button></div>
           </form>}
         </section>
+        <p className="text-sm text-stone-600 lg:col-start-2">Already have an account? <Link className="font-semibold text-orange-800 underline" href="/login">Sign in</Link>, then return here to claim your record.</p>
       </div>
     </main>
   )
