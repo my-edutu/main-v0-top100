@@ -122,5 +122,5 @@ export type BachsWebhookEvent = {
   data: BachsWebhookData
 }
 
-export const BACHS_AWARD_SUCCESS_PATH = '/dashboard/me/award?payment=done'
-export const BACHS_AWARD_CANCEL_PATH = '/dashboard/me/award?payment=cancelled'
+export const BACHS_AWARD_SUCCESS_PATH = '/dashboard/me/award/payment?payment=done'
+export const BACHS_AWARD_CANCEL_PATH = '/dashboard/me/award/payment?payment=cancelled'

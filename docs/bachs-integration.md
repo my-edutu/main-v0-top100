@@ -37,6 +37,8 @@ Register both webhook destinations in Bachs and subscribe each to `collection.su
 - Award payments: `https://your-app.example/api/webhooks/bachs`; store its signing secret as `BACHS_AWARD_WEBHOOK_SECRET`.
 - Magazine payments: `https://your-app.example/api/webhooks/bachs-magazine`; store its distinct signing secret as `BACHS_MAGAZINE_WEBHOOK_SECRET`.
 
+Award payment confirmations are sent by the app after the signed `collection.succeeded` event is verified and the captured amount is committed. Configure `RESEND_API_KEY` and `RESEND_FROM_EMAIL` with a verified Resend sender domain for the Top100-branded receipt. Resend is preferred when configured; the existing Brevo sender is the fallback when Resend is not configured. The confirmation includes the captured fee and a link back to the member's award page. A webhook replay retries an email that was not recorded as sent, using the same Resend idempotency key to prevent duplicate receipts.
+
 Bachs issues a signing secret per destination. Do not reuse one endpoint's secret for the other. Keep both checkout switches false until their corresponding endpoint is registered, secrets are deployed, and sandbox verification has passed. Either checkout can be activated without enabling the other.
 
 Enable `AWARD_CHECKOUT_ENABLED=true` only after award configuration and migration are present. Enable `MAGAZINE_CHECKOUT_ENABLED=true` separately after magazine configuration and migration are present. New checkout routes are `/api/member/award/payment/checkout` and `/api/member/magazine/payment/checkout`; the former Paystack award checkout endpoint returns HTTP 410. Historical Paystack verification is retained only to reconcile previously issued references.

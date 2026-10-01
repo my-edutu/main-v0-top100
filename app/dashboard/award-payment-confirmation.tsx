@@ -16,10 +16,10 @@ export function AwardPaymentConfirmation({
     <section
       role="status"
       aria-live="polite"
-      className="rounded-[22px] border border-amber-200 bg-white p-5 sm:p-8"
+      className="rounded-[22px] border border-amber-900 bg-[#211D1A] p-5 text-white sm:p-8"
     >
       <div className="flex items-start gap-4">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[15px] bg-[#FFE49A] text-[#563700]">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[15px] bg-[#50381D] text-[#FFD997]">
           {timedOut ? (
             <ShieldCheck className="h-6 w-6" aria-hidden="true" />
           ) : (
@@ -30,17 +30,17 @@ export function AwardPaymentConfirmation({
           )}
         </div>
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#6C2600]">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#FFB77E]">
             Payment confirmation
           </p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-[#171412] sm:text-3xl">
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
             {supportRequired
               ? 'Your payment needs support review'
               : timedOut
               ? 'Still confirming your payment'
               : "We're confirming your payment"}
           </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-[#625B52] sm:text-base">
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-[#D0C9D0] sm:text-base">
             {supportRequired
               ? 'Please contact support so we can reconcile this payment. Do not retry while this review is open.'
               : timedOut
@@ -52,7 +52,7 @@ export function AwardPaymentConfirmation({
           {resumeUrl ? (
             <Link
               href={resumeUrl}
-              className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-[#171412] px-4 text-sm font-semibold text-white hover:bg-[#312B27] focus-visible:outline focus-visible:ring-2 focus-visible:ring-[#F36C21] focus-visible:ring-offset-2"
+              className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-[#F97316] px-4 text-sm font-semibold text-[#171412] hover:bg-[#FB923C] focus-visible:outline focus-visible:ring-2 focus-visible:ring-[#F36C21] focus-visible:ring-offset-2"
             >
               Continue payment checkout
             </Link>

@@ -12,6 +12,8 @@ export type SendInput = {
   subject: string
   html: string
   text?: string
+  /** Stable key for provider-side deduplication of retried transactional messages. */
+  idempotencyKey?: string
 }
 
 /**
@@ -23,7 +25,11 @@ export async function sendTransactionalEmail(input: SendInput): Promise<{ ok: bo
     if (!process.env.RESEND_FROM_EMAIL) return { ok: false, reason: 'RESEND_FROM_EMAIL must be a verified sender.' }
     try {
       const response = await fetch('https://api.resend.com/emails', {
-        method: 'POST', headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        method: 'POST', headers: {
+          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+          ...(input.idempotencyKey ? { 'Idempotency-Key': input.idempotencyKey } : {}),
+        },
         body: JSON.stringify({ from: process.env.RESEND_FROM_EMAIL, to: [input.to], subject: input.subject, html: input.html, text: input.text }),
         signal: AbortSignal.timeout(10000),
       })

@@ -1,4 +1,4 @@
-import { ArrowUpRight, CheckCircle2 } from 'lucide-react'
+import Image from 'next/image'
 import Link from 'next/link'
 
 import type { AwardPaymentView } from '@/lib/awards/payment'
@@ -36,47 +36,37 @@ export function AwardPaymentSuccess({ payment }: AwardPaymentSuccessProps) {
     <section
       role="status"
       aria-labelledby="award-payment-success-title"
-      className="award-payment-receipt"
+      className="flex min-h-[100dvh] w-full items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_85%_0%,#153b2c_0,transparent_42%),#101116] px-5 py-10 text-white sm:px-8"
     >
-      <div className="award-payment-receipt-glow" aria-hidden="true" />
-      <div className="award-payment-receipt-card">
-        <div className="award-payment-receipt-icon">
-          <CheckCircle2 className="h-8 w-8" strokeWidth={2.25} aria-hidden="true" />
-        </div>
-        <p className="award-payment-receipt-kicker">Award payment confirmed</p>
-        <h1 id="award-payment-success-title">Your award fee is paid</h1>
-        <p className="award-payment-receipt-lede">
-          We confirmed {formatPaymentAmount(payment.currency, payment.amountMinor)} on{' '}
-          {formatPaidAt(payment.paidAt)}.
+      <div className="mx-auto flex w-full max-w-3xl flex-col items-center text-center">
+        <Image
+          src="/illustrations/award-payment-confirmed.svg"
+          alt=""
+          aria-hidden="true"
+          width={96}
+          height={96}
+          unoptimized
+          className="h-20 w-20 sm:h-24 sm:w-24"
+        />
+        <p className="mt-5 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300">
+          Payment confirmed
         </p>
-
-        <div className="award-payment-receipt-rule" aria-hidden="true" />
-        <dl className="award-payment-receipt-details">
-          <div>
-            <dt>Status</dt>
-            <dd><span aria-hidden="true">✓</span> Paid</dd>
-          </div>
-          <div>
-            <dt>Amount paid</dt>
-            <dd>{formatPaymentAmount(payment.currency, payment.amountMinor)}</dd>
-          </div>
-          <div>
-            <dt>Confirmed</dt>
-            <dd>{formatPaidAt(payment.paidAt)}</dd>
-          </div>
-        </dl>
-
-        <p className="award-payment-receipt-note">
-          Delivery through GIG Logistics and its delivery charge are handled separately. We’ll
-          guide you through that next step.
+        <h1 id="award-payment-success-title" className="mt-2 text-3xl font-semibold tracking-tight sm:text-5xl">
+          Your award is ready.
+        </h1>
+        <p className="mt-4 max-w-2xl text-base leading-7 text-[#D0C9D0] sm:text-xl sm:leading-8">
+          We received {formatPaymentAmount(payment.currency, payment.amountMinor)} on{' '}
+          {formatPaidAt(payment.paidAt)}. Your Africa Future Leaders recognition is confirmed.
         </p>
-
-        <div className="flex flex-wrap items-center gap-4">
-          <Link href="/dashboard/me/award/delivery" className="award-payment-receipt-link">
-            Arrange physical delivery <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
-          </Link>
-          <Link href="/dashboard" className="award-payment-receipt-link">
-            Return to dashboard <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-[#AAA3AD] sm:text-base sm:leading-7">
+          Delivery through GIG Logistics and its delivery charge are arranged separately.
+        </p>
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <Link
+            href="/dashboard/me/award/payment"
+            className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#35C98A] px-6 text-sm font-bold text-[#10251B] transition hover:bg-[#62DDA8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#17151B]"
+          >
+            View my award
           </Link>
         </div>
       </div>

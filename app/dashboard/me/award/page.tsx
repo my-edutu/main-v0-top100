@@ -2,51 +2,40 @@
 
 import { Suspense } from 'react'
 import { useEffect } from 'react'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
-import AwardsSection, { AwardRouteLoading } from '../../awards-section'
+import { AwardRouteLoading } from '../../awards-section'
 import type { AwardPaymentReturnState } from '../../award-payment-view'
 import { AwardIntroduction } from '../../_components/award-introduction'
-import { useDashboardBadges } from '../../_providers/dashboard-badges'
-import { useDashboardMember } from '../../_providers/dashboard-member'
+import { AwardPaymentFaq } from '../../_components/award-payment-faq'
 
 function AwardOverviewContent() {
   const searchParams = useSearchParams()
-  const pathname = usePathname()
   const router = useRouter()
-  const { member } = useDashboardMember()
-  const { setAwardNeedsAttention } = useDashboardBadges()
   const payment = searchParams.get('payment')
   const returnState: AwardPaymentReturnState =
     payment === 'done' || payment === 'cancelled'
       ? payment
       : 'none'
   const demoReturn = searchParams.get('demo') === '1' && returnState === 'done'
-  const introComplete = searchParams.get('intro') === 'continued'
-  const showIntroduction =
-    returnState === 'none' &&
-    !demoReturn &&
-    !introComplete
 
   useEffect(() => {
-    if (introComplete || (returnState === 'none' && !demoReturn)) return
+    if (returnState === 'none') return
 
-    const nextParams = new URLSearchParams({ intro: 'continued' })
-    if (returnState === 'cancelled') nextParams.set('payment', 'cancelled')
-    router.replace(`${pathname}?${nextParams.toString()}`, { scroll: false })
-  }, [demoReturn, introComplete, pathname, returnState, router])
+    const nextParams = new URLSearchParams({ payment: returnState })
+    if (demoReturn) nextParams.set('demo', '1')
+    router.replace(`/dashboard/me/award/payment?${nextParams.toString()}`, { scroll: false })
+  }, [demoReturn, returnState, router])
 
-  if (showIntroduction) {
-    return <AwardIntroduction />
+  if (returnState !== 'none') {
+    return <AwardRouteLoading label="Opening your award payment status" />
   }
 
   return (
-    <AwardsSection
-      member={member}
-      paymentReturn={returnState}
-      demoReturn={demoReturn}
-      onClaimStateChange={setAwardNeedsAttention}
-    />
+    <div className="space-y-6">
+      <AwardIntroduction />
+      <AwardPaymentFaq />
+    </div>
   )
 }
 

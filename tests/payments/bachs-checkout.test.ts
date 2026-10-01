@@ -44,8 +44,8 @@ describe('buildCheckoutRequest', () => {
         payment_attempt_id: ngnInput.attemptId,
         purpose: 'afl_award_fee_v1',
       },
-      success_url: 'https://top100afl.com/dashboard/me/award?payment=done',
-      cancel_url: 'https://top100afl.com/dashboard/me/award?payment=cancelled',
+      success_url: 'https://top100afl.com/dashboard/me/award/payment?payment=done',
+      cancel_url: 'https://top100afl.com/dashboard/me/award/payment?payment=cancelled',
       expires_in_minutes: 60,
     })
   })

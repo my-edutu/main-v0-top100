@@ -13,5 +13,8 @@ export function awardReturnPath({
   if (demo) params.set('demo', '1')
 
   const query = params.toString()
-  return `/dashboard/me/award${query ? `?${query}` : ''}`
+  const path = paymentDone
+    ? '/dashboard/me/award/payment'
+    : '/dashboard/me/award'
+  return `${path}${query ? `?${query}` : ''}`
 }

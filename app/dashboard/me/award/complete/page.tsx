@@ -3,22 +3,37 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-import { AwardOptions } from '../../../_components/award-options'
 import { AwardRouteLoading } from '../../../awards-section'
+import { AwardPaymentSuccess } from '../../../award-payment-success'
 import { paymentIsConfirmed } from '../../../award-payment-view'
+import { claimAwardPaymentSuccess } from '@/lib/awards/payment-success-visit'
 import type { AwardPaymentView } from '@/lib/awards/payment'
 
 export default function AwardCompletePage() {
   const router = useRouter()
   const [view, setView] = useState<AwardPaymentView | null>(null)
   const [error, setError] = useState('')
+  const [showSuccess, setShowSuccess] = useState<boolean | null>(null)
 
   const loadPayment = useCallback(async () => {
     try {
       const response = await fetch('/api/member/award/payment', { cache: 'no-store' })
       const body = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(body?.message || 'Could not verify your award payment.')
-      setView(body as AwardPaymentView)
+      const paymentView = body as AwardPaymentView
+      setView(paymentView)
+      const isPaymentReturn = new URLSearchParams(window.location.search).get('payment') === 'done'
+      const confirmedPayment = paymentView.confirmedPayment
+      let shouldShowSuccess = false
+      if (isPaymentReturn && confirmedPayment) {
+        try {
+          shouldShowSuccess = claimAwardPaymentSuccess(window.localStorage, confirmedPayment)
+        } catch {
+          // Storage restrictions should not prevent the just-confirmed receipt from appearing.
+          shouldShowSuccess = true
+        }
+      }
+      setShowSuccess(shouldShowSuccess)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not verify your award payment.')
     }
@@ -30,13 +45,14 @@ export default function AwardCompletePage() {
 
   useEffect(() => {
     if (view && !paymentIsConfirmed(view)) router.replace('/dashboard/me/award?intro=continued')
-  }, [router, view])
+    else if (view && showSuccess === false) router.replace('/dashboard/me/award/payment')
+  }, [router, showSuccess, view])
 
   if (error) {
     return (
-      <section role="alert" className="rounded-[22px] border border-rose-200 bg-white p-5 sm:p-8">
-        <h1 className="text-2xl font-semibold tracking-tight text-[#171412]">Your awards could not load</h1>
-        <p className="mt-2 text-sm leading-6 text-[#625B52]">{error}</p>
+      <section role="alert" className="rounded-[22px] border border-rose-900 bg-[#21171D] p-5 text-white sm:p-8">
+        <h1 className="text-2xl font-semibold tracking-tight text-white">Your awards could not load</h1>
+        <p className="mt-2 text-sm leading-6 text-[#D0C9D0]">{error}</p>
         <button
           type="button"
           onClick={() => {
@@ -44,7 +60,7 @@ export default function AwardCompletePage() {
             setView(null)
             void loadPayment()
           }}
-          className="mt-5 min-h-11 rounded-xl bg-[#171412] px-4 text-sm font-semibold text-white"
+          className="mt-5 min-h-11 rounded-xl bg-[#F97316] px-4 text-sm font-semibold text-[#171412]"
         >
           Try again
         </button>
@@ -52,9 +68,9 @@ export default function AwardCompletePage() {
     )
   }
 
-  if (!view || !paymentIsConfirmed(view)) {
+  if (!view || !paymentIsConfirmed(view) || !view.confirmedPayment || showSuccess !== true) {
     return <AwardRouteLoading label="Verifying your award payment" />
   }
 
-  return <AwardOptions />
+  return <AwardPaymentSuccess payment={view.confirmedPayment} />
 }

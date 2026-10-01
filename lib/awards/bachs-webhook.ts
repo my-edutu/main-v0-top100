@@ -213,20 +213,20 @@ async function sendPaymentNotification(
   attempt: AttemptRow,
   paidAt: string,
   notify: (input: AwardPaymentNotificationInput) => Promise<unknown>,
-): Promise<boolean> {
+): Promise<'delivered' | 'not_ready' | 'retry'> {
   const order = await loadOrder(db, attempt.order_id)
   // A replay is allowed to repair a notification only when the database says
   // this order is paid and points at one canonical succeeded attempt. Never
   // build a paid notification from the replay's raw amount or currency: a
   // previously underpaid/exception event is also replayable.
-  if (order?.award_payment_status !== 'paid' || !order.award_paid_attempt_id) return false
+  if (order?.award_payment_status !== 'paid' || !order.award_paid_attempt_id) return 'not_ready'
   const canonicalAttempt = await loadCanonicalAttempt(db, order.award_paid_attempt_id)
-  if (canonicalAttempt?.status !== 'succeeded') return false
+  if (canonicalAttempt?.status !== 'succeeded') return 'not_ready'
   const canonicalAmount = numberMinor(canonicalAttempt.captured_amount_minor)
   const canonicalCurrency = canonicalAttempt.currency === 'NGN' || canonicalAttempt.currency === 'USD'
     ? canonicalAttempt.currency
     : null
-  if (canonicalAmount === null || !canonicalCurrency) return false
+  if (canonicalAmount === null || !canonicalCurrency) return 'not_ready'
   const result = await notify({
     orderId: attempt.order_id,
     profileId: order?.profile_id ?? null,
@@ -237,15 +237,31 @@ async function sendPaymentNotification(
     paidAt: order.award_paid_at ?? paidAt,
   })
   if (result && typeof result === 'object' && 'errors' in result) {
-    const errors = (result as { errors?: unknown }).errors
+    const notificationResult = result as { errors?: unknown; channels?: unknown }
+    const errors = notificationResult.errors
     if (Array.isArray(errors) && errors.length > 0) {
       console.error('[bachs-webhook] award notification reported channel failures', {
         orderId: attempt.order_id,
         errors,
       })
     }
+    if (order.email?.trim()) {
+      const emailSent = Array.isArray(notificationResult.channels) && notificationResult.channels.includes('email')
+      const emailFailed = Array.isArray(errors) && errors.some((error) => String(error).startsWith('email:'))
+      if (!emailSent || emailFailed) return 'retry'
+    }
   }
-  return true
+  return 'delivered'
+}
+
+function notificationRetryResponse(eventId: string, attemptId: string | null): BachsWebhookResult {
+  return {
+    status: 'retryable_error',
+    httpStatus: 503,
+    eventId,
+    attemptId,
+    error: 'notification delivery failed',
+  }
 }
 
 /**
@@ -399,9 +415,11 @@ export async function handleBachsEvent(
     if (attempt && successEvent && amountMinor !== null) {
       try {
         const notify = dependencies.notifyAwardPayment ?? ((input) => notifyAwardPaymentConfirmed(input, { db: dependencies.db }))
-        await sendPaymentNotification(dependencies.db, attempt, receivedAt, notify)
+        const delivery = await sendPaymentNotification(dependencies.db, attempt, receivedAt, notify)
+        if (delivery === 'retry') return notificationRetryResponse(event.id, attempt.id)
       } catch (error) {
         console.error('[bachs-webhook] replay notification failed', { eventId: event.id, error: safeErrorMessage(error) })
+        return notificationRetryResponse(event.id, attempt.id)
       }
     }
     return { status: 'duplicate', httpStatus: 200, eventId: event.id, attemptId: attempt?.id ?? null, outcome }
@@ -413,11 +431,13 @@ export async function handleBachsEvent(
     if (attempt && successEvent && amountMinor !== null && currencyRaw) {
       try {
         const notify = dependencies.notifyAwardPayment ?? ((input) => notifyAwardPaymentConfirmed(input, { db: dependencies.db }))
-        await sendPaymentNotification(dependencies.db, attempt, receivedAt, notify)
+        const delivery = await sendPaymentNotification(dependencies.db, attempt, receivedAt, notify)
+        if (delivery === 'retry') return notificationRetryResponse(event.id, attempt.id)
       } catch (error) {
         // State is already committed. Log the operational failure so it can be
         // replayed/reconciled without exposing provider payloads to the caller.
         console.error('[bachs-webhook] award notification failed', { eventId: event.id, error: safeErrorMessage(error) })
+        return notificationRetryResponse(event.id, attempt.id)
       }
     }
     return {

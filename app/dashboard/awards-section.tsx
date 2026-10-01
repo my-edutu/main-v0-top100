@@ -18,6 +18,7 @@ import {
 } from './award-payment-view'
 import { AwardPaymentCard } from './award-payment-card'
 import { AwardPaymentConfirmation } from './award-payment-confirmation'
+import { AwardOptions } from './_components/award-options'
 import type { AwardJourneyStep } from './_lib/award-journey'
 
 const PAYMENT_CONFIRMATION_POLL_MS = 4000
@@ -168,10 +169,10 @@ export default function AwardsSection({
   }, [readPayment, shouldPoll])
 
   useEffect(() => {
-    if (!step && screen === 'paid' && view?.confirmedPayment) {
-      router.replace('/dashboard/me/award/complete')
+    if (!step && resolvedReturnState === 'done' && screen === 'paid' && view?.confirmedPayment) {
+      router.replace('/dashboard/me/award/complete?payment=done')
     }
-  }, [router, screen, step, view?.confirmedPayment])
+  }, [resolvedReturnState, router, screen, step, view?.confirmedPayment])
 
   if (step) {
     return <AwardRouteLoading label="Opening your award payment" />
@@ -185,12 +186,12 @@ export default function AwardsSection({
     return (
       <section
         role="alert"
-        className="rounded-[22px] border border-rose-200 bg-white p-5 sm:p-8"
+        className="rounded-[22px] border border-rose-900 bg-[#21171D] p-5 text-white sm:p-8"
       >
-        <h1 className="text-2xl font-semibold tracking-tight text-[#171412]">
+        <h1 className="text-2xl font-semibold tracking-tight text-white">
           Your award payment did not load
         </h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-[#625B52]">
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-[#D0C9D0]">
           {loadError}
         </p>
         <Button
@@ -200,7 +201,7 @@ export default function AwardsSection({
             setConfirmationTimedOut(false)
             void loadPayment()
           }}
-          className="mt-5 min-h-11 rounded-xl bg-[#171412] text-white hover:bg-[#312B27]"
+          className="mt-5 min-h-11 rounded-xl bg-[#F97316] text-[#171412] hover:bg-[#FB923C]"
         >
           <RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" />
           Try again
@@ -229,7 +230,7 @@ export default function AwardsSection({
   }
 
   if (screen === 'paid' && view?.confirmedPayment) {
-    return <AwardRouteLoading label="Preparing your award options" />
+    return <AwardOptions />
   }
 
   if (screen === 'paid') {
@@ -255,12 +256,12 @@ export function AwardRouteLoading({ label }: { label: string }) {
     <div
       role="status"
       aria-label={label}
-      className="space-y-4 rounded-[22px] border border-[#E7DDCF] bg-white p-5 sm:p-8"
+      className="space-y-4 rounded-[22px] border border-[#39323B] bg-[#17151B] p-5 text-white sm:p-8"
     >
-      <div className="h-3 w-36 animate-pulse rounded-full bg-[#FFE7D5] motion-reduce:animate-none" />
-      <div className="h-8 w-3/4 animate-pulse rounded-xl bg-[#E8EBF0] motion-reduce:animate-none" />
-      <div className="h-4 w-full animate-pulse rounded-full bg-[#E8EBF0] motion-reduce:animate-none" />
-      <div className="h-32 animate-pulse rounded-[16px] bg-[#FBF7EF] motion-reduce:animate-none" />
+      <div className="h-3 w-36 animate-pulse rounded-full bg-[#3B2824] motion-reduce:animate-none" />
+      <div className="h-8 w-3/4 animate-pulse rounded-xl bg-[#302A33] motion-reduce:animate-none" />
+      <div className="h-4 w-full animate-pulse rounded-full bg-[#302A33] motion-reduce:animate-none" />
+      <div className="h-32 animate-pulse rounded-[16px] bg-[#211C24] motion-reduce:animate-none" />
       <span className="sr-only">{label}</span>
     </div>
   )

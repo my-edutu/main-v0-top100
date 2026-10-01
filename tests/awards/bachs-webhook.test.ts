@@ -265,6 +265,29 @@ describe('handleBachsEvent', () => {
     expect(notify).toHaveBeenCalledTimes(1)
   })
 
+  it('asks Bachs to retry when Resend cannot deliver the paid receipt', async () => {
+    const state: DbState = {
+      attempt: attemptFor('NGN'),
+      order: {
+        id: 'order-1',
+        email: 'ada@example.com',
+        award_payment_status: 'paid',
+        award_paid_attempt_id: 'attempt-1',
+      },
+      canonicalAttempt: { ...attemptFor('NGN'), status: 'succeeded', captured_amount_minor: 2_500_000 },
+      updates: [],
+      rpcCalls: [],
+    }
+    const event = eventFor('NGN', '25000.00')
+    const rawBody = JSON.stringify(event)
+    const notify = vi.fn().mockResolvedValue({ channels: [], errors: ['email: Resend returned 503'] })
+
+    const result = await handleBachsEvent(rawBody, signedHeaders(rawBody), depsFor(state, notify))
+
+    expect(result.status).toBe('retryable_error')
+    expect(result.httpStatus).toBe(503)
+  })
+
   it('returns retryable failure when the event cannot be durably recorded', async () => {
     const state: DbState = {
       attempt: attemptFor('NGN'),

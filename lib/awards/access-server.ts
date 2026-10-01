@@ -12,15 +12,16 @@ export async function hasConfirmedAwardPayment(userId: string): Promise<boolean>
 }
 
 export async function requireConfirmedAwardAccess(pathname: string): Promise<void> {
+  const requestHeaders = await headers()
+  const requestCookies = await cookies()
+  const localPreview = hasValidDemoSession({
+    headers: requestHeaders,
+    cookies: { get: (name: string) => requestCookies.get(name) },
+  }) && isLoopbackDevelopment({ headers: requestHeaders })
+  if (localPreview) return
+
   const user = await getCurrentUser()
   if (!user?.id) {
-    const requestHeaders = await headers()
-    const requestCookies = await cookies()
-    const localPreview = hasValidDemoSession({
-      headers: requestHeaders,
-      cookies: { get: (name: string) => requestCookies.get(name) },
-    }) && isLoopbackDevelopment({ headers: requestHeaders })
-    if (localPreview) return
     redirect(`/login?next=${encodeURIComponent(pathname)}`)
   }
 

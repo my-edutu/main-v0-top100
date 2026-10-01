@@ -1,96 +1,69 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import { ArrowRight, Loader2, LockKeyhole } from 'lucide-react'
+import { useState } from 'react'
+import { ArrowRight, Loader2 } from 'lucide-react'
+import Image from 'next/image'
 
-import { Button } from '@/components/ui/button'
-import {
-  startAwardPaymentCheckout,
-  type AwardPaymentCurrency,
-  type AwardPaymentView,
-} from '@/lib/awards/payment'
+import { startAwardPaymentCheckout, type AwardPaymentCurrency, type AwardPaymentView } from '@/lib/awards/payment'
 
 type AwardPaymentCardProps = {
   view: AwardPaymentView
   cancelled?: boolean
-  onCheckout?: (
-    currency: AwardPaymentCurrency,
-  ) => Promise<{ checkoutUrl: string; attemptId: string }>
 }
 
 export function AwardPaymentCard({
   view,
   cancelled = false,
-  onCheckout = startAwardPaymentCheckout,
 }: AwardPaymentCardProps) {
-  const defaultCurrency = useMemo(
-    () =>
-      view.priceOptions.find((option) => option.currency === 'NGN')?.currency ??
-      view.priceOptions[0]?.currency ??
-      'NGN',
-    [view.priceOptions],
-  )
-  const [currency, setCurrency] = useState<AwardPaymentCurrency>(defaultCurrency)
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState('')
+  const [currency, setCurrency] = useState<AwardPaymentCurrency>('NGN')
+  const [startingCheckout, setStartingCheckout] = useState(false)
+  const [checkoutError, setCheckoutError] = useState('')
 
-  const selectedCurrency = view.priceOptions.some(
-    (option) => option.currency === currency,
-  )
-    ? currency
-    : defaultCurrency
-
-  const selectedOption =
-    view.priceOptions.find((option) => option.currency === selectedCurrency) ??
-    view.priceOptions[0]
-
-  async function handleCheckout() {
-    if (!selectedOption || submitting) return
-
-    setSubmitting(true)
-    setError('')
-
+  async function startCheckout() {
+    if (startingCheckout) return
+    setStartingCheckout(true)
+    setCheckoutError('')
     try {
-      const result = await onCheckout(selectedOption.currency)
-      if (!result.checkoutUrl) throw new Error('The payment checkout is unavailable.')
-
-      // The URL is validated by the server-side checkout adapter. A full-page
-      // navigation keeps the hosted payment session outside the dashboard.
-      window.location.assign(result.checkoutUrl)
-    } catch (cause) {
-      setError(
-        cause instanceof Error
-          ? cause.message
-          : 'Could not start your payment. Please try again.',
-      )
-      setSubmitting(false)
+      const checkout = await startAwardPaymentCheckout(currency)
+      window.location.assign(checkout.checkoutUrl)
+    } catch (error) {
+      setCheckoutError(error instanceof Error ? error.message : 'Could not start payment. Please try again.')
+      setStartingCheckout(false)
     }
   }
 
   return (
     <section
       aria-labelledby="award-payment-title"
-      className="overflow-hidden rounded-[22px] border border-[#E7DDCF] bg-white"
+      className="award-payment-card overflow-hidden rounded-[22px] border border-[#39323B] bg-[#17151B] text-white"
     >
-      <div className="border-b border-[#E7DDCF] bg-[#FBF7EF] px-5 py-6 sm:px-7 sm:py-8">
-        <div className="flex items-start gap-4">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[15px] bg-[#FFE7D5] text-[#6C2600]">
-            <LockKeyhole className="h-6 w-6" aria-hidden="true" />
-          </span>
+      <div className="border-b border-[#39323B] bg-[#211C24] px-5 py-6 sm:px-7 sm:py-8">
+        <div className="flex flex-col">
+          <div className="mb-5 flex justify-center">
+            <Image
+              src="/illustrations/physical-award-emblem.svg"
+              width={88}
+              height={88}
+              alt=""
+              unoptimized
+              className="h-[5.5rem] w-[5.5rem]"
+            />
+          </div>
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#6C2600]">
-              Redeem your physical award
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#FFB77E]">
+              Receive your physical award
             </p>
-            <h1
+            <h2
               id="award-payment-title"
-              className="mt-2 text-2xl font-semibold tracking-tight text-[#171412] sm:text-3xl"
+              className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl"
             >
-              Complete your award payment
-            </h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#625B52] sm:text-base">
-              Secure your physical award and take the next step in your Africa
-              Future Leaders recognition. Delivery details and charges are
-              handled separately.
+              Complete your physical award fee
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#D0C9D0] sm:text-base">
+              Your Africa Future Leaders recognition has already been awarded.
+              This fee covers the physical award only; it does not affect your
+              selection or recognition. Delivery is arranged and quoted
+              separately based on your destination.
             </p>
           </div>
         </div>
@@ -100,88 +73,48 @@ export function AwardPaymentCard({
         {cancelled ? (
           <div
             role="status"
-            className="rounded-[15px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950"
+            className="rounded-[15px] border border-amber-800 bg-[#342619] px-4 py-3 text-sm leading-6 text-amber-100"
           >
-            Your payment was cancelled. You can choose a currency and try again
+            Your payment was cancelled. You can return to Bachs and try again
             whenever you are ready.
           </div>
         ) : null}
 
-        <fieldset>
-          <legend className="text-sm font-semibold text-[#171412]">
-            Choose a payment currency
-          </legend>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            {view.priceOptions.map((option) => {
-              const selected = option.currency === selectedCurrency
-              return (
-                <label
-                  key={option.currency}
-                  className={`relative flex min-h-16 cursor-pointer items-center gap-3 rounded-[15px] border px-4 py-3 transition-colors focus-within:ring-2 focus-within:ring-[#F36C21] focus-within:ring-offset-2 ${
-                    selected
-                      ? 'border-[#F36C21] bg-[#FFF4EA]'
-                      : 'border-[#D4C7B6] bg-white hover:border-[#F36C21] hover:bg-[#FFFAF5]'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="award-payment-currency"
-                    value={option.currency}
-                    checked={option.currency === selectedCurrency}
-                    onChange={() => setCurrency(option.currency)}
-                    disabled={submitting}
-                    className="h-4 w-4 accent-[#F36C21]"
-                  />
-                  <span className="min-w-0">
-                    <span className="block text-sm font-semibold text-[#171412]">
-                      {option.currency === 'NGN' ? 'Naira (NGN)' : option.currency}
-                    </span>
-                    <span className="mt-0.5 block text-sm text-[#625B52]">
-                      {option.display}
-                    </span>
-                  </span>
-                </label>
-              )
-            })}
-          </div>
+        <fieldset className="grid gap-3 sm:grid-cols-2">
+          <legend className="mb-3 text-sm font-semibold text-[#F8F4F8]">Choose your payment currency</legend>
+          {view.priceOptions.map((option) => (
+            <label key={option.currency} className={`flex cursor-pointer items-center gap-3 rounded-[15px] border px-4 py-3 transition-colors ${currency === option.currency ? 'border-[#F97316] bg-[#38251F]' : 'border-[#4B434C] bg-[#211C24]'}`}>
+              <input
+                type="radio"
+                name="award-payment-currency"
+                value={option.currency}
+                checked={currency === option.currency}
+                onChange={() => setCurrency(option.currency)}
+                className="h-4 w-4 accent-[#F97316]"
+              />
+              <span>
+                <span className="block text-sm font-semibold text-[#F8F4F8]">{option.currency === 'NGN' ? 'Naira (NGN)' : 'USD'}</span>
+                <span className="mt-0.5 block text-sm text-[#D0C9D0]">{option.display}</span>
+              </span>
+            </label>
+          ))}
         </fieldset>
 
-        {error ? (
-          <p
-            role="alert"
-            className="rounded-[15px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm leading-6 text-rose-900"
-          >
-            {error}
+        <div className="flex flex-col gap-3 border-t border-[#39323B] pt-5 sm:flex-row sm:items-center sm:justify-between">
+          <p className="max-w-md text-xs leading-5 text-[#C8C0CA]">
+            Bachs lets you choose your currency and review applicable charges
+            before you pay. Use the same email as your awardee account.
           </p>
-        ) : null}
-
-        <div className="flex flex-col gap-3 border-t border-[#E7DDCF] pt-5 sm:flex-row sm:items-center sm:justify-between">
-          <p className="max-w-md text-xs leading-5 text-[#625B52]">
-            Choose your currency to continue securely. Your payment details
-            stay protected on the hosted checkout.
-          </p>
-          <Button
+          <button
             type="button"
-            onClick={() => void handleCheckout()}
-            disabled={!selectedOption || submitting}
-            className="min-h-12 shrink-0 rounded-xl bg-[linear-gradient(110deg,#f97316,#fb923c,#f59e0b)] px-5 font-semibold text-[#171412] shadow-sm transition hover:brightness-105 disabled:bg-[#D4C7B6] disabled:text-[#625B52]"
+            onClick={() => void startCheckout()}
+            disabled={startingCheckout}
+            className="inline-flex min-h-12 shrink-0 items-center justify-center rounded-xl bg-[linear-gradient(110deg,#f97316,#fb923c,#f59e0b)] px-5 font-semibold text-[#171412] shadow-sm transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F36C21] focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-70"
           >
-            {submitting ? (
-              <>
-                <Loader2
-                  className="mr-2 h-4 w-4 animate-spin motion-reduce:animate-none"
-                  aria-hidden="true"
-                />
-                Opening secure checkout…
-              </>
-            ) : (
-              <>
-                Pay {selectedOption?.display ?? 'award fee'}
-                <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
-              </>
-            )}
-          </Button>
+            {startingCheckout ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />Opening secure checkout</> : <>Pay with Bachs <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" /></>}
+          </button>
         </div>
+        {checkoutError ? <p role="alert" className="text-sm leading-6 text-rose-300">{checkoutError}</p> : null}
       </div>
     </section>
   )

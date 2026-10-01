@@ -216,7 +216,7 @@ describe('interactive local dashboard demo API', () => {
     expect(awaitingClaim.data.needsClaim).toBe(true)
 
     const checkout = await call(store, 'POST', 'award/checkout')
-    expect(checkout.data.authorizationUrl).toBe('/dashboard/me/award?payment=done&demo=1')
+    expect(checkout.data.authorizationUrl).toBe('/dashboard/me/award/payment?payment=done&demo=1')
 
     const completed = await call(store, 'GET', 'award')
     expect(completed.data.order.status).toBe('paid')
@@ -248,7 +248,7 @@ describe('interactive local dashboard demo API', () => {
       currency: 'USD',
     })
     expect(checkout.response.status).toBe(200)
-    expect(checkout.data.checkoutUrl).toBe('/dashboard/me/award?payment=done&demo=1')
+    expect(checkout.data.checkoutUrl).toBe('/dashboard/me/award/payment?payment=done&demo=1')
     expect(checkout.data.attemptId).toEqual(expect.stringContaining('demo-bachs-attempt-'))
 
     const pending = await call(store, 'GET', 'award/payment')

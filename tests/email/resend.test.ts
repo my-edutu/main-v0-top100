@@ -10,6 +10,12 @@ it('uses the verified Resend sender and keeps the key in request headers', async
   expect(JSON.parse(fetcher.mock.calls[0][1].body).from).toBe('Top100 <test@example.com>')
   expect(fetcher.mock.calls[0][1].body).not.toContain('test-key')
 })
+it('sends a deterministic idempotency key to Resend when supplied', async () => {
+  vi.stubEnv('RESEND_API_KEY', 'test-key'); vi.stubEnv('RESEND_FROM_EMAIL', 'Top100 <test@example.com>')
+  const fetcher = vi.fn().mockResolvedValue(new Response('{}', { status: 200 })); vi.stubGlobal('fetch', fetcher)
+  expect(await sendTransactionalEmail({ ...input, idempotencyKey: 'award-payment/123' })).toEqual({ ok: true })
+  expect(fetcher.mock.calls[0][1].headers['Idempotency-Key']).toBe('award-payment/123')
+})
 it('reports missing sender configuration without sending', async () => {
   vi.stubEnv('RESEND_API_KEY', 'test-key'); vi.stubEnv('RESEND_FROM_EMAIL', '')
   const fetcher = vi.fn(); vi.stubGlobal('fetch', fetcher)
