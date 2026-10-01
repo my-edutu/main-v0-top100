@@ -45,7 +45,7 @@ export function evaluateAccessCode(record: AccessCode, email?: string, now = Dat
 export function buildAccessCodeInsert(opts: {
   mode: AccessCodeMode
   email?: string | null
-  durationHours?: 1 | 24
+  durationHours?: 1 | 24 | 168
   now?: Date
 }) {
   const now = opts.now ?? new Date()
@@ -88,10 +88,10 @@ export function parseAccessCodeRequest(body: Record<string, unknown>) {
   }
 
   const durationHours = Number(body.durationHours)
-  if (durationHours !== 1 && durationHours !== 24) {
-    throw new Error('Choose a reusable-code duration of 1 or 24 hours.')
+  if (durationHours !== 1 && durationHours !== 24 && durationHours !== 168) {
+    throw new Error('Choose a reusable-code duration of 1 hour, 24 hours, or 1 week.')
   }
-  return { mode, label, email: null, durationHours: durationHours as 1 | 24 }
+  return { mode, label, email: null, durationHours: durationHours as 1 | 24 | 168 }
 }
 
 /** Normalize a code for storage/lookup: trimmed + uppercased. */
@@ -195,7 +195,7 @@ export async function generateCode(opts: {
   label?: string
   email?: string | null
   mode?: AccessCodeMode
-  durationHours?: 1 | 24
+  durationHours?: 1 | 24 | 168
   createdBy?: string | null
 }): Promise<AccessCode> {
   const supabase = createAdminClient()
