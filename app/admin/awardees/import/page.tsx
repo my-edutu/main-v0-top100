@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, CheckCircle2, FileSpreadsheet, Loader2, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -40,6 +40,7 @@ export default function AwardeesImportPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [approved, setApproved] = useState(false)
+  const uploadAttemptRef = useRef(0)
 
   useEffect(() => { void loadHistory() }, [])
 
@@ -68,7 +69,11 @@ export default function AwardeesImportPage() {
   }
 
   async function stageFile(nextFile: File): Promise<StagedUpload> {
-    if (!nextFile.size || nextFile.size > MAX_FILE_BYTES) throw new Error('Choose an Excel or CSV file up to 5 MiB.')
+    if (!nextFile.size) throw new Error('The selected spreadsheet is empty. Choose another file.')
+    if (nextFile.size > MAX_FILE_BYTES) {
+      const sizeMiB = (nextFile.size / (1024 * 1024)).toFixed(1)
+      throw new Error(`This file is ${sizeMiB} MiB. Choose an Excel or CSV file up to 5 MiB.`)
+    }
     if (!/\.(xlsx|xls|csv)$/i.test(nextFile.name)) throw new Error('Choose an .xlsx, .xls, or .csv file.')
     const response = await fetch('/api/awardees/import', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -88,7 +93,7 @@ export default function AwardeesImportPage() {
   }
 
   async function selectFile(nextFile: File | null) {
-    if (stagedUpload) await discardUpload(stagedUpload).catch(() => undefined)
+    const attempt = ++uploadAttemptRef.current
     setFile(nextFile)
     setStagedUpload(null)
     setSheets([])
@@ -100,14 +105,25 @@ export default function AwardeesImportPage() {
     if (!nextFile) return
     setBusy(true)
     try {
+      if (stagedUpload) await discardUpload(stagedUpload).catch(() => undefined)
+      if (attempt !== uploadAttemptRef.current) return
       const upload = await stageFile(nextFile)
+      if (attempt !== uploadAttemptRef.current) {
+        await discardUpload(upload).catch(() => undefined)
+        return
+      }
       setStagedUpload(upload)
       const body = await send('inspect', upload, null)
+      if (attempt !== uploadAttemptRef.current) return
       setSheets(body.sheets)
       setMapping(body.mapping)
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not read the spreadsheet.')
-    } finally { setBusy(false) }
+      if (attempt === uploadAttemptRef.current) {
+        setError(cause instanceof Error ? cause.message : 'Could not read the spreadsheet.')
+      }
+    } finally {
+      if (attempt === uploadAttemptRef.current) setBusy(false)
+    }
   }
 
   function changeMapping(change: (current: WorkbookMapping) => WorkbookMapping) {
@@ -171,13 +187,17 @@ export default function AwardeesImportPage() {
 
   return <div className="mx-auto max-w-6xl space-y-7 px-4 py-8 sm:px-6">
     <div><Link href="/admin/awardees" className="inline-flex items-center gap-2 text-sm text-stone-600 hover:text-orange-800"><ArrowLeft className="h-4 w-4" /> Awardees</Link><h1 className="mt-3 text-3xl font-semibold tracking-tight">Import winner profiles</h1><p className="mt-2 max-w-3xl text-sm leading-6 text-stone-600">Map columns across tabs, check matches, and approve only the records you intend to add. Claimed profiles and populated fields are protected from spreadsheet overwrites.</p></div>
-    {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</p>}
     {success && <p role="status" className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800"><CheckCircle2 className="h-5 w-5" />{success}</p>}
 
     <section className="rounded-2xl border bg-white p-5 shadow-sm sm:p-6">
       <div className="flex items-center gap-3"><FileSpreadsheet className="h-6 w-6 text-orange-700" /><div><h2 className="text-lg font-semibold">1. Choose a spreadsheet</h2><p className="text-sm text-stone-600">Excel and CSV files up to 5 MiB and 10,000 rows.</p></div></div>
-      <Input aria-label="Choose spreadsheet" className="mt-5 max-w-xl" type="file" accept=".xlsx,.xls,.csv" disabled={busy} onChange={(event) => void selectFile(event.target.files?.[0] ?? null)} />
+      <Input aria-label="Choose spreadsheet" className="mt-5 max-w-xl" type="file" accept=".xlsx,.xls,.csv" disabled={busy} onClick={() => setError('')} onChange={(event) => {
+        const selectedFile = event.target.files?.[0] ?? null
+        event.target.value = ''
+        void selectFile(selectedFile)
+      }} />
       {file && <p className="mt-3 text-sm font-medium text-stone-700">{file.name}{!mapping && error && !busy ? <Button type="button" variant="link" className="ml-2 h-auto p-0 text-orange-700" onClick={() => void selectFile(file)}>Retry upload</Button> : null}</p>}
+      {error && <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</p>}
     </section>
 
     {mapping && <section className="rounded-2xl border bg-white p-5 shadow-sm sm:p-6">
