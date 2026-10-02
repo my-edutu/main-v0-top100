@@ -58,4 +58,17 @@ describe('multi-tab winner imports', () => {
     expect(result.records.every((record) => !record.bio)).toBe(true)
     expect(result.issues.some((issue) => issue.message.includes('Map Email or Winner ID'))).toBe(true)
   })
+
+  it('flags a same-name different-email record instead of creating a duplicate profile', () => {
+    const { records } = extractAwardeeRecords(workbook(), suggestWorkbookMapping(inspectAwardeeWorkbook(workbook())))
+    const existing: ExistingAwardee = {
+      id: 'id-1', name: 'Ada Okoro', slug: 'ada-okoro', email: 'ada.old@example.com', profile_id: null,
+      metadata: {}, country: 'Nigeria', course: null, bio: null, year: null, image_url: null,
+      tagline: null, headline: null, cgpa: null, social_links: {},
+    }
+    const review = planReviewedImport([records[0]], [existing])
+    expect(review.actions).toEqual([])
+    expect(review.summary.skipped).toBe(1)
+    expect(review.issues[0].message).toContain('same name')
+  })
 })

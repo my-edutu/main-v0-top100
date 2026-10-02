@@ -47,8 +47,11 @@ export function planReviewedImport(records: ImportRecord[], existing: ExistingAw
   const actions: ImportAction[] = []
   const emails = new Map<string, ExistingAwardee[]>()
   const externalIds = new Map<string, ExistingAwardee[]>()
+  const names = new Map<string, ExistingAwardee[]>()
   const usedSlugs = new Set(existing.map((row) => row.slug))
   for (const row of existing) {
+    const name = row.name.trim().toLowerCase()
+    names.set(name, [...(names.get(name) ?? []), row])
     const email = row.email?.trim().toLowerCase()
     if (email) emails.set(email, [...(emails.get(email) ?? []), row])
     const externalId = String(row.metadata?.import_external_id ?? '').trim()
@@ -76,6 +79,11 @@ export function planReviewedImport(records: ImportRecord[], existing: ExistingAw
       skipped++
       continue
     }
+    if (!match && (names.get(record.name.trim().toLowerCase()) ?? []).length > 0) {
+      issues.push({ source: record.sources[0], message: 'An existing winner has the same name but a different email; review manually before creating another profile.' })
+      skipped++
+      continue
+    }
     if (match) {
       const patch: Record<string, unknown> = {}
       for (const field of contentFields) {
@@ -89,6 +97,17 @@ export function planReviewedImport(records: ImportRecord[], existing: ExistingAw
       if (Object.keys(social).length > Object.keys(match.social_links ?? {}).length) patch.social_links = social
       if (record.externalId && !match.metadata?.import_external_id) {
         patch.metadata = { ...(match.metadata ?? {}), import_external_id: record.externalId }
+      }
+      if (record.profile_import) {
+        const existingProfileImport = (match.metadata?.profile_import ?? {}) as Record<string, unknown>
+        const additions = Object.fromEntries(Object.entries(record.profile_import).filter(([key]) => !existingProfileImport[key]))
+        if (Object.keys(additions).length) {
+          patch.metadata = {
+            ...match.metadata,
+            ...(patch.metadata ?? {}),
+            profile_import: { ...existingProfileImport, ...additions },
+          }
+        }
       }
       if (!Object.keys(patch).length) {
         unchanged++
@@ -107,7 +126,10 @@ export function planReviewedImport(records: ImportRecord[], existing: ExistingAw
       slug,
       is_public: false,
       social_links: record.social_links ?? {},
-      metadata: record.externalId ? { import_external_id: record.externalId } : {},
+      metadata: {
+        ...(record.externalId ? { import_external_id: record.externalId } : {}),
+        ...(record.profile_import ? { profile_import: record.profile_import } : {}),
+      },
     }
     for (const field of contentFields) {
       if (record[field] !== undefined && record[field] !== null && record[field] !== '') payload[field] = record[field]

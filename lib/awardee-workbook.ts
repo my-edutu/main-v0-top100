@@ -29,6 +29,7 @@ export type ImportRecord = {
   tagline?: string
   headline?: string
   cgpa?: string
+  profile_import?: Record<string, string>
   social_links?: Record<string, string>
   sources: string[]
 }
@@ -36,21 +37,29 @@ export type ImportIssue = { source: string; message: string }
 
 const aliases: Record<ImportField, string[]> = {
   externalId: ['winner id', 'awardee id', 'application id', 'external id', 'reference id'],
-  name: ['full name', 'name', 'awardee name', 'winner name'],
+  name: ['full name', 'name', 'awardee name', 'winner name', 'what is your full name'],
   email: ['email address', 'email', 'e-mail', 'mail'],
-  country: ['country', 'nationality'],
-  course: ['field of study', 'department', 'course', 'programme', 'program'],
-  bio: ['about', 'biography', 'bio', 'description', 'leadership story'],
+  country: ['country', 'nationality', 'what country do you reside in'],
+  course: ['field of study', 'department', 'course', 'programme', 'program', 'what department did you graduate from'],
+  bio: ['about', 'biography', 'bio', 'description'],
   year: ['award year', 'cohort year', 'year', 'batch'],
-  imageUrl: ['image url', 'photo url', 'avatar url', 'portrait', 'photo', 'image'],
-  tagline: ['tagline', 'position', 'title'],
+  imageUrl: ['image url', 'photo url', 'avatar url', 'portrait', 'photo', 'image', 'upload a clear professional photo of yourself preferably a studio or high quality portrait'],
+  tagline: ['tagline', 'position', 'title', 'what university higher institution did you attend'],
   headline: ['headline', 'summary', 'intro'],
   linkedin: ['linkedin url', 'linkedin', 'linked in'],
   twitter: ['twitter url', 'twitter', 'x profile'],
   instagram: ['instagram url', 'instagram'],
   facebook: ['facebook url', 'facebook'],
   website: ['website url', 'website', 'portfolio'],
-  cgpa: ['cgpa', 'gpa'],
+  cgpa: ['cgpa', 'gpa', 'what was your cgpa or academic achievement'],
+  educationLevel: ['education level', 'level of education', 'what level of education have you completed'],
+  graduationYear: ['graduation year', 'year graduated', 'what year did you graduate'],
+  firstClass: ['first class', 'bgs', 'first class graduate or best graduating student', 'are you a first class graduate or best graduating student'],
+  proofUrl: ['first class proof', 'proof upload', 'proof of first class degree or bgs', 'kindly upload proof of your first class degree or bgs status'],
+  leadershipJourney: ['leadership journey', 'leadership story', 'tell us about your leadership journey as a potential africa future leader'],
+  notableImpact: ['notable impact', 'what notable impact have you created share the problem you solved people reached or change created'],
+  impactArea: ['impact area', 'area of impact', 'what area best describes your impact'],
+  peopleBenefited: ['people benefited', 'beneficiaries', 'how many people have benefited from your work'],
 }
 
 function normalized(value: string): string {
@@ -222,7 +231,7 @@ export function extractAwardeeRecords(book: XLSX.WorkBook, mapping: WorkbookMapp
 
 function applyFields(record: ImportRecord, fields: Partial<Record<ImportField, string>>, issues: ImportIssue[], source: string) {
   const direct: Array<[ImportField, keyof ImportRecord]> = [
-    ['country', 'country'], ['course', 'course'], ['bio', 'bio'], ['tagline', 'tagline'],
+    ['country', 'country'], ['course', 'course'], ['tagline', 'tagline'],
     ['headline', 'headline'], ['cgpa', 'cgpa'], ['imageUrl', 'image_url'],
   ]
   for (const [from, to] of direct) {
@@ -234,6 +243,33 @@ function applyFields(record: ImportRecord, fields: Partial<Record<ImportField, s
       continue
     }
     ;(record as unknown as Record<string, unknown>)[to] = value
+  }
+  const profileImport: Record<string, string> = {}
+  for (const field of ['educationLevel', 'graduationYear', 'firstClass', 'proofUrl'] as const) {
+    const value = cell(fields[field])
+    if (value) profileImport[field] = value
+  }
+  if (Object.keys(profileImport).length) {
+    record.profile_import = { ...(record.profile_import ?? {}), ...profileImport }
+  }
+
+  const bioParts = [
+    ['', fields.bio],
+    ['Education level', fields.educationLevel],
+    ['Graduation year', fields.graduationYear],
+    ['CGPA / academic achievement', fields.cgpa],
+    ['First-Class / BGS status', fields.firstClass],
+    ['Leadership journey', fields.leadershipJourney],
+    ['Notable impact', fields.notableImpact],
+    ['Area of impact', fields.impactArea],
+    ['People benefited', fields.peopleBenefited],
+  ].flatMap(([label, rawValue]) => {
+    const value = cell(rawValue)
+    return value ? [label ? `${label}: ${value}` : value] : []
+  })
+  if (bioParts.length) {
+    const additions = bioParts.filter((part) => !record.bio?.includes(part))
+    record.bio = [record.bio, ...additions].filter(Boolean).join('\n\n')
   }
   const year = Number(fields.year)
   if (fields.year && (!Number.isInteger(year) || year < 2000 || year > 2100)) {

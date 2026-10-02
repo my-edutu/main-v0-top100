@@ -2,7 +2,9 @@
 export const IMPORT_FIELDS = [
   'externalId', 'name', 'email', 'country', 'course', 'bio', 'year',
   'imageUrl', 'tagline', 'headline', 'linkedin', 'twitter', 'instagram',
-  'facebook', 'website', 'cgpa',
+  'facebook', 'website', 'cgpa', 'educationLevel', 'graduationYear',
+  'firstClass', 'proofUrl', 'leadershipJourney', 'notableImpact',
+  'impactArea', 'peopleBenefited',
 ] as const
 
 export type ImportField = (typeof IMPORT_FIELDS)[number]

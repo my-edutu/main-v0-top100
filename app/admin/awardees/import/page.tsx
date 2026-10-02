@@ -19,6 +19,10 @@ const labels: Record<ImportField, string> = {
   imageUrl: 'Photo URL', tagline: 'Tagline', headline: 'Headline',
   linkedin: 'LinkedIn', twitter: 'X / Twitter', instagram: 'Instagram',
   facebook: 'Facebook', website: 'Website', cgpa: 'CGPA',
+  educationLevel: 'Education level', graduationYear: 'Graduation year',
+  firstClass: 'First-Class / BGS status', proofUrl: 'First-Class / BGS proof link',
+  leadershipJourney: 'Leadership journey', notableImpact: 'Notable impact',
+  impactArea: 'Area of impact', peopleBenefited: 'People benefited',
 }
 
 export default function AwardeesImportPage() {
