@@ -8,10 +8,8 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/lib/auth-server', () => ({ getServerSession: mocks.session }))
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 vi.mock('@/lib/rate-limit', () => ({
-  RATE_LIMITS: { AUTH: {} },
-  checkRateLimit: vi.fn().mockResolvedValue({ success: true }),
+  rateLimitResponse: vi.fn().mockResolvedValue(null),
   getClientIdentifier: vi.fn().mockReturnValue('test'),
-  createRateLimitResponse: vi.fn(),
 }))
 vi.mock('@/lib/supabase/server', () => ({ createAdminClient: () => ({ rpc: mocks.rpc }) }))
 

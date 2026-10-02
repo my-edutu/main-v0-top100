@@ -8,10 +8,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
 import {
-  checkRateLimit,
   getClientIdentifier,
-  RATE_LIMITS,
-  createRateLimitResponse,
+  rateLimitResponse,
 } from '@/lib/rate-limit'
 import {
   CLAIM_DIRECTORY_MIN_QUERY_LENGTH,
@@ -43,10 +41,10 @@ export async function GET(request: NextRequest) {
   }
 
   const identifier = getClientIdentifier(request.headers)
-  const rl = await checkRateLimit({ ...RATE_LIMITS.QUERY, identifier: `claim-directory:${identifier}` })
-  if (!rl.success) {
-    return createRateLimitResponse(rl, 'Too many requests. Please try again shortly.')
-  }
+  const limited = await rateLimitResponse([
+    { maxRequests: 3000, windowSeconds: 60, identifier: `claim-directory:${identifier}` },
+  ], 'Too many requests. Please try again shortly.')
+  if (limited) return limited
 
   try {
     const supabase = createAdminClient()

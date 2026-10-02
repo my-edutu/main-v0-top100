@@ -11,6 +11,7 @@ export interface RateLimitResult {
   limit: number
   remaining: number
   reset: number
+  unavailable?: boolean
 }
 
 type RateLimitRpcRow = {
@@ -54,9 +55,9 @@ const isRateLimitRpcRow = (value: unknown): value is RateLimitRpcRow => {
  *
  * The identifier is SHA-256 hashed before it is sent to the database so raw IP
  * addresses or other client identifiers are never persisted in rate-limit state.
- * This function intentionally throws when the shared limiter cannot be reached;
- * callers protecting write endpoints should fail closed rather than silently
- * falling back to a process-local counter.
+ * Requests fail closed when the shared limiter cannot be reached. Returning a
+ * marked result lets every route emit a retryable 503 instead of an unhandled
+ * server error or a misleading client-quota 429.
  */
 export async function checkRateLimit(config: RateLimitConfig): Promise<RateLimitResult> {
   const { maxRequests, windowSeconds, identifier = 'default' } = config
@@ -97,12 +98,33 @@ export async function checkRateLimit(config: RateLimitConfig): Promise<RateLimit
       reset: new Date(row.reset_at).getTime(),
     }
   } catch (error) {
-    if (error instanceof RangeError || error instanceof RateLimitUnavailableError) {
-      throw error
-    }
-
+    if (error instanceof RangeError) throw error
     console.error('[rate-limit] shared limiter unavailable:', error)
-    throw new RateLimitUnavailableError()
+    return { success: false, limit: maxRequests, remaining: 0, reset: Date.now() + 10_000, unavailable: true }
+  }
+}
+
+/**
+ * Route-boundary helper that keeps limiter outages distinct from an actual
+ * client quota hit. Routes should return the resulting 503 so clients can retry
+ * instead of turning a dependency outage into an opaque 500.
+ */
+export async function rateLimitResponse(
+  configs: RateLimitConfig[],
+  message: string,
+): Promise<Response | null> {
+  try {
+    for (const config of configs) {
+      const result = await checkRateLimit(config)
+      if (!result.success) return createRateLimitResponse(result, message)
+    }
+    return null
+  } catch (error) {
+    console.error('[rate-limit] request denied because shared limiter is unavailable:', error)
+    return Response.json(
+      { error: 'Signup is temporarily unavailable. Please try again shortly.' },
+      { status: 503, headers: { 'Retry-After': '10' } },
+    )
   }
 }
 
@@ -158,6 +180,12 @@ export function getClientIdentifier(headers: Headers): string {
 }
 
 export function createRateLimitResponse(result: RateLimitResult, message?: string) {
+  if (result.unavailable) {
+    return Response.json(
+      { error: 'This service is temporarily unavailable. Please try again shortly.', retryAfter: 10 },
+      { status: 503, headers: { 'Retry-After': '10' } },
+    )
+  }
   const resetDate = new Date(result.reset)
   const retryAfter = Math.max(1, Math.ceil((result.reset - Date.now()) / 1000))
 

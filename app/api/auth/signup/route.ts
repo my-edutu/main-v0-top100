@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { getServerSession } from '@/lib/auth-server'
 import { createAdminClient } from '@/lib/supabase/server'
-import { checkRateLimit, createRateLimitResponse, getClientIdentifier, RATE_LIMITS } from '@/lib/rate-limit'
+import { getClientIdentifier, rateLimitResponse } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 
@@ -10,15 +10,17 @@ export const runtime = 'nodejs'
 // The database function claims the winner, fills the profile, and consumes the
 // invite code in one transaction.
 export async function POST(request: NextRequest) {
-  const rl = await checkRateLimit({ ...RATE_LIMITS.AUTH, identifier: `claim:${getClientIdentifier(request.headers)}` })
-  if (!rl.success) return createRateLimitResponse(rl, 'Too many claim attempts. Try again shortly.')
-
   const session = await getServerSession(request)
   const verifiedEmail = session?.user.email?.trim().toLowerCase()
   const confirmedAt = session?.user.rawPayload?.email_confirmed_at
   if (!session || !verifiedEmail || !confirmedAt) {
     return NextResponse.json({ message: 'Verify your email before claiming your profile.' }, { status: 401 })
   }
+  const limited = await rateLimitResponse([
+    { maxRequests: 5, windowSeconds: 60, identifier: `claim-member:${session.user.id}` },
+    { maxRequests: 1200, windowSeconds: 60, identifier: `claim-network:${getClientIdentifier(request.headers)}` },
+  ], 'Too many claim attempts. Try again shortly.')
+  if (limited) return limited
   const body = await request.json().catch(() => null) as { awardeeId?: unknown; inviteCode?: unknown } | null
   const awardeeId = typeof body?.awardeeId === 'string' ? body.awardeeId.trim() : ''
   const inviteCode = typeof body?.inviteCode === 'string' ? body.inviteCode.trim() : ''

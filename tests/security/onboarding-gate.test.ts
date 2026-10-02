@@ -1,4 +1,6 @@
 import { NextRequest } from 'next/server'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { updateSession } from '@/utils/supabase/middleware'
 const state = vi.hoisted(() => ({
@@ -57,6 +59,11 @@ it('blocks member features while preserving setup endpoints', async () => {
       )
     ).status,
   ).toBe(200)
+})
+it('does not force incomplete members back into the middleware onboarding redirect', () => {
+  const page = readFileSync(join(process.cwd(), 'app/dashboard/onboarding/page.tsx'), 'utf8')
+  expect(page).not.toContain('window.location.replace')
+  expect(page).toContain('Continue to dashboard')
 })
 it('allows completed members and fails closed on a database error', async () => {
   state.prefs = { onboardingCompletedAt: '2026-09-06T00:00:00Z' }

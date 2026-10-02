@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
 import { validateCode } from '@/lib/access-codes'
 import { verifySignupCaptcha } from '@/lib/auth/signup-turnstile'
-import { checkRateLimit, createRateLimitResponse, getClientIdentifier, RATE_LIMITS } from '@/lib/rate-limit'
+import { getClientIdentifier, rateLimitResponse } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 
@@ -26,8 +26,11 @@ export async function POST(request: NextRequest) {
   })
   if (!captchaOk) return NextResponse.json({ message: 'Complete the security check.' }, { status: 400 })
 
-  const rl = await checkRateLimit({ ...RATE_LIMITS.AUTH, identifier: `claim-request:${getClientIdentifier(request.headers)}` })
-  if (!rl.success) return createRateLimitResponse(rl, 'Too many attempts. Try again shortly.')
+  const limited = await rateLimitResponse([
+    { maxRequests: 5, windowSeconds: 60, identifier: `claim-request-person:${awardeeId}:${email}` },
+    { maxRequests: 1200, windowSeconds: 60, identifier: `claim-request-network:${getClientIdentifier(request.headers)}` },
+  ], 'Too many attempts. Try again shortly.')
+  if (limited) return limited
 
   const db = createAdminClient()
   const { data: awardee, error } = await db.from('awardees')
