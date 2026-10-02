@@ -34,9 +34,22 @@ export async function startAwardPaymentCheckout(currency: AwardPaymentCurrency):
   checkoutUrl: string
   attemptId: string
 }> {
-  return readResponse(await fetch('/api/member/award/payment/checkout', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ currency }),
-  }))
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 45_000)
+
+  try {
+    return await readResponse(await fetch('/api/member/award/payment/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currency }),
+      signal: controller.signal,
+    }))
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error('Checkout is taking longer than expected. Refresh this page to check your payment status before trying again.')
+    }
+    throw error
+  } finally {
+    clearTimeout(timeout)
+  }
 }
