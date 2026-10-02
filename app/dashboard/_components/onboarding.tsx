@@ -63,6 +63,21 @@ export function Onboarding({
         setError(`Please enter ${field.min}–${field.max} characters.`)
         return
       }
+      setBusy(true)
+      try {
+        const response = await fetch('/api/member/onboarding', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ [field.key]: answer, step: step + 1 }),
+        })
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.message || 'Could not save your progress.')
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : 'Please try again.')
+        return
+      } finally {
+        setBusy(false)
+      }
       setStep(step + 1)
       return
     }

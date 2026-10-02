@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 import { AwardRouteLoading } from '../../../awards-section'
@@ -14,6 +14,7 @@ export default function AwardCompletePage() {
   const [view, setView] = useState<AwardPaymentView | null>(null)
   const [error, setError] = useState('')
   const [showSuccess, setShowSuccess] = useState<boolean | null>(null)
+  const successDecision = useRef<boolean | null>(null)
 
   const loadPayment = useCallback(async () => {
     try {
@@ -26,12 +27,18 @@ export default function AwardCompletePage() {
       const confirmedPayment = paymentView.confirmedPayment
       let shouldShowSuccess = false
       if (isPaymentReturn && confirmedPayment) {
-        try {
-          shouldShowSuccess = claimAwardPaymentSuccess(window.localStorage, confirmedPayment)
-        } catch {
-          // Storage restrictions should not prevent the just-confirmed receipt from appearing.
-          shouldShowSuccess = true
+        // Repeated loads on this visit must preserve the first decision. React
+        // Strict Mode replays effects in development; a second storage claim
+        // would otherwise hide the receipt immediately after showing it.
+        if (successDecision.current === null) {
+          try {
+            successDecision.current = claimAwardPaymentSuccess(window.localStorage, confirmedPayment)
+          } catch {
+            // Storage restrictions should not prevent the just-confirmed receipt from appearing.
+            successDecision.current = true
+          }
         }
+        shouldShowSuccess = successDecision.current
       }
       setShowSuccess(shouldShowSuccess)
     } catch (cause) {

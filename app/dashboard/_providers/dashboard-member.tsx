@@ -13,12 +13,13 @@ import { usePathname } from 'next/navigation'
 
 import { Button } from '@/components/ui/button'
 import { finishDashboardOnboarding } from '@/lib/dashboard/onboarding'
-import { fetchMemberHubState, type MemberProfile } from '@/lib/member-hub'
+import { fetchMemberHubState, type MemberNotification, type MemberProfile } from '@/lib/member-hub'
 import dynamic from 'next/dynamic'
 const Onboarding = dynamic(() => import('../_components/onboarding').then(module => module.Onboarding))
 
 type DashboardMemberContextValue = {
   member: MemberProfile
+  notifications: MemberNotification[]
   replaceMember: (member: MemberProfile) => void
   refreshMember: () => Promise<void>
 }
@@ -28,6 +29,7 @@ const DashboardMemberContext = createContext<DashboardMemberContextValue | null>
 export function DashboardMemberProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const [member, setMember] = useState<MemberProfile | null>(null)
+  const [notifications, setNotifications] = useState<MemberNotification[]>([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const replaceMember = useCallback((nextMember: MemberProfile) => {
@@ -46,6 +48,7 @@ export function DashboardMemberProvider({ children }: { children: ReactNode }) {
 
     try {
       const state = await fetchMemberHubState()
+      setNotifications(state.notifications)
       const currentMember = state.members.find(
         (candidate) => candidate.id === state.currentMemberId,
       )
@@ -126,7 +129,7 @@ export function DashboardMemberProvider({ children }: { children: ReactNode }) {
     pathname.startsWith('/dashboard/me/award/payment')
 
   return (
-    <DashboardMemberContext.Provider value={{ member, refreshMember, replaceMember }}>
+    <DashboardMemberContext.Provider value={{ member, notifications, refreshMember, replaceMember }}>
       {isLocalPreview && <div className={`award-preview-banner px-4 py-2 text-center text-xs text-orange-900 ${awardDark ? 'award-preview-dark' : 'bg-orange-50'}`}>Local preview · sample account and activity {member.onboardingCompletedAt && <button className="ml-2 underline" onClick={() => { void fetch('/api/member/onboarding', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reset: true }) }).then(async response => { if (response.ok) replaceMember((await response.json()).member) }) }}>Preview onboarding</button>}</div>}
       {!member.onboardingCompletedAt ? <Onboarding member={member} onComplete={completeOnboarding} /> : children}
     </DashboardMemberContext.Provider>

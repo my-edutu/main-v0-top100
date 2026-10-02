@@ -171,6 +171,11 @@ export async function GET(req: NextRequest) {
   const supabase = createAdminClient()
   const searchParams = req.nextUrl.searchParams
   const scope = searchParams.get('scope')
+  const requestedLimit = Number(searchParams.get('limit'))
+  const limit = Number.isInteger(requestedLimit) && requestedLimit > 0
+    ? Math.min(requestedLimit, 100)
+    : null
+  const programmeOnly = searchParams.get('programme') === 'afl'
 
   const query = supabase
     .from('events')
@@ -181,6 +186,9 @@ export async function GET(req: NextRequest) {
 
   if (scope !== 'admin') {
     query.eq('status', 'published')
+    if (programmeOnly) {
+      query.eq('programme_label', PROGRAMME_LABEL).gte('session_number', 0).lte('session_number', 10)
+    }
     const audience = searchParams.get('audience')
     if (audience === 'awardees') {
       const user = await getCurrentUser()
@@ -191,6 +199,10 @@ export async function GET(req: NextRequest) {
       query.eq('visibility', 'public')
     }
   }
+
+  // Dashboard previews pass a small explicit limit. Full event pages and
+  // admin views retain their current behavior until they opt in.
+  if (scope !== 'admin' && limit !== null) query.limit(limit)
 
   const { data, error } = await query
 
@@ -481,6 +493,4 @@ export async function DELETE(req: NextRequest) {
     return toJsonResponse({ message: 'Failed to delete event', error: message }, 400)
   }
 }
-
-
 

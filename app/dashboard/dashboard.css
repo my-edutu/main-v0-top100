@@ -484,3 +484,33 @@ html.light .programme-detail-hero-copy > p:last-child { color:#fff1e4 !important
  .programme-event-card { transition:none; }
  .programme-event-card:hover { transform:none; }
 }
+
+.dashboard-celebration-overlay { background:rgba(20,14,12,.78); backdrop-filter:blur(5px); }
+.dashboard-celebration-balloons, .dashboard-celebration-confetti { position:fixed; inset:0; z-index:51; overflow:hidden; pointer-events:none; }
+.dashboard-celebration-balloon { position:absolute; bottom:-20vh; display:block; border-radius:52% 52% 46% 46%; background:var(--balloon-color); opacity:.92; box-shadow:inset -8px -8px 0 #00000012, inset 7px 6px 0 #ffffff32; animation-name:dashboard-balloon-rise; animation-timing-function:linear; animation-iteration-count:infinite; }
+.dashboard-celebration-balloon::before { content:''; position:absolute; bottom:-7px; left:calc(50% - 5px); width:10px; height:10px; background:var(--balloon-color); clip-path:polygon(0 0,100% 0,50% 100%); }
+.dashboard-celebration-balloon::after { content:''; position:absolute; top:100%; left:50%; width:1px; height:70px; background:#fff9; transform-origin:top; transform:rotate(3deg); }
+.dashboard-celebration-confetti-piece { position:absolute; top:-16px; width:8px; height:13px; border-radius:2px; animation-name:dashboard-confetti-fall; animation-timing-function:linear; animation-iteration-count:infinite; }
+.dashboard-celebration-confetti-piece.is-circle { width:9px; height:9px; border-radius:50%; }
+.dashboard-celebration-card { position:fixed; top:50%; left:50%; z-index:52; display:flex; width:min(500px,calc(100vw - 32px)); max-height:min(88dvh,760px); flex-direction:column; align-items:center; overflow:auto; border:1px solid #f1d3b0; border-radius:28px; padding:36px 28px 28px; background:linear-gradient(155deg,#fffdfa 0%,#fff 55%,#fff5e8 100%); color:#171412; text-align:center; box-shadow:0 28px 100px #0007; transform:translate(-50%,-50%); animation:dashboard-celebration-enter .42s cubic-bezier(.2,.8,.2,1) both; }
+.dashboard-celebration-close { position:absolute; top:12px; right:12px; display:grid; width:44px; height:44px; place-items:center; border:1px solid #e9dfd5; border-radius:50%; background:#fff; color:#41372f; }
+.dashboard-celebration-close:focus-visible, .dashboard-celebration-continue:focus-visible { outline:3px solid #f97316; outline-offset:3px; }
+.dashboard-celebration-mark { position:relative; display:grid; width:76px; height:76px; place-items:center; border:1px solid #ffd7a6; border-radius:24px; background:linear-gradient(135deg,#fff0d8,#ffe3bd); color:#9a4315; }
+.dashboard-celebration-sparkle { position:absolute; top:-9px; right:-9px; color:#d88812; fill:#ffe08a; }
+.dashboard-celebration-kicker { margin-top:22px; color:#9a4315; font-size:12px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; }
+.dashboard-celebration-title { margin-top:9px; font-size:clamp(26px,6vw,34px); font-weight:600; line-height:1.1; letter-spacing:-.04em; }
+.dashboard-celebration-copy { max-width:38ch; margin-top:13px; color:#5f574f; font-size:16px; line-height:1.65; }
+.dashboard-celebration-continue { display:flex; min-height:52px; width:100%; align-items:center; justify-content:center; gap:10px; margin-top:24px; border-radius:14px; background:linear-gradient(90deg,#f97316,#f59e0b); color:#171412; font-size:15px; font-weight:600; transition:filter .2s ease,transform .2s ease; }
+.dashboard-celebration-continue:hover { filter:saturate(1.08); transform:translateY(-1px); }
+.dashboard-celebration-footnote { margin-top:13px; color:#756b62; font-size:12px; line-height:1.5; }
+@keyframes dashboard-confetti-fall { 0% { transform:translate3d(0,-3vh,0) rotate(0deg); opacity:0; } 8% { opacity:1; } 100% { transform:translate3d(28px,112vh,0) rotate(780deg); opacity:.85; } }
+@keyframes dashboard-balloon-rise { 0% { transform:translate3d(0,0,0) rotate(-6deg); } 50% { transform:translate3d(16px,-58vh,0) rotate(7deg); } 100% { transform:translate3d(-8px,-125vh,0) rotate(-4deg); } }
+@keyframes dashboard-celebration-enter { from { opacity:0; transform:translate(-50%,-46%) scale(.96); } to { opacity:1; transform:translate(-50%,-50%) scale(1); } }
+@media (max-width:520px) {
+ .dashboard-celebration-card { padding:32px 22px 22px; border-radius:24px; }
+ .dashboard-celebration-copy { font-size:15px; }
+}
+@media (prefers-reduced-motion: reduce) {
+ .dashboard-celebration-balloon, .dashboard-celebration-confetti-piece, .dashboard-celebration-card { animation:none; }
+ .dashboard-celebration-continue { transition:none; }
+}

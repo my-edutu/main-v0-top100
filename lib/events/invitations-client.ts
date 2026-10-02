@@ -135,8 +135,12 @@ export async function markInvitationSeen(id: string): Promise<void> {
 }
 
 /** The public events listing the dashboard already showed. */
-export async function fetchPublicEvents(limit = 6, audience: 'public' | 'awardees' = 'public'): Promise<PublicEvent[]> {
-  const response = await fetch(`/api/events?audience=${audience}`, { cache: 'no-store' })
+export async function fetchPublicEvents(limit = 6, audience: 'public' | 'awardees' = 'public', programmeOnly = false): Promise<PublicEvent[]> {
+  const boundedLimit = Number.isFinite(limit) && limit > 0 && limit < Number.MAX_SAFE_INTEGER
+    ? `&limit=${Math.min(Math.floor(limit), 100)}`
+    : ''
+  const programmeFilter = programmeOnly ? '&programme=afl' : ''
+  const response = await fetch(`/api/events?audience=${audience}${boundedLimit}${programmeFilter}`, { cache: 'no-store' })
   if (!response.ok) throw new Error('Events request failed')
   const payload = await response.json()
   return Array.isArray(payload) ? (payload.slice(0, limit) as PublicEvent[]) : []

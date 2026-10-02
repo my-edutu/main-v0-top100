@@ -8,7 +8,6 @@ import {
   UserRound,
 } from 'lucide-react'
 
-import { fetchMemberHubState } from '@/lib/member-hub'
 import {
   fetchEventInvitations,
   fetchPublicEvents,
@@ -19,9 +18,9 @@ import { isAfricaFutureLeadersProgrammeEvent } from '@/lib/events/programme-api'
 import { DashboardCard } from './dashboard-card'
 import { discoverNav, meNav } from '../_lib/navigation'
 import { selectUpcomingInvitations } from '../_lib/home-priority'
-import { useDashboardBadges } from '../_providers/dashboard-badges'
 import { useDashboardMember } from '../_providers/dashboard-member'
 import { AwardeeOnboardingJourney } from './awardee-onboarding-journey'
+import { DashboardCelebration } from './dashboard-celebration'
 
 const INTERVIEW_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSfA0yU8IK1jVBNZ-V1RRksZXJAkAh4XwL7Pk8mubZ31ZHMNlYQ/viewform?usp=header'
 const PARTNERSHIP_FORM_URL = 'https://docs.google.com/forms/d/1pabeSUOwN15Sr-VcAWIhl5k5_xwnKljFuzm90PCoEqQ/edit'
@@ -29,7 +28,6 @@ const PARTNERSHIP_FORM_URL = 'https://docs.google.com/forms/d/1pabeSUOwN15Sr-VcA
 const launchBanners = [
   { title: 'Project100 Scholarship', description: 'Put your next chapter in motion.', href: '/dashboard/me/project100-scholarship', image: '/dashboard/banners/project100-scholarship-v2.png' },
   { title: 'Impact Series Interviews', description: 'Share the work behind your impact.', href: INTERVIEW_FORM_URL, image: '/dashboard/banners/impact-series-v2.png', external: true },
-  { title: 'Get my AFL award', description: 'Complete your award journey.', href: '/dashboard/me/award', image: '/dashboard/banners/afl-award-v2.png' },
   { title: 'Let your organization partner with Africa Future Leaders', description: 'Create more impact together.', href: PARTNERSHIP_FORM_URL, image: '/dashboard/banners/impact-series-v2.png', external: true },
 ] as const
 
@@ -61,9 +59,6 @@ function formatShortDate(value: string | null | undefined) {
 
 export function DashboardHome() {
   const { member } = useDashboardMember()
-  const {
-    setUnreadUpdates,
-  } = useDashboardBadges()
   const [invitations, setInvitations] = useState<EventInvitation[]>([])
   const [programmeEvents, setProgrammeEvents] = useState<PublicEvent[]>([])
   const [loading, setLoading] = useState(true)
@@ -76,11 +71,10 @@ export function DashboardHome() {
     async function loadPreviews() {
       if (inFlight) return
       inFlight = true
-      const [invitationResult, programmeResult, hubResult] =
+      const [invitationResult, programmeResult] =
         await Promise.allSettled([
           fetchEventInvitations(),
-          fetchPublicEvents(12, 'awardees'),
-          fetchMemberHubState(),
+          fetchPublicEvents(12, 'awardees', true),
         ])
 
       inFlight = false
@@ -96,32 +90,23 @@ export function DashboardHome() {
         setProgrammeEvents(programmeResult.value.filter(isAfricaFutureLeadersProgrammeEvent))
       }
 
-      if (hubResult.status === 'fulfilled') {
-        const visibleNotifications = hubResult.value.notifications.filter(
-          (notification) =>
-            notification.status === 'sent' &&
-            (notification.audience === 'all' || member.status === 'approved'),
-        )
-        setUnreadUpdates(
-          visibleNotifications.filter(
-            (notification) => !notification.readBy.includes(member.id),
-          ).length,
-        )
-      }
-
     }
 
     void loadPreviews()
-    const refresh = () => { if (!document.hidden) void loadPreviews() }
-    window.addEventListener('focus', refresh)
-    const interval = window.setInterval(refresh, 30000)
+    let timeout = 0
+    const scheduleRefresh = () => {
+      timeout = window.setTimeout(() => {
+        if (!document.hidden) void loadPreviews()
+        scheduleRefresh()
+      }, 240_000 + Math.floor(Math.random() * 120_000))
+    }
+    scheduleRefresh()
 
     return () => {
       cancelled = true
-      window.removeEventListener('focus', refresh)
-      window.clearInterval(interval)
+      window.clearTimeout(timeout)
     }
-  }, [member.id, member.status, setUnreadUpdates])
+  }, [])
 
   const shortcuts = [discoverNav[0], discoverNav[2], meNav[0], meNav[1], meNav[4],
     { label:'Schedule an interview', href:INTERVIEW_FORM_URL, icon:Mail, color:'ember' as const, external: true },
@@ -164,6 +149,11 @@ export function DashboardHome() {
 
   return (
     <div className="hub-home">
+      <DashboardCelebration
+        memberId={member.id}
+        name={member.name}
+        dashboardLoginCount={member.dashboardLoginCount ?? 0}
+      />
       <section className="hub-welcome" aria-labelledby="hub-welcome-title">
         <h1 id="hub-welcome-title">{(member.dashboardLoginCount ?? 0) < 4 ? 'Congratulations' : 'Hey'}, {member.name.trim().split(/\s+/)[0]}.</h1>
         <p className="hub-welcome-description">Your people and opportunities.</p>

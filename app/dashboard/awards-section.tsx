@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -45,7 +45,14 @@ type PaymentReadOptions = {
 async function readDemoAwarePayment({
   completeDemoCallback = false,
 }: PaymentReadOptions = {}): Promise<AwardPaymentView> {
-  if (!completeDemoCallback) return fetchAwardPayment()
+  const currentUrlParams = typeof window === 'undefined'
+    ? null
+    : new URLSearchParams(window.location.search)
+  const shouldCompleteDemoCallback = completeDemoCallback || (
+    currentUrlParams?.get('payment') === 'done' &&
+    currentUrlParams.get('demo') === '1'
+  )
+  if (!shouldCompleteDemoCallback) return fetchAwardPayment()
 
   const response = await fetch(
     '/api/member/award/payment?payment=done&demo=1',
@@ -72,10 +79,20 @@ export default function AwardsSection({
   demoReturn = false,
 }: AwardsSectionProps) {
   const router = useRouter()
-  const [resolvedReturnState] = useState<AwardPaymentReturnState>(
-    () => paymentReturn ?? returnState ?? (paymentPending ? 'done' : 'none'),
-  )
-  const [resolvedDemoReturn] = useState(() => demoReturn)
+  const searchParams = useSearchParams()
+  const currentUrlParams = typeof window === 'undefined'
+    ? null
+    : new URLSearchParams(window.location.search)
+  const urlPayment = currentUrlParams?.get('payment') ?? searchParams.get('payment')
+  const urlReturnState: AwardPaymentReturnState =
+    urlPayment === 'done' || urlPayment === 'cancelled' ? urlPayment : 'none'
+  // Prefer the live query string. The dashboard can keep this component
+  // mounted while checkout changes the URL, so first-render state goes stale.
+  const resolvedReturnState = urlReturnState !== 'none'
+    ? urlReturnState
+    : paymentReturn ?? returnState ?? (paymentPending ? 'done' : 'none')
+  const resolvedDemoReturn =
+    ((currentUrlParams?.get('demo') ?? searchParams.get('demo')) === '1' && resolvedReturnState === 'done') || demoReturn
   const [view, setView] = useState<AwardPaymentView | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
@@ -121,6 +138,21 @@ export default function AwardsSection({
   }, [onClaimStateChange, view?.needsPayment])
 
   const screen = awardPaymentScreen(view, resolvedReturnState)
+  useEffect(() => {
+    // A local test return can outlive the in-memory demo store (for example
+    // after restarting `next dev`). If its simulated attempt no longer exists,
+    // discard the stale callback query and let the test account pay again.
+    if (
+      resolvedDemoReturn &&
+      resolvedReturnState === 'done' &&
+      view &&
+      !paymentIsConfirmed(view) &&
+      !view.currentAttempt
+    ) {
+      router.replace('/dashboard/me/award/payment')
+    }
+  }, [resolvedDemoReturn, resolvedReturnState, router, view])
+
   const shouldPoll =
     !step &&
     !loading &&

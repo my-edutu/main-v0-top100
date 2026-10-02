@@ -13,7 +13,6 @@ import {
 } from 'react'
 
 import { fetchAwardPayment } from '@/lib/awards/payment'
-import { fetchMemberHubState } from '@/lib/member-hub'
 import { useDashboardMember } from './dashboard-member'
 
 type DashboardBadgeContextValue = {
@@ -27,39 +26,39 @@ type DashboardBadgeContextValue = {
 const DashboardBadgeContext = createContext<DashboardBadgeContextValue | null>(null)
 
 export function DashboardBadgeProvider({ children }: { children: ReactNode }) {
-  const { member } = useDashboardMember()
+  const { member, notifications } = useDashboardMember()
   const [unreadUpdates, setUnreadUpdates] = useState(0)
   const [awardNeedsAttention, setAwardNeedsAttention] = useState(false)
 
   const refreshBadges = useCallback(async () => {
-    const [updatesResult, awardResult] = await Promise.allSettled([
-      fetchMemberHubState(),
-      fetchAwardPayment(),
-    ])
-
-    if (updatesResult.status === 'fulfilled') {
-      const unreadCount = updatesResult.value.notifications.filter(
-        (notification) =>
-          notification.status === 'sent' &&
-          (notification.audience === 'all' || member.status === 'approved') &&
-          !notification.readBy.includes(member.id),
-      ).length
-      setUnreadUpdates(unreadCount)
+    try {
+      const award = await fetchAwardPayment()
+      setAwardNeedsAttention(award.needsPayment)
+    } catch {
+      // Keep the last known badge state when a transient request fails.
     }
+  }, [])
 
-    if (awardResult.status === 'fulfilled') {
-      setAwardNeedsAttention(awardResult.value.needsPayment)
-    }
-  }, [member.id, member.status])
+  useEffect(() => {
+    setUnreadUpdates(notifications.filter(
+      notification => notification.status === 'sent' &&
+        (notification.audience === 'all' || member.status === 'approved') &&
+        !notification.readBy.includes(member.id),
+    ).length)
+  }, [member.id, member.status, notifications])
 
   useEffect(() => {
     void refreshBadges()
-    const refresh = () => { if (!document.hidden) void refreshBadges() }
-    window.addEventListener('focus', refresh)
-    const interval = window.setInterval(refresh, 30000)
+    let timeout = 0
+    const scheduleRefresh = () => {
+      timeout = window.setTimeout(() => {
+        if (!document.hidden) void refreshBadges()
+        scheduleRefresh()
+      }, 240_000 + Math.floor(Math.random() * 120_000))
+    }
+    scheduleRefresh()
     return () => {
-      window.removeEventListener('focus', refresh)
-      window.clearInterval(interval)
+      window.clearTimeout(timeout)
     }
   }, [refreshBadges])
 
