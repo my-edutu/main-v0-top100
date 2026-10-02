@@ -98,10 +98,14 @@ export function OnboardingSettingsForm() {
 
       <section className="space-y-5 rounded-2xl border border-neutral-200 bg-white p-4 sm:p-6" aria-labelledby="share-settings-title">
         <div className="border-b border-neutral-100 pb-4">
-          <h2 id="share-settings-title" className="text-lg font-semibold text-neutral-950">Introduction sharing</h2>
-          <p className="mt-1 text-sm leading-6 text-neutral-600">Only confirmed account URLs are displayed to members. Keep unverified destinations blank.</p>
+          <h2 id="share-settings-title" className="text-lg font-semibold text-neutral-950">Cohort welcome & sharing</h2>
+          <p className="mt-1 text-sm leading-6 text-neutral-600">Set the verified figures shown to members in their first-entry welcome. Keep unverified social destinations blank.</p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Cohort year"><Input className={inputClass} type="number" min="2020" max="2100" value={settings.cohortYear} onChange={(event) => update('cohortYear', Number(event.target.value))} /></Field>
+          <Field label="Awardees selected"><Input className={inputClass} type="number" min="1" max="10000" value={settings.selectedAwardeeCount} onChange={(event) => update('selectedAwardeeCount', Number(event.target.value))} /></Field>
+          <Field label="Applications received"><Input className={inputClass} type="number" min="1" max="1000000" value={settings.applicantCount} onChange={(event) => update('applicantCount', Number(event.target.value))} /></Field>
+          <Field label="Applicant countries"><Input className={inputClass} type="number" min="1" max="250" value={settings.applicantCountryCount} onChange={(event) => update('applicantCountryCount', Number(event.target.value))} /></Field>
           <Field label="Facebook page URL"><Input className={inputClass} type="url" placeholder="Leave blank until confirmed" value={settings.facebookUrl ?? ''} onChange={(event) => update('facebookUrl', event.target.value || null)} /></Field>
           <Field label="Instagram page URL"><Input className={inputClass} type="url" placeholder="Leave blank until confirmed" value={settings.instagramUrl ?? ''} onChange={(event) => update('instagramUrl', event.target.value || null)} /></Field>
           <div className="sm:col-span-2">

@@ -487,6 +487,7 @@ html.light .programme-detail-hero-copy > p:last-child { color:#fff1e4 !important
 
 .dashboard-celebration-overlay { background:rgba(20,14,12,.78); backdrop-filter:blur(5px); }
 .dashboard-celebration-balloons, .dashboard-celebration-confetti { position:fixed; inset:0; z-index:51; overflow:hidden; pointer-events:none; }
+.dashboard-entry-burst .dashboard-celebration-balloon, .dashboard-entry-burst .dashboard-celebration-confetti-piece { animation-iteration-count:1; animation-fill-mode:both; }
 .dashboard-celebration-balloon { position:absolute; bottom:-20vh; display:block; border-radius:52% 52% 46% 46%; background:var(--balloon-color); opacity:.92; box-shadow:inset -8px -8px 0 #00000012, inset 7px 6px 0 #ffffff32; animation-name:dashboard-balloon-rise; animation-timing-function:linear; animation-iteration-count:infinite; }
 .dashboard-celebration-balloon::before { content:''; position:absolute; bottom:-7px; left:calc(50% - 5px); width:10px; height:10px; background:var(--balloon-color); clip-path:polygon(0 0,100% 0,50% 100%); }
 .dashboard-celebration-balloon::after { content:''; position:absolute; top:100%; left:50%; width:1px; height:70px; background:#fff9; transform-origin:top; transform:rotate(3deg); }

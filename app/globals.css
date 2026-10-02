@@ -227,6 +227,11 @@ html.light .award-payment-card .text-white {
   color: #ffffff !important;
 }
 
+/* Primary controls on the golden Top100 Moment retain white text in light mode. */
+html.light .top100-moment .text-white {
+  color: #ffffff !important;
+}
+
 /* The award journey keeps its white typography across payment and completion steps. */
 html.light .hub-award-dark .text-white,
 html.light .hub-award-dark .text-zinc-100,
@@ -497,5 +502,22 @@ html.light a.awardee-linkedin-button {
   }
   100% {
     transform: translateX(-100%);
+  }
+}
+
+@keyframes moment-breathe {
+  0%, 100% { transform: scale(.96); }
+  50% { transform: scale(1.04); }
+}
+
+@keyframes moment-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motion-safe\:animate-\[moment-breathe_7s_ease-in-out_infinite\],
+  .motion-safe\:animate-\[moment-float_6s_ease-in-out_infinite\] {
+    animation: none !important;
   }
 }

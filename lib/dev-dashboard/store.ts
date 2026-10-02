@@ -76,6 +76,7 @@ export type DemoDashboardStore = {
   awardPayment: DemoAwardPaymentState
   magazinePayment: DemoMagazinePaymentState
   welcomeReadAt: string | null
+  top100MomentCompletedAt: string | null
   externalShareConfirmedAt: string | null
   externalSharePlatform: string | null
   sequence: number
@@ -289,6 +290,7 @@ export function createDemoDashboardStore(): DemoDashboardStore {
       callbackConsumed: false,
     },
     welcomeReadAt: null,
+    top100MomentCompletedAt: null,
     externalShareConfirmedAt: null,
     externalSharePlatform: null,
     sequence: 100,
@@ -320,6 +322,7 @@ export function getDemoDashboardStore(): DemoDashboardStore {
     globalThis.__top100DemoDashboardStore.messages = []
   }
   globalThis.__top100DemoDashboardStore.welcomeReadAt ??= null
+  globalThis.__top100DemoDashboardStore.top100MomentCompletedAt ??= null
   globalThis.__top100DemoDashboardStore.externalShareConfirmedAt ??= null
   globalThis.__top100DemoDashboardStore.externalSharePlatform ??= null
   globalThis.__top100DemoDashboardStore.magazinePayment ??= {

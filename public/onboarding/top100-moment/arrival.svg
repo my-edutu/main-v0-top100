@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 320" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">A community of young African leaders</title>
+  <desc id="desc">Three young leaders stand together beneath a warm sun.</desc>
+  <circle cx="240" cy="157" r="133" fill="#FFF1C2"/>
+  <circle cx="240" cy="157" r="115" fill="#FFD15C"/>
+  <path d="M70 275c12-49 41-73 86-73s74 24 86 73v13H70v-13Z" fill="#F36D21"/>
+  <path d="M238 275c12-49 41-73 86-73s74 24 86 73v13H238v-13Z" fill="#10151F"/>
+  <path d="M96 145c0-25 18-45 41-45s41 20 41 45v13c0 27-18 48-41 48s-41-21-41-48v-13Z" fill="#6F3B2A"/>
+  <path d="M93 148c1-34 18-54 46-54 22 0 37 12 42 36-17-2-31-10-39-22-10 15-26 24-49 27v13Z" fill="#10151F"/>
+  <path d="M293 143c0-27 19-47 43-47s43 20 43 47v15c0 28-19 49-43 49s-43-21-43-49v-15Z" fill="#8B4C2E"/>
+  <path d="M289 147c2-36 20-56 48-56 23 0 40 15 45 40-15-2-29-9-41-22-12 16-29 26-52 27v11Z" fill="#171717"/>
+  <path d="M118 166c4-3 8-3 12 0m24 0c4-3 8-3 12 0m-29 18c5 4 11 4 16 0" stroke="#171717" stroke-width="3" stroke-linecap="round"/>
+  <path d="M314 166c4-3 8-3 12 0m24 0c4-3 8-3 12 0m-29 18c5 4 11 4 16 0" stroke="#171717" stroke-width="3" stroke-linecap="round"/>
+  <path d="M179 278c10-51 30-78 61-78s51 27 61 78v10H179v-10Z" fill="#FFF8E8"/>
+  <path d="M193 150c0-34 21-61 47-61s47 27 47 61v19c0 37-21 65-47 65s-47-28-47-65v-19Z" fill="#8A4A2D"/>
+  <path d="M190 155c1-45 22-72 60-72 29 0 47 18 50 51-17-4-34-16-44-31-14 25-34 40-66 44v8Z" fill="#10151F"/>
+  <path d="M212 164c5-4 11-4 16 0m27 0c5-4 11-4 16 0m-45 22c8 7 19 7 27 0" stroke="#10151F" stroke-width="4" stroke-linecap="round"/>
+  <path d="m198 229 42 37 42-37 17 59H181l17-59Z" fill="#F36D21"/>
+  <path d="M225 260h30l14 28h-58l14-28Z" fill="#FFF8E8"/>
+  <path d="m144 78-7-15m197 7 8-16M75 210H57m367 0h-18" stroke="#FFF9E9" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="80" cy="88" r="8" fill="#F36D21"/>
+  <circle cx="397" cy="104" r="7" fill="#10151F"/>
+  <path d="m105 117 4 10 10 4-10 4-4 10-4-10-10-4 10-4 4-10Zm274 87 4 10 10 4-10 4-4 10-4-10-10-4 10-4 4-10Z" fill="#FFF9E9"/>
+</svg>

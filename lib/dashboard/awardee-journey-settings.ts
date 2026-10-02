@@ -9,6 +9,10 @@ export type AwardeeJourneySettings = {
   facebookUrl: string | null
   instagramUrl: string | null
   flyerTemplateUrl: string | null
+  cohortYear: number
+  selectedAwardeeCount: number
+  applicantCount: number
+  applicantCountryCount: number
   magazineCampaign: {
     id: string
     title: string
@@ -31,6 +35,10 @@ export const DEFAULT_AWARDEE_JOURNEY_SETTINGS: AwardeeJourneySettings = {
   facebookUrl: null,
   instagramUrl: null,
   flyerTemplateUrl: null,
+  cohortYear: 2026,
+  selectedAwardeeCount: 100,
+  applicantCount: 2000,
+  applicantCountryCount: 61,
   magazineCampaign: {
     id: 'afl-magazine-2026',
     title: 'Africa Future Leaders Magazine Feature',
@@ -69,6 +77,10 @@ function amount(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 100 && value <= 100_000_000
 }
 
+function wholeNumber(value: unknown, min: number, max: number): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= min && value <= max
+}
+
 export function validateAwardeeJourneySettings(input: unknown): SettingsValidation {
   if (!input || typeof input !== 'object' || Array.isArray(input)) {
     return { ok: false, error: 'Settings must be an object.' }
@@ -103,6 +115,9 @@ export function validateAwardeeJourneySettings(input: unknown): SettingsValidati
   if (!founderName || !founderTitle || !founderLinkedinUrl || !welcomeTitle || !welcomeBody || !signatureText
     || !organizationLinkedinUrl || (value.facebookUrl && !facebookUrl) || (value.instagramUrl && !instagramUrl)
     || (value.flyerTemplateUrl && !flyerTemplateUrl) || !campaignId || !/^[a-z0-9][a-z0-9-]{2,63}$/.test(campaignId)
+    || !wholeNumber(value.cohortYear, 2020, 2100) || !wholeNumber(value.selectedAwardeeCount, 1, 10000)
+    || !wholeNumber(value.applicantCount, 1, 1_000_000)
+    || !wholeNumber(value.applicantCountryCount, 1, 250)
     || !campaignTitle || !campaignDescription || !priceVersion
     || !amount(campaign.ngnAmountMinor) || !amount(campaign.usdAmountMinor)
     || typeof campaign.applicationOpen !== 'boolean') {
@@ -122,6 +137,10 @@ export function validateAwardeeJourneySettings(input: unknown): SettingsValidati
       facebookUrl,
       instagramUrl,
       flyerTemplateUrl,
+      cohortYear: value.cohortYear,
+      selectedAwardeeCount: value.selectedAwardeeCount,
+      applicantCount: value.applicantCount,
+      applicantCountryCount: value.applicantCountryCount,
       magazineCampaign: {
         id: campaignId,
         title: campaignTitle,

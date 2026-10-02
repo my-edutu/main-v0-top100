@@ -99,7 +99,7 @@ export function AwardeeOnboardingJourney({ name }: Props) {
   const settings = payload?.settings ?? DEFAULT_AWARDEE_JOURNEY_SETTINGS
   const coverFile = preparedCover && preparedCover.url === member.portfolioCoverUrl ? preparedCover.file : null
   const coverPreparing = Boolean(shareOpen && member.portfolioCoverUrl && preparedCover?.url !== member.portfolioCoverUrl)
-  const introCaption = `I’m proud to share that I’ve been selected as one of the Top 100 Africa Future Leaders for 2026.\n\nThis recognition brings together emerging leaders from 61 countries across Africa and 707 institutions. I’m honoured to be part of this community and grateful for the opportunity to contribute to a brighter future for our continent.\n\nI look forward to learning, collaborating, and building impact alongside fellow leaders across Africa. Thank you, @Africa Future Leaders, for this recognition.\n\n#Top100AfricaFutureLeaders #AfricaFutureLeaders #LeadershipInAfrica`
+  const introCaption = `I’m proud to share that I’ve been selected as one of ${settings.selectedAwardeeCount} Africa Future Leaders for ${settings.cohortYear}.\n\nThis cohort brings leaders together from ${settings.applicantCountryCount} countries. I’m honoured to be part of this community and grateful for the opportunity to contribute to a brighter future for our continent.\n\nI look forward to learning, collaborating, and building impact alongside fellow leaders across Africa. Thank you, @Africa Future Leaders, for this recognition.\n\n#Top100AfricaFutureLeaders #AfricaFutureLeaders #LeadershipInAfrica`
 
   async function acknowledgeWelcome() {
     setSaving(true)

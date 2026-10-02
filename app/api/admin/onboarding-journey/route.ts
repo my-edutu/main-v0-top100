@@ -83,6 +83,10 @@ export async function PATCH(request: NextRequest) {
     facebook_url: settings.facebookUrl,
     instagram_url: settings.instagramUrl,
     flyer_template_url: settings.flyerTemplateUrl,
+    cohort_year: settings.cohortYear,
+    selected_awardee_count: settings.selectedAwardeeCount,
+    applicant_count: settings.applicantCount,
+    applicant_country_count: settings.applicantCountryCount,
     magazine_campaign_id: settings.magazineCampaign.id,
   }, { onConflict: 'id' })
   if (settingsError) return NextResponse.json({ message: 'Campaign saved, but onboarding content could not be saved. Please retry.' }, { status: 503 })

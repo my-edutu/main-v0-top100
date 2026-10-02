@@ -16,6 +16,7 @@ import { finishDashboardOnboarding } from '@/lib/dashboard/onboarding'
 import { fetchMemberHubState, type MemberNotification, type MemberProfile } from '@/lib/member-hub'
 import dynamic from 'next/dynamic'
 const Onboarding = dynamic(() => import('../_components/onboarding').then(module => module.Onboarding))
+const Top100MomentGate = dynamic(() => import('../_components/top100-moment').then(module => module.Top100MomentGate))
 
 type DashboardMemberContextValue = {
   member: MemberProfile
@@ -32,6 +33,8 @@ export function DashboardMemberProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<MemberNotification[]>([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
+  const [replayingWelcome, setReplayingWelcome] = useState(false)
+  const [welcomeReplayError, setWelcomeReplayError] = useState('')
   const replaceMember = useCallback((nextMember: MemberProfile) => {
     setMember(nextMember)
     setError('')
@@ -127,11 +130,34 @@ export function DashboardMemberProvider({ children }: { children: ReactNode }) {
   const awardDark =
     pathname === '/dashboard/me/award' ||
     pathname.startsWith('/dashboard/me/award/payment')
+  const showTop100Moment = pathname === '/dashboard' && member.status === 'approved'
+
+  async function replayWelcome() {
+    if (replayingWelcome) return
+    setReplayingWelcome(true)
+    setWelcomeReplayError('')
+    try {
+      const response = await fetch('/api/member/onboarding-journey', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ previewReset: true }),
+      })
+      if (!response.ok) throw new Error('Could not reopen the welcome flow.')
+      window.location.reload()
+    } catch {
+      setWelcomeReplayError('Could not reopen the welcome flow. Try again.')
+      setReplayingWelcome(false)
+    }
+  }
 
   return (
     <DashboardMemberContext.Provider value={{ member, notifications, refreshMember, replaceMember }}>
-      {isLocalPreview && <div className={`award-preview-banner px-4 py-2 text-center text-xs text-orange-900 ${awardDark ? 'award-preview-dark' : 'bg-orange-50'}`}>Local preview · sample account and activity {member.onboardingCompletedAt && <button className="ml-2 underline" onClick={() => { void fetch('/api/member/onboarding', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reset: true }) }).then(async response => { if (response.ok) replaceMember((await response.json()).member) }) }}>Preview onboarding</button>}</div>}
-      {!member.onboardingCompletedAt ? <Onboarding member={member} onComplete={completeOnboarding} /> : children}
+      {isLocalPreview && <div className={`award-preview-banner px-4 py-2 text-center text-xs text-orange-900 ${awardDark ? 'award-preview-dark' : 'bg-orange-50'}`}>Local preview · sample account and activity {member.onboardingCompletedAt && <button type="button" className="ml-2 underline disabled:opacity-60" onClick={() => void replayWelcome()} disabled={replayingWelcome}>{replayingWelcome ? 'Reopening welcome…' : 'Replay welcome'}</button>}{welcomeReplayError && <span role="alert" className="ml-2">{welcomeReplayError}</span>}</div>}
+      {!member.onboardingCompletedAt
+        ? <Onboarding member={member} onComplete={completeOnboarding} />
+        : showTop100Moment
+          ? <Top100MomentGate member={member}>{children}</Top100MomentGate>
+          : children}
     </DashboardMemberContext.Provider>
   )
 }

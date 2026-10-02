@@ -9,11 +9,15 @@ type ProgressPatch = {
   welcomeRead?: true
   externalShareConfirmed?: boolean
   externalSharePlatform?: 'linkedin' | 'facebook' | 'instagram' | 'other'
+  top100MomentComplete?: true
 }
 
 type JourneyPayload = {
   state: ReturnType<typeof deriveAwardeeJourney>
   settings: AwardeeJourneySettings
+  moment: {
+    completedAt: string | null
+  }
 }
 
 export function settingsFromRows(settingsRow: any, campaignRow: any): AwardeeJourneySettings {
@@ -29,6 +33,10 @@ export function settingsFromRows(settingsRow: any, campaignRow: any): AwardeeJou
     facebookUrl: settingsRow?.facebook_url || defaults.facebookUrl,
     instagramUrl: settingsRow?.instagram_url || defaults.instagramUrl,
     flyerTemplateUrl: settingsRow?.flyer_template_url || defaults.flyerTemplateUrl,
+    cohortYear: Number(settingsRow?.cohort_year ?? defaults.cohortYear),
+    selectedAwardeeCount: Number(settingsRow?.selected_awardee_count ?? defaults.selectedAwardeeCount),
+    applicantCount: Number(settingsRow?.applicant_count ?? defaults.applicantCount),
+    applicantCountryCount: Number(settingsRow?.applicant_country_count ?? defaults.applicantCountryCount),
     magazineCampaign: {
       id: campaignRow?.id || settingsRow?.magazine_campaign_id || defaults.magazineCampaign.id,
       title: campaignRow?.title || defaults.magazineCampaign.title,
@@ -81,8 +89,13 @@ export async function getAwardeeJourneyForMember(memberId: string): Promise<Jour
       certificateAvailable: false,
     },
   }
-
-  return { state: deriveAwardeeJourney(input), settings }
+  return {
+    state: deriveAwardeeJourney(input),
+    settings,
+    moment: {
+      completedAt: payload?.progress?.top100_moment_completed_at ?? null,
+    },
+  }
 }
 
 export async function saveAwardeeJourneyProgress(memberId: string, patch: ProgressPatch): Promise<void> {
@@ -92,6 +105,7 @@ export async function saveAwardeeJourneyProgress(memberId: string, patch: Progre
     p_welcome_read: patch.welcomeRead ?? false,
     p_external_share_confirmed: patch.externalShareConfirmed ?? null,
     p_external_share_platform: patch.externalShareConfirmed === true ? patch.externalSharePlatform ?? 'other' : null,
+    p_top100_moment_complete: patch.top100MomentComplete ?? false,
   })
   failOnDbError('progress update', error)
 }

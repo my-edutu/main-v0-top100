@@ -46,15 +46,27 @@ function routeAwardeeJourney(request: NextRequest, store: DemoDashboardStore) {
       },
       award: { paymentStatus: store.awardPayment.status, certificateAvailable: false },
     })
-    return json({ journey: { state, settings: DEFAULT_AWARDEE_JOURNEY_SETTINGS } })
+    return json({ journey: {
+      state,
+      settings: DEFAULT_AWARDEE_JOURNEY_SETTINGS,
+      moment: { completedAt: store.top100MomentCompletedAt },
+    } })
   }
   if (request.method !== 'PATCH') return null
 
   return readBody(request).then((body) => {
-    if (!body || Object.keys(body).some((key) => !['welcomeRead', 'externalShareConfirmed', 'externalSharePlatform'].includes(key))) {
+    if (!body || Object.keys(body).some((key) => !['welcomeRead', 'externalShareConfirmed', 'externalSharePlatform', 'top100MomentComplete', 'previewReset'].includes(key))) {
       return json({ message: 'Choose a supported onboarding update.' }, 400)
     }
+    if (body.previewReset !== undefined) {
+      if (body.previewReset !== true || Object.keys(body).length !== 1) {
+        return json({ message: 'Choose a supported onboarding update.' }, 400)
+      }
+      store.top100MomentCompletedAt = null
+      return json({ saved: true })
+    }
     if (body.welcomeRead !== undefined && body.welcomeRead !== true) return json({ message: 'Choose a supported onboarding update.' }, 400)
+    if (body.top100MomentComplete !== undefined && body.top100MomentComplete !== true) return json({ message: 'Choose a supported onboarding update.' }, 400)
     if (body.externalShareConfirmed !== undefined) {
       if (typeof body.externalShareConfirmed !== 'boolean') return json({ message: 'Choose a supported onboarding update.' }, 400)
       if (body.externalShareConfirmed && !['linkedin', 'facebook', 'instagram', 'other'].includes(body.externalSharePlatform)) {
@@ -63,6 +75,7 @@ function routeAwardeeJourney(request: NextRequest, store: DemoDashboardStore) {
     }
     const now = new Date().toISOString()
     if (body.welcomeRead === true) store.welcomeReadAt ??= now
+    if (body.top100MomentComplete === true) store.top100MomentCompletedAt ??= now
     if (body.externalShareConfirmed === true) {
       store.externalShareConfirmedAt = now
       store.externalSharePlatform = String(body.externalSharePlatform)
@@ -745,6 +758,7 @@ export async function handleDemoMemberRequest(
       if (body.reset === true) {
         store.profile.onboardingCompletedAt = null
         store.profile.onboardingStep = 0
+        store.top100MomentCompletedAt = null
         return json({ member: store.profile })
       }
       if (body.complete) {
