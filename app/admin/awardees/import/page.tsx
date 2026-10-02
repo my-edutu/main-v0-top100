@@ -9,9 +9,13 @@ import { Label } from '@/components/ui/label'
 import { IMPORT_FIELDS, type ImportField } from '@/lib/awardee-import-fields'
 import type { SheetInfo, WorkbookMapping } from '@/lib/awardee-workbook'
 import type { ImportReview } from '@/lib/awardee-import-review'
+import { supabase } from '@/lib/supabase/client'
 
-type Preview = ImportReview & { previewId: string; totalRecords: number }
+type Preview = ImportReview & { previewId: string; totalRecords: number; actionCount: number; issueCount: number }
 type Batch = { id: string; filename: string; summary: ImportReview['summary']; created_at: string; rolled_back_at: string | null }
+type StagedUpload = { uploadPath: string; filename: string }
+
+const MAX_FILE_BYTES = 5 * 1024 * 1024
 
 const labels: Record<ImportField, string> = {
   externalId: 'Winner ID', name: 'Full name', email: 'Email', country: 'Country',
@@ -27,6 +31,7 @@ const labels: Record<ImportField, string> = {
 
 export default function AwardeesImportPage() {
   const [file, setFile] = useState<File | null>(null)
+  const [stagedUpload, setStagedUpload] = useState<StagedUpload | null>(null)
   const [sheets, setSheets] = useState<SheetInfo[]>([])
   const [mapping, setMapping] = useState<WorkbookMapping | null>(null)
   const [preview, setPreview] = useState<Preview | null>(null)
@@ -43,21 +48,49 @@ export default function AwardeesImportPage() {
     if (response.ok) setHistory((await response.json()).batches ?? [])
   }
 
-  async function send(action: 'inspect' | 'preview' | 'commit', nextFile = file, nextMapping = mapping, previewId?: string) {
-    if (!nextFile) throw new Error('Choose a spreadsheet first.')
-    const form = new FormData()
-    form.set('file', nextFile)
-    form.set('action', action)
-    if (nextMapping) form.set('mapping', JSON.stringify(nextMapping))
-    if (previewId) form.set('previewId', previewId)
-    const response = await fetch('/api/awardees/import', { method: 'POST', body: form })
+  async function send(action: 'inspect' | 'preview' | 'commit', upload = stagedUpload, nextMapping = mapping, previewId?: string) {
+    if (!upload) throw new Error('Choose a spreadsheet first.')
+    const response = await fetch('/api/awardees/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, ...upload, mapping: nextMapping, previewId }),
+    })
     const body = await response.json().catch(() => ({}))
-    if (!response.ok) throw new Error(body.message || 'Could not process this spreadsheet.')
+    if (!response.ok) throw new Error(body.message || (response.status === 413 ? 'The spreadsheet is too large to process. Choose a file under 5 MiB.' : 'Could not process this spreadsheet.'))
     return body
   }
 
+  async function discardUpload(upload: StagedUpload) {
+    await fetch('/api/awardees/import', {
+      method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uploadPath: upload.uploadPath }),
+    })
+  }
+
+  async function stageFile(nextFile: File): Promise<StagedUpload> {
+    if (!nextFile.size || nextFile.size > MAX_FILE_BYTES) throw new Error('Choose an Excel or CSV file up to 5 MiB.')
+    if (!/\.(xlsx|xls|csv)$/i.test(nextFile.name)) throw new Error('Choose an .xlsx, .xls, or .csv file.')
+    const response = await fetch('/api/awardees/import', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'prepare-upload', filename: nextFile.name, fileSize: nextFile.size }),
+    })
+    const body = await response.json().catch(() => ({}))
+    if (!response.ok) throw new Error(body.message || 'Could not prepare the spreadsheet upload.')
+    const upload = { uploadPath: String(body.uploadPath), filename: nextFile.name }
+    const { error: uploadError } = await supabase.storage.from(String(body.bucket)).uploadToSignedUrl(upload.uploadPath, String(body.token), nextFile, {
+      contentType: nextFile.type || 'application/octet-stream',
+    })
+    if (uploadError) {
+      await discardUpload(upload).catch(() => undefined)
+      throw new Error(`Could not upload the spreadsheet: ${uploadError.message}`)
+    }
+    return upload
+  }
+
   async function selectFile(nextFile: File | null) {
+    if (stagedUpload) await discardUpload(stagedUpload).catch(() => undefined)
     setFile(nextFile)
+    setStagedUpload(null)
     setSheets([])
     setMapping(null)
     setPreview(null)
@@ -67,7 +100,9 @@ export default function AwardeesImportPage() {
     if (!nextFile) return
     setBusy(true)
     try {
-      const body = await send('inspect', nextFile, null)
+      const upload = await stageFile(nextFile)
+      setStagedUpload(upload)
+      const body = await send('inspect', upload, null)
       setSheets(body.sheets)
       setMapping(body.mapping)
     } catch (cause) {
@@ -105,10 +140,11 @@ export default function AwardeesImportPage() {
     setBusy(true)
     setError('')
     try {
-      const body = await send('commit', file, mapping, preview.previewId)
+      const body = await send('commit', stagedUpload, mapping, preview.previewId)
       setSuccess(`Imported ${body.batch.count} winner records. Batch ${body.batch.id}.`)
       setPreview(null)
       setApproved(false)
+      setStagedUpload(null)
       await loadHistory()
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not save the import.')
@@ -141,7 +177,7 @@ export default function AwardeesImportPage() {
     <section className="rounded-2xl border bg-white p-5 shadow-sm sm:p-6">
       <div className="flex items-center gap-3"><FileSpreadsheet className="h-6 w-6 text-orange-700" /><div><h2 className="text-lg font-semibold">1. Choose a spreadsheet</h2><p className="text-sm text-stone-600">Excel and CSV files up to 5 MiB and 10,000 rows.</p></div></div>
       <Input aria-label="Choose spreadsheet" className="mt-5 max-w-xl" type="file" accept=".xlsx,.xls,.csv" disabled={busy} onChange={(event) => void selectFile(event.target.files?.[0] ?? null)} />
-      {file && <p className="mt-3 text-sm font-medium text-stone-700">{file.name}</p>}
+      {file && <p className="mt-3 text-sm font-medium text-stone-700">{file.name}{!mapping && error && !busy ? <Button type="button" variant="link" className="ml-2 h-auto p-0 text-orange-700" onClick={() => void selectFile(file)}>Retry upload</Button> : null}</p>}
     </section>
 
     {mapping && <section className="rounded-2xl border bg-white p-5 shadow-sm sm:p-6">
@@ -164,10 +200,11 @@ export default function AwardeesImportPage() {
       <h2 className="text-lg font-semibold">3. Review before import</h2>
       <div className="mt-4 grid gap-3 sm:grid-cols-4">{([['New', preview.summary.new], ['Fill missing details', preview.summary.fill], ['Unchanged', preview.summary.unchanged], ['Needs review', preview.summary.skipped]] as const).map(([label, count]) => <div key={label} className="rounded-xl bg-stone-50 p-4"><strong className="block text-2xl">{count}</strong><span className="text-sm text-stone-600">{label}</span></div>)}</div>
       <p className="mt-4 text-sm text-stone-600">{preview.totalRecords} valid winner rows found. New winners remain private until they claim their account.</p>
-      {preview.issues.length > 0 && <details className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4" open><summary className="cursor-pointer font-semibold text-amber-900">{preview.issues.length} rows or fields need review</summary><ul className="mt-3 max-h-52 space-y-2 overflow-auto text-sm text-amber-900">{preview.issues.map((issue, index) => <li key={index}><strong>{issue.source}:</strong> {issue.message}</li>)}</ul></details>}
+      {preview.issueCount > 0 && <details className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4" open><summary className="cursor-pointer font-semibold text-amber-900">{preview.issueCount} rows or fields need review</summary><ul className="mt-3 max-h-52 space-y-2 overflow-auto text-sm text-amber-900">{preview.issues.map((issue, index) => <li key={index}><strong>{issue.source}:</strong> {issue.message}</li>)}</ul>{preview.issueCount > preview.issues.length ? <p className="mt-3 text-sm">Showing the first {preview.issues.length} issues.</p> : null}</details>}
+      {preview.actionCount > preview.actions.length ? <p className="mt-4 text-sm text-stone-600">Showing the first {preview.actions.length} of {preview.actionCount} changes below.</p> : null}
       <div className="mt-5 max-h-72 overflow-auto rounded-xl border"><table className="w-full min-w-[600px] text-left text-sm"><thead className="sticky top-0 bg-stone-50"><tr><th className="p-3">Action</th><th className="p-3">Winner</th><th className="p-3">Email</th><th className="p-3">Fields</th></tr></thead><tbody>{preview.actions.map((action, index) => <tr key={index} className="border-t"><td className="p-3 capitalize">{action.type}</td><td className="p-3">{action.name}</td><td className="p-3">{action.email}</td><td className="p-3">{Object.keys(action.payload).filter((key) => !['name', 'email', 'slug', 'metadata', 'is_public'].includes(key)).join(', ') || 'Identity'}</td></tr>)}</tbody></table></div>
-      <label className="mt-5 flex items-start gap-3 text-sm"><input type="checkbox" checked={approved} onChange={(event) => setApproved(event.target.checked)} className="mt-1" />I reviewed the matches and understand that rows listed as needing review will be skipped.</label>
-      <Button className="mt-5" disabled={busy || !approved || !preview.actions.length} onClick={() => void commit()}>{busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}Import {preview.actions.length} records</Button>
+      <label className="mt-5 flex items-start gap-3 text-sm"><input type="checkbox" checked={approved} onChange={(event) => setApproved(event.target.checked)} className="mt-1" />I reviewed the summary and the listed sample of changes. Rows marked as needing review will be skipped.</label>
+      <Button className="mt-5" disabled={busy || !approved || !preview.actionCount} onClick={() => void commit()}>{busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}Import {preview.actionCount} records</Button>
     </section>}
 
     {history.length > 0 && <section className="rounded-2xl border bg-white p-5 shadow-sm sm:p-6"><h2 className="text-lg font-semibold">Recent imports</h2><ul className="mt-4 divide-y">{history.map((batch) => <li key={batch.id} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm"><span><strong className="block">{batch.filename}</strong><span className="text-stone-600">{batch.summary.new} new · {batch.summary.fill} filled · {new Date(batch.created_at).toLocaleString()}</span></span>{batch.rolled_back_at ? <span className="text-stone-500">Undone</span> : <Button size="sm" variant="outline" disabled={busy} onClick={() => void undo(batch)}>Undo batch</Button>}</li>)}</ul></section>}

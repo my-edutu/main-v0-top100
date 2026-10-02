@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
-const productionScriptSrc = "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://cdn.brevo.com https://sibautomation.com"
-const developmentScriptSrc = "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://challenges.cloudflare.com https://cdn.brevo.com https://sibautomation.com"
+const productionScriptSrc = "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://static.cloudflareinsights.com https://cdn.brevo.com https://sibautomation.com"
+const developmentScriptSrc = "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://challenges.cloudflare.com https://static.cloudflareinsights.com https://cdn.brevo.com https://sibautomation.com"
 const scriptSrc = process.env.NODE_ENV === 'production' ? productionScriptSrc : developmentScriptSrc
 
 const nextConfig = {
@@ -79,7 +79,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "img-src * data: blob:",
               "font-src 'self' data: https://fonts.gstatic.com",
-              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.brevo.com https://in-automate.brevo.com https://sibautomation.com https://challenges.cloudflare.com",
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.brevo.com https://in-automate.brevo.com https://sibautomation.com https://challenges.cloudflare.com https://cloudflareinsights.com",
               "frame-src https://challenges.cloudflare.com https://www.youtube-nocookie.com https://www.youtube.com",
               "media-src 'self' https: data:",
               "object-src 'none'",
