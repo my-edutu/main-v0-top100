@@ -50,7 +50,7 @@ describe('award payment copy', () => {
     expect(markup).toContain('value="USD"')
     expect(markup).not.toContain('href="https://checkout.bachs.io/pay/pl_f912ab207c61"')
     expect(markup).toContain('Proceed')
-    expect(markup).toContain('review applicable charges')
+    expect(markup).toContain('review any applicable charges')
   })
 
   it('shows a full-screen green payment confirmation with a view-award action', () => {
