@@ -2,7 +2,7 @@
 // Admin-only management of signup access codes.
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/api/require-admin'
-import { generateCode, listCodes, parseAccessCodeRequest } from '@/lib/access-codes'
+import { deleteUnavailableCodes, generateCode, listCodes, parseAccessCodeRequest } from '@/lib/access-codes'
 
 export const runtime = 'nodejs'
 
@@ -51,5 +51,18 @@ export async function POST(request: NextRequest) {
       },
       { status: isValidationError ? 400 : 500 },
     )
+  }
+}
+
+// DELETE — remove codes that are used, revoked, or past their expiry.
+export async function DELETE(request: NextRequest) {
+  const adminCheck = await requireAdmin(request)
+  if ('error' in adminCheck) return adminCheck.error
+
+  try {
+    const deleted = await deleteUnavailableCodes()
+    return NextResponse.json({ deleted })
+  } catch {
+    return NextResponse.json({ message: 'Could not clear unavailable codes.' }, { status: 500 })
   }
 }

@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Ban, CheckCircle2, Copy, KeyRound, RefreshCw, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, Ban, CheckCircle2, Copy, KeyRound, RefreshCw, ShieldCheck, Trash2 } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -22,6 +22,10 @@ type AccessCode = {
   created_at: string
 }
 
+function isUnavailable(code: AccessCode, now: number) {
+  return code.status !== 'active' || new Date(code.expires_at).getTime() <= now
+}
+
 export default function AdminInvitesPage() {
   const [codes, setCodes] = useState<AccessCode[] | null>(null)
   const [label, setLabel] = useState('Awardee invite')
@@ -32,6 +36,12 @@ export default function AdminInvitesPage() {
   const [latestCode, setLatestCode] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [showUnavailable, setShowUnavailable] = useState(false)
+  const [now, setNow] = useState(() => Date.now())
+
+  const unavailableCount = useMemo(() => (codes ?? []).filter((code) => isUnavailable(code, now)).length, [codes, now])
+  const visibleCodes = useMemo(() => (codes ?? []).filter((code) => isUnavailable(code, now) === showUnavailable), [codes, now, showUnavailable])
 
   async function refresh() {
     setError('')
@@ -43,6 +53,7 @@ export default function AdminInvitesPage() {
       }
       const data = await res.json()
       setCodes(data.codes ?? [])
+      setNow(Date.now())
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not load access codes.')
       setCodes([])
@@ -100,6 +111,39 @@ export default function AdminInvitesPage() {
       await refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not revoke the code.')
+    }
+  }
+
+  async function deleteCode(id: string) {
+    if (!window.confirm('Delete this unavailable code permanently?')) return
+    setDeleting(true)
+    setError('')
+    try {
+      const response = await fetch(`/api/admin/access-codes/${id}`, { method: 'DELETE' })
+      const body = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(body.message || 'Could not delete the code.')
+      setCodes((current) => current?.filter((code) => code.id !== id) ?? [])
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not delete the code.')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  async function clearUnavailable() {
+    if (!unavailableCount || !window.confirm(`Delete ${unavailableCount} unavailable code${unavailableCount === 1 ? '' : 's'} permanently?`)) return
+    setDeleting(true)
+    setError('')
+    try {
+      const response = await fetch('/api/admin/access-codes', { method: 'DELETE' })
+      const body = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(body.message || 'Could not clear unavailable codes.')
+      await refresh()
+      setShowUnavailable(false)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not clear unavailable codes.')
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -244,12 +288,23 @@ export default function AdminInvitesPage() {
         </section>
 
         <Card className="border-orange-100 bg-white/92 shadow-none">
-          <CardHeader className="border-b border-orange-100">
-            <CardTitle className="text-2xl font-black text-slate-950">Codebase</CardTitle>
+          <CardHeader className="gap-3 border-b border-orange-100 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle className="text-2xl font-black text-slate-950">Codebase</CardTitle>
+              <p className="mt-1 text-sm text-slate-600">Usable codes are shown first. Past codes can be reviewed or cleared.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => setShowUnavailable((current) => !current)}>
+                {showUnavailable ? 'Show usable' : `Show unavailable (${unavailableCount})`}
+              </Button>
+              {unavailableCount > 0 ? <Button type="button" variant="outline" size="sm" disabled={deleting} className="text-red-700" onClick={() => void clearUnavailable()}>
+                <Trash2 className="mr-1.5 h-4 w-4" />{deleting ? 'Deleting...' : 'Clear unavailable'}
+              </Button> : null}
+            </div>
           </CardHeader>
           <CardContent className="grid gap-3 p-5 md:grid-cols-2 xl:grid-cols-3">
-            {codes.length ? codes.map((invite) => {
-              const expired = new Date(invite.expires_at).getTime() < Date.now()
+            {visibleCodes.length ? visibleCodes.map((invite) => {
+              const expired = new Date(invite.expires_at).getTime() <= now
               const effectiveStatus = expired && invite.status === 'active' ? 'expired' : invite.status
               return (
                 <div key={invite.id} className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -286,13 +341,15 @@ export default function AdminInvitesPage() {
                           <Ban className="mr-2 h-3.5 w-3.5" />
                           Revoke
                         </Button>
-                      ) : null}
+                      ) : <Button type="button" variant="ghost" size="sm" disabled={deleting} className="rounded-full text-red-700 hover:bg-red-50" onClick={() => void deleteCode(invite.id)}>
+                        <Trash2 className="mr-1.5 h-3.5 w-3.5" />Delete
+                      </Button>}
                     </div>
                   </div>
                 </div>
               )
             }) : (
-              <div className="p-4 text-sm font-medium text-slate-500">No codes yet. Generate one to get started.</div>
+              <div className="p-4 text-sm font-medium text-slate-500">{showUnavailable ? 'No unavailable codes.' : 'No usable codes. Generate one to get started.'}</div>
             )}
           </CardContent>
         </Card>

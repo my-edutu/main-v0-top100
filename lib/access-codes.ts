@@ -252,3 +252,32 @@ export async function revokeCode(id: string): Promise<AccessCode | null> {
   if (error) throw new Error(error.message)
   return (data as AccessCode) ?? null
 }
+
+function unavailableCodeFilter(now = new Date()): string {
+  return `status.neq.active,expires_at.lte.${now.toISOString()}`
+}
+
+/** Delete only codes that can no longer be redeemed. */
+export async function deleteUnavailableCode(id: string): Promise<boolean> {
+  const { data, error } = await createAdminClient()
+    .from('access_codes')
+    .delete()
+    .eq('id', id)
+    .or(unavailableCodeFilter())
+    .select('id')
+    .maybeSingle()
+
+  if (error) throw new Error(error.message)
+  return Boolean(data)
+}
+
+/** Clear expired, used, and revoked codes without touching usable invites. */
+export async function deleteUnavailableCodes(): Promise<number> {
+  const { count, error } = await createAdminClient()
+    .from('access_codes')
+    .delete({ count: 'exact' })
+    .or(unavailableCodeFilter())
+
+  if (error) throw new Error(error.message)
+  return count ?? 0
+}

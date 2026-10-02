@@ -2,7 +2,7 @@
 // Admin-only: revoke a single access code.
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/api/require-admin'
-import { revokeCode } from '@/lib/access-codes'
+import { deleteUnavailableCode, revokeCode } from '@/lib/access-codes'
 
 export const runtime = 'nodejs'
 
@@ -35,5 +35,24 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       { message: 'Could not revoke the access code.', details: error instanceof Error ? error.message : undefined },
       { status: 500 },
     )
+  }
+}
+
+// DELETE — active, unexpired codes must be revoked before they can be removed.
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const adminCheck = await requireAdmin(request)
+  if ('error' in adminCheck) return adminCheck.error
+
+  const { id } = await params
+  if (!/^[0-9a-f-]{36}$/i.test(id)) {
+    return NextResponse.json({ message: 'Choose a valid access code.' }, { status: 400 })
+  }
+
+  try {
+    const deleted = await deleteUnavailableCode(id)
+    if (!deleted) return NextResponse.json({ message: 'Only unavailable codes can be deleted.' }, { status: 409 })
+    return NextResponse.json({ deleted: true })
+  } catch {
+    return NextResponse.json({ message: 'Could not delete the access code.' }, { status: 500 })
   }
 }
