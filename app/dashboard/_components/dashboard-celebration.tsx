@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
+import { useReducedMotion } from 'framer-motion'
 import { ArrowRight, Sparkles, Trophy, X } from 'lucide-react'
 
 import {
@@ -13,17 +14,17 @@ import { Dialog, DialogDescription, DialogOverlay, DialogPortal, DialogTitle } f
 const confettiColors = ['#fb923c', '#facc15', '#34d399', '#60a5fa', '#f472b6', '#fff']
 const confetti = Array.from({ length: 44 }, (_, index) => ({
   left: `${(index * 37 + 9) % 100}%`,
-  delay: `${-((index * 13) % 70) / 10}s`,
-  duration: `${5 + (index % 6) * 0.7}s`,
+  delay: `${(index % 10) * 0.055}s`,
+  duration: `${1.75 + (index % 5) * 0.05}s`,
   color: confettiColors[index % confettiColors.length],
   shape: index % 3 === 0 ? 'circle' : 'square',
 }))
 
 const balloons = [
-  { left: '7%', delay: '-5s', duration: '12s', color: '#fb923c', size: '48px' },
-  { left: '22%', delay: '-1s', duration: '15s', color: '#facc15', size: '38px' },
-  { left: '72%', delay: '-8s', duration: '13s', color: '#34d399', size: '52px' },
-  { left: '89%', delay: '-3s', duration: '16s', color: '#f472b6', size: '42px' },
+  { left: '7%', delay: '0s', duration: '2s', color: '#fb923c', size: '48px' },
+  { left: '22%', delay: '.16s', duration: '2s', color: '#facc15', size: '38px' },
+  { left: '72%', delay: '.08s', duration: '2s', color: '#34d399', size: '52px' },
+  { left: '89%', delay: '.22s', duration: '2s', color: '#f472b6', size: '42px' },
 ]
 
 export function DashboardCelebration({
@@ -36,7 +37,9 @@ export function DashboardCelebration({
   dashboardLoginCount: number
 }) {
   const storageKey = useMemo(() => dashboardCelebrationStorageKey(memberId), [memberId])
+  const reducedMotion = useReducedMotion()
   const [open, setOpen] = useState(false)
+  const [burst, setBurst] = useState(false)
   const firstName = name.trim().split(/\s+/)[0] || 'Leader'
 
   useEffect(() => {
@@ -54,9 +57,16 @@ export function DashboardCelebration({
     return () => window.cancelAnimationFrame(frame)
   }, [dashboardLoginCount, storageKey])
 
+  useEffect(() => {
+    if (!burst) return
+    const timeout = window.setTimeout(() => setBurst(false), 2_200)
+    return () => window.clearTimeout(timeout)
+  }, [burst])
+
   function handleOpenChange(nextOpen: boolean) {
     setOpen(nextOpen)
     if (nextOpen) return
+    if (dashboardLoginCount === 1 && !reducedMotion) setBurst(true)
 
     try {
       window.localStorage.setItem(storageKey, 'true')
@@ -66,39 +76,44 @@ export function DashboardCelebration({
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <>
+      {burst ? (
+        <>
+          <div aria-hidden="true" className="dashboard-celebration-balloons dashboard-entry-burst">
+            {balloons.map((balloon, index) => (
+              <span
+                key={index}
+                className="dashboard-celebration-balloon"
+                style={{
+                  left: balloon.left,
+                  animationDelay: balloon.delay,
+                  animationDuration: balloon.duration,
+                  width: balloon.size,
+                  height: `calc(${balloon.size} * 1.25)`,
+                  '--balloon-color': balloon.color,
+                } as CSSProperties}
+              />
+            ))}
+          </div>
+          <div aria-hidden="true" className="dashboard-celebration-confetti dashboard-entry-burst">
+            {confetti.map((piece, index) => (
+              <span
+                key={index}
+                className={`dashboard-celebration-confetti-piece is-${piece.shape}`}
+                style={{
+                  left: piece.left,
+                  animationDelay: piece.delay,
+                  animationDuration: piece.duration,
+                  backgroundColor: piece.color,
+                }}
+              />
+            ))}
+          </div>
+        </>
+      ) : null}
+      <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogPortal>
         <DialogOverlay className="dashboard-celebration-overlay" />
-        <div aria-hidden="true" className="dashboard-celebration-balloons">
-          {balloons.map((balloon, index) => (
-            <span
-              key={index}
-              className="dashboard-celebration-balloon"
-              style={{
-                left: balloon.left,
-                animationDelay: balloon.delay,
-                animationDuration: balloon.duration,
-                width: balloon.size,
-                height: `calc(${balloon.size} * 1.25)`,
-                '--balloon-color': balloon.color,
-              } as CSSProperties}
-            />
-          ))}
-        </div>
-        <div aria-hidden="true" className="dashboard-celebration-confetti">
-          {confetti.map((piece, index) => (
-            <span
-              key={index}
-              className={`dashboard-celebration-confetti-piece is-${piece.shape}`}
-              style={{
-                left: piece.left,
-                animationDelay: piece.delay,
-                animationDuration: piece.duration,
-                backgroundColor: piece.color,
-              }}
-            />
-          ))}
-        </div>
         <DialogPrimitive.Content className="dashboard-celebration-card">
           <DialogPrimitive.Close aria-label="Close congratulations" className="dashboard-celebration-close">
             <X size={20} aria-hidden="true" />
@@ -118,6 +133,7 @@ export function DashboardCelebration({
           <p className="dashboard-celebration-footnote">Your people and opportunities are waiting.</p>
         </DialogPrimitive.Content>
       </DialogPortal>
-    </Dialog>
+      </Dialog>
+    </>
   )
 }
