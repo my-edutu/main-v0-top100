@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { LogOut, Menu } from 'lucide-react'
+import { LogOut, X } from 'lucide-react'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu'
 
 import { Button } from '@/components/ui/button'
@@ -39,8 +39,8 @@ export function SignOutControl({ menu = false }: { menu?: boolean }) {
   if (menu) return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button type="button" aria-label="Open account menu" className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-neutral-900 hover:bg-neutral-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-500">
-          <Menu className="h-6 w-6" aria-hidden="true" />
+        <button type="button" aria-label="Onboarding options" className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-neutral-900 hover:bg-neutral-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-500">
+          <X className="h-6 w-6" aria-hidden="true" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-40 bg-white text-neutral-900">

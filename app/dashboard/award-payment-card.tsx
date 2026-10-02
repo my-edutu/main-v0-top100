@@ -75,7 +75,7 @@ export function AwardPaymentCard({
             role="status"
             className="rounded-[15px] border border-amber-800 bg-[#342619] px-4 py-3 text-sm leading-6 text-amber-100"
           >
-            Your payment was cancelled. You can return to Bachs and try again
+            Your payment was cancelled. You can return here and try again
             whenever you are ready.
           </div>
         ) : null}
@@ -102,8 +102,8 @@ export function AwardPaymentCard({
 
         <div className="flex flex-col gap-3 border-t border-[#39323B] pt-5 sm:flex-row sm:items-center sm:justify-between">
           <p className="max-w-md text-xs leading-5 text-[#C8C0CA]">
-            Bachs lets you choose your currency and review applicable charges
-            before you pay. Use the same email as your awardee account.
+            Choose your currency and review any applicable charges before you
+            continue. Use the same email as your awardee account.
           </p>
           <button
             type="button"
@@ -111,7 +111,7 @@ export function AwardPaymentCard({
             disabled={startingCheckout}
             className="inline-flex min-h-12 shrink-0 items-center justify-center rounded-xl bg-[linear-gradient(110deg,#f97316,#fb923c,#f59e0b)] px-5 font-semibold text-[#171412] shadow-sm transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F36C21] focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-70"
           >
-            {startingCheckout ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />Opening secure checkout</> : <>Pay with Bachs <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" /></>}
+            {startingCheckout ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />Opening secure checkout</> : <>Proceed <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" /></>}
           </button>
         </div>
         {checkoutError ? <p role="alert" className="text-sm leading-6 text-rose-300">{checkoutError}</p> : null}

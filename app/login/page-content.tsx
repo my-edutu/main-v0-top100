@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -31,7 +30,6 @@ export default function SignInContent() {
     message: string
     icon: React.ReactNode
   } | null>(null)
-  const router = useRouter()
   const searchParams = useSearchParams()
   // No default here — when no explicit destination is requested, the redirect
   // is decided by role after sign-in (admin -> /admin, member -> /dashboard).
@@ -253,25 +251,6 @@ export default function SignInContent() {
 
       {/* Form panel */}
       <div className="flex min-h-dvh flex-col px-6 py-8 sm:px-10 lg:min-h-0 lg:px-16">
-        <div className="flex items-center justify-between">
-          <Link href="/" className="lg:hidden">
-            <Image
-              src="/Top100 Africa Future leaders Logo .png"
-              alt="Top100 Africa Future Leaders — back to home"
-              width={140}
-              height={140}
-              className="h-9 w-auto object-contain"
-              priority
-            />
-          </Link>
-          <Link
-            href="/"
-            className="ml-auto rounded-lg text-sm font-medium text-zinc-500 transition-colors hover:text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40 focus-visible:ring-offset-2"
-          >
-            Back to site
-          </Link>
-        </div>
-
         <div className="mx-auto flex w-full max-w-[400px] flex-1 flex-col justify-center py-12">
           <div>
             <h1 className="text-3xl font-semibold tracking-tight text-zinc-950">Sign in</h1>
@@ -360,7 +339,10 @@ export default function SignInContent() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     autoComplete="current-password"
-                    className="h-11 rounded-xl border-zinc-200 bg-white px-3.5 pr-11 text-sm transition-colors placeholder:text-zinc-400 focus-visible:border-orange-500 focus-visible:ring-2 focus-visible:ring-orange-500/20"
+                    className={cn(
+                      'h-11 rounded-xl border-zinc-200 bg-white px-3.5 pr-11 transition-colors placeholder:text-sm placeholder:tracking-normal placeholder:text-zinc-400 focus-visible:border-orange-500 focus-visible:ring-2 focus-visible:ring-orange-500/20',
+                      showPassword ? 'text-sm' : 'text-2xl tracking-[0.16em]'
+                    )}
                     required
                   />
                   <Button

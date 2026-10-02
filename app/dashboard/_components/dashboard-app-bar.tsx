@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ArrowLeft, Bell, Search } from 'lucide-react'
 
 import { resolveDashboardTitle } from '../_lib/navigation'
@@ -33,6 +33,24 @@ export function DashboardAppBar() {
   const isMembersRoute = pathname === '/dashboard/discover/members'
   const [isScrolled, setIsScrolled] = useState(false)
   const title = resolveDashboardTitle(pathname)
+  const inAppHistory = useRef<string[]>([])
+
+  useEffect(() => {
+    if (!pathname.startsWith('/dashboard')) return
+
+    const history = inAppHistory.current
+    if (history.at(-1) !== pathname) {
+      history.push(pathname)
+      if (history.length > 30) history.shift()
+    }
+  }, [pathname])
+
+  function goBack() {
+    const history = inAppHistory.current
+    if (history.at(-1) === pathname) history.pop()
+    const previousPath = history.pop()
+    router.replace(previousPath?.startsWith('/dashboard') ? previousPath : '/dashboard')
+  }
 
   useEffect(() => {
     if (!isMembersRoute) return
@@ -66,7 +84,7 @@ export function DashboardAppBar() {
           <div className="flex min-w-0 items-center gap-1">
             <button
               type="button"
-              onClick={() => router.back()}
+              onClick={goBack}
               aria-label="Go back"
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#171412] transition hover:bg-[#FFE7D5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-2"
             >
