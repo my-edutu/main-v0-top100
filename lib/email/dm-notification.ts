@@ -2,7 +2,7 @@
 // "You have a new message" email. Deliberately contains neither the message
 // body nor either party's address — the conversation stays in the dashboard.
 import type { createAdminClient } from '@/lib/supabase/server'
-import { sendTransactionalEmail } from './send'
+import { enqueueMemberEmail } from './outbox'
 
 export const DM_NOTIFY_WINDOW_MS = 60 * 60 * 1000
 
@@ -53,61 +53,23 @@ function escapeHtml(value: string): string {
 }
 
 /**
- * Best-effort notification. Never throws and never returns a failure to the
- * caller — a message must be delivered even when email is broken.
+ * Persist a deduplicated delivery job. Provider requests run in the worker,
+ * after the user-facing message action has completed.
  */
 export async function notifyNewMessage(
   supabase: ReturnType<typeof createAdminClient>,
   input: { conversationId: string; recipientId: string; senderName: string },
 ): Promise<void> {
   try {
-    const { data: recipient, error } = await supabase
-      .from('profiles')
-      .select('email, full_name, notification_prefs')
-      .eq('id', input.recipientId)
-      .maybeSingle()
-
-    if (error || !recipient?.email) return
-
-    const prefs = (recipient.notification_prefs ?? {}) as Record<string, unknown>
-    // Respect the member's existing messageAlerts preference; default on.
-    if (prefs.messageAlerts === false) return
-
-    const { data: conversation } = await supabase
-      .from('dm_conversations')
-      .select('last_notified_at')
-      .eq('id', input.conversationId)
-      .maybeSingle()
-
-    if (!shouldNotify((conversation as any)?.last_notified_at ?? null)) return
-
-    const built = buildDmNotification({
-      recipientName: recipient.full_name ?? 'there',
+    const hourBucket = Math.floor(Date.now() / DM_NOTIFY_WINDOW_MS)
+    await enqueueMemberEmail(supabase, {
+      kind: 'direct_message',
+      recipientId: input.recipientId,
+      conversationId: input.conversationId,
       senderName: input.senderName,
-      siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? 'https://top100afl.com',
+      dedupeKey: `dm:${input.conversationId}:${input.recipientId}:${hourBucket}`,
     })
-
-    const result = await sendTransactionalEmail({
-      to: recipient.email,
-      toName: recipient.full_name ?? undefined,
-      subject: built.subject,
-      html: built.html,
-      text: built.text,
-    })
-
-    if (!result.ok) {
-      console.error('[dm-notify] send failed', input.conversationId, result.reason)
-      return
-    }
-
-    // Stamp only after a successful send, so a failure retries on the next message.
-    const { error: stampError } = await supabase
-      .from('dm_conversations')
-      .update({ last_notified_at: new Date().toISOString() })
-      .eq('id', input.conversationId)
-
-    if (stampError) console.error('[dm-notify] could not stamp last_notified_at', input.conversationId, stampError)
   } catch (error) {
-    console.error('[dm-notify] unexpected failure', input.conversationId, error)
+    console.error('[dm-notify] could not queue notification', input.conversationId, error)
   }
 }

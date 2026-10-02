@@ -9,3 +9,6 @@ APP_ORIGIN = "https://www.top100afl.com"
 queue = "top100-afl-portfolio-generation"
 max_batch_size = 1
 max_retries = 3
+
+[triggers]
+crons = ["*/1 * * * *"]

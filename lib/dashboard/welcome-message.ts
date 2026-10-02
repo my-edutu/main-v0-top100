@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import { createAdminClient } from '@/lib/supabase/server'
-import { notifyNewMessage } from '@/lib/email/dm-notification'
+import { enqueueMemberEmail } from '@/lib/email/outbox'
 
 /** Stable message ID makes onboarding retries safe, including concurrent completions. */
 export function welcomeMessageId(memberId: string) {
@@ -45,7 +45,7 @@ export async function ensureWelcomeMessage(memberId: string) {
     .single()
   if (!conversation)
     return { ok: false, reason: 'Could not load welcome conversation.' }
-  const { data: inserted, error: insertError } = await db
+  const { error: insertError } = await db
     .from('dm_messages')
     .upsert(
       {
@@ -56,14 +56,19 @@ export async function ensureWelcomeMessage(memberId: string) {
       },
       { onConflict: 'id', ignoreDuplicates: true },
     )
-    .select('id')
   if (insertError)
     return { ok: false, reason: 'Could not save welcome message.' }
-  if (inserted?.length)
-    await notifyNewMessage(db, {
-      conversationId: conversation.id,
+  // Queue even when the stable welcome message already existed: this repairs
+  // the case where a previous enqueue failed after the message was saved.
+  try {
+    await enqueueMemberEmail(db, {
+      kind: 'welcome',
       recipientId: memberId,
       senderName: sender.full_name,
+      dedupeKey: `welcome:${memberId}:v1`,
     })
+  } catch (error) {
+    console.warn('[welcome] email could not be queued', error)
+  }
   return { ok: true }
 }

@@ -3,7 +3,7 @@
 //   GET  -> conversation list (with unread counts + last message preview)
 //   POST -> start (or reuse) a conversation with another member and send
 //           the first message. Body: { recipientProfileId, body }
-import { NextRequest, NextResponse } from 'next/server'
+import { after, NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth-server'
 import { createAdminClient } from '@/lib/supabase/server'
 import {
@@ -188,15 +188,12 @@ export async function POST(request: NextRequest) {
 
   await supabase.from('dm_conversations').update({ last_message_at: now }).eq('id', conversationId)
 
-  // Best-effort "you have a new message" email. Fired after the message row
-  // is safely saved, and awaited so a serverless runtime does not kill the
-  // request before the (already failure-proof) send finishes — see
-  // notifyNewMessage, which never throws and never blocks the response body.
-  await notifyNewMessage(supabase, {
+  // Queue the email after the message response; provider work runs on a worker.
+  after(() => notifyNewMessage(supabase, {
     conversationId,
     recipientId,
     senderName: sender.full_name || 'A member',
-  })
+  }))
 
   return NextResponse.json({ conversationId }, { status: 201 })
 }

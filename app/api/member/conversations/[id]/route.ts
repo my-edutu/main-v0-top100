@@ -2,7 +2,7 @@
 // One direct-message thread, scoped to its participants.
 //   GET  -> thread messages (marks incoming messages as read)
 //   POST -> send a message in this thread. Body: { body }
-import { NextRequest, NextResponse } from 'next/server'
+import { after, NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth-server'
 import { createAdminClient } from '@/lib/supabase/server'
 import {
@@ -125,17 +125,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   await supabase.from('dm_conversations').update({ last_message_at: now }).eq('id', id)
 
-  // Best-effort "you have a new message" email, fired only after the message
-  // row is safely saved. Awaited for the same reason as the first-message
-  // path: notifyNewMessage never throws and never surfaces a failure, so the
-  // only cost of awaiting is latency, and a floating promise risks being
-  // killed when the response returns on a serverless runtime.
+  // Queue the email after the message response; provider work runs on a worker.
   const recipientId = conversation.member_one === user.id ? conversation.member_two : conversation.member_one
-  await notifyNewMessage(supabase, {
+  after(() => notifyNewMessage(supabase, {
     conversationId: id,
     recipientId,
     senderName: sender?.full_name || 'A member',
-  })
+  }))
 
   return NextResponse.json({ message: mapMessage(message, user.id) }, { status: 201 })
 }
