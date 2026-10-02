@@ -28,6 +28,9 @@ export default function AdminMemberHubPage() {
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
   const [sending, setSending] = useState(false)
+  const [approvingAll, setApprovingAll] = useState(false)
+  const [pendingSearch, setPendingSearch] = useState('')
+  const [pendingPage, setPendingPage] = useState(0)
 
   const refresh = useCallback(async () => {
     try {
@@ -50,6 +53,14 @@ export default function AdminMemberHubPage() {
   }, [refresh])
 
   const pendingMembers = useMemo(() => members.filter((m) => m.status === 'pending'), [members])
+  const matchingPending = useMemo(() => {
+    const query = pendingSearch.trim().toLowerCase()
+    return query ? pendingMembers.filter((member) => `${member.name} ${member.email}`.toLowerCase().includes(query)) : pendingMembers
+  }, [pendingMembers, pendingSearch])
+  const pendingPageSize = 12
+  const pendingPageCount = Math.max(1, Math.ceil(matchingPending.length / pendingPageSize))
+  const currentPendingPage = Math.min(pendingPage, pendingPageCount - 1)
+  const visiblePending = matchingPending.slice(currentPendingPage * pendingPageSize, (currentPendingPage + 1) * pendingPageSize)
 
   const stats = useMemo(
     () => ({
@@ -129,6 +140,27 @@ export default function AdminMemberHubPage() {
     }
   }
 
+  async function approveAllPending() {
+    if (!pendingMembers.length || approvingAll) return
+    setApprovingAll(true)
+    try {
+      const response = await fetch('/api/admin/members', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'approve-all-pending' }),
+      })
+      const body = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(body.message || 'Could not approve pending awardees.')
+      await refresh()
+      setPendingPage(0)
+      toast.success(`Approved ${body.approved ?? 0} pending awardee${body.approved === 1 ? '' : 's'}.`)
+    } catch (cause) {
+      toast.error(cause instanceof Error ? cause.message : 'Could not approve pending awardees.')
+    } finally {
+      setApprovingAll(false)
+    }
+  }
+
   return (
     <div className="space-y-8">
       <section className="rounded-[32px] bg-gradient-to-br from-orange-500 to-amber-500 p-7 text-white">
@@ -149,40 +181,65 @@ export default function AdminMemberHubPage() {
       </section>
 
       <Card className="rounded-[28px] border-orange-100 shadow-none">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-2xl font-black text-zinc-950">
-            <Users className="h-6 w-6 text-orange-500" />
-            Pending awardees
-          </CardTitle>
+        <CardHeader className="gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-xl font-semibold text-zinc-950">
+              <Users className="h-5 w-5 text-orange-500" />
+              Pending awardees <span className="text-base font-medium text-zinc-500">({pendingMembers.length})</span>
+            </CardTitle>
+            <p className="mt-1 text-sm text-zinc-600">Review individually or approve every pending account at once.</p>
+          </div>
+          <Button type="button" disabled={!pendingMembers.length || approvingAll} className="min-h-11 bg-orange-500 text-white hover:bg-orange-600" onClick={() => void approveAllPending()}>
+            <CheckCircle2 className="mr-2 h-4 w-4" />
+            {approvingAll ? 'Approving...' : `Approve all ${pendingMembers.length}`}
+          </Button>
         </CardHeader>
         <CardContent>
           {pendingMembers.length > 0 ? (
-            <div className="divide-y divide-orange-100">
-              {pendingMembers.map((member) => (
-                <div key={member.id} className="grid gap-4 py-4 md:grid-cols-[1fr_auto] md:items-center">
-                  <div className="flex items-start gap-4">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-50 text-sm font-black text-orange-700">
+            <>
+              <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+                <div className="w-full max-w-sm">
+                  <Label htmlFor="pending-awardee-search" className="text-sm font-medium text-zinc-700">Find an awardee</Label>
+                  <Input id="pending-awardee-search" value={pendingSearch} onChange={(event) => { setPendingSearch(event.target.value); setPendingPage(0) }} placeholder="Search name or email" className="mt-1" />
+                </div>
+                <p className="text-sm text-zinc-500">{matchingPending.length} matching · 12 per page</p>
+              </div>
+              <div className="max-h-[34rem] overflow-y-auto rounded-xl border border-orange-100">
+                <div className="divide-y divide-orange-100">
+                  {visiblePending.map((member) => (
+                <div key={member.id} className="grid gap-2 px-3 py-2.5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-orange-50 text-xs font-semibold text-orange-700">
                       {member.avatarInitials}
                     </div>
                     <div className="min-w-0">
-                      <h3 className="font-black text-zinc-950">{member.name}</h3>
-                      <p className="text-sm text-zinc-500">{member.email}</p>
-                      <p className="mt-1 text-sm font-medium text-zinc-700">{member.headline}</p>
+                      <h3 className="truncate text-sm font-semibold text-zinc-950">{member.name}</h3>
+                      <p className="truncate text-xs text-zinc-500">{member.email}</p>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <Button className="rounded-full bg-orange-500 text-white hover:bg-orange-600" onClick={() => handleMemberAction(member.id, 'approve')}>
-                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                    <Button size="sm" disabled={approvingAll} className="min-h-10 bg-orange-500 text-white hover:bg-orange-600" onClick={() => handleMemberAction(member.id, 'approve')}>
+                      <CheckCircle2 className="mr-1.5 h-4 w-4" />
                       Approve
                     </Button>
-                    <Button variant="outline" className="rounded-full border-red-200 text-red-700 hover:bg-red-50" onClick={() => handleMemberAction(member.id, 'reject')}>
-                      <XCircle className="mr-2 h-4 w-4" />
+                    <Button size="sm" variant="outline" disabled={approvingAll} className="min-h-10 border-red-200 text-red-700 hover:bg-red-50" onClick={() => handleMemberAction(member.id, 'reject')}>
+                      <XCircle className="mr-1.5 h-4 w-4" />
                       Reject
                     </Button>
                   </div>
                 </div>
-              ))}
-            </div>
+                  ))}
+                </div>
+                {visiblePending.length === 0 ? <p className="p-6 text-center text-sm text-zinc-500">No pending awardees match your search.</p> : null}
+              </div>
+              {pendingPageCount > 1 ? <div className="mt-3 flex items-center justify-between gap-3 text-sm text-zinc-600">
+                <span>Page {currentPendingPage + 1} of {pendingPageCount}</span>
+                <div className="flex gap-2">
+                  <Button type="button" size="sm" variant="outline" disabled={currentPendingPage === 0} onClick={() => setPendingPage(currentPendingPage - 1)}>Previous</Button>
+                  <Button type="button" size="sm" variant="outline" disabled={currentPendingPage >= pendingPageCount - 1} onClick={() => setPendingPage(currentPendingPage + 1)}>Next</Button>
+                </div>
+              </div> : null}
+            </>
           ) : (
             <div className="rounded-3xl border border-dashed border-orange-200 bg-orange-50/50 p-8 text-center text-sm font-bold text-zinc-500">
               No pending awardees.
