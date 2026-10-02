@@ -38,7 +38,7 @@ describe('award payment copy', () => {
     expect(markup).toContain('What does the physical award fee cover?')
   })
 
-  it('labels the physical award fee and starts a Bachs checkout for the selected currency', () => {
+  it('labels the physical award fee and starts checkout for the selected currency', () => {
     const markup = renderToStaticMarkup(<AwardPaymentCard view={paymentView} />)
 
     expect(markup).toContain('Complete your physical award fee')
@@ -49,7 +49,7 @@ describe('award payment copy', () => {
     expect(markup).toContain('value="NGN"')
     expect(markup).toContain('value="USD"')
     expect(markup).not.toContain('href="https://checkout.bachs.io/pay/pl_f912ab207c61"')
-    expect(markup).toContain('Pay with Bachs')
+    expect(markup).toContain('Proceed')
     expect(markup).toContain('review applicable charges')
   })
 
