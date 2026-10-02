@@ -153,7 +153,7 @@ jobs:
           printf ' - %s\n' "${files[@]}"
 
           set +e
-          npx eslint --format json --output-file "$RUNNER_TEMP/eslint-changed.json" "${files[@]}"
+          npx eslint --no-warn-ignored --format json --output-file "$RUNNER_TEMP/eslint-changed.json" "${files[@]}"
           lint_exit=$?
           set -e
 
