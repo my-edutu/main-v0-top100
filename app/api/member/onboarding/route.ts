@@ -53,27 +53,38 @@ export async function POST(request: Request) {
     const message = validateOnboarding({ ...profile, ...columns })
     if (message) return NextResponse.json({ message }, { status: 400 })
   }
-  const nextPrefs = {
-    ...prefs,
-    onboardingStep: Math.max(
-      0,
-      Math.min(4, Number.isInteger(body.step) ? body.step : 0),
-    ),
+  const prefsPatch = {
+    onboardingStep: Math.max(0, Math.min(4, Number.isInteger(body.step) ? body.step : 0)),
     ...(body.complete === true
       ? { onboardingCompletedAt: new Date().toISOString() }
       : {}),
   }
   // Initial setup has its own endpoint so saving individual steps never consumes BIO edit access.
-  const { data: saved, error: saveError } = await db
-    .from('profiles')
-    .update({ ...columns, notification_prefs: nextPrefs })
-    .eq('id', user.id)
-    .select('*')
-    .single()
-  if (saveError)
+  let saved = profile
+  if (Object.keys(columns).length) {
+    const { data: updatedProfile, error: saveError } = await db
+      .from('profiles')
+      .update(columns)
+      .eq('id', user.id)
+      .select('*')
+      .single()
+    if (saveError) {
+      return NextResponse.json(
+        { message: 'Your progress could not be saved. Please try again.' },
+        { status: 503 },
+      )
+    }
+    saved = updatedProfile
+  }
+  const { data: mergedPrefs, error: prefsError } = await db.rpc('merge_profile_notification_prefs', {
+    p_profile_id: user.id,
+    p_patch: prefsPatch,
+  })
+  if (prefsError || !mergedPrefs)
     return NextResponse.json(
       { message: 'Your progress could not be saved. Please try again.' },
       { status: 503 },
     )
+  saved.notification_prefs = mergedPrefs
   return NextResponse.json({ member: mapProfileToMember(saved) })
 }

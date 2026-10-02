@@ -164,11 +164,15 @@ export function buildProfileUpdate(patch: Record<string, unknown>, existingPrefs
   }
 
   const prefs = { ...existingPrefs }
+  const preferencePatch: Record<string, boolean> = {}
   for (const key of PREF_KEYS) {
-    if (typeof patch[key] === 'boolean') prefs[key] = patch[key]
+    if (typeof patch[key] === 'boolean') {
+      prefs[key] = patch[key]
+      preferencePatch[key] = patch[key] as boolean
+    }
   }
 
-  return { columns, prefs }
+  return { columns, prefs, preferencePatch }
 }
 
 /** Whether a patch changes a BIO/profile field that counts toward the update limit. */

@@ -45,19 +45,23 @@ export async function GET() {
   const supabase = createAdminClient()
 
   const [profileResult, awardee, notificationsRes, featuresRes] = await Promise.all([
-    supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
+    supabase.from('profiles')
+      .select('id,full_name,email,access_code,slug,membership_status,headline,bio,location,organization,tagline,field,field_of_study,avatar_url,portfolio_cover_url,notification_prefs,bio_update_count,bio_update_limit,created_at')
+      .eq('id', user.id)
+      .maybeSingle(),
     loadLinkedAwardee(supabase, user.id),
     supabase
       .from('user_notifications')
-      .select('*')
+      .select('id,user_id,title,body,category,metadata,cta_label,cta_url,created_at,delivered_at,read_at')
       .eq('user_id', user.id)
       .order('delivered_at', { ascending: false })
       .limit(50),
     supabase
       .from('member_features')
-      .select('*')
+      .select('id,member_id,member_name,title,category,summary,contact_email,status,created_at')
       .eq('member_id', user.id)
-      .order('created_at', { ascending: false }),
+      .order('created_at', { ascending: false })
+      .limit(50),
   ])
 
   const { data: profile, error } = profileResult
@@ -89,7 +93,7 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ message: 'Profile not found.' }, { status: 404 })
   }
 
-  const { columns, prefs } = buildProfileUpdate(patch, (profile.notification_prefs ?? {}) as Record<string, unknown>)
+  const { columns, preferencePatch } = buildProfileUpdate(patch, (profile.notification_prefs ?? {}) as Record<string, unknown>)
 
   // Enforce the BIO update limit only when a BIO field actually changes value.
   const touchesBio = patchTouchesBio(patch)
@@ -99,27 +103,12 @@ export async function PATCH(request: NextRequest) {
       (key) => typeof patch[key] === 'string' && patch[key] !== (profile as any)[key],
     )
 
-  let nextCount = profile.bio_update_count ?? 0
-  if (bioChanged) {
-    nextCount += 1
-    if (nextCount > (profile.bio_update_limit ?? 2)) {
-      return NextResponse.json(
-        { message: 'BIO update limit reached. Ask the admin team to reset your update access.' },
-        { status: 429 },
-      )
-    }
-  }
-
-  const { data: updated, error: updateError } = await supabase
-    .from('profiles')
-    .update({
-      ...columns,
-      notification_prefs: prefs,
-      bio_update_count: nextCount,
-    })
-    .eq('id', user.id)
-    .select('*')
-    .single()
+  const { data: updated, error: updateError } = await supabase.rpc('update_member_profile_atomic', {
+    p_profile_id: user.id,
+    p_columns: columns,
+    p_preference_patch: preferencePatch,
+    p_increment_bio: bioChanged,
+  })
 
   if (updateError) {
     // Missing membership columns => supabase/SETUP-MEMBER-HUB.sql has not been
@@ -131,6 +120,11 @@ export async function PATCH(request: NextRequest) {
       )
     }
     return NextResponse.json({ message: 'Could not save your update.' }, { status: 500 })
+  }
+  if (!updated) {
+    return bioChanged
+      ? NextResponse.json({ message: 'BIO update limit reached. Ask the admin team to reset your update access.' }, { status: 429 })
+      : NextResponse.json({ message: 'Profile not found.' }, { status: 404 })
   }
 
   const awardee = await loadLinkedAwardee(supabase, user.id)

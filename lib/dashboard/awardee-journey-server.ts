@@ -50,87 +50,34 @@ function failOnDbError(label: string, error: unknown) {
 
 export async function getAwardeeJourneyForMember(memberId: string): Promise<JourneyPayload> {
   const db = createAdminClient()
-  const [profileResult, progressResult, settingsResult] = await Promise.all([
-    db.from('profiles')
-      .select('id,full_name,headline,bio,location,organization,field,avatar_url')
-      .eq('id', memberId)
-      .maybeSingle(),
-    db.from('awardee_onboarding_progress')
-      .select('welcome_read_at,external_share_confirmed_at,external_share_platform')
-      .eq('profile_id', memberId)
-      .maybeSingle(),
-    db.from('awardee_onboarding_settings')
-      .select('*')
-      .eq('id', true)
-      .maybeSingle(),
-  ])
-  failOnDbError('profile', profileResult.error)
-  failOnDbError('progress', progressResult.error)
-  failOnDbError('settings', settingsResult.error)
-  if (!profileResult.data) throw new Error('Member profile not found.')
+  const { data, error } = await db.rpc('get_awardee_journey_data', { p_profile_id: memberId })
+  failOnDbError('journey', error)
+  const payload = data as Record<string, any> | null
+  const profile = payload?.profile
+  if (!profile) throw new Error('Member profile not found.')
 
-  const rawSettings = settingsResult.data
-  const campaignId = rawSettings?.magazine_campaign_id || DEFAULT_AWARDEE_JOURNEY_SETTINGS.magazineCampaign.id
-  const [postsResult, campaignResult, magazineOrderResult, applicationResult, awardResult] = await Promise.all([
-    db.from('member_posts')
-      .select('status,tags')
-      .eq('profile_id', memberId)
-      .eq('status', 'published')
-      .limit(100),
-    db.from('magazine_feature_campaigns')
-      .select('id,title,description,ngn_amount_minor,usd_amount_minor,price_version,application_open')
-      .eq('id', campaignId)
-      .maybeSingle(),
-    db.from('magazine_feature_orders')
-      .select('status')
-      .eq('profile_id', memberId)
-      .eq('campaign_id', campaignId)
-      .maybeSingle(),
-    db.from('magazine_feature_applications')
-      .select('status')
-      .eq('profile_id', memberId)
-      .eq('campaign_id', campaignId)
-      .maybeSingle(),
-    db.from('award_orders')
-      .select('award_payment_status,status')
-      .eq('profile_id', memberId)
-      .neq('status', 'cancelled')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-  ])
-  failOnDbError('posts', postsResult.error)
-  failOnDbError('campaign', campaignResult.error)
-  failOnDbError('magazine payment', magazineOrderResult.error)
-  failOnDbError('magazine application', applicationResult.error)
-  // Award tables can be absent in older local previews; that state is unknown,
-  // never inferred as paid or certificate-ready.
-  const awardOrder = awardResult.error ? null : awardResult.data
-  const settings = settingsFromRows(rawSettings, campaignResult.data)
-  const introPost = (postsResult.data ?? []).some((post: any) =>
-    Array.isArray(post.tags) && post.tags.includes('afl-introduction'),
-  )
-  const paymentStatus = magazineOrderResult.data?.status ?? 'unpaid'
+  const settings = settingsFromRows(payload.settings, payload.campaign)
+  const paymentStatus = payload.magazine_order?.status ?? 'unpaid'
   const input: AwardeeJourneyInput = {
     profile: {
-      fullName: profileResult.data.full_name ?? '',
-      headline: profileResult.data.headline ?? '',
-      bio: profileResult.data.bio ?? '',
-      location: profileResult.data.location ?? '',
-      organization: profileResult.data.organization ?? '',
-      field: profileResult.data.field ?? '',
-      avatarUrl: profileResult.data.avatar_url ?? null,
+      fullName: profile.full_name ?? '',
+      headline: profile.headline ?? '',
+      bio: profile.bio ?? '',
+      location: profile.location ?? '',
+      organization: profile.organization ?? '',
+      field: profile.field ?? '',
+      avatarUrl: profile.avatar_url ?? null,
     },
-    welcomeReadAt: progressResult.data?.welcome_read_at ?? null,
-    hasPublishedIntroPost: introPost,
-    externalShareConfirmedAt: progressResult.data?.external_share_confirmed_at ?? null,
-    externalSharePlatform: progressResult.data?.external_share_platform ?? null,
+    welcomeReadAt: payload.progress?.welcome_read_at ?? null,
+    hasPublishedIntroPost: payload.has_published_intro_post === true,
+    externalShareConfirmedAt: payload.progress?.external_share_confirmed_at ?? null,
+    externalSharePlatform: payload.progress?.external_share_platform ?? null,
     magazine: {
       paymentStatus,
-      applicationStatus: applicationResult.data?.status ?? null,
+      applicationStatus: payload.application?.status ?? null,
     },
     award: {
-      paymentStatus: awardOrder?.award_payment_status ?? (awardOrder?.status === 'paid' ? 'paid' : 'unpaid'),
+      paymentStatus: payload.award_order?.award_payment_status ?? (payload.award_order?.status === 'paid' ? 'paid' : 'unpaid'),
       certificateAvailable: false,
     },
   }
@@ -140,27 +87,11 @@ export async function getAwardeeJourneyForMember(memberId: string): Promise<Jour
 
 export async function saveAwardeeJourneyProgress(memberId: string, patch: ProgressPatch): Promise<void> {
   const db = createAdminClient()
-  const { data: current, error: readError } = await db
-    .from('awardee_onboarding_progress')
-    .select('welcome_read_at,external_share_confirmed_at,external_share_platform')
-    .eq('profile_id', memberId)
-    .maybeSingle()
-  failOnDbError('progress', readError)
-
-  const next = {
-    profile_id: memberId,
-    welcome_read_at: patch.welcomeRead ? current?.welcome_read_at || new Date().toISOString() : current?.welcome_read_at ?? null,
-    external_share_confirmed_at: current?.external_share_confirmed_at ?? null,
-    external_share_platform: current?.external_share_platform ?? null,
-  }
-  if (patch.externalShareConfirmed === true) {
-    next.external_share_confirmed_at = new Date().toISOString()
-    next.external_share_platform = patch.externalSharePlatform ?? 'other'
-  } else if (patch.externalShareConfirmed === false) {
-    next.external_share_confirmed_at = null
-    next.external_share_platform = null
-  }
-
-  const { error } = await db.from('awardee_onboarding_progress').upsert(next, { onConflict: 'profile_id' })
+  const { error } = await db.rpc('save_awardee_onboarding_progress', {
+    p_profile_id: memberId,
+    p_welcome_read: patch.welcomeRead ?? false,
+    p_external_share_confirmed: patch.externalShareConfirmed ?? null,
+    p_external_share_platform: patch.externalShareConfirmed === true ? patch.externalSharePlatform ?? 'other' : null,
+  })
   failOnDbError('progress update', error)
 }

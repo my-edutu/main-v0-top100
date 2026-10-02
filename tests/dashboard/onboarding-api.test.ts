@@ -17,6 +17,10 @@ vi.mock('@/lib/auth-server', () => ({
 }))
 vi.mock('@/lib/supabase/server', () => ({
   createAdminClient: () => ({
+    rpc: async (_name: string, args: { p_patch: Record<string, unknown> }) => {
+      state.prefs = { ...state.prefs, ...args.p_patch }
+      return { data: state.prefs, error: null }
+    },
     from: () => {
       let updating = false
       const chain = {
@@ -66,7 +70,7 @@ it('saves drafts without completing onboarding or consuming BIO edits', async ()
     200,
   )
   expect(state.update).not.toHaveProperty('bio_update_count')
-  expect(state.update.notification_prefs).not.toHaveProperty(
+  expect(state.prefs).not.toHaveProperty(
     'onboardingCompletedAt',
   )
 })
@@ -76,7 +80,7 @@ it('validates completion and scopes writes to the authenticated member', async (
       .status,
   ).toBe(200)
   expect(state.ids.every((id) => id === 'member-one')).toBe(true)
-  expect(state.update.notification_prefs).toHaveProperty(
+  expect(state.prefs).toHaveProperty(
     'onboardingCompletedAt',
   )
 })
@@ -89,7 +93,7 @@ it('rejects incomplete submissions', async () => {
 it('allows the story to be skipped at completion', async () => {
   expect((await POST(request({ ...fields, bio: '', complete: true }))).status).toBe(200)
   expect(state.update.bio).toBe('')
-  expect(state.update.notification_prefs).toHaveProperty('onboardingCompletedAt')
+  expect(state.prefs).toHaveProperty('onboardingCompletedAt')
 })
 it('cannot be reused to evade the BIO limit after completion', async () => {
   state.prefs = { onboardingCompletedAt: '2026-09-06T00:00:00Z' }

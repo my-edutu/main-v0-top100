@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { after } from 'next/server'
 import { createAdminClient, createClient } from '@/lib/supabase/server'
 import { ensureWelcomeMessage } from '@/lib/dashboard/welcome-message'
 import { onboardingComplete } from '@/lib/dashboard/onboarding'
@@ -24,26 +25,19 @@ export async function POST() {
       { message: 'Complete onboarding first.' },
       { status: 403 },
     )
-  let count = Number(prefs.dashboardLoginCount) || 0
-  if (prefs.lastDashboardSession !== claims.session_id) {
-    count += 1
-    const { error: saveError } = await db
-      .from('profiles')
-      .update({
-        notification_prefs: {
-          ...prefs,
-          dashboardLoginCount: count,
-          lastDashboardSession: claims.session_id,
-        },
-      })
-      .eq('id', claims.sub)
-    if (saveError)
-      return NextResponse.json(
-        { message: 'Could not record your visit.' },
-        { status: 503 },
-      )
-  }
-  const welcome = await ensureWelcomeMessage(claims.sub)
-  if (!welcome.ok) console.warn('[welcome]', welcome.reason)
+  const { data: count, error: saveError } = await db.rpc('record_dashboard_visit', {
+    p_profile_id: claims.sub,
+    p_session_id: claims.session_id,
+  })
+  if (saveError || count === null || count === undefined)
+    return NextResponse.json(
+      { message: 'Could not record your visit.' },
+      { status: 503 },
+    )
+
+  after(async () => {
+    const welcome = await ensureWelcomeMessage(claims.sub)
+    if (!welcome.ok) console.warn('[welcome]', welcome.reason)
+  })
   return NextResponse.json({ count })
 }
