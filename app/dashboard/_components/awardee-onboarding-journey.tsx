@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { useCallback, useEffect, useState } from 'react'
-import { ArrowRight, BookOpenText, Check, CheckCircle2, ChevronDown, Compass, Copy, ExternalLink, FileText, Linkedin, RefreshCw, Share2, Trophy, UserRound } from 'lucide-react'
+import { ArrowRight, BookOpenText, Check, CheckCircle2, ChevronDown, Compass, Copy, ExternalLink, FileText, Linkedin, MessageCircle, RefreshCw, Share2, Trophy, UserRound } from 'lucide-react'
 import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -28,6 +28,8 @@ const actionMeta: Record<string, { href: string; icon: typeof Compass }> = {
   magazine: { href: '/dashboard/me/feature', icon: FileText },
   award: { href: '/dashboard/me/award', icon: Trophy },
 }
+
+const whatsappChannelUrl = 'https://whatsapp.com/channel/0029Vb8lUNm96H4bB5keg402'
 
 export function AwardeeOnboardingJourney({ name }: Props) {
   const { member } = useDashboardMember()
@@ -220,6 +222,14 @@ export function AwardeeOnboardingJourney({ name }: Props) {
           {state.progress.completed === state.progress.total ? <p className="mt-3 text-sm text-[#625B52]">Your first steps are complete.</p> : null}
 
           <div className="mt-2 divide-y divide-[#EEE7DF] border-b border-[#EEE7DF]">
+            <a href={whatsappChannelUrl} target="_blank" rel="noopener noreferrer" className="group flex min-h-14 items-center gap-2 py-2 transition-colors hover:bg-[#FFFCF9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-inset">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center text-[#A94412]"><MessageCircle className="h-4 w-4" aria-hidden="true" /></span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-medium leading-5 text-[#25211D]">Join the Africa Future Leaders WhatsApp channel</span>
+                <span className="mt-0.5 block text-xs text-[#716B62]">Get updates and announcements from the community</span>
+              </span>
+              <ExternalLink className="h-4 w-4 shrink-0 text-[#A94412]" aria-hidden="true" />
+            </a>
             <button type="button" onClick={() => setShareOpen(true)} aria-haspopup="dialog" className="group flex min-h-14 w-full items-center gap-2 text-left transition-colors hover:bg-[#FFFCF9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-inset">
               <span className="flex h-9 w-9 shrink-0 items-center justify-center text-[#A94412]"><FileText className="h-4 w-4" aria-hidden="true" /></span>
               <span className="min-w-0 flex-1 text-sm font-medium text-[#25211D]">Share your introduction</span>
