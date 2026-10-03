@@ -1,6 +1,27 @@
 import { describe, expect, it, vi } from 'vitest'
 
 describe('password recovery client', () => {
+  it('aborts a stalled request instead of leaving the form waiting indefinitely', async () => {
+    vi.useFakeTimers()
+    try {
+      const { createRecoveryFetch } = await import('@/lib/supabase/password-recovery-client')
+      let aborted = false
+      const fetcher: typeof fetch = async (_input, init) => new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => {
+          aborted = true
+          reject(new DOMException('Aborted', 'AbortError'))
+        })
+      })
+      const pending = createRecoveryFetch(fetcher, 100)('https://example.supabase.co/auth/v1/recover')
+      const outcome = expect(pending).rejects.toMatchObject({ name: 'AbortError' })
+      await vi.advanceTimersByTimeAsync(100)
+      await outcome
+      expect(aborted).toBe(true)
+      expect(vi.getTimerCount()).toBe(0)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
   it('reuses the recovery client when the form is submitted again', async () => {
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://example.supabase.co')
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', 'anon-key')

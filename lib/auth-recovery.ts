@@ -7,6 +7,9 @@ export type PasswordRecoveryError = {
 } | null
 
 export function passwordRecoveryErrorMessage(status?: number): string {
+  if (status === 0 || status === 504) {
+    return 'The reset request timed out. Check your inbox and spam folder before trying again in a minute.'
+  }
   if (status === 429) {
     return 'Too many reset requests. Please wait a minute and try again.'
   }

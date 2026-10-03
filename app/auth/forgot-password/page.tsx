@@ -30,6 +30,7 @@ function ForgotPasswordContent() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (isLoading) return
     setError('')
     setIsLoading(true)
 
