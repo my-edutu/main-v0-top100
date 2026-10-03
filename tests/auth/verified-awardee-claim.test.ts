@@ -24,22 +24,22 @@ function request() {
   })
 }
 
-describe('verified winner claim', () => {
+describe('pending winner claim', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.rpc.mockResolvedValue({ data: { awardeeId }, error: null })
   })
 
-  it('rejects an account whose email has not been verified', async () => {
-    mocks.session.mockResolvedValue({ user: { id: 'user-1', email: 'ada@example.com', rawPayload: {} } })
+  it('rejects requests without a signed-in account', async () => {
+    mocks.session.mockResolvedValue(null)
     expect((await POST(request())).status).toBe(401)
     expect(mocks.rpc).not.toHaveBeenCalled()
   })
 
-  it('passes only the verified session identity to the atomic claim function', async () => {
-    mocks.session.mockResolvedValue({ user: { id: 'user-1', email: 'ADA@example.com', rawPayload: { email_confirmed_at: '2026-09-28T00:00:00Z' } } })
+  it('passes only the signed-in account identity to the pending claim function', async () => {
+    mocks.session.mockResolvedValue({ user: { id: 'user-1', email: 'ADA@example.com' } })
     expect((await POST(request())).status).toBe(200)
-    expect(mocks.rpc).toHaveBeenCalledWith('claim_verified_awardee', {
+    expect(mocks.rpc).toHaveBeenCalledWith('request_pending_awardee_claim', {
       p_awardee_id: awardeeId,
       p_user_id: 'user-1',
       p_email: 'ada@example.com',

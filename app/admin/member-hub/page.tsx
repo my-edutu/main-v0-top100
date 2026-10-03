@@ -53,6 +53,7 @@ export default function AdminMemberHubPage() {
   }, [refresh])
 
   const pendingMembers = useMemo(() => members.filter((m) => m.status === 'pending'), [members])
+  const bulkEligibleCount = useMemo(() => pendingMembers.filter((m) => !m.pendingClaim).length, [pendingMembers])
   const matchingPending = useMemo(() => {
     const query = pendingSearch.trim().toLowerCase()
     return query ? pendingMembers.filter((member) => `${member.name} ${member.email}`.toLowerCase().includes(query)) : pendingMembers
@@ -141,7 +142,7 @@ export default function AdminMemberHubPage() {
   }
 
   async function approveAllPending() {
-    if (!pendingMembers.length || approvingAll) return
+    if (!bulkEligibleCount || approvingAll) return
     setApprovingAll(true)
     try {
       const response = await fetch('/api/admin/members', {
@@ -187,11 +188,11 @@ export default function AdminMemberHubPage() {
               <Users className="h-5 w-5 text-orange-500" />
               Pending awardees <span className="text-base font-medium text-zinc-500">({pendingMembers.length})</span>
             </CardTitle>
-            <p className="mt-1 text-sm text-zinc-600">Review individually or approve every pending account at once.</p>
+            <p className="mt-1 text-sm text-zinc-600">Review new profile claims individually. Bulk approval applies only to existing pending accounts.</p>
           </div>
-          <Button type="button" disabled={!pendingMembers.length || approvingAll} className="min-h-11 bg-orange-500 text-white hover:bg-orange-600" onClick={() => void approveAllPending()}>
+          <Button type="button" disabled={!bulkEligibleCount || approvingAll} className="min-h-11 bg-orange-500 text-white hover:bg-orange-600" onClick={() => void approveAllPending()}>
             <CheckCircle2 className="mr-2 h-4 w-4" />
-            {approvingAll ? 'Approving...' : `Approve all ${pendingMembers.length}`}
+            {approvingAll ? 'Approving...' : `Approve ${bulkEligibleCount} existing pending`}
           </Button>
         </CardHeader>
         <CardContent>
@@ -215,6 +216,7 @@ export default function AdminMemberHubPage() {
                     <div className="min-w-0">
                       <h3 className="truncate text-sm font-semibold text-zinc-950">{member.name}</h3>
                       <p className="truncate text-xs text-zinc-500">{member.email}</p>
+                      {member.pendingClaim && <p className="text-xs font-medium text-amber-800">Requests: {member.pendingClaim.awardeeName} · {member.pendingClaim.awardeeEmail}</p>}
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">

@@ -13,6 +13,19 @@ export async function GET(request: NextRequest) {
 
   const supabase = createAdminClient()
   const members = []
+  const claims = new Map<string, { awardeeId: string; awardeeName: string; awardeeEmail: string }>()
+  const { data: pendingClaims, error: claimsError } = await supabase
+    .from('pending_awardee_claims')
+    .select('user_id,awardee_id,awardees(name,email)')
+  if (claimsError) return NextResponse.json({ message: 'Could not load pending claims.' }, { status: 500 })
+  for (const claim of pendingClaims ?? []) {
+    const awardee = Array.isArray(claim.awardees) ? claim.awardees[0] : claim.awardees
+    claims.set(claim.user_id, {
+      awardeeId: claim.awardee_id,
+      awardeeName: awardee?.name ?? 'Unknown awardee',
+      awardeeEmail: awardee?.email ?? '',
+    })
+  }
   for (let offset = 0; ; offset += 500) {
     const { data, error } = await supabase
       .from('profiles')
@@ -23,7 +36,10 @@ export async function GET(request: NextRequest) {
       .range(offset, offset + 499)
 
     if (error) return NextResponse.json({ message: 'Could not load members.' }, { status: 500 })
-    members.push(...(data ?? []).map((row) => mapProfileToMember(row)))
+    members.push(...(data ?? []).map((row) => ({
+      ...mapProfileToMember(row),
+      pendingClaim: claims.get(row.id),
+    })))
     if ((data ?? []).length < 500) break
   }
 

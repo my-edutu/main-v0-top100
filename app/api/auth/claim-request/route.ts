@@ -6,13 +6,14 @@ import { getClientIdentifier, rateLimitResponse } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 
-// Checks eligibility before asking Supabase to send an email OTP.
+// Checks eligibility before creating a password account and pending claim.
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null) as Record<string, unknown> | null
   const awardeeId = String(body?.awardeeId ?? '').trim()
   const email = String(body?.email ?? '').trim().toLowerCase()
   const inviteCode = String(body?.inviteCode ?? '').trim()
   const captchaToken = String(body?.captchaToken ?? '')
+  const password = typeof body?.password === 'string' ? body.password : ''
   if (!/^[0-9a-f-]{36}$/i.test(awardeeId) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !inviteCode) {
     return NextResponse.json({ message: 'Select your record and enter your email and invite code.' }, { status: 400 })
   }
@@ -42,5 +43,30 @@ export async function POST(request: NextRequest) {
   }
   const code = await validateCode(inviteCode, email)
   if (!code.ok) return NextResponse.json({ message: 'The invite code is invalid or unavailable for this email.' }, { status: 403 })
+  if (password) {
+    if (password.length < 8 || password.length > 72) {
+      return NextResponse.json({ message: 'Choose a password between 8 and 72 characters.' }, { status: 400 })
+    }
+    const { data: created, error: createError } = await db.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+    })
+    if (createError || !created.user) {
+      return NextResponse.json({ message: 'Could not create this account. If you already signed up, sign in and return here.' }, { status: 409 })
+    }
+    const { error: claimError } = await db.rpc('request_pending_awardee_claim', {
+      p_awardee_id: awardeeId,
+      p_user_id: created.user.id,
+      p_email: email,
+      p_code: inviteCode,
+    })
+    if (claimError) {
+      const { error: cleanupError } = await db.auth.admin.deleteUser(created.user.id)
+      if (cleanupError) console.error('[claim-request] could not clean up failed account', { code: cleanupError.code })
+      return NextResponse.json({ message: 'Could not submit this claim. Try again or contact the admin team.' }, { status: 409 })
+    }
+    return NextResponse.json({ created: true })
+  }
   return NextResponse.json({ ready: true })
 }

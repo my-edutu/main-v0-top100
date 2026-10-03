@@ -6,15 +6,13 @@ import { getClientIdentifier, rateLimitResponse } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 
-// The account is established by Supabase email OTP before this endpoint runs.
-// The database function claims the winner, fills the profile, and consumes the
-// invite code in one transaction.
+// The shared code permits a pending application. Only admin approval links
+// and publishes the awardee record.
 export async function POST(request: NextRequest) {
   const session = await getServerSession(request)
-  const verifiedEmail = session?.user.email?.trim().toLowerCase()
-  const confirmedAt = session?.user.rawPayload?.email_confirmed_at
-  if (!session || !verifiedEmail || !confirmedAt) {
-    return NextResponse.json({ message: 'Verify your email before claiming your profile.' }, { status: 401 })
+  const accountEmail = session?.user.email?.trim().toLowerCase()
+  if (!session || !accountEmail) {
+    return NextResponse.json({ message: 'Sign in before requesting your profile.' }, { status: 401 })
   }
   const limited = await rateLimitResponse([
     { maxRequests: 5, windowSeconds: 60, identifier: `claim-member:${session.user.id}` },
@@ -29,19 +27,19 @@ export async function POST(request: NextRequest) {
   }
 
   const db = createAdminClient()
-  const { data, error } = await db.rpc('claim_verified_awardee', {
+  const { data, error } = await db.rpc('request_pending_awardee_claim', {
     p_awardee_id: awardeeId,
     p_user_id: session.user.id,
-    p_email: verifiedEmail,
+    p_email: accountEmail,
     p_code: inviteCode,
   })
   if (error) {
     const message = error.message ?? ''
-    if (/already claimed|already owns|unavailable/i.test(message)) {
-      return NextResponse.json({ message: 'This profile is already claimed. Contact the admin team if it is yours.' }, { status: 409 })
+    if (/already claimed|already owns|pending claim|unavailable/i.test(message)) {
+      return NextResponse.json({ message: 'This profile or account already has a claim. Contact the admin team if you need help.' }, { status: 409 })
     }
     if (/email|invite code|cannot claim/i.test(message)) {
-      return NextResponse.json({ message: 'Your verified email or invite code does not match this winner.' }, { status: 403 })
+      return NextResponse.json({ message: 'Your account email or invite code does not match this winner.' }, { status: 403 })
     }
     console.error('[claim] Database claim failed', { code: error.code, message })
     return NextResponse.json({ message: 'Could not complete your claim. Try again or contact the admin team.' }, { status: 500 })

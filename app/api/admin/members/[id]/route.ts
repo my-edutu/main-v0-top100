@@ -1,6 +1,7 @@
 // app/api/admin/members/[id]/route.ts
 // Admin: approve / reject / suspend a member, or reset their BIO update limit.
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'
 import { requireAdmin } from '@/lib/api/require-admin'
 import { createAdminClient } from '@/lib/supabase/server'
 import { mapProfileToMember } from '@/lib/member-hub-server'
@@ -50,16 +51,28 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   }
 
   const supabase = createAdminClient()
-  const { data, error } = await supabase
-    .from('profiles')
-    .update(update)
-    .eq('id', id)
-    .eq('role', 'user')
-    .select('*')
-    .maybeSingle()
+  const { data: pendingClaim, error: claimError } = await supabase
+    .from('pending_awardee_claims').select('user_id').eq('user_id', id).maybeSingle()
+  if (claimError) return NextResponse.json({ message: 'Could not check the pending claim.' }, { status: 500 })
+  if (action === 'approve' && pendingClaim) {
+    const { error: approvalError } = await supabase.rpc('approve_pending_awardee_claim', { p_user_id: id })
+    if (approvalError) {
+      console.error('[admin/members] claim approval failed', { code: approvalError.code, message: approvalError.message })
+      return NextResponse.json({ message: 'Could not approve this claim. Check whether its awardee record or email changed.' }, { status: 409 })
+    }
+    // The RPC links the awardee and changes the profile status in one transaction.
+    delete update.membership_status
+  }
+  const { data, error } = Object.keys(update).length
+    ? await supabase.from('profiles').update(update).eq('id', id).eq('role', 'user').select('*').maybeSingle()
+    : await supabase.from('profiles').select('*').eq('id', id).eq('role', 'user').maybeSingle()
 
   if (error) return NextResponse.json({ message: 'Could not update the member.' }, { status: 500 })
   if (!data) return NextResponse.json({ message: 'Member not found.' }, { status: 404 })
+  if (action === 'reject' && pendingClaim) {
+    const { error: deleteError } = await supabase.from('pending_awardee_claims').delete().eq('user_id', id)
+    if (deleteError) return NextResponse.json({ message: 'Member rejected, but could not clear the pending claim.' }, { status: 500 })
+  }
 
   // Tell the member what happened so status changes are visible in their
   // dashboard notifications, not just as a silent badge change.
@@ -91,6 +104,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       metadata: { audience: 'all', source: 'membership-status' },
     })
   }
+
+  if (action === 'approve' && pendingClaim) revalidatePath('/awardees')
 
   return NextResponse.json({ member: mapProfileToMember(data) })
 }

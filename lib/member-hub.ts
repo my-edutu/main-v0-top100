@@ -23,6 +23,7 @@ export type MemberProfile = {
   email: string
   inviteCode: string
   awardeeId?: string
+  pendingClaim?: { awardeeId: string; awardeeName: string; awardeeEmail: string }
   publicSlug?: string
   status: MemberStatus
   profileStatus: ProfileStatus
