@@ -54,7 +54,12 @@ export async function POST(request: Request) {
     if (message) return NextResponse.json({ message }, { status: 400 })
   }
   const prefsPatch = {
-    onboardingStep: Math.max(0, Math.min(4, Number.isInteger(body.step) ? body.step : 0)),
+    ...(Number.isInteger(body.step)
+      ? { onboardingStep: Math.max(0, Math.min(4, body.step as number)) }
+      : {}),
+    ...(body.welcomeSeen === true
+      ? { onboardingWelcomeSeenAt: new Date().toISOString() }
+      : {}),
     ...(body.complete === true
       ? { onboardingCompletedAt: new Date().toISOString() }
       : {}),

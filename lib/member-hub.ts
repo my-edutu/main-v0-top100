@@ -17,6 +17,7 @@ export type MemberProfile = {
   portfolioCoverUrl?: string | null
   onboardingCompletedAt?: string | null
   onboardingStep?: number
+  onboardingWelcomeSeenAt?: string | null
   dashboardLoginCount?: number
   id: string
   name: string

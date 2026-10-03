@@ -97,6 +97,7 @@ export function mapProfileToMemberWithLegacy(
     portfolioCoverUrl: row?.portfolio_cover_url ?? null,
     onboardingCompletedAt: typeof prefs.onboardingCompletedAt === 'string' ? prefs.onboardingCompletedAt : null,
     onboardingStep: typeof prefs.onboardingStep === 'number' ? prefs.onboardingStep : 0,
+    onboardingWelcomeSeenAt: typeof prefs.onboardingWelcomeSeenAt === 'string' ? prefs.onboardingWelcomeSeenAt : null,
     dashboardLoginCount: typeof prefs.dashboardLoginCount === 'number' ? prefs.dashboardLoginCount : 0,
     recruiterVisible: bool(prefs.recruiterVisible, PREF_DEFAULTS.recruiterVisible),
     emailVisible: bool(prefs.emailVisible, PREF_DEFAULTS.emailVisible),

@@ -29,7 +29,9 @@ export function Onboarding({
   onComplete: (member: MemberProfile) => void
 }) {
   const [step, setStep] = useState(Math.min(member.onboardingStep ?? 0, 4))
-  const [welcomeOpen, setWelcomeOpen] = useState((member.onboardingStep ?? 0) === 0)
+  const [welcomeOpen, setWelcomeOpen] = useState(
+    (member.onboardingStep ?? 0) === 0 && !member.onboardingWelcomeSeenAt,
+  )
   const [values, setValues] = useState({
     headline: member.headline,
     location: member.location,
@@ -38,6 +40,19 @@ export function Onboarding({
   })
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  function handleWelcomeOpenChange(open: boolean) {
+    setWelcomeOpen(open)
+    if (open || member.onboardingWelcomeSeenAt) return
+    void fetch('/api/member/onboarding', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ welcomeSeen: true }),
+    }).then(response => {
+      if (!response.ok) setError('Your welcome was not saved. You can continue setup; it may appear again next time.')
+    }).catch(() => {
+      setError('Your welcome was not saved. You can continue setup; it may appear again next time.')
+    })
+  }
   const [interestInput, setInterestInput] = useState('')
   const interests = values.field.split(',').map(value => value.trim()).filter(Boolean)
   function addInterest(value = interestInput) {
@@ -104,7 +119,7 @@ export function Onboarding({
   }
   return (
     <div className="min-h-dvh bg-white px-5 py-6 text-neutral-950 sm:px-10">
-      <OnboardingWelcome name={member.name} open={welcomeOpen} onOpenChange={setWelcomeOpen} />
+      <OnboardingWelcome name={member.name} open={welcomeOpen} onOpenChange={handleWelcomeOpenChange} />
       <header className="mx-auto flex max-w-5xl items-center justify-between gap-4">
         <img
           src="/Top100 Africa Future leaders Logo .png"
