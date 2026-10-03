@@ -1,10 +1,12 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
 type PasswordRecoveryClientOptions = {
   supabaseUrl?: string
   supabaseAnonKey?: string
   fetch?: typeof globalThis.fetch
 }
+
+let browserRecoveryClient: SupabaseClient | undefined
 
 /**
  * Password recovery is intentionally isolated from the app's cookie-based
@@ -13,6 +15,9 @@ type PasswordRecoveryClientOptions = {
  * client elsewhere. The reset page consumes and clears the URL fragment.
  */
 export function createPasswordRecoveryClient(options: PasswordRecoveryClientOptions = {}) {
+  const useSharedClient = Object.keys(options).length === 0
+  if (useSharedClient && browserRecoveryClient) return browserRecoveryClient
+
   const supabaseUrl = options.supabaseUrl ?? process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = options.supabaseAnonKey ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
@@ -20,8 +25,10 @@ export function createPasswordRecoveryClient(options: PasswordRecoveryClientOpti
     throw new Error('Missing Supabase environment variables')
   }
 
-  return createClient(supabaseUrl, supabaseAnonKey, {
+  const client = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
+      // Separate from the cookie-based app client, even without persistence.
+      storageKey: `sb-${new URL(supabaseUrl).hostname.split('.')[0]}-password-recovery`,
       flowType: 'implicit',
       detectSessionInUrl: true,
       persistSession: false,
@@ -29,4 +36,6 @@ export function createPasswordRecoveryClient(options: PasswordRecoveryClientOpti
     },
     ...(options.fetch ? { global: { fetch: options.fetch } } : {}),
   })
+  if (useSharedClient) browserRecoveryClient = client
+  return client
 }

@@ -1,6 +1,16 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 describe('password recovery client', () => {
+  it('reuses the recovery client when the form is submitted again', async () => {
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://example.supabase.co')
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', 'anon-key')
+    try {
+      const { createPasswordRecoveryClient } = await import('@/lib/supabase/password-recovery-client')
+      expect(createPasswordRecoveryClient()).toBe(createPasswordRecoveryClient())
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
   it('requests a portable recovery link without a browser-bound PKCE verifier', async () => {
     const requests: Array<{ url: string; body: Record<string, unknown> }> = []
     const fakeFetch: typeof fetch = async (input, init) => {
@@ -26,6 +36,7 @@ describe('password recovery client', () => {
       redirectTo: 'https://www.top100afl.com/auth/reset-password?area=admin',
     })
 
+    expect((client.auth as unknown as { storageKey: string }).storageKey).toBe('sb-example-password-recovery')
     expect(error).toBeNull()
     expect(requests).toHaveLength(1)
     expect(requests[0]).toEqual({
