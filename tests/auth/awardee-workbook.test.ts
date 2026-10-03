@@ -32,7 +32,7 @@ describe('multi-tab winner imports', () => {
     expect(records).toHaveLength(2)
     expect(records[0]).toMatchObject({
       externalId: 'A-1', email: 'ada@example.com', bio: 'Leads a research team.',
-      course: 'Engineering', social_links: { linkedin: 'https://linkedin.com/in/ada' },
+      course: 'Engineering', year: 2026, social_links: { linkedin: 'https://linkedin.com/in/ada' },
     })
   })
 

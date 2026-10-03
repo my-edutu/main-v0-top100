@@ -106,7 +106,7 @@ export default function AdminDashboard() {
 
     try {
       const responses = await Promise.allSettled([
-        fetch('/api/awardees'),
+        fetch('/api/awardees?scope=admin'),
         fetch('/api/events?scope=admin'),
         fetch('/api/posts?scope=admin'),
         fetch('/api/youtube'),

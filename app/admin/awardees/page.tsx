@@ -147,7 +147,7 @@ export default function AwardeesManagement() {
         toast.loading('Loading awardees...', { id: 'loading-awardees' });
       }
 
-      const response = await fetch('/api/awardees');
+      const response = await fetch('/api/awardees?scope=admin');
       if (!response.ok) throw new Error('Failed to fetch awardees');
 
       const data = await response.json();

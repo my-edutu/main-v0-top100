@@ -9,7 +9,7 @@ import { planReviewedImport, type ExistingAwardee } from '@/lib/awardee-import-r
 
 export const runtime = 'nodejs'
 
-const MAX_BYTES = 5 * 1024 * 1024
+const MAX_BYTES = 10 * 1024 * 1024
 const MAX_ROWS = 10000
 const STAGING_BUCKET = 'awardee-import-staging'
 const UPLOAD_MAX_AGE_MS = 24 * 60 * 60 * 1000
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
       const fileSize = Number(payload?.fileSize)
       const extension = uploadExtension(filename)
       if (!extension || !Number.isInteger(fileSize) || fileSize < 1 || fileSize > MAX_BYTES) {
-        return NextResponse.json({ message: 'Choose an Excel or CSV file up to 5 MiB.' }, { status: 400 })
+        return NextResponse.json({ message: 'Choose an Excel or CSV file up to 10 MiB.' }, { status: 400 })
       }
       await clearOldUploads(admin.user.id)
       const uploadPath = `admin-imports/${admin.user.id}/${Date.now()}-${randomUUID()}.${extension}`
@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
     if (form) {
       const file = form.get('file')
       if (!(file instanceof File) || !file.size || file.size > MAX_BYTES) {
-        return NextResponse.json({ message: 'Upload a spreadsheet smaller than 5 MiB.' }, { status: 400 })
+        return NextResponse.json({ message: 'Upload a spreadsheet up to 10 MiB.' }, { status: 400 })
       }
       filename = file.name
       bytes = new Uint8Array(await file.arrayBuffer())
@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
       const { data, error } = await createAdminClient().storage.from(STAGING_BUCKET).download(uploadPath)
       if (error || !data) return NextResponse.json({ message: 'Uploaded spreadsheet was not found. Choose it again.' }, { status: 404 })
       if (!data.size || data.size > MAX_BYTES) {
-        return NextResponse.json({ message: 'Upload a spreadsheet smaller than 5 MiB.' }, { status: 400 })
+        return NextResponse.json({ message: 'Upload a spreadsheet up to 10 MiB.' }, { status: 400 })
       }
       bytes = new Uint8Array(await data.arrayBuffer())
     }

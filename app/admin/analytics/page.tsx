@@ -36,7 +36,7 @@ export default function AnalyticsDashboard() {
 
       // Fetch real data from APIs
       const [awardeesRes, postsRes, eventsRes, youtubeRes] = await Promise.all([
-        fetch('/api/awardees').then(r => r.ok ? r.json() : []),
+        fetch('/api/awardees?scope=admin').then(r => r.ok ? r.json() : []),
         fetch('/api/posts').then(r => r.ok ? r.json() : []),
         fetch('/api/events').then(r => r.ok ? r.json() : []),
         fetch('/api/youtube').then(r => r.ok ? r.json() : [])

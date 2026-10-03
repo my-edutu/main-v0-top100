@@ -5,9 +5,10 @@ import * as XLSX from 'xlsx'
 const mocks = vi.hoisted(() => ({
   rpc: vi.fn(),
   from: vi.fn(),
+  storageFrom: vi.fn(),
 }))
 vi.mock('@/lib/api/require-admin', () => ({ requireAdmin: vi.fn().mockResolvedValue({ user: { id: 'admin-1' } }) }))
-vi.mock('@/lib/supabase/server', () => ({ createAdminClient: () => ({ from: mocks.from, rpc: mocks.rpc }) }))
+vi.mock('@/lib/supabase/server', () => ({ createAdminClient: () => ({ from: mocks.from, rpc: mocks.rpc, storage: { from: mocks.storageFrom } }) }))
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 
 import { POST } from '@/app/api/awardees/import/route'
@@ -33,7 +34,37 @@ describe('admin winner import review', () => {
     mocks.from.mockReturnValue({
       select: () => ({ order: () => ({ range: vi.fn().mockResolvedValue({ data: [], error: null }) }) }),
     })
+    mocks.storageFrom.mockReturnValue({
+      list: vi.fn().mockResolvedValue({ data: [], error: null }),
+      createSignedUploadUrl: vi.fn().mockResolvedValue({ data: { token: 'signed-token' }, error: null }),
+    })
     mocks.rpc.mockResolvedValue({ data: { id: 'batch-1', count: 1 }, error: null })
+  })
+
+  it('prepares uploads for the 5.9 MiB CSV used by the awardee import', async () => {
+    const response = await POST(new NextRequest('http://localhost:3000/api/awardees/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'prepare-upload',
+        filename: '1ST BATCH 2026 AFL - Sheet1.csv',
+        fileSize: Math.round(5.9 * 1024 * 1024),
+      }),
+    }))
+
+    expect(response.status).toBe(200)
+    expect((await response.json()).bucket).toBe('awardee-import-staging')
+    expect(mocks.storageFrom).toHaveBeenCalledWith('awardee-import-staging')
+  })
+
+  it('rejects an import spreadsheet larger than 10 MiB', async () => {
+    const response = await POST(new NextRequest('http://localhost:3000/api/awardees/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'prepare-upload', filename: 'winners.csv', fileSize: 10 * 1024 * 1024 + 1 }),
+    }))
+
+    expect(response.status).toBe(400)
   })
 
   it('previews a mapping without writing winner records', async () => {

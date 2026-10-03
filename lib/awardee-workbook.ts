@@ -4,6 +4,7 @@ export type SheetMapping = {
   sheet: string
   headerRow: number
   fields: Partial<Record<ImportField, string>>
+  defaults?: Partial<Record<ImportField, string>>
 }
 export type WorkbookMapping = {
   primarySheet: string
@@ -102,7 +103,7 @@ export function inspectAwardeeWorkbook(book: XLSX.WorkBook): SheetInfo[] {
 }
 
 export function suggestWorkbookMapping(sheets: SheetInfo[]): WorkbookMapping {
-  const mappings = sheets.map((sheet) => {
+  const mappings: SheetMapping[] = sheets.map((sheet) => {
     const fields: Partial<Record<ImportField, string>> = {}
     const used = new Set<string>()
     for (const field of IMPORT_FIELDS) {
@@ -119,6 +120,7 @@ export function suggestWorkbookMapping(sheets: SheetInfo[]): WorkbookMapping {
   const primary = mappings.find((sheet) => sheet.fields.name && sheet.fields.email)
     ?? mappings.find((sheet) => sheet.fields.name)
     ?? mappings[0]
+  if (primary && !primary.fields.year) primary.defaults = { ...primary.defaults, year: '2026' }
   return { primarySheet: primary.sheet, sheets: mappings }
 }
 
@@ -165,10 +167,13 @@ export function extractAwardeeRecords(book: XLSX.WorkBook, mapping: WorkbookMapp
     for (const header of Object.values(entry.fields)) {
       if (header && !headers.includes(header)) throw new Error(`Column ${header} was not found in ${entry.sheet}.`)
     }
-    return data.slice(entry.headerRow).map((row, index) => ({
-      source: `${entry.sheet}, row ${entry.headerRow + index + 1}`,
-      fields: valuesForRow(row, headers, entry),
-    })).filter(({ fields }) => Object.values(fields).some(Boolean))
+    return data.slice(entry.headerRow).map((row, index) => {
+      const fields = valuesForRow(row, headers, entry)
+      for (const [field, value] of Object.entries(entry.defaults ?? {}) as [ImportField, string][]) {
+        if (!fields[field] && value) fields[field] = value
+      }
+      return { source: `${entry.sheet}, row ${entry.headerRow + index + 1}`, fields }
+    }).filter(({ fields }) => Object.values(fields).some(Boolean))
   }
 
   for (const { source, fields } of readMapped(primaryMapping)) {

@@ -64,6 +64,12 @@ const syncProfileFromAwardee = async (supabase: Awaited<ReturnType<typeof create
 
 export async function GET(request: NextRequest) {
   try {
+    const includeAllForAdmin = request.nextUrl.searchParams.get('scope') === 'admin';
+    if (includeAllForAdmin) {
+      const adminCheck = await requireAdmin(request);
+      if ('error' in adminCheck) return adminCheck.error;
+    }
+
     // Use admin client to fetch ALL awardees (including hidden ones)
     const supabase = createAdminClient();
 
@@ -81,24 +87,35 @@ export async function GET(request: NextRequest) {
       await initializeAwardeesFromExcel();
     }
 
-    // Fetch ALL awardees from the database (including hidden ones)
-    const { data, error } = await supabase
-      .from('awardees')
-      .select('*')
-      .order('updated_at', { ascending: false, nullsFirst: false });
+    // PostgREST caps a response at 1,000 rows by default. Admin views need the
+    // full set for metrics and management, while existing non-admin callers
+    // retain the original single-page response.
+    const pageSize = 1000;
+    const allAwardees: unknown[] = [];
+    for (let offset = 0; ; offset += pageSize) {
+      const { data, error } = await supabase
+        .from('awardees')
+        .select('*')
+        .order('updated_at', { ascending: false, nullsFirst: false })
+        .order('id', { ascending: true })
+        .range(offset, offset + pageSize - 1);
 
-    if (error) {
-      console.error('Error fetching awardees:', error);
-      return Response.json({
-        success: false,
-        message: 'Failed to fetch awardees',
-        error: error.message
-      }, { status: 500 });
+      if (error) {
+        console.error('Error fetching awardees:', error);
+        return Response.json({
+          success: false,
+          message: 'Failed to fetch awardees',
+          error: error.message
+        }, { status: 500 });
+      }
+
+      allAwardees.push(...(data ?? []));
+      if (!includeAllForAdmin || (data ?? []).length < pageSize) break;
     }
 
-    console.log(`[GET /api/awardees] Fetched ${data?.length || 0} awardees (including hidden)`);
+    console.log(`[GET /api/awardees] Fetched ${allAwardees.length} awardees (including hidden)`);
 
-    return Response.json(data);
+    return Response.json(allAwardees);
   } catch (error) {
     console.error('Error in awardees GET:', error);
     const fallbackAwardees = await getAwardees();
