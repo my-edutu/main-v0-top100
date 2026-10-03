@@ -52,7 +52,7 @@ export async function GET() {
     loadLinkedAwardee(supabase, user.id),
     supabase
       .from('user_notifications')
-      .select('id,user_id,title,body,category,metadata,cta_label,cta_url,created_at,delivered_at,read_at')
+      .select('id,user_id,title,body,category,metadata,cta_label,cta_url,delivered_at,read_at')
       .eq('user_id', user.id)
       .order('delivered_at', { ascending: false })
       .limit(50),
