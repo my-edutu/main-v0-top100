@@ -36,7 +36,7 @@ export default function SignInContent() {
   const requestedPath = searchParams.get('from') || searchParams.get('redirect') || ''
   const redirectTo = sanitizeDashboardRedirect(requestedPath, '')
   const reason = searchParams.get('reason')
-  const passwordWasReset = searchParams.get('passwordReset') === 'success'
+  const passwordWasReset = searchParams.get('passwordReset') === 'success' || searchParams.get('reset') === 'success'
 
   // Display security messages based on redirect reason
   useEffect(() => {

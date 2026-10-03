@@ -40,7 +40,7 @@ function ForgotPasswordContent() {
         canonicalSiteUrl: SITE_URL,
         isProduction: process.env.NODE_ENV === 'production',
       })
-      const { error: resetError } = await recoveryClient.auth.resetPasswordForEmail(email, {
+      const { error: resetError } = await recoveryClient.auth.resetPasswordForEmail(email.trim(), {
         redirectTo: getRecoveryRedirectUrl(recoveryOrigin, area),
       })
 
@@ -81,8 +81,8 @@ function ForgotPasswordContent() {
               Check your email
             </h1>
             <p className="mt-3 text-sm leading-6 text-slate-600">
-              If that address belongs to an account, Supabase has sent a password-reset link. Open
-              it in this browser, then choose a new password.
+              If that address belongs to an account, you’ll receive a link to choose a password.
+              Check your inbox and spam folder. You can open the link on any device.
             </p>
             <Link
               href={loginHref}
@@ -98,6 +98,7 @@ function ForgotPasswordContent() {
             </h1>
             <p className="mt-2 text-center text-sm leading-6 text-slate-600">
               Enter the email address used for your {isAdmin ? 'administrator' : 'member'} account.
+              You can also use this if you never chose a password.
             </p>
 
             <form onSubmit={handleSubmit} className="mt-8 space-y-5">
@@ -129,7 +130,7 @@ function ForgotPasswordContent() {
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="h-11 w-full rounded-xl bg-orange-500 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-60"
+                className="h-11 w-full rounded-xl bg-orange-700 text-sm font-semibold !text-[#ffffff] hover:bg-orange-800 disabled:opacity-60"
               >
                 {isLoading ? (
                   <>

@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, useEffect, useRef, useState } from 'react'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -10,7 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { createPasswordRecoveryClient } from '@/lib/supabase/password-recovery-client'
-import { getPostRecoveryPath, type RecoveryArea } from '@/lib/auth/password-recovery'
+import { getPostRecoveryPath, passwordUpdateErrorMessage, type RecoveryArea } from '@/lib/auth/password-recovery'
 
 const INVALID_RECOVERY_MESSAGE = 'This reset link is invalid or has expired. Request a new one and try again.'
 
@@ -30,7 +31,8 @@ function ResetPasswordContent() {
 
   useEffect(() => {
     let cancelled = false
-    const recoveryClient = createPasswordRecoveryClient()
+    // Keep the in-memory recovery session if React runs this effect again.
+    const recoveryClient = recoveryClientRef.current ?? createPasswordRecoveryClient()
     recoveryClientRef.current = recoveryClient
 
     async function establishRecoverySession() {
@@ -48,7 +50,6 @@ function ResetPasswordContent() {
     void establishRecoverySession()
     return () => {
       cancelled = true
-      recoveryClientRef.current = null
     }
   }, [])
 
@@ -75,14 +76,14 @@ function ResetPasswordContent() {
     try {
       const { error: updateError } = await recoveryClient.auth.updateUser({ password })
       if (updateError) {
-        setError(INVALID_RECOVERY_MESSAGE)
+        setError(passwordUpdateErrorMessage(updateError))
         return
       }
 
       await recoveryClient.auth.signOut({ scope: 'local' })
       router.replace(getPostRecoveryPath(area))
     } catch {
-      setError(INVALID_RECOVERY_MESSAGE)
+      setError('We could not update your password. Please check your connection and try again.')
     } finally {
       setIsLoading(false)
     }
@@ -92,7 +93,11 @@ function ResetPasswordContent() {
 
   return (
     <main className="flex min-h-dvh items-center justify-center bg-[#fcf9f4] px-4 py-12">
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <div className="mb-8 flex flex-col items-center gap-4 text-center">
+          <Image src="/Top100 Africa Future leaders Logo .png" alt="Top100 Africa Future Leaders" width={220} height={73} priority className="h-14 w-auto object-contain" />
+          <span className="rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-orange-700">{area === 'admin' ? 'Administrator recovery' : 'Member recovery'}</span>
+        </div>
         <h1 className="text-center text-2xl font-semibold tracking-tight text-slate-950">Choose a new password</h1>
         <p className="mt-2 text-center text-sm leading-6 text-slate-600">Use at least 8 characters, then sign in again.</p>
 
@@ -131,7 +136,7 @@ function ResetPasswordContent() {
               </button>
             </div>
           </div>
-          <Button type="submit" disabled={!isRecoveryReady || isLoading} className="h-11 w-full rounded-xl bg-orange-700 text-sm font-semibold text-white hover:bg-orange-800 disabled:opacity-60">
+          <Button type="submit" disabled={!isRecoveryReady || isLoading} className="h-11 w-full rounded-xl bg-orange-700 text-sm font-semibold !text-[#ffffff] hover:bg-orange-800 disabled:opacity-60">
             {isLoading ? 'Updating password…' : 'Update password'}
           </Button>
         </form>
