@@ -504,6 +504,15 @@ html.light .programme-detail-hero-copy > p:last-child { color:#fff1e4 !important
 .dashboard-celebration-continue { display:flex; min-height:52px; width:100%; align-items:center; justify-content:center; gap:10px; margin-top:24px; border-radius:14px; background:linear-gradient(90deg,#f97316,#f59e0b); color:#171412; font-size:15px; font-weight:600; transition:filter .2s ease,transform .2s ease; }
 .dashboard-celebration-continue:hover { filter:saturate(1.08); transform:translateY(-1px); }
 .dashboard-celebration-footnote { margin-top:13px; color:#756b62; font-size:12px; line-height:1.5; }
+.top100-moment-splash { position:fixed; inset:0; z-index:20; overflow:hidden; pointer-events:none; }
+.top100-moment-splash-balloon, .top100-moment-splash-confetti { position:absolute; top:42%; left:50%; display:block; opacity:0; animation-duration:2.1s; animation-delay:var(--splash-delay); animation-fill-mode:both; }
+.top100-moment-splash-balloon { width:clamp(24px,7vw,42px); height:clamp(32px,9vw,54px); border-radius:52% 52% 46% 46%; background:var(--splash-color); box-shadow:inset -6px -6px 0 #00000012, inset 5px 4px 0 #ffffff4d; animation-name:top100-balloon-pop; animation-timing-function:cubic-bezier(.2,.75,.25,1); }
+.top100-moment-splash-balloon::before { content:''; position:absolute; bottom:-5px; left:calc(50% - 4px); width:8px; height:8px; background:var(--splash-color); clip-path:polygon(0 0,100% 0,50% 100%); }
+.top100-moment-splash-balloon::after { content:''; position:absolute; top:100%; left:50%; width:1px; height:24px; background:#ffffffa6; }
+.top100-moment-splash-confetti { width:7px; height:13px; border-radius:2px; background:var(--splash-color); animation-name:top100-confetti-burst; animation-timing-function:cubic-bezier(.16,.72,.35,1); }
+.top100-moment-splash-confetti.is-circle { width:9px; height:9px; border-radius:50%; }
+@keyframes top100-balloon-pop { 0% { opacity:0; transform:translate(-50%,-50%) scale(.08); } 18% { opacity:1; transform:translate(-50%,-50%) scale(1); } 60% { opacity:1; transform:translate(calc(-50% + var(--splash-x)),calc(-50% + var(--splash-y))) scale(1); } 75% { opacity:1; transform:translate(calc(-50% + var(--splash-x)),calc(-50% + var(--splash-y))) scale(1.12); } 88%,100% { opacity:0; transform:translate(calc(-50% + var(--splash-x)),calc(-50% + var(--splash-y))) scale(.12); } }
+@keyframes top100-confetti-burst { 0% { opacity:0; transform:translate(-50%,-50%) scale(.15) rotate(0deg); } 14% { opacity:1; } 100% { opacity:0; transform:translate(calc(-50% + var(--splash-x)),calc(-50% + var(--splash-y))) scale(1) rotate(560deg); } }
 @keyframes dashboard-confetti-fall { 0% { transform:translate3d(0,-3vh,0) rotate(0deg); opacity:0; } 8% { opacity:1; } 100% { transform:translate3d(28px,112vh,0) rotate(780deg); opacity:.85; } }
 @keyframes dashboard-balloon-rise { 0% { transform:translate3d(0,0,0) rotate(-6deg); } 50% { transform:translate3d(16px,-58vh,0) rotate(7deg); } 100% { transform:translate3d(-8px,-125vh,0) rotate(-4deg); } }
 @keyframes dashboard-celebration-enter { from { opacity:0; transform:translate(-50%,-46%) scale(.96); } to { opacity:1; transform:translate(-50%,-50%) scale(1); } }
@@ -513,5 +522,6 @@ html.light .programme-detail-hero-copy > p:last-child { color:#fff1e4 !important
 }
 @media (prefers-reduced-motion: reduce) {
  .dashboard-celebration-balloon, .dashboard-celebration-confetti-piece, .dashboard-celebration-card { animation:none; }
+ .top100-moment-splash-balloon, .top100-moment-splash-confetti { animation:none; }
  .dashboard-celebration-continue { transition:none; }
 }
