@@ -39,7 +39,7 @@ import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
-import { Search, User, Shield, Eye, EyeOff, Edit, Trash2, Users, UserCheck, UserPlus, Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Search, User, Shield, Eye, EyeOff, Edit, Trash2, Users, UserCheck, UserPlus, Loader2, ChevronLeft, ChevronRight, Copy, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getPageItems, getPageSlice } from '@/lib/admin/user-pagination'
 
@@ -71,6 +71,8 @@ export default function UserManagement() {
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteName, setInviteName] = useState('')
   const [inviting, setInviting] = useState(false)
+  const [inviteLink, setInviteLink] = useState('')
+  const [inviteLinkCopied, setInviteLinkCopied] = useState(false)
 
   // Fetch users from API
   useEffect(() => {
@@ -228,18 +230,35 @@ export default function UserManagement() {
       })
       const data = await response.json().catch(() => ({}))
 
-      if (!response.ok) throw new Error(data.message || 'Could not send admin invitation')
+      if (!response.ok) throw new Error(data.message || 'Could not create admin setup link')
 
-      toast.success(`Admin invitation sent to ${inviteEmail.trim()}`)
-      setInviteDialogOpen(false)
-      setInviteEmail('')
-      setInviteName('')
+      if (data.emailSent) {
+        toast.success(`Admin invitation email sent to ${inviteEmail.trim()}`)
+        setInviteDialogOpen(false)
+        setInviteEmail('')
+        setInviteName('')
+      } else {
+        setInviteLink(data.setupLink)
+        setInviteLinkCopied(false)
+        toast.success('Admin setup link created. No email was sent.')
+      }
       await fetchUsers()
     } catch (error) {
       console.error('Error inviting admin:', error)
-      toast.error(error instanceof Error ? error.message : 'Could not send admin invitation')
+      toast.error(error instanceof Error ? error.message : 'Could not create admin setup link')
     } finally {
       setInviting(false)
+    }
+  }
+
+  const copyInviteLink = async () => {
+    if (!inviteLink) return
+    try {
+      await navigator.clipboard.writeText(inviteLink)
+      setInviteLinkCopied(true)
+      toast.success('Setup link copied')
+    } catch {
+      toast.error('Copy was blocked. Select and copy the setup link below.')
     }
   }
 
@@ -273,15 +292,39 @@ export default function UserManagement() {
         </Button>
       </div>
 
-      <Dialog open={inviteDialogOpen} onOpenChange={(open) => { if (!inviting) setInviteDialogOpen(open) }}>
+      <Dialog open={inviteDialogOpen} onOpenChange={(open) => {
+        if (inviting) return
+        setInviteDialogOpen(open)
+        if (!open) {
+          setInviteLink('')
+          setInviteLinkCopied(false)
+          setInviteEmail('')
+          setInviteName('')
+        }
+      }}>
         <DialogContent className="bg-white border-orange-100 text-zinc-900 rounded-2xl sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-zinc-900">Invite an administrator</DialogTitle>
             <DialogDescription className="text-zinc-500">
-              Send a secure setup link. The invitee will create their password before accessing the admin console.
+              In local development, create a secure setup link without sending email. In production, send the invitation to the provided address after verifying the public HTTPS site URL.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+          {inviteLink ? (
+            <div className="grid gap-4 py-4">
+              <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+                <p className="font-semibold">Setup link ready for {inviteEmail.trim()}</p>
+                <p className="mt-1">No email was sent. Share this link securely; anyone who has it can set the password for this admin account.</p>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="admin-invite-link" className="text-zinc-700">One-time setup link</Label>
+                <Input id="admin-invite-link" readOnly value={inviteLink} onFocus={(event) => event.currentTarget.select()} className="bg-white border-zinc-200 text-zinc-900" />
+              </div>
+              <Button onClick={() => void copyInviteLink()} className="bg-gradient-to-r from-orange-500 to-amber-500 text-white">
+                {inviteLinkCopied ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
+                {inviteLinkCopied ? 'Copied' : 'Copy setup link'}
+              </Button>
+            </div>
+          ) : <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="invite-email" className="text-zinc-700">Email address <span className="text-rose-500">*</span></Label>
               <Input id="invite-email" type="email" autoComplete="email" placeholder="name@organisation.org" value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} disabled={inviting} className="bg-white border-zinc-200 text-zinc-900" />
@@ -294,13 +337,13 @@ export default function UserManagement() {
               <Shield className="mt-0.5 h-4 w-4 shrink-0" />
               <span>This invitation grants full administrative access, including user, content, and settings management.</span>
             </div>
-          </div>
+          </div>}
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setInviteDialogOpen(false)} disabled={inviting} className="text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100">Cancel</Button>
-            <Button onClick={() => void handleInviteAdmin()} disabled={inviting || !inviteEmail.trim()} className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white">
+            <Button variant="ghost" onClick={() => setInviteDialogOpen(false)} disabled={inviting} className="text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100">{inviteLink ? 'Done' : 'Cancel'}</Button>
+            {!inviteLink && <Button onClick={() => void handleInviteAdmin()} disabled={inviting || !inviteEmail.trim()} className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white">
               {inviting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
-              {inviting ? 'Sending invite…' : 'Send admin invite'}
-            </Button>
+              {inviting ? 'Creating invitation…' : 'Create invitation'}
+            </Button>}
           </DialogFooter>
         </DialogContent>
       </Dialog>

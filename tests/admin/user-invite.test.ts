@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import {
+  buildAdminInviteEmail,
   buildAdminInviteMetadata,
   getAdminInviteRedirectUrl,
   normalizeAdminInviteInput,
@@ -30,6 +31,16 @@ describe('admin invite redirects', () => {
     expect(getAdminInviteRedirectUrl('https://www.top100afl.com')).toBe('https://www.top100afl.com/auth/update-password?source=admin')
     expect(getAdminInviteRedirectUrl('http://localhost:3100/')).toBe('http://localhost:3100/auth/update-password?source=admin')
   })
+
+  it('rejects invalid origins and localhost links in production', () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    expect(() => getAdminInviteRedirectUrl('http://localhost:3000')).toThrow('public HTTPS site URL')
+    expect(() => getAdminInviteRedirectUrl('https://127.0.0.1')).toThrow('public HTTPS site URL')
+    expect(() => getAdminInviteRedirectUrl('https://admin.local')).toThrow('public HTTPS site URL')
+    expect(() => getAdminInviteRedirectUrl('https://localhost.')).toThrow('public HTTPS site URL')
+    expect(() => getAdminInviteRedirectUrl('not a url')).toThrow('valid site origin')
+    vi.unstubAllEnvs()
+  })
 })
 
 describe('buildAdminInviteMetadata', () => {
@@ -38,5 +49,19 @@ describe('buildAdminInviteMetadata', () => {
       full_name: 'Ada Admin',
       role: 'admin',
     })
+  })
+})
+
+describe('buildAdminInviteEmail', () => {
+  it('creates a clear invite and escapes recipient-controlled HTML', () => {
+    const email = buildAdminInviteEmail({
+      fullName: '<Ada & Bob>',
+      setupLink: 'https://auth.example.com/verify?token=a&next=b',
+    })
+    expect(email.subject).toContain('admin account')
+    expect(email.text).toContain('https://auth.example.com/verify?token=a&next=b')
+    expect(email.html).toContain('Hello &lt;Ada &amp; Bob&gt;')
+    expect(email.html).toContain('token=a&amp;next=b')
+    expect(email.html).not.toContain('Hello <Ada & Bob>')
   })
 })
