@@ -53,6 +53,9 @@ export async function POST(request: NextRequest) {
       email_confirm: true,
     })
     if (createError || !created.user) {
+      if (createError?.code === 'email_exists' || /already been registered/i.test(createError?.message ?? '')) {
+        return NextResponse.json({ existing: true })
+      }
       return NextResponse.json({ message: 'Could not create this account. If you already signed up, sign in and return here.' }, { status: 409 })
     }
     const { error: claimError } = await db.rpc('request_pending_awardee_claim', {

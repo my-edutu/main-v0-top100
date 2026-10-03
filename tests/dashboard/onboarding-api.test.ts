@@ -5,6 +5,7 @@ const state = vi.hoisted(() => ({
   update: {} as Record<string, unknown>,
   ids: [] as string[],
   prefs: {} as Record<string, unknown>,
+  missingPrefsRpc: false,
 }))
 const fields = {
   headline: 'Youth mentor',
@@ -18,6 +19,8 @@ vi.mock('@/lib/auth-server', () => ({
 vi.mock('@/lib/supabase/server', () => ({
   createAdminClient: () => ({
     rpc: async (_name: string, args: { p_patch: Record<string, unknown> }) => {
+      if (state.missingPrefsRpc)
+        return { data: null, error: { code: 'PGRST202' } }
       state.prefs = { ...state.prefs, ...args.p_patch }
       return { data: state.prefs, error: null }
     },
@@ -32,6 +35,8 @@ vi.mock('@/lib/supabase/server', () => ({
         update: (value: Record<string, unknown>) => {
           updating = true
           state.update = value
+          if ('notification_prefs' in value)
+            state.prefs = value.notification_prefs as Record<string, unknown>
           return chain
         },
         single: async () => ({
@@ -54,6 +59,7 @@ beforeEach(() => {
   state.update = {}
   state.ids = []
   state.prefs = {}
+  state.missingPrefsRpc = false
 })
 function request(body: unknown) {
   return new Request('https://www.top100afl.com/api/member/onboarding', {
@@ -73,6 +79,16 @@ it('saves drafts without completing onboarding or consuming BIO edits', async ()
   expect(state.prefs).not.toHaveProperty(
     'onboardingCompletedAt',
   )
+})
+it('saves onboarding progress when the database has not installed the prefs RPC migration', async () => {
+  state.missingPrefsRpc = true
+  state.prefs = { existingPreference: true }
+  const response = await POST(request({ headline: 'Mentor', step: 2 }))
+  expect(response.status).toBe(200)
+  expect(state.prefs).toMatchObject({
+    existingPreference: true,
+    onboardingStep: 2,
+  })
 })
 it('validates completion and scopes writes to the authenticated member', async () => {
   expect(

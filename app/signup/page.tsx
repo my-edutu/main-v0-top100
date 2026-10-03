@@ -110,6 +110,15 @@ export default function SignUpPage() {
         await submitClaim(sessionData.session.access_token)
         return
       }
+      if (body.existing) {
+        const { data: existing, error: signInError } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password })
+        if (signInError || !existing.session?.access_token) {
+          throw new Error('This email already has an account. Sign in with its current password. If you cannot reset it, contact the admin team while email recovery is unavailable.')
+        }
+        setHasSession(true)
+        await submitClaim(existing.session.access_token)
+        return
+      }
       if (!body.created) throw new Error('Could not submit this claim. Try again.')
       const { error: signInError } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password })
       if (signInError) throw new Error('Your claim was submitted, but sign-in failed. Sign in with your new password to check its status.')

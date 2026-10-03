@@ -4,6 +4,15 @@ const developmentScriptSrc = "script-src 'self' 'unsafe-eval' 'unsafe-inline' ht
 const scriptSrc = process.env.NODE_ENV === 'production' ? productionScriptSrc : developmentScriptSrc
 
 const nextConfig = {
+  async redirects() {
+    return [
+      {
+        source: '/initiatives/talk100',
+        destination: '/initiatives/talk100-live',
+        permanent: true,
+      },
+    ]
+  },
   images: {
     // Keep image optimization enabled so remote originals are resized and cached
     // by the deployment CDN instead of repeatedly streamed from Storage.

@@ -6,6 +6,16 @@ export type PasswordRecoveryError = {
   status?: number
 } | null
 
+export function passwordRecoveryErrorMessage(status?: number): string {
+  if (status === 429) {
+    return 'Too many reset requests. Please wait a minute and try again.'
+  }
+  if (typeof status === 'number' && status >= 500) {
+    return 'Password recovery email is temporarily unavailable. Contact the Top100 team for help signing in.'
+  }
+  return 'We could not send the reset email. Please try again shortly.'
+}
+
 type PasswordRecoveryRequester = {
   resetPasswordForEmail(
     email: string,

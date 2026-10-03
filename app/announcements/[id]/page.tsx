@@ -15,7 +15,7 @@ type AnnouncementPageProps = {
 
 async function getAnnouncement(id: string) {
     const supabase = createAdminClient();
-    return supabase.from("announcements").select("*").eq("id", id).single();
+    return supabase.from("announcements").select("*").eq("id", id).maybeSingle();
 }
 
 export async function generateMetadata({ params }: AnnouncementPageProps): Promise<Metadata> {

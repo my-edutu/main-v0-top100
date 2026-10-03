@@ -15,6 +15,7 @@ import {
   getRecoveryRequestOrigin,
   type RecoveryArea,
 } from '@/lib/auth/password-recovery'
+import { passwordRecoveryErrorMessage } from '@/lib/auth-recovery'
 import { SITE_URL } from '@/lib/site'
 
 function ForgotPasswordContent() {
@@ -44,11 +45,7 @@ function ForgotPasswordContent() {
       })
 
       if (resetError) {
-        setError(
-          resetError.status === 429
-            ? 'Too many reset requests. Please wait a minute and try again.'
-            : 'We could not send the reset email. Please try again shortly.',
-        )
+        setError(passwordRecoveryErrorMessage(resetError.status))
         return
       }
 

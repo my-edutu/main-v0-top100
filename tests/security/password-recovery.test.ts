@@ -7,9 +7,14 @@ import {
   requestAdminPasswordRecovery,
   updateRecoveredPassword,
   validateAdminPassword,
+  passwordRecoveryErrorMessage,
 } from '@/lib/auth-recovery'
 
 describe('admin password recovery', () => {
+  it('directs users to the team when Supabase email delivery is unavailable', () => {
+    expect(passwordRecoveryErrorMessage(500)).toMatch(/contact the Top100 team/i)
+  })
+
   it('sends recovery emails back to the dedicated password update page', () => {
     expect(passwordRecoveryRedirect('https://www.top100afl.com/')).toBe(
       'https://www.top100afl.com/auth/update-password?source=admin',

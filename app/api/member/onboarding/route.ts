@@ -80,6 +80,24 @@ export async function POST(request: Request) {
     p_profile_id: user.id,
     p_patch: prefsPatch,
   })
+  // Some deployed databases may not yet have the RPC migration. Keep onboarding
+  // usable there while the migration is rolled out; preserve existing preference
+  // keys when applying this member's onboarding fields.
+  if (prefsError?.code === 'PGRST202' || prefsError?.code === '42883') {
+    const { data: updatedPrefs, error: fallbackError } = await db
+      .from('profiles')
+      .update({ notification_prefs: { ...prefs, ...prefsPatch } })
+      .eq('id', user.id)
+      .select('notification_prefs')
+      .single()
+    if (fallbackError || !updatedPrefs?.notification_prefs)
+      return NextResponse.json(
+        { message: 'Your progress could not be saved. Please try again.' },
+        { status: 503 },
+      )
+    saved.notification_prefs = updatedPrefs.notification_prefs
+    return NextResponse.json({ member: mapProfileToMember(saved) })
+  }
   if (prefsError || !mergedPrefs)
     return NextResponse.json(
       { message: 'Your progress could not be saved. Please try again.' },

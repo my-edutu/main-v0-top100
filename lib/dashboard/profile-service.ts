@@ -19,7 +19,7 @@ const fetchPersistedAwardeeBySlug = unstable_cache(
                 .from('awardee_directory')
                 .select('*')
                 .eq('slug', slug)
-                .single()
+                .maybeSingle()
 
             if (!error && data) {
                 return data

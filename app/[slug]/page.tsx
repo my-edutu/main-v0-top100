@@ -25,7 +25,7 @@ async function getAnnouncement(slug: string) {
         query = query.eq("slug", slug);
     }
 
-    return query.single();
+    return query.maybeSingle();
 }
 
 export async function generateMetadata({ params }: AnnouncementPageProps): Promise<Metadata> {
