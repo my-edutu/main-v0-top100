@@ -3,11 +3,13 @@
 import { useEffect, useState } from 'react'
 import { ArrowRight, Download, ImagePlus, LoaderCircle, Share2 } from 'lucide-react'
 import { toast } from 'sonner'
+import Image from 'next/image'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { getCurrentPortfolioCover, startPortfolioCover } from '@/lib/portfolio-cover/client'
+import { peekPendingPortfolioCoverPhoto, takePendingPortfolioCoverPhoto } from '@/lib/portfolio-cover/draft-photo'
 import { useDashboardMember } from '@/app/dashboard/_providers/dashboard-member'
 import { CoverStepIndicator } from './cover-step-indicator'
 
@@ -15,12 +17,27 @@ export function PortfolioCoverWizard() {
   const { member, replaceMember } = useDashboardMember()
   const [coverUrl, setCoverUrl] = useState<string | null>(member.portfolioCoverUrl ?? null)
   const [name, setName] = useState(member.name)
-  const [file, setFile] = useState<File | null>(null)
+  const [file, setFile] = useState<File | null>(() => peekPendingPortfolioCoverPhoto())
   const [consent, setConsent] = useState(false)
-  const [step, setStep] = useState<'name' | 'photo' | 'preview'>('name')
+  const [step, setStep] = useState<'name' | 'photo' | 'preview'>(() => file ? 'photo' : 'name')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (file) takePendingPortfolioCoverPhoto()
+  }, [file])
+
+  useEffect(() => {
+    if (!file) return
+    const url = URL.createObjectURL(file)
+    const frame = window.requestAnimationFrame(() => setPreviewUrl(url))
+    return () => {
+      window.cancelAnimationFrame(frame)
+      URL.revokeObjectURL(url)
+    }
+  }, [file])
 
   useEffect(() => {
     let current = true
@@ -43,10 +60,12 @@ export function PortfolioCoverWizard() {
     if (!photo) return
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(photo.type) || photo.size > 8 * 1024 * 1024) {
       setFile(null)
+      setPreviewUrl(null)
       setError('Choose a JPG, PNG or WebP image under 8 MB.')
       return
     }
     setError('')
+    setPreviewUrl(null)
     setFile(photo)
   }
 
@@ -146,11 +165,23 @@ export function PortfolioCoverWizard() {
               type="file"
               accept="image/jpeg,image/png,image/webp"
               disabled={saving}
-              onChange={(event) => selectPhoto(event.target.files?.[0])}
+              onChange={(event) => {
+                selectPhoto(event.currentTarget.files?.[0])
+                event.currentTarget.value = ''
+              }}
               className="min-h-11 cursor-pointer p-0 text-sm text-neutral-700 file:mr-3 file:h-11 file:border-0 file:border-r file:border-neutral-200 file:bg-orange-50 file:px-3 file:font-medium file:text-orange-900 hover:file:bg-orange-100 sm:file:px-4"
             />
             <p className="text-xs leading-5 text-neutral-500">JPG, PNG or WebP · up to 8 MB</p>
           </div>
+          {file && previewUrl ? (
+            <div className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white p-3">
+              <Image src={previewUrl} alt="Selected cover portrait" width={64} height={80} unoptimized className="h-20 w-16 rounded-lg object-cover" />
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-neutral-900">Photo ready for your cover</p>
+                <p className="max-w-64 truncate text-xs text-neutral-500">{file.name}</p>
+              </div>
+            </div>
+          ) : null}
           <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-neutral-200 p-3 text-sm leading-5 text-neutral-700">
             <input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} disabled={saving} className="mt-0.5 size-4 shrink-0 accent-orange-600" />
             <span>I have permission to use this photo and agree to its processing to create my award cover.</span>
@@ -166,7 +197,7 @@ export function PortfolioCoverWizard() {
             <h2 id="cover-preview-step" className="text-lg font-semibold text-neutral-950">Your cover is ready</h2>
             <p className="text-sm leading-5 text-neutral-600">It’s saved and now appears on your public awardee profile.</p>
           </div>
-          <img src={coverUrl} alt={`${name || member.name}'s Africa Future Leaders 2026 award cover`} className="mx-auto block w-full max-w-[360px] rounded-lg border border-neutral-200" />
+          <Image src={coverUrl} alt={`${name || member.name}'s Africa Future Leaders 2026 award cover`} width={720} height={900} unoptimized className="mx-auto block w-full max-w-[360px] rounded-lg border border-neutral-200" />
           <div className="mx-auto flex w-full max-w-[360px] items-center gap-2 pt-1">
             <a href="/api/member/portfolio-cover/download" download={downloadName} className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-md bg-orange-600 px-4 text-sm font-semibold text-white hover:bg-orange-700"><Download className="size-4" aria-hidden="true" />Download cover</a>
             <Button type="button" variant="outline" onClick={() => void shareCover()} aria-label="Share cover link" title="Share cover link" className="size-11 shrink-0 rounded-md border-orange-200 text-orange-800 hover:bg-orange-50"><Share2 className="size-5" aria-hidden="true" /></Button>
