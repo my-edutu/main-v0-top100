@@ -1,6 +1,7 @@
 // app/api/admin/members/route.ts
 // Admin: list member accounts (role = 'user').
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidatePath, revalidateTag } from 'next/cache'
 import { requireAdmin } from '@/lib/api/require-admin'
 import { createAdminClient } from '@/lib/supabase/server'
 import { mapProfileToMember } from '@/lib/member-hub-server'
@@ -14,17 +15,22 @@ export async function GET(request: NextRequest) {
   const supabase = createAdminClient()
   const members = []
   const claims = new Map<string, { awardeeId: string; awardeeName: string; awardeeEmail: string }>()
-  const { data: pendingClaims, error: claimsError } = await supabase
-    .from('pending_awardee_claims')
-    .select('user_id,awardee_id,awardees(name,email)')
-  if (claimsError) return NextResponse.json({ message: 'Could not load pending claims.' }, { status: 500 })
-  for (const claim of pendingClaims ?? []) {
-    const awardee = Array.isArray(claim.awardees) ? claim.awardees[0] : claim.awardees
-    claims.set(claim.user_id, {
-      awardeeId: claim.awardee_id,
-      awardeeName: awardee?.name ?? 'Unknown awardee',
-      awardeeEmail: awardee?.email ?? '',
-    })
+  for (let offset = 0; ; offset += 500) {
+    const { data: pendingClaims, error: claimsError } = await supabase
+      .from('pending_awardee_claims')
+      .select('user_id,awardee_id,awardees(name,email)')
+      .order('user_id')
+      .range(offset, offset + 499)
+    if (claimsError) return NextResponse.json({ message: 'Could not load pending claims.' }, { status: 500 })
+    for (const claim of pendingClaims ?? []) {
+      const awardee = Array.isArray(claim.awardees) ? claim.awardees[0] : claim.awardees
+      claims.set(claim.user_id, {
+        awardeeId: claim.awardee_id,
+        awardeeName: awardee?.name ?? 'Unknown awardee',
+        awardeeEmail: awardee?.email ?? '',
+      })
+    }
+    if ((pendingClaims ?? []).length < 500) break
   }
   for (let offset = 0; ; offset += 500) {
     const { data, error } = await supabase
@@ -55,13 +61,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Unsupported member action.' }, { status: 400 })
   }
 
-  const { data, error } = await createAdminClient().rpc('approve_all_pending_members', {
+  const { data, error } = await createAdminClient().rpc('approve_all_pending_members_and_claims', {
     p_admin_id: adminCheck.user.id,
   })
-  if (error) {
+  if (error || !data) {
     console.error('[admin/members] bulk approval failed', error)
     return NextResponse.json({ message: 'Could not approve pending awardees.' }, { status: 500 })
   }
 
-  return NextResponse.json({ approved: Number(data ?? 0) })
+  revalidateTag('awardees', { expire: 0 })
+  revalidatePath('/awardees')
+  return NextResponse.json(data)
 }

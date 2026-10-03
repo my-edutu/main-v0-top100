@@ -53,7 +53,6 @@ export default function AdminMemberHubPage() {
   }, [refresh])
 
   const pendingMembers = useMemo(() => members.filter((m) => m.status === 'pending'), [members])
-  const bulkEligibleCount = useMemo(() => pendingMembers.filter((m) => !m.pendingClaim).length, [pendingMembers])
   const matchingPending = useMemo(() => {
     const query = pendingSearch.trim().toLowerCase()
     return query ? pendingMembers.filter((member) => `${member.name} ${member.email}`.toLowerCase().includes(query)) : pendingMembers
@@ -142,7 +141,7 @@ export default function AdminMemberHubPage() {
   }
 
   async function approveAllPending() {
-    if (!bulkEligibleCount || approvingAll) return
+    if (!pendingMembers.length || approvingAll) return
     setApprovingAll(true)
     try {
       const response = await fetch('/api/admin/members', {
@@ -154,7 +153,11 @@ export default function AdminMemberHubPage() {
       if (!response.ok) throw new Error(body.message || 'Could not approve pending awardees.')
       await refresh()
       setPendingPage(0)
-      toast.success(`Approved ${body.approved ?? 0} pending awardee${body.approved === 1 ? '' : 's'}.`)
+      if (body.skippedClaims > 0) {
+        toast.warning(`Approved ${body.approved ?? 0} pending awardees. ${body.skippedClaims} conflicting claim${body.skippedClaims === 1 ? '' : 's'} still need individual review.`, { duration: 8000 })
+      } else {
+        toast.success(`Approved ${body.approved ?? 0} pending awardee${body.approved === 1 ? '' : 's'}.`)
+      }
     } catch (cause) {
       toast.error(cause instanceof Error ? cause.message : 'Could not approve pending awardees.')
     } finally {
@@ -188,11 +191,11 @@ export default function AdminMemberHubPage() {
               <Users className="h-5 w-5 text-orange-500" />
               Pending awardees <span className="text-base font-medium text-zinc-500">({pendingMembers.length})</span>
             </CardTitle>
-            <p className="mt-1 text-sm text-zinc-600">Review new profile claims individually. Bulk approval applies only to existing pending accounts.</p>
+            <p className="mt-1 text-sm text-zinc-600">Approve all pending accounts and profile claims together. Claims with conflicting records stay pending for review.</p>
           </div>
-          <Button type="button" disabled={!bulkEligibleCount || approvingAll} className="min-h-11 bg-orange-500 text-white hover:bg-orange-600" onClick={() => void approveAllPending()}>
+          <Button type="button" disabled={!pendingMembers.length || approvingAll} className="min-h-11 bg-orange-500 text-white hover:bg-orange-600" onClick={() => void approveAllPending()}>
             <CheckCircle2 className="mr-2 h-4 w-4" />
-            {approvingAll ? 'Approving...' : `Approve ${bulkEligibleCount} existing pending`}
+            {approvingAll ? 'Approving...' : `Approve all ${pendingMembers.length} pending`}
           </Button>
         </CardHeader>
         <CardContent>
