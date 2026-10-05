@@ -75,6 +75,7 @@ export type DemoDashboardStore = {
   awardOrder: AwardOrder | null
   awardPayment: DemoAwardPaymentState
   magazinePayment: DemoMagazinePaymentState
+  whatsappChannelJoinedAt: string | null
   welcomeReadAt: string | null
   top100MomentCompletedAt: string | null
   externalShareConfirmedAt: string | null
@@ -289,6 +290,7 @@ export function createDemoDashboardStore(): DemoDashboardStore {
       attempt: null,
       callbackConsumed: false,
     },
+    whatsappChannelJoinedAt: null,
     welcomeReadAt: null,
     top100MomentCompletedAt: null,
     externalShareConfirmedAt: null,
@@ -321,6 +323,7 @@ export function getDemoDashboardStore(): DemoDashboardStore {
   if (!globalThis.__top100DemoDashboardStore.messages) {
     globalThis.__top100DemoDashboardStore.messages = []
   }
+  globalThis.__top100DemoDashboardStore.whatsappChannelJoinedAt ??= null
   globalThis.__top100DemoDashboardStore.welcomeReadAt ??= null
   globalThis.__top100DemoDashboardStore.top100MomentCompletedAt ??= null
   globalThis.__top100DemoDashboardStore.externalShareConfirmedAt ??= null

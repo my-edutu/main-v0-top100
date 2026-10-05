@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { useCallback, useEffect, useState } from 'react'
-import { ArrowRight, BookOpenText, Check, CheckCircle2, ChevronDown, Compass, Copy, ExternalLink, FileText, Linkedin, MessageCircle, RefreshCw, Share2, Trophy, UserRound } from 'lucide-react'
+import { ArrowRight, BookOpenText, Check, CheckCircle2, ChevronDown, Circle, Compass, Copy, ExternalLink, FileText, Linkedin, MessageCircle, RefreshCw, Share2, Trophy, UserRound } from 'lucide-react'
 import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -288,8 +288,8 @@ export function AwardeeOnboardingJourney({ name }: Props) {
               <ExternalLink className="h-4 w-4 shrink-0 text-[#A94412]" aria-hidden="true" />
             </a>
             <button type="button" onClick={() => void confirmChannelJoined()} disabled={joinedChannelSaving || joinedChannel} aria-busy={joinedChannelSaving} className="flex min-h-10 items-center gap-2 px-2 text-xs text-[#625B52] disabled:opacity-70">
-              {joinedChannel ? <CheckCircle2 className="h-4 w-4 text-[#39754A]" aria-hidden="true" /> : <Check className="h-4 w-4" aria-hidden="true" />}
-              {joinedChannelSaving ? 'Saving confirmation…' : joinedChannel ? 'WhatsApp channel joined · confirmed by you' : 'I’ve joined the WhatsApp channel'}
+              <Circle className="h-4 w-4" aria-hidden="true" />
+              {joinedChannelSaving ? 'Saving confirmation…' : 'I’ve joined the WhatsApp channel'}
             </button>
               </>
             ) : null}

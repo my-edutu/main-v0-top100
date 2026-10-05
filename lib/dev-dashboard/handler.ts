@@ -50,12 +50,13 @@ function routeAwardeeJourney(request: NextRequest, store: DemoDashboardStore) {
       state,
       settings: DEFAULT_AWARDEE_JOURNEY_SETTINGS,
       moment: { completedAt: store.top100MomentCompletedAt },
+      whatsappChannelJoinedAt: store.whatsappChannelJoinedAt,
     } })
   }
   if (request.method !== 'PATCH') return null
 
   return readBody(request).then((body) => {
-    if (!body || Object.keys(body).some((key) => !['welcomeRead', 'externalShareConfirmed', 'externalSharePlatform', 'top100MomentComplete', 'previewReset'].includes(key))) {
+    if (!body || Object.keys(body).some((key) => !['welcomeRead', 'externalShareConfirmed', 'externalSharePlatform', 'top100MomentComplete', 'whatsappChannelJoined', 'previewReset'].includes(key))) {
       return json({ message: 'Choose a supported onboarding update.' }, 400)
     }
     if (body.previewReset !== undefined) {
@@ -73,7 +74,9 @@ function routeAwardeeJourney(request: NextRequest, store: DemoDashboardStore) {
         return json({ message: 'Choose a supported onboarding update.' }, 400)
       }
     }
+    if (body.whatsappChannelJoined !== undefined && body.whatsappChannelJoined !== true) return json({ message: 'Choose a supported onboarding update.' }, 400)
     const now = new Date().toISOString()
+    if (body.whatsappChannelJoined === true) store.whatsappChannelJoinedAt ??= now
     if (body.welcomeRead === true) store.welcomeReadAt ??= now
     if (body.top100MomentComplete === true) store.top100MomentCompletedAt ??= now
     if (body.externalShareConfirmed === true) {

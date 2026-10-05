@@ -84,6 +84,16 @@ describe('interactive local dashboard demo API', () => {
     expect(completed.data.member.onboardingCompletedAt).toEqual(expect.any(String))
   })
 
+  it('persists WhatsApp confirmation across journey reloads and rejects false confirmations', async () => {
+    expect((await call(store, 'GET', 'onboarding-journey')).data.journey.whatsappChannelJoinedAt).toBeNull()
+    expect((await call(store, 'PATCH', 'onboarding-journey', { whatsappChannelJoined: false })).response.status).toBe(400)
+    expect((await call(store, 'PATCH', 'onboarding-journey', { whatsappChannelJoined: true })).response.status).toBe(200)
+    const completedAt = (await call(store, 'GET', 'onboarding-journey')).data.journey.whatsappChannelJoinedAt
+    expect(completedAt).toEqual(expect.any(String))
+    await call(store, 'PATCH', 'onboarding-journey', { whatsappChannelJoined: true })
+    expect((await call(store, 'GET', 'onboarding-journey')).data.journey.whatsappChannelJoinedAt).toBe(completedAt)
+  })
+
   it('serves and persists the awardee onboarding journey in the local demo', async () => {
     const initial = await call(store, 'GET', 'onboarding-journey')
     expect(initial.response.status).toBe(200)
