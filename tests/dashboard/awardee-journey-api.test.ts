@@ -52,6 +52,20 @@ describe('/api/member/onboarding-journey', () => {
     expect(mocks.saveProgress).toHaveBeenCalledWith('authenticated-member', { welcomeRead: true })
   })
 
+  it('saves WhatsApp completion for the authenticated member', async () => {
+    const response = await PATCH(request('PATCH', { whatsappChannelJoined: true }))
+
+    expect(response.status).toBe(200)
+    expect(mocks.saveProgress).toHaveBeenCalledWith('authenticated-member', { whatsappChannelJoined: true })
+  })
+
+  it('rejects a false WhatsApp completion value', async () => {
+    const response = await PATCH(request('PATCH', { whatsappChannelJoined: false }))
+
+    expect(response.status).toBe(400)
+    expect(mocks.saveProgress).not.toHaveBeenCalled()
+  })
+
   it('rejects unsupported acknowledgement fields', async () => {
     const response = await PATCH(request('PATCH', { awardPaid: true }))
 

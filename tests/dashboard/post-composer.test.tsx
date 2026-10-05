@@ -1,6 +1,7 @@
 import { createElement, type ComponentType, type FormEvent } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
+import { MediumPostEditor } from '@/components/editor/medium-post-editor'
 
 import * as PostsSectionModule from '@/app/dashboard/posts-section'
 
@@ -16,7 +17,7 @@ type PostEditorProps = {
 }
 
 describe('post composer', () => {
-  it('uses a full-page editor with inline image insertion and a single top-bar publish action', () => {
+  it('shows a lightweight loading state while the full-page editor chunk loads', () => {
     const PostEditor = Reflect.get(PostsSectionModule, 'PostEditor') as
       | ComponentType<PostEditorProps>
       | undefined
@@ -37,6 +38,18 @@ describe('post composer', () => {
     expect(markup).not.toContain('role="group" aria-label="Post actions"')
     expect(markup).not.toContain('Amara Okafor')
     expect(markup).not.toContain('Climate-tech founder and community builder')
+    expect(markup).toContain('role="status" aria-label="Opening your editor"')
+    expect(markup).toContain('Opening your editor')
+  })
+
+  it('renders the rich text editor with inline image insertion after its chunk loads', () => {
+    const markup = renderToStaticMarkup(createElement(MediumPostEditor, {
+      value: '',
+      onChange: () => undefined,
+      onUploadImage: async () => 'https://media.example.test/story.webp',
+      fullScreen: true,
+    }))
+
     expect(markup).toContain('role="toolbar" aria-label="Formatting options"')
     expect(markup).toContain('aria-label="Bold"')
     expect(markup).toContain('aria-label="Italic"')

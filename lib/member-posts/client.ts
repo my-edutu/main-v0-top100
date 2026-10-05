@@ -1,6 +1,7 @@
 // lib/member-posts/client.ts
 // Client-side wrappers around /api/member/posts* and /api/admin/member-posts.
 // No secrets, no server-only imports — safe in a client component.
+import { dashboardRead } from '@/lib/http/dashboard-read'
 import type {
   MemberPost,
   MemberPostStatus,
@@ -38,7 +39,7 @@ async function jsonOrThrow(res: Response) {
 }
 
 export async function fetchMyPosts(): Promise<MemberPost[]> {
-  const res = await fetch('/api/member/posts', { cache: 'no-store' })
+  const res = await dashboardRead('/api/member/posts')
   const data = await jsonOrThrow(res)
   return (data.posts ?? []) as MemberPost[]
 }

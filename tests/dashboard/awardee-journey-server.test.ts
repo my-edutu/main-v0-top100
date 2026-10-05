@@ -26,19 +26,23 @@ beforeEach(() => {
     application: { status: 'pending' },
     award_order: { award_payment_status: 'paid', status: 'paid' },
   }
-  state.rpc.mockResolvedValue({ data: state.payload, error: null })
+  state.rpc.mockImplementation(async (functionName: string) => functionName === 'get_awardee_journey_data'
+    ? { data: state.payload, error: null }
+    : { data: null, error: null })
 })
 
-it('loads a member journey with one database RPC and maps progress and payment state', async () => {
+it('loads member journey and persisted WhatsApp completion with database RPCs', async () => {
   const journey = await getAwardeeJourneyForMember('member-1')
 
-  expect(state.rpc).toHaveBeenCalledExactlyOnceWith('get_awardee_journey_data', { p_profile_id: 'member-1' })
+  expect(state.rpc).toHaveBeenCalledWith('get_awardee_journey_data', { p_profile_id: 'member-1' })
+  expect(state.rpc).toHaveBeenCalledWith('get_awardee_whatsapp_channel_joined_at', { p_profile_id: 'member-1' })
+  expect(state.rpc).toHaveBeenCalledTimes(2)
   expect(journey.state.progress).toEqual({ completed: 3, total: 3, percent: 100 })
   expect(journey.state.recommendedActions.find(action => action.id === 'magazine')?.status).toBe('Application submitted')
   expect(journey.state.recommendedActions.find(action => action.id === 'award')?.status).toBe('Award fee paid')
 })
 
 it('fails closed when the data function cannot find the profile', async () => {
-  state.rpc.mockResolvedValue({ data: null, error: null })
+  state.rpc.mockImplementation(async () => ({ data: null, error: null }))
   await expect(getAwardeeJourneyForMember('missing')).rejects.toThrow('Member profile not found.')
 })

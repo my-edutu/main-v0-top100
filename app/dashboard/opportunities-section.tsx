@@ -11,6 +11,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ExternalLink, Mail, RefreshCw, Search } from 'lucide-react'
 
+import { DashboardLoading } from './_components/dashboard-loading'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
@@ -153,14 +154,7 @@ export default function OpportunitiesSection({
               </Button>
             </div>
           ) : loading ? (
-            <div className="grid gap-4 md:grid-cols-2">
-              {[0, 1, 2, 3].map((index) => (
-                <div
-                  key={index}
-                  className="h-52 animate-pulse rounded-[28px] border border-orange-100 bg-[#f5f4f0]"
-                />
-              ))}
-            </div>
+            <DashboardLoading label="Loading opportunities" />
           ) : opportunities.length === 0 ? (
             <div className="rounded-[28px] border-2 border-dashed border-orange-200 bg-[#fffaf4] px-6 py-12 text-center">
               <p className="text-base font-bold text-black">

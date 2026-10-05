@@ -15,12 +15,15 @@ import { Button } from '@/components/ui/button'
 import { finishDashboardOnboarding } from '@/lib/dashboard/onboarding'
 import { fetchMemberHubState, type MemberNotification, type MemberProfile } from '@/lib/member-hub'
 import dynamic from 'next/dynamic'
-const Onboarding = dynamic(() => import('../_components/onboarding').then(module => module.Onboarding))
-const Top100MomentGate = dynamic(() => import('../_components/top100-moment').then(module => module.Top100MomentGate))
+import { DashboardLoading } from '../_components/dashboard-loading'
+const Onboarding = dynamic(() => import('../_components/onboarding').then(module => module.Onboarding), { loading: () => <DashboardLoading label="Opening your welcome" /> })
+const Top100MomentGate = dynamic(() => import('../_components/top100-moment').then(module => module.Top100MomentGate), { loading: () => <DashboardLoading label="Loading your dashboard" /> })
 
 type DashboardMemberContextValue = {
   member: MemberProfile
   notifications: MemberNotification[]
+  loadedAt: number
+  replaceNotifications: (notifications: MemberNotification[]) => void
   replaceMember: (member: MemberProfile) => void
   refreshMember: () => Promise<void>
 }
@@ -31,6 +34,7 @@ export function DashboardMemberProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const [member, setMember] = useState<MemberProfile | null>(null)
   const [notifications, setNotifications] = useState<MemberNotification[]>([])
+  const [loadedAt, setLoadedAt] = useState(0)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [replayingWelcome, setReplayingWelcome] = useState(false)
@@ -61,6 +65,7 @@ export function DashboardMemberProvider({ children }: { children: ReactNode }) {
       }
 
       setMember(currentMember)
+      setLoadedAt(Date.now())
     } catch (cause) {
       setError(
         cause instanceof Error
@@ -144,7 +149,7 @@ export function DashboardMemberProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <DashboardMemberContext.Provider value={{ member, notifications, refreshMember, replaceMember }}>
+    <DashboardMemberContext.Provider value={{ member, notifications, loadedAt, replaceNotifications: setNotifications, refreshMember, replaceMember }}>
       {isLocalPreview && <div className={`award-preview-banner px-4 py-2 text-center text-xs text-orange-900 ${awardDark ? 'award-preview-dark' : 'bg-orange-50'}`}>Local preview · sample account and activity {member.onboardingCompletedAt && <button type="button" className="ml-2 underline disabled:opacity-60" onClick={() => void replayWelcome()} disabled={replayingWelcome}>{replayingWelcome ? 'Reopening welcome…' : 'Replay welcome'}</button>}{welcomeReplayError && <span role="alert" className="ml-2">{welcomeReplayError}</span>}</div>}
       {!member.onboardingCompletedAt
         ? <Onboarding member={member} onComplete={completeOnboarding} />

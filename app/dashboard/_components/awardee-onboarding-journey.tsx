@@ -14,7 +14,7 @@ import { DEFAULT_AWARDEE_JOURNEY_SETTINGS, type AwardeeJourneySettings } from '@
 import type { AwardeeJourneyState } from '@/lib/dashboard/awardee-journey'
 import { useDashboardMember } from '../_providers/dashboard-member'
 
-type Payload = { state: AwardeeJourneyState; settings: AwardeeJourneySettings }
+type Payload = { state: AwardeeJourneyState; settings: AwardeeJourneySettings; whatsappChannelJoinedAt: string | null }
 type Props = { name: string }
 
 const coreDestinations = {
@@ -44,20 +44,36 @@ export function AwardeeOnboardingJourney({ name }: Props) {
   const [preparedCover, setPreparedCover] = useState<{ url: string; file: File | null } | null>(null)
   const [sharing, setSharing] = useState(false)
   const [profileClickedFor, setProfileClickedFor] = useState<string | null>(null)
+  const [joinedChannelSaving, setJoinedChannelSaving] = useState(false)
   const [joinedChannelFor, setJoinedChannelFor] = useState<string | null>(null)
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
       try {
         setProfileClickedFor(localStorage.getItem(`afl-profile-done:${member.id}`) === 'yes' ? member.id : null)
-        setJoinedChannelFor(localStorage.getItem(`afl-channel-joined:${member.id}`) === 'yes' ? member.id : null)
-      } catch { setJoinedChannelFor(null) }
+      } catch { setProfileClickedFor(null) }
     })
     return () => cancelAnimationFrame(frame)
   }, [member.id])
-  const joinedChannel = joinedChannelFor === member.id
-  function confirmChannelJoined() {
-    setJoinedChannelFor(member.id)
-    try { localStorage.setItem(`afl-channel-joined:${member.id}`, 'yes') } catch { /* Confirmation remains available for this visit. */ }
+  const joinedChannel = joinedChannelFor === member.id || Boolean(payload?.whatsappChannelJoinedAt)
+  async function confirmChannelJoined() {
+    if (joinedChannelSaving || joinedChannel) return
+    setJoinedChannelSaving(true)
+    try {
+      const response = await fetch('/api/member/onboarding-journey', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ whatsappChannelJoined: true }),
+      })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.message || 'Could not save your update.')
+      setJoinedChannelFor(member.id)
+      await load(false)
+      toast.success('WhatsApp channel confirmation saved.')
+    } catch (cause) {
+      toast.error(cause instanceof Error ? cause.message : 'Could not save your update.')
+    } finally {
+      setJoinedChannelSaving(false)
+    }
   }
 
   const load = useCallback(async (showLoading = true) => {
@@ -271,9 +287,9 @@ export function AwardeeOnboardingJourney({ name }: Props) {
               </span>
               <ExternalLink className="h-4 w-4 shrink-0 text-[#A94412]" aria-hidden="true" />
             </a>
-            <button type="button" onClick={confirmChannelJoined} disabled={joinedChannel} className="flex min-h-10 items-center gap-2 px-2 text-xs text-[#625B52] disabled:opacity-70">
+            <button type="button" onClick={() => void confirmChannelJoined()} disabled={joinedChannelSaving || joinedChannel} aria-busy={joinedChannelSaving} className="flex min-h-10 items-center gap-2 px-2 text-xs text-[#625B52] disabled:opacity-70">
               {joinedChannel ? <CheckCircle2 className="h-4 w-4 text-[#39754A]" aria-hidden="true" /> : <Check className="h-4 w-4" aria-hidden="true" />}
-              {joinedChannel ? 'WhatsApp channel joined · confirmed by you' : 'I’ve joined the WhatsApp channel'}
+              {joinedChannelSaving ? 'Saving confirmation…' : joinedChannel ? 'WhatsApp channel joined · confirmed by you' : 'I’ve joined the WhatsApp channel'}
             </button>
               </>
             ) : null}

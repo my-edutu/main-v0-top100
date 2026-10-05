@@ -15,6 +15,7 @@ import {
   type PublicEvent,
 } from '@/lib/events/invitations-client'
 import { isAfricaFutureLeadersProgrammeEvent } from '@/lib/events/programme-api'
+import { DashboardLoading } from './dashboard-loading'
 import { DashboardCard } from './dashboard-card'
 import { discoverNav, meNav } from '../_lib/navigation'
 import { selectUpcomingInvitations } from '../_lib/home-priority'
@@ -159,7 +160,6 @@ export function DashboardHome() {
         <p className="hub-welcome-description">Your people and opportunities.</p>
       </section>
       <AwardeeOnboardingJourney name={member.name} />
-      {loading && <p role="status" className="hub-status text-sm text-neutral-600">Loading your events…</p>}
       {loadError && <p role="status" className="hub-status rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-sm leading-5 text-neutral-700">Some events couldn’t load. We’ll retry automatically; you can also open Events directly.</p>}
 
       <section aria-labelledby="coming-up-title" className="hub-upcoming-events min-w-0">
@@ -185,7 +185,7 @@ export function DashboardHome() {
                 <span className="mt-2 block text-xs font-medium text-white/90">{item.date}</span>
               </span>
             </Link>
-          )) : (
+          )) : loading ? <DashboardLoading label="Loading events" compact /> : loadError ? null : (
             <div className="py-3"><p className="text-sm text-[#625B52]">No upcoming events yet.</p><Link className="mt-1 inline-flex min-h-11 items-center gap-1 text-xs font-medium text-[#171717]" href="/dashboard/discover/events">View events <ArrowUpRight size={14} aria-hidden="true" /></Link></div>
           )}
         </div>

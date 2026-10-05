@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { ArrowUpRight, ChevronLeft, ChevronRight, LockKeyhole, Trophy } from 'lucide-react'
-import type { Awardee } from '@/lib/awardees-shared'
+import type { DirectoryCard } from '@/lib/awardees/directory-cards'
+import { fetchPublicDirectory, peekPublicDirectory } from '@/lib/awardees/directory-client'
+import { DashboardLoading } from '../_components/dashboard-loading'
 import { resolveStoryCover } from '@/lib/story-covers'
 import { MEMBER_GROUPS_ENABLED, MEMBER_GROUPS_LOCKED_MESSAGE } from '@/lib/groups/access'
 import { discoverNav } from '../_lib/navigation'
@@ -58,8 +60,8 @@ function shuffleForMember<T>(items: T[], memberId: string, rotationWindow: numbe
 
 export function DiscoverFeed({ posts }: { posts: Story[] }) {
   const { member } = useDashboardMember()
-  const [people, setPeople] = useState<Awardee[]>([])
-  const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [people, setPeople] = useState<DirectoryCard[]>(() => peekPublicDirectory() ?? [])
+  const [state, setState] = useState<'loading' | 'ready' | 'error'>(() => peekPublicDirectory() ? 'ready' : 'loading')
   const [retry, setRetry] = useState(0)
   const [rotationWindow] = useState(() => Math.floor(Date.now() / (1000 * 60 * 60 * 24)))
   const stories = shuffleForMember(posts, member.id, rotationWindow)
@@ -67,17 +69,11 @@ export function DiscoverFeed({ posts }: { posts: Story[] }) {
     ? { ...item, label: 'Award', title: 'My award', href: '/dashboard/me/award', icon: Trophy }
     : item)
   useEffect(() => {
-    const controller = new AbortController()
-    fetch('/api/awardees', { signal: controller.signal }).then(async response => {
-      if (!response.ok) throw new Error('Directory unavailable')
-      const data = await response.json()
-      if (!Array.isArray(data)) throw new Error('Invalid directory')
-      // The directory API also serves admin screens and therefore includes
-      // private/hidden records. Discover is a public-facing surface: only
-      // link to entries that the public profile route can actually resolve.
-      // Without this guard, hidden awardees appeared in the rail and their
-      // cards opened the public "Awardee not found" state.
-      const candidates = data.filter((person: Awardee) =>
+    let cancelled = false
+    fetchPublicDirectory(retry > 0).then(data => {
+      if (cancelled) return
+      // Exclude the signed-in member and keep every card publicly resolvable.
+      const candidates = data.filter((person: DirectoryCard) =>
         person.profile_id !== member.id &&
         person.is_public !== false &&
         typeof person.slug === 'string' &&
@@ -85,8 +81,8 @@ export function DiscoverFeed({ posts }: { posts: Story[] }) {
       )
       setPeople(shuffleForMember(candidates, member.id, rotationWindow).slice(0, 8))
       setState('ready')
-    }).catch(() => { if (!controller.signal.aborted) setState('error') })
-    return () => controller.abort()
+    }).catch(() => { if (!cancelled) setState('error') })
+    return () => { cancelled = true }
   }, [member.id, retry, rotationWindow])
   return <div className="discover-feed">
     <header><h1 className="text-xl font-semibold tracking-tight">Find your people. Make an impact.</h1></header>
@@ -99,12 +95,12 @@ export function DiscoverFeed({ posts }: { posts: Story[] }) {
       {campaigns.map(campaign => <Link href={campaign.href} className="discover-campaign" key={campaign.label}><span className="discover-kicker">{campaign.label}</span><h3>{campaign.title}</h3><p>{campaign.description}</p><span className="discover-cta">{campaign.action} <ArrowUpRight size={18} /></span></Link>)}
     </Rail>
     <Rail title="People to meet" href="/dashboard/discover/members">
-      {state === 'loading' && <p className="discover-empty" role="status">Loading members…</p>}
+      {state === 'loading' && <DashboardLoading label="Loading members" compact />}
       {state === 'error' && <div className="discover-empty" role="status">Members couldn’t load. <button className="underline" onClick={() => { setState('loading'); setRetry(value => value + 1) }}>Try again</button></div>}
       {state === 'ready' && !people.length && <p className="discover-empty">Explore the <Link href="/dashboard/discover/members" className="underline">member directory</Link> to meet fellow awardees.</p>}
-      {state === 'ready' && people.map(person => <Link href={`/awardees/${person.slug}`} aria-label={`View ${person.name}'s profile`} className="discover-person" key={person.slug}>
+      {state === 'ready' && people.filter(person => person.profile_id !== member.id).slice(0, 8).map(person => <Link href={`/awardees/${person.slug}`} aria-label={`View ${person.name}'s profile`} className="discover-person" key={person.slug}>
         <div className="discover-person-profile">
-          {person.avatar_url ? <img src={person.avatar_url} alt="" loading="lazy" className="discover-avatar" /> : <span className="discover-avatar">{person.name.split(' ').map(part => part[0]).slice(0, 2).join('')}</span>}
+          {person.avatar_url ? <img src={person.avatar_url} alt="" loading="lazy" decoding="async" width={56} height={56} className="discover-avatar" /> : <span className="discover-avatar">{person.name.split(' ').map(part => part[0]).slice(0, 2).join('')}</span>}
           <h3>{person.name}</h3>
         </div>
       </Link>)}

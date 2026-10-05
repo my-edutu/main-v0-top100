@@ -12,7 +12,12 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { MediumPostEditor } from '@/components/editor/medium-post-editor'
+import dynamic from 'next/dynamic'
+import { DashboardLoading } from './_components/dashboard-loading'
+
+const MediumPostEditor = dynamic(() => import('@/components/editor/medium-post-editor').then(module => module.MediumPostEditor), {
+  loading: () => <DashboardLoading label="Opening your editor" />,
+})
 import type { MemberProfile } from '@/lib/member-hub'
 import { MemberAvatar } from '@/app/dashboard/_components/member-avatar'
 import { renderMemberPostBody } from '@/lib/member-posts/content'
@@ -122,7 +127,7 @@ export default function PostsSection({
   onEditorExit,
 }: PostsSectionProps) {
   const [posts, setPosts] = useState<MemberPost[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(mode !== 'new')
   const [loadError, setLoadError] = useState('')
   const [setupMessage, setSetupMessage] = useState('')
   const [routeState, setRouteState] = useState<PostEditorRouteState>(() =>
@@ -152,8 +157,8 @@ export default function PostsSection({
   }, [])
 
   useEffect(() => {
-    void load()
-  }, [load])
+    if (mode !== 'new') void load()
+  }, [load, mode])
 
   useEffect(() => {
     if (loading) return
@@ -212,16 +217,7 @@ export default function PostsSection({
     }
   }
 
-  if (loading) {
-    return (
-      <div className="grid min-h-[240px] place-items-center rounded-[28px] border border-orange-100 bg-white">
-        <div className="text-center">
-          <div className="mx-auto mb-3 inline-block h-7 w-7 animate-spin rounded-full border-b-2 border-t-2 border-orange-500" />
-          <p className="text-sm font-semibold text-black/60">Loading your posts...</p>
-        </div>
-      </div>
-    )
-  }
+  if (loading && posts.length === 0) return <DashboardLoading label="Loading your posts" />
 
   if (setupMessage) {
     return (

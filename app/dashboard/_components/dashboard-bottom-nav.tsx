@@ -35,6 +35,7 @@ export function DashboardBottomNav() {
             <Link
               key={item.id}
               href={item.href}
+              prefetch={true}
               aria-current={active ? 'page' : undefined}
               className={cn(
                 'relative flex min-h-[68px] min-w-0 flex-col items-center justify-center gap-1 px-1 text-[11px] font-medium text-[#625B52] transition-colors focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#171412]',

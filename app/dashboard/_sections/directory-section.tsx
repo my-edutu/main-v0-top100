@@ -6,8 +6,9 @@ import { ArrowRight, Mail, MapPin, RefreshCw, Search, ShieldAlert } from 'lucide
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Skeleton } from '@/components/ui/skeleton'
-import type { Awardee } from '@/lib/awardees-shared'
+import { DashboardLoading } from '../_components/dashboard-loading'
+import type { DirectoryCard } from '@/lib/awardees/directory-cards'
+import { fetchPublicDirectory, peekPublicDirectory } from '@/lib/awardees/directory-client'
 import { shuffleAwardees } from '@/lib/awardees/shuffle'
 import type { MemberProfile } from '@/lib/member-hub'
 import { cn } from '@/lib/utils'
@@ -19,10 +20,10 @@ const directoryCohorts = [
 ]
 
 export function DirectorySection({ member }: { member: MemberProfile }) {
-  const [awardees, setAwardees] = useState<Awardee[]>([])
+  const [awardees, setAwardees] = useState<DirectoryCard[]>(() => shuffleAwardees(peekPublicDirectory() ?? []))
   const [selectedYear, setSelectedYear] = useState<number | 'all'>('all')
   const [searchTerm, setSearchTerm] = useState('')
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(() => !peekPublicDirectory())
   const [loadFailed, setLoadFailed] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
   const [page, setPage] = useState(0)
@@ -42,12 +43,10 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
     let cancelled = false
 
     async function loadAwardees() {
-      setLoading(true)
+      setLoading(!peekPublicDirectory())
       setLoadFailed(false)
       try {
-        const response = await fetch('/api/awardees', { cache: 'no-store' })
-        if (!response.ok) throw new Error('Directory request failed')
-        const payload = await response.json()
+        const payload = await fetchPublicDirectory(reloadKey > 0)
         if (!cancelled) {
           const eligibleAwardees = Array.isArray(payload)
             ? payload.filter((awardee) => !isQaFixture(awardee))
@@ -227,23 +226,7 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
             ))}
           </div>
 
-          {loading ? (
-            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3" role="status" aria-label="Loading awardees">
-              {Array.from({ length: 6 }, (_, index) => (
-                <div key={index} className="rounded-2xl border border-neutral-200 bg-white p-4">
-                  <div className="flex items-start gap-3">
-                    <Skeleton className="h-12 w-12 rounded-2xl bg-orange-100/70" />
-                    <div className="flex-1 space-y-2 pt-1">
-                      <Skeleton className="h-4 w-3/5 rounded-full bg-orange-100/70" />
-                      <Skeleton className="h-3 w-4/5 rounded-full bg-orange-50" />
-                      <Skeleton className="h-3 w-2/5 rounded-full bg-orange-50" />
-                    </div>
-                  </div>
-                  <Skeleton className="mt-5 h-10 w-full rounded-full bg-orange-50" />
-                </div>
-              ))}
-            </div>
-          ) : null}
+          {loading ? <DashboardLoading label="Loading awardees" /> : null}
 
           {!loading && loadFailed ? (
             <div className="mt-4 rounded-[22px] border border-orange-100 bg-white p-8 text-center">
@@ -262,7 +245,8 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
 
           {!loading && !loadFailed && visibleAwardees.length === 0 ? (
             <div className="mt-4 rounded-[22px] border border-dashed border-black/10 bg-white p-8 text-center text-sm font-semibold text-black/50">
-              No awardees match this filter yet.
+              <p>{searchTerm || selectedYear !== 'all' ? 'No awardees match your search.' : 'No members to show yet.'}</p>
+              {(searchTerm || selectedYear !== 'all') && <button type="button" className="mt-3 min-h-11 underline text-orange-800" onClick={() => { setSearchTerm(''); setSelectedYear('all'); setPage(0) }}>Clear filters</button>}
             </div>
           ) : null}
 
@@ -310,7 +294,7 @@ function getInitials(name: string) {
   )
 }
 
-function isQaFixture(awardee: Awardee) {
+function isQaFixture(awardee: DirectoryCard) {
   const value = [awardee.name, awardee.slug, awardee.headline, awardee.tagline, awardee.bio]
     .filter(Boolean)
     .join(' ')
@@ -318,11 +302,11 @@ function isQaFixture(awardee: Awardee) {
   return value.includes('qa test account') || value.includes('not a real awardee') || value.includes('top100 test awardee')
 }
 
-function AwardeeThumbnail({ awardee }: { awardee: Awardee }) {
+function AwardeeThumbnail({ awardee }: { awardee: DirectoryCard }) {
   const [failed, setFailed] = useState(false)
-  const image = awardee.avatar_url || awardee.cover_image_url || (awardee as Awardee & { image_url?: string | null }).image_url
+  const image = awardee.avatar_url
   if (!image || failed) {
     return <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#050505] text-sm font-bold text-[#fffaf0]">{getInitials(awardee.name)}</div>
   }
-  return <img src={image} alt="" className="h-12 w-12 shrink-0 rounded-2xl object-cover" onError={() => setFailed(true)} />
+  return <img src={image} alt="" loading="lazy" decoding="async" width={48} height={48} className="h-12 w-12 shrink-0 rounded-2xl object-cover" onError={() => setFailed(true)} />
 }

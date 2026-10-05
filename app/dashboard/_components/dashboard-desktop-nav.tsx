@@ -31,6 +31,7 @@ export function DashboardDesktopNav() {
             <Link
               key={item.id}
               href={item.href}
+              prefetch={true}
               aria-current={active ? 'page' : undefined}
               aria-label={badge > 0 ? `${item.label} (${badge} unread)` : item.label}
               className={cn(

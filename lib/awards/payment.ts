@@ -1,4 +1,6 @@
 // Browser-safe award payment contract. Amounts are always supplied by the server.
+import { dashboardRead } from '@/lib/http/dashboard-read'
+
 export type AwardPaymentCurrency = 'NGN' | 'USD'
 
 export type AwardPaymentView = {
@@ -27,7 +29,7 @@ async function readResponse(response: Response) {
 }
 
 export async function fetchAwardPayment(): Promise<AwardPaymentView> {
-  return readResponse(await fetch('/api/member/award/payment', { cache: 'no-store' }))
+  return readResponse(await dashboardRead('/api/member/award/payment'))
 }
 
 export async function startAwardPaymentCheckout(currency: AwardPaymentCurrency): Promise<{

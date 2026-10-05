@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ArrowUpRight, BellRing, Check, CheckCheck, Loader2, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 
+import { DashboardLoading } from '../_components/dashboard-loading'
 import { Button } from '@/components/ui/button'
 import {
   fetchMemberHubState,
@@ -38,15 +39,15 @@ function displayNotificationDate(notification: MemberNotification, memberCreated
 }
 
 export function NotificationsSection() {
-  const { member } = useDashboardMember()
+  const { member, notifications: initialNotifications, loadedAt, replaceNotifications } = useDashboardMember()
   const { setUnreadUpdates } = useDashboardBadges()
-  const [notifications, setNotifications] = useState<MemberNotification[]>([])
-  const [loading, setLoading] = useState(true)
+  const [notifications, setNotifications] = useState<MemberNotification[]>(() => initialNotifications.filter(notification => notification.status === 'sent' && (notification.audience === 'all' || member.status === 'approved')))
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [marking, setMarking] = useState<string | 'all' | null>(null)
 
-  const loadNotifications = useCallback(async () => {
-    setLoading(true)
+  const loadNotifications = useCallback(async (background = false) => {
+    if (!background) setLoading(true)
     setError('')
     try {
       const state = await fetchMemberHubState()
@@ -56,17 +57,23 @@ export function NotificationsSection() {
           (notification.audience === 'all' || member.status === 'approved'),
       )
       setNotifications(visible)
+      replaceNotifications(visible)
       setUnreadUpdates(notificationUnreadCount(visible, member.id))
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not load your updates.')
     } finally {
       setLoading(false)
     }
-  }, [member.id, member.status, setUnreadUpdates])
+  }, [member.id, member.status, replaceNotifications, setUnreadUpdates])
 
   useEffect(() => {
-    void loadNotifications()
-  }, [loadNotifications])
+    setNotifications(initialNotifications.filter(notification => notification.status === 'sent' && (notification.audience === 'all' || member.status === 'approved')))
+  }, [initialNotifications, member.status])
+
+  useEffect(() => {
+    // Keep recent hub data immediately visible; refresh older updates quietly.
+    if (Date.now() - loadedAt > 60_000) void loadNotifications(true)
+  }, [loadedAt, loadNotifications])
 
   const unreadCount = useMemo(
     () => notificationUnreadCount(notifications, member.id),
@@ -83,6 +90,7 @@ export function NotificationsSection() {
         notificationId,
       )
       setNotifications(next)
+      replaceNotifications(next)
       setUnreadUpdates(notificationUnreadCount(next, member.id))
     } catch (cause) {
       toast.error(cause instanceof Error ? cause.message : 'Could not mark this update read.')
@@ -95,9 +103,9 @@ export function NotificationsSection() {
     try {
       setMarking('all')
       await markAllNotificationsRead()
-      setNotifications(
-        markNotificationReadInList(notifications, member.id, 'all'),
-      )
+      const next = markNotificationReadInList(notifications, member.id, 'all')
+      setNotifications(next)
+      replaceNotifications(next)
       setUnreadUpdates(0)
       toast.success('All updates marked as read.')
     } catch (cause) {
@@ -107,16 +115,9 @@ export function NotificationsSection() {
     }
   }
 
-  if (loading) {
-    return (
-      <div role="status" aria-label="Loading member updates" className="space-y-3 rounded-[20px] border border-[#E7DDCF] bg-white p-5">
-        {[0, 1, 2].map((item) => <div key={item} className="h-24 animate-pulse rounded-[16px] bg-[#FBF7EF] motion-reduce:animate-none" />)}
-        <span className="sr-only">Loading member updates</span>
-      </div>
-    )
-  }
+  if (loading) return <DashboardLoading label="Loading member updates" />
 
-  if (error) {
+  if (error && notifications.length === 0) {
     return (
       <section role="alert" className="rounded-[20px] border border-rose-200 bg-white p-5">
         <p className="text-sm font-bold text-rose-800">{error}</p>
@@ -129,6 +130,7 @@ export function NotificationsSection() {
 
   return (
     <div className="space-y-5">
+      {error && <p role="status" className="text-sm text-orange-800">Updates couldn’t refresh. Your last loaded messages are shown. <button type="button" className="underline" onClick={() => void loadNotifications(true)}>Try again</button></p>}
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-[#E8E4DD] pb-4">
         <div>
           <p className="text-sm font-medium text-[#27241F]">

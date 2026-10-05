@@ -10,11 +10,13 @@ type ProgressPatch = {
   externalShareConfirmed?: boolean
   externalSharePlatform?: 'linkedin' | 'facebook' | 'instagram' | 'other'
   top100MomentComplete?: true
+  whatsappChannelJoined?: true
 }
 
 type JourneyPayload = {
   state: ReturnType<typeof deriveAwardeeJourney>
   settings: AwardeeJourneySettings
+  whatsappChannelJoinedAt: string | null
   moment: {
     completedAt: string | null
   }
@@ -58,8 +60,12 @@ function failOnDbError(label: string, error: unknown) {
 
 export async function getAwardeeJourneyForMember(memberId: string): Promise<JourneyPayload> {
   const db = createAdminClient()
-  const { data, error } = await db.rpc('get_awardee_journey_data', { p_profile_id: memberId })
+  const [{ data, error }, { data: whatsappChannelJoinedAt, error: whatsappError }] = await Promise.all([
+    db.rpc('get_awardee_journey_data', { p_profile_id: memberId }),
+    db.rpc('get_awardee_whatsapp_channel_joined_at', { p_profile_id: memberId }),
+  ])
   failOnDbError('journey', error)
+  failOnDbError('WhatsApp journey progress', whatsappError)
   const payload = data as Record<string, any> | null
   const profile = payload?.profile
   if (!profile) throw new Error('Member profile not found.')
@@ -95,17 +101,27 @@ export async function getAwardeeJourneyForMember(memberId: string): Promise<Jour
     moment: {
       completedAt: payload?.progress?.top100_moment_completed_at ?? null,
     },
+    whatsappChannelJoinedAt: typeof whatsappChannelJoinedAt === 'string' ? whatsappChannelJoinedAt : null,
   }
 }
 
 export async function saveAwardeeJourneyProgress(memberId: string, patch: ProgressPatch): Promise<void> {
   const db = createAdminClient()
-  const { error } = await db.rpc('save_awardee_onboarding_progress', {
-    p_profile_id: memberId,
-    p_welcome_read: patch.welcomeRead ?? false,
-    p_external_share_confirmed: patch.externalShareConfirmed ?? null,
-    p_external_share_platform: patch.externalShareConfirmed === true ? patch.externalSharePlatform ?? 'other' : null,
-    p_top100_moment_complete: patch.top100MomentComplete ?? false,
-  })
-  failOnDbError('progress update', error)
+  const hasExistingProgress = patch.welcomeRead !== undefined
+    || patch.externalShareConfirmed !== undefined
+    || patch.top100MomentComplete !== undefined
+  if (hasExistingProgress) {
+    const { error } = await db.rpc('save_awardee_onboarding_progress', {
+      p_profile_id: memberId,
+      p_welcome_read: patch.welcomeRead ?? false,
+      p_external_share_confirmed: patch.externalShareConfirmed ?? null,
+      p_external_share_platform: patch.externalShareConfirmed === true ? patch.externalSharePlatform ?? 'other' : null,
+      p_top100_moment_complete: patch.top100MomentComplete ?? false,
+    })
+    failOnDbError('progress update', error)
+  }
+  if (patch.whatsappChannelJoined) {
+    const { error } = await db.rpc('mark_awardee_whatsapp_channel_joined', { p_profile_id: memberId })
+    failOnDbError('WhatsApp progress update', error)
+  }
 }
