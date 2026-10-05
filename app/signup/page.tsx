@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { TurnstileCaptcha } from '@/components/ui/turnstile'
 import LegalConsent from '@/app/components/LegalConsent'
+import { createTimedFetch } from '@/lib/network/fetch-with-timeout'
 import { supabase } from '@/lib/supabase/client'
 
 type Awardee = {
@@ -43,17 +44,17 @@ export default function SignUpPage() {
 
   useEffect(() => {
     const text = query.trim()
-    if (text.length < 2) return
+    if (text.length < 2) { setSearching(false); setResults([]); return }
     const controller = new AbortController()
     const timer = window.setTimeout(async () => {
       setSearching(true)
       try {
-        const response = await fetch(`/api/auth/claim-directory?q=${encodeURIComponent(text)}`, { signal: controller.signal })
+        const response = await createTimedFetch(fetch, 12_000)(`/api/auth/claim-directory?q=${encodeURIComponent(text)}`, { signal: controller.signal })
         const body = await response.json()
-        if (!response.ok) throw new Error(body.message || 'Could not search winners.')
-        setResults(body.awardees ?? [])
+        if (!response.ok) throw new Error(body.message || body.error || 'Could not search winners. Please try again.')
+        if (!controller.signal.aborted) setResults(body.awardees ?? [])
       } catch (cause) {
-        if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : 'Could not search winners.')
+        if (!controller.signal.aborted) { setResults([]); setError(cause instanceof Error ? cause.message : 'Could not search winners. Please try again.') }
       } finally {
         if (!controller.signal.aborted) setSearching(false)
       }

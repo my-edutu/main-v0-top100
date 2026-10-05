@@ -1,3 +1,4 @@
+import { createTimedFetch } from '@/lib/network/fetch-with-timeout';
 // @lib/supabase/server.ts  (REPLACE your file contents with this)
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
@@ -115,6 +116,7 @@ export const createAdminClient = () => {
   }
 
   return createSupabaseClient(supabaseUrl, serviceKey, {
+    global: { fetch: createTimedFetch(globalThis.fetch.bind(globalThis), 20_000) },
     auth: {
       autoRefreshToken: false,
       persistSession: false
@@ -180,6 +182,7 @@ export const createClient = async (
   const { url: supabaseUrl, key: supabaseKey } = getSupabaseConfig(useServiceRole);
 
   return createServerClient(supabaseUrl!, supabaseKey!, {
+    global: { fetch: createTimedFetch(globalThis.fetch.bind(globalThis), 20_000) },
     cookies: {
       get(name: string) {
         // Client-side behavior

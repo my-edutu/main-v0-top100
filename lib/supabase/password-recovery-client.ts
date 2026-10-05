@@ -6,21 +6,8 @@ type PasswordRecoveryClientOptions = {
   fetch?: typeof globalThis.fetch
 }
 
-// Bound stalled Auth requests and cancel the underlying network operation.
-export function createRecoveryFetch(fetcher: typeof globalThis.fetch, timeoutMs = 15_000): typeof globalThis.fetch {
-  return async (input, init) => {
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), timeoutMs)
-    const signal = init?.signal
-      ? AbortSignal.any([init.signal, controller.signal])
-      : controller.signal
-    try {
-      return await fetcher(input, { ...init, signal })
-    } finally {
-      clearTimeout(timeout)
-    }
-  }
-}
+export { createTimedFetch as createRecoveryFetch } from '@/lib/network/fetch-with-timeout'
+import { createTimedFetch } from '@/lib/network/fetch-with-timeout'
 
 let browserRecoveryClient: SupabaseClient | undefined
 
@@ -50,7 +37,7 @@ export function createPasswordRecoveryClient(options: PasswordRecoveryClientOpti
       persistSession: false,
       autoRefreshToken: false,
     },
-    global: { fetch: createRecoveryFetch(options.fetch ?? globalThis.fetch.bind(globalThis)) },
+    global: { fetch: createTimedFetch(options.fetch ?? globalThis.fetch.bind(globalThis)) },
   })
   if (useSharedClient) browserRecoveryClient = client
   return client

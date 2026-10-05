@@ -1,5 +1,5 @@
 import { unstable_cache } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
 import { getAwardees } from '@/lib/awardees'
 import {
     DEMO_PUBLIC_SLUG,
@@ -13,7 +13,7 @@ import {
 const fetchPersistedAwardeeBySlug = unstable_cache(
     async (slug: string) => {
         try {
-            const supabase = await createClient(true)
+            const supabase = createAdminClient()
 
             const { data, error } = await supabase
                 .from('awardee_directory')
@@ -37,7 +37,7 @@ const fetchPersistedAwardeeBySlug = unstable_cache(
     },
     // Version the cache key so a previously cached not-found response cannot
     // hide a newly added public directory record after it is inserted.
-    ['awardee-profile-by-slug-v2'],
+    ['awardee-profile-by-slug-v3'],
     { revalidate: 600, tags: ['awardees'] },
 )
 
