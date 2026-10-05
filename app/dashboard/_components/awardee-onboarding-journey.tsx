@@ -20,7 +20,7 @@ type Props = { name: string }
 const coreDestinations = {
   welcome: null,
   profile: '/dashboard/me/profile',
-  introduction: '/dashboard/me/posts/new',
+  introduction: '/dashboard/me/posts',
 } as const
 
 const actionMeta: Record<string, { href: string; icon: typeof Compass }> = {
@@ -43,10 +43,12 @@ export function AwardeeOnboardingJourney({ name }: Props) {
   const [captionCopied, setCaptionCopied] = useState(false)
   const [preparedCover, setPreparedCover] = useState<{ url: string; file: File | null } | null>(null)
   const [sharing, setSharing] = useState(false)
+  const [profileClickedFor, setProfileClickedFor] = useState<string | null>(null)
   const [joinedChannelFor, setJoinedChannelFor] = useState<string | null>(null)
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
       try {
+        setProfileClickedFor(localStorage.getItem(`afl-profile-done:${member.id}`) === 'yes' ? member.id : null)
         setJoinedChannelFor(localStorage.getItem(`afl-channel-joined:${member.id}`) === 'yes' ? member.id : null)
       } catch { setJoinedChannelFor(null) }
     })
@@ -111,7 +113,8 @@ export function AwardeeOnboardingJourney({ name }: Props) {
     return () => controller.abort()
   }, [member.portfolioCoverUrl, shareOpen])
 
-  const state = payload?.state
+  const profileClicked = profileClickedFor === member.id
+  const state = payload?.state ? { ...payload.state, coreSteps: payload.state.coreSteps.map(step => step.id === 'profile' && profileClicked ? { ...step, complete: true } : step) } : undefined
   const settings = payload?.settings ?? DEFAULT_AWARDEE_JOURNEY_SETTINGS
   const taskTotal = (state?.coreSteps.length ?? 3) + 4
   const taskCompleted = (state?.coreSteps.filter(step => step.complete).length ?? 0)
@@ -233,7 +236,7 @@ export function AwardeeOnboardingJourney({ name }: Props) {
                 {step.id === 'welcome' ? (
                   <button type="button" onClick={() => setWelcomeOpen(true)} className="flex min-h-14 w-full items-center gap-2 text-left transition-colors hover:bg-[#FFFCF9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-inset">{content}</button>
                 ) : href ? (
-                  <Link href={href} className="flex min-h-14 items-center gap-2 transition-colors hover:bg-[#FFFCF9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-inset">{content}</Link>
+                  <Link href={href} onClick={() => { if (step.id === 'profile') { setProfileClickedFor(member.id); try { localStorage.setItem(`afl-profile-done:${member.id}`, 'yes') } catch { /* Keep completion for this visit. */ } toast.success('Profile task marked complete') } }} className="flex min-h-14 items-center gap-2 transition-colors hover:bg-[#FFFCF9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-inset">{content}</Link>
                 ) : null}
               </li>
             })}

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth-server'
-import { AVATAR_PRESET, processUpload } from '@/lib/image-processing'
+import { InvalidAvatarError, processAvatar } from '@/lib/media/avatar-image'
 import { uploadMedia } from '@/lib/media/storage'
 import { rejectCrossOriginMutation } from '@/lib/security/same-origin'
 
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'File size too large. Maximum size is 5MB.' }, { status: 400 })
     }
 
-    const processed = await processUpload(await file.arrayBuffer(), AVATAR_PRESET, file.type)
+    const processed = await processAvatar(await file.arrayBuffer())
     const filePath = createFileName(user.id, processed.extension)
 
     const uploaded = await uploadMedia({
@@ -61,6 +61,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ url: uploaded.publicUrl })
   } catch (error) {
+      if (error instanceof InvalidAvatarError) return NextResponse.json({ error: error.message }, { status: 400 })
     console.error('[avatars] unexpected error', error)
     return NextResponse.json({ error: 'Your photo could not be uploaded. Please try again. If this continues, contact support.' }, { status: 500 })
   }

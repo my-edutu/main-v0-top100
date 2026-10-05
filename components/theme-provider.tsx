@@ -6,6 +6,18 @@ import {
   type ThemeProviderProps,
 } from 'next-themes'
 
-export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
-  return <NextThemesProvider {...props}>{children}</NextThemesProvider>
+export function ThemeProvider({ children, scriptProps, ...props }: ThemeProviderProps) {
+  return (
+    <NextThemesProvider
+      {...props}
+      scriptProps={{
+        ...scriptProps,
+        // Keep the initial server bootstrap executable. Client-created scripts
+        // cannot execute in React; next-themes applies changes through its effects.
+        type: typeof window === 'undefined' ? scriptProps?.type : 'application/json',
+      }}
+    >
+      {children}
+    </NextThemesProvider>
+  )
 }

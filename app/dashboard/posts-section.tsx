@@ -277,7 +277,7 @@ export default function PostsSection({
             <p className="mt-0.5 text-sm text-neutral-500">Updates and stories you have shared.</p>
           </div>
           <Button asChild className="min-h-10 rounded-full bg-orange-600 px-4 text-white shadow-none hover:bg-orange-700">
-            <Link href="/dashboard/me/posts/new"><Plus className="mr-2 h-4 w-4" />Write a post</Link>
+            <Link href="/dashboard/me/posts/new"><Plus className="mr-2 h-4 w-4" />Start writing</Link>
           </Button>
         </div>
       )}
@@ -325,7 +325,7 @@ export default function PostsSection({
           >
             <Link href="/dashboard/me/posts/new">
               <Plus className="mr-2 h-4 w-4" />
-              Write your first post
+              Start writing
             </Link>
           </Button>
         </div>

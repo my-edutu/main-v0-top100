@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from 'next/server'
+import { NextResponse } from 'next/server'
 
 function normalizedOrigin(value: string | null | undefined): string | null {
   if (!value) return null
@@ -17,13 +17,13 @@ function normalizedOrigin(value: string | null | undefined): string | null {
  * borrow a victim's browser session. Origin falls back to Referer for browsers
  * that omit Origin on a same-site request.
  */
-export function rejectCrossOriginMutation(request: NextRequest): NextResponse | null {
+export function rejectCrossOriginMutation(request: Request): NextResponse | null {
   if (!request.headers.get('cookie')) return null
 
   const authorization = request.headers.get('authorization')
   if (authorization?.toLowerCase().startsWith('bearer ')) return null
 
-  const allowedOrigins = new Set<string>([request.nextUrl.origin])
+  const allowedOrigins = new Set<string>([new URL(request.url).origin])
   const configuredOrigin = normalizedOrigin(process.env.NEXT_PUBLIC_SITE_URL)
   if (configuredOrigin) allowedOrigins.add(configuredOrigin)
 

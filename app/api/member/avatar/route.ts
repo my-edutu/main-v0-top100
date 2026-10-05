@@ -5,7 +5,7 @@ import { getCurrentUser } from '@/lib/auth-server'
 import { createAdminClient } from '@/lib/supabase/server'
 import { hasValidDemoSession } from '@/lib/dev-dashboard/auth'
 import { DEMO_MEMBER_ID, getDemoDashboardStore } from '@/lib/dev-dashboard/store'
-import { AVATAR_PRESET, processUpload } from '@/lib/image-processing'
+import { InvalidAvatarError, processAvatar } from '@/lib/media/avatar-image'
 import { uploadMedia } from '@/lib/media/storage'
 import { rejectCrossOriginMutation } from '@/lib/security/same-origin'
 
@@ -26,11 +26,12 @@ export async function POST(request: NextRequest) {
       if (!(file instanceof File) || file.size === 0) return NextResponse.json({ error: 'No file provided.' }, { status: 400 })
       if (!file.type.startsWith('image/')) return NextResponse.json({ error: 'Choose an image file.' }, { status: 400 })
       if (file.size > 5 * 1024 * 1024) return NextResponse.json({ error: 'File size too large. Maximum size is 5MB.' }, { status: 400 })
-      const processed = await processUpload(await file.arrayBuffer(), AVATAR_PRESET, file.type)
+      const processed = await processAvatar(await file.arrayBuffer())
       const uploaded = await uploadMedia({ bucket: process.env.SUPABASE_AVATARS_BUCKET ?? 'avatars', path: `users/${memberId}-${Date.now()}.${processed.extension}`, body: processed.data, contentType: processed.contentType, cacheControl: CACHE_CONTROL, upsert: false })
       getDemoDashboardStore().profile.avatarUrl = uploaded.publicUrl
       return NextResponse.json({ url: uploaded.publicUrl })
     } catch (error) {
+      if (error instanceof InvalidAvatarError) return NextResponse.json({ error: error.message }, { status: 400 })
       console.error('[member-avatar demo] unexpected error', error)
       return NextResponse.json({ error: 'Could not upload your photo. Check Cloudflare media storage configuration.' }, { status: 503 })
     }

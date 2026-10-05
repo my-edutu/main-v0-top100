@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { rejectCrossOriginMutation } from '@/lib/security/same-origin'
 import { getCurrentUser } from '@/lib/auth-server'
 import { createAdminClient } from '@/lib/supabase/server'
 import { mapProfileToMember } from '@/lib/member-hub-server'
@@ -9,6 +10,8 @@ import {
 } from '@/lib/dashboard/onboarding'
 
 export async function POST(request: Request) {
+  const blocked = rejectCrossOriginMutation(request)
+  if (blocked) return blocked
   const user = await getCurrentUser()
   if (!user?.id)
     return NextResponse.json(
@@ -24,11 +27,13 @@ export async function POST(request: Request) {
     .select('*')
     .eq('id', user.id)
     .single()
-  if (error || !profile)
+  if (error || !profile) {
+    console.error('[onboarding] profile lookup failed', { userId: user.id, code: error?.code })
     return NextResponse.json(
       { message: 'Could not load your profile.' },
       { status: 503 },
     )
+  }
   const prefs = profile.notification_prefs ?? {}
   if (onboardingComplete(prefs))
     return NextResponse.json(
@@ -74,6 +79,7 @@ export async function POST(request: Request) {
       .select('*')
       .single()
     if (saveError) {
+      console.error('[onboarding] field save failed', { userId: user.id, code: saveError.code })
       return NextResponse.json(
         { message: 'Your progress could not be saved. Please try again.' },
         { status: 503 },
@@ -103,11 +109,13 @@ export async function POST(request: Request) {
     saved.notification_prefs = updatedPrefs.notification_prefs
     return NextResponse.json({ member: mapProfileToMember(saved) })
   }
-  if (prefsError || !mergedPrefs)
+  if (prefsError || !mergedPrefs) {
+    console.error('[onboarding] preference save failed', { userId: user.id, code: prefsError?.code })
     return NextResponse.json(
       { message: 'Your progress could not be saved. Please try again.' },
       { status: 503 },
     )
+  }
   saved.notification_prefs = mergedPrefs
   return NextResponse.json({ member: mapProfileToMember(saved) })
 }

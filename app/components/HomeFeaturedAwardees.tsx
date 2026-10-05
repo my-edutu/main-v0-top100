@@ -33,6 +33,16 @@ export default function HomeFeaturedAwardees({ awardees }: Props) {
     () =>
       awardees.map((entry) => ({
         ...entry,
+        avatar_url: (() => {
+          if (!entry.avatar_url) return null
+          if (entry.avatar_url.startsWith('/') && !entry.avatar_url.startsWith('//')) return entry.avatar_url
+          try {
+            const url = new URL(entry.avatar_url)
+            return url.protocol === 'https:' && url.hostname !== 'drive.google.com' ? entry.avatar_url : null
+          } catch {
+            return null
+          }
+        })(),
         slug: entry.slug && entry.slug.trim().length > 0 ? entry.slug : toSlug(entry.name),
       })),
     [awardees],
@@ -73,6 +83,7 @@ export default function HomeFeaturedAwardees({ awardees }: Props) {
                     {awardee.avatar_url && !imageErrors.has(awardee.slug) ? (
                       <Image
                         src={awardee.avatar_url}
+                        unoptimized={!awardee.avatar_url.startsWith('/') && !['supabase.top100afl.com'].includes(new URL(awardee.avatar_url).hostname) && !new URL(awardee.avatar_url).hostname.endsWith('.supabase.co')}
                         alt={awardee.name}
                         fill
                         sizes="(max-width: 640px) 128px, (max-width: 1024px) 152px, 176px"

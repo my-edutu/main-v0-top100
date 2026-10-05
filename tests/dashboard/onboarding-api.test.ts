@@ -116,3 +116,13 @@ it('cannot be reused to evade the BIO limit after completion', async () => {
   expect((await POST(request({ ...fields, complete: true }))).status).toBe(409)
   expect(state.update).toEqual({})
 })
+
+it('blocks a cross-site browser request that carries session cookies', async () => {
+  const req = new Request('https://www.top100afl.com/api/member/onboarding', {
+    method: 'POST',
+    headers: { cookie: 'sb-session=test', origin: 'https://attacker.example', 'sec-fetch-site': 'cross-site' },
+    body: JSON.stringify(fields),
+  })
+  expect((await POST(req)).status).toBe(403)
+  expect(state.ids).toEqual([])
+})

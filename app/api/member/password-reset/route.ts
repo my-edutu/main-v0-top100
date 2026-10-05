@@ -21,7 +21,10 @@ export async function POST(request: NextRequest) {
     const { error } = await createPasswordRecoveryClient({ fetch: globalThis.fetch }).auth.resetPasswordForEmail(user.email, {
       redirectTo: getRecoveryRedirectUrl(origin, 'member'),
     })
-    if (error) return NextResponse.json({ message: 'Could not send the reset email. Please try again shortly.' }, { status: error.status === 429 ? 429 : 503 })
+    if (error) {
+      console.error('[password-reset] recovery request failed', { userId: user.id, code: error.code, status: error.status })
+      return NextResponse.json({ message: 'Could not send the reset email. Please try again shortly.' }, { status: error.status === 429 ? 429 : 503 })
+    }
     return NextResponse.json({ message: 'A password reset link has been sent to your account email.' })
   } catch {
     return NextResponse.json({ message: 'Could not send the reset email. Please try again shortly.' }, { status: 503 })

@@ -1,9 +1,37 @@
+import { execFileSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
+import { join } from 'node:path'
+
+function deploymentId() {
+  if (process.env.NEXT_DEPLOYMENT_ID) return process.env.NEXT_DEPLOYMENT_ID
+  try { return execFileSync('git', ['rev-parse', 'HEAD'], { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim() } catch {
+    // Build contexts can omit .git. Derive a stable source fingerprint rather
+    // than choosing a new random ID every time next start reads this config.
+    const hash = createHash('sha256')
+    function add(path) {
+      for (const entry of readdirSync(path, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+        const file = join(path, entry.name)
+        if (entry.isDirectory()) add(file)
+        else if (entry.isFile()) hash.update(file).update(readFileSync(file))
+      }
+    }
+    for (const folder of ['app', 'lib', 'components']) if (existsSync(folder)) add(folder)
+    for (const file of ['package-lock.json', 'next.config.mjs']) if (existsSync(file)) hash.update(readFileSync(file))
+    return hash.digest('hex').slice(0, 40)
+  }
+}
+
 /** @type {import('next').NextConfig} */
 const productionScriptSrc = "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://static.cloudflareinsights.com https://cdn.brevo.com https://sibautomation.com"
 const developmentScriptSrc = "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://challenges.cloudflare.com https://static.cloudflareinsights.com https://cdn.brevo.com https://sibautomation.com"
 const scriptSrc = process.env.NODE_ENV === 'production' ? productionScriptSrc : developmentScriptSrc
 
 const nextConfig = {
+  deploymentId: deploymentId(),
+  // Cloudflare supplies Brotli/gzip. Avoid duplicate origin compression and its
+  // drain-listener accumulation in Next's bundled compression middleware.
+  compress: false,
   // Docker runs its minimal server; Dokploy's npm build uses next start.
   ...(process.env.NEXT_OUTPUT_STANDALONE === 'true' ? { output: 'standalone' } : {}),
   async redirects() {

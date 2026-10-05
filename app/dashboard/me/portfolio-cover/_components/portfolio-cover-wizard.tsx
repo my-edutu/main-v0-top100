@@ -159,7 +159,8 @@ export function PortfolioCoverWizard() {
             <p className="text-sm leading-5 text-neutral-600">Choose a clear, front-facing photo. It will be fitted into the template as provided.</p>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="portfolio-portrait">Portrait photo</Label>
+            <p className="text-sm font-medium">Portrait photo</p>
+            <Label htmlFor="portfolio-portrait" className="inline-flex min-h-11 cursor-pointer items-center rounded-lg border border-orange-200 bg-orange-50 px-4 font-medium text-orange-900 hover:bg-orange-100">{file ? 'Change photo' : 'Choose photo'}</Label>
             <Input
               id="portfolio-portrait"
               type="file"
@@ -169,7 +170,7 @@ export function PortfolioCoverWizard() {
                 selectPhoto(event.currentTarget.files?.[0])
                 event.currentTarget.value = ''
               }}
-              className="min-h-11 cursor-pointer p-0 text-sm text-neutral-700 file:mr-3 file:h-11 file:border-0 file:border-r file:border-neutral-200 file:bg-orange-50 file:px-3 file:font-medium file:text-orange-900 hover:file:bg-orange-100 sm:file:px-4"
+              className="sr-only"
             />
             <p className="text-xs leading-5 text-neutral-500">JPG, PNG or WebP · up to 8 MB</p>
           </div>
