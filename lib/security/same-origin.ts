@@ -11,32 +11,32 @@ function normalizedOrigin(value: string | null | undefined): string | null {
   }
 }
 
-/**
- * Reject cross-site browser mutations that authenticate through cookies.
- * Bearer clients are not CSRF-sensitive, and requests without cookies cannot
- * borrow a victim's browser session. Origin falls back to Referer for browsers
- * that omit Origin on a same-site request.
+/** Trust only the request origin and the explicitly configured public site.
+ * The apex and www Top100 domains both route to this application in production.
+ * Never trust a client-supplied forwarded host to expand this list.
  */
-export function rejectCrossOriginMutation(request: Request): NextResponse | null {
-  if (!request.headers.get('cookie')) return null
-
-  const authorization = request.headers.get('authorization')
-  if (authorization?.toLowerCase().startsWith('bearer ')) return null
-
+export function isTrustedRequestOrigin(request: Request): boolean {
   const allowedOrigins = new Set<string>([new URL(request.url).origin])
   const configuredOrigin = normalizedOrigin(process.env.NEXT_PUBLIC_SITE_URL)
-  if (configuredOrigin) allowedOrigins.add(configuredOrigin)
-
-  const originHeader = request.headers.get('origin')
-  const requestOrigin = normalizedOrigin(originHeader || request.headers.get('referer'))
-  const explicitlyCrossSite = request.headers.get('sec-fetch-site') === 'cross-site'
-
-  if (!requestOrigin || explicitlyCrossSite || !allowedOrigins.has(requestOrigin)) {
-    return NextResponse.json(
-      { message: 'Cross-origin request blocked.' },
-      { status: 403 },
-    )
+  if (configuredOrigin) {
+    allowedOrigins.add(configuredOrigin)
+    const publicUrl = new URL(configuredOrigin)
+    if (publicUrl.hostname === 'top100afl.com' || publicUrl.hostname === 'www.top100afl.com') {
+      publicUrl.hostname = publicUrl.hostname === 'top100afl.com' ? 'www.top100afl.com' : 'top100afl.com'
+      allowedOrigins.add(publicUrl.origin)
+    }
   }
+  const requestOrigin = normalizedOrigin(request.headers.get('origin') || request.headers.get('referer'))
+  return request.headers.get('sec-fetch-site') !== 'cross-site' && !!requestOrigin && allowedOrigins.has(requestOrigin)
+}
 
+/** Cookie sessions require origin evidence; bearer API clients do not borrow
+ * a victim's browser cookies and can omit browser-only origin headers. */
+export function rejectCrossOriginMutation(request: Request): NextResponse | null {
+  if (!request.headers.get('cookie')) return null
+  if (request.headers.get('authorization')?.toLowerCase().startsWith('bearer ')) return null
+  if (!isTrustedRequestOrigin(request)) {
+    return NextResponse.json({ message: 'Cross-origin request blocked.' }, { status: 403 })
+  }
   return null
 }

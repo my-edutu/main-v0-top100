@@ -1,4 +1,4 @@
-import { beforeEach, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
 const mocks = vi.hoisted(() => ({ user: vi.fn(), rate: vi.fn(), reset: vi.fn() }))
 vi.mock('@/lib/auth-server', () => ({ getCurrentUser: mocks.user }))
@@ -29,4 +29,14 @@ it('does not send when rate limited', async () => {
   mocks.rate.mockResolvedValue({ success: false })
   expect((await POST(request())).status).toBe(429)
   expect(mocks.reset).not.toHaveBeenCalled()
+})
+
+afterEach(() => vi.unstubAllEnvs())
+it('accepts the www public origin behind the internal production proxy', async () => {
+  vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://top100afl.com')
+  const req = new NextRequest('http://internal:3000/api/member/password-reset', {
+    method: 'POST', headers: { origin: 'https://www.top100afl.com', cookie: 'sb-auth=test' },
+  })
+  expect((await POST(req)).status).toBe(200)
+  expect(mocks.reset).toHaveBeenCalledWith('owner@example.com', expect.any(Object))
 })

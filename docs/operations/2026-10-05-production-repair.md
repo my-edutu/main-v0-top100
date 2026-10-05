@@ -17,6 +17,10 @@
 - Local security/regression suite: 115 tests passed. Additional focused auth/profile/media suite: 47 tests passed (overlaps with the security suite).
 - TypeScript and production build passed before release.
 
+## Domain origin regression found during post-release verification
+
+The cookie-based test on `www` returned HTTP 403 from the origin guard. Bearer tests bypass this guard, which is why the earlier API test passed. The guard now accepts both explicitly owned Top100 production origins behind the proxy, while continuing to reject unrelated subdomains, lookalike domains and cross-site requests. The member password-reset endpoint uses the same trusted-origin check. Regression tests reproduced the failure before the fix.
+
 ## Not automatically resolved
 
 - One Auth account has no profile and no awardee record with the same email. A similarly named awardee has no email. Linking on name alone would grant unverified access; administrative identity confirmation is required.

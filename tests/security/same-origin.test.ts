@@ -61,4 +61,15 @@ describe('cookie-authenticated mutation origin checks', () => {
       rejectCrossOriginMutation(mutation({ authorization: 'Bearer verified-token' })),
     ).toBeNull()
   })
+  it.each([['https://top100afl.com', 'https://www.top100afl.com'], ['https://www.top100afl.com', 'https://top100afl.com']])('accepts both production domains behind the proxy: %s', (configured, origin) => {
+    vi.stubEnv('NEXT_PUBLIC_SITE_URL', configured)
+    expect(rejectCrossOriginMutation(mutation({ cookie: 'sb-auth=token', origin }))).toBeNull()
+  })
+  it('does not allow an unrelated subdomain or lookalike domain', () => {
+    vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://top100afl.com')
+    for (const origin of ['https://evil.top100afl.com', 'https://www.top100afl.com.attacker.example']) {
+      expect(rejectCrossOriginMutation(mutation({ cookie: 'sb-auth=token', origin }))?.status).toBe(403)
+    }
+  })
+
 })

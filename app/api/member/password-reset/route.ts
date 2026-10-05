@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { isTrustedRequestOrigin } from '@/lib/security/same-origin'
 import { getCurrentUser } from '@/lib/auth-server'
 import { checkRateLimit, createRateLimitResponse } from '@/lib/rate-limit'
 import { createPasswordRecoveryClient } from '@/lib/supabase/password-recovery-client'
@@ -6,7 +7,7 @@ import { getRecoveryRedirectUrl, getRecoveryRequestOrigin } from '@/lib/auth/pas
 import { SITE_URL } from '@/lib/site'
 
 export async function POST(request: NextRequest) {
-  if (request.headers.get('origin') !== request.nextUrl.origin) {
+  if (!isTrustedRequestOrigin(request)) {
     return NextResponse.json({ message: 'Invalid request origin.' }, { status: 403 })
   }
   const user = await getCurrentUser()
