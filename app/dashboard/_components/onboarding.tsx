@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { ArrowLeft, ArrowRight, Check, LoaderCircle } from 'lucide-react'
 import type { MemberProfile } from '@/lib/member-hub'
-import { MAX_INTERESTS, MIN_INTERESTS, onboardingFields } from '@/lib/dashboard/onboarding'
+import { MAX_INTERESTS, MIN_INTERESTS, onboardingFields, validateOnboarding } from '@/lib/dashboard/onboarding'
 import { SignOutControl } from '../dashboard-header'
 import { getCountries } from 'libphonenumber-js/min'
 import { OnboardingWelcome } from './onboarding-welcome'
@@ -94,6 +94,13 @@ export function Onboarding({
         setBusy(false)
       }
       setStep(step + 1)
+      return
+    }
+    const validationError = validateOnboarding(values)
+    if (validationError) {
+      const invalidStep = onboardingFields.findIndex(item => validationError.startsWith(item.title))
+      if (invalidStep >= 0) setStep(invalidStep)
+      setError(validationError)
       return
     }
     setBusy(true)

@@ -34,9 +34,33 @@ function draftFromMember(member: MemberProfile): ProfileDraft {
   }
 }
 
+async function prepareProfilePhoto(file: File): Promise<File> {
+  if (file.size < 150 * 1024) return file
+  const source = URL.createObjectURL(file)
+  try {
+    const image = new window.Image()
+    image.src = source
+    await image.decode()
+    const scale = Math.min(1, 512 / Math.max(image.naturalWidth, image.naturalHeight))
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.max(1, Math.round(image.naturalWidth * scale))
+    canvas.height = Math.max(1, Math.round(image.naturalHeight * scale))
+    const context = canvas.getContext('2d')
+    if (!context) return file
+    context.drawImage(image, 0, 0, canvas.width, canvas.height)
+    const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/webp', 0.82))
+    if (!blob || blob.size >= file.size) return file
+    return new File([blob], 'profile-photo.webp', { type: blob.type })
+  } catch {
+    return file
+  } finally {
+    URL.revokeObjectURL(source)
+  }
+}
+
 async function uploadProfilePhoto(file: File): Promise<string> {
   const form = new FormData()
-  form.set('file', file)
+  form.set('file', await prepareProfilePhoto(file))
   const response = await fetch('/api/member/avatar', { method: 'POST', body: form })
   const data = await response.json()
   if (!response.ok || typeof data.url !== 'string') {
@@ -110,7 +134,11 @@ export function ProfileSection() {
           ...persisted,
           ...(uploadedAvatarUrl ? { avatarUrl: uploadedAvatarUrl } : {}),
         }),
-        refresh: refreshMember,
+        refresh: async () => {
+          void refreshMember().catch(() => {
+            setWarning('Your profile was saved, but we could not refresh the latest account view.')
+          })
+        },
         refreshWarning: 'Your profile was saved, but we could not refresh the latest account view.',
       })
 

@@ -1,7 +1,9 @@
 import { promises as fs } from 'fs'
 import path from 'path'
 import { unstable_cache } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+import { gzipSync, gunzipSync } from 'node:zlib'
+import { createAdminClient } from '@/lib/supabase/server'
 import { read, utils } from 'xlsx'
 import type { AwardeeDirectoryEntry } from '@/types/profile'
 import { normalizeAwardeeEntry, type StaticAwardeeRecord, type Awardee, type ProofAwardee } from './awardees-shared'
@@ -150,8 +152,7 @@ async function loadAwardeesFromExcel(): Promise<Awardee[]> {
   return mapExcelRowsToAwardeeDirectoryEntries(rows).map(normalizeAwardeeEntry)
 }
 
-const getAwardeesCached = unstable_cache(
-  async (): Promise<Awardee[]> => {
+const loadAwardeesDirectory = async (): Promise<Awardee[]> => {
     if (!hasServiceRoleKey) {
       const fallbackAwardees = await loadStaticAwardees()
       if (fallbackAwardees.length === 0) {
@@ -161,7 +162,12 @@ const getAwardeesCached = unstable_cache(
     }
 
     try {
-      const supabase = await createClient()
+      // Shared public data must not inherit a visitor's session or read cookies.
+      const supabase = createSupabaseClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } },
+      )
 
       // Query the awardee_directory view instead of the table directly
       const { data, error } = await supabase
@@ -197,16 +203,23 @@ const getAwardeesCached = unstable_cache(
       }
       return fallbackAwardees
     }
-  },
-  ['awardees-directory'],
+}
+
+// Cache the compressed representation: large imported biographies can exceed
+// Next's 2 MB entry limit even though the directory compresses very well.
+const getAwardeesCached = unstable_cache(
+  async () => gzipSync(JSON.stringify(await loadAwardeesDirectory())).toString('base64'),
+  ['awardees-directory-compressed-v1'],
   { revalidate: 600, tags: ['awardees'] },
 )
 
-export const getAwardees = getAwardeesCached
+export async function getAwardees(): Promise<Awardee[]> {
+  return JSON.parse(gunzipSync(Buffer.from(await getAwardeesCached(), 'base64')).toString('utf8')) as Awardee[]
+}
 
 async function initializeAwardeesFromExcel(): Promise<Awardee[]> {
   try {
-    const supabase = await createClient(true)
+    const supabase = createAdminClient()
     const rows = await readAwardeeExcelRows()
 
     if (rows.length === 0) {

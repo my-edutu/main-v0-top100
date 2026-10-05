@@ -4,8 +4,8 @@ const developmentScriptSrc = "script-src 'self' 'unsafe-eval' 'unsafe-inline' ht
 const scriptSrc = process.env.NODE_ENV === 'production' ? productionScriptSrc : developmentScriptSrc
 
 const nextConfig = {
-  // Emit the minimal production server bundle for the Contabo container.
-  output: 'standalone',
+  // Docker runs its minimal server; Dokploy's npm build uses next start.
+  ...(process.env.NEXT_OUTPUT_STANDALONE === 'true' ? { output: 'standalone' } : {}),
   async redirects() {
     return [
       {

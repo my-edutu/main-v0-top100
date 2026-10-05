@@ -62,6 +62,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ url: uploaded.publicUrl })
   } catch (error) {
     console.error('[avatars] unexpected error', error)
-    return NextResponse.json({ error: 'Unexpected error occurred while uploading avatar' }, { status: 500 })
+    return NextResponse.json({ error: 'Your photo could not be uploaded. Please try again. If this continues, contact support.' }, { status: 500 })
   }
 }
