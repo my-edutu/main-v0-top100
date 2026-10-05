@@ -1,0 +1,10 @@
+.git
+.next
+node_modules
+npm-debug.log*
+.env*
+.vercel
+.playwright-cli
+coverage
+remotion-advert/node_modules
+remotion-advert/out

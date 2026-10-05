@@ -9,13 +9,14 @@ import { Button } from '@/components/ui/button'
 import { getAwardees } from '@/lib/awardees'
 import { normalizeAwardeeEntry } from '@/lib/awardees-shared'
 import { fetchAwardeeBySlug } from '@/lib/dashboard/profile-service'
-import { AvatarSVG, flagEmoji } from '@/lib/avatars'
+import { flagEmoji } from '@/lib/avatars'
 import { ogMetadata } from '@/lib/og'
 import type { Achievement, GalleryItem, SocialLinks } from '@/types/profile'
 import ConnectButton from './ConnectButton'
 import LinkedInPostCard from './LinkedInPostCard'
 import AwardeePostsList from './AwardeePostsList'
 import StructuredData from '@/components/StructuredData'
+import AwardeePortrait from './AwardeePortrait'
 
 export const runtime = 'nodejs'
 export const revalidate = 300
@@ -186,20 +187,7 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
             {/* Photo */}
             <div className="shrink-0 mx-auto md:mx-0">
               <div className="relative w-48 h-48 sm:w-56 sm:h-56 md:w-64 md:h-64">
-                {awardee.avatar_url || awardee.cover_image_url ? (
-                  <Image
-                    src={awardee.avatar_url || awardee.cover_image_url || ''}
-                    alt={awardee.name}
-                    fill
-                    priority
-                    sizes="256px"
-                    className="object-cover grayscale hover:grayscale-0 transition-all duration-500"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-                    <AvatarSVG name={awardee.name} size={150} />
-                  </div>
-                )}
+                <AwardeePortrait name={awardee.name} sources={[awardee.avatar_url, awardee.cover_image_url]} />
               </div>
             </div>
 
@@ -467,19 +455,7 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
                   className="group flex-shrink-0 w-28 sm:w-auto"
                 >
                   <div className="relative aspect-square bg-gray-100 overflow-hidden mb-2 rounded">
-                    {other.avatar_url || other.cover_image_url ? (
-                      <Image
-                        src={other.avatar_url || other.cover_image_url}
-                        alt={other.name}
-                        fill
-                        sizes="112px"
-                        className="object-cover grayscale group-hover:grayscale-0 transition-all duration-300"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <AvatarSVG name={other.name} size={60} />
-                      </div>
-                    )}
+                    <AwardeePortrait name={other.name} sources={[other.avatar_url, other.cover_image_url]} size={60} priority={false} />
                   </div>
                   <h3 className="font-bold text-xs sm:text-sm text-gray-900 group-hover:text-orange-500 transition-colors line-clamp-1">
                     {other.name}

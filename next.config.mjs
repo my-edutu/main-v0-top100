@@ -4,6 +4,8 @@ const developmentScriptSrc = "script-src 'self' 'unsafe-eval' 'unsafe-inline' ht
 const scriptSrc = process.env.NODE_ENV === 'production' ? productionScriptSrc : developmentScriptSrc
 
 const nextConfig = {
+  // Emit the minimal production server bundle for the Contabo container.
+  output: 'standalone',
   async redirects() {
     return [
       {
@@ -22,6 +24,10 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: '**.supabase.co',
+      },
+      {
+        protocol: 'https',
+        hostname: 'supabase.top100afl.com',
       },
       {
         protocol: 'https',
@@ -88,7 +94,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "img-src * data: blob:",
               "font-src 'self' data: https://fonts.gstatic.com",
-              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.brevo.com https://in-automate.brevo.com https://sibautomation.com https://challenges.cloudflare.com https://cloudflareinsights.com",
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://supabase.top100afl.com wss://supabase.top100afl.com https://api.brevo.com https://in-automate.brevo.com https://sibautomation.com https://challenges.cloudflare.com https://cloudflareinsights.com",
               "frame-src https://challenges.cloudflare.com https://www.youtube-nocookie.com https://www.youtube.com",
               "media-src 'self' https: data:",
               "object-src 'none'",

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowLeft, ArrowRight, Loader2, UserRound } from 'lucide-react'
@@ -59,6 +59,7 @@ export function ProfileSection() {
   const [draft, setDraft] = useState<ProfileDraft>(() => draftFromMember(member))
   const [stepIndex, setStepIndex] = useState(0)
   const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const photoInputRef = useRef<HTMLInputElement>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [warning, setWarning] = useState('')
@@ -139,14 +140,7 @@ export function ProfileSection() {
   const isLastStep = stepIndex === steps.length - 1
 
   return (
-    <section className="hub-profile-editor mx-auto w-full max-w-2xl space-y-5" aria-labelledby="profile-update-title">
-      <header className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-[.14em] text-orange-800">Update your profile</p>
-          <h2 id="profile-update-title" className="mt-1 text-xl font-semibold tracking-tight text-neutral-950 sm:text-2xl">One question at a time</h2>
-        </div>
-      </header>
-
+    <section className="hub-profile-editor mx-auto w-full max-w-2xl space-y-5" aria-label="Update your profile">
       <div className="space-y-2" aria-live="polite">
         <div className="flex items-center justify-between gap-3 text-sm text-neutral-600">
           <span>Question {stepIndex + 1} of {steps.length}</span>
@@ -174,8 +168,13 @@ export function ProfileSection() {
               <MemberAvatar src={member.avatarUrl} initials={member.avatarInitials} size={64} />
               <div className="min-w-0 flex-1 space-y-2">
                 <Label htmlFor="profile-photo">Profile photo</Label>
-                <Input id="profile-photo" type="file" accept="image/jpeg,image/png,image/webp" disabled={saving} onChange={(event) => { selectPhoto(event.currentTarget.files?.[0]); event.currentTarget.value = '' }} className="min-h-11 cursor-pointer p-0 text-sm file:mr-3 file:h-11 file:border-0 file:border-r file:border-neutral-200 file:bg-orange-50 file:px-3 file:font-medium file:text-orange-900" />
-                {photoFile ? <p className="break-all text-xs text-neutral-600">Selected: {photoFile.name}</p> : null}
+                <Input ref={photoInputRef} id="profile-photo" type="file" accept="image/jpeg,image/png,image/webp" disabled={saving} onChange={(event) => { selectPhoto(event.currentTarget.files?.[0]); event.currentTarget.value = '' }} className="sr-only" tabIndex={-1} />
+                <div className="flex min-h-11 items-center gap-3 rounded-md border border-neutral-200 pr-3">
+                  <Button type="button" variant="outline" disabled={saving} onClick={() => photoInputRef.current?.click()} className="min-h-11 shrink-0 rounded-r-none border-0 border-r bg-orange-50 text-orange-900">
+                    Choose photo
+                  </Button>
+                  <span className="min-w-0 break-all text-sm text-neutral-600" aria-live="polite">{photoFile ? photoFile.name : 'No photo selected'}</span>
+                </div>
               </div>
             </div>
           </section>

@@ -43,6 +43,20 @@ export function AwardeeOnboardingJourney({ name }: Props) {
   const [captionCopied, setCaptionCopied] = useState(false)
   const [preparedCover, setPreparedCover] = useState<{ url: string; file: File | null } | null>(null)
   const [sharing, setSharing] = useState(false)
+  const [joinedChannelFor, setJoinedChannelFor] = useState<string | null>(null)
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      try {
+        setJoinedChannelFor(localStorage.getItem(`afl-channel-joined:${member.id}`) === 'yes' ? member.id : null)
+      } catch { setJoinedChannelFor(null) }
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [member.id])
+  const joinedChannel = joinedChannelFor === member.id
+  function confirmChannelJoined() {
+    setJoinedChannelFor(member.id)
+    try { localStorage.setItem(`afl-channel-joined:${member.id}`, 'yes') } catch { /* Confirmation remains available for this visit. */ }
+  }
 
   const load = useCallback(async (showLoading = true) => {
     if (showLoading) {
@@ -99,9 +113,14 @@ export function AwardeeOnboardingJourney({ name }: Props) {
 
   const state = payload?.state
   const settings = payload?.settings ?? DEFAULT_AWARDEE_JOURNEY_SETTINGS
+  const taskTotal = (state?.coreSteps.length ?? 3) + 4
+  const taskCompleted = (state?.coreSteps.filter(step => step.complete).length ?? 0)
+    + Number(Boolean(member.portfolioCoverUrl))
+    + (state?.shareConfirmation ? 2 : 0)
+    + Number(joinedChannel)
   const coverFile = preparedCover && preparedCover.url === member.portfolioCoverUrl ? preparedCover.file : null
   const coverPreparing = Boolean(shareOpen && member.portfolioCoverUrl && preparedCover?.url !== member.portfolioCoverUrl)
-  const introCaption = `I’m proud to share that I’ve been selected as one of ${settings.selectedAwardeeCount} Africa Future Leaders for ${settings.cohortYear}.\n\nThis cohort brings leaders together from ${settings.applicantCountryCount} countries. I’m honoured to be part of this community and grateful for the opportunity to contribute to a brighter future for our continent.\n\nI look forward to learning, collaborating, and building impact alongside fellow leaders across Africa. Thank you, @Africa Future Leaders, for this recognition.\n\n#Top100AfricaFutureLeaders #AfricaFutureLeaders #LeadershipInAfrica`
+  const introCaption = `I’m proud to share that I’ve been selected as one of the Top100 Africa Future Leaders for ${settings.cohortYear}.\n\nThis cohort brings leaders together from ${settings.applicantCountryCount} countries. I’m honoured to be part of this community and grateful for the opportunity to contribute to a brighter future for our continent.\n\nI look forward to learning, collaborating, and building impact alongside fellow leaders across Africa. Thank you, @Africa Future Leaders, for this recognition.\n\n#Top100AfricaFutureLeaders #AfricaFutureLeaders #LeadershipInAfrica`
 
   async function acknowledgeWelcome() {
     setSaving(true)
@@ -194,13 +213,13 @@ export function AwardeeOnboardingJourney({ name }: Props) {
         <div>
           <div className="flex items-center justify-between gap-4">
             <h2 id="journey-title" className="text-xl font-medium leading-tight tracking-[-0.02em] text-[#171412] sm:text-2xl">Your next steps, {name.trim().split(/\s+/)[0]}</h2>
-            <span className="shrink-0 text-sm tabular-nums text-[#625B52]">{state.progress.completed}<span className="px-1 text-[#B5A99B]">/</span>{state.progress.total}</span>
+            <span className="shrink-0 text-sm tabular-nums text-[#625B52]">{taskCompleted}<span className="px-1 text-[#B5A99B]">/</span>{taskTotal}</span>
           </div>
-          <div className="mt-3 h-1 overflow-hidden rounded-full bg-[#E8E1D9]" role="progressbar" aria-valuenow={state.progress.completed} aria-valuemin={0} aria-valuemax={state.progress.total} aria-label={`${state.progress.completed} of ${state.progress.total} onboarding steps complete`}>
-            <div className="h-full rounded-full bg-gradient-to-r from-[#F36D21] to-[#F5A313] transition-[width] duration-500 motion-reduce:transition-none" style={{ width: `${state.progress.percent}%` }} />
+          <div className="mt-3 h-1 overflow-hidden rounded-full bg-[#E8E1D9]" role="progressbar" aria-valuenow={taskCompleted} aria-valuemin={0} aria-valuemax={taskTotal} aria-label={`${taskCompleted} of ${taskTotal} onboarding steps complete`}>
+            <div className="h-full rounded-full bg-gradient-to-r from-[#F36D21] to-[#F5A313] transition-[width] duration-500 motion-reduce:transition-none" style={{ width: `${(taskCompleted / taskTotal) * 100}%` }} />
           </div>
 
-          {state.coreSteps.some((step) => !step.complete) ? <ol className="mt-2 divide-y divide-[#EEE7DF] border-y border-[#EEE7DF]" aria-label="Awardee onboarding checklist">
+          {state.coreSteps.some(step => !step.complete) ? <ol className="mt-2 divide-y divide-[#EEE7DF] border-y border-[#EEE7DF]" aria-label="Awardee onboarding checklist">
             {state.coreSteps.map((step, index) => ({ step, index })).filter(({ step }) => !step.complete).map(({ step, index }) => {
               const href = coreDestinations[step.id as keyof typeof coreDestinations]
               const content = <>
@@ -219,9 +238,28 @@ export function AwardeeOnboardingJourney({ name }: Props) {
               </li>
             })}
           </ol> : null}
-          {state.progress.completed === state.progress.total ? <p className="mt-3 text-sm text-[#625B52]">Your first steps are complete.</p> : null}
+          {taskCompleted === taskTotal ? <p className="mt-3 text-sm text-[#625B52]">Your first steps are complete.</p> : null}
 
           <div className="mt-2 divide-y divide-[#EEE7DF] border-b border-[#EEE7DF]">
+            {!member.portfolioCoverUrl ? (
+            <Link href="/dashboard/me/portfolio-cover" className="group flex min-h-14 items-center gap-2 py-2 transition-colors hover:bg-[#FFFCF9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-inset">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center text-[#A94412]"><UserRound className="h-4 w-4" aria-hidden="true" /></span>
+              <span className="min-w-0 flex-1 text-sm font-medium text-[#25211D]">Update your awardee cover{member.portfolioCoverUrl ? ' · Complete' : ''}</span>
+              <ArrowRight className="h-4 w-4 shrink-0 text-[#A94412] transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+            </Link>
+            ) : null}
+            {!state.shareConfirmation ? (
+            <Link href="/dashboard/me/portfolio-cover" className="group flex min-h-14 items-center gap-2 py-2 transition-colors hover:bg-[#FFFCF9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-inset">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center text-[#A94412]"><Share2 className="h-4 w-4" aria-hidden="true" /></span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-medium leading-5 text-[#25211D]">Make a post{state.shareConfirmation ? ' · Complete' : ''}</span>
+                <span className="mt-0.5 block text-xs text-[#716B62]">Create and share your awardee cover on social media</span>
+              </span>
+              <ArrowRight className="h-4 w-4 shrink-0 text-[#A94412] transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+            </Link>
+            ) : null}
+            {!joinedChannel ? (
+              <>
             <a href={whatsappChannelUrl} target="_blank" rel="noopener noreferrer" className="group flex min-h-14 items-center gap-2 py-2 transition-colors hover:bg-[#FFFCF9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-inset">
               <span className="flex h-9 w-9 shrink-0 items-center justify-center text-[#A94412]"><MessageCircle className="h-4 w-4" aria-hidden="true" /></span>
               <span className="min-w-0 flex-1">
@@ -230,11 +268,19 @@ export function AwardeeOnboardingJourney({ name }: Props) {
               </span>
               <ExternalLink className="h-4 w-4 shrink-0 text-[#A94412]" aria-hidden="true" />
             </a>
+            <button type="button" onClick={confirmChannelJoined} disabled={joinedChannel} className="flex min-h-10 items-center gap-2 px-2 text-xs text-[#625B52] disabled:opacity-70">
+              {joinedChannel ? <CheckCircle2 className="h-4 w-4 text-[#39754A]" aria-hidden="true" /> : <Check className="h-4 w-4" aria-hidden="true" />}
+              {joinedChannel ? 'WhatsApp channel joined · confirmed by you' : 'I’ve joined the WhatsApp channel'}
+            </button>
+              </>
+            ) : null}
+            {!state.shareConfirmation ? (
             <button type="button" onClick={() => setShareOpen(true)} aria-haspopup="dialog" className="group flex min-h-14 w-full items-center gap-2 text-left transition-colors hover:bg-[#FFFCF9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-inset">
               <span className="flex h-9 w-9 shrink-0 items-center justify-center text-[#A94412]"><FileText className="h-4 w-4" aria-hidden="true" /></span>
-              <span className="min-w-0 flex-1 text-sm font-medium text-[#25211D]">Share your introduction</span>
+              <span className="min-w-0 flex-1 text-sm font-medium text-[#25211D]">Share your introduction{state.shareConfirmation ? ' · Complete' : ''}</span>
               <ArrowRight className="h-4 w-4 shrink-0 text-[#A94412] transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
             </button>
+            ) : null}
             <details className="group">
               <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 text-sm text-[#625B52] marker:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-inset [&::-webkit-details-marker]:hidden">
                 Explore more
@@ -263,7 +309,7 @@ export function AwardeeOnboardingJourney({ name }: Props) {
                 <Image src={member.portfolioCoverUrl} alt={`${member.name}'s Africa Future Leaders 2026 award cover`} width={400} height={500} sizes="(max-width: 639px) 160px, 144px" unoptimized className="max-h-40 w-auto max-w-full rounded-md object-contain sm:max-h-full" />
               </figure>
             ) : (
-              <Link href="/dashboard/me/portfolio-cover" onClick={() => setShareOpen(false)} className="flex min-h-28 items-center justify-center rounded-xl border border-dashed border-[#D8CBBE] bg-[#FAF8F5] px-4 text-center text-sm font-medium text-[#514B45] hover:bg-[#FFF7EF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412]">
+              <Link href="/dashboard/me/portfolio-cover" className="relative z-10 flex min-h-28 items-center justify-center rounded-xl border border-dashed border-[#D8CBBE] bg-[#FAF8F5] px-4 text-center text-sm font-medium text-[#514B45] hover:bg-[#FFF7EF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412]">
                 Create your award cover
               </Link>
             )}

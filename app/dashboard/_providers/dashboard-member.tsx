@@ -90,15 +90,8 @@ export function DashboardMemberProvider({ children }: { children: ReactNode }) {
 
   if (loading && !member) {
     return (
-      <div className="grid min-h-[100dvh] place-items-center bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,.18),transparent_32%),linear-gradient(180deg,#FFFAF5_0%,#FFFFFF_54%,#FFF5EB_100%)] px-4 text-[#171412]">
-        <div
-          role="status"
-          aria-label="Loading your member dashboard"
-          className="flex flex-col items-center gap-3 text-sm font-bold text-[#625B52]"
-        >
-          <LoaderCircle className="h-8 w-8 animate-spin text-orange-600 motion-reduce:animate-none" aria-hidden="true" />
-          <span>Loading your member dashboard...</span>
-        </div>
+      <div className="grid min-h-[100dvh] place-items-center bg-white" role="status" aria-label="Loading your member dashboard">
+        <LoaderCircle className="h-8 w-8 animate-spin text-orange-600 motion-reduce:animate-none" aria-hidden="true" />
       </div>
     )
   }

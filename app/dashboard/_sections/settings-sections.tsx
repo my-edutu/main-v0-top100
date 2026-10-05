@@ -1,7 +1,7 @@
 'use client'
 
 import { type FormEvent, type ReactNode, useState } from 'react'
-import { Bell, ChevronRight, Eye, Loader2, LockKeyhole, Trash2 } from 'lucide-react'
+import { Bell, ChevronRight, Eye, KeyRound, Loader2, LockKeyhole, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 
@@ -17,6 +17,28 @@ import { persistThenRefresh } from '../_lib/persistence-workflows'
 import { useDashboardMember } from '../_providers/dashboard-member'
 
 export function SettingsOverview({ member }: { member: MemberProfile }) {
+  const [resetSending, setResetSending] = useState(false)
+  const [resetMessage, setResetMessage] = useState('')
+  const [resetFailed, setResetFailed] = useState(false)
+
+  async function requestPasswordReset() {
+    if (resetSending) return
+    setResetSending(true)
+    setResetMessage('')
+    setResetFailed(false)
+    try {
+      const response = await fetch('/api/member/password-reset', { method: 'POST' })
+      const result = await response.json()
+      setResetFailed(!response.ok)
+      setResetMessage(result.message || 'Could not send the reset email.')
+    } catch {
+      setResetFailed(true)
+      setResetMessage('Could not send the reset email. Please try again shortly.')
+    } finally {
+      setResetSending(false)
+    }
+  }
+
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [confirmed, setConfirmed] = useState(false)
 
@@ -28,7 +50,16 @@ export function SettingsOverview({ member }: { member: MemberProfile }) {
           { path:'notifications', title:'Notifications', description:'Choose your alerts', icon:Bell },
           { path:'privacy', title:'Privacy', description:'Security preferences', icon:LockKeyhole },
         ].map(item => <Link key={item.path} href={`/dashboard/me/settings/${item.path}`} className="flex min-h-20 items-center gap-3 px-4 py-4 hover:bg-orange-50 focus-visible:outline-orange-600"><item.icon size={21} strokeWidth={1.6} className="shrink-0 text-orange-700" aria-hidden="true" /><span className="min-w-0 flex-1"><span className="block text-base font-medium">{item.title}</span><span className="mt-1 block text-sm text-neutral-500">{item.description}</span></span><ChevronRight size={18} className="shrink-0 text-neutral-400" aria-hidden="true" /></Link>)}
+        <button type="button" disabled={resetSending} onClick={() => void requestPasswordReset()} className="flex min-h-20 w-full items-center gap-3 px-4 py-4 text-left hover:bg-orange-50 focus-visible:outline-orange-600 disabled:opacity-60">
+          <KeyRound size={21} strokeWidth={1.6} className="shrink-0 text-orange-700" aria-hidden="true" />
+          <span className="min-w-0 flex-1">
+            <span className="block text-base font-medium">{resetSending ? 'Sending reset link…' : 'Reset password'}</span>
+            <span className="mt-1 block text-sm text-neutral-500">Send a reset link to your account email</span>
+          </span>
+          <ChevronRight size={18} className="shrink-0 text-neutral-400" aria-hidden="true" />
+        </button>
       </nav>
+      {resetMessage ? <p role={resetFailed ? 'alert' : 'status'} className={`rounded-xl border px-4 py-3 text-sm ${resetFailed ? 'border-red-200 bg-red-50 text-red-800' : 'border-green-200 bg-green-50 text-green-800'}`}>{resetMessage}</p> : null}
       <section className="border-t border-neutral-200 pt-5">
         <h2 className="text-base font-medium">Your data</h2>
         <button

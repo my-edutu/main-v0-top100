@@ -72,7 +72,14 @@ export default function AdminLoginContent() {
       const data = await response.json().catch(() => ({}))
       const role = normalizeRole(data?.profile?.role)
 
-      if (!response.ok || !isAdminRole(role)) {
+      if (!response.ok) {
+        await supabase.auth.signOut()
+        setError('We could not verify your account access. Please try again shortly.')
+        setIsLoading(false)
+        return
+      }
+
+      if (!isAdminRole(role)) {
         await supabase.auth.signOut()
         setError('This console is restricted to administrators. Members can sign in at the member portal.')
         setIsLoading(false)

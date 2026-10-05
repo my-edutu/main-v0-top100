@@ -152,7 +152,7 @@ export function Top100MomentGate({ member, children }: { member: MemberProfile; 
 
   if (dismissed || payload?.moment?.completedAt) return children
   if (loading || !payload) {
-    return <div className="grid min-h-dvh place-items-center bg-[linear-gradient(135deg,#fbbf24_0%,#f59e0b_52%,#d97706_100%)] text-[#10151f]" role="status"><div className="flex items-center gap-3 text-sm"><LoaderCircle className="h-5 w-5 animate-spin motion-reduce:animate-none" />Preparing your welcome…</div></div>
+    return <div className="grid min-h-dvh place-items-center bg-white" role="status" aria-label="Loading your dashboard"><LoaderCircle className="h-8 w-8 animate-spin text-orange-600 motion-reduce:animate-none" aria-hidden="true" /></div>
   }
   return <Top100Moment member={member} payload={payload} onComplete={() => setDismissed(true)} />
 }

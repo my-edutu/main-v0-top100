@@ -3,7 +3,6 @@
 import { usePathname } from 'next/navigation'
 import Header from './Header'
 import Footer from './Footer'
-import MagazinePopup from './MagazinePopup'
 
 export default function ConditionalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -16,9 +15,6 @@ export default function ConditionalLayout({ children }: { children: React.ReactN
     pathname?.startsWith('/edit-profile')
   const hideFooter = hideLayout || pathname?.startsWith('/dashboard')
 
-  // Show magazine popup only on homepage
-  const isHomepage = pathname === '/'
-
   return (
     <>
       {!hideLayout && <Header />}
@@ -26,7 +22,6 @@ export default function ConditionalLayout({ children }: { children: React.ReactN
         {children}
       </main>
       {!hideFooter && <Footer />}
-      {isHomepage && <MagazinePopup />}
     </>
   )
 }
