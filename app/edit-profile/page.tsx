@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Search, User, ArrowRight, Loader2 } from 'lucide-react'
-import Image from 'next/image'
+import Image from '@/components/safe-image'
 import Link from 'next/link'
 
 interface Awardee {

@@ -5,20 +5,12 @@ import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 
 import { AvatarSVG } from "@/lib/avatars"
+import { resolveRemoteImageSource } from "@/lib/media/remote-image-source"
 import type { Awardee } from "@/lib/awardees"
 
 function SpotlightPortrait({ name, src }: { name: string; src?: string | null }) {
   const [failedSource, setFailedSource] = useState<string | null>(null)
-  let imageSrc = src
-  if (src) {
-    try {
-      const url = new URL(src)
-      if (url.hostname === 'drive.google.com') {
-        const id = url.searchParams.get('id') ?? url.pathname.match(/\/file\/d\/([^/]+)/)?.[1]
-        imageSrc = id ? `https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w160` : null
-      } else if (url.protocol !== 'https:' && url.protocol !== 'http:') imageSrc = null
-    } catch { if (!src.startsWith('/') || src.startsWith('//')) imageSrc = null }
-  }
+  const imageSrc = src ? resolveRemoteImageSource(src) : null
   if (!imageSrc || failedSource === imageSrc) return <AvatarSVG name={name} size={80} />
   return (
     // Member image hosts vary; load directly and fall back when inaccessible.

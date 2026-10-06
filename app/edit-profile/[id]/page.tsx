@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { ArrowLeft, ArrowRight, Loader2, Save, CheckCircle, Mail, Lock, Eye, EyeOff, Camera, Upload, Newspaper, Phone, MessageSquare, AlertCircle } from 'lucide-react'
-import Image from 'next/image'
+import Image from '@/components/safe-image'
 import Link from 'next/link'
 import { toast } from 'sonner'
 

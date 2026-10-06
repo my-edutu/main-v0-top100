@@ -1,4 +1,4 @@
-import Image from "next/image"
+import Image from "@/components/safe-image"
 import type { Metadata } from "next"
 import { ArrowRight, Globe2, Quote } from "lucide-react"
 

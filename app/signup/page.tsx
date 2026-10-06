@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
+import Image from '@/components/safe-image'
 import { ArrowLeft, ArrowRight, Loader2, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'

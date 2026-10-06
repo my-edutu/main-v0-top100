@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
+import Image from '@/components/safe-image'
 import { usePathname } from 'next/navigation'
 import { LogOut } from 'lucide-react'
 import { toast } from 'sonner'

@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import Image from "next/image"
+import Image from "@/components/safe-image"
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 

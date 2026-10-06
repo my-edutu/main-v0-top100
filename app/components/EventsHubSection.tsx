@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import Image from "next/image"
+import Image from "@/components/safe-image"
 import { Button } from "@/components/ui/button"
 import { Calendar, MapPin, Clock, ArrowRight, Megaphone, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"

@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import Image from "next/image";
+import Image from "@/components/safe-image";
 import { Download, FileText } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";

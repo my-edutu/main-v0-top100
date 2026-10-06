@@ -1,7 +1,7 @@
 'use client'
 
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import Image from 'next/image'
+import Image from '@/components/safe-image'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, ArrowRight, Check, ChevronRight, ImagePlus, LoaderCircle } from 'lucide-react'
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'

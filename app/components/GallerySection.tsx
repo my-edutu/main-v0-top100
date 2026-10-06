@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import Image from "next/image"
+import Image from "@/components/safe-image"
 import { Camera, Users, Award, Mic, X } from "lucide-react"
 import { galleryImages } from "@/lib/gallery-data"
 

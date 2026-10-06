@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
-import Image from 'next/image'
+import Image from '@/components/safe-image'
 import { ArrowRight, BadgeCheck, CreditCard, Loader2, RefreshCw } from 'lucide-react'
 
 import { BACHS_MAGAZINE_FEATURE_PAYMENT_LINK } from '@/lib/payments/bachs/payment-links'

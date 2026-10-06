@@ -1,4 +1,4 @@
-import Image from 'next/image'
+import Image from '@/components/safe-image'
 import Link from 'next/link'
 import { ArrowUpRight, Download } from 'lucide-react'
 import { magazineEditions } from '@/lib/magazines'

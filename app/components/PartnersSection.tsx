@@ -1,5 +1,5 @@
 "use client"
-import Image from "next/image"
+import Image from "@/components/safe-image"
 
 export default function PartnersSection() {
   const partners = [

@@ -1,6 +1,6 @@
 "use client"
 
-import Image from "next/image"
+import Image from "@/components/safe-image"
 import { Building2, Globe2, Landmark, Briefcase, Banknote } from "lucide-react"
 
 // Cycle a small set of icons for institutions without a brand mark on file.

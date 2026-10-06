@@ -1,4 +1,4 @@
-import Image from 'next/image'
+import Image from '@/components/safe-image'
 import { ArrowUpRight, CheckCircle2, Compass, Sparkles } from 'lucide-react'
 
 const features = [

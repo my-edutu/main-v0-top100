@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { ArrowRight, Loader2 } from 'lucide-react'
-import Image from 'next/image'
+import Image from '@/components/safe-image'
 
 import { startAwardPaymentCheckout, type AwardPaymentCurrency, type AwardPaymentView } from '@/lib/awards/payment'
 

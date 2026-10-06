@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import Image from "next/image"
+import Image from "@/components/safe-image"
 import { Button } from "@/components/ui/button"
 import { Camera, ExternalLink, X } from "lucide-react"
 import { galleryImages } from "@/lib/gallery-data"

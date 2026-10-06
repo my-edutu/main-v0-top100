@@ -1,7 +1,7 @@
 'use client'
 
 import { FormEvent, Suspense, useEffect, useState } from 'react'
-import Image from 'next/image'
+import Image from '@/components/safe-image'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { Loader2, ShieldCheck } from 'lucide-react'

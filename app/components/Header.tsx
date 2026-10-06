@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import Image from "next/image"
+import Image from "@/components/safe-image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { ChevronDown, Menu } from "lucide-react"

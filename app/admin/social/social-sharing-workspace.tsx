@@ -19,7 +19,7 @@ import {
   UserRound,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import Image from 'next/image'
+import Image from '@/components/safe-image'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { shareSocialDraft } from '@/lib/admin-social/share'

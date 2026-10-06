@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
-import Image from 'next/image'
+import Image from '@/components/safe-image'
 import Link from 'next/link'
 import type { ProofAwardee, Awardee } from '@/lib/awardees-shared'
 

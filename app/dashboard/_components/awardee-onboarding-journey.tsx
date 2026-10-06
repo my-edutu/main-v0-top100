@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
+import Image from '@/components/safe-image'
 import { useCallback, useEffect, useState } from 'react'
 import { ArrowRight, BookOpenText, Check, CheckCircle2, ChevronDown, Circle, Compass, Copy, ExternalLink, FileText, Linkedin, MessageCircle, RefreshCw, Share2, Trophy, UserRound } from 'lucide-react'
 import { toast } from 'sonner'

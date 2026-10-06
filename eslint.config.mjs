@@ -21,6 +21,15 @@ export default defineConfig([
       'react-hooks/immutability': 'warn',
     },
   },
+  {
+    files: ['app/**/*.tsx', 'components/**/*.tsx'],
+    ignores: ['components/safe-image.tsx'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        paths: [{ name: 'next/image', message: 'Use @/components/safe-image to handle Drive links and unavailable photos safely.' }],
+      }],
+    },
+  },
   globalIgnores([
     '.next/**',
     'out/**',

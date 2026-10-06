@@ -1,4 +1,4 @@
-import Image from 'next/image'
+import Image from '@/components/safe-image'
 import { PROGRAMME_ARTWORK } from '@/lib/events/programme-artwork'
 
 export function ProgrammeCover({ sessionNumber, className = '' }: { sessionNumber: number | null; className?: string }) {

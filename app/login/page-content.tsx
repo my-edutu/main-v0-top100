@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { useSearchParams } from 'next/navigation';
 import { Eye, EyeOff, Shield, Clock, AlertTriangle, Loader2 } from 'lucide-react';
-import Image from 'next/image'
+import Image from '@/components/safe-image'
 import { cn } from '@/lib/utils'
 import { TurnstileCaptcha, verifyCaptcha } from '@/components/ui/turnstile'
 import { Role, isAdminRole } from '@/lib/types/roles'

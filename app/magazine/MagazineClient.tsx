@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import Image from 'next/image'
+import Image from '@/components/safe-image'
 import { Download } from 'lucide-react'
 import MagazineDownloadModal from '@/app/components/MagazineDownloadModal'
 import NewsletterForm from '@/app/components/NewsletterForm'

@@ -1,5 +1,5 @@
 "use client"
-import Image from "next/image"
+import Image from "@/components/safe-image"
 import { useRouter } from "next/navigation"
 import { Users, Target, Lightbulb } from "lucide-react"
 

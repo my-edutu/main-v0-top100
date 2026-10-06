@@ -1,4 +1,4 @@
-import Image from 'next/image'
+import Image from '@/components/safe-image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Calendar, ExternalLink, Globe, Instagram, Linkedin, Mail, MapPin, PenSquare, Trophy, Twitter, Users2, Youtube, GraduationCap, ArrowLeft, Quote, Award, Briefcase } from 'lucide-react'

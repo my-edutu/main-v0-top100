@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
+import Image from '@/components/safe-image'
 import { useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { CheckCircle2, Eye, EyeOff, Loader2, ShieldAlert } from 'lucide-react'

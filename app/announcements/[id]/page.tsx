@@ -3,7 +3,7 @@ import { ogMetadata } from '@/lib/og'
 import { pageOg } from '@/lib/og-pages'
 import { createAdminClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
-import Image from "next/image";
+import Image from "@/components/safe-image";
 import Link from "next/link";
 import { ArrowLeft, Calendar, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";

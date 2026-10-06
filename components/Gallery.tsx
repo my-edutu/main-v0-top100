@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import Image from "next/image";
+import Image from "@/components/safe-image";
 
 const Gallery = () => {
   // List of images from the speakers announcement directory

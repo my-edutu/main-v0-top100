@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import Image from 'next/image'
+import Image from '@/components/safe-image'
 import type { Metadata } from 'next'
 import { ArrowRight, ArrowUpRight, Check } from 'lucide-react'
 

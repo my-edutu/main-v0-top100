@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { ArrowRight, Download, ImagePlus, LoaderCircle, Share2 } from 'lucide-react'
 import { toast } from 'sonner'
-import Image from 'next/image'
+import Image from '@/components/safe-image'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'

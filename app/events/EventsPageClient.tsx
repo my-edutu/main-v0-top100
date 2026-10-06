@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import Image from "next/image"
+import Image from "@/components/safe-image"
 import Link from "next/link"
 import { format } from "date-fns"
 import { supabase } from "@/lib/supabase/client"

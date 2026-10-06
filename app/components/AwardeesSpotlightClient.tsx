@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useEffect, useState } from "react"
-import Image from "next/image"
+import Image from "@/components/safe-image"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { ArrowRight, Award, GraduationCap, MapPin } from "lucide-react"

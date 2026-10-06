@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import Image from 'next/image'
+import Image from '@/components/safe-image'
 import Link from 'next/link'
 import { ArrowLeft, ArrowRight, Loader2, UserRound } from 'lucide-react'
 import { toast } from 'sonner'
