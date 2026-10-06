@@ -1,4 +1,5 @@
 import "./globals.css"
+import { AddToHomePrompt } from "@/components/add-to-home-prompt"
 import type { Metadata } from "next"
 import { Urbanist } from "next/font/google"
 import type React from "react" // Import React
@@ -74,7 +75,7 @@ export const metadata: Metadata = {
     shortcut: "/favicon-16x16.png",
     other: {
       rel: "apple-touch-icon",
-      url: "/apple-touch-icon.png",
+      url: "/icons/top100-africa-180.png",
     },
   },
   manifest: "/site.webmanifest",
@@ -166,6 +167,7 @@ export default function RootLayout({
               {children}
             </ConditionalLayout>
           </ClientProviders>
+          <AddToHomePrompt />
           <Toaster />
         </ThemeProvider>
 

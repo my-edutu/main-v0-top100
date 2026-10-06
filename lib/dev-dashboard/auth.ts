@@ -29,7 +29,10 @@ export function isLoopbackDevelopment(
   if (environment !== 'development') return false
 
   const hostname = hostnameFromHostHeader(request.headers.get('host') ?? '')
-  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]'
+  if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]') return true
+  return (process.env.TOP100_DEV_ORIGINS ?? '').split(',').some(origin => {
+    try { return new URL(origin.trim()).hostname === hostname } catch { return false }
+  })
 }
 
 export function classifyDemoCredentials(

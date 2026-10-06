@@ -17,6 +17,12 @@ function normalizedOrigin(value: string | null | undefined): string | null {
  */
 export function isTrustedRequestOrigin(request: Request): boolean {
   const allowedOrigins = new Set<string>([new URL(request.url).origin])
+  if (process.env.NODE_ENV === 'development') {
+    for (const value of (process.env.TOP100_DEV_ORIGINS ?? '').split(',')) {
+      const origin = normalizedOrigin(value.trim())
+      if (origin) allowedOrigins.add(origin)
+    }
+  }
   const configuredOrigin = normalizedOrigin(process.env.NEXT_PUBLIC_SITE_URL)
   if (configuredOrigin) {
     allowedOrigins.add(configuredOrigin)
