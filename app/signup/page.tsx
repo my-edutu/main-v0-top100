@@ -18,6 +18,7 @@ type Awardee = {
   country: string | null
   course: string | null
   emailHint: string | null
+  hasAccount?: boolean
 }
 
 export default function SignUpPage() {
@@ -30,13 +31,18 @@ export default function SignUpPage() {
   const [password, setPassword] = useState('')
   const [captcha, setCaptcha] = useState('')
   const [busy, setBusy] = useState(false)
+  const [searchedQuery, setSearchedQuery] = useState('')
+  const [suggested, setSuggested] = useState(false)
+  const [retry, setRetry] = useState(0)
   const [searching, setSearching] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [hasSession, setHasSession] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const captchaUnavailable = process.env.NODE_ENV === 'production' && !process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
-  const visibleResults = query.trim().length < 2 ? [] : results
+  const searchText = query.trim()
+  const waiting = searchText.length >= 2 && (searching || searchedQuery !== searchText)
+  const visibleResults = searchedQuery === searchText ? results : []
 
   useEffect(() => {
     void supabase.auth.getUser().then(({ data }) => setHasSession(Boolean(data.user)))
@@ -44,7 +50,7 @@ export default function SignUpPage() {
 
   useEffect(() => {
     const text = query.trim()
-    if (text.length < 2) { setSearching(false); setResults([]); return }
+    if (text.length < 2) { setSearching(false); setResults([]); setSearchedQuery(''); return }
     const controller = new AbortController()
     const timer = window.setTimeout(async () => {
       setSearching(true)
@@ -52,15 +58,15 @@ export default function SignUpPage() {
         const response = await createTimedFetch(fetch, 12_000)(`/api/auth/claim-directory?q=${encodeURIComponent(text)}`, { signal: controller.signal })
         const body = await response.json()
         if (!response.ok) throw new Error(body.message || body.error || 'Could not search winners. Please try again.')
-        if (!controller.signal.aborted) setResults(body.awardees ?? [])
+        if (!controller.signal.aborted) { setResults(body.awardees ?? []); setSuggested(Boolean(body.suggested)); setSearchedQuery(text) }
       } catch (cause) {
-        if (!controller.signal.aborted) { setResults([]); setError(cause instanceof Error ? cause.message : 'Could not search winners. Please try again.') }
+        if (!controller.signal.aborted) { setResults([]); setSearchedQuery(text); setError(cause instanceof Error ? cause.message : 'Could not search winners. Please try again.') }
       } finally {
         if (!controller.signal.aborted) setSearching(false)
       }
     }, 300)
     return () => { window.clearTimeout(timer); controller.abort() }
-  }, [query])
+  }, [query, retry])
 
   function choose(awardee: Awardee) {
     setSelected(awardee)
@@ -114,7 +120,7 @@ export default function SignUpPage() {
       if (body.existing) {
         const { data: existing, error: signInError } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password })
         if (signInError || !existing.session?.access_token) {
-          throw new Error('This email already has an account. Sign in with its current password. If you cannot reset it, contact the admin team while email recovery is unavailable.')
+          throw new Error('This email already has an account. Sign in with its current password. Use Reset password below if you have forgotten it.')
         }
         setHasSession(true)
         await submitClaim(existing.session.access_token)
@@ -136,13 +142,13 @@ export default function SignUpPage() {
     <main className="min-h-[calc(100dvh-5rem)] bg-[#fcfaf7] px-4 py-10 text-[#211a15] sm:px-6">
       <div className="mx-auto grid max-w-5xl gap-10 lg:grid-cols-[0.8fr_1fr] lg:gap-20">
         <div className="pt-4">
-          <h1 className="mt-0 text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">Your story is already here.</h1>
-          <p className="mt-5 max-w-md text-base leading-7 text-stone-600">Find your winner record, enter your AFL code, and request access. The admin team will review your claim.</p>
+          <h1 className="mt-0 text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">Find your awardee profile.</h1>
+          <p className="mt-5 max-w-md text-base leading-7 text-stone-600">New here? Find your name to create an account. Already registered? Sign in or reset your password.</p>
         </div>
 
         <section className="rounded-3xl border border-stone-200 bg-white p-5 shadow-sm sm:p-8" aria-label="Claim your winner profile">
           <div className="mb-7 flex items-center justify-between gap-3 border-b border-stone-100 pb-5">
-            <div><p className="text-xs font-bold uppercase tracking-widest text-orange-700">Step {step} of 2</p><h2 className="mt-1 text-2xl font-semibold">{step === 1 ? 'Find yourself' : 'Request your profile'}</h2></div>
+            <div><p className="text-xs font-bold uppercase tracking-widest text-orange-700">Step {step} of 2</p><h2 className="mt-1 text-2xl font-semibold">{step === 1 ? 'Search your name' : 'Request your profile'}</h2></div>
             <Image src="/illustrations/winner-record.svg" alt="" aria-hidden="true" width={48} height={48} className="h-12 w-12 shrink-0" />
           </div>
           {selected && step > 1 && <div className="mb-6 rounded-2xl bg-orange-50 p-4"><p className="font-semibold">{selected.name}</p><p className="text-sm text-stone-600">{[selected.country, selected.course].filter(Boolean).join(' · ')}</p></div>}
@@ -150,13 +156,22 @@ export default function SignUpPage() {
           {notice && <p role="status" className="mb-5 rounded-xl bg-green-50 p-3 text-sm text-green-800">{notice}</p>}
 
           {step === 1 && <div className="space-y-5">
-            <div><Label htmlFor="winner-search">Your name</Label><div className="relative mt-2"><Search className="absolute left-3 top-3 h-5 w-5 text-stone-400" /><Input id="winner-search" value={query} onChange={(event) => { setQuery(event.target.value); setError('') }} placeholder="Search the winners list" className="h-12 pl-10" /></div></div>
-            {searching && <p className="text-sm text-stone-500">Searching…</p>}
+            <div><Label htmlFor="winner-search">Your name</Label><div className="relative mt-2"><Search className="absolute left-3 top-3 h-5 w-5 text-stone-400" /><Input id="winner-search" value={query} onChange={(event) => { setQuery(event.target.value); setError('') }} placeholder="Try your first name or surname" className="h-12 pl-10" aria-describedby="search-help" /></div><p id="search-help" className="mt-2 text-sm text-stone-600">Type at least 2 letters. Try one name at a time.</p></div>
+            {waiting && <p role="status" className="flex items-center gap-2 text-sm text-stone-500"><Loader2 className="h-4 w-4 animate-spin" />Finding your name…</p>}
+            {suggested && !waiting && visibleResults.length > 0 && <p className="text-sm text-stone-600">Could one of these be you? Check the name and country.</p>}
+            {error && <Button type="button" variant="outline" onClick={() => { setError(''); setSearchedQuery(''); setRetry(value => value + 1) }}>Try search again</Button>}
             <div className="max-h-80 space-y-2 overflow-y-auto" aria-live="polite">
-              {visibleResults.map((awardee) => <button type="button" key={awardee.id} onClick={() => choose(awardee)} className="flex w-full items-center justify-between rounded-xl border border-stone-200 p-4 text-left hover:border-orange-400 hover:bg-orange-50"><span><strong className="block">{awardee.name}</strong><small className="text-stone-600">{[awardee.country, awardee.course].filter(Boolean).join(' · ')}</small></span><ArrowRight className="h-5 w-5 shrink-0 text-orange-700" /></button>)}
-              {query.trim().length >= 2 && !searching && !visibleResults.length && !error && <p className="text-sm text-stone-600">No unclaimed winner found. Check your name or contact the admin team.</p>}
+              {!waiting && visibleResults.map((awardee) => awardee.hasAccount ? (
+                <Link key={awardee.id} href="/login" className="flex w-full items-center justify-between gap-3 rounded-xl border border-stone-200 p-4 hover:border-orange-400 hover:bg-orange-50"><span><strong className="block">{awardee.name}</strong><small className="text-stone-600">{awardee.country} · Account already created</small></span><span className="shrink-0 text-sm font-semibold text-orange-800">Sign in →</span></Link>
+              ) : (
+                <button type="button" key={awardee.id} onClick={() => choose(awardee)} className="flex w-full items-center justify-between gap-3 rounded-xl border border-stone-200 p-4 text-left hover:border-orange-400 hover:bg-orange-50"><span><strong className="block">{awardee.name}</strong><small className="text-stone-600">{[awardee.country, awardee.course].filter(Boolean).join(' · ')}</small></span><ArrowRight className="h-5 w-5 shrink-0 text-orange-700" /></button>
+              ))}
+              {searchText.length >= 2 && !waiting && !visibleResults.length && !error && <div className="rounded-xl bg-orange-50 p-4"><p className="font-semibold">Can’t find your name?</p><p className="mt-1 text-sm text-stone-600">Try just your first name or surname, as written in your award email.</p>{searchText.includes(' ') && <button type="button" className="mt-3 font-semibold text-orange-800 underline" onClick={() => setQuery(searchText.split(/\s+/)[0])}>Search “{searchText.split(/\s+/)[0]}” instead</button>}<p className="mt-3 text-sm">Still missing? <a className="font-semibold text-orange-800 underline" href="mailto:info@top100afl.com?subject=Help%20finding%20my%20awardee%20profile">Contact the team</a>.</p></div>}
+
             </div>
           </div>}
+
+          {!submitted && <div className="my-5 rounded-xl border border-stone-200 bg-stone-50 p-4"><p className="text-sm font-semibold">Already registered?</p><p className="mt-1 text-sm text-stone-600">Use your account to continue. Waiting for approval? You can still sign in.</p><div className="mt-3 flex flex-wrap gap-4 text-sm font-semibold text-orange-800"><Link href="/login" className="underline">Sign in</Link><Link href="/auth/forgot-password?area=member" className="underline">Reset password</Link></div></div>}
 
           {step === 2 && !submitted && <form onSubmit={requestClaim} className="space-y-5">
             <div><Label htmlFor="claim-email">Email on your winner record</Label><Input id="claim-email" className="mt-2 h-12" type="email" required autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" />{selected?.emailHint && <p className="mt-1 text-xs text-stone-500">On file: {selected.emailHint}</p>}</div>
@@ -169,7 +184,7 @@ export default function SignUpPage() {
           </form>}
           {submitted && <p className="text-sm text-stone-700">Your requested profile will appear after an admin approves it. <Link className="font-semibold text-orange-800 underline" href="/dashboard">Go to dashboard</Link>.</p>}
         </section>
-        <p className="text-sm text-stone-600 lg:col-start-2">Already have an account? <Link className="font-semibold text-orange-800 underline" href="/login">Sign in</Link>, then return here to claim your record.</p>
+        <p className="text-sm text-stone-600 lg:col-start-2">Already have an account? <Link className="font-semibold text-orange-800 underline" href="/login">Sign in</Link> or <Link className="font-semibold text-orange-800 underline" href="/auth/forgot-password?area=member">Reset password</Link>.</p>
       </div>
     </main>
   )

@@ -1,5 +1,5 @@
 // app/api/auth/claim-directory/route.ts
-// Public, rate-limited list of awardees who have not yet claimed an account.
+// Public, rate-limited name search for registration and existing account guidance.
 // Signup starts here: the person picks who they are from this list, then
 // proves it with their email + an admin-issued code.
 //
@@ -48,15 +48,27 @@ export async function GET(request: NextRequest) {
 
   try {
     const supabase = createAdminClient()
-    const { data, error } = await supabase
+    const result = await supabase
       .from('awardees')
       .select('id, name, country, course, image_url, email, profile_id')
-      .is('profile_id', null)
       .ilike('name', toIlikePattern(search))
       .order('name', { ascending: true })
       .limit(CLAIM_DIRECTORY_PAGE_SIZE + 1)
 
-    if (error) throw new Error(error.message)
+    if (result.error) throw new Error(result.error.message)
+    let data = result.data
+    let suggested = false
+    if (!data?.length) {
+      const word = search.split(/\s+/).sort((a, b) => b.length - a.length)[0]
+      if (word.length >= 3 && word !== search) {
+        const fallback = await supabase.from('awardees')
+          .select('id, name, country, course, image_url, email, profile_id')
+          .ilike('name', toIlikePattern(word)).order('name').limit(CLAIM_DIRECTORY_PAGE_SIZE + 1)
+        if (fallback.error) throw new Error(fallback.error.message)
+        data = fallback.data
+        suggested = Boolean(data?.length)
+      }
+    }
 
     const hasMore = (data ?? []).length > CLAIM_DIRECTORY_PAGE_SIZE
     const awardees = (data ?? [])
@@ -69,9 +81,10 @@ export async function GET(request: NextRequest) {
         course: a.course ?? null,
         imageUrl: a.image_url ?? null,
         emailHint: a.email ? maskEmail(a.email) : null,
+        hasAccount: Boolean(a.profile_id),
       }))
 
-    return NextResponse.json({ awardees, hasMore })
+    return NextResponse.json({ awardees, hasMore, suggested })
   } catch (error) {
     console.error('[claim-directory] Failed to load directory:', error)
     return NextResponse.json({ message: 'Could not load the awardee directory.' }, { status: 500 })
