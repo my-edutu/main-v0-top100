@@ -40,3 +40,10 @@ errors during the post-fix check.
 - Existing orphaned account requires identity review, not automatic name linking.
 - Actual email delivery and affected members' devices are not proven by API tests.
 - No real members were bulk approved and no support replies were sent.
+
+## Follow-up log check
+
+Three awardee image URLs logged 502/404 around the gateway restart. All three
+subsequently returned HTTP 200 from the public storage endpoint; corresponding
+object metadata and physical files exist. No replacement or deletion performed.
+Frontend deployment status remained `completed`.
