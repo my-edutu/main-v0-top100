@@ -1,12 +1,31 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import Image from "next/image"
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 
 import { AvatarSVG } from "@/lib/avatars"
 import type { Awardee } from "@/lib/awardees"
+
+function SpotlightPortrait({ name, src }: { name: string; src?: string | null }) {
+  const [failedSource, setFailedSource] = useState<string | null>(null)
+  let imageSrc = src
+  if (src) {
+    try {
+      const url = new URL(src)
+      if (url.hostname === 'drive.google.com') {
+        const id = url.searchParams.get('id') ?? url.pathname.match(/\/file\/d\/([^/]+)/)?.[1]
+        imageSrc = id ? `https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w160` : null
+      } else if (url.protocol !== 'https:' && url.protocol !== 'http:') imageSrc = null
+    } catch { if (!src.startsWith('/') || src.startsWith('//')) imageSrc = null }
+  }
+  if (!imageSrc || failedSource === imageSrc) return <AvatarSVG name={name} size={80} />
+  return (
+    // Member image hosts vary; load directly and fall back when inaccessible.
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={imageSrc} alt={`Portrait of ${name}`} width={80} height={80} loading="lazy" decoding="async" className="h-full w-full object-cover" onError={() => setFailedSource(imageSrc ?? null)} />
+  )
+}
 
 const SHUFFLE_INTERVAL_MS = 18_000
 
@@ -94,17 +113,7 @@ export default function ImpactAwardeeSpotlight({ awardees }: { awardees: Awardee
           <article className="flex h-full flex-col">
             <div className="flex items-start justify-between gap-4">
               <div className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-orange-100 text-slate-950 ring-4 ring-orange-50">
-                {awardee.avatar_url ? (
-                  <Image
-                    src={awardee.avatar_url}
-                    alt={`Portrait of ${awardee.name}`}
-                    fill
-                    sizes="80px"
-                    className="object-cover"
-                  />
-                ) : (
-                  <AvatarSVG name={awardee.name} size={80} />
-                )}
+                <SpotlightPortrait name={awardee.name} src={awardee.avatar_url} />
               </div>
               <span className="font-mono text-xs text-slate-400">
                 {String(index + 1).padStart(2, "0")}
