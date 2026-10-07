@@ -111,7 +111,7 @@ export function DashboardCelebration({
           </div>
         </>
       ) : null}
-      <Dialog open={open} onOpenChange={handleOpenChange}>
+      <Dialog open={open} onOpenChange={handleOpenChange} modal={false}>
       <DialogPortal>
         <DialogOverlay className="dashboard-celebration-overlay" />
         <DialogPrimitive.Content className="dashboard-celebration-card">

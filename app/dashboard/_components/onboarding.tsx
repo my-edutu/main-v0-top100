@@ -203,8 +203,6 @@ export function Onboarding({
                   key={field.key}
                   id="onboarding-field"
                   autoFocus
-                  required
-                  minLength={field.min}
                   maxLength={field.max}
                   rows={7}
                   value={values[field.key]}
@@ -212,6 +210,7 @@ export function Onboarding({
                     setValues({ ...values, [field.key]: e.target.value })
                   }
                   placeholder={field.placeholder}
+                  aria-describedby="onboarding-field-help"
                   className="w-full rounded-2xl border border-neutral-300 p-4 text-base focus:outline-orange-600"
                 />
               ) : (
@@ -230,10 +229,14 @@ export function Onboarding({
                   className="h-14 w-full rounded-xl border border-neutral-300 px-4 text-base focus:outline-orange-600"
                 />
               )}
-              <p className="mt-3 text-xs text-neutral-500">
+              <p
+                id="onboarding-field-help"
+                className="mt-3 text-xs text-neutral-500"
+                aria-live={field.key === 'bio' ? 'polite' : undefined}
+              >
                 {field.key === 'bio'
-                  ? `${values.bio.length} / ${field.max} characters · at least ${field.min}`
-                  : 'Your answers will be saved together when you complete setup.'}
+                  ? `${values.bio.length} / ${field.max} characters · optional`
+                  : 'Your answer is saved when you continue.'}
               </p>
             </div>
           ) : (
@@ -244,7 +247,21 @@ export function Onboarding({
                     {item.key}
                   </dt>
                   <dd className="whitespace-pre-wrap break-words text-base leading-6">
-                    {item.key === 'field' ? <span className="flex flex-wrap gap-2">{interests.map(tag => <span key={tag} className="rounded-full border border-orange-200 px-3 py-1 text-sm">{tag}</span>)}</span> : values[item.key]}
+                    {item.key === 'field' ? (
+                      <span className="flex flex-wrap gap-2">
+                        {interests.map(tag => (
+                          <span key={tag} className="rounded-full border border-orange-200 px-3 py-1 text-sm">
+                            {tag}
+                          </span>
+                        ))}
+                      </span>
+                    ) : item.key === 'bio' && !values.bio.trim() ? (
+                      <span className="text-neutral-500">
+                        You can add your Bio later from your profile.
+                      </span>
+                    ) : (
+                      values[item.key]
+                    )}
                   </dd>
                 </div>
               ))}
@@ -255,7 +272,6 @@ export function Onboarding({
               {error}
             </p>
           )}
-          {field?.key === 'bio' && <button type="button" onClick={() => { setValues({ ...values, bio: '' }); setError(''); setStep(4) }} className="mt-4 min-h-11 text-sm text-neutral-600 underline underline-offset-4">Skip for now — add your story later</button>}
           <div className="mt-8 flex items-center gap-3">
             {step > 0 && (
               <button
@@ -286,9 +302,11 @@ export function Onboarding({
             </button>
           </div>
           <p className="mt-5 text-center text-xs leading-5 text-neutral-500">
-            Complete these steps to access your awardee dashboard.
-            <br />
-            Keep this page open until you complete setup to retain your answers.
+            {field?.key === 'bio'
+              ? 'Your earlier answers are saved. Continue to save this Bio; you can add or update it later from your profile.'
+              : !field
+                ? 'Review your details and complete setup to open your awardee dashboard. You can update your Bio later.'
+                : 'Your answer is saved when you continue.'}
           </p>
         </form>
       </main>

@@ -3,9 +3,13 @@ import { createHash } from 'node:crypto'
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 
+export function boundedDeploymentId(value) {
+  return value.slice(0, 32)
+}
+
 function deploymentId() {
-  if (process.env.NEXT_DEPLOYMENT_ID) return process.env.NEXT_DEPLOYMENT_ID
-  try { return execFileSync('git', ['rev-parse', 'HEAD'], { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim() } catch {
+  if (process.env.NEXT_DEPLOYMENT_ID) return boundedDeploymentId(process.env.NEXT_DEPLOYMENT_ID)
+  try { return boundedDeploymentId(execFileSync('git', ['rev-parse', 'HEAD'], { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim()) } catch {
     // Build contexts can omit .git. Derive a stable source fingerprint rather
     // than choosing a new random ID every time next start reads this config.
     const hash = createHash('sha256')
@@ -18,7 +22,7 @@ function deploymentId() {
     }
     for (const folder of ['app', 'lib', 'components']) if (existsSync(folder)) add(folder)
     for (const file of ['package-lock.json', 'next.config.mjs']) if (existsSync(file)) hash.update(readFileSync(file))
-    return hash.digest('hex').slice(0, 40)
+    return boundedDeploymentId(hash.digest('hex'))
   }
 }
 

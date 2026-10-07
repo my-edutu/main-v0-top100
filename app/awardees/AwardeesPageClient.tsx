@@ -4,20 +4,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Image from '@/components/safe-image'
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { Award, GraduationCap, MapPin, Users, ArrowRight, Search, Filter } from 'lucide-react'
+import { ArrowRight, Search, Shuffle, ArrowUpRight, Globe2, MapPin } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import type { Awardee } from '@/lib/awardees-shared'
 import { normalizeAwardeeEntry } from '@/lib/awardees-shared'
+import { countryKey, getDiscoverySummary, hasProfilePhoto, shufflePeople } from '@/lib/awardee-discovery'
+import './awardees.css'
 import { supabase } from '@/lib/supabase/client'
 import { AvatarSVG } from '@/lib/avatars'
 import type { AwardeeDirectoryEntry } from '@/types/profile'
@@ -27,31 +20,15 @@ const hasLiveSupabaseKey =
   Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL) &&
   Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.startsWith('eyJ'))
 
-const formatExcerpt = (input?: string | null, length = 160) => {
-  if (!input) return ''
-  if (input.length <= length) return input
-  return `${input.slice(0, length)}...`
-}
-
-const countAchievements = (achievements?: any[] | null) => achievements?.length ?? 0
-
-const pickInterests = (interests?: string[] | null, limit = 3) =>
-  interests && interests.length > 0 ? interests.slice(0, limit) : []
-
 type AwardeesPageProps = {
   initialPeople: Awardee[]
   initialSearchParams?: {
     page?: string
     search?: string
     year?: string
+    country?: string
   }
 }
-
-const fallbackAvatar = (name: string) => (
-  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-orange-500/10">
-    <AvatarSVG name={name} size={40} />
-  </div>
-)
 
 const parseYearParam = (year?: string | null): number | 'all' => {
   if (year === 'all') return 'all'
@@ -64,10 +41,17 @@ const parseYearParam = (year?: string | null): number | 'all' => {
 
 export default function AwardeesPageClient({ initialPeople, initialSearchParams }: AwardeesPageProps) {
   const [people, setPeople] = useState<Awardee[]>(() =>
-    [...initialPeople].sort((a, b) => a.name.localeCompare(b.name)),
+    [...initialPeople],
   )
   const [searchTerm, setSearchTerm] = useState(initialSearchParams?.search ?? '')
-  const [selectedYear, setSelectedYear] = useState<number | 'all'>(() => parseYearParam(initialSearchParams?.year))
+
+  const [failedPhotos, setFailedPhotos] = useState<Set<string>>(() => new Set())
+
+  // Randomize only after hydration so server and client markup agree.
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setPeople(previous => shufflePeople(previous)))
+    return () => cancelAnimationFrame(frame)
+  }, [])
 
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -76,15 +60,12 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
   const currentPageFromUrl = Number(searchParams.get('page')) || 1
 
   const searchValue = searchParams.get('search') || ''
-  const yearValue = searchParams.get('year')
+  const selectedYear = parseYearParam(searchParams.get('year'))
+  const selectedCountry = countryKey(searchParams.get('country'))
 
   useEffect(() => {
     setSearchTerm(searchValue)
   }, [searchValue])
-
-  useEffect(() => {
-    setSelectedYear(parseYearParam(yearValue))
-  }, [yearValue])
 
   const updatePage = useCallback(
     (newPage: number) => {
@@ -106,9 +87,9 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
 
   const updateYear = useCallback(
     (year: number | 'all') => {
-      setSelectedYear(year)
       const params = createQueryParams()
       params.delete('page')
+      params.delete('country')
 
       if (year === 'all') {
         params.set('year', 'all')
@@ -122,32 +103,44 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
     [createQueryParams, pathname, router],
   )
 
-  useEffect(() => {
+  const updateSearch = (value: string) => {
+    setSearchTerm(value)
     const params = createQueryParams()
-    if (searchTerm) {
-      params.set('search', searchTerm)
-      params.delete('page')
-    } else {
-      params.delete('search')
-    }
-    const query = params.toString()
-    const target = query ? `${pathname}?${query}` : pathname
-    const current = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`
-    if (target !== current) {
-      router.replace(target, { scroll: false })
-    }
-  }, [createQueryParams, pathname, router, searchParams, searchTerm])
+    params.delete('page')
+    if (value) params.set('search', value)
+    else params.delete('search')
+    router.replace(`${pathname}${params.size ? `?${params}` : ''}`, { scroll: false })
+  }
+
+  const cohortPeople = useMemo(() => selectedYear === 'all'
+    ? people
+    : people.filter(person => Number(person.year) === selectedYear), [people, selectedYear])
+  const summary = useMemo(() => getDiscoverySummary(cohortPeople), [cohortPeople])
+  const highlights = useMemo(() => cohortPeople.filter(person => hasProfilePhoto(person) && !failedPhotos.has(person.slug)).slice(0, 3), [cohortPeople, failedPhotos])
+
+  const updateCountry = (country: string) => {
+    const params = createQueryParams()
+    params.delete('page')
+    if (country) params.set('country', country)
+    else params.delete('country')
+    router.replace(`${pathname}${params.size ? `?${params}` : ''}`, { scroll: false })
+  }
+  const shuffleDirectory = () => {
+    setPeople(previous => shufflePeople(previous))
+    updatePage(1)
+  }
+  const resetFilters = () => {
+    setSearchTerm('')
+    const params = createQueryParams()
+    params.delete('search')
+    params.delete('country')
+    params.delete('page')
+    router.replace(`${pathname}${params.size ? `?${params}` : ''}`, { scroll: false })
+  }
 
   const filteredPeople = useMemo(() => {
-    let result = people
-
-    // Filter by year
-    if (selectedYear !== 'all') {
-      result = result.filter(a => {
-        if (!a.year) return false;
-        return Number(a.year) === Number(selectedYear);
-      })
-    }
+    let result = cohortPeople
+    if (selectedCountry) result = result.filter(person => countryKey(person.country) === selectedCountry)
 
     if (!searchTerm) return result
 
@@ -169,11 +162,11 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
         .toLowerCase()
       return haystack.includes(term)
     })
-  }, [people, searchTerm, selectedYear])
+  }, [cohortPeople, searchTerm, selectedCountry])
 
   const totalItems = filteredPeople.length
   const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage))
-  const currentPage = Math.min(currentPageFromUrl, totalPages)
+  const currentPage = Math.max(1, Math.min(Math.floor(currentPageFromUrl), totalPages))
   const startIndex = (currentPage - 1) * itemsPerPage
   const currentPeople = filteredPeople.slice(startIndex, startIndex + itemsPerPage)
 
@@ -196,7 +189,9 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
         return clone
       }
 
-      return [...prev, entry].sort((a, b) => a.name.localeCompare(b.name))
+      const clone = [...prev]
+      clone.splice(Math.floor(Math.random() * (clone.length + 1)), 0, entry)
+      return clone
     })
   }, [])
 
@@ -283,192 +278,82 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
   }, [fetchLatestEntry, removeAwardeeBySlug, upsertAwardee, hasLiveSupabaseKey])
 
   return (
-    <div className="min-h-screen bg-black py-12">
-      <div className="container mx-auto px-4">
-        <header className="mb-12 text-center">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white to-orange-300">
-            {selectedYear === 'all' ? 'All Africa Future Leaders' : `Top 100 Africa Future Leaders ${selectedYear}`}
-          </h1>
-          <p className="text-xl sm:text-2xl text-zinc-400 max-w-3xl mx-auto text-balance">
-            Discover Africa&apos;s emerging leaders, innovators, and community builders.
-          </p>
-        </header>
+    <div className="leaders-discovery">
+      <div className="leaders-container">
+        <section className="discovery-bento" aria-label="Discover Africa Future Leaders">
+          <header className="discovery-intro">
+            <span className="discovery-eyebrow"><span /> THE AFRICA FUTURE LEADERS DIRECTORY</span>
+            <h1>A continent of talent.<br /><span>A future full of possibility.</span></h1>
+            <p>Meet the emerging leaders, innovators, and community builders shaping Africa&apos;s next chapter.</p>
+            <div className="intro-actions">
+              <a href="#leader-directory" className="discovery-primary">Explore the leaders <ArrowUpRight size={19} /></a>
+              <span className="intro-cohort">{selectedYear === 'all' ? 'Every cohort. One community.' : `The ${selectedYear} cohort`}</span>
+            </div>
+          </header>
 
-        <div className="mx-auto mb-8 w-full max-w-5xl px-1 sm:px-0">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center">
-            <div className="relative flex-1">
-              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 transition-colors duration-200" />
-              <label htmlFor="awardee-search" className="sr-only">
-                Search awardees by name, country, or field
-              </label>
-              <input
-                id="awardee-search"
-                type="text"
-                placeholder="Search by name, country, field..."
-                className="h-12 w-full rounded-full border border-zinc-200 bg-white pl-11 pr-16 text-[0.95rem] text-zinc-900 shadow-none transition placeholder:text-zinc-400 focus:border-orange-300 focus:outline-none focus:ring-0"
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-              />
-              <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label={`Filter by cohort${selectedYear !== 'all' ? ` (${selectedYear})` : ''}`}
-                      className={cn(
-                        "h-8 w-8 rounded-full border border-zinc-200 bg-zinc-50 text-zinc-500 shadow-none transition-colors",
-                        selectedYear !== 'all'
-                          ? "border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-100"
-                          : "hover:bg-zinc-100 hover:text-zinc-700",
-                      )}
-                    >
-                      <Filter className="h-3.5 w-3.5" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-52 rounded-2xl border-zinc-200 bg-white p-2 text-zinc-700 shadow-none">
-                    <div className="px-2 py-1.5 text-[10px] font-black uppercase tracking-[0.28em] text-zinc-400 mb-1">
-                      Select Cohort
-                    </div>
-                    <DropdownMenuItem
-                      onClick={() => updateYear('all')}
-                      className={cn("rounded-xl cursor-pointer", selectedYear === 'all' && "bg-orange-50 text-orange-700 font-semibold")}
-                    >
-                      View All Years
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => updateYear(2026)}
-                      className={cn("rounded-xl cursor-pointer", selectedYear === 2026 && "bg-orange-50 text-orange-700 font-semibold")}
-                    >
-                      2026 Cohort
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => updateYear(2025)}
-                      className={cn("rounded-xl cursor-pointer", selectedYear === 2025 && "bg-orange-50 text-orange-700 font-semibold")}
-                    >
-                      2025 Cohort
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => updateYear(2024)}
-                      className={cn("rounded-xl cursor-pointer", selectedYear === 2024 && "bg-orange-50 text-orange-700 font-semibold")}
-                    >
-                      2024 Cohort
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+          {highlights.length > 0 && (
+            <div className="discovery-spotlight">
+              <div className="spotlight-heading"><span>IN THE SPOTLIGHT</span><button onClick={shuffleDirectory} aria-label="Discover different featured leaders"><Shuffle size={18} /></button></div>
+              <div className="spotlight-portraits">
+                {highlights.map((person, index) => (
+                  <Link href={`/awardees/${person.slug}`} key={person.slug} className={cn('spotlight-person', index === 0 && 'spotlight-person-main')}>
+                    <Image src={person.avatar_url!.trim()} alt={person.name} fill loading="eager" sizes="(max-width: 767px) 55vw, 320px" className="spotlight-image" onError={() => setFailedPhotos(previous => new Set([...previous, person.slug]))} />
+                    <div className="spotlight-caption"><span>{person.country?.trim() || 'Africa Future Leader'}</span><h2>{person.name}</h2><ArrowUpRight size={20} /></div>
+                  </Link>
+                ))}
               </div>
+              <p>New faces. Shared ambition. Discover someone inspiring.</p>
             </div>
-            <div className="flex shrink-0 justify-center text-center text-[10px] font-bold uppercase tracking-[0.32em] text-zinc-500 md:min-w-36 md:justify-end md:text-right">
-              Showing {currentPeople.length} Leaders
+          )}
+
+          <div className="discovery-stats" aria-label="Selected cohort statistics">
+            <div><strong>{summary.leaders.toLocaleString()}</strong><span>Leaders in {selectedYear === 'all' ? 'the directory' : selectedYear}</span></div>
+            <div><strong>{summary.countries.length.toLocaleString()}</strong><span>Countries represented</span></div>
+            <div><strong>{summary.cohorts.toLocaleString()}</strong><span>{summary.cohorts === 1 ? 'Cohort' : 'Cohorts'} to discover</span></div>
+          </div>
+          <div className="discovery-countries">
+            <div className="countries-heading"><Globe2 size={21} /><h2>Across borders. Beyond expectations.</h2></div>
+            <div className="country-chips">
+              {summary.countries.slice(0, 5).map(country => <button key={country.key} onClick={() => { updateCountry(country.key); document.getElementById('leader-directory')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }} className={cn(selectedCountry === country.key && 'is-selected')}>{country.name}<span>{country.count}</span></button>)}
+              {summary.countries.length === 0 && <p>Country details will appear as profiles are completed.</p>}
+              {summary.countries.length > 5 && <a href="#leader-directory">+{summary.countries.length - 5} more <ArrowRight size={14} /></a>}
             </div>
           </div>
-        </div>
+        </section>
 
-        {filteredPeople.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-zinc-700 bg-black/40 p-12 text-center text-zinc-400">
-            No awardees match your search yet. Try a different phrase.
+        <section id="leader-directory" className="leader-directory" aria-labelledby="directory-heading">
+          <div className="directory-title-row">
+            <div><span className="discovery-eyebrow">PEOPLE MAKING A DIFFERENCE</span><h2 id="directory-heading">Meet the future leaders<span>.</span></h2></div>
+            <button className="shuffle-button" onClick={shuffleDirectory}><Shuffle size={17} /> Shuffle leaders</button>
           </div>
-        ) : (
-          <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3">
-            {currentPeople.map((person) => {
-              const displayTagline =
-                person.tagline && person.tagline.trim().length > 0
-                  ? person.tagline
-                  : person.headline && person.headline.trim().length > 0
-                    ? person.headline
-                    : person.field_of_study || person.course || ''
+          <div className="directory-toolbar">
+            <div className="directory-search"><Search size={20} /><label htmlFor="awardee-search" className="sr-only">Search leaders by name, country, or field</label><input id="awardee-search" type="search" placeholder="Find a name, country, or field…" value={searchTerm} onChange={event => updateSearch(event.target.value)} /></div>
+            <div className="directory-select"><label htmlFor="cohort-filter">Cohort</label><select id="cohort-filter" value={selectedYear} onChange={event => updateYear(event.target.value === 'all' ? 'all' : Number(event.target.value))}><option value="all">All years</option><option value="2026">2026</option><option value="2025">2025</option><option value="2024">2024</option></select></div>
+            <div className="directory-select"><label htmlFor="country-filter">Country</label><select id="country-filter" value={selectedCountry} onChange={event => updateCountry(event.target.value)}><option value="">All countries</option>{summary.countries.map(country => <option value={country.key} key={country.key}>{country.name} ({country.count})</option>)}</select></div>
+          </div>
+          <div className="directory-results"><p role="status">{totalItems > 0 ? `${startIndex + 1}–${Math.min(startIndex + itemsPerPage, totalItems)} of ${totalItems} leaders` : '0 leaders'}<span> · A fresh mix of perspectives</span></p>{(searchTerm || selectedCountry) && <button onClick={resetFilters}>Clear filters</button>}</div>
 
-              return (
-                <Link key={person.slug} href={`/awardees/${person.slug}`} className="group block">
-                  <div className="bg-white rounded-xl border border-zinc-200 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col h-full active:scale-95">
-                    {/* Image container */}
-                    <div className="w-full aspect-square overflow-hidden bg-zinc-50 relative">
-                      {(person.cover_image_url || person.avatar_url) ? (
-                        <Image
-                          src={person.cover_image_url || person.avatar_url || ''}
-                          alt={person.name}
-                          fill
-                          // Cards top out near 200px wide even on desktop, so
-                          // without this the optimizer would hand back a
-                          // viewport-width render of a 5MB portrait.
-                          sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 200px"
-                          className="object-cover transition-transform duration-500 group-hover:scale-110"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-orange-50 to-zinc-100 flex items-center justify-center">
-                          <AvatarSVG name={person.name} size={24} />
-                        </div>
-                      )}
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300" />
+          {filteredPeople.length === 0 ? (
+            <div className="directory-empty"><Search size={28} /><h3>No leaders found</h3><p>Try another name, country, field, or cohort.</p>{(searchTerm || selectedCountry) && <button onClick={resetFilters}>Clear filters <ArrowRight size={16} /></button>}</div>
+          ) : (
+            <div className="leaders-grid">
+              {currentPeople.map(person => {
+                const tagline = person.tagline?.trim() || person.headline?.trim() || person.field_of_study || person.course
+                const photo = hasProfilePhoto(person) && !failedPhotos.has(person.slug)
+                return (
+                  <Link key={person.slug} href={`/awardees/${person.slug}`} className={cn('leader-card', !photo && 'leader-card-no-photo')}>
+                    <div className="leader-card-portrait">
+                      {photo ? <Image src={person.avatar_url!.trim()} alt={person.name} fill sizes="(max-width: 639px) 45vw, (max-width: 1023px) 30vw, 280px" className="leader-photo" onError={() => setFailedPhotos(previous => new Set([...previous, person.slug]))} /> : <div className="leader-initials"><AvatarSVG name={person.name} size={72} /></div>}
+                      <span className="leader-year">{person.year || 'AFL'}</span>
                     </div>
-
-                    {/* Content area */}
-                    <div className="p-2 sm:p-3 flex flex-col flex-grow">
-                      <div className="flex-grow space-y-1">
-                        <h3 className="text-[0.7rem] sm:text-xs font-bold text-zinc-900 group-hover:text-orange-600 transition-colors line-clamp-1 leading-tight">
-                          {person.name}
-                        </h3>
-
-                        {displayTagline && (
-                          <p className="text-[0.55rem] sm:text-[0.65rem] text-zinc-500 line-clamp-1 font-medium">
-                            {displayTagline}
-                          </p>
-                        )}
-
-                        {person.cgpa && (
-                          <div className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-orange-50 text-orange-700 text-[0.5rem] sm:text-[0.6rem] font-bold">
-                            {person.cgpa}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="mt-1.5 pt-1.5 border-t border-zinc-100 flex items-center justify-between">
-                        {person.country && (
-                          <div className="flex items-center gap-0.5 text-[0.5rem] sm:text-[0.6rem] text-zinc-400 font-bold">
-                            <MapPin className="h-2 w-2" />
-                            <span>{person.country}</span>
-                          </div>
-                        )}
-                        <ArrowRight className="h-2 w-2 text-zinc-300 group-hover:text-orange-500 group-hover:translate-x-0.5 transition-all" />
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              )
-            })}
-          </div>
-        )}
-
-        {totalPages > 1 && (
-          <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-6 py-8 border-t border-zinc-900">
-            <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest order-2 sm:order-1">
-              Page {currentPage} of {totalPages}
+                    <div className="leader-card-content"><h3>{person.name}</h3>{tagline && <p className="leader-tagline">{tagline}</p>}<div className="leader-card-footer"><span><MapPin size={13} />{summary.countries.find(country => country.key === countryKey(person.country))?.name || 'Africa Future Leader'}</span><ArrowUpRight size={18} /></div></div>
+                  </Link>
+                )
+              })}
             </div>
-
-            <div className="flex items-center gap-3 order-1 sm:order-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => updatePage(currentPage - 1)}
-                disabled={currentPage <= 1}
-                className="h-10 px-6 rounded-xl border-zinc-800 bg-zinc-900/50 text-white hover:bg-zinc-800 hover:border-zinc-700 disabled:opacity-30 disabled:hover:bg-zinc-900/50 transition-all font-bold"
-              >
-                Previous
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => updatePage(currentPage + 1)}
-                disabled={currentPage >= totalPages}
-                className="h-10 px-6 rounded-xl border-zinc-800 bg-zinc-900/50 text-white hover:bg-zinc-800 hover:border-zinc-700 disabled:opacity-30 disabled:hover:bg-zinc-900/50 transition-all font-bold"
-              >
-                Next
-              </Button>
-            </div>
-
-            <div className="hidden sm:block w-32 order-3" />
-          </div>
-        )}
+          )}
+          {totalPages > 1 && <nav className="directory-pagination" aria-label="Directory pagination"><p>Page {currentPage} of {totalPages}</p><div><button onClick={() => updatePage(currentPage - 1)} disabled={currentPage <= 1}>Previous</button><button onClick={() => updatePage(currentPage + 1)} disabled={currentPage >= totalPages}>Next <ArrowRight size={16} /></button></div></nav>}
+        </section>
       </div>
     </div>
   )

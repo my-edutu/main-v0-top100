@@ -18,6 +18,7 @@ type AwardeesPageProps = {
     page?: string;
     search?: string;
     year?: string;
+    country?: string;
   }>;
 };
 

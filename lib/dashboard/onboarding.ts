@@ -38,9 +38,9 @@ export const onboardingFields = [
   {
     key: 'bio',
     title: 'Tell your story.',
-    hint: 'Introduce your work, what matters to you, and the impact you hope to make.',
+    hint: 'A short introduction helps people learn about your work. Your Bio is optional and can be added or updated later.',
     placeholder: 'Start with what you are working on…',
-    min: 30,
+    min: 0,
     max: 2000,
   },
 ] as const
@@ -71,6 +71,12 @@ export function validateOnboarding(
         return `${field.title} Please add no more than ${MAX_INTERESTS} interests.`
       if (interests.some(interest => interest.length > 28))
         return `${field.title} Keep each interest to 28 characters.`
+    }
+    if (field.key === 'bio') {
+      if (!value) continue
+      if (value.length > field.max)
+        return `${field.title} Please keep your Bio to ${field.max} characters or fewer.`
+      continue
     }
     if (value.length < field.min || value.length > field.max)
       return `${field.title} Please use ${field.min}–${field.max} characters.`

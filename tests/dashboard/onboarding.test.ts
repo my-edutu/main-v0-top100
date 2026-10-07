@@ -29,13 +29,20 @@ describe('mandatory onboarding', () => {
     expect(replaced).toEqual([completedMember])
     expect(destinations).toEqual(['/dashboard'])
   })
-  it('rejects missing, whitespace-only, short and oversized fields before completion', () => {
+  it('rejects missing, whitespace-only and oversized required fields before completion', () => {
     expect(validateOnboarding(profile)).toBeNull()
     for (const key of ['headline', 'location', 'field']) expect(validateOnboarding({ ...profile, [key]: ' ' })).not.toBeNull()
     expect(validateOnboarding({ ...profile, field: 'Education, Climate Action' })).toBeNull()
     expect(validateOnboarding({ ...profile, field: Array.from({ length: 11 }, (_, index) => `Interest ${index}`).join(', ') })).toContain('no more than 10')
-    expect(validateOnboarding({ ...profile, bio: '' })).toBeNull()
-    expect(validateOnboarding({ ...profile, bio: 'Too short' })).not.toBeNull()
     expect(validateOnboarding({ ...profile, headline: 'a'.repeat(161) })).not.toBeNull()
+  })
+  it('allows a short or empty Bio so it cannot block dashboard setup', () => {
+    expect(validateOnboarding({ ...profile, bio: '' })).toBeNull()
+    expect(validateOnboarding({ ...profile, bio: 'Too short' })).toBeNull()
+  })
+  it('keeps a clear maximum for Bio without suggesting a minimum', () => {
+    expect(validateOnboarding({ ...profile, bio: 'a'.repeat(2001) })).toContain(
+      '2000 characters or fewer',
+    )
   })
 })

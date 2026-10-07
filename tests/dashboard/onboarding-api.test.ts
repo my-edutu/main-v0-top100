@@ -111,6 +111,13 @@ it('allows the story to be skipped at completion', async () => {
   expect(state.update.bio).toBe('')
   expect(state.prefs).toHaveProperty('onboardingCompletedAt')
 })
+it('allows a short optional Bio when completing setup', async () => {
+  const response = await POST(request({ ...fields, bio: 'A short intro.', complete: true }))
+
+  expect(response.status).toBe(200)
+  expect(state.update.bio).toBe('A short intro.')
+  expect(state.prefs).toHaveProperty('onboardingCompletedAt')
+})
 it('cannot be reused to evade the BIO limit after completion', async () => {
   state.prefs = { onboardingCompletedAt: '2026-09-06T00:00:00Z' }
   expect((await POST(request({ ...fields, complete: true }))).status).toBe(409)

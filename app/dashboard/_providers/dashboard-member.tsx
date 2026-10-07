@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from 'react'
 import { LoaderCircle, RotateCcw } from 'lucide-react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 
 import { Button } from '@/components/ui/button'
 import { finishDashboardOnboarding } from '@/lib/dashboard/onboarding'
@@ -32,6 +32,7 @@ const DashboardMemberContext = createContext<DashboardMemberContextValue | null>
 
 export function DashboardMemberProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname()
+  const router = useRouter()
   const [member, setMember] = useState<MemberProfile | null>(null)
   const [notifications, setNotifications] = useState<MemberNotification[]>([])
   const [loadedAt, setLoadedAt] = useState(0)
@@ -45,9 +46,9 @@ export function DashboardMemberProvider({ children }: { children: ReactNode }) {
   }, [])
   const completeOnboarding = useCallback((nextMember: MemberProfile) => {
     finishDashboardOnboarding(nextMember, replaceMember, destination => {
-      window.location.replace(destination)
+      router.replace(destination)
     })
-  }, [replaceMember])
+  }, [replaceMember, router])
 
   const refreshMember = useCallback(async () => {
     setLoading(true)
