@@ -84,6 +84,8 @@ const stepCopy: Record<Exclude<ProfileEditStep, 'photo' | 'visibility'>, { title
 
 export function ProfileSection() {
   const { member, refreshMember, replaceMember } = useDashboardMember()
+  const pages = ['Photo', 'Headline', 'Field', 'Location', 'Organization', 'BIO', 'Social media', 'Visibility', 'Consent', 'Preview']
+  const [page, setPage] = useState(0)
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState<ProfileDraft>(() => draftFromMember(member))
   const [photoFile, setPhotoFile] = useState<File | null>(null)
@@ -103,6 +105,7 @@ export function ProfileSection() {
     setPhotoFile(null)
     setError('')
     setWarning('')
+    setPage(0)
     setEditing(true)
   }
 
@@ -175,23 +178,23 @@ export function ProfileSection() {
 
 
   return (
-    <section className="hub-profile-editor mx-auto w-full max-w-5xl space-y-5" aria-label="Update your profile">
-      <div><h2 className="text-xl font-semibold">Update your profile</h2><p className="mt-1 text-sm text-neutral-600">Edit your details and preview them before saving.</p></div>
-      <div className="grid min-w-0 gap-6 lg:grid-cols-2">
+    <section className="hub-profile-editor mx-auto w-full max-w-2xl space-y-6" aria-label="Update your profile">
+      <div className="space-y-4"><div className="flex items-center justify-between text-sm text-neutral-500"><span>Step {page + 1} of {pages.length}</span><span>{Math.round((page + 1) / pages.length * 100)}%</span></div><progress aria-label="Profile setup progress" className="h-1.5 w-full accent-orange-600" value={page + 1} max={pages.length} /><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-semibold">Update your profile</h2><label className="text-sm text-neutral-600">Edit section<select aria-label="Edit profile section" disabled={saving} value={page} onChange={event => { setPage(Number(event.target.value)); setError('') }} className="ml-2 min-h-11 rounded-lg border bg-white px-3">{pages.map((title, index) => <option key={title} value={index}>{title}</option>)}</select></label></div><p className="text-sm text-neutral-600">Your changes stay here as you move between steps. Save when you’re ready.</p></div>
+      <div className="min-w-0 rounded-xl border border-neutral-200 bg-white p-5 sm:p-7">
         <div className="min-w-0 space-y-5">
           <fieldset disabled={saving} className="space-y-5">
-            <div className="space-y-2"><Label htmlFor="profile-photo">Profile photo</Label><MemberAvatar src={photoFile && photoPreview ? photoPreview : member.avatarUrl} initials={member.avatarInitials} size={64} /><Input ref={photoInputRef} id="profile-photo" type="file" accept="image/jpeg,image/png,image/webp" onChange={event => selectPhoto(event.target.files?.[0])} /><p className="text-xs text-neutral-500">JPG, PNG or WebP, up to 5 MB.</p></div>
-            <ProfileEditorFields draft={draft} onChange={updateDraft} />
-            <section className="space-y-3"><h3 className="text-lg font-semibold">Social media</h3><p className="text-sm text-neutral-600">Add up to three links. Use complete https:// URLs.</p>
+            <div hidden={page !== 0} className="space-y-2"><h3 className="mb-4 text-lg font-semibold">Choose your profile photo</h3><Label htmlFor="profile-photo">Profile photo</Label><MemberAvatar src={photoFile && photoPreview ? photoPreview : member.avatarUrl} initials={member.avatarInitials} size={64} /><Input ref={photoInputRef} id="profile-photo" type="file" accept="image/jpeg,image/png,image/webp" onChange={event => selectPhoto(event.target.files?.[0])} /><p className="text-xs text-neutral-500">JPG, PNG or WebP, up to 5 MB.</p></div>
+            {page >= 1 && page <= 5 ? <ProfileQuestion step={(['headline', 'field', 'location', 'organization', 'bio'] as const)[page - 1]} value={draft[(['headline', 'field', 'location', 'organization', 'bio'] as const)[page - 1]]} onChange={value => updateDraft((['headline', 'field', 'location', 'organization', 'bio'] as const)[page - 1], value)} /> : null}
+            <section hidden={page !== 6} className="space-y-3"><h3 className="text-lg font-semibold">Social media</h3><p className="text-sm text-neutral-600">Add up to three links. Use complete https:// URLs.</p>
               {(draft.socialLinks ?? []).map((link, index) => <div key={index} className="space-y-2 rounded-lg border p-3"><label className="block text-sm">Platform<select aria-label={`Social platform ${index + 1}`} className="mt-1 min-h-11 w-full rounded border bg-white p-2" value={link.platform} onChange={event => updateDraft('socialLinks', draft.socialLinks!.map((item, i) => i === index ? { ...item, platform: event.target.value as SocialLink['platform'] } : item))}>{SOCIAL_PLATFORMS.map(platform => <option key={platform} value={platform}>{platform === 'twitter' ? 'X / Twitter' : platform}</option>)}</select></label><Input aria-label={`Social URL ${index + 1}`} type="url" maxLength={500} placeholder="https://" value={link.url} onChange={event => updateDraft('socialLinks', draft.socialLinks!.map((item, i) => i === index ? { ...item, url: event.target.value } : item))} /><button type="button" className="min-h-11 text-sm text-orange-800" onClick={() => updateDraft('socialLinks', draft.socialLinks!.filter((_, i) => i !== index))}>Remove link</button></div>)}
               {(draft.socialLinks ?? []).length < 3 ? <Button type="button" variant="outline" onClick={() => updateDraft('socialLinks', [...(draft.socialLinks ?? []), { platform: SOCIAL_PLATFORMS.find(p => !draft.socialLinks?.some(l => l.platform === p)) ?? 'website', url: '' }])}>Add social link</Button> : null}
             </section>
-            <section className="space-y-3"><h3 className="text-lg font-semibold">Your consent</h3><p className="text-sm text-neutral-600">These choices are optional. You can withdraw consent here at any time.</p><label className="flex min-h-11 items-start gap-3 text-sm"><input type="checkbox" checked={draft.socialLinksConsent ?? false} onChange={event => updateDraft('socialLinksConsent', event.target.checked)} />I agree to display my social links on my public profile.</label><label className="flex min-h-11 items-start gap-3 text-sm"><input type="checkbox" checked={draft.contactEmailConsent ?? false} onChange={event => updateDraft('contactEmailConsent', event.target.checked)} />I agree to display a public email button so visitors can contact me.</label></section>
-            <VisibilityOption label="Recruiters can find my profile" checked={draft.recruiterVisible} onChange={checked => updateDraft('recruiterVisible', checked)} />
-            <VisibilityOption label="Show my email on my public profile" checked={draft.emailVisible} onChange={checked => updateDraft('emailVisible', checked)} />
+            <section hidden={page !== 8} className="space-y-3"><h3 className="text-lg font-semibold">Your consent</h3><p className="text-sm text-neutral-600">These choices are optional. You can withdraw consent here at any time.</p><label className="flex min-h-11 items-start gap-3 text-sm"><input type="checkbox" checked={draft.socialLinksConsent ?? false} onChange={event => updateDraft('socialLinksConsent', event.target.checked)} />I agree to display my social links on my public profile.</label><label className="flex min-h-11 items-start gap-3 text-sm"><input type="checkbox" checked={draft.contactEmailConsent ?? false} onChange={event => updateDraft('contactEmailConsent', event.target.checked)} />I agree to display a public email button so visitors can contact me.</label></section>
+            <div hidden={page !== 7}><h3 className="text-lg font-semibold">Profile visibility</h3><VisibilityOption label="Recruiters can find my profile" checked={draft.recruiterVisible} onChange={checked => updateDraft('recruiterVisible', checked)} />
+            <VisibilityOption label="Show my email on my public profile" checked={draft.emailVisible} onChange={checked => updateDraft('emailVisible', checked)} /></div>
           </fieldset>
         </div>
-        <aside className="min-w-0 self-start rounded-xl border border-neutral-200 bg-white p-5 lg:sticky lg:top-24" aria-label="Live profile preview">
+        <aside hidden={page !== 9} className="min-w-0 self-start rounded-xl border border-neutral-200 bg-white p-5 " aria-label="Live profile preview">
           <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">Live preview · not saved yet</p>
           <div className="mt-4"><MemberAvatar src={photoFile && photoPreview ? photoPreview : member.avatarUrl} initials={member.avatarInitials} size={64} /></div>
           <h3 className="mt-4 text-xl font-semibold">{member.name}</h3>
@@ -203,7 +206,8 @@ export function ProfileSection() {
       </div>
       {error ? <p role="alert" className="text-sm text-red-800">{error}</p> : null}
       {warning ? <p role="status" className="text-sm text-amber-800">{warning}</p> : null}
-      <div className="flex flex-wrap gap-3"><Button type="button" disabled={saving} onClick={() => void saveProfile()} className="min-h-11 bg-orange-600 text-white hover:bg-orange-700">{saving ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}{saving ? 'Saving profile…' : 'Save profile'}</Button><Button type="button" variant="outline" disabled={saving} onClick={() => setEditing(false)}><ArrowLeft className="mr-2 size-4" />Cancel update</Button></div>
+      <div className="flex items-center justify-between gap-3"><Button type="button" variant="outline" disabled={saving || page === 0} onClick={() => { setPage(current => current - 1); setError('') }}>Back</Button>{page < pages.length - 1 ? <Button type="button" disabled={saving} className="min-h-11 bg-orange-600 text-white hover:bg-orange-700" onClick={() => { const problem = page === 6 ? validateSocialLinks(draft.socialLinks ?? []) : null; if (problem) { setError(problem); return }; setError(''); setPage(current => current + 1) }}>Next step →</Button> : null}</div>
+      <div className="flex flex-wrap gap-3 border-t border-neutral-200 pt-4"><Button type="button" disabled={saving} onClick={() => void saveProfile()} className="min-h-11 bg-orange-600 text-white hover:bg-orange-700">{saving ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}{saving ? 'Saving profile…' : 'Save profile'}</Button><Button type="button" variant="outline" disabled={saving} onClick={() => setEditing(false)}><ArrowLeft className="mr-2 size-4" />Cancel update</Button></div>
     </section>
   )
 }
