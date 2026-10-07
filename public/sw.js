@@ -75,8 +75,12 @@ self.addEventListener('push', (event) => {
         }
     }
 
+    const raw = (() => { try { return event.data?.json() } catch { return null } })();
+    const count = raw?.unreadCount;
+    const badgeUpdate = Number.isInteger(count) && count >= 0 && self.navigator.setAppBadge
+      ? (count ? self.navigator.setAppBadge(count) : self.navigator.clearAppBadge()) : Promise.resolve();
     event.waitUntil(
-        self.registration.showNotification(notificationData.title, {
+        Promise.all([badgeUpdate.catch(() => {}), self.registration.showNotification(notificationData.title, {
             body: notificationData.body,
             icon: notificationData.icon,
             badge: notificationData.badge,
@@ -93,7 +97,7 @@ self.addEventListener('push', (event) => {
                     title: 'Dismiss',
                 },
             ],
-        })
+        })])
     );
 });
 
@@ -106,7 +110,11 @@ self.addEventListener('notificationclick', (event) => {
         return;
     }
 
-    const urlToOpen = event.notification.data?.url || '/';
+    let urlToOpen = '/dashboard/notifications';
+    try {
+      const candidate = new URL(event.notification.data?.url || urlToOpen, self.location.origin);
+      if (candidate.origin === self.location.origin) urlToOpen = candidate.href;
+    } catch {}
 
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {

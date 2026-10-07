@@ -1,3 +1,4 @@
+import { DeviceNotificationSettings } from '@/components/DeviceNotificationSettings'
 'use client'
 
 import { RouteSection } from '../../../_components/route-section'
@@ -6,7 +7,7 @@ import { NotificationSettingsSection } from '../../../_sections/settings-section
 export default function NotificationSettingsPage() {
   return (
     <RouteSection eyebrow="Settings" title="Notifications" description="Pick the member-hub updates that deserve your attention.">
-      <NotificationSettingsSection />
+      <div className="space-y-6"><DeviceNotificationSettings /><NotificationSettingsSection /></div>
     </RouteSection>
   )
 }

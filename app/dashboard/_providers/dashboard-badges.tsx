@@ -62,6 +62,39 @@ export function DashboardBadgeProvider({ children }: { children: ReactNode }) {
     }
   }, [refreshBadges])
 
+  useEffect(() => {
+    const badge = navigator as Navigator & { setAppBadge?: (count: number) => Promise<void>; clearAppBadge?: () => Promise<void> }
+    const pending = unreadUpdates > 0 ? badge.setAppBadge?.(unreadUpdates) : badge.clearAppBadge?.()
+    void pending?.catch(() => {})
+  }, [unreadUpdates])
+
+  useEffect(() => {
+    let stopped = false
+    const controller = new AbortController()
+    const check = async () => {
+      if (document.hidden) return
+      try {
+        const response = await fetch('/api/member/notifications', { cache: 'no-store', signal: controller.signal })
+        if (!response.ok) return
+        const data = await response.json()
+        if (!stopped && Number.isInteger(data.unreadCount) && data.unreadCount >= 0) setUnreadUpdates(data.unreadCount)
+      } catch { /* Preserve the last known count while offline. */ }
+    }
+    const interval = window.setInterval(check, 60000)
+    document.addEventListener('visibilitychange', check)
+    window.addEventListener('online', check)
+    void check()
+    return () => {
+      stopped = true
+      controller.abort()
+      window.clearInterval(interval)
+      document.removeEventListener('visibilitychange', check)
+      window.removeEventListener('online', check)
+      const badge = navigator as Navigator & { clearAppBadge?: () => Promise<void> }
+      void badge.clearAppBadge?.().catch(() => {})
+    }
+  }, [member.id])
+
   const value = useMemo(
     () => ({
       unreadUpdates,

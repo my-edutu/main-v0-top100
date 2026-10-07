@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { Bell, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -17,11 +18,13 @@ const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim() ?? '';
  * Only shows ONCE per user (persisted indefinitely in localStorage).
  */
 export function PushNotificationPrompt() {
+    const pathname = usePathname();
     const [isVisible, setIsVisible] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
 
     useEffect(() => {
+        if (!pathname.startsWith('/dashboard')) return;
         const shouldShow = () => {
             const supportsNotifications = 'Notification' in window;
             const supportsServiceWorker = 'serviceWorker' in navigator;
@@ -46,7 +49,7 @@ export function PushNotificationPrompt() {
         }, 8000);
 
         return () => clearTimeout(timer);
-    }, []);
+    }, [pathname]);
 
     const handleEnable = async () => {
         setIsLoading(true);
@@ -61,7 +64,8 @@ export function PushNotificationPrompt() {
             }
 
             const registration = await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
-            const pushSubscription = await registration.pushManager.subscribe({
+            await navigator.serviceWorker.ready;
+            const pushSubscription = await registration.pushManager.getSubscription() ?? await registration.pushManager.subscribe({
                 userVisibleOnly: true,
                 applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
             });

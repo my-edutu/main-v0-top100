@@ -1,3 +1,6 @@
+import { getCurrentUser } from '@/lib/auth-server';
+import { rejectCrossOriginMutation } from '@/lib/security/same-origin';
+import { isValidSubscription } from '@/lib/push/validation';
 import { NextRequest } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
 import {
@@ -31,24 +34,31 @@ function rateLimitUnavailableResponse() {
 
 // Subscribe to push notifications
 export async function POST(req: NextRequest) {
+    const user = await getCurrentUser();
+    if (!user?.id) return Response.json({ error: 'Sign in to manage notifications.' }, { status: 401 });
+    const originError = rejectCrossOriginMutation(req);
+    if (originError) return originError;
     try {
         const limited = await enforceSubscriptionRateLimit(req, 'create', 5);
         if (limited) return limited;
 
         const { subscription, userAgent } = await req.json();
 
-        if (!subscription || !subscription.endpoint) {
+        if (!isValidSubscription(subscription)) {
             return Response.json({ error: 'Invalid subscription' }, { status: 400 });
         }
 
         const supabase = createAdminClient();
 
+        const { data: owner } = await supabase.from('push_subscriptions').select('user_id').eq('endpoint', subscription.endpoint).maybeSingle();
+        if (owner?.user_id && owner.user_id !== user.id) return Response.json({ error: 'This device subscription belongs to another account. Disable it before switching accounts.' }, { status: 409 });
         const { data, error } = await supabase
             .from('push_subscriptions')
             .upsert({
+                user_id: user.id,
                 endpoint: subscription.endpoint,
                 keys: subscription.keys,
-                user_agent: userAgent || null,
+                user_agent: typeof userAgent === 'string' ? userAgent.slice(0, 500) : null,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
             }, {
@@ -75,6 +85,10 @@ export async function POST(req: NextRequest) {
 
 // Unsubscribe from push notifications
 export async function DELETE(req: NextRequest) {
+    const user = await getCurrentUser();
+    if (!user?.id) return Response.json({ error: 'Sign in to manage notifications.' }, { status: 401 });
+    const originError = rejectCrossOriginMutation(req);
+    if (originError) return originError;
     try {
         const limited = await enforceSubscriptionRateLimit(req, 'delete', 10);
         if (limited) return limited;
@@ -90,7 +104,8 @@ export async function DELETE(req: NextRequest) {
         const { error } = await supabase
             .from('push_subscriptions')
             .delete()
-            .eq('endpoint', endpoint);
+            .eq('endpoint', endpoint)
+            .eq('user_id', user.id);
 
         if (error) {
             console.error('Error deleting subscription:', error);
@@ -110,6 +125,8 @@ export async function DELETE(req: NextRequest) {
 
 // Get subscription status
 export async function GET(req: NextRequest) {
+    const user = await getCurrentUser();
+    if (!user?.id) return Response.json({ error: 'Sign in to manage notifications.' }, { status: 401 });
     try {
         const limited = await enforceSubscriptionRateLimit(req, 'status', 60);
         if (limited) return limited;
@@ -126,6 +143,7 @@ export async function GET(req: NextRequest) {
             .from('push_subscriptions')
             .select('id')
             .eq('endpoint', endpoint)
+            .eq('user_id', user.id)
             .single();
 
         return Response.json({

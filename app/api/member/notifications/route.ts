@@ -44,3 +44,13 @@ export async function PATCH(request: NextRequest) {
 
   return NextResponse.json({ ok: true })
 }
+
+
+export async function GET() {
+  const user = await getCurrentUser()
+  if (!user?.id) return NextResponse.json({ message: 'Authentication required.' }, { status: 401 })
+  const { count, error } = await createAdminClient().from('user_notifications')
+    .select('id', { count: 'exact', head: true }).eq('user_id', user.id).is('read_at', null)
+  if (error) return NextResponse.json({ message: 'Could not load unread count.' }, { status: 503 })
+  return NextResponse.json({ unreadCount: count ?? 0 }, { headers: { 'Cache-Control': 'no-store' } })
+}

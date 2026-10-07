@@ -1,3 +1,4 @@
+import { sendMemberPush } from '@/lib/push/send'
 // app/api/admin/members/[id]/route.ts
 // Admin: approve / reject / suspend a member, or reset their BIO update limit.
 import { NextRequest, NextResponse } from 'next/server'
@@ -96,13 +97,14 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   }
   const notice = statusNotice[action]
   if (notice) {
-    await supabase.from('user_notifications').insert({
+    const { error: noticeError } = await supabase.from('user_notifications').insert({
       user_id: id,
       title: notice.title,
       body: notice.body,
       category: 'account',
       metadata: { audience: 'all', source: 'membership-status' },
     })
+    if (!noticeError) await sendMemberPush(supabase, [id], { ...notice, url: '/dashboard/notifications' }).catch(() => undefined)
   }
 
   if (action === 'approve' && pendingClaim) revalidatePath('/awardees')

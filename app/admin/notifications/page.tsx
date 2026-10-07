@@ -69,7 +69,7 @@ export default function AdminNotificationsPage() {
 
       if (!response.ok) throw new Error(data.error || 'Failed to send notification')
 
-      toast.success(`Notification sent to ${data.sentCount || 0} subscribers!`)
+      toast.success(data.message || 'Notification saved to member inboxes.')
       setHistory((current) => [{
         id: crypto.randomUUID(),
         title,

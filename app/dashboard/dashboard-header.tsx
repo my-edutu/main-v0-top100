@@ -1,3 +1,4 @@
+import { disableDevicePush } from '@/lib/push/device'
 'use client'
 
 import { useState } from 'react'
@@ -26,7 +27,10 @@ export function SignOutControl({ menu = false }: { menu?: boolean }) {
       } catch {
         // The development-only endpoint is absent in production.
       }
-      if (!demoSignedOut) await supabase.auth.signOut()
+      if (!demoSignedOut) {
+        await disableDevicePush().catch(() => undefined)
+        await supabase.auth.signOut()
+      }
       clearAwardReadyWelcome()
     } catch (error) {
       console.error('Failed to sign out:', error)
