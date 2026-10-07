@@ -29,3 +29,27 @@ describe('home screen installation guidance', () => {
     expect(register).not.toHaveBeenCalled()
   })
 })
+
+import { shareTop100, TOP100_SHARE_DATA } from '@/lib/install-prompt'
+
+describe('Top100 share action', () => {
+  it('opens the native share sheet immediately with the public URL', async () => {
+    const share = vi.fn().mockResolvedValue(undefined)
+    const writeText = vi.fn()
+    const result = shareTop100({ share, clipboard: { writeText } } as unknown as Navigator)
+    expect(share).toHaveBeenCalledWith(TOP100_SHARE_DATA)
+    expect(await result).toBe('shared')
+    expect(writeText).not.toHaveBeenCalled()
+  })
+  it('copies the link when native sharing is unavailable', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    expect(await shareTop100({ clipboard: { writeText } } as unknown as Navigator)).toBe('copied')
+    expect(writeText).toHaveBeenCalledWith('https://www.top100afl.com')
+  })
+  it('treats closing the share sheet as cancellation without copying', async () => {
+    const writeText = vi.fn()
+    const share = vi.fn().mockRejectedValue(new DOMException('Cancelled', 'AbortError'))
+    expect(await shareTop100({ share, clipboard: { writeText } } as unknown as Navigator)).toBe('cancelled')
+    expect(writeText).not.toHaveBeenCalled()
+  })
+})

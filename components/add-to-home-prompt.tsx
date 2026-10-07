@@ -2,18 +2,17 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
-import { isInstallPromptRoute, requestNativeInstall, registerInstallServiceWorker } from '@/lib/install-prompt'
+import { isInstallPromptRoute, shareTop100, registerInstallServiceWorker } from '@/lib/install-prompt'
 
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 
-import type { NativeInstallEvent } from '@/lib/install-prompt'
-
-const DISMISSED_KEY = 'top100-install-dismissed-until'
+const DISMISSED_KEY = 'top100-share-dismissed-until'
 
 export function AddToHomePrompt() {
   const pathname = usePathname()
   const [visible, setVisible] = useState(false)
-  const [installEvent, setInstallEvent] = useState<NativeInstallEvent | null>(null)
+  const [supportsShare, setSupportsShare] = useState(false)
+  const [shareStatus, setShareStatus] = useState('')
   const dismissedThisVisit = useRef(false)
   const [busy, setBusy] = useState(false)
   const [blocked, setBlocked] = useState(false)
@@ -26,16 +25,11 @@ export function AddToHomePrompt() {
     const isInstalled = () => standalone.matches || Boolean((navigator as Navigator & { standalone?: boolean }).standalone)
     const initialize = window.setTimeout(() => {
       setInstalled(isInstalled())
+      setSupportsShare(typeof navigator.share === 'function')
       setReady(true)
     }, 0)
-    const onPrompt = (event: Event) => {
-      event.preventDefault()
-      setInstallError('')
-      setInstallEvent(event as NativeInstallEvent)
-    }
-    const onInstalled = () => { setInstalled(true); setVisible(false); setInstallEvent(null) }
+    const onInstalled = () => { setInstalled(true); setVisible(false) }
     const onDisplayChange = () => setInstalled(isInstalled())
-    window.addEventListener('beforeinstallprompt', onPrompt)
     window.addEventListener('appinstalled', onInstalled)
     standalone.addEventListener('change', onDisplayChange)
     // Register independently of notification permission; installation needs no push opt-in.
@@ -44,7 +38,6 @@ export function AddToHomePrompt() {
     })
     return () => {
       window.clearTimeout(initialize)
-      window.removeEventListener('beforeinstallprompt', onPrompt)
       window.removeEventListener('appinstalled', onInstalled)
       standalone.removeEventListener('change', onDisplayChange)
     }
@@ -52,7 +45,7 @@ export function AddToHomePrompt() {
 
   useEffect(() => {
     if (!isInstallPromptRoute(pathname)) return
-    if (!ready || installed || !installEvent || dismissedThisVisit.current) return
+    if (!ready || installed || dismissedThisVisit.current) return
     try { if (Number(localStorage.getItem(DISMISSED_KEY)) > Date.now()) return } catch { /* Storage may be disabled. */ }
     let timer: number | undefined
     const checkAvailability = () => {
@@ -76,7 +69,7 @@ export function AddToHomePrompt() {
       observer.disconnect()
       document.removeEventListener('visibilitychange', checkAvailability)
     }
-  }, [pathname, installed, ready, installEvent])
+  }, [pathname, installed, ready])
 
   function dismiss() {
     dismissedThisVisit.current = true
@@ -84,23 +77,21 @@ export function AddToHomePrompt() {
     try { localStorage.setItem(DISMISSED_KEY, String(Date.now() + 7 * 24 * 60 * 60 * 1000)) } catch { /* Dismiss still works for this visit. */ }
   }
 
-  async function install() {
+  async function share() {
     if (busy) return
-    if (!installEvent) return
     setBusy(true)
+    setInstallError('')
+    setShareStatus('')
     try {
-      const pendingInstall = installEvent
-      setInstallEvent(null)
-      const choice = await requestNativeInstall(pendingInstall)
-      setInstallEvent(null)
-      if (choice.outcome === 'accepted') { dismissedThisVisit.current = true; setVisible(false) }
-      else dismiss()
+      const outcome = await shareTop100(navigator)
+      if (outcome === 'shared') dismiss()
+      if (outcome === 'copied') setShareStatus('Link copied. Paste it wherever you want to share Top100.')
     } catch {
-      setInstallError('Installation could not open. Please try again when your browser offers installation.')
+      setInstallError('Sharing could not open. Please try again.')
     } finally { setBusy(false) }
   }
 
-  if (!visible || installed || !ready || (!installEvent && !busy && !installError) || blocked || !isInstallPromptRoute(pathname)) return null
+  if (!visible || installed || !ready || blocked || !isInstallPromptRoute(pathname)) return null
 
   return (
     <Dialog open onOpenChange={open => { if (!open) dismiss() }}>
@@ -109,11 +100,12 @@ export function AddToHomePrompt() {
         {/* A local install icon needs no image optimizer request. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/icons/top100-africa-192.png" alt="" width={80} height={80} className="rounded-2xl shadow-md" />
-        <div><DialogTitle className="text-2xl font-bold tracking-tight">Add Top100 to your home screen</DialogTitle><DialogDescription className="mt-2 text-sm text-neutral-600">Open Top100 with one tap.</DialogDescription></div>
+        <div><DialogTitle className="text-2xl font-bold tracking-tight">Share Top100</DialogTitle><DialogDescription className="mt-2 text-sm text-neutral-600">Send Top100 to friends and your community.</DialogDescription></div>
       </div>
       {installError ? <p role="alert" className="mt-4 rounded-xl bg-orange-50 p-3 text-sm leading-6">{installError}</p> : null}
+      {shareStatus ? <p role="status" className="mt-4 text-sm text-neutral-600">{shareStatus}</p> : null}
       <div className="mt-3 flex items-center gap-3">
-        <button type="button" disabled={busy || !installEvent} onClick={install} className="min-h-11 flex-1 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-3 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600 disabled:opacity-60">{busy ? 'Opening…' : 'Add to Home Screen'}</button>
+        <button type="button" disabled={busy} onClick={share} className="min-h-11 flex-1 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-3 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600 disabled:opacity-60">{busy ? 'Opening…' : supportsShare ? 'Share' : 'Copy link'}</button>
         <button type="button" onClick={dismiss} className="min-h-11 px-2 text-sm text-neutral-600">Not now</button>
       </div>
     </DialogContent>
