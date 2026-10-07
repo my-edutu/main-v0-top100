@@ -4,6 +4,7 @@ import { dashboardRead } from '@/lib/http/dashboard-read'
 export type AwardPaymentCurrency = 'NGN' | 'USD'
 
 export type AwardPaymentView = {
+  checkoutEnabled?: boolean
   status: 'unpaid' | 'pending' | 'paid' | 'failed' | 'refunded'
   priceOptions: Array<{ currency: AwardPaymentCurrency; amountMinor: number; display: string }>
   currentAttempt: null | {

@@ -19,8 +19,10 @@ export function AwardPaymentCard({
   const [startingCheckout, setStartingCheckout] = useState(false)
   const [checkoutError, setCheckoutError] = useState('')
 
+  const checkoutUnavailable = view.checkoutEnabled === false
+
   async function startCheckout() {
-    if (startingCheckout) return
+    if (startingCheckout || checkoutUnavailable) return
     setStartingCheckout(true)
     setCheckoutError('')
     try {
@@ -80,7 +82,7 @@ export function AwardPaymentCard({
           </div>
         ) : null}
 
-        <fieldset className="grid gap-3 sm:grid-cols-2">
+        <fieldset disabled={checkoutUnavailable || startingCheckout} className="grid gap-3 sm:grid-cols-2">
           <legend className="mb-3 text-sm font-semibold text-[#F8F4F8]">Choose your payment currency</legend>
           {view.priceOptions.map((option) => (
             <label key={option.currency} className={`flex cursor-pointer items-center gap-3 rounded-[15px] border px-4 py-3 transition-colors ${currency === option.currency ? 'border-[#F97316] bg-[#38251F]' : 'border-[#4B434C] bg-[#211C24]'}`}>
@@ -108,12 +110,13 @@ export function AwardPaymentCard({
           <button
             type="button"
             onClick={() => void startCheckout()}
-            disabled={startingCheckout}
-            className="inline-flex min-h-12 shrink-0 items-center justify-center rounded-xl bg-[linear-gradient(110deg,#f97316,#fb923c,#f59e0b)] px-5 font-semibold text-[#171412] shadow-sm transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F36C21] focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-70"
+            disabled={startingCheckout || checkoutUnavailable}
+            className="inline-flex min-h-12 shrink-0 items-center justify-center rounded-xl bg-[linear-gradient(110deg,#f97316,#fb923c,#f59e0b)] px-5 font-semibold text-[#171412] shadow-sm transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F36C21] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
           >
-            {startingCheckout ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />Opening secure checkout</> : <>Proceed <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" /></>}
+            {checkoutUnavailable ? 'Payments are not open yet' : startingCheckout ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />Opening secure checkout</> : <>Proceed <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" /></>}
           </button>
         </div>
+        {checkoutUnavailable ? <p role="status" className="text-sm leading-6 text-[#D0C9D0]">Physical award payments are not open yet. Please return once payment is available. Your recognition remains confirmed.</p> : null}
         {checkoutError ? <p role="alert" className="text-sm leading-6 text-rose-300">{checkoutError}</p> : null}
       </div>
     </section>

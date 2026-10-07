@@ -53,6 +53,14 @@ describe('award payment copy', () => {
     expect(markup).toContain('review any applicable charges')
   })
 
+  it('disables checkout when the provider is unavailable', () => {
+    const markup = renderToStaticMarkup(<AwardPaymentCard view={{ ...paymentView, checkoutEnabled: false }} />)
+    expect(markup).toContain('Payments are not open yet')
+    expect(markup).toMatch(/<button[^>]*disabled/ )
+    expect(markup).toMatch(/<fieldset[^>]*disabled/ )
+    expect(markup).not.toContain('Proceed')
+  })
+
   it('shows a full-screen green payment confirmation with a view-award action', () => {
     const success = renderToStaticMarkup(
       <AwardPaymentSuccess

@@ -50,6 +50,11 @@ describe('Bachs member routes', () => {
     expect((await GET()).status).toBe(200)
     expect(mocks.view).toHaveBeenCalledWith('member-1')
   })
+  it('reports checkout availability before a member attempts payment', async () => {
+    mocks.enabled.mockReturnValue(false)
+    mocks.view.mockResolvedValue({status:'unpaid'})
+    expect(await (await GET()).json()).toMatchObject({checkoutEnabled:false})
+  })
   it('requires authentication for payment state', async () => {
     mocks.user.mockResolvedValue(null)
     expect((await GET()).status).toBe(401)
