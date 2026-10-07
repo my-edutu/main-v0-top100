@@ -50,7 +50,8 @@ export async function POST(req: NextRequest) {
 
         const supabase = createAdminClient();
 
-        const { data: owner } = await supabase.from('push_subscriptions').select('user_id').eq('endpoint', subscription.endpoint).maybeSingle();
+        const { data: owner, error: ownerError } = await supabase.from('push_subscriptions').select('user_id').eq('endpoint', subscription.endpoint).maybeSingle();
+        if (ownerError) return Response.json({ error: 'Could not verify subscription ownership.' }, { status: 503 });
         if (owner?.user_id && owner.user_id !== user.id) return Response.json({ error: 'This device subscription belongs to another account. Disable it before switching accounts.' }, { status: 409 });
         const { data, error } = await supabase
             .from('push_subscriptions')
