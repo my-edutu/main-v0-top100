@@ -1,5 +1,6 @@
-import { disableDevicePush } from '@/lib/push/device'
 'use client'
+
+import { disableDevicePush } from '@/lib/push/device'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'

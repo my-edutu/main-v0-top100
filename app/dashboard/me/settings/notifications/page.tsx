@@ -1,5 +1,6 @@
-import { DeviceNotificationSettings } from '@/components/DeviceNotificationSettings'
 'use client'
+
+import { DeviceNotificationSettings } from '@/components/DeviceNotificationSettings'
 
 import { RouteSection } from '../../../_components/route-section'
 import { NotificationSettingsSection } from '../../../_sections/settings-sections'
