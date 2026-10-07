@@ -266,7 +266,7 @@ export async function POST(request: NextRequest) {
       // Revalidate pages that display awardee data
       revalidatePath('/');
       revalidatePath('/awardees');
-      revalidateTag('awardees');
+      revalidateTag('awardees', { expire: 0 });
 
       return Response.json({
         success: true,
@@ -336,7 +336,7 @@ export async function POST(request: NextRequest) {
       // Revalidate pages that display awardee data
       revalidatePath('/');
       revalidatePath('/awardees');
-      revalidateTag('awardees');
+      revalidateTag('awardees', { expire: 0 });
 
       return Response.json({
         success: true,
@@ -367,11 +367,11 @@ export async function PUT(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const ids = Array.from(new Set(
+    const ids = Array.from(new Set<string>(
       (Array.isArray(body.ids) ? body.ids : body.id ? [body.id] : [])
         .filter((id: unknown): id is string => typeof id === 'string' && id.trim().length > 0),
     ));
-    console.log('[PUT /api/awardees] Request body:', { ids, fields: Object.keys(body) });
+    console.log('[PUT /api/awardees] Request body:', { count: ids.length, fields: Object.keys(body) });
 
     if (ids.length === 0) {
       return Response.json({
@@ -406,11 +406,16 @@ export async function PUT(request: NextRequest) {
 
     console.log('[PUT /api/awardees] Update data:', updateData);
 
-    // First check if the awardee exists
-    const { data: existing, error: checkError } = await supabase
-      .from('awardees')
-      .select('id')
-      .in('id', ids);
+    // Keep PostgREST URLs below the gateway request-line limit.
+    const batches: string[][] = [];
+    for (let i = 0; i < ids.length; i += 100) batches.push(ids.slice(i, i + 100));
+    const existing: { id: string }[] = [];
+    let checkError = null;
+    for (const batch of batches) {
+      const result = await supabase.from('awardees').select('id').in('id', batch);
+      if (result.error) { checkError = result.error; break; }
+      existing.push(...(result.data ?? []));
+    }
 
     if (checkError) {
       console.error('[PUT /api/awardees] Error checking awardee existence:', checkError);
@@ -432,19 +437,22 @@ export async function PUT(request: NextRequest) {
     }
 
     // Perform the update with admin client (bypasses RLS)
-    const { data: updateResult, error: updateError } = await supabase
-      .from('awardees')
-      .update(updateData)
-      .in('id', ids)
-      .select();
+    const updateResult: AwardeeRecord[] = [];
+    let updateError = null;
+    for (const batch of batches) {
+      const result = await supabase.from('awardees').update(updateData).in('id', batch).select();
+      if (result.error) { updateError = result.error; break; }
+      updateResult.push(...(result.data ?? []));
+    }
 
-    console.log('[PUT /api/awardees] Update result:', { data: updateResult, error: updateError });
+    console.log('[PUT /api/awardees] Update result:', { count: updateResult.length, error: updateError });
 
     if (updateError) {
       console.error('[PUT /api/awardees] Database error updating awardee:', updateError);
       return Response.json({
         success: false,
-        message: 'Failed to update awardee',
+        message: updateResult.length ? 'Some awardees were updated. Retry to finish the remaining updates.' : 'Failed to update awardee',
+        updatedIds: updateResult.map(awardee => awardee.id),
         error: updateError.message,
         details: updateError
       }, { status: 500 });
@@ -461,7 +469,7 @@ export async function PUT(request: NextRequest) {
     // Revalidate pages that display awardee data
     revalidatePath('/');
     revalidatePath('/awardees');
-    revalidateTag('awardees');
+    revalidateTag('awardees', { expire: 0 });
     updatedAwardee?.forEach((awardee: AwardeeRecord) => {
       if (awardee.slug) revalidatePath(`/awardees/${awardee.slug}`);
     });
@@ -518,7 +526,7 @@ export async function DELETE(request: NextRequest) {
     // Revalidate pages that display awardee data
     revalidatePath('/');
     revalidatePath('/awardees');
-    revalidateTag('awardees');
+    revalidateTag('awardees', { expire: 0 });
 
     return Response.json({
       success: true,

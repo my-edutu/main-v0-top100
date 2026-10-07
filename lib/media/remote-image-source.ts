@@ -5,6 +5,13 @@ export function resolveRemoteImageSource(source: string): string | null {
   try {
     const url = new URL(source)
     if (!['https:', 'http:', 'data:', 'blob:'].includes(url.protocol)) return null
+    // Public objects were migrated to our VPS; the retired cloud project now
+    // returns 402. Preserve paths and signed/private URLs outside this prefix.
+    if (url.hostname === 'zsavekrhfwrpqudhjvlq.supabase.co' &&
+        url.pathname.startsWith('/storage/v1/object/public/')) {
+      url.hostname = 'supabase.top100afl.com'
+      return url.toString()
+    }
     if (url.hostname !== 'drive.google.com') return source
     const id = url.searchParams.get('id') ?? url.pathname.match(/^\/file\/d\/([^/]+)/)?.[1]
     if (!id || !/^[a-zA-Z0-9_-]+$/.test(id)) return null
