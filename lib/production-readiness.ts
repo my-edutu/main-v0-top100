@@ -92,11 +92,11 @@ export function evaluateProductionReadiness(
 
   if (
     present(env, 'NEXT_PUBLIC_SUPABASE_URL') &&
-    !isProductionUrl(env.NEXT_PUBLIC_SUPABASE_URL, '.supabase.co')
+    env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, '') !== 'https://supabase.top100afl.com'
   ) {
     issues.push({
       key: 'NEXT_PUBLIC_SUPABASE_URL',
-      message: 'NEXT_PUBLIC_SUPABASE_URL must be an HTTPS Supabase project URL.',
+      message: 'NEXT_PUBLIC_SUPABASE_URL must point to https://supabase.top100afl.com, our self-hosted service.',
     })
   }
 

@@ -8,7 +8,7 @@ import {
 } from '@/lib/production-readiness'
 
 const completeCoreEnv = {
-  NEXT_PUBLIC_SUPABASE_URL: 'https://project.supabase.co',
+  NEXT_PUBLIC_SUPABASE_URL: 'https://supabase.top100afl.com',
   NEXT_PUBLIC_SUPABASE_ANON_KEY: 'public-anon-key',
   SUPABASE_SERVICE_ROLE_KEY: 'server-secret-key',
   NEXT_PUBLIC_SITE_URL: 'https://www.top100afl.com',
@@ -20,6 +20,11 @@ const completeCoreEnv = {
 }
 
 describe('production readiness configuration', () => {
+  it('rejects hosted Supabase after the Contabo migration', () => {
+    const result = evaluateProductionReadiness({ ...completeCoreEnv, NEXT_PUBLIC_SUPABASE_URL: 'https://project.supabase.co' })
+    expect(result.ready).toBe(false)
+    expect(result.issues.some(issue => issue.key === 'NEXT_PUBLIC_SUPABASE_URL')).toBe(true)
+  })
   it('reports every missing core launch setting without exposing values', () => {
     const result = evaluateProductionReadiness({})
 
