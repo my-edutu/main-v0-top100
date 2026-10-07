@@ -32,7 +32,7 @@ export function DashboardAppBar() {
   const isConversation = pathname.startsWith('/dashboard/messages/')
   const isMembersRoute = pathname === '/dashboard/discover/members'
   const [isScrolled, setIsScrolled] = useState(false)
-  const title = resolveDashboardTitle(pathname)
+  const title = pathname === '/dashboard/me/profile' ? 'Update your profile' : resolveDashboardTitle(pathname)
   const inAppHistory = useRef<string[]>([])
 
   useEffect(() => {

@@ -12,6 +12,12 @@ describe('profile contact preferences', () => {
     expect(validateSocialLinks([{ platform: 'website', url: 'https://user:password@example.com' }])).toBeTruthy()
     expect(validateSocialLinks(Array(2).fill({ platform: 'linkedin', url: 'https://linkedin.com' }))).toBeTruthy()
   })
+  it('requires URLs to match the selected platform', () => {
+    expect(validateSocialLinks([{ platform: 'linkedin', url: 'https://facebook.com/member' }])).toBeTruthy()
+    expect(validateSocialLinks([{ platform: 'linkedin', url: 'https://linkedin.com.evil.example/member' }])).toBeTruthy()
+    expect(validateSocialLinks([{ platform: 'linkedin', url: 'https://www.linkedin.com/in/member' }])).toBeNull()
+    expect(validateSocialLinks([{ platform: 'twitter', url: 'https://x.com/member' }])).toBeNull()
+  })
   it('preserves unrelated settings and permits withdrawing consent', () => {
     const result = buildProfileUpdate({ socialLinks: [], socialLinksConsent: false, contactEmailConsent: false }, { eventReminders: true })
     expect(result.prefs.eventReminders).toBe(true)

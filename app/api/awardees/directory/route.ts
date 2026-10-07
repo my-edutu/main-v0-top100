@@ -9,7 +9,7 @@ export async function GET() {
     const ids = [...new Set(cards.map(card => card.profile_id).filter((id): id is string => Boolean(id)))]
     if (ids.length) {
       const { data, error } = await createAdminClient().from('profiles').select('id,notification_prefs').in('id', ids)
-      if (error) throw error
+      if (error) console.warn("Could not load member social preferences.")
       const preferences = new Map((data ?? []).map(profile => [profile.id, profile.notification_prefs]))
       for (const card of cards) {
         const prefs = preferences.get(card.profile_id)
