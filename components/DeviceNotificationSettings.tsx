@@ -11,7 +11,11 @@ export function DeviceNotificationSettings() {
     const available = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
     setSupported(available)
     if (available) void navigator.serviceWorker.getRegistration().then(async registration => {
-      setEnabled(Boolean(await registration?.pushManager.getSubscription()))
+      const subscription = await registration?.pushManager.getSubscription()
+      if (!subscription) { setEnabled(false); return }
+      const response = await fetch('/api/notifications/subscribe?endpoint=' + encodeURIComponent(subscription.endpoint), { cache: 'no-store' })
+      const data = response.ok ? await response.json() : null
+      setEnabled(data?.subscribed === true)
     }).catch(() => {})
   }, [])
   async function toggle() {
