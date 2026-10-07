@@ -40,15 +40,38 @@ create index if not exists user_notifications_category_idx on public.user_notifi
 
 alter table public.user_notifications enable row level security;
 
-DO $$ BEGIN
-  create policy "Users read their notifications" on public.user_notifications
-    for select using (auth.uid() = user_id);
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+-- Existing deployments may have user_notifications.user_id as text while a
+-- fresh install uses uuid. Build equivalent ownership policies for either
+-- schema so this setup remains safe to apply to both.
+drop policy if exists "Users read their notifications" on public.user_notifications;
+drop policy if exists "Users update notification status" on public.user_notifications;
 
-DO $$ BEGIN
-  create policy "Users update notification status" on public.user_notifications
-    for update using (auth.uid() = user_id);
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$
+DECLARE
+  user_id_type text;
+BEGIN
+  SELECT data_type INTO user_id_type
+  FROM information_schema.columns
+  WHERE table_schema = 'public'
+    AND table_name = 'user_notifications'
+    AND column_name = 'user_id';
+
+  IF user_id_type IN ('text', 'character varying', 'character') THEN
+    EXECUTE 'CREATE POLICY "Users read their notifications" ON public.user_notifications
+      FOR SELECT USING (auth.uid()::text = user_id)';
+    EXECUTE 'CREATE POLICY "Users update notification status" ON public.user_notifications
+      FOR UPDATE USING (auth.uid()::text = user_id)
+      WITH CHECK (auth.uid()::text = user_id)';
+  ELSIF user_id_type = 'uuid' THEN
+    EXECUTE 'CREATE POLICY "Users read their notifications" ON public.user_notifications
+      FOR SELECT USING (auth.uid() = user_id)';
+    EXECUTE 'CREATE POLICY "Users update notification status" ON public.user_notifications
+      FOR UPDATE USING (auth.uid() = user_id)
+      WITH CHECK (auth.uid() = user_id)';
+  ELSE
+    RAISE EXCEPTION 'Unsupported public.user_notifications.user_id type: %', user_id_type;
+  END IF;
+END $$;
 
 DO $$ BEGIN
   create policy "Service inserts notifications" on public.user_notifications

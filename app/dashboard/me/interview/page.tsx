@@ -117,8 +117,6 @@ export default function InterviewRequestPage() {
           </section>
         ) : null}
 
-        {previewUnavailableForm ? <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950">You’re previewing the interview form because the booking database isn’t available in this environment. The submit action is disabled.</p> : null}
-
         {!loading && (!loadError || previewUnavailableForm) && showRequestForm ? (
           <InterviewRequestForm
             key={editing ? application?.id ?? 'edit-request' : 'new-request'}
