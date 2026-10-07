@@ -8,7 +8,7 @@ export function DeviceNotificationSettings() {
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   useEffect(() => {
-    const available = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
+    const available = window.isSecureContext && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
     setSupported(available)
     if (available) void navigator.serviceWorker.getRegistration().then(async registration => {
       const subscription = await registration?.pushManager.getSubscription()
@@ -50,7 +50,8 @@ export function DeviceNotificationSettings() {
   }
   return <section className="rounded-xl border border-orange-100 bg-white p-4">
     <h2 className="font-semibold">Notifications on this device</h2>
-    <p className="mt-1 text-sm text-slate-600">{supported ? 'Get Top100 updates even when the app is closed.' : 'On iPhone, add Top100 to your Home Screen, then open it there to enable notifications.'}</p>
+    <p className="mt-1 text-sm text-slate-600">Your choice. You can turn these off anytime; your in-app inbox will still work.</p>
+    <p className="mt-1 text-sm text-slate-600">{supported ? 'Get Top100 updates even when the app is closed.' : 'Notifications require a supported browser and HTTPS. On iPhone (iOS 16.4+), add Top100 to your Home Screen and open it there.'}</p>
     {supported && <button type="button" disabled={busy} onClick={toggle} className="mt-3 rounded-full bg-orange-600 px-4 py-2 font-semibold text-white disabled:opacity-50">{busy ? 'Please wait…' : enabled ? 'Turn off notifications' : 'Enable notifications'}</button>}
     {message && <p role="status" className="mt-2 text-sm">{message}</p>}
   </section>
