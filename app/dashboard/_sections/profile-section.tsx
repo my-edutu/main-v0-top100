@@ -1,9 +1,9 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Image from '@/components/safe-image'
 import Link from 'next/link'
-import { ArrowLeft, ArrowRight, Loader2, UserRound } from 'lucide-react'
+import { ArrowLeft, Loader2, Share2, UserRound } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -13,8 +13,9 @@ import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { updateMemberProfile, type MemberProfile } from '@/lib/member-hub'
 import { persistThenRefresh } from '../_lib/persistence-workflows'
-import { buildProfileUpdatePatch, getProfileWizardSteps, type ProfileEditStep } from '../_lib/profile-wizard'
+import { buildProfileUpdatePatch, type ProfileEditStep } from '../_lib/profile-wizard'
 import { useDashboardMember } from '../_providers/dashboard-member'
+import { PROFILE_TEXT_LIMITS, validateProfileDraft } from '../_lib/profile-editor'
 import { MemberAvatar } from '../_components/member-avatar'
 
 type ProfileDraft = Pick<
@@ -81,20 +82,21 @@ export function ProfileSection() {
   const { member, refreshMember, replaceMember } = useDashboardMember()
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState<ProfileDraft>(() => draftFromMember(member))
-  const [stepIndex, setStepIndex] = useState(0)
   const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  useEffect(() => {
+    if (!photoFile) return
+    const url = URL.createObjectURL(photoFile)
+    const initialize = window.setTimeout(() => setPhotoPreview(url), 0)
+    return () => { window.clearTimeout(initialize); URL.revokeObjectURL(url) }
+  }, [photoFile])
   const photoInputRef = useRef<HTMLInputElement>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [warning, setWarning] = useState('')
-  const updatesRemaining = Math.max(0, member.bioUpdateLimit - member.bioUpdateCount)
-  const steps = getProfileWizardSteps(updatesRemaining > 0)
-  const currentStep = steps[stepIndex] ?? steps[0]
-
   function startEditing() {
     setDraft(draftFromMember(member))
     setPhotoFile(null)
-    setStepIndex(0)
     setError('')
     setWarning('')
     setEditing(true)
@@ -117,6 +119,8 @@ export function ProfileSection() {
 
   async function saveProfile() {
     if (saving) return
+    const validation = validateProfileDraft(draft)
+    if (validation) { setError(validation); return }
     setSaving(true)
     setError('')
     setWarning('')
@@ -129,7 +133,7 @@ export function ProfileSection() {
       }
 
       const result = await persistThenRefresh({
-        persist: () => updateMemberProfile(member.id, buildProfileUpdatePatch(draft, updatesRemaining > 0)),
+        persist: () => updateMemberProfile(member.id, buildProfileUpdatePatch(draft, true)),
         applyPersisted: (persisted) => replaceMember({
           ...persisted,
           ...(uploadedAvatarUrl ? { avatarUrl: uploadedAvatarUrl } : {}),
@@ -165,92 +169,52 @@ export function ProfileSection() {
     )
   }
 
-  const isLastStep = stepIndex === steps.length - 1
 
   return (
-    <section className="hub-profile-editor mx-auto w-full max-w-2xl space-y-5" aria-label="Update your profile">
-      <div className="space-y-2" aria-live="polite">
-        <div className="flex items-center justify-between gap-3 text-sm text-neutral-600">
-          <span>Question {stepIndex + 1} of {steps.length}</span>
-          <span>{Math.round(((stepIndex + 1) / steps.length) * 100)}%</span>
+    <section className="hub-profile-editor mx-auto w-full max-w-5xl space-y-5" aria-label="Update your profile">
+      <div><h2 className="text-xl font-semibold">Update your profile</h2><p className="mt-1 text-sm text-neutral-600">Edit your details and preview them before saving.</p></div>
+      <div className="grid min-w-0 gap-6 lg:grid-cols-2">
+        <div className="min-w-0 space-y-5">
+          <fieldset disabled={saving} className="space-y-5">
+            <div className="space-y-2"><Label htmlFor="profile-photo">Profile photo</Label><MemberAvatar src={photoFile && photoPreview ? photoPreview : member.avatarUrl} initials={member.avatarInitials} size={64} /><Input ref={photoInputRef} id="profile-photo" type="file" accept="image/jpeg,image/png,image/webp" onChange={event => selectPhoto(event.target.files?.[0])} /><p className="text-xs text-neutral-500">JPG, PNG or WebP, up to 5 MB.</p></div>
+            <ProfileEditorFields draft={draft} onChange={updateDraft} />
+            <VisibilityOption label="Recruiters can find my profile" checked={draft.recruiterVisible} onChange={checked => updateDraft('recruiterVisible', checked)} />
+            <VisibilityOption label="Show my email on my public profile" checked={draft.emailVisible} onChange={checked => updateDraft('emailVisible', checked)} />
+          </fieldset>
         </div>
-        <div className="h-1.5 overflow-hidden rounded-full bg-neutral-100" role="progressbar" aria-valuemin={1} aria-valuemax={steps.length} aria-valuenow={stepIndex + 1} aria-label="Profile update progress">
-          <div className="h-full rounded-full bg-orange-600 transition-[width]" style={{ width: `${((stepIndex + 1) / steps.length) * 100}%` }} />
-        </div>
+        <aside className="min-w-0 self-start rounded-xl border border-neutral-200 bg-white p-5 lg:sticky lg:top-24" aria-label="Live profile preview">
+          <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">Live preview · not saved yet</p>
+          <div className="mt-4"><MemberAvatar src={photoFile && photoPreview ? photoPreview : member.avatarUrl} initials={member.avatarInitials} size={64} /></div>
+          <h3 className="mt-4 text-xl font-semibold">{member.name}</h3>
+          <p className="mt-1 break-words text-sm">{draft.headline}</p>
+          <dl className="mt-4"><ProfileValue label="Field" value={draft.field} /><ProfileValue label="Location" value={draft.location} /><ProfileValue label="Organization" value={draft.organization} /></dl>
+          <h4 className="mt-4 font-medium">BIO</h4><p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{draft.bio || 'Your BIO will appear here.'}</p>
+          {draft.emailVisible ? <p className="mt-4 break-all text-sm">{member.email}</p> : null}
+        </aside>
       </div>
-
-      {updatesRemaining === 0 ? (
-        <p role="status" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-5 text-amber-900">
-          Your profile text update allowance is used up. You can still update your photo and visibility settings; ask the admin team to reset text edits.
-        </p>
-      ) : null}
-
-      <div className="min-h-64 rounded-2xl border border-neutral-200 bg-white p-4 sm:p-6">
-        {currentStep === 'photo' ? (
-          <section aria-labelledby="profile-question-photo" className="space-y-5">
-            <div>
-              <h3 id="profile-question-photo" className="text-lg font-semibold text-neutral-950">Would you like to update your photo?</h3>
-              <p className="mt-1 text-sm leading-5 text-neutral-600">Choose a clear JPG, PNG, or WebP image up to 5 MB. Your award cover stays separate.</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <MemberAvatar src={member.avatarUrl} initials={member.avatarInitials} size={64} />
-              <div className="min-w-0 flex-1 space-y-2">
-                <Label htmlFor="profile-photo">Profile photo</Label>
-                <Input ref={photoInputRef} id="profile-photo" type="file" accept="image/jpeg,image/png,image/webp" disabled={saving} onChange={(event) => { selectPhoto(event.currentTarget.files?.[0]); event.currentTarget.value = '' }} className="sr-only" tabIndex={-1} />
-                <div className="flex min-h-11 items-center gap-3 rounded-md border border-neutral-200 pr-3">
-                  <Button type="button" variant="outline" disabled={saving} onClick={() => photoInputRef.current?.click()} className="min-h-11 shrink-0 rounded-r-none border-0 border-r bg-orange-50 text-orange-900">
-                    Choose photo
-                  </Button>
-                  <span className="min-w-0 break-all text-sm text-neutral-600" aria-live="polite">{photoFile ? photoFile.name : 'No photo selected'}</span>
-                </div>
-              </div>
-            </div>
-          </section>
-        ) : currentStep === 'visibility' ? (
-          <section aria-labelledby="profile-question-visibility" className="space-y-5">
-            <div>
-              <h3 id="profile-question-visibility" className="text-lg font-semibold text-neutral-950">Who can find you?</h3>
-              <p className="mt-1 text-sm leading-5 text-neutral-600">Choose how your public profile can be discovered and whether your email is shown.</p>
-            </div>
-            <div className="divide-y divide-neutral-100 rounded-xl border border-neutral-200 px-4">
-              <VisibilityOption label="Recruiters can find my profile" checked={draft.recruiterVisible} onChange={(checked) => updateDraft('recruiterVisible', checked)} />
-              <VisibilityOption label="Show my email on my public profile" checked={draft.emailVisible} onChange={(checked) => updateDraft('emailVisible', checked)} />
-            </div>
-            <p className="break-all text-xs text-neutral-500">Account email: {member.email}</p>
-          </section>
-        ) : (
-          <ProfileQuestion
-            step={currentStep}
-            value={draft[currentStep]}
-            onChange={(value) => updateDraft(currentStep, value)}
-          />
-        )}
-      </div>
-
-      {error ? <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-5 text-red-800">{error}</p> : null}
-      {warning ? <p role="status" className="text-sm leading-5 text-amber-800">{warning}</p> : null}
-
-      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <Button type="button" variant="outline" onClick={() => { setError(''); if (stepIndex === 0) setEditing(false); else setStepIndex((index) => index - 1) }} disabled={saving} className="min-h-11 w-full gap-2 border-neutral-300 sm:w-auto">
-          <ArrowLeft className="size-4" aria-hidden="true" />
-          {stepIndex === 0 ? 'Cancel update' : 'Previous'}
-        </Button>
-        {isLastStep ? (
-          <Button type="button" onClick={() => void saveProfile()} disabled={saving} className="min-h-11 w-full bg-orange-600 font-semibold text-white hover:bg-orange-700 sm:w-auto sm:min-w-44">
-            {saving ? <Loader2 className="mr-2 size-4 animate-spin" aria-hidden="true" /> : null}
-            {saving ? 'Saving profile…' : 'Save profile'}
-          </Button>
-        ) : (
-          <Button type="button" onClick={() => { setError(''); setStepIndex((index) => Math.min(index + 1, steps.length - 1)) }} disabled={saving} className="min-h-11 w-full gap-2 bg-orange-600 font-semibold text-white hover:bg-orange-700 sm:w-auto sm:min-w-44">
-            Next question <ArrowRight className="size-4" aria-hidden="true" />
-          </Button>
-        )}
-      </div>
+      {error ? <p role="alert" className="text-sm text-red-800">{error}</p> : null}
+      {warning ? <p role="status" className="text-sm text-amber-800">{warning}</p> : null}
+      <div className="flex flex-wrap gap-3"><Button type="button" disabled={saving} onClick={() => void saveProfile()} className="min-h-11 bg-orange-600 text-white hover:bg-orange-700">{saving ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}{saving ? 'Saving profile…' : 'Save profile'}</Button><Button type="button" variant="outline" disabled={saving} onClick={() => setEditing(false)}><ArrowLeft className="mr-2 size-4" />Cancel update</Button></div>
     </section>
   )
 }
 
+export function ProfileEditorFields({ draft, onChange }: { draft: ProfileDraft; onChange: <K extends keyof ProfileDraft>(key: K, value: ProfileDraft[K]) => void }) {
+  return <>{(['headline', 'field', 'location', 'organization', 'bio'] as const).map(step => <ProfileQuestion key={step} step={step} value={draft[step]} onChange={value => onChange(step, value)} />)}</>
+}
+
 function ProfileOverview({ member, onEdit }: { member: MemberProfile; onEdit: () => void }) {
+  const [sharing, setSharing] = useState(false)
+  async function shareProfile() {
+    if (!member.publicSlug || sharing) return
+    setSharing(true)
+    try {
+      const url = `https://www.top100afl.com/bio/${encodeURIComponent(member.publicSlug)}`
+      if (navigator.share) await navigator.share({ title: member.name, url })
+      else { await navigator.clipboard.writeText(url); toast.success('Profile link copied.') }
+    } catch (cause) { if (!(cause instanceof Error && cause.name === 'AbortError')) toast.error('Could not share your profile. Please try again.') }
+    finally { setSharing(false) }
+  }
   return (
     <section className="mx-auto w-full max-w-3xl space-y-6" aria-labelledby="profile-overview-title">
       <header className="flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 pb-5">
@@ -283,6 +247,7 @@ function ProfileOverview({ member, onEdit }: { member: MemberProfile; onEdit: ()
         </div>
       )}
 
+      {member.publicSlug ? <Button variant="outline" disabled={sharing} onClick={() => void shareProfile()} className="min-h-11"><Share2 className="mr-2 size-4" />Share profile</Button> : <p className="text-sm text-neutral-500">Your public profile link will appear here when it is available.</p>}
       <section className="space-y-3" aria-labelledby="profile-details-title">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 id="profile-details-title" className="text-base font-semibold text-neutral-950">Public profile details</h3>
@@ -297,7 +262,7 @@ function ProfileOverview({ member, onEdit }: { member: MemberProfile; onEdit: ()
           <ProfileValue label="Account email" value={member.email} />
         </dl>
         <div className="space-y-1 py-2">
-          <h4 className="text-sm font-medium text-neutral-800">BIO</h4>
+          <div className="flex items-center justify-between"><h4 className="text-sm font-medium text-neutral-800">BIO</h4><button type="button" onClick={onEdit} className="min-h-11 text-sm font-medium text-orange-800">Edit BIO</button></div>
           <p className="whitespace-pre-wrap break-words text-sm leading-6 text-neutral-600">{member.bio || 'Add a short BIO to tell people about your work.'}</p>
         </div>
       </section>
@@ -330,9 +295,9 @@ function ProfileQuestion({ step, value, onChange }: {
       <div className="space-y-2">
         <Label htmlFor={`profile-answer-${step}`}>{step === 'bio' ? 'Your BIO' : step === 'field' ? 'Field' : step === 'organization' ? 'Organization' : step === 'location' ? 'Location' : 'Headline'}</Label>
         {multiline ? (
-          <Textarea id={`profile-answer-${step}`} value={value} onChange={(event) => onChange(event.target.value)} placeholder="Share the work you do, who it helps, and what motivates you." className="min-h-48 resize-y text-base leading-6" />
+          <Textarea maxLength={PROFILE_TEXT_LIMITS.bio} id={`profile-answer-${step}`} value={value} onChange={(event) => onChange(event.target.value)} placeholder="Share the work you do, who it helps, and what motivates you." className="min-h-48 resize-y text-base leading-6" />
         ) : (
-          <Input id={`profile-answer-${step}`} value={value} onChange={(event) => onChange(event.target.value)} placeholder={step === 'headline' ? 'Founder, researcher, changemaker' : step === 'field' ? 'Education, climate, health' : step === 'organization' ? 'Company or institution' : 'City, country'} className="min-h-12 text-base" />
+          <Input maxLength={PROFILE_TEXT_LIMITS[step]} id={`profile-answer-${step}`} value={value} onChange={(event) => onChange(event.target.value)} placeholder={step === 'headline' ? 'Founder, researcher, changemaker' : step === 'field' ? 'Education, climate, health' : step === 'organization' ? 'Company or institution' : 'City, country'} className="min-h-12 text-base" />
         )}
       </div>
     </section>

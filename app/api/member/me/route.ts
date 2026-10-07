@@ -1,9 +1,10 @@
 // app/api/member/me/route.ts
 // The authenticated member's own hub data.
 //   GET   -> profile + notifications + feature submissions
-//   PATCH -> update own profile / preferences (enforces bio_update_limit)
+//   PATCH -> update own profile / preferences (unlimited member profile edits)
 import { NextRequest, NextResponse } from 'next/server'
 import { revalidatePath, revalidateTag } from 'next/cache'
+import { PROFILE_TEXT_LIMITS } from '@/app/dashboard/_lib/profile-editor'
 import { getCurrentUser } from '@/lib/auth-server'
 import { createAdminClient } from '@/lib/supabase/server'
 import {
@@ -86,6 +87,12 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ message: 'Invalid request body.' }, { status: 400 })
   }
 
+  for (const [key, limit] of Object.entries(PROFILE_TEXT_LIMITS)) {
+    if (key in patch && (typeof patch[key] !== 'string' || (patch[key] as string).length > limit)) {
+      return NextResponse.json({ message: `${key} must be text of ${limit} characters or fewer.` }, { status: 400 })
+    }
+  }
+
   const supabase = createAdminClient()
 
   const { data: profile, error } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle()
@@ -95,7 +102,7 @@ export async function PATCH(request: NextRequest) {
 
   const { columns, preferencePatch } = buildProfileUpdate(patch, (profile.notification_prefs ?? {}) as Record<string, unknown>)
 
-  // Enforce the BIO update limit only when a BIO field actually changes value.
+  // Track text changes for public-profile synchronization, without consuming edit quotas.
   const touchesBio = patchTouchesBio(patch)
   const bioChanged =
     touchesBio &&
@@ -107,7 +114,7 @@ export async function PATCH(request: NextRequest) {
     p_profile_id: user.id,
     p_columns: columns,
     p_preference_patch: preferencePatch,
-    p_increment_bio: bioChanged,
+    p_increment_bio: false,
   })
 
   if (updateError) {
@@ -122,9 +129,7 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ message: 'Could not save your update.' }, { status: 500 })
   }
   if (!updated) {
-    return bioChanged
-      ? NextResponse.json({ message: 'BIO update limit reached. Ask the admin team to reset your update access.' }, { status: 429 })
-      : NextResponse.json({ message: 'Profile not found.' }, { status: 404 })
+    return NextResponse.json({ message: 'Profile not found.' }, { status: 404 })
   }
 
   const awardee = await loadLinkedAwardee(supabase, user.id)
