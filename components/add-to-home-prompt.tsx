@@ -2,45 +2,46 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
-import { isInstallPromptRoute, manualInstallInstructions } from '@/lib/install-prompt'
+import { isInstallPromptRoute, requestNativeInstall, registerInstallServiceWorker } from '@/lib/install-prompt'
 
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 
-interface InstallEvent extends Event {
-  prompt(): Promise<void>
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
-}
+import type { NativeInstallEvent } from '@/lib/install-prompt'
+
 const DISMISSED_KEY = 'top100-install-dismissed-until'
 
 export function AddToHomePrompt() {
   const pathname = usePathname()
   const [visible, setVisible] = useState(false)
-  const [installEvent, setInstallEvent] = useState<InstallEvent | null>(null)
+  const [installEvent, setInstallEvent] = useState<NativeInstallEvent | null>(null)
   const dismissedThisVisit = useRef(false)
   const [busy, setBusy] = useState(false)
   const [blocked, setBlocked] = useState(false)
   const [installed, setInstalled] = useState(false)
   const [ready, setReady] = useState(false)
-  const [instructions, setInstructions] = useState('')
-  const [showInstructions, setShowInstructions] = useState(false)
+  const [installError, setInstallError] = useState('')
 
   useEffect(() => {
     const standalone = window.matchMedia('(display-mode: standalone)')
     const isInstalled = () => standalone.matches || Boolean((navigator as Navigator & { standalone?: boolean }).standalone)
     const initialize = window.setTimeout(() => {
       setInstalled(isInstalled())
-      setInstructions(manualInstallInstructions(navigator.userAgent, navigator.platform, navigator.maxTouchPoints))
       setReady(true)
     }, 0)
     const onPrompt = (event: Event) => {
       event.preventDefault()
-      setInstallEvent(event as InstallEvent)
+      setInstallError('')
+      setInstallEvent(event as NativeInstallEvent)
     }
     const onInstalled = () => { setInstalled(true); setVisible(false); setInstallEvent(null) }
     const onDisplayChange = () => setInstalled(isInstalled())
     window.addEventListener('beforeinstallprompt', onPrompt)
     window.addEventListener('appinstalled', onInstalled)
     standalone.addEventListener('change', onDisplayChange)
+    // Register independently of notification permission; installation needs no push opt-in.
+    void registerInstallServiceWorker(navigator, window.isSecureContext).catch(() => {
+      // The browser decides whether installation is available.
+    })
     return () => {
       window.clearTimeout(initialize)
       window.removeEventListener('beforeinstallprompt', onPrompt)
@@ -51,7 +52,7 @@ export function AddToHomePrompt() {
 
   useEffect(() => {
     if (!isInstallPromptRoute(pathname)) return
-    if (!ready || installed || dismissedThisVisit.current) return
+    if (!ready || installed || !installEvent || dismissedThisVisit.current) return
     try { if (Number(localStorage.getItem(DISMISSED_KEY)) > Date.now()) return } catch { /* Storage may be disabled. */ }
     let timer: number | undefined
     const checkAvailability = () => {
@@ -75,7 +76,7 @@ export function AddToHomePrompt() {
       observer.disconnect()
       document.removeEventListener('visibilitychange', checkAvailability)
     }
-  }, [pathname, installed, ready])
+  }, [pathname, installed, ready, installEvent])
 
   function dismiss() {
     dismissedThisVisit.current = true
@@ -85,20 +86,21 @@ export function AddToHomePrompt() {
 
   async function install() {
     if (busy) return
-    if (!installEvent) { setShowInstructions(true); return }
+    if (!installEvent) return
     setBusy(true)
     try {
       const pendingInstall = installEvent
       setInstallEvent(null)
-      await pendingInstall.prompt()
-      const choice = await pendingInstall.userChoice
+      const choice = await requestNativeInstall(pendingInstall)
       setInstallEvent(null)
       if (choice.outcome === 'accepted') { dismissedThisVisit.current = true; setVisible(false) }
       else dismiss()
-    } catch { dismiss() } finally { setBusy(false) }
+    } catch {
+      setInstallError('Installation could not open. Please try again when your browser offers installation.')
+    } finally { setBusy(false) }
   }
 
-  if (!visible || installed || !ready || blocked || !isInstallPromptRoute(pathname)) return null
+  if (!visible || installed || !ready || (!installEvent && !busy && !installError) || blocked || !isInstallPromptRoute(pathname)) return null
 
   return (
     <Dialog open onOpenChange={open => { if (!open) dismiss() }}>
@@ -109,9 +111,9 @@ export function AddToHomePrompt() {
         <img src="/icons/top100-africa-192.png" alt="" width={80} height={80} className="rounded-2xl shadow-md" />
         <div><DialogTitle className="text-2xl font-bold tracking-tight">Add Top100 to your home screen</DialogTitle><DialogDescription className="mt-2 text-sm text-neutral-600">Open Top100 with one tap.</DialogDescription></div>
       </div>
-      {showInstructions ? <p role="status" className="mt-4 rounded-xl bg-orange-50 p-3 text-sm leading-6">{instructions}</p> : null}
+      {installError ? <p role="alert" className="mt-4 rounded-xl bg-orange-50 p-3 text-sm leading-6">{installError}</p> : null}
       <div className="mt-3 flex items-center gap-3">
-        <button type="button" disabled={busy} onClick={install} className="min-h-11 flex-1 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-3 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600 disabled:opacity-60">{busy ? 'Opening…' : 'Add to Home Screen'}</button>
+        <button type="button" disabled={busy || !installEvent} onClick={install} className="min-h-11 flex-1 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-3 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600 disabled:opacity-60">{busy ? 'Opening…' : 'Add to Home Screen'}</button>
         <button type="button" onClick={dismiss} className="min-h-11 px-2 text-sm text-neutral-600">Not now</button>
       </div>
     </DialogContent>

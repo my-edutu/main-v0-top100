@@ -1,3 +1,4 @@
+import AppUpdateNotice from '@/components/AppUpdateNotice'
 import "./globals.css"
 import { AddToHomePrompt } from "@/components/add-to-home-prompt"
 import type { Metadata } from "next"
@@ -168,6 +169,7 @@ export default function RootLayout({
             </ConditionalLayout>
           </ClientProviders>
           <AddToHomePrompt />
+          <AppUpdateNotice />
           <Toaster />
         </ThemeProvider>
 

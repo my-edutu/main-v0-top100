@@ -60,7 +60,7 @@ export function PushNotificationPrompt() {
                 return;
             }
 
-            const registration = await navigator.serviceWorker.register('/sw.js');
+            const registration = await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
             const pushSubscription = await registration.pushManager.subscribe({
                 userVisibleOnly: true,
                 applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),

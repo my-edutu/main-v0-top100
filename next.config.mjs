@@ -33,6 +33,7 @@ const scriptSrc = process.env.NODE_ENV === 'production' ? productionScriptSrc : 
 
 const nextConfig = {
   deploymentId: deploymentId(),
+  env: { NEXT_PUBLIC_APP_RELEASE: deploymentId() },
   // Cloudflare supplies Brotli/gzip. Avoid duplicate origin compression and its
   // drain-listener accumulation in Next's bundled compression middleware.
   compress: false,
@@ -84,6 +85,10 @@ const nextConfig = {
           {
             key: 'Content-Type',
             value: 'application/javascript',
+          },
+          {
+            key: 'Cache-Control',
+            value: 'no-cache, max-age=0, must-revalidate',
           },
         ],
       },
