@@ -3,13 +3,14 @@
 import Link from 'next/link'
 import Image from '@/components/safe-image'
 import { useCallback, useEffect, useState } from 'react'
-import { ArrowRight, BookOpenText, Check, CheckCircle2, ChevronDown, Circle, Compass, Copy, ExternalLink, FileText, Linkedin, MessageCircle, RefreshCw, Share2, Trophy, UserRound } from 'lucide-react'
+import { ArrowRight, BookOpenText, Check, CheckCircle2, ChevronDown, Circle, Compass, Copy, ExternalLink, FileText, Linkedin, MessageCircle, RefreshCw, Smartphone, Share2, Trophy, UserRound } from 'lucide-react'
 import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 
 import { FounderWelcomeDialog } from './founder-welcome-dialog'
 import { cn } from '@/lib/utils'
+import { triggerHomeScreenAction } from '@/lib/install-prompt'
 import { DEFAULT_AWARDEE_JOURNEY_SETTINGS, type AwardeeJourneySettings } from '@/lib/dashboard/awardee-journey-settings'
 import type { AwardeeJourneyState } from '@/lib/dashboard/awardee-journey'
 import { useDashboardMember } from '../_providers/dashboard-member'
@@ -33,6 +34,16 @@ const whatsappChannelUrl = 'https://whatsapp.com/channel/0029Vb8lUNm96H4bB5keg40
 
 export function AwardeeOnboardingJourney({ name }: Props) {
   const { member } = useDashboardMember()
+  const [homeScreenInstalled, setHomeScreenInstalled] = useState(false)
+  useEffect(() => {
+    const standalone = window.matchMedia('(display-mode: standalone)')
+    const update = () => setHomeScreenInstalled(standalone.matches || Boolean((navigator as Navigator & { standalone?: boolean }).standalone))
+    const initialize = window.setTimeout(update, 0)
+    const installed = () => setHomeScreenInstalled(true)
+    standalone.addEventListener('change', update)
+    window.addEventListener('appinstalled', installed)
+    return () => { window.clearTimeout(initialize); standalone.removeEventListener('change', update); window.removeEventListener('appinstalled', installed) }
+  }, [])
   const [payload, setPayload] = useState<Payload | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -132,11 +143,12 @@ export function AwardeeOnboardingJourney({ name }: Props) {
   const profileClicked = profileClickedFor === member.id
   const state = payload?.state ? { ...payload.state, coreSteps: payload.state.coreSteps.map(step => step.id === 'profile' && profileClicked ? { ...step, complete: true } : step) } : undefined
   const settings = payload?.settings ?? DEFAULT_AWARDEE_JOURNEY_SETTINGS
-  const taskTotal = (state?.coreSteps.length ?? 3) + 4
+  const taskTotal = (state?.coreSteps.length ?? 3) + 5
   const taskCompleted = (state?.coreSteps.filter(step => step.complete).length ?? 0)
     + Number(Boolean(member.portfolioCoverUrl))
     + (state?.shareConfirmation ? 2 : 0)
     + Number(joinedChannel)
+    + Number(homeScreenInstalled)
   const coverFile = preparedCover && preparedCover.url === member.portfolioCoverUrl ? preparedCover.file : null
   const coverPreparing = Boolean(shareOpen && member.portfolioCoverUrl && preparedCover?.url !== member.portfolioCoverUrl)
   const introCaption = `I’m proud to share that I’ve been selected as one of the Top100 Africa Future Leaders for ${settings.cohortYear}.\n\nThis cohort brings leaders together from ${settings.applicantCountryCount} countries. I’m honoured to be part of this community and grateful for the opportunity to contribute to a brighter future for our continent.\n\nI look forward to learning, collaborating, and building impact alongside fellow leaders across Africa. Thank you, @Africa Future Leaders, for this recognition.\n\n#Top100AfricaFutureLeaders #AfricaFutureLeaders #LeadershipInAfrica`
@@ -260,6 +272,14 @@ export function AwardeeOnboardingJourney({ name }: Props) {
           {taskCompleted === taskTotal ? <p className="mt-3 text-sm text-[#625B52]">Your first steps are complete.</p> : null}
 
           <div className="mt-2 divide-y divide-[#EEE7DF] border-b border-[#EEE7DF]">
+            {!homeScreenInstalled ? (
+              <button type="button" onClick={() => triggerHomeScreenAction()} className="group flex min-h-14 w-full items-center gap-2 py-2 text-left transition-colors hover:bg-[#FFFCF9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-inset">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center text-[#A94412]"><Smartphone className="h-4 w-4" aria-hidden="true" /></span>
+                <span className="min-w-0 flex-1 text-sm font-medium text-[#25211D]">Add Top100 to your home screen</span>
+                <ArrowRight className="h-4 w-4 shrink-0 text-[#A94412]" aria-hidden="true" />
+              </button>
+            ) : null}
+
             {!member.portfolioCoverUrl ? (
             <Link href="/dashboard/me/portfolio-cover" className="group flex min-h-14 items-center gap-2 py-2 transition-colors hover:bg-[#FFFCF9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-inset">
               <span className="flex h-9 w-9 shrink-0 items-center justify-center text-[#A94412]"><UserRound className="h-4 w-4" aria-hidden="true" /></span>

@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
-import { isInstallPromptRoute, shareTop100, registerInstallServiceWorker, isIOSDevice, homeScreenAction, requestNativeInstall, type NativeInstallEvent } from '@/lib/install-prompt'
+import { isInstallPromptRoute, shareTop100, registerInstallServiceWorker, isIOSDevice, homeScreenAction, requestNativeInstall, type NativeInstallEvent, HOME_SCREEN_REQUEST_EVENT } from '@/lib/install-prompt'
 
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 
@@ -84,7 +84,7 @@ export function AddToHomePrompt() {
     try { localStorage.setItem(DISMISSED_KEY, String(Date.now() + 7 * 24 * 60 * 60 * 1000)) } catch { /* Dismiss still works for this visit. */ }
   }
 
-  async function activate() {
+  const activate = useCallback(async () => {
     if (busy || !action) return
     setBusy(true)
     setInstallError('')
@@ -101,7 +101,21 @@ export function AddToHomePrompt() {
     } catch {
       setInstallError('The device menu could not open. Please try again.')
     } finally { setBusy(false) }
-  }
+  }, [busy, action, installEvent])
+
+  useEffect(() => {
+    const onRequest = () => {
+      if (installed) return
+      if (action) {
+        void activate()
+      } else {
+        setInstallError('Your browser has not made home-screen installation available. Open Top100 in Safari on iPhone or Chrome on Android to continue.')
+        setVisible(true)
+      }
+    }
+    window.addEventListener(HOME_SCREEN_REQUEST_EVENT, onRequest)
+    return () => window.removeEventListener(HOME_SCREEN_REQUEST_EVENT, onRequest)
+  }, [installed, action, activate])
 
   if (!visible || installed || !ready || (!action && !busy && !installError) || blocked || !isInstallPromptRoute(pathname)) return null
 

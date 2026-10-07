@@ -51,3 +51,11 @@ export function homeScreenAction(ios: boolean, supportsShare: boolean, hasInstal
   if (ios) return supportsShare ? 'share' as const : null
   return hasInstallEvent ? 'install' as const : null
 }
+
+
+export const HOME_SCREEN_REQUEST_EVENT = 'top100:request-home-screen'
+
+/** Synchronous dispatch preserves the task button's user activation. */
+export function triggerHomeScreenAction(target: Pick<Window, 'dispatchEvent'> = window) {
+  target.dispatchEvent(new Event(HOME_SCREEN_REQUEST_EVENT))
+}

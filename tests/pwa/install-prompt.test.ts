@@ -70,3 +70,13 @@ describe('platform-specific home screen CTA', () => {
     expect(homeScreenAction(false, true, false)).toBeNull()
   })
 })
+
+import { triggerHomeScreenAction, HOME_SCREEN_REQUEST_EVENT } from '@/lib/install-prompt'
+
+it('triggers the shared home-screen action in the same click call', () => {
+  const target = new EventTarget()
+  const listener = vi.fn()
+  target.addEventListener(HOME_SCREEN_REQUEST_EVENT, listener)
+  triggerHomeScreenAction(target)
+  expect(listener).toHaveBeenCalledOnce()
+})
