@@ -18,7 +18,7 @@ BACHS_MAGAZINE_WEBHOOK_SECRET=replace_with_magazine_endpoint_secret
 BACHS_ORGANIZATION_ID=replace_me
 BACHS_WEBHOOK_TOLERANCE_SECONDS=300
 BACHS_CHECKOUT_HOSTS=checkout.bachs.io
-NEXT_PUBLIC_SITE_URL=https://your-app.example
+NEXT_PUBLIC_SITE_URL=https://www.top100afl.com
 AWARD_FEE_NGN_MINOR=2500000
 AWARD_FEE_USD_MINOR=2000
 AWARD_PRICE_VERSION=afl-award-2026-v1
@@ -34,8 +34,8 @@ Apply the additive `supabase/migrations/20260908113639_bachs_award_payments.sql`
 
 Register both webhook destinations in Bachs and subscribe each to `collection.succeeded`, `collection.failed`, `collection.underpaid`, and `checkout.expired`:
 
-- Award payments: `https://your-app.example/api/webhooks/bachs`; store its signing secret as `BACHS_AWARD_WEBHOOK_SECRET`.
-- Magazine payments: `https://your-app.example/api/webhooks/bachs-magazine`; store its distinct signing secret as `BACHS_MAGAZINE_WEBHOOK_SECRET`.
+- Award payments: `https://www.top100afl.com/api/webhooks/bachs`; store its signing secret as `BACHS_AWARD_WEBHOOK_SECRET`.
+- Magazine payments: `https://www.top100afl.com/api/webhooks/bachs-magazine`; store its distinct signing secret as `BACHS_MAGAZINE_WEBHOOK_SECRET`.
 
 Award payment confirmations are sent by the app after the signed `collection.succeeded` event is verified and the captured amount is committed. Configure `RESEND_API_KEY` and `RESEND_FROM_EMAIL` with a verified Resend sender domain for the Top100-branded receipt. Resend is preferred when configured; the existing Brevo sender is the fallback when Resend is not configured. The confirmation includes the captured fee and a link back to the member's award page. A webhook replay retries an email that was not recorded as sent, using the same Resend idempotency key to prevent duplicate receipts.
 
