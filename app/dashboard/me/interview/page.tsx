@@ -106,7 +106,7 @@ export default function InterviewRequestPage() {
       <div className="mx-auto max-w-2xl space-y-5">
         {loading ? <RequestSkeleton /> : null}
 
-        {!loading && loadError ? (
+        {!loading && loadError && !previewUnavailableForm ? (
           <section role="alert" className="rounded-2xl border border-orange-200 bg-white p-6 sm:p-8">
             <div className="mx-auto max-w-md text-center">
               <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-orange-50 text-orange-800"><CalendarDays className="size-6" aria-hidden="true" /></div>
