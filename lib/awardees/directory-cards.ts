@@ -3,7 +3,7 @@ import type { Awardee } from '@/lib/awardees-shared'
 export type DirectoryCard = Pick<Awardee,
   'awardee_id' | 'profile_id' | 'name' | 'slug' | 'country' | 'year' |
   'headline' | 'tagline' | 'bio' | 'course' | 'field_of_study' |
-  'avatar_url' | 'email' | 'personal_email' | 'is_public'>
+  'avatar_url' | 'email' | 'personal_email' | 'is_public'> & { socialLinks?: import('@/lib/profile-contact').SocialLink[] }
 
 // Public directory cards do not need galleries, achievements or record metadata.
 export function publicDirectoryCards(awardees: Awardee[]): DirectoryCard[] {

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { ProfileSocialLinks } from '@/components/profile-social-icon'
 import Link from 'next/link'
 import { ArrowRight, Mail, MapPin, RefreshCw, Search, ShieldAlert } from 'lucide-react'
 
@@ -181,6 +182,7 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
                     </span>
                   ) : null}
                 </div>
+                <ProfileSocialLinks links={awardee.socialLinks} />
                 <div className="mt-4 grid grid-cols-2 gap-2">
                   <Button
                     asChild
