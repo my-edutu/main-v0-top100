@@ -11,6 +11,7 @@ import { normalizeAwardeeEntry, type StaticAwardeeRecord, type Awardee, type Pro
 export * from './awardees-shared'
 
 const EXCEL_FILE_NAME = 'top100 Africa future Leaders 2025.xlsx'
+const AWARDEE_DIRECTORY_PAGE_SIZE = 500
 const hasServiceRoleKey = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY)
 
 const normalizeCellText = (value: unknown): string | null => {
@@ -169,15 +170,25 @@ const loadAwardeesDirectory = async (): Promise<Awardee[]> => {
         { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } },
       )
 
-      // Query the awardee_directory view instead of the table directly
-      const { data, error } = await supabase
-        .from('awardee_directory')
-        .select('*')
-        .order('name', { ascending: true })
+      // PostgREST caps each response at 1,000 rows by default. Fetch smaller
+      // stable pages so profiles later in the alphabet are not silently lost.
+      const data: AwardeeDirectoryEntry[] = []
+      for (let offset = 0; ; offset += AWARDEE_DIRECTORY_PAGE_SIZE) {
+        const { data: page, error } = await supabase
+          .from('awardee_directory')
+          .select('*')
+          .order('name', { ascending: true })
+          .order('awardee_id', { ascending: true })
+          .range(offset, offset + AWARDEE_DIRECTORY_PAGE_SIZE - 1)
 
-      if (error) {
-        console.warn('Error fetching awardees from Supabase, using static seed:', error)
-        return await loadStaticAwardees()
+        if (error) {
+          console.warn('Error fetching awardees from Supabase, using static seed:', error)
+          return await loadStaticAwardees()
+        }
+
+        const pageEntries = (page ?? []) as AwardeeDirectoryEntry[]
+        data.push(...pageEntries)
+        if (pageEntries.length < AWARDEE_DIRECTORY_PAGE_SIZE) break
       }
 
       // If no awardee records are found, attempt to initialize from Excel
@@ -194,7 +205,7 @@ const loadAwardeesDirectory = async (): Promise<Awardee[]> => {
         return fallbackAwardees
       }
 
-      return (data as AwardeeDirectoryEntry[]).map(normalizeAwardeeEntry)
+      return data.map(normalizeAwardeeEntry)
     } catch (error) {
       console.error('Error in getAwardees:', error)
       const fallbackAwardees = await loadStaticAwardees()

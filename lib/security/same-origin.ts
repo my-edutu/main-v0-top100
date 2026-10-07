@@ -23,7 +23,12 @@ export function isTrustedRequestOrigin(request: Request): boolean {
       if (origin) allowedOrigins.add(origin)
     }
   }
-  const configuredOrigin = normalizedOrigin(process.env.NEXT_PUBLIC_SITE_URL)
+  // Prefer a server-only runtime setting so reverse-proxy deployments can
+  // configure the public origin without relying on a NEXT_PUBLIC_* value that
+  // Next.js may inline at build time.
+  const configuredOrigin = normalizedOrigin(
+    process.env.TOP100_SITE_URL ?? process.env.NEXT_PUBLIC_SITE_URL,
+  )
   if (configuredOrigin) {
     allowedOrigins.add(configuredOrigin)
     const publicUrl = new URL(configuredOrigin)

@@ -2,7 +2,7 @@ import { sendMemberPush } from '@/lib/push/send'
 // app/api/admin/members/[id]/route.ts
 // Admin: approve / reject / suspend a member, or reset their BIO update limit.
 import { NextRequest, NextResponse } from 'next/server'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag } from 'next/cache'
 import { requireAdmin } from '@/lib/api/require-admin'
 import { createAdminClient } from '@/lib/supabase/server'
 import { mapProfileToMember } from '@/lib/member-hub-server'
@@ -107,7 +107,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (!noticeError) await sendMemberPush(supabase, [id], { ...notice, url: '/dashboard/notifications' }).catch(() => undefined)
   }
 
-  if (action === 'approve' && pendingClaim) revalidatePath('/awardees')
+  if (action === 'approve' && pendingClaim) {
+    revalidateTag('awardees', { expire: 0 })
+    revalidatePath('/awardees')
+  }
 
   return NextResponse.json({ member: mapProfileToMember(data) })
 }

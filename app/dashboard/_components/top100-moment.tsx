@@ -3,7 +3,7 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import Image from '@/components/safe-image'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, ArrowRight, Check, ChevronRight, ImagePlus, LoaderCircle } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, ChevronRight, ImagePlus, LoaderCircle, X } from 'lucide-react'
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 
 import { DEFAULT_AWARDEE_JOURNEY_SETTINGS, type AwardeeJourneySettings } from '@/lib/dashboard/awardee-journey-settings'
@@ -137,24 +137,68 @@ export function Top100MomentGate({ member, children }: { member: MemberProfile; 
   const [payload, setPayload] = useState<JourneyPayload | null>(initialJourney.payload)
   const [loading, setLoading] = useState(initialJourney.loading)
   const [dismissed, setDismissed] = useState(initialJourney.dismissed)
+  const [showWelcome, setShowWelcome] = useState(false)
+  const dismissalKey = `top100-moment-dismissed:${member.id}`
 
   useEffect(() => {
     let active = true
     void loadMemberJourney(member.id)
       .then((journey) => {
         if (!active) return
-        if (journey) setPayload(journey)
-        else setDismissed(true)
+        if (!journey || journey.moment.completedAt) {
+          setDismissed(true)
+          return
+        }
+        setPayload(journey)
+        try {
+          setDismissed(window.sessionStorage.getItem(dismissalKey) === '1')
+        } catch {
+          setDismissed(false)
+        }
       })
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
-  }, [member.id])
+  }, [member.id, dismissalKey])
 
-  if (dismissed || payload?.moment?.completedAt) return children
-  if (loading || !payload) {
-    return <div className="grid min-h-dvh place-items-center bg-white" role="status" aria-label="Loading your dashboard"><LoaderCircle className="h-8 w-8 animate-spin text-orange-600 motion-reduce:animate-none" aria-hidden="true" /></div>
+  function dismissWelcome() {
+    try {
+      window.sessionStorage.setItem(dismissalKey, '1')
+    } catch {
+      // The dashboard remains available even when the browser blocks storage.
+    }
+    setDismissed(true)
+    setShowWelcome(false)
   }
-  return <Top100Moment member={member} payload={payload} onComplete={() => setDismissed(true)} />
+
+  if (loading || !payload || dismissed || payload.moment.completedAt) return children
+
+  return (
+    <>
+      {showWelcome ? (
+        <>
+          {children}
+          <Top100Moment member={member} payload={payload} onComplete={dismissWelcome} />
+        </>
+      ) : (
+        <aside
+          aria-label="Top100 welcome"
+          className="relative z-[60] border-b border-[#E5E5E5] bg-white px-4 py-3 text-[#171717] sm:px-6 lg:px-8"
+        >
+          <div className="mx-auto flex max-w-[1280px] flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold">Welcome to Top100, {member.name.trim().split(/\s+/)[0] || 'Leader'}.</p>
+              <p className="mt-1 text-sm text-[#626262]">Your dashboard is ready. The welcome tour is optional.</p>
+            </div>
+            <div className="flex shrink-0 gap-2">
+              <button type="button" onClick={() => setShowWelcome(true)} className="min-h-11 rounded-lg bg-[#171717] px-4 text-sm font-medium text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#171717] focus-visible:ring-offset-2">View welcome</button>
+              <button type="button" onClick={dismissWelcome} className="min-h-11 rounded-lg border border-[#D8D8D8] px-4 text-sm font-medium text-[#171717] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#171717] focus-visible:ring-offset-2">Dismiss</button>
+            </div>
+          </div>
+        </aside>
+      )}
+      {showWelcome ? null : children}
+    </>
+  )
 }
 
 function Top100Moment({ member, payload, onComplete }: { member: MemberProfile; payload: JourneyPayload; onComplete: () => void }) {
@@ -259,7 +303,10 @@ function Top100Moment({ member, payload, onComplete }: { member: MemberProfile; 
       <div className="relative z-10 mx-auto flex h-full max-w-7xl flex-col px-5 pb-[max(18px,env(safe-area-inset-bottom))] pt-[max(16px,env(safe-area-inset-top))] sm:px-9 lg:px-12">
         <header className="flex shrink-0 items-center justify-between gap-4">
           <Image src="/Top100%20Africa%20Future%20leaders%20Logo%20.png" alt="Top100 Africa Future Leaders" width={180} height={42} priority className="h-auto w-[138px] sm:w-[168px]" />
-          <button type="button" onClick={() => void finish()} disabled={saving} className="min-h-11 rounded-full px-4 text-sm font-medium text-[#10151f]/80 transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10151f] disabled:opacity-50">Skip</button>
+          <div className="flex items-center gap-1">
+            <button type="button" onClick={() => void finish()} disabled={saving} className="min-h-11 rounded-full px-4 text-sm font-medium text-[#10151f]/80 transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10151f] disabled:opacity-50">Skip</button>
+            <button type="button" onClick={onComplete} aria-label="Close welcome and return to dashboard" className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-[#10151f]/80 transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10151f]"><X className="h-4 w-4" aria-hidden="true" /></button>
+          </div>
         </header>
 
         <div className="mt-4 flex items-center gap-3" aria-label={`Page ${scene + 1} of ${sceneCount}`}>
