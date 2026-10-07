@@ -41,3 +41,13 @@ export async function shareTop100(browser: Pick<Navigator, 'share' | 'clipboard'
     throw error
   }
 }
+
+
+export function isIOSDevice(userAgent: string, platform: string, maxTouchPoints: number) {
+  return /iPhone|iPad|iPod/i.test(userAgent) || (platform === 'MacIntel' && maxTouchPoints > 1)
+}
+
+export function homeScreenAction(ios: boolean, supportsShare: boolean, hasInstallEvent: boolean) {
+  if (ios) return supportsShare ? 'share' as const : null
+  return hasInstallEvent ? 'install' as const : null
+}

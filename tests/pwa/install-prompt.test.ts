@@ -53,3 +53,20 @@ describe('Top100 share action', () => {
     expect(writeText).not.toHaveBeenCalled()
   })
 })
+
+import { isIOSDevice, homeScreenAction } from '@/lib/install-prompt'
+
+describe('platform-specific home screen CTA', () => {
+  it('recognizes iPhones and iPads using desktop user agents', () => {
+    expect(isIOSDevice('iPhone', 'iPhone', 1)).toBe(true)
+    expect(isIOSDevice('Safari', 'MacIntel', 5)).toBe(true)
+    expect(isIOSDevice('Safari', 'MacIntel', 0)).toBe(false)
+    expect(isIOSDevice('Android', 'Linux', 5)).toBe(false)
+  })
+  it('uses Share only on iOS, and native install elsewhere', () => {
+    expect(homeScreenAction(true, true, false)).toBe('share')
+    expect(homeScreenAction(true, false, false)).toBeNull()
+    expect(homeScreenAction(false, true, true)).toBe('install')
+    expect(homeScreenAction(false, true, false)).toBeNull()
+  })
+})
