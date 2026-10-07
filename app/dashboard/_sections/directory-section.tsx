@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ProfileSocialLinks } from '@/components/profile-social-icon'
 import Link from 'next/link'
-import { ArrowRight, Mail, MapPin, RefreshCw, Search, ShieldAlert } from 'lucide-react'
+import { ArrowRight, Mail, UsersRound, MapPin, RefreshCw, Search, ShieldAlert } from 'lucide-react'
 
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DashboardLoading } from '../_components/dashboard-loading'
@@ -21,6 +22,7 @@ const directoryCohorts = [
 ]
 
 export function DirectorySection({ member }: { member: MemberProfile }) {
+  const [connecting, setConnecting] = useState<DirectoryCard | null>(null)
   const [awardees, setAwardees] = useState<DirectoryCard[]>(() => shuffleAwardees(peekPublicDirectory() ?? []))
   const [selectedYear, setSelectedYear] = useState<number | 'all'>('all')
   const [searchTerm, setSearchTerm] = useState('')
@@ -99,6 +101,7 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
 
   return (
     <div className="hub-directory min-w-0">
+      <Dialog open={Boolean(connecting)} onOpenChange={open => { if (!open) setConnecting(null) }}><DialogContent className="max-w-sm rounded-2xl"><DialogHeader><DialogTitle>Connect with {connecting?.name}</DialogTitle><DialogDescription>Choose a contact option shared by this member.</DialogDescription></DialogHeader>{connecting ? <div className="space-y-4"><div className="flex items-center gap-3"><div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-orange-50 text-orange-800">{getInitials(connecting.name)}</div><div><p className="font-medium">{connecting.name}</p><p className="text-sm text-neutral-500">{connecting.headline || connecting.country}</p></div></div><ProfileSocialLinks links={connecting.socialLinks} />{connecting.email ? <a href={`mailto:${connecting.email}`} className="flex min-h-12 items-center gap-3 rounded-xl border px-4 py-3 hover:bg-orange-50"><Mail className="size-5 shrink-0" /><span className="min-w-0"><span className="block text-sm font-medium">Email</span><span className="block break-all text-xs text-neutral-500">{connecting.email}</span></span></a> : null}{!connecting.email && !connecting.socialLinks?.length ? <p className="rounded-xl bg-neutral-50 p-4 text-sm text-neutral-600">This member hasn’t shared any public contact options yet.</p> : null}</div> : null}</DialogContent></Dialog>
       <div className="space-y-5">
         {restrictedStatus ? <DirectoryRecoveryCard status={restrictedStatus} /> : null}
 
@@ -182,7 +185,6 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
                     </span>
                   ) : null}
                 </div>
-                <ProfileSocialLinks links={awardee.socialLinks} />
                 <div className="mt-4 grid grid-cols-2 gap-2">
                   <Button
                     asChild
@@ -192,37 +194,7 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
                       View BIO
                     </Link>
                   </Button>
-                  {(awardee.email || awardee.personal_email) && !contactRestricted ? (
-                    <Button
-                      asChild
-                      variant="outline"
-                      className="h-10 rounded-full border border-black/10 bg-white px-4 text-sm font-semibold text-black/75 shadow-none hover:bg-[#fafafa]"
-                    >
-                      <Link
-                        href={`mailto:${awardee.email || awardee.personal_email}`}
-                        aria-label={`Email ${awardee.name}`}
-                        title={`Email ${awardee.name}`}
-                      >
-                        <Mail className="mr-1.5 h-4 w-4" strokeWidth={2.6} />
-                        Email
-                      </Link>
-                    </Button>
-                  ) : (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      disabled
-                      title={
-                        contactRestricted
-                          ? 'Contact options are paused for your membership'
-                          : 'No public email address available'
-                      }
-                      className="h-10 rounded-full border border-black/10 bg-white px-4 text-sm font-semibold text-black/75 shadow-none disabled:opacity-50"
-                    >
-                      <Mail className="mr-1.5 h-4 w-4" strokeWidth={2.6} />
-                      Email
-                    </Button>
-                  )}
+                  <Button type="button" variant="outline" disabled={contactRestricted} onClick={() => setConnecting(awardee)} aria-label={`Connect with ${awardee.name}`} className="min-h-11 rounded-full border-black/10 bg-white text-black/75 hover:bg-orange-50"><UsersRound className="mr-2 size-4" />Connect</Button>
                 </div>
               </article>
             ))}
