@@ -29,3 +29,20 @@ export async function requireConfirmedAwardAccess(pathname: string): Promise<voi
   const destination = awardAccessRedirect(view)
   if (destination) redirect(destination)
 }
+
+// Covers are available to signed-in members independently of physical award fees.
+export async function requireSignedInAwardeeAccess(pathname: string): Promise<void> {
+  const requestHeaders = await headers()
+  const requestCookies = await cookies()
+  const localPreview = hasValidDemoSession({
+    headers: requestHeaders,
+    cookies: { get: (name: string) => requestCookies.get(name) },
+  }) && isLoopbackDevelopment({ headers: requestHeaders })
+  if (localPreview) return
+
+  const user = await getCurrentUser()
+  if (!user?.id) {
+    redirect(`/login?next=${encodeURIComponent(pathname)}`)
+  }
+
+}

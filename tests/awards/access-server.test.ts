@@ -19,13 +19,21 @@ vi.mock('next/navigation', () => ({ redirect: vi.fn() }))
 vi.mock('@/lib/auth-server', () => ({ getCurrentUser }))
 vi.mock('@/lib/awards/payment-server', () => ({ getAwardPaymentView }))
 
-import { requireConfirmedAwardAccess } from '@/lib/awards/access-server'
+import { requireConfirmedAwardAccess, requireSignedInAwardeeAccess } from '@/lib/awards/access-server'
 
 describe('requireConfirmedAwardAccess', () => {
   beforeEach(() => {
     vi.stubEnv('NODE_ENV', 'development')
     getCurrentUser.mockReset()
     getAwardPaymentView.mockReset()
+  })
+
+  it('opens the cover for a signed-in production member without reading payment status', async () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    getCurrentUser.mockResolvedValue({ id: 'unpaid-member' })
+    await expect(requireSignedInAwardeeAccess('/dashboard/me/portfolio-cover')).resolves.toBeUndefined()
+    expect(getCurrentUser).toHaveBeenCalled()
+    expect(getAwardPaymentView).not.toHaveBeenCalled()
   })
 
   it('lets a valid local demo session proceed without waiting on Supabase auth', async () => {

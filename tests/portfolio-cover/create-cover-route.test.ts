@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@/lib/auth-server', () => ({ getCurrentUser: vi.fn(async () => mocks.user) }))
 vi.mock('@/lib/security/same-origin', () => ({ rejectCrossOriginMutation: vi.fn(() => null) }))
-vi.mock('@/lib/awards/access-server', () => ({ hasConfirmedAwardPayment: vi.fn(async () => true) }))
+vi.mock('@/lib/awards/access-server', () => ({ hasConfirmedAwardPayment: vi.fn(async () => false) }))
 vi.mock('@/lib/rate-limit', () => ({
   checkRateLimit: vi.fn(async () => ({ success: true, limit: 10, remaining: 9, reset: Date.now() + 300_000 })),
   createRateLimitResponse: vi.fn(),
@@ -35,7 +35,7 @@ describe('POST /api/member/portfolio-cover/generations (template cover upload)',
     mocks.profileUpdate.mockReset().mockResolvedValue({ error: null })
   })
 
-  it('renders and saves the uploaded portrait in the AFL template without AI or gender inputs', async () => {
+  it('lets an unpaid member render and save the AFL cover', async () => {
     const photo = await sharp({ create: { width: 80, height: 120, channels: 3, background: '#d02080' } }).png().toBuffer()
     const form = new FormData()
     form.set('portrait', new File([photo], 'portrait.png', { type: 'image/png' }))

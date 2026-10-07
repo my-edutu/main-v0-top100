@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock('@/lib/auth-server', () => ({ getCurrentUser: vi.fn(async () => mocks.user) }))
-vi.mock('@/lib/awards/access-server', () => ({ hasConfirmedAwardPayment: vi.fn(async () => true) }))
+vi.mock('@/lib/awards/access-server', () => ({ hasConfirmedAwardPayment: vi.fn(async () => false) }))
 vi.mock('@/lib/media/storage', () => ({ downloadMedia: mocks.downloaded }))
 vi.mock('@/lib/supabase/server', () => ({
   createAdminClient: vi.fn(() => ({
@@ -26,7 +26,7 @@ describe('GET /api/member/portfolio-cover/download', () => {
     mocks.downloaded.mockReset().mockResolvedValue(Buffer.from('cover-image'))
   })
 
-  it('streams the authenticated member’s saved cover as a same-origin attachment', async () => {
+  it('lets an unpaid member download their saved cover', async () => {
     const response = await GET()
 
     expect(response.status).toBe(200)

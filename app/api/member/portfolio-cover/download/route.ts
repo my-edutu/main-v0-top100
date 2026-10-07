@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 
-import { hasConfirmedAwardPayment } from '@/lib/awards/access-server'
 import { getCurrentUser } from '@/lib/auth-server'
 import { downloadMedia } from '@/lib/media/storage'
 import { createAdminClient } from '@/lib/supabase/server'
@@ -11,13 +10,6 @@ export async function GET() {
   const user = await getCurrentUser()
   if (!user?.id) return NextResponse.json({ message: 'Authentication required.' }, { status: 401 })
 
-  try {
-    if (!(await hasConfirmedAwardPayment(user.id))) {
-      return NextResponse.json({ message: 'Complete your award payment to access your portfolio cover.' }, { status: 402 })
-    }
-  } catch {
-    return NextResponse.json({ message: 'Could not verify award access. Please try again shortly.' }, { status: 503 })
-  }
 
   const { data, error } = await createAdminClient()
     .from('profiles')

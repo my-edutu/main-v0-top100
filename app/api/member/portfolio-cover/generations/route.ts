@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 import { getCurrentUser } from '@/lib/auth-server'
-import { hasConfirmedAwardPayment } from '@/lib/awards/access-server'
 import { checkRateLimit, createRateLimitResponse, getClientIdentifier, RATE_LIMITS } from '@/lib/rate-limit'
 import { rejectCrossOriginMutation } from '@/lib/security/same-origin'
 import { createAdminClient } from '@/lib/supabase/server'
@@ -20,13 +19,6 @@ export async function POST(request: NextRequest) {
   const user = await getCurrentUser()
   if (!user?.id) return NextResponse.json({ message: 'Authentication required.' }, { status: 401 })
 
-  try {
-    if (!(await hasConfirmedAwardPayment(user.id))) {
-      return NextResponse.json({ message: 'Complete your award payment to unlock your portfolio cover.' }, { status: 402 })
-    }
-  } catch {
-    return NextResponse.json({ message: 'Could not verify award access. Please try again shortly.' }, { status: 503 })
-  }
 
   const rate = await checkRateLimit({
     ...RATE_LIMITS.UPLOAD,
