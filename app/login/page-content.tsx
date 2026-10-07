@@ -12,7 +12,7 @@ import Image from '@/components/safe-image'
 import { cn } from '@/lib/utils'
 import { TurnstileCaptcha, verifyCaptcha } from '@/components/ui/turnstile'
 import { Role, isAdminRole } from '@/lib/types/roles'
-import { friendlySignInError, normalizeRole } from '@/lib/auth-utils'
+import { friendlySignInError, normalizeRole, profileCheckFeedback } from '@/lib/auth-utils'
 import { sanitizeDashboardRedirect } from '@/lib/dashboard/redirect'
 import { attemptLocalDashboardLogin } from '@/lib/dev-dashboard/login'
 
@@ -127,16 +127,10 @@ export default function SignInContent() {
         })
 
         if (!response.ok) {
-          const errorData = await response.json()
+          const errorData = await response.json().catch(() => ({}))
           console.error('Profile check failed:', response.status, errorData)
 
-          if (response.status === 404) {
-            setError('Top100 Awardee profile not found. Contact administrative team.')
-          } else if (response.status === 403) {
-            setError('Access denied. This account does not have Top100 Awardee privileges.')
-          } else {
-            setError('Authentication error. Please try again.')
-          }
+          setError(profileCheckFeedback(response.status, errorData))
           // Sign out the user
           await supabase.auth.signOut()
           setIsLoading(false)

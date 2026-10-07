@@ -112,6 +112,14 @@ export function extractRoleFromJWTPayload(payload: any): Role | null {
  * collapses to one neutral message. The original still goes to console.error
  * at the call site for debugging.
  */
+export function profileCheckFeedback(status: number, data: { error?: unknown; message?: unknown }): string {
+  if (status === 404) return 'Top100 Awardee profile not found. Contact administrative team.'
+  if (status === 403 && data.error === 'Access denied.')
+    return 'Access denied. This account does not have Top100 Awardee privileges.'
+  if (status === 401) return 'Your sign-in session could not be verified. Please sign in again.'
+  return 'We could not verify your account access right now. Please try again shortly.'
+}
+
 export function friendlySignInError(error: {
   code?: string
   message?: string
