@@ -41,6 +41,18 @@ describe('cookie-authenticated mutation origin checks', () => {
     ).toBeNull()
   })
 
+  it.each(['https://top100afl.com', 'https://www.top100afl.com'])(
+    'accepts the built-in production origin %s when proxy env is missing',
+    (origin) => {
+      vi.stubEnv('TOP100_SITE_URL', '')
+      vi.stubEnv('NEXT_PUBLIC_SITE_URL', '')
+
+      expect(
+        rejectCrossOriginMutation(mutation({ cookie: 'sb-auth=token', origin })),
+      ).toBeNull()
+    },
+  )
+
   it('uses Referer when a browser omits Origin', () => {
     vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://top100afl.com')
 

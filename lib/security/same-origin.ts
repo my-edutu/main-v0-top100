@@ -17,6 +17,13 @@ function normalizedOrigin(value: string | null | undefined): string | null {
  */
 export function isTrustedRequestOrigin(request: Request): boolean {
   const allowedOrigins = new Set<string>([new URL(request.url).origin])
+  // The production proxy can expose an internal request URL and Dokploy's
+  // service environment may be read-only. These are the only public origins
+  // that route to this application.
+  if (process.env.NODE_ENV !== 'development') {
+    allowedOrigins.add('https://top100afl.com')
+    allowedOrigins.add('https://www.top100afl.com')
+  }
   if (process.env.NODE_ENV === 'development') {
     for (const value of (process.env.TOP100_DEV_ORIGINS ?? '').split(',')) {
       const origin = normalizedOrigin(value.trim())
