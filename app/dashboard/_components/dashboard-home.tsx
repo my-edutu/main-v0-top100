@@ -28,7 +28,7 @@ const PARTNERSHIP_FORM_URL = 'https://docs.google.com/forms/d/1pabeSUOwN15Sr-VcA
 
 const launchBanners = [
   { title: 'Project100 Scholarship', description: 'Put your next chapter in motion.', href: '/dashboard/me/project100-scholarship', image: '/dashboard/banners/project100-scholarship-v2.png' },
-  { title: 'Impact Series Interviews', description: 'Share the work behind your impact.', href: INTERVIEW_FORM_URL, image: '/dashboard/banners/impact-series-v2.png', external: true },
+  { title: 'Impact Series Interviews', description: 'Share the work behind your impact.', href: INTERVIEW_FORM_URL, image: '/dashboard/banners/impact-series-v2.png' },
   { title: 'Let your organization partner with Africa Future Leaders', description: 'Create more impact together.', href: PARTNERSHIP_FORM_URL, image: '/dashboard/banners/impact-series-v2.png', external: true },
 ] as const
 
@@ -109,7 +109,7 @@ export function DashboardHome() {
     }
   }, [])
 
-  const shortcuts = [discoverNav[0], discoverNav[2], meNav[0], meNav[1], meNav[4],
+  const shortcuts = [discoverNav[0], discoverNav[2], meNav[0], meNav[2], meNav[4],
     { label:'Schedule an interview', href:INTERVIEW_FORM_URL, icon:Mail, color:'ember' as const },
     { label:'Contact the team', href:'mailto:info@top100afl.com', icon:Mail, color:'forest' as const },
     { label:'Partner with us', href:'/partnership', icon:UserRound, color:'cobalt' as const },
