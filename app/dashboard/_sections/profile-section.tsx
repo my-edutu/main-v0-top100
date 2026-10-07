@@ -180,7 +180,7 @@ export function ProfileSection() {
 
   return (
     <section className="hub-profile-editor mx-auto w-full max-w-2xl space-y-6" aria-label="Update your profile">
-      <div className="space-y-4"><div className="flex items-center justify-between text-sm text-neutral-500"><span>Step {page + 1} of {pages.length}</span><span>{Math.round((page + 1) / pages.length * 100)}%</span></div><progress aria-label="Profile setup progress" className="h-1.5 w-full accent-orange-600" value={page + 1} max={pages.length} /><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-semibold">Update your profile</h2><label className="text-sm text-neutral-600">Edit section<select aria-label="Edit profile section" disabled={saving} value={page} onChange={event => { setPage(Number(event.target.value)); setError('') }} className="ml-2 min-h-11 rounded-lg border bg-white px-3">{pages.map((title, index) => <option key={title} value={index}>{title}</option>)}</select></label></div><p className="text-sm text-neutral-600">Your changes stay here as you move between steps. Save when you’re ready.</p></div>
+      <div className="space-y-4"><div className="flex items-center justify-between text-sm text-neutral-500"><span>Step {page + 1} of {pages.length}</span><span>{Math.round((page + 1) / pages.length * 100)}%</span></div><div role="progressbar" aria-label="Profile setup progress" aria-valuenow={page + 1} aria-valuemin={0} aria-valuemax={pages.length} className="h-1.5 w-full overflow-hidden rounded-full bg-neutral-200"><div className="h-full rounded-full bg-orange-600 transition-all" style={{ width: `${(page + 1) / pages.length * 100}%` }} /></div><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-semibold">Update your profile</h2><label className="text-sm text-neutral-600">Edit section<select aria-label="Edit profile section" disabled={saving} value={page} onChange={event => { setPage(Number(event.target.value)); setError('') }} className="ml-2 min-h-11 rounded-lg border bg-white px-3">{pages.map((title, index) => <option key={title} value={index}>{title}</option>)}</select></label></div><p className="text-sm text-neutral-600">One section at a time. Review and save at the end.</p></div>
       <div className="min-w-0 rounded-xl border border-neutral-200 bg-white p-5 sm:p-7">
         <div className="min-w-0 space-y-5">
           <fieldset disabled={saving} className="space-y-5">
@@ -207,8 +207,18 @@ export function ProfileSection() {
       </div>
       {error ? <p role="alert" className="text-sm text-red-800">{error}</p> : null}
       {warning ? <p role="status" className="text-sm text-amber-800">{warning}</p> : null}
-      <div className="flex items-center justify-between gap-3"><Button type="button" variant="outline" disabled={saving || page === 0} onClick={() => { setPage(current => current - 1); setError('') }}>Back</Button>{page < pages.length - 1 ? <Button type="button" disabled={saving} className="min-h-11 bg-orange-600 text-white hover:bg-orange-700" onClick={() => { const problem = page === 6 ? validateSocialLinks(draft.socialLinks ?? []) : null; if (problem) { setError(problem); return }; setError(''); setPage(current => current + 1) }}>Next step →</Button> : null}</div>
-      <div className="flex flex-wrap gap-3 border-t border-neutral-200 pt-4"><Button type="button" disabled={saving} onClick={() => void saveProfile()} className="min-h-11 bg-orange-600 text-white hover:bg-orange-700">{saving ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}{saving ? 'Saving profile…' : 'Save profile'}</Button><Button type="button" variant="outline" disabled={saving} onClick={() => setEditing(false)}><ArrowLeft className="mr-2 size-4" />Cancel update</Button></div>
+      <footer className="space-y-3 border-t border-neutral-200 pt-5">
+        <div className="flex items-center gap-3">
+          {page > 0 ? <Button type="button" variant="ghost" disabled={saving} className="min-h-12 shrink-0 px-3 text-neutral-600" onClick={() => { setPage(current => current - 1); setError('') }}><ArrowLeft className="mr-2 size-4" />Back</Button> : null}
+          <Button type="button" disabled={saving} className="min-h-12 flex-1 rounded-lg bg-orange-600 text-white hover:bg-orange-700" onClick={() => {
+            if (page === pages.length - 1) { void saveProfile(); return }
+            const problem = page === 6 ? validateSocialLinks(draft.socialLinks ?? []) : null
+            if (problem) { setError(problem); return }
+            setError(''); setPage(current => current + 1)
+          }}>{saving ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}{saving ? 'Saving profile…' : page === pages.length - 1 ? 'Save profile' : page === pages.length - 2 ? 'Review profile →' : 'Continue →'}</Button>
+        </div>
+        <div className="flex items-center justify-between gap-3 text-xs text-neutral-500"><span>{page === pages.length - 1 ? 'Review your details before saving.' : 'Changes are saved after your final review.'}</span><button type="button" disabled={saving} onClick={() => setEditing(false)} className="min-h-11 shrink-0 px-2 text-sm underline underline-offset-4 hover:text-neutral-900">Cancel</button></div>
+      </footer>
     </section>
   )
 }
