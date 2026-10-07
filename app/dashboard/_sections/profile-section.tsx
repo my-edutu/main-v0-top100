@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState } from 'react'
 import Image from '@/components/safe-image'
 import Link from 'next/link'
-import { ArrowLeft, Loader2, Share2, UserRound } from 'lucide-react'
+import { ArrowLeft, Loader2, Share2, UserRound, Linkedin, Facebook, Instagram, Globe, Mail } from 'lucide-react'
 import { toast } from 'sonner'
 
+import { SOCIAL_PLATFORMS, validateSocialLinks, type SocialLink } from '@/lib/profile-contact'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -20,11 +21,14 @@ import { MemberAvatar } from '../_components/member-avatar'
 
 type ProfileDraft = Pick<
   MemberProfile,
-  'headline' | 'field' | 'location' | 'organization' | 'bio' | 'emailVisible' | 'recruiterVisible'
+  'headline' | 'field' | 'location' | 'organization' | 'bio' | 'socialLinks' | 'socialLinksConsent' | 'contactEmailConsent' | 'emailVisible' | 'recruiterVisible'
 >
 
 function draftFromMember(member: MemberProfile): ProfileDraft {
   return {
+    socialLinks: member.socialLinks ?? [],
+    socialLinksConsent: member.socialLinksConsent ?? false,
+    contactEmailConsent: member.contactEmailConsent ?? false,
     headline: member.headline,
     field: member.field,
     location: member.location,
@@ -119,7 +123,7 @@ export function ProfileSection() {
 
   async function saveProfile() {
     if (saving) return
-    const validation = validateProfileDraft(draft)
+    const validation = validateProfileDraft(draft) || validateSocialLinks(draft.socialLinks ?? [])
     if (validation) { setError(validation); return }
     setSaving(true)
     setError('')
@@ -133,7 +137,7 @@ export function ProfileSection() {
       }
 
       const result = await persistThenRefresh({
-        persist: () => updateMemberProfile(member.id, buildProfileUpdatePatch(draft, true)),
+        persist: () => updateMemberProfile(member.id, { ...buildProfileUpdatePatch(draft, true), socialLinks: draft.socialLinks, socialLinksConsent: draft.socialLinksConsent, contactEmailConsent: draft.contactEmailConsent }),
         applyPersisted: (persisted) => replaceMember({
           ...persisted,
           ...(uploadedAvatarUrl ? { avatarUrl: uploadedAvatarUrl } : {}),
@@ -178,6 +182,11 @@ export function ProfileSection() {
           <fieldset disabled={saving} className="space-y-5">
             <div className="space-y-2"><Label htmlFor="profile-photo">Profile photo</Label><MemberAvatar src={photoFile && photoPreview ? photoPreview : member.avatarUrl} initials={member.avatarInitials} size={64} /><Input ref={photoInputRef} id="profile-photo" type="file" accept="image/jpeg,image/png,image/webp" onChange={event => selectPhoto(event.target.files?.[0])} /><p className="text-xs text-neutral-500">JPG, PNG or WebP, up to 5 MB.</p></div>
             <ProfileEditorFields draft={draft} onChange={updateDraft} />
+            <section className="space-y-3"><h3 className="text-lg font-semibold">Social media</h3><p className="text-sm text-neutral-600">Add up to three links. Use complete https:// URLs.</p>
+              {(draft.socialLinks ?? []).map((link, index) => <div key={index} className="space-y-2 rounded-lg border p-3"><label className="block text-sm">Platform<select aria-label={`Social platform ${index + 1}`} className="mt-1 min-h-11 w-full rounded border bg-white p-2" value={link.platform} onChange={event => updateDraft('socialLinks', draft.socialLinks!.map((item, i) => i === index ? { ...item, platform: event.target.value as SocialLink['platform'] } : item))}>{SOCIAL_PLATFORMS.map(platform => <option key={platform} value={platform}>{platform === 'twitter' ? 'X / Twitter' : platform}</option>)}</select></label><Input aria-label={`Social URL ${index + 1}`} type="url" maxLength={500} placeholder="https://" value={link.url} onChange={event => updateDraft('socialLinks', draft.socialLinks!.map((item, i) => i === index ? { ...item, url: event.target.value } : item))} /><button type="button" className="min-h-11 text-sm text-orange-800" onClick={() => updateDraft('socialLinks', draft.socialLinks!.filter((_, i) => i !== index))}>Remove link</button></div>)}
+              {(draft.socialLinks ?? []).length < 3 ? <Button type="button" variant="outline" onClick={() => updateDraft('socialLinks', [...(draft.socialLinks ?? []), { platform: SOCIAL_PLATFORMS.find(p => !draft.socialLinks?.some(l => l.platform === p)) ?? 'website', url: '' }])}>Add social link</Button> : null}
+            </section>
+            <section className="space-y-3"><h3 className="text-lg font-semibold">Your consent</h3><p className="text-sm text-neutral-600">These choices are optional. You can withdraw consent here at any time.</p><label className="flex min-h-11 items-start gap-3 text-sm"><input type="checkbox" checked={draft.socialLinksConsent ?? false} onChange={event => updateDraft('socialLinksConsent', event.target.checked)} />I agree to display my social links on my public profile.</label><label className="flex min-h-11 items-start gap-3 text-sm"><input type="checkbox" checked={draft.contactEmailConsent ?? false} onChange={event => updateDraft('contactEmailConsent', event.target.checked)} />I agree to display a public email button so visitors can contact me.</label></section>
             <VisibilityOption label="Recruiters can find my profile" checked={draft.recruiterVisible} onChange={checked => updateDraft('recruiterVisible', checked)} />
             <VisibilityOption label="Show my email on my public profile" checked={draft.emailVisible} onChange={checked => updateDraft('emailVisible', checked)} />
           </fieldset>
@@ -189,7 +198,7 @@ export function ProfileSection() {
           <p className="mt-1 break-words text-sm">{draft.headline}</p>
           <dl className="mt-4"><ProfileValue label="Field" value={draft.field} /><ProfileValue label="Location" value={draft.location} /><ProfileValue label="Organization" value={draft.organization} /></dl>
           <h4 className="mt-4 font-medium">BIO</h4><p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{draft.bio || 'Your BIO will appear here.'}</p>
-          {draft.emailVisible ? <p className="mt-4 break-all text-sm">{member.email}</p> : null}
+          <ProfileContact links={draft.socialLinksConsent ? draft.socialLinks : []} email={draft.emailVisible && draft.contactEmailConsent ? member.email : undefined} />
         </aside>
       </div>
       {error ? <p role="alert" className="text-sm text-red-800">{error}</p> : null}
@@ -247,6 +256,7 @@ function ProfileOverview({ member, onEdit }: { member: MemberProfile; onEdit: ()
         </div>
       )}
 
+      <ProfileContact links={member.socialLinksConsent ? member.socialLinks : []} email={member.emailVisible && member.contactEmailConsent ? member.email : undefined} />
       {member.publicSlug ? <Button variant="outline" disabled={sharing} onClick={() => void shareProfile()} className="min-h-11"><Share2 className="mr-2 size-4" />Share profile</Button> : <p className="text-sm text-neutral-500">Your public profile link will appear here when it is available.</p>}
       <section className="space-y-3" aria-labelledby="profile-details-title">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -258,7 +268,7 @@ function ProfileOverview({ member, onEdit }: { member: MemberProfile; onEdit: ()
           <ProfileValue label="Location" value={member.location} />
           <ProfileValue label="Organization" value={member.organization} />
           <ProfileValue label="Recruiter visibility" value={member.recruiterVisible ? 'Visible to recruiters' : 'Hidden from recruiters'} />
-          <ProfileValue label="Email visibility" value={member.emailVisible ? 'Shown on public profile' : 'Not shown publicly'} />
+          <ProfileValue label="Email visibility" value={member.emailVisible && member.contactEmailConsent ? 'Shown on public profile' : 'Not shown publicly'} />
           <ProfileValue label="Account email" value={member.email} />
         </dl>
         <div className="space-y-1 py-2">
@@ -311,4 +321,9 @@ function VisibilityOption({ label, checked, onChange }: { label: string; checked
       <Switch checked={checked} onCheckedChange={onChange} aria-label={label} className="data-[state=checked]:bg-orange-600" />
     </label>
   )
+}
+
+export function ProfileContact({ links = [], email }: { links?: SocialLink[]; email?: string }) {
+  const icons = { linkedin: Linkedin, facebook: Facebook, instagram: Instagram }
+  return <div className="mt-4 flex flex-wrap gap-2">{links.filter(link => !validateSocialLinks([link])).slice(0, 3).map(link => { const Icon = icons[link.platform as keyof typeof icons] ?? Globe; return <a key={link.platform} href={link.url} target="_blank" rel="noopener noreferrer" aria-label={link.platform} title={link.platform} className="flex size-11 items-center justify-center rounded-full border hover:bg-orange-50"><Icon className="size-5" /></a> })}{email ? <a href={`mailto:${email}`} className="inline-flex min-h-11 items-center gap-2 rounded-full border px-4"><Mail className="size-5" />Email me</a> : null}</div>
 }

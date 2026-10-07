@@ -1,3 +1,5 @@
+import { createAdminClient } from '@/lib/supabase/server'
+import { validateSocialLinks, type SocialLink } from '@/lib/profile-contact'
 import Image from '@/components/safe-image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -127,7 +129,16 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
     notFound()
   }
 
-  const socialEntries = Object.entries(awardee.social_links ?? {})
+  const contactDb = createAdminClient()
+  const { data: linkedAwardee } = await contactDb.from('awardees').select('profile_id').eq('slug', slug).maybeSingle()
+  const { data: contactProfile } = linkedAwardee?.profile_id
+    ? await contactDb.from('profiles').select('email,notification_prefs').eq('id', linkedAwardee.profile_id).maybeSingle()
+    : { data: null }
+  const contactPrefs = contactProfile?.notification_prefs ?? {}
+  const memberLinks = contactPrefs.socialLinksConsent === true && !validateSocialLinks(contactPrefs.socialLinks)
+    ? Object.fromEntries((contactPrefs.socialLinks as SocialLink[]).map(link => [link.platform, link.url])) : {}
+  const contactEmail = contactPrefs.emailVisible === true && contactPrefs.contactEmailConsent === true ? contactProfile?.email : null
+  const socialEntries = Object.entries(contactProfile ? memberLinks : (awardee.social_links ?? {}))
     .filter(([, value]) => Boolean(value)) as Array<[keyof SocialLinks, string]>
 
   const achievements = (awardee.achievements ?? []) as Achievement[]
@@ -242,6 +253,7 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
 
               {/* Actions Row - Social Links */}
               <div className="mt-6 flex flex-wrap justify-center md:justify-start items-center gap-3">
+                {contactEmail ? <a href={`mailto:${contactEmail}`} className="inline-flex min-h-11 items-center gap-2 rounded-full border px-4 text-sm"><Mail className="h-4 w-4" />Email me</a> : null}
                 {/* Social Links */}
                 {socialEntries.map(([key, value]) => {
                   const Icon = socialIconMap[key] ?? Globe

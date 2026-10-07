@@ -100,6 +100,9 @@ export function mapProfileToMemberWithLegacy(
     onboardingWelcomeSeenAt: typeof prefs.onboardingWelcomeSeenAt === 'string' ? prefs.onboardingWelcomeSeenAt : null,
     dashboardLoginCount: typeof prefs.dashboardLoginCount === 'number' ? prefs.dashboardLoginCount : 0,
     recruiterVisible: bool(prefs.recruiterVisible, PREF_DEFAULTS.recruiterVisible),
+    socialLinks: Array.isArray(prefs.socialLinks) ? prefs.socialLinks : [],
+    socialLinksConsent: prefs.socialLinksConsent === true,
+    contactEmailConsent: prefs.contactEmailConsent === true,
     emailVisible: bool(prefs.emailVisible, PREF_DEFAULTS.emailVisible),
     showInDirectory: bool(prefs.showInDirectory, PREF_DEFAULTS.showInDirectory),
     allowDirectMessages: bool(prefs.allowDirectMessages, PREF_DEFAULTS.allowDirectMessages),
@@ -165,7 +168,10 @@ export function buildProfileUpdate(patch: Record<string, unknown>, existingPrefs
   }
 
   const prefs = { ...existingPrefs }
-  const preferencePatch: Record<string, boolean> = {}
+  const preferencePatch: Record<string, unknown> = {}
+  for (const key of ['socialLinks', 'socialLinksConsent', 'contactEmailConsent']) {
+    if (key in patch) { prefs[key] = patch[key]; preferencePatch[key] = patch[key] }
+  }
   for (const key of PREF_KEYS) {
     if (typeof patch[key] === 'boolean') {
       prefs[key] = patch[key]

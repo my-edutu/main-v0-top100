@@ -4,6 +4,7 @@
 //   PATCH -> update own profile / preferences (unlimited member profile edits)
 import { NextRequest, NextResponse } from 'next/server'
 import { revalidatePath, revalidateTag } from 'next/cache'
+import { validateSocialLinks } from '@/lib/profile-contact'
 import { PROFILE_TEXT_LIMITS } from '@/app/dashboard/_lib/profile-editor'
 import { getCurrentUser } from '@/lib/auth-server'
 import { createAdminClient } from '@/lib/supabase/server'
@@ -93,6 +94,13 @@ export async function PATCH(request: NextRequest) {
     }
   }
 
+  if ('socialLinks' in patch) {
+    const problem = validateSocialLinks(patch.socialLinks)
+    if (problem) return NextResponse.json({ message: problem }, { status: 400 })
+  }
+  for (const key of ['socialLinksConsent', 'contactEmailConsent']) {
+    if (key in patch && typeof patch[key] !== 'boolean') return NextResponse.json({ message: 'Invalid consent choice.' }, { status: 400 })
+  }
   const supabase = createAdminClient()
 
   const { data: profile, error } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle()
@@ -155,6 +163,8 @@ export async function PATCH(request: NextRequest) {
     revalidatePath('/awardees')
     revalidateTag('awardees')
   }
+
+  if (awardee?.slug) revalidatePath(`/awardees/${awardee.slug}`)
 
   return NextResponse.json({ member: mapProfileToMember(updated, awardee?.id ?? null, awardee) })
 }

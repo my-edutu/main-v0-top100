@@ -35,6 +35,9 @@ export type MemberProfile = {
   field: string
   avatarInitials: string
   recruiterVisible: boolean
+  socialLinks?: import('./profile-contact').SocialLink[]
+  socialLinksConsent?: boolean
+  contactEmailConsent?: boolean
   emailVisible: boolean
   showInDirectory: boolean
   allowDirectMessages: boolean
