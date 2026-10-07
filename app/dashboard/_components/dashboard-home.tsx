@@ -23,7 +23,7 @@ import { useDashboardMember } from '../_providers/dashboard-member'
 import { AwardeeOnboardingJourney } from './awardee-onboarding-journey'
 import { DashboardCelebration } from './dashboard-celebration'
 
-const INTERVIEW_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSfA0yU8IK1jVBNZ-V1RRksZXJAkAh4XwL7Pk8mubZ31ZHMNlYQ/viewform?usp=header'
+const INTERVIEW_FORM_URL = '/dashboard/me/interview'
 const PARTNERSHIP_FORM_URL = 'https://docs.google.com/forms/d/1pabeSUOwN15Sr-VcAWIhl5k5_xwnKljFuzm90PCoEqQ/edit'
 
 const launchBanners = [
@@ -40,7 +40,7 @@ const shortcutDescriptions: Record<string, string> = {
   'Portfolio cover': 'Create your magazine profile',
   Posts: 'Write in your own words',
   'Get featured': 'Share your work with the team',
-  'Schedule an interview': 'Email the team to arrange a time',
+  'Schedule an interview': 'Request an interview time',
   'Contact the team': 'Ask a question or get support',
   'Partner with us': 'Explore working together',
 }
@@ -110,7 +110,7 @@ export function DashboardHome() {
   }, [])
 
   const shortcuts = [discoverNav[0], discoverNav[2], meNav[0], meNav[1], meNav[4],
-    { label:'Schedule an interview', href:INTERVIEW_FORM_URL, icon:Mail, color:'ember' as const, external: true },
+    { label:'Schedule an interview', href:INTERVIEW_FORM_URL, icon:Mail, color:'ember' as const },
     { label:'Contact the team', href:'mailto:info@top100afl.com', icon:Mail, color:'forest' as const },
     { label:'Partner with us', href:'/partnership', icon:UserRound, color:'cobalt' as const },
   ]
@@ -232,7 +232,7 @@ export function DashboardHome() {
               description={shortcutDescriptions[item.label]}
               icon={item.icon}
               color={item.color}
-              external={'external' in item ? item.external : undefined}
+              external={(item as { external?: boolean }).external}
               compact
             />
           ))}

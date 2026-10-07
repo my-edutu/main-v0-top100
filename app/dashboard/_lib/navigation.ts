@@ -57,6 +57,7 @@ export const discoverNav: DashboardNavItem[] = [
 
 export const meNav: DashboardNavItem[] = [
   { label: 'Profile', href: '/dashboard/me/profile', icon: UserRound, color: 'forest' },
+  { label: 'Schedule an interview', href: '/dashboard/me/interview', icon: CalendarDays, color: 'ember' },
   { label: 'Portfolio cover', href: '/dashboard/me/portfolio-cover', icon: Newspaper, color: 'saffron' },
   { label: 'Project100 Scholarship', href: '/dashboard/me/project100-scholarship', icon: GraduationCap, color: 'ember' },
   { label: 'My award', href: '/dashboard/me/award', icon: Trophy, color: 'saffron' },
@@ -80,6 +81,7 @@ export function isDashboardNavActive(pathname: string, href: string) {
 }
 
 export function resolveDashboardTitle(pathname: string) {
+  if (pathname === '/dashboard/me/interview') return 'Request an interview'
   const matchingItem = allDashboardNav
     .filter(({ href }) => isDashboardNavActive(pathname, href))
     .sort((left, right) => right.href.length - left.href.length)[0]

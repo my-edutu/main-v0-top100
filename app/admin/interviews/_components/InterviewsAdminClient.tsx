@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ResponsiveTable } from '@/components/ui/responsive-table'
 import type { InterviewRow } from '@/lib/interviews/mappers'
 import PageHeader from '../../components/PageHeader'
+import InterviewBookingsPanel from './InterviewBookingsPanel'
 
 type Application = {
   id: string
@@ -198,14 +199,17 @@ export default function InterviewsAdminClient() {
       />
 
       <Tabs defaultValue="interviews" className="space-y-4">
-        <TabsList className="grid h-auto w-full grid-cols-2 rounded-xl bg-zinc-100 p-1 sm:w-auto sm:min-w-[360px]">
+        <TabsList className="grid h-auto w-full grid-cols-3 rounded-xl bg-zinc-100 p-1 sm:w-auto sm:min-w-[360px]">
           <TabsTrigger value="interviews" className="min-h-10 rounded-lg font-medium data-[state=active]:bg-white data-[state=active]:shadow-none">
             Interviews <span className="ml-1 text-zinc-400">{interviews.length}</span>
           </TabsTrigger>
           <TabsTrigger value="applications" className="min-h-10 rounded-lg font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-amber-500 data-[state=active]:text-white data-[state=active]:shadow-none">
             Applications <span className="ml-1">{pendingCount}</span>
           </TabsTrigger>
+          <TabsTrigger value="bookings" className="min-h-10 rounded-lg font-medium data-[state=active]:bg-white">Requests &amp; schedule</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="bookings" className="space-y-4"><InterviewBookingsPanel /></TabsContent>
 
         <TabsContent value="interviews" className="space-y-4">
           {showForm ? (

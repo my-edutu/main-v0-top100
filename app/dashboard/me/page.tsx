@@ -10,6 +10,7 @@ import { SignOutControl } from '../dashboard-header'
 
 const meDescriptions: Record<string, string> = {
   Profile: 'Edit your public BIO and visibility',
+  'Schedule an interview': 'Request a time to share your impact',
   'Portfolio cover': 'Create a shareable Top100 magazine profile',
   'Project100 Scholarship': 'Apply and save your scholarship application',
   'My award': 'Complete your award and see its confirmation',

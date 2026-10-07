@@ -62,6 +62,8 @@ export async function PATCH(request: NextRequest) {
     )
   }
 
+  if ('scheduled_at' in body || (body.status === 'scheduled')) return Response.json({ success:false, message:'Use the booking schedule so the time is reserved and notifications are sent.' }, { status:400 })
+
   const patch: Record<string, unknown> = {}
   for (const field of EDITABLE_FIELDS) {
     if (field in body) {
@@ -74,6 +76,7 @@ export async function PATCH(request: NextRequest) {
   }
 
   const supabase = createAdminClient()
+  if ('status' in patch) { const { data: linked } = await supabase.from('interview_applications').select('member_id').eq('id',id).maybeSingle(); if (linked?.member_id) return Response.json({ success:false, message:'Use Requests & schedule for member interview state changes.' }, { status:400 }) }
   const { error } = await supabase.from('interview_applications').update(patch).eq('id', id)
 
   if (error) {
