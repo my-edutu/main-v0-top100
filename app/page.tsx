@@ -121,7 +121,7 @@ export default async function HomePage() {
           </div>
         </section>
 
-        <ImpactSeriesSection />
+        <HomeFeaturedAwardeesSection />
 
         <ImpactSection />
 
@@ -187,7 +187,7 @@ export default async function HomePage() {
 
         <EventsHubSection initialEvents={homepageEvents} initialAnnouncements={homepageAnnouncements} />
         <BlogSection initialPosts={homepagePosts} />
-        <HomeFeaturedAwardeesSection />
+        <ImpactSeriesSection />
         <MagazineSection />
 
         <section className="py-2">

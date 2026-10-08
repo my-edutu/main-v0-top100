@@ -220,6 +220,15 @@ html.light .impact-series-dark .text-white\/70 {
   color: #ffffff !important;
 }
 
+/* The 2026 leader carousel keeps white card text on its dark image gradients. */
+html.light .leader-spotlight-dark .text-white {
+  color: #ffffff !important;
+}
+
+html.light .leader-spotlight-dark .text-slate-200 {
+  color: #e2e8f0 !important;
+}
+
 /* These award components intentionally use dark surfaces inside the light dashboard. */
 html.light .award-cinema .text-white,
 html.light .award-payment-faq .text-white,
@@ -519,5 +528,66 @@ html.light a.awardee-linkedin-button {
   .motion-safe\:animate-\[moment-breathe_7s_ease-in-out_infinite\],
   .motion-safe\:animate-\[moment-float_6s_ease-in-out_infinite\] {
     animation: none !important;
+  }
+}
+
+.leader-marquee {
+  overflow: hidden;
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 2%, #000 98%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 2%, #000 98%, transparent);
+}
+
+.leader-marquee::-webkit-scrollbar {
+  display: none;
+}
+
+.leader-marquee-track {
+  display: flex;
+  width: max-content;
+  animation: leader-marquee-left 360s linear infinite;
+  will-change: transform;
+}
+
+.leader-marquee-track-reverse {
+  animation-name: leader-marquee-right;
+}
+
+.leader-marquee:focus-within .leader-marquee-track {
+  animation-play-state: paused;
+}
+
+.leader-marquee-group {
+  display: flex;
+  flex: none;
+  gap: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .leader-marquee-group {
+    gap: 0.75rem;
+    padding-right: 0.75rem;
+  }
+}
+
+@keyframes leader-marquee-left {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@keyframes leader-marquee-right {
+  from { transform: translateX(-50%); }
+  to { transform: translateX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .leader-marquee {
+    overflow-x: auto;
+  }
+
+  .leader-marquee-track {
+    animation: none !important;
+    will-change: auto;
   }
 }
