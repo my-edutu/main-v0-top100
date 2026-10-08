@@ -74,7 +74,7 @@ function HomePageHeroSection() {
 
       <div className="absolute inset-x-0 bottom-0 z-20 bg-white/80 backdrop-blur-sm dark:bg-slate-950/80">
         <div className="py-3 text-center">
-          <p className="text-base font-medium text-slate-600 dark:text-slate-400 sm:text-lg">impact across 31 countries worldwide</p>
+          <p className="text-base font-medium text-slate-600 dark:text-slate-400 sm:text-lg">impact across 100 countries worldwide</p>
         </div>
         <div className="relative w-full overflow-hidden pb-3 pt-1">
           <div className="flex whitespace-nowrap" style={{ animation: "slide 40s linear infinite" }}>
