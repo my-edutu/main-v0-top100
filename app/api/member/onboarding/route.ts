@@ -36,10 +36,7 @@ export async function POST(request: Request) {
   }
   const prefs = profile.notification_prefs ?? {}
   if (onboardingComplete(prefs))
-    return NextResponse.json(
-      { message: 'Your setup is already complete.' },
-      { status: 409 },
-    )
+    return NextResponse.json({ member: mapProfileToMember(profile) })
   const columns: Record<string, string> = {}
   for (const field of onboardingFields) {
     if (body[field.key] !== undefined) {

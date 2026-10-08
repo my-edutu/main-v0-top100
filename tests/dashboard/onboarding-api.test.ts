@@ -118,9 +118,13 @@ it('allows a short optional Bio when completing setup', async () => {
   expect(state.update.bio).toBe('A short intro.')
   expect(state.prefs).toHaveProperty('onboardingCompletedAt')
 })
-it('cannot be reused to evade the BIO limit after completion', async () => {
+it('treats a repeated completion as successful without changing a completed profile', async () => {
   state.prefs = { onboardingCompletedAt: '2026-09-06T00:00:00Z' }
-  expect((await POST(request({ ...fields, complete: true }))).status).toBe(409)
+  const response = await POST(request({ ...fields, complete: true }))
+  expect(response.status).toBe(200)
+  expect(await response.json()).toMatchObject({
+    member: { onboardingCompletedAt: '2026-09-06T00:00:00Z' },
+  })
   expect(state.update).toEqual({})
 })
 
