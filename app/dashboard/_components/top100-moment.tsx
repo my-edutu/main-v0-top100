@@ -182,17 +182,28 @@ export function Top100MomentGate({ member, children }: { member: MemberProfile; 
       ) : (
         <aside
           aria-label="Top100 welcome"
-          className="relative z-[60] border-b border-[#E5E5E5] bg-white px-4 py-3 text-[#171717] sm:px-6 lg:px-8"
+          className="relative z-[60] border-b border-[#E8DDCD] bg-[#FFF8E8] px-4 py-3 text-[#171717] sm:px-6 lg:px-8"
         >
-          <div className="mx-auto flex max-w-[1280px] flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mx-auto grid max-w-[1280px] grid-cols-[minmax(0,1fr)_44px] items-start gap-x-3 gap-y-2 sm:grid-cols-[minmax(0,1fr)_auto_44px] sm:items-center">
             <div className="min-w-0">
-              <p className="text-sm font-semibold">Welcome to Top100, {member.name.trim().split(/\s+/)[0] || 'Leader'}.</p>
-              <p className="mt-1 text-sm text-[#626262]">Your dashboard is ready. The welcome tour is optional.</p>
+              <p className="text-sm font-medium leading-5">Your dashboard is ready, {member.name.trim().split(/\s+/)[0] || 'Leader'}.</p>
+              <p className="mt-0.5 text-xs leading-5 text-[#625B52]">Take a quick welcome tour whenever you’re ready.</p>
             </div>
-            <div className="flex shrink-0 gap-2">
-              <button type="button" onClick={() => setShowWelcome(true)} className="min-h-11 rounded-lg bg-[#171717] px-4 text-sm font-medium text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#171717] focus-visible:ring-offset-2">View welcome</button>
-              <button type="button" onClick={dismissWelcome} className="min-h-11 rounded-lg border border-[#D8D8D8] px-4 text-sm font-medium text-[#171717] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#171717] focus-visible:ring-offset-2">Dismiss</button>
-            </div>
+            <button
+              type="button"
+              onClick={() => setShowWelcome(true)}
+              className="col-start-1 row-start-2 inline-flex min-h-11 w-fit items-center justify-center gap-2 rounded-xl bg-[#171717] px-4 text-sm font-medium text-[#FFFFFF] transition-colors hover:bg-[#333333] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#171717] focus-visible:ring-offset-2 focus-visible:ring-offset-[#FFF8E8] sm:col-start-2 sm:row-start-1"
+            >
+              View welcome <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              onClick={dismissWelcome}
+              aria-label="Dismiss welcome reminder"
+              className="col-start-2 row-start-1 inline-flex h-11 w-11 items-center justify-center rounded-xl text-[#625B52] transition-colors hover:bg-[#F3E8D4] hover:text-[#171717] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#171717] sm:col-start-3"
+            >
+              <X className="h-5 w-5" aria-hidden="true" />
+            </button>
           </div>
         </aside>
       )}
