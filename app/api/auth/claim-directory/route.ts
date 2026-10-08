@@ -7,6 +7,7 @@
 // hint), no bios, no contact data.
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
+import { repairUtf8Mojibake } from '@/lib/auth/claim-directory-display'
 import {
   getClientIdentifier,
   rateLimitResponse,
@@ -76,9 +77,9 @@ export async function GET(request: NextRequest) {
       .filter((a) => a.name)
       .map((a) => ({
         id: a.id,
-        name: a.name as string,
-        country: a.country ?? null,
-        course: a.course ?? null,
+        name: repairUtf8Mojibake(a.name as string),
+        country: a.country ? repairUtf8Mojibake(a.country) : null,
+        course: a.course ? repairUtf8Mojibake(a.course) : null,
         imageUrl: a.image_url ?? null,
         emailHint: a.email ? maskEmail(a.email) : null,
         hasAccount: Boolean(a.profile_id),
