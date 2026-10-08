@@ -27,3 +27,17 @@ export function resolveRemoteImageSource(source: string): string | null {
 export function isDriveImage(source: string): boolean {
   try { return new URL(source).hostname === 'drive.google.com' } catch { return false }
 }
+
+/** Homepage portraits must be public uploads in our Supabase Storage. */
+export function resolveSupabasePortrait(source?: string | null): string | null {
+  if (!source) return null
+  const resolved = resolveRemoteImageSource(source.trim())
+  if (!resolved) return null
+  try {
+    const url = new URL(resolved)
+    const storageHost = url.hostname === 'supabase.top100afl.com' || url.hostname.endsWith('.supabase.co')
+    return url.protocol === 'https:' && storageHost && url.pathname.startsWith('/storage/v1/object/public/')
+      ? resolved
+      : null
+  } catch { return null }
+}

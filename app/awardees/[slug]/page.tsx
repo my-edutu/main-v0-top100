@@ -3,7 +3,7 @@ import { validateSocialLinks, type SocialLink } from '@/lib/profile-contact'
 import Image from '@/components/safe-image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { Calendar, ExternalLink, Globe, Instagram, Linkedin, Mail, MapPin, PenSquare, Trophy, Twitter, Users2, Youtube, GraduationCap, ArrowLeft, Quote, Award, Briefcase } from 'lucide-react'
+import { Calendar, ExternalLink, Globe, Instagram, Linkedin, Mail, MapPin, PenSquare, Trophy, Twitter, Users2, Youtube, GraduationCap, Quote, Award, Briefcase } from 'lucide-react'
 import type { Metadata } from 'next'
 
 import { Badge } from '@/components/ui/badge'
@@ -19,6 +19,7 @@ import LinkedInPostCard from './LinkedInPostCard'
 import AwardeePostsList from './AwardeePostsList'
 import StructuredData from '@/components/StructuredData'
 import AwardeePortrait from './AwardeePortrait'
+import BackToLeaders from './BackToLeaders'
 
 export const runtime = 'nodejs'
 export const revalidate = 300
@@ -183,13 +184,7 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
       <article className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Breadcrumb */}
         <nav className="pt-8 pb-6 border-b border-gray-200">
-          <Link
-            href="/awardees"
-            className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span>Back to Leaders</span>
-          </Link>
+          <BackToLeaders year={awardee.year} />
         </nav>
 
         {/* Header Section */}

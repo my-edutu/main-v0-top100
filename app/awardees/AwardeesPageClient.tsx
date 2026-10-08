@@ -4,18 +4,23 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Image from '@/components/safe-image'
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { ArrowRight, Search, Shuffle, ArrowUpRight, Globe2, MapPin } from 'lucide-react'
+import { ArrowRight, Search, SlidersHorizontal, ArrowUpRight, MapPin } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 import type { Awardee } from '@/lib/awardees-shared'
 import { normalizeAwardeeEntry } from '@/lib/awardees-shared'
-import { countryKey, getDiscoverySummary, hasProfilePhoto, shufflePeople } from '@/lib/awardee-discovery'
+import { countryKey, getDiscoverySummary, shufflePeople } from '@/lib/awardee-discovery'
+import { resolveSupabasePortrait } from '@/lib/media/remote-image-source'
 import './awardees.css'
 import { supabase } from '@/lib/supabase/client'
-import { AvatarSVG } from '@/lib/avatars'
 import type { AwardeeDirectoryEntry } from '@/types/profile'
 
 const itemsPerPage = 18
+const hasProfilePhoto = (person: Awardee) => Boolean(resolveSupabasePortrait(person.avatar_url))
+const DIRECTORY_ORDER_KEY = 'afl-directory-order-v1'
+const saveDirectoryOrder = (people: Awardee[]) => {
+  try { sessionStorage.setItem(DIRECTORY_ORDER_KEY, JSON.stringify(people.map(person => person.slug))) } catch { /* Storage may be disabled. */ }
+}
 const hasLiveSupabaseKey =
   Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL) &&
   Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.startsWith('eyJ'))
@@ -47,9 +52,20 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
 
   const [failedPhotos, setFailedPhotos] = useState<Set<string>>(() => new Set())
 
-  // Randomize only after hydration so server and client markup agree.
+  // Keep the same shuffled cards when returning from a profile.
   useEffect(() => {
-    const frame = requestAnimationFrame(() => setPeople(previous => shufflePeople(previous)))
+    const frame = requestAnimationFrame(() => {
+      let ordered = shufflePeople(initialPeople)
+      try {
+        const saved: unknown = JSON.parse(sessionStorage.getItem(DIRECTORY_ORDER_KEY) || 'null')
+        if (Array.isArray(saved) && saved.every(slug => typeof slug === 'string')) {
+          const positions = new Map(saved.map((slug, index) => [slug, index]))
+          ordered = [...initialPeople].sort((a, b) => (positions.get(a.slug) ?? Infinity) - (positions.get(b.slug) ?? Infinity))
+        }
+      } catch { /* A fresh shuffle is safe when saved state is unavailable. */ }
+      saveDirectoryOrder(ordered)
+      setPeople(ordered)
+    })
     return () => cancelAnimationFrame(frame)
   }, [])
 
@@ -125,10 +141,6 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
     else params.delete('country')
     router.replace(`${pathname}${params.size ? `?${params}` : ''}`, { scroll: false })
   }
-  const shuffleDirectory = () => {
-    setPeople(previous => shufflePeople(previous))
-    updatePage(1)
-  }
   const resetFilters = () => {
     setSearchTerm('')
     const params = createQueryParams()
@@ -139,7 +151,10 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
   }
 
   const filteredPeople = useMemo(() => {
-    let result = cohortPeople
+    // Stable partition retains the shuffled order inside each group while
+    // keeping uploaded portraits ahead of missing or failed images.
+    const hasPortrait = (person: Awardee) => hasProfilePhoto(person) && !failedPhotos.has(person.slug)
+    let result = [...cohortPeople].sort((a, b) => Number(hasPortrait(b)) - Number(hasPortrait(a)))
     if (selectedCountry) result = result.filter(person => countryKey(person.country) === selectedCountry)
 
     if (!searchTerm) return result
@@ -162,7 +177,7 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
         .toLowerCase()
       return haystack.includes(term)
     })
-  }, [cohortPeople, searchTerm, selectedCountry])
+  }, [cohortPeople, searchTerm, selectedCountry, failedPhotos])
 
   const totalItems = filteredPeople.length
   const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage))
@@ -282,56 +297,52 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
       <div className="leaders-container">
         <section className="discovery-bento" aria-label="Discover Africa Future Leaders">
           <header className="discovery-intro">
-            <span className="discovery-eyebrow"><span /> THE AFRICA FUTURE LEADERS DIRECTORY</span>
-            <h1>A continent of talent.<br /><span>A future full of possibility.</span></h1>
-            <p>Meet the emerging leaders, innovators, and community builders shaping Africa&apos;s next chapter.</p>
-            <div className="intro-actions">
-              <a href="#leader-directory" className="discovery-primary">Explore the leaders <ArrowUpRight size={19} /></a>
-              <span className="intro-cohort">{selectedYear === 'all' ? 'Every cohort. One community.' : `The ${selectedYear} cohort`}</span>
-            </div>
+            <span className="discovery-eyebrow"><span /> AFRICA FUTURE LEADERS</span>
+            <h1>Africa’s next chapter.<br /><span>Meet the people shaping it.</span></h1>
+            <p>Discover leaders, explore their work, and connect with a community creating change.</p>
           </header>
 
           {highlights.length > 0 && (
             <div className="discovery-spotlight">
-              <div className="spotlight-heading"><span>IN THE SPOTLIGHT</span><button onClick={shuffleDirectory} aria-label="Discover different featured leaders"><Shuffle size={18} /></button></div>
+              <div className="spotlight-heading"><span>Leaders to discover</span></div>
               <div className="spotlight-portraits">
-                {highlights.map((person, index) => (
-                  <Link href={`/awardees/${person.slug}`} key={person.slug} className={cn('spotlight-person', index === 0 && 'spotlight-person-main')}>
-                    <Image src={person.avatar_url!.trim()} alt={person.name} fill loading="eager" sizes="(max-width: 767px) 55vw, 320px" className="spotlight-image" onError={() => setFailedPhotos(previous => new Set([...previous, person.slug]))} />
+                {highlights.map((person) => (
+                  <Link href={`/awardees/${person.slug}`} key={person.slug} className="spotlight-person">
+                    <Image src={person.avatar_url!.trim()} alt={person.name} fill loading="eager" sizes="(max-width: 767px) 30vw, 200px" className="spotlight-image" onError={() => setFailedPhotos(previous => new Set([...previous, person.slug]))} />
                     <div className="spotlight-caption"><span>{person.country?.trim() || 'Africa Future Leader'}</span><h2>{person.name}</h2><ArrowUpRight size={20} /></div>
                   </Link>
                 ))}
               </div>
-              <p>New faces. Shared ambition. Discover someone inspiring.</p>
+
             </div>
           )}
 
-          <div className="discovery-stats" aria-label="Selected cohort statistics">
-            <div><strong>{summary.leaders.toLocaleString()}</strong><span>Leaders in {selectedYear === 'all' ? 'the directory' : selectedYear}</span></div>
-            <div><strong>{summary.countries.length.toLocaleString()}</strong><span>Countries represented</span></div>
-            <div><strong>{summary.cohorts.toLocaleString()}</strong><span>{summary.cohorts === 1 ? 'Cohort' : 'Cohorts'} to discover</span></div>
-          </div>
-          <div className="discovery-countries">
-            <div className="countries-heading"><Globe2 size={21} /><h2>Across borders. Beyond expectations.</h2></div>
-            <div className="country-chips">
-              {summary.countries.slice(0, 5).map(country => <button key={country.key} onClick={() => { updateCountry(country.key); document.getElementById('leader-directory')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }} className={cn(selectedCountry === country.key && 'is-selected')}>{country.name}<span>{country.count}</span></button>)}
-              {summary.countries.length === 0 && <p>Country details will appear as profiles are completed.</p>}
-              {summary.countries.length > 5 && <a href="#leader-directory">+{summary.countries.length - 5} more <ArrowRight size={14} /></a>}
-            </div>
-          </div>
         </section>
 
         <section id="leader-directory" className="leader-directory" aria-labelledby="directory-heading">
           <div className="directory-title-row">
-            <div><span className="discovery-eyebrow">PEOPLE MAKING A DIFFERENCE</span><h2 id="directory-heading">Meet the future leaders<span>.</span></h2></div>
-            <button className="shuffle-button" onClick={shuffleDirectory}><Shuffle size={17} /> Shuffle leaders</button>
+            <h2 id="directory-heading">Explore the directory</h2>
           </div>
           <div className="directory-toolbar">
-            <div className="directory-search"><Search size={20} /><label htmlFor="awardee-search" className="sr-only">Search leaders by name, country, or field</label><input id="awardee-search" type="search" placeholder="Find a name, country, or field…" value={searchTerm} onChange={event => updateSearch(event.target.value)} /></div>
-            <div className="directory-select"><label htmlFor="cohort-filter">Cohort</label><select id="cohort-filter" value={selectedYear} onChange={event => updateYear(event.target.value === 'all' ? 'all' : Number(event.target.value))}><option value="all">All years</option><option value="2026">2026</option><option value="2025">2025</option><option value="2024">2024</option></select></div>
-            <div className="directory-select"><label htmlFor="country-filter">Country</label><select id="country-filter" value={selectedCountry} onChange={event => updateCountry(event.target.value)}><option value="">All countries</option>{summary.countries.map(country => <option value={country.key} key={country.key}>{country.name} ({country.count})</option>)}</select></div>
+            <div className="directory-search">
+              <Search size={20} aria-hidden="true" />
+              <label htmlFor="awardee-search" className="sr-only">Search leaders by name, country, or field</label>
+              <input id="awardee-search" type="search" placeholder="Find a name, country, or field…" value={searchTerm} onChange={event => updateSearch(event.target.value)} />
+              <details className="directory-filter">
+                <summary aria-label="Filter leaders"><SlidersHorizontal size={19} aria-hidden="true" /><span className="sr-only">Filters</span>{(selectedYear !== 2026 || selectedCountry) && <span className="filter-active-dot" />}</summary>
+                <div className="directory-filter-panel">
+                  <div className="directory-select"><label htmlFor="cohort-filter">Cohort</label><select id="cohort-filter" value={selectedYear} onChange={event => updateYear(event.target.value === 'all' ? 'all' : Number(event.target.value))}><option value="all">All years</option><option value="2026">2026</option><option value="2025">2025</option><option value="2024">2024</option></select></div>
+                  <div className="directory-select"><label htmlFor="country-filter">Country</label><select id="country-filter" value={selectedCountry} onChange={event => updateCountry(event.target.value)}><option value="">All countries</option>{summary.countries.map(country => <option value={country.key} key={country.key}>{country.name} ({country.count})</option>)}</select></div>
+                  <div className="directory-country-shortcuts" aria-label="Browse popular countries">
+                    <span>Popular countries</span><div className="country-chips">
+                      {summary.countries.slice(0, 5).map(country => <button key={country.key} onClick={() => updateCountry(selectedCountry === country.key ? '' : country.key)} aria-pressed={selectedCountry === country.key} className={cn(selectedCountry === country.key && 'is-selected')}>{country.name}<span>{country.count}</span></button>)}
+                    </div>
+                  </div>
+                  {(searchTerm || selectedCountry || selectedYear !== 2026) && <button className="directory-clear-filters" onClick={resetFilters}>Clear filters</button>}
+                </div>
+              </details>
+            </div>
           </div>
-          <div className="directory-results"><p role="status">{totalItems > 0 ? `${startIndex + 1}–${Math.min(startIndex + itemsPerPage, totalItems)} of ${totalItems} leaders` : '0 leaders'}<span> · A fresh mix of perspectives</span></p>{(searchTerm || selectedCountry) && <button onClick={resetFilters}>Clear filters</button>}</div>
 
           {filteredPeople.length === 0 ? (
             <div className="directory-empty"><Search size={28} /><h3>No leaders found</h3><p>Try another name, country, field, or cohort.</p>{(searchTerm || selectedCountry) && <button onClick={resetFilters}>Clear filters <ArrowRight size={16} /></button>}</div>
@@ -343,7 +354,7 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
                 return (
                   <Link key={person.slug} href={`/awardees/${person.slug}`} className={cn('leader-card', !photo && 'leader-card-no-photo')}>
                     <div className="leader-card-portrait">
-                      {photo ? <Image src={person.avatar_url!.trim()} alt={person.name} fill sizes="(max-width: 639px) 45vw, (max-width: 1023px) 30vw, 280px" className="leader-photo" onError={() => setFailedPhotos(previous => new Set([...previous, person.slug]))} /> : <div className="leader-initials"><AvatarSVG name={person.name} size={72} /></div>}
+                      {photo ? <Image src={person.avatar_url!.trim()} alt={person.name} fill sizes="(max-width: 639px) 45vw, (max-width: 1023px) 30vw, 280px" className="leader-photo" onError={() => setFailedPhotos(previous => new Set([...previous, person.slug]))} /> : <div className="leader-initials"><span aria-hidden="true">{person.name.split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join('').toUpperCase()}</span></div>}
                       <span className="leader-year">{person.year || 'AFL'}</span>
                     </div>
                     <div className="leader-card-content"><h3>{person.name}</h3>{tagline && <p className="leader-tagline">{tagline}</p>}<div className="leader-card-footer"><span><MapPin size={13} />{summary.countries.find(country => country.key === countryKey(person.country))?.name || 'Africa Future Leader'}</span><ArrowUpRight size={18} /></div></div>
@@ -352,7 +363,7 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
               })}
             </div>
           )}
-          {totalPages > 1 && <nav className="directory-pagination" aria-label="Directory pagination"><p>Page {currentPage} of {totalPages}</p><div><button onClick={() => updatePage(currentPage - 1)} disabled={currentPage <= 1}>Previous</button><button onClick={() => updatePage(currentPage + 1)} disabled={currentPage >= totalPages}>Next <ArrowRight size={16} /></button></div></nav>}
+          {totalPages > 1 && <nav className="directory-pagination" aria-label="Directory pagination"><button onClick={() => updatePage(currentPage - 1)} disabled={currentPage <= 1}><ArrowRight className="pagination-previous-icon" size={16} />Previous</button><button onClick={() => updatePage(currentPage + 1)} disabled={currentPage >= totalPages}>Next <ArrowRight size={16} /></button></nav>}
         </section>
       </div>
     </div>

@@ -52,6 +52,7 @@ const nextConfig = {
     // Keep image optimization enabled so remote originals are resized and cached
     // by the deployment CDN instead of repeatedly streamed from Storage.
     formats: ['image/avif', 'image/webp'],
+    qualities: [60, 75],
     minimumCacheTTL: 60 * 60 * 24 * 30,
     remotePatterns: [
       {
