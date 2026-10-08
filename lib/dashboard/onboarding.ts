@@ -69,8 +69,6 @@ export function validateOnboarding(
         return `${field.title} Please add at least one interest.`
       if (interests.length > MAX_INTERESTS)
         return `${field.title} Please add no more than ${MAX_INTERESTS} interests.`
-      if (interests.some(interest => interest.length > 28))
-        return `${field.title} Keep each interest to 28 characters.`
     }
     if (field.key === 'bio') {
       if (!value) continue

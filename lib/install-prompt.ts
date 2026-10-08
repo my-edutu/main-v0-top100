@@ -1,5 +1,5 @@
 export function isInstallPromptRoute(pathname: string | null) {
-  return pathname === '/dashboard' || Boolean(pathname?.startsWith('/dashboard/'))
+  return pathname === '/' || pathname === '/dashboard' || Boolean(pathname?.startsWith('/dashboard/'))
 }
 
 export interface NativeInstallEvent extends Event {
@@ -48,8 +48,8 @@ export function isIOSDevice(userAgent: string, platform: string, maxTouchPoints:
 }
 
 export function homeScreenAction(ios: boolean, supportsShare: boolean, hasInstallEvent: boolean) {
-  if (ios) return supportsShare ? 'share' as const : null
-  return hasInstallEvent ? 'install' as const : null
+  if (ios) return supportsShare ? 'share' as const : 'instructions' as const
+  return hasInstallEvent ? 'install' as const : 'instructions' as const
 }
 
 

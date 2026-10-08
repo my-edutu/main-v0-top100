@@ -36,6 +36,12 @@ describe('mandatory onboarding', () => {
     expect(validateOnboarding({ ...profile, field: Array.from({ length: 11 }, (_, index) => `Interest ${index}`).join(', ') })).toContain('no more than 10')
     expect(validateOnboarding({ ...profile, headline: 'a'.repeat(161) })).not.toBeNull()
   })
+  it('accepts existing imported interest labels longer than the new-tag input limit', () => {
+    expect(validateOnboarding({
+      ...profile,
+      field: 'A legacy interest label longer than twenty eight characters, Education',
+    })).toBeNull()
+  })
   it('allows a short or empty Bio so it cannot block dashboard setup', () => {
     expect(validateOnboarding({ ...profile, bio: '' })).toBeNull()
     expect(validateOnboarding({ ...profile, bio: 'Too short' })).toBeNull()

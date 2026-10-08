@@ -6,6 +6,7 @@ describe('home screen installation guidance', () => {
   it('includes dashboard pages reached after sign in', () => {
     expect(isInstallPromptRoute('/dashboard')).toBe(true)
     expect(isInstallPromptRoute('/dashboard/me/award/payment')).toBe(true)
+    expect(isInstallPromptRoute('/')).toBe(true)
     expect(isInstallPromptRoute('/login')).toBe(false)
     expect(isInstallPromptRoute('/dashboard-other')).toBe(false)
   })
@@ -65,9 +66,9 @@ describe('platform-specific home screen CTA', () => {
   })
   it('uses Share only on iOS, and native install elsewhere', () => {
     expect(homeScreenAction(true, true, false)).toBe('share')
-    expect(homeScreenAction(true, false, false)).toBeNull()
+    expect(homeScreenAction(true, false, false)).toBe('instructions')
     expect(homeScreenAction(false, true, true)).toBe('install')
-    expect(homeScreenAction(false, true, false)).toBeNull()
+    expect(homeScreenAction(false, true, false)).toBe('instructions')
   })
 })
 

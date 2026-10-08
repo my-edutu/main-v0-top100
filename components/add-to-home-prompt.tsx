@@ -97,6 +97,8 @@ export function AddToHomePrompt() {
         setInstallEvent(null)
         const choice = await requestNativeInstall(pending)
         if (choice.outcome === 'accepted' || choice.outcome === 'dismissed') dismiss()
+      } else {
+        setInstallError('Open your browser menu (⋮ or Share), then choose “Install app” or “Add to Home Screen”. If neither option appears, this browser does not offer installation for this site.')
       }
     } catch {
       setInstallError('The device menu could not open. Please try again.')
@@ -126,11 +128,11 @@ export function AddToHomePrompt() {
         {/* A local install icon needs no image optimizer request. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/icons/top100-africa-192.png" alt="" width={80} height={80} className="rounded-2xl shadow-md" />
-        <div><DialogTitle className="text-2xl font-bold tracking-tight">Add Top100 to your home screen</DialogTitle><DialogDescription className="mt-2 text-sm text-neutral-600">{ios ? 'Tap Share to open your device menu. To add Top100, use Safari’s Share menu and choose Add to Home Screen.' : 'Open Top100 with one tap.'}</DialogDescription></div>
+        <div><DialogTitle className="text-2xl font-bold tracking-tight">Add Top100 to your home screen</DialogTitle><DialogDescription className="mt-2 text-sm text-neutral-600">{ios ? 'Tap Share to open your device menu. To add Top100, use Safari’s Share menu and choose Add to Home Screen.' : action === 'instructions' ? 'Your browser may not show an automatic install prompt. Use its menu to check whether installation is available.' : 'Choose Install when your browser asks to add Top100.'}</DialogDescription></div>
       </div>
       {installError ? <p role="alert" className="mt-4 rounded-xl bg-orange-50 p-3 text-sm leading-6">{installError}</p> : null}
       <div className="mt-3 flex items-center gap-3">
-        <button type="button" disabled={busy || !action} onClick={activate} className="min-h-11 flex-1 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-3 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600 disabled:opacity-60">{busy ? 'Opening…' : ios ? 'Share' : 'Add to Home Screen'}</button>
+        <button type="button" disabled={busy || !action} onClick={activate} className="min-h-11 flex-1 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-3 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600 disabled:opacity-60">{busy ? 'Opening…' : ios && action === 'share' ? 'Share' : action === 'instructions' ? 'Show install steps' : 'Add to Home Screen'}</button>
         <button type="button" onClick={dismiss} className="min-h-11 px-2 text-sm text-neutral-600">Not now</button>
       </div>
     </DialogContent>

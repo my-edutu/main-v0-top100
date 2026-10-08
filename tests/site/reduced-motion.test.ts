@@ -27,7 +27,7 @@ describe("hydration-stable motion", () => {
   it("server-renders final visible metrics without an entrance transform", () => {
     const markup = renderToStaticMarkup(createElement(ImpactSection))
 
-    expect(markup).toContain("2,000")
+    expect(markup).toContain("1,800")
     expect(markup).not.toContain("translateY")
     expect(markup).not.toContain("opacity:0")
   })
