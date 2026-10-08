@@ -48,38 +48,33 @@ function wrapName(name: string) {
   return lines.length ? lines : ['Africa Future Leader']
 }
 
-function characterWidthInEm(character: string) {
-  if (/\p{Mark}/u.test(character)) return 0
-  if (/\s/u.test(character)) return 0.32
-  if (/[ilI1|!.,:;'`]/u.test(character)) return 0.3
-  if (/[MW@%&]/u.test(character)) return 0.9
-  if (/[A-Z]/u.test(character)) return 0.66
-  if (/[a-z]/u.test(character)) return 0.54
-  if (/[0-9]/u.test(character)) return 0.56
-  return 1
-}
-
-function measureNameInEm(line: string) {
-  return Array.from(line).reduce((width, character) => width + characterWidthInEm(character), 0)
-}
-
-function renderNameplate(memberName: string) {
-  const name = Array.from(memberName.trim().replace(/\s+/gu, ' ') || 'Africa Future Leader').slice(0, 120).join('')
-  const lines = wrapName(name)
-  const widestLineInEm = Math.max(...lines.map(measureNameInEm))
-  const fontSize = Math.max(16, Math.min(40, Math.floor(NAME_TEXT_WIDTH / (widestLineInEm * 1.03))))
-  const lineHeight = fontSize * 1.15
-  const firstLineY = NAMEPLATE.top + NAMEPLATE.height / 2 - ((lines.length - 1) * lineHeight) / 2
-  const text = lines.map((line, index) => {
-    const measuredWidth = Math.min(NAME_TEXT_WIDTH, measureNameInEm(line) * fontSize)
-    const y = (firstLineY + index * lineHeight).toFixed(2)
-    return `<tspan x="540" y="${y}" textLength="${measuredWidth.toFixed(2)}" lengthAdjust="spacingAndGlyphs">${escapeXml(line)}</tspan>`
-  }).join('')
-
-  return Buffer.from(`<svg width="${COVER_WIDTH}" height="${COVER_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
-    <rect x="${NAMEPLATE.left}" y="${NAMEPLATE.top}" width="${NAMEPLATE.width}" height="${NAMEPLATE.height}" fill="#fdf9b4" />
-    <text text-anchor="middle" dominant-baseline="middle" fill="#090909" font-family="Arial,sans-serif" font-size="${fontSize}" font-weight="700">${text}</text>
-  </svg>`)
+async function renderNameplate(memberName: string) {
+  const name = Array.from(memberName.normalize('NFC').trim().replace(/\s+/gu, ' ') || 'Africa Future Leader').slice(0, 120).join('')
+  // Load the shipped font explicitly: minimal production images do not have
+  // Arial or a system sans-serif fallback, which rendered names as square glyphs.
+  const text = await sharp({
+    text: {
+      text: wrapName(name).map(escapeXml).join('\n'),
+      font: 'Noto Sans Bold 40',
+      fontfile: path.join(process.cwd(), 'public', 'portfolio-cover', 'fonts', 'NotoSans-Bold.ttf'),
+      align: 'centre',
+      rgba: true,
+      dpi: 72,
+    },
+  }).png().toBuffer()
+  // Fit actual glyph pixels, rather than estimating widths from character count.
+  const fitted = await sharp(text)
+    .resize({ width: NAME_TEXT_WIDTH, height: NAMEPLATE.height - 24, fit: 'inside', withoutEnlargement: true })
+    .png()
+    .toBuffer({ resolveWithObject: true })
+  return sharp({ create: { width: NAMEPLATE.width, height: NAMEPLATE.height, channels: 4, background: '#fdf9b4' } })
+    .composite([{
+      input: fitted.data,
+      left: Math.floor((NAMEPLATE.width - fitted.info.width) / 2),
+      top: Math.floor((NAMEPLATE.height - fitted.info.height) / 2),
+    }])
+    .png()
+    .toBuffer()
 }
 
 async function readTemplate() {
@@ -87,20 +82,21 @@ async function readTemplate() {
 }
 
 export async function renderPortfolioCover({ portrait, memberName }: RenderInput) {
-  const [template, photo] = await Promise.all([
+  const [template, photo, nameplate] = await Promise.all([
     readTemplate(),
     sharp(portrait, { failOn: 'error' })
       .rotate()
       .resize(PHOTO_AREA.width, PHOTO_AREA.height, { fit: 'cover', position: 'centre' })
       .png()
       .toBuffer(),
+    renderNameplate(memberName),
   ])
 
   return sharp(template)
     .resize(COVER_WIDTH, COVER_HEIGHT, { fit: 'fill' })
     .composite([
       { input: photo, left: PHOTO_AREA.left, top: PHOTO_AREA.top },
-      { input: renderNameplate(memberName) },
+      { input: nameplate, left: NAMEPLATE.left, top: NAMEPLATE.top },
     ])
     .png({ compressionLevel: 9 })
     .toBuffer()

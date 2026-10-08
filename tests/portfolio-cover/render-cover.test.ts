@@ -1,3 +1,8 @@
+import { execFileSync } from 'node:child_process'
+import { mkdtempSync, writeFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
+import { pathToFileURL } from 'node:url'
 import sharp from 'sharp'
 import { describe, expect, it } from 'vitest'
 
@@ -26,16 +31,19 @@ describe('deterministic Top100 magazine cover renderer', () => {
 
   it('renders the awardee name in the template nameplate', async () => {
     const portrait = await sharp({ create: { width: 300, height: 300, channels: 3, background: '#d02080' } }).png().toBuffer()
-    const common = { portrait, fields: {} }
-    const ada = await renderPortfolioCover({ ...common, memberName: 'Ada Lovelace' })
-    const grace = await renderPortfolioCover({ ...common, memberName: 'Grace Hopper' })
-    const crop = { left: 266, top: 873, width: 548, height: 91 }
-    const [adaNameplate, graceNameplate] = await Promise.all([
-      sharp(ada).extract(crop).png().toBuffer(),
-      sharp(grace).extract(crop).png().toBuffer(),
-    ])
+    const output = await renderPortfolioCover({ portrait, memberName: 'Gabriel Kwaku Agbeshie', fields: {} })
+    const { data, info } = await sharp(output)
+      .extract({ left: 266, top: 873, width: 548, height: 91 })
+      .removeAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true })
+    let darkTextPixels = 0
 
-    expect(adaNameplate.equals(graceNameplate)).toBe(false)
+    for (let offset = 0; offset < data.length; offset += info.channels) {
+      if (data[offset] < 60 && data[offset + 1] < 60 && data[offset + 2] < 60) darkTextPixels += 1
+    }
+
+    expect(darkTextPixels).toBeGreaterThan(500)
   }, 15000)
 
   it('keeps long awardee names inside the nameplate instead of clipping across the cover', async () => {
@@ -65,3 +73,37 @@ describe('deterministic Top100 magazine cover renderer', () => {
     expect(changedPixelsOutsideNameplate).toBe(0)
   }, 15000)
 })
+
+// A fresh process avoids fonts registered by other renderer tests.
+it('renders distinct letters without any system fonts instead of missing-glyph squares', async () => {
+  const folder = mkdtempSync(path.join(tmpdir(), 'cover-fontless-'))
+  const config = path.join(folder, 'fonts.conf')
+  writeFileSync(config, '<fontconfig></fontconfig>')
+  try {
+    const renderer = pathToFileURL(path.join(process.cwd(), 'lib/portfolio-cover/render-cover.ts')).href
+    const script = `
+      import sharp from 'sharp';
+      import { renderPortfolioCover } from ${JSON.stringify(renderer)};
+      const portrait = await sharp({ create: { width: 100, height: 100, channels: 3, background: '#fff' } }).png().toBuffer();
+      const results = [];
+      for (const memberName of ['IIIIIIII', 'WWWWWWWW']) {
+        const cover = await renderPortfolioCover({ portrait, memberName, fields: {} });
+        results.push((await sharp(cover).extract({ left:266, top:873, width:548, height:91 }).png().toBuffer()).toString('base64'));
+      }
+      process.stdout.write(JSON.stringify(results));
+    `
+    const images: string[] = JSON.parse(execFileSync(process.execPath, ['--import', 'tsx', '--input-type=module', '-e', script], {
+      encoding: 'utf8', env: { ...process.env, FONTCONFIG_FILE: config, FONTCONFIG_PATH: folder, XDG_CACHE_HOME: folder }, timeout: 20000,
+    }))
+    const widths = await Promise.all(images.map(async encoded => {
+      const { data, info } = await sharp(Buffer.from(encoded, 'base64')).removeAlpha().raw().toBuffer({ resolveWithObject: true })
+      const xs: number[] = []
+      for (let offset = 0; offset < data.length; offset += info.channels) {
+        if (data[offset] < 60 && data[offset + 1] < 60 && data[offset + 2] < 60) xs.push((offset / info.channels) % info.width)
+      }
+      expect(xs.length).toBeGreaterThan(0)
+      return Math.max(...xs) - Math.min(...xs)
+    }))
+    expect(widths[1]).toBeGreaterThan(widths[0] * 2)
+  } finally { rmSync(folder, { recursive: true, force: true }) }
+}, 30000)

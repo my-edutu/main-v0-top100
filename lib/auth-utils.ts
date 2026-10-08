@@ -1,6 +1,10 @@
 import { Role, parseRole } from './types/roles'
 import type { Session, User } from '@supabase/supabase-js'
 
+function debugAuth(...args: Parameters<typeof console.log>) {
+  if (process.env.NODE_ENV === 'development') console.log(...args)
+}
+
 /**
  * Normalize role value from various possible formats
  * Handles case-insensitivity and common variations
@@ -34,7 +38,7 @@ export function normalizeRole(role: any): Role | null {
  */
 export function extractRoleFromSession(session: Session | null): Role | null {
   if (!session?.user) {
-    console.log('[auth-utils] No session or user found')
+    debugAuth('[auth-utils] No session or user found')
     return null
   }
 
@@ -45,7 +49,7 @@ export function extractRoleFromSession(session: Session | null): Role | null {
     (user as any)['custom:role'],
   ]
 
-  console.log('[auth-utils] Checking role from session:', {
+  debugAuth('[auth-utils] Checking role from session:', {
     userId: user.id,
     email: user.email,
     possibleRoles,
@@ -56,12 +60,12 @@ export function extractRoleFromSession(session: Session | null): Role | null {
   for (const roleValue of possibleRoles) {
     const normalized = normalizeRole(roleValue)
     if (normalized) {
-      console.log('[auth-utils] Found role:', normalized)
+      debugAuth('[auth-utils] Found role:', normalized)
       return normalized
     }
   }
 
-  console.log('[auth-utils] No role found in session, defaulting to null')
+  debugAuth('[auth-utils] No role found in session, defaulting to null')
   return null
 }
 
@@ -74,7 +78,7 @@ export function extractRoleFromSession(session: Session | null): Role | null {
  */
 export function extractRoleFromJWTPayload(payload: any): Role | null {
   if (!payload) {
-    console.log('[auth-utils] No JWT payload provided')
+    debugAuth('[auth-utils] No JWT payload provided')
     return null
   }
 
@@ -83,7 +87,7 @@ export function extractRoleFromJWTPayload(payload: any): Role | null {
     payload['custom:role'],
   ]
 
-  console.log('[auth-utils] Checking role from JWT payload:', {
+  debugAuth('[auth-utils] Checking role from JWT payload:', {
     sub: payload.sub,
     email: payload.email,
     possibleRoles,
@@ -92,12 +96,12 @@ export function extractRoleFromJWTPayload(payload: any): Role | null {
   for (const roleValue of possibleRoles) {
     const normalized = normalizeRole(roleValue)
     if (normalized) {
-      console.log('[auth-utils] Found role in JWT:', normalized)
+      debugAuth('[auth-utils] Found role in JWT:', normalized)
       return normalized
     }
   }
 
-  console.log('[auth-utils] No role found in JWT payload')
+  debugAuth('[auth-utils] No role found in JWT payload')
   return null
 }
 
