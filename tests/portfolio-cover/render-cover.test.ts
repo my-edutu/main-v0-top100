@@ -37,4 +37,31 @@ describe('deterministic Top100 magazine cover renderer', () => {
 
     expect(adaNameplate.equals(graceNameplate)).toBe(false)
   }, 15000)
+
+  it('keeps long awardee names inside the nameplate instead of clipping across the cover', async () => {
+    const portrait = await sharp({ create: { width: 300, height: 300, channels: 3, background: '#d02080' } }).png().toBuffer()
+    const [longNameCover, referenceCover] = await Promise.all([
+      renderPortfolioCover({ portrait, memberName: 'W'.repeat(120), fields: {} }),
+      renderPortfolioCover({ portrait, memberName: 'Ada Lovelace', fields: {} }),
+    ])
+    const [longName, reference] = await Promise.all([
+      sharp(longNameCover).removeAlpha().raw().toBuffer(),
+      sharp(referenceCover).removeAlpha().raw().toBuffer(),
+    ])
+    const width = 1080
+    const channels = 3
+    let changedPixelsOutsideNameplate = 0
+
+    for (let y = 873; y < 964; y += 1) {
+      for (let x = 0; x < width; x += 1) {
+        if (x >= 266 && x < 814) continue
+        const offset = (y * width + x) * channels
+        if (longName[offset] !== reference[offset] || longName[offset + 1] !== reference[offset + 1] || longName[offset + 2] !== reference[offset + 2]) {
+          changedPixelsOutsideNameplate += 1
+        }
+      }
+    }
+
+    expect(changedPixelsOutsideNameplate).toBe(0)
+  }, 15000)
 })
