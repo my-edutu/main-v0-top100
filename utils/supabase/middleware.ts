@@ -170,8 +170,25 @@ export async function updateSession(request: NextRequest) {
   if (user && (pathname.startsWith('/dashboard') || pathname.startsWith('/api/member/'))) {
     const allowed = ['/api/member/me', '/api/member/onboarding', '/api/member/uploads', '/api/member/avatar']
     if (!allowed.includes(pathname)) {
-      const { data: profile, error } = await supabase.from('profiles').select('notification_prefs').eq('id', user.sub).maybeSingle()
-      if (error || !onboardingComplete(profile?.notification_prefs)) {
+      // Match /api/member/me: read only this authenticated user's preferences
+      // authoritatively, independent of profile RLS visibility.
+      let profile: { notification_prefs?: Record<string, unknown> } | undefined
+      try {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+        if (!url || !key) throw new Error('Profile lookup unavailable')
+        const result = await fetch(`${url}/rest/v1/profiles?id=eq.${encodeURIComponent(user.sub)}&select=notification_prefs`, {
+          headers: { apikey: key, Authorization: `Bearer ${key}` },
+          cache: 'no-store',
+        })
+        if (!result.ok) throw new Error('Profile lookup unavailable')
+        profile = (await result.json())[0]
+      } catch {
+        const response = NextResponse.json({ message: 'Your profile status could not be checked. Please retry.' }, { status: 503 })
+        supabaseResponse.cookies.getAll().forEach(cookie => response.cookies.set(cookie))
+        return response
+      }
+      if (!onboardingComplete(profile?.notification_prefs)) {
         if (pathname.startsWith('/api/member/')) return NextResponse.json({ message: 'Complete your profile setup first.', onboardingRequired: true }, { status: 403 })
         if (pathname !== '/dashboard/onboarding') {
           const url = request.nextUrl.clone(); url.pathname = '/dashboard/onboarding'; url.search = ''

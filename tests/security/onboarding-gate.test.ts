@@ -28,6 +28,9 @@ vi.mock('@supabase/ssr', () => ({
 beforeEach(() => {
   state.prefs = {}
   state.error = null
+  vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://example.supabase.co')
+  vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'test-server-key')
+  vi.stubGlobal('fetch', vi.fn(async () => state.error ? new Response(null, { status: 503 }) : Response.json([{ notification_prefs: state.prefs }])))
 })
 it('redirects incomplete members from deep dashboard links', async () => {
   const response = await updateSession(
@@ -81,5 +84,12 @@ it('allows completed members and fails closed on a database error', async () => 
         new NextRequest('https://www.top100afl.com/api/member/conversations'),
       )
     ).status,
-  ).toBe(403)
+  ).toBe(503)
+})
+
+it('uses the authenticated user scope for the authoritative completion check', async () => {
+  state.prefs = { onboardingCompletedAt: '2026-10-06T22:30:47.031Z' }
+  const response = await updateSession(new NextRequest('https://www.top100afl.com/dashboard'))
+  expect(response.status).toBe(200)
+  expect(fetch).toHaveBeenCalledWith('https://example.supabase.co/rest/v1/profiles?id=eq.member-1&select=notification_prefs', expect.objectContaining({ cache: 'no-store' }))
 })
