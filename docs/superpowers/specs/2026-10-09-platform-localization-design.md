@@ -1,7 +1,7 @@
 # Platform localization design
 
-**Date:** 2026-10-09  
-**Status:** Awaiting user review  
+**Date:** 2026-10-09
+**Status:** Approved for planning
 **Scope:** Public Top100 Africa Future Leaders website and signed-in member dashboard
 
 ## Goal
