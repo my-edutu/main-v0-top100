@@ -88,6 +88,17 @@ export async function PATCH(request: NextRequest) {
   const patch = parseProgressPatch(body)
   if (!patch) return NextResponse.json({ message: 'Choose a supported onboarding update.' }, { status: 400 })
 
+  if (patch.handbookPromptSeen || patch.handbookRead) {
+    try {
+      const journey = await getAwardeeJourneyForMember(user.id)
+      if (!journey.handbook.eligible) {
+        return NextResponse.json({ message: 'This handbook is available to approved 2026 awardees.' }, { status: 403 })
+      }
+    } catch {
+      return NextResponse.json({ message: 'Could not verify handbook access. Please try again.' }, { status: 503 })
+    }
+  }
+
   try {
     await saveAwardeeJourneyProgress(user.id, patch)
     return NextResponse.json({ saved: true })

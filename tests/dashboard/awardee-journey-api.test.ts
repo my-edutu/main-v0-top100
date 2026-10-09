@@ -83,13 +83,23 @@ describe('/api/member/onboarding-journey', () => {
   })
 
   it('saves handbook prompt-seen and read acknowledgements independently for the authenticated member', async () => {
-  const response = await PATCH(request('PATCH', {
+    mocks.getJourney.mockResolvedValue({ handbook: { eligible: true } })
+    const response = await PATCH(request('PATCH', {
     memberId: 'another-member',
     handbookPromptSeen: true,
   }))
 
   expect(response.status).toBe(200)
   expect(mocks.saveProgress).toHaveBeenCalledWith('authenticated-member', { handbookPromptSeen: true })
+  })
+
+  it('does not create handbook progress for an unverified or non-2026 member', async () => {
+    mocks.getJourney.mockResolvedValue({ handbook: { eligible: false } })
+
+    const response = await PATCH(request('PATCH', { handbookRead: true }))
+
+    expect(response.status).toBe(403)
+    expect(mocks.saveProgress).not.toHaveBeenCalled()
   })
 
   it('rejects false handbook progress values', async () => {
