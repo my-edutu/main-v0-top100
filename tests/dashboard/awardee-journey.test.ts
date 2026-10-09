@@ -46,6 +46,14 @@ describe('awardee journey progress', () => {
     expect(state.coreSteps.every((step) => step.complete)).toBe(true)
   })
 
+  it('counts a member-confirmed introduction that was already published before tracking was added', () => {
+    const state = deriveAwardeeJourney(input({
+      introPublishedConfirmedAt: '2026-10-09T10:00:00.000Z',
+    }))
+
+    expect(state.coreSteps.find((step) => step.id === 'introduction')?.complete).toBe(true)
+  })
+
   it('does not count a partial profile or missing uploaded avatar as complete', () => {
     const state = deriveAwardeeJourney(input({
       profile: { ...profile, bio: '', avatarUrl: null },

@@ -14,6 +14,7 @@ export type AwardeeJourneyInput = {
   handbookEligible?: boolean
   handbookReadAt?: string | null
   handbookPromptSeenAt?: string | null
+  introPublishedConfirmedAt?: string | null
   hasPublishedIntroPost: boolean
   externalShareConfirmedAt: string | null
   externalSharePlatform: string | null
@@ -45,7 +46,7 @@ export function deriveAwardeeJourney(input: AwardeeJourneyInput): AwardeeJourney
   // These are the two requirements named by the dashboard checklist. Other
   // profile details (headline, location, organization, field) are optional.
   const profileComplete = Boolean(input.profile.bio.trim() && input.profile.avatarUrl?.trim())
-  const introductionComplete = input.hasPublishedIntroPost
+  const introductionComplete = input.hasPublishedIntroPost || isPersisted(input.introPublishedConfirmedAt ?? null)
   const coreSteps: JourneyStep[] = [
     {
       id: 'welcome',

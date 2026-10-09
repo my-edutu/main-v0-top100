@@ -8,6 +8,8 @@ import { validateSocialLinks } from '@/lib/profile-contact'
 import { PROFILE_TEXT_LIMITS } from '@/app/dashboard/_lib/profile-editor'
 import { getCurrentUser } from '@/lib/auth-server'
 import { createAdminClient } from '@/lib/supabase/server'
+import { PARTICIPANT_HANDBOOK } from '@/lib/handbook/participant-handbook'
+import { PARTICIPANT_HANDBOOK_CAMPAIGN_ID } from '@/lib/dashboard/participant-handbook-broadcast'
 import {
   mapProfileToMember,
   mapNotification,
@@ -19,6 +21,19 @@ import {
 export const runtime = 'nodejs'
 
 const LEGACY_AWARDEE_COLUMNS = 'id, profile_id, name, email, slug, headline, tagline, bio, country, course'
+type MemberNotificationRow = {
+  id: string
+  user_id: string
+  title: string
+  body: string
+  category: string
+  metadata: Record<string, unknown> | null
+  cta_label: string | null
+  cta_url: string | null
+  campaign_id?: string | null
+  delivered_at: string | null
+  read_at: string | null
+}
 
 async function loadLinkedAwardee(supabase: ReturnType<typeof createAdminClient>, userId: string) {
   const { data } = await supabase
@@ -48,13 +63,13 @@ export async function GET() {
 
   const [profileResult, awardee, notificationsRes, featuresRes] = await Promise.all([
     supabase.from('profiles')
-      .select('id,full_name,email,access_code,slug,membership_status,headline,bio,location,organization,tagline,field,field_of_study,avatar_url,portfolio_cover_url,notification_prefs,bio_update_count,bio_update_limit,created_at')
+      .select('id,role,full_name,email,access_code,slug,membership_status,headline,bio,location,organization,tagline,field,field_of_study,avatar_url,portfolio_cover_url,notification_prefs,bio_update_count,bio_update_limit,created_at')
       .eq('id', user.id)
       .maybeSingle(),
     loadLinkedAwardee(supabase, user.id),
     supabase
       .from('user_notifications')
-      .select('id,user_id,title,body,category,metadata,cta_label,cta_url,delivered_at,read_at')
+      .select('id,user_id,title,body,category,metadata,cta_label,cta_url,campaign_id,delivered_at,read_at')
       .eq('user_id', user.id)
       .order('delivered_at', { ascending: false })
       .limit(50),
@@ -70,9 +85,72 @@ export async function GET() {
   if (error) return NextResponse.json({ message: 'Could not load your profile.' }, { status: 500 })
   if (!profile) return NextResponse.json({ message: 'Profile not found. Contact the admin team.' }, { status: 404 })
 
+  let notificationRows: MemberNotificationRow[] = notificationsRes.data ?? []
+  const hasHandbook = (row: MemberNotificationRow) => row.campaign_id === PARTICIPANT_HANDBOOK_CAMPAIGN_ID
+    || row.title === PARTICIPANT_HANDBOOK.notificationTitle
+  if (!notificationRows.some(hasHandbook)) {
+    const handbookPayload = {
+      user_id: user.id,
+      title: PARTICIPANT_HANDBOOK.notificationTitle,
+      body: PARTICIPANT_HANDBOOK.notificationMessage,
+      category: 'admin',
+      cta_label: PARTICIPANT_HANDBOOK.notificationCta,
+      cta_url: PARTICIPANT_HANDBOOK.path,
+      delivered_at: new Date().toISOString(),
+      metadata: { audience: 'all', broadcast_id: PARTICIPANT_HANDBOOK_CAMPAIGN_ID, campaign_id: PARTICIPANT_HANDBOOK_CAMPAIGN_ID },
+    }
+
+    // Existing databases may not have received the campaign-id migration yet.
+    // Keep the current member inbox usable during local preview and rollout by
+    // using the stable title as an idempotency key on that older schema.
+    if (notificationsRes.error?.code === '42703') {
+      const legacySelection = 'id,user_id,title,body,category,metadata,cta_label,cta_url,delivered_at,read_at'
+      const { data: existingLegacyNotice } = await supabase
+        .from('user_notifications')
+        .select(legacySelection)
+        .eq('user_id', user.id)
+        .eq('title', PARTICIPANT_HANDBOOK.notificationTitle)
+        .maybeSingle()
+
+      if (existingLegacyNotice) {
+        notificationRows = [existingLegacyNotice, ...notificationRows]
+      } else {
+        const { data: handbookNotification, error: handbookError } = await supabase
+          .from('user_notifications')
+          .insert(handbookPayload)
+          .select(legacySelection)
+          .maybeSingle()
+        if (handbookError) {
+          console.error('[member/me] Could not add handbook notification to member inbox:', handbookError.message)
+        } else if (handbookNotification) {
+          notificationRows = [handbookNotification, ...notificationRows]
+        }
+      }
+    } else {
+      const { data: handbookNotification, error: handbookError } = await supabase
+        .from('user_notifications')
+        .upsert({ ...handbookPayload, campaign_id: PARTICIPANT_HANDBOOK_CAMPAIGN_ID }, { onConflict: 'user_id,campaign_id', ignoreDuplicates: true })
+        .select('id,user_id,title,body,category,metadata,cta_label,cta_url,campaign_id,delivered_at,read_at')
+        .maybeSingle()
+
+      if (handbookError) {
+        console.error('[member/me] Could not add handbook notification to member inbox:', handbookError.message)
+      } else if (handbookNotification) {
+        notificationRows = [handbookNotification, ...notificationRows]
+      }
+    }
+  }
+
+  // The handbook is now for all member accounts. Normalize legacy campaign
+  // metadata so an older approved-only notification remains visible to a
+  // member whose status changes while the campaign row already exists.
+  const notifications = notificationRows.map((row) => row.campaign_id === PARTICIPANT_HANDBOOK_CAMPAIGN_ID
+    ? { ...row, metadata: { ...(row.metadata ?? {}), audience: 'all' } }
+    : row)
+
   return NextResponse.json({
     member: mapProfileToMember(profile, awardee?.id ?? null, awardee),
-    notifications: (notificationsRes.data ?? []).map(mapNotification),
+    notifications: notifications.map(mapNotification),
     featureSubmissions: (featuresRes.data ?? []).map(mapFeature),
   })
 }

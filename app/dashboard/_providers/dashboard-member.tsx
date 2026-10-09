@@ -129,7 +129,7 @@ export function DashboardMemberProvider({ children }: { children: ReactNode }) {
   const awardDark =
     pathname === '/dashboard/me/award' ||
     pathname.startsWith('/dashboard/me/award/payment')
-  const showTop100Moment = pathname === '/dashboard' && member.status === 'approved'
+  const showDashboardOnboarding = pathname === '/dashboard'
 
   async function replayWelcome() {
     if (replayingWelcome) return
@@ -152,11 +152,16 @@ export function DashboardMemberProvider({ children }: { children: ReactNode }) {
   return (
     <DashboardMemberContext.Provider value={{ member, notifications, loadedAt, replaceNotifications: setNotifications, refreshMember, replaceMember }}>
       {isLocalPreview && <div className={`award-preview-banner px-4 py-2 text-center text-xs text-orange-900 ${awardDark ? 'award-preview-dark' : 'bg-orange-50'}`}>Local preview · sample account and activity {member.onboardingCompletedAt && <button type="button" className="ml-2 underline disabled:opacity-60" onClick={() => void replayWelcome()} disabled={replayingWelcome}>{replayingWelcome ? 'Reopening welcome…' : 'Replay welcome'}</button>}{welcomeReplayError && <span role="alert" className="ml-2">{welcomeReplayError}</span>}</div>}
-      {!member.onboardingCompletedAt
-        ? <Onboarding member={member} onComplete={completeOnboarding} />
-        : showTop100Moment
-          ? <Top100MomentGate member={member}>{children}</Top100MomentGate>
-          : children}
+      {showDashboardOnboarding ? (
+        <Top100MomentGate
+          member={member}
+          welcomeFlowEnabled={member.status === 'approved' && Boolean(member.onboardingCompletedAt)}
+        >
+          {!member.onboardingCompletedAt ? <Onboarding member={member} onComplete={completeOnboarding} /> : children}
+        </Top100MomentGate>
+      ) : !member.onboardingCompletedAt ? (
+        <Onboarding member={member} onComplete={completeOnboarding} />
+      ) : children}
     </DashboardMemberContext.Provider>
   )
 }

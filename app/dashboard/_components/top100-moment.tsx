@@ -134,7 +134,7 @@ function AnimatedApplicantCount({ value }: { value: number }) {
   return <span aria-label={`${value.toLocaleString('en-US')}+`} className="font-extrabold tabular-nums">{displayedCount.toLocaleString('en-US')}+</span>
 }
 
-export function Top100MomentGate({ member, children }: { member: MemberProfile; children: ReactNode }) {
+export function Top100MomentGate({ member, children, welcomeFlowEnabled = true }: { member: MemberProfile; children: ReactNode; welcomeFlowEnabled?: boolean }) {
   const [initialJourney] = useState(() => ({
     payload: journeyCache.get(member.id) ?? null,
     loading: !journeyCache.has(member.id),
@@ -181,6 +181,7 @@ export function Top100MomentGate({ member, children }: { member: MemberProfile; 
       promptSeenAt: payload.handbook.promptSeenAt,
       momentCompleted: Boolean(payload.moment.completedAt),
       momentDismissed: dismissed,
+      welcomeFlowEnabled,
     })
     if (!shouldShow) return
 
@@ -196,7 +197,7 @@ export function Top100MomentGate({ member, children }: { member: MemberProfile; 
         setPayload(updatedPayload)
       })
       .catch((cause) => setHandbookPromptError(cause instanceof Error ? cause.message : 'We could not save this update yet.'))
-  }, [dismissed, loading, member.id, payload])
+  }, [dismissed, loading, member.id, payload, welcomeFlowEnabled])
 
   function dismissWelcome() {
     try {
@@ -216,18 +217,14 @@ export function Top100MomentGate({ member, children }: { member: MemberProfile; 
       promptSeenAt: payload.handbook.promptSeenAt,
       momentCompleted: momentIsComplete,
       momentDismissed: dismissed,
+      welcomeFlowEnabled,
     }) || handbookPromptPresentedFor === member.id))
 
   if (loading || !payload) return children
 
   return (
     <>
-      {dismissed || momentIsComplete ? children : showWelcome ? (
-        <>
-          {children}
-          <Top100Moment member={member} payload={payload} onComplete={dismissWelcome} />
-        </>
-      ) : (
+      {welcomeFlowEnabled && !dismissed && !momentIsComplete && !showWelcome ? (
         <aside
           aria-label="Top100 welcome"
           className="relative z-[60] border-b border-[#E8DDCD] bg-[#FFF8E8] px-4 py-3 text-[#171717] sm:px-6 lg:px-8"
@@ -254,8 +251,11 @@ export function Top100MomentGate({ member, children }: { member: MemberProfile; 
             </button>
           </div>
         </aside>
-      )}
-      {showWelcome || dismissed || momentIsComplete ? null : children}
+      ) : null}
+      {children}
+      {welcomeFlowEnabled && showWelcome && !dismissed && !momentIsComplete
+        ? <Top100Moment member={member} payload={payload} onComplete={dismissWelcome} />
+        : null}
       <Dialog open={handbookPromptOpen} onOpenChange={(open) => { if (!open) setHandbookPromptDismissedFor(member.id) }}>
         <DialogContent className="max-w-lg rounded-[28px] border-[#E8DDCD] p-6 sm:p-8">
           <p className="text-xs font-semibold tracking-[0.2em] text-[#A94412]">{PARTICIPANT_HANDBOOK.popupEyebrow}</p>

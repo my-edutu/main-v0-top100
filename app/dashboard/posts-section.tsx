@@ -117,6 +117,7 @@ type PostsSectionProps = {
   member: MemberProfile
   mode?: PostsSectionMode
   postId?: string
+  onboardingIntroduction?: boolean
   onEditorExit?: () => void
 }
 
@@ -124,6 +125,7 @@ export default function PostsSection({
   member,
   mode = 'list',
   postId,
+  onboardingIntroduction = false,
   onEditorExit,
 }: PostsSectionProps) {
   const [posts, setPosts] = useState<MemberPost[]>([])
@@ -182,6 +184,7 @@ export default function PostsSection({
       body: editor.body.trim(),
       coverUrl: editor.coverUrl.trim(),
       status,
+      ...(onboardingIntroduction ? { tags: ['afl-introduction'] } : {}),
     }
 
     try {

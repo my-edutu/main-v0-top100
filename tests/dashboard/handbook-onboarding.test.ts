@@ -9,6 +9,16 @@ describe('participant handbook onboarding', () => {
     expect(shouldShowHandbookPrompt({ eligible: true, promptSeenAt: null, momentCompleted: true, momentDismissed: false })).toBe(true)
   })
 
+  it('shows the handbook promptly when the member does not have the welcome flow', () => {
+    expect(shouldShowHandbookPrompt({
+      eligible: true,
+      promptSeenAt: null,
+      momentCompleted: false,
+      momentDismissed: false,
+      welcomeFlowEnabled: false,
+    })).toBe(true)
+  })
+
   it('keeps prompt display and handbook read acknowledgement independent', () => {
     expect(shouldShowHandbookPrompt({ eligible: true, promptSeenAt: '2026-10-09T10:00:00.000Z', momentCompleted: true, momentDismissed: false })).toBe(false)
     expect(shouldShowHandbookPrompt({ eligible: false, promptSeenAt: null, momentCompleted: true, momentDismissed: false })).toBe(false)

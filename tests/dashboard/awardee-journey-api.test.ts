@@ -59,6 +59,23 @@ describe('/api/member/onboarding-journey', () => {
     expect(mocks.saveProgress).toHaveBeenCalledWith('authenticated-member', { whatsappChannelJoined: true })
   })
 
+  it('saves manual home-screen and already-published introduction confirmations', async () => {
+    const homeScreen = await PATCH(request('PATCH', { homeScreenAdded: true }))
+    const introduction = await PATCH(request('PATCH', { introPublished: true }))
+
+    expect(homeScreen.status).toBe(200)
+    expect(introduction.status).toBe(200)
+    expect(mocks.saveProgress).toHaveBeenNthCalledWith(1, 'authenticated-member', { homeScreenAdded: true })
+    expect(mocks.saveProgress).toHaveBeenNthCalledWith(2, 'authenticated-member', { introPublished: true })
+  })
+
+  it('rejects false manual completion confirmations', async () => {
+    const response = await PATCH(request('PATCH', { homeScreenAdded: false }))
+
+    expect(response.status).toBe(400)
+    expect(mocks.saveProgress).not.toHaveBeenCalled()
+  })
+
   it('rejects a false WhatsApp completion value', async () => {
     const response = await PATCH(request('PATCH', { whatsappChannelJoined: false }))
 

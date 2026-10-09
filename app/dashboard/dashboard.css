@@ -148,6 +148,9 @@ html.light .hub-messages .hub-chat-send { border-radius:14px!important; }
 }
 .hub-messages .hub-chat-thread h4 { font-weight:500!important; }
 .awardee-dashboard .hub-directory :is(button,a) { min-height:44px; font-weight:500; }
+.handbook-guide-dialog { border-radius:24px!important; }
+html.light .handbook-guide-overlay, .handbook-guide-overlay { background:rgba(17,19,24,.64)!important; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); }
+.handbook-guide-dialog .handbook-open-button { border-radius:12px!important; }
 .awardee-dashboard .hub-directory article :is(p,span) { font-weight:400; }
 .awardee-dashboard .hub-directory article .grid>a, .awardee-dashboard .hub-directory article .grid>button { min-width:0; padding-inline:8px; }
 html.light .awardee-dashboard .hub-cohort-filters button { color:#171717!important; }

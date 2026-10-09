@@ -14,7 +14,7 @@ const PLATFORMS = ['linkedin', 'facebook', 'instagram', 'other'] as const
 function parseProgressPatch(input: unknown) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) return null
   const body = input as Record<string, unknown>
-  const allowed = new Set(['memberId', 'welcomeRead', 'externalShareConfirmed', 'externalSharePlatform', 'top100MomentComplete', 'whatsappChannelJoined', 'handbookPromptSeen', 'handbookRead'])
+  const allowed = new Set(['memberId', 'welcomeRead', 'externalShareConfirmed', 'externalSharePlatform', 'top100MomentComplete', 'whatsappChannelJoined', 'handbookPromptSeen', 'handbookRead', 'homeScreenAdded', 'introPublished'])
   if (Object.keys(body).some((key) => !allowed.has(key))) return null
 
   const patch: {
@@ -25,6 +25,8 @@ function parseProgressPatch(input: unknown) {
     whatsappChannelJoined?: true
     handbookPromptSeen?: true
     handbookRead?: true
+    homeScreenAdded?: true
+    introPublished?: true
   } = {}
   if (body.welcomeRead !== undefined) {
     if (body.welcomeRead !== true) return null
@@ -45,6 +47,14 @@ function parseProgressPatch(input: unknown) {
   if (body.handbookRead !== undefined) {
     if (body.handbookRead !== true) return null
     patch.handbookRead = true
+  }
+  if (body.homeScreenAdded !== undefined) {
+    if (body.homeScreenAdded !== true) return null
+    patch.homeScreenAdded = true
+  }
+  if (body.introPublished !== undefined) {
+    if (body.introPublished !== true) return null
+    patch.introPublished = true
   }
   if (body.externalShareConfirmed !== undefined) {
     if (typeof body.externalShareConfirmed !== 'boolean') return null
@@ -92,7 +102,7 @@ export async function PATCH(request: NextRequest) {
     try {
       const journey = await getAwardeeJourneyForMember(user.id)
       if (!journey.handbook.eligible) {
-        return NextResponse.json({ message: 'This handbook is available to approved 2026 awardees.' }, { status: 403 })
+        return NextResponse.json({ message: 'This handbook is available to Top100 members.' }, { status: 403 })
       }
     } catch {
       return NextResponse.json({ message: 'Could not verify handbook access. Please try again.' }, { status: 503 })

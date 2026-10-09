@@ -2,8 +2,8 @@
 
 import Link from 'next/link'
 import Image from '@/components/safe-image'
-import { useCallback, useEffect, useState } from 'react'
-import { ArrowRight, BookOpenText, Check, CheckCircle2, ChevronDown, Circle, Compass, Copy, ExternalLink, FileText, Linkedin, MessageCircle, RefreshCw, Smartphone, Share2, Trophy, UserRound } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { ArrowRight, BookOpenText, Check, CheckCircle2, ChevronDown, Circle, Compass, Copy, ExternalLink, FileText, Linkedin, MessageCircle, RefreshCw, Smartphone, Share2, Trophy, UserRound, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -17,8 +17,15 @@ import { saveHandbookProgress } from '@/lib/dashboard/handbook-onboarding'
 import { PARTICIPANT_HANDBOOK } from '@/lib/handbook/participant-handbook'
 import { useDashboardMember } from '../_providers/dashboard-member'
 
-type Payload = { state: AwardeeJourneyState; settings: AwardeeJourneySettings; whatsappChannelJoinedAt: string | null }
+type Payload = { state: AwardeeJourneyState; settings: AwardeeJourneySettings; whatsappChannelJoinedAt: string | null; homeScreenAddedAt: string | null; introPublishedConfirmedAt: string | null }
 type Props = { name: string }
+type ExploreTile = {
+  id: string
+  label: string
+  detail: string
+  action: 'welcome' | 'profile' | 'introduction' | 'cover' | 'post' | 'whatsapp' | 'handbook' | 'recommendation' | 'static'
+  href?: string
+}
 
 const coreDestinations = {
   welcome: null,
@@ -52,23 +59,19 @@ export function AwardeeOnboardingJourney({ name }: Props) {
   const [saving, setSaving] = useState(false)
   const [shareSaving, setShareSaving] = useState(false)
   const [welcomeOpen, setWelcomeOpen] = useState(false)
+  const [introOpen, setIntroOpen] = useState(false)
+  const [introError, setIntroError] = useState('')
   const [shareOpen, setShareOpen] = useState(false)
   const [captionCopied, setCaptionCopied] = useState(false)
   const [preparedCover, setPreparedCover] = useState<{ url: string; file: File | null } | null>(null)
   const [sharing, setSharing] = useState(false)
-  const [profileClickedFor, setProfileClickedFor] = useState<string | null>(null)
+  const [manualTaskSaving, setManualTaskSaving] = useState<'homeScreenAdded' | 'introPublished' | null>(null)
+  const homeScreenSaveAttempted = useRef(false)
   const [joinedChannelSaving, setJoinedChannelSaving] = useState(false)
   const [joinedChannelFor, setJoinedChannelFor] = useState<string | null>(null)
+  const [handbookOpen, setHandbookOpen] = useState(false)
   const [handbookSaving, setHandbookSaving] = useState(false)
   const [handbookError, setHandbookError] = useState('')
-  useEffect(() => {
-    const frame = requestAnimationFrame(() => {
-      try {
-        setProfileClickedFor(localStorage.getItem(`afl-profile-done:${member.id}`) === 'yes' ? member.id : null)
-      } catch { setProfileClickedFor(null) }
-    })
-    return () => cancelAnimationFrame(frame)
-  }, [member.id])
   const joinedChannel = joinedChannelFor === member.id || Boolean(payload?.whatsappChannelJoinedAt)
   async function confirmChannelJoined() {
     if (joinedChannelSaving || joinedChannel) return
@@ -109,6 +112,39 @@ export function AwardeeOnboardingJourney({ name }: Props) {
     }
   }, [])
 
+  const confirmManualTask = useCallback(async (field: 'homeScreenAdded' | 'introPublished') => {
+    if (manualTaskSaving) return false
+    setManualTaskSaving(field)
+    if (field === 'introPublished') setIntroError('')
+    try {
+      const response = await fetch('/api/member/onboarding-journey', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ [field]: true }),
+      })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.message || 'Could not save your update.')
+      if (field === 'homeScreenAdded') setHomeScreenInstalled(true)
+      if (field === 'introPublished') setIntroOpen(false)
+      await load(false)
+      toast.success(field === 'homeScreenAdded' ? 'Home screen addition saved.' : 'Introduction marked as published.')
+      return true
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : 'Could not save your update.'
+      if (field === 'introPublished') setIntroError(message)
+      toast.error(message)
+      return false
+    } finally {
+      setManualTaskSaving(null)
+    }
+  }, [load, manualTaskSaving])
+
+  useEffect(() => {
+    if (!homeScreenInstalled || !payload || payload.homeScreenAddedAt || homeScreenSaveAttempted.current) return
+    homeScreenSaveAttempted.current = true
+    void confirmManualTask('homeScreenAdded')
+  }, [confirmManualTask, homeScreenInstalled, payload])
+
   useEffect(() => {
     void load(false)
     const refreshWhenVisible = () => {
@@ -145,17 +181,36 @@ export function AwardeeOnboardingJourney({ name }: Props) {
     return () => controller.abort()
   }, [member.portfolioCoverUrl, shareOpen])
 
-  const profileClicked = profileClickedFor === member.id
-  const state = payload?.state ? { ...payload.state, coreSteps: payload.state.coreSteps.map(step => step.id === 'profile' && profileClicked ? { ...step, complete: true } : step) } : undefined
+  const state = payload?.state
   const settings = payload?.settings ?? DEFAULT_AWARDEE_JOURNEY_SETTINGS
-  const taskTotal = (state?.coreSteps.length ?? 3) + 5
+  const homeScreenComplete = homeScreenInstalled || Boolean(payload?.homeScreenAddedAt)
+  const taskTotal = (state?.coreSteps.length ?? 3) + 4
   const taskCompleted = (state?.coreSteps.filter(step => step.complete).length ?? 0)
     + Number(Boolean(member.portfolioCoverUrl))
-    + (state?.shareConfirmation ? 2 : 0)
+    + Number(Boolean(state?.shareConfirmation))
     + Number(joinedChannel)
-    + Number(homeScreenInstalled)
+    + Number(homeScreenComplete)
   const coverFile = preparedCover && preparedCover.url === member.portfolioCoverUrl ? preparedCover.file : null
   const coverPreparing = Boolean(shareOpen && member.portfolioCoverUrl && preparedCover?.url !== member.portfolioCoverUrl)
+  const completedTiles: ExploreTile[] = [
+    ...(state?.coreSteps.filter(step => step.complete && step.id !== 'handbook').map(step => ({
+      id: step.id,
+      label: step.label,
+      detail: step.status,
+      action: (step.id === 'welcome' ? 'welcome' : step.id === 'profile' ? 'profile' : 'introduction') as ExploreTile['action'],
+      href: step.id === 'profile' ? '/dashboard/me/profile' : step.id === 'introduction' ? '/dashboard/me/posts' : undefined,
+    })) ?? []),
+    ...(homeScreenComplete ? [{ id: 'home-screen', label: 'Add Top100 to your home screen', detail: 'Added to your home screen', action: 'static' as const }] : []),
+    ...(member.portfolioCoverUrl ? [{ id: 'cover', label: 'Update your awardee cover', detail: 'Your cover is ready', action: 'cover' as const, href: '/dashboard/me/portfolio-cover' }] : []),
+    ...(state?.shareConfirmation ? [
+      { id: 'share-introduction', label: 'Share your introduction', detail: 'Shared by you', action: 'post' as const },
+    ] : []),
+    ...(joinedChannel ? [{ id: 'whatsapp', label: 'Africa Future Leaders WhatsApp channel', detail: 'Joined by you', action: 'whatsapp' as const, href: whatsappChannelUrl }] : []),
+    ...(state?.recommendedActions.filter(action => action.complete).flatMap(action => {
+      const meta = actionMeta[action.id]
+      return meta ? [{ id: `completed-${action.id}`, label: action.label, detail: action.status, action: 'recommendation' as const, href: meta.href }] : []
+    }) ?? []),
+  ]
   const introCaption = `I’m proud to share that I’ve been selected as one of the Top100 Africa Future Leaders for ${settings.cohortYear}.\n\nThis cohort brings leaders together from ${settings.applicantCountryCount} countries. I’m honoured to be part of this community and grateful for the opportunity to contribute to a brighter future for our continent.\n\nI look forward to learning, collaborating, and building impact alongside fellow leaders across Africa. Thank you, @Africa Future Leaders, for this recognition.\n\n#Top100AfricaFutureLeaders #AfricaFutureLeaders #LeadershipInAfrica`
 
   async function acknowledgeWelcome() {
@@ -185,6 +240,7 @@ export function AwardeeOnboardingJourney({ name }: Props) {
     try {
       await saveHandbookProgress('handbookRead')
       await load(false)
+      setHandbookOpen(false)
       toast.success('Handbook acknowledgement saved.')
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : 'Could not save that update.'
@@ -225,6 +281,7 @@ export function AwardeeOnboardingJourney({ name }: Props) {
         delete shareData.url
       }
       await navigator.share(shareData)
+      await confirmExternalShare()
     } catch (cause) {
       if (cause instanceof DOMException && cause.name === 'AbortError') return
       toast.error('Could not open the share menu. Copy the caption and share your cover manually.')
@@ -233,17 +290,18 @@ export function AwardeeOnboardingJourney({ name }: Props) {
     }
   }
 
-  async function confirmExternalShare(platform: 'linkedin' | 'facebook' | 'instagram') {
+  async function confirmExternalShare() {
     setShareSaving(true)
     try {
       const response = await fetch('/api/member/onboarding-journey', {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ externalShareConfirmed: true, externalSharePlatform: platform }),
+        body: JSON.stringify({ externalShareConfirmed: true, externalSharePlatform: 'other' }),
       })
       const result = await response.json()
       if (!response.ok) throw new Error(result.message || 'Could not save your update.')
-      await load()
+      setShareOpen(false)
+      await load(false)
       toast.success('Recorded as shared by you.')
     } catch (cause) {
       toast.error(cause instanceof Error ? cause.message : 'Could not save your update.')
@@ -262,15 +320,17 @@ export function AwardeeOnboardingJourney({ name }: Props) {
 
   return (
     <>
-      <section className="relative" aria-labelledby="journey-title">
+      <section className="relative" aria-labelledby={taskCompleted < taskTotal ? 'journey-title' : undefined} aria-label={taskCompleted === taskTotal ? 'Explore more onboarding links' : undefined}>
         <div>
-          <div className="flex items-center justify-between gap-4">
-            <h2 id="journey-title" className="text-xl font-medium leading-tight tracking-[-0.02em] text-[#171412] sm:text-2xl">Your next steps, {name.trim().split(/\s+/)[0]}</h2>
-            <span className="shrink-0 text-sm tabular-nums text-[#625B52]">{taskCompleted}<span className="px-1 text-[#B5A99B]">/</span>{taskTotal}</span>
-          </div>
-          <div className="mt-3 h-1 overflow-hidden rounded-full bg-[#E8E1D9]" role="progressbar" aria-valuenow={taskCompleted} aria-valuemin={0} aria-valuemax={taskTotal} aria-label={`${taskCompleted} of ${taskTotal} onboarding steps complete`}>
-            <div className="h-full rounded-full bg-gradient-to-r from-[#F36D21] to-[#F5A313] transition-[width] duration-500 motion-reduce:transition-none" style={{ width: `${(taskCompleted / taskTotal) * 100}%` }} />
-          </div>
+          {taskCompleted < taskTotal ? <>
+            <div className="flex items-center justify-between gap-4">
+              <h2 id="journey-title" className="text-xl font-medium leading-tight tracking-[-0.02em] text-[#171412] sm:text-2xl">Your next steps, {name.trim().split(/\s+/)[0]}</h2>
+              <span className="shrink-0 text-sm tabular-nums text-[#625B52]">{taskCompleted}<span className="px-1 text-[#B5A99B]">/</span>{taskTotal}</span>
+            </div>
+            <div className="mt-3 h-1 overflow-hidden rounded-full bg-[#E8E1D9]" role="progressbar" aria-valuenow={taskCompleted} aria-valuemin={0} aria-valuemax={taskTotal} aria-label={`${taskCompleted} of ${taskTotal} onboarding steps complete`}>
+              <div className="h-full rounded-full bg-gradient-to-r from-[#F36D21] to-[#F5A313] transition-[width] duration-500 motion-reduce:transition-none" style={{ width: `${(taskCompleted / taskTotal) * 100}%` }} />
+            </div>
+          </> : null}
 
           {state.coreSteps.some(step => !step.complete) ? <ol className="mt-2 divide-y divide-[#EEE7DF] border-y border-[#EEE7DF]" aria-label="Awardee onboarding checklist">
             {state.coreSteps.map((step, index) => ({ step, index })).filter(({ step }) => !step.complete).map(({ step, index }) => {
@@ -286,49 +346,38 @@ export function AwardeeOnboardingJourney({ name }: Props) {
                 {step.id === 'welcome' ? (
                   <button type="button" onClick={() => setWelcomeOpen(true)} className="flex min-h-14 w-full items-center gap-2 text-left transition-colors hover:bg-[#FFFCF9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-inset">{content}</button>
                 ) : step.id === 'handbook' ? (
-                  <div className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center">
+                  <button type="button" onClick={() => { setHandbookError(''); setHandbookOpen(true) }} aria-haspopup="dialog" className="flex min-h-14 w-full items-center gap-2 py-3 text-left transition-colors hover:bg-[#FFFCF9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-inset">
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center text-[#A94412]"><BookOpenText className="h-4 w-4" aria-hidden="true" /></span>
                     <span className="min-w-0 flex-1">
                       <span className="block text-sm font-medium leading-5 text-[#25211D]">{PARTICIPANT_HANDBOOK.checklistTitle}</span>
                       <span className="mt-0.5 block text-xs leading-5 text-[#716B62]">{PARTICIPANT_HANDBOOK.checklistDescription}</span>
-                      {handbookError ? <span role="alert" className="mt-1 block text-xs text-red-700">{handbookError}</span> : null}
                     </span>
-                    <span className="flex flex-wrap items-center gap-2 pl-11 sm:pl-0">
-                      <a href={PARTICIPANT_HANDBOOK.path} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 items-center gap-1 rounded-full border border-[#E8DDCD] px-3 text-sm font-medium text-[#7F3515] hover:bg-[#FFF8EF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412]">{PARTICIPANT_HANDBOOK.checklistAction}<ExternalLink className="h-3.5 w-3.5" aria-hidden="true" /></a>
-                      <Button type="button" size="sm" disabled={handbookSaving} aria-busy={handbookSaving} onClick={() => void acknowledgeHandbook()} className="min-h-10 rounded-full bg-[#171412] px-4 text-white hover:bg-[#302923]">{handbookSaving ? 'Saving…' : PARTICIPANT_HANDBOOK.checklistCompleteAction}</Button>
-                    </span>
-                  </div>
+                    <ArrowRight className="h-4 w-4 shrink-0 text-[#A94412]" aria-hidden="true" />
+                  </button>
+                ) : step.id === 'introduction' ? (
+                  <button type="button" onClick={() => { setIntroError(''); setIntroOpen(true) }} aria-haspopup="dialog" className="flex min-h-14 w-full items-center gap-2 text-left transition-colors hover:bg-[#FFFCF9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-inset">{content}</button>
                 ) : href ? (
-                  <Link href={href} onClick={() => { if (step.id === 'profile') { setProfileClickedFor(member.id); try { localStorage.setItem(`afl-profile-done:${member.id}`, 'yes') } catch { /* Keep completion for this visit. */ } toast.success('Profile task marked complete') } }} className="flex min-h-14 items-center gap-2 transition-colors hover:bg-[#FFFCF9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-inset">{content}</Link>
+                  <Link href={href} className="flex min-h-14 items-center gap-2 transition-colors hover:bg-[#FFFCF9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-inset">{content}</Link>
                 ) : null}
               </li>
             })}
           </ol> : null}
-          {taskCompleted === taskTotal ? <p className="mt-3 text-sm text-[#625B52]">Your first steps are complete.</p> : null}
-
           <div className="mt-2 divide-y divide-[#EEE7DF] border-b border-[#EEE7DF]">
-            {!homeScreenInstalled ? (
-              <button type="button" onClick={() => triggerHomeScreenAction()} className="group flex min-h-14 w-full items-center gap-2 py-2 text-left transition-colors hover:bg-[#FFFCF9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-inset">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center text-[#A94412]"><Smartphone className="h-4 w-4" aria-hidden="true" /></span>
-                <span className="min-w-0 flex-1 text-sm font-medium text-[#25211D]">Add Top100 to your home screen</span>
-                <ArrowRight className="h-4 w-4 shrink-0 text-[#A94412]" aria-hidden="true" />
-              </button>
+            {!homeScreenComplete ? (
+              <div className="flex min-h-14 items-center gap-2 py-2">
+                <button type="button" onClick={() => triggerHomeScreenAction()} className="group flex min-h-12 min-w-0 flex-1 items-center gap-2 text-left transition-colors hover:bg-[#FFFCF9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-inset">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center text-[#A94412]"><Smartphone className="h-4 w-4" aria-hidden="true" /></span>
+                  <span className="min-w-0 flex-1 text-sm font-medium text-[#25211D]">Add Top100 to your home screen</span>
+                  <ArrowRight className="h-4 w-4 shrink-0 text-[#A94412]" aria-hidden="true" />
+                </button>
+                <button type="button" onClick={() => void confirmManualTask('homeScreenAdded')} disabled={manualTaskSaving !== null} aria-busy={manualTaskSaving === 'homeScreenAdded'} className="min-h-10 shrink-0 rounded-full border border-[#D8CBBE] px-3 text-xs font-medium text-[#514B45] hover:bg-[#FFF7EF] disabled:opacity-60">{manualTaskSaving === 'homeScreenAdded' ? 'Saving…' : 'I’ve added it'}</button>
+              </div>
             ) : null}
 
             {!member.portfolioCoverUrl ? (
             <Link href="/dashboard/me/portfolio-cover" className="group flex min-h-14 items-center gap-2 py-2 transition-colors hover:bg-[#FFFCF9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-inset">
               <span className="flex h-9 w-9 shrink-0 items-center justify-center text-[#A94412]"><UserRound className="h-4 w-4" aria-hidden="true" /></span>
               <span className="min-w-0 flex-1 text-sm font-medium text-[#25211D]">Update your awardee cover{member.portfolioCoverUrl ? ' · Complete' : ''}</span>
-              <ArrowRight className="h-4 w-4 shrink-0 text-[#A94412] transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
-            </Link>
-            ) : null}
-            {!state.shareConfirmation ? (
-            <Link href="/dashboard/me/portfolio-cover" className="group flex min-h-14 items-center gap-2 py-2 transition-colors hover:bg-[#FFFCF9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-inset">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center text-[#A94412]"><Share2 className="h-4 w-4" aria-hidden="true" /></span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-medium leading-5 text-[#25211D]">Make a post{state.shareConfirmation ? ' · Complete' : ''}</span>
-                <span className="mt-0.5 block text-xs text-[#716B62]">Create and share your awardee cover on social media</span>
-              </span>
               <ArrowRight className="h-4 w-4 shrink-0 text-[#A94412] transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
             </Link>
             ) : null}
@@ -349,30 +398,70 @@ export function AwardeeOnboardingJourney({ name }: Props) {
               </>
             ) : null}
             {!state.shareConfirmation ? (
-            <button type="button" onClick={() => setShareOpen(true)} aria-haspopup="dialog" className="group flex min-h-14 w-full items-center gap-2 text-left transition-colors hover:bg-[#FFFCF9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-inset">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center text-[#A94412]"><FileText className="h-4 w-4" aria-hidden="true" /></span>
-              <span className="min-w-0 flex-1 text-sm font-medium text-[#25211D]">Share your introduction{state.shareConfirmation ? ' · Complete' : ''}</span>
-              <ArrowRight className="h-4 w-4 shrink-0 text-[#A94412] transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
-            </button>
+            <div className="flex min-h-14 items-center gap-1">
+              <button type="button" onClick={() => setShareOpen(true)} aria-haspopup="dialog" className="group flex min-h-14 min-w-0 flex-1 items-center gap-2 text-left transition-colors hover:bg-[#FFFCF9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-inset">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center text-[#A94412]"><FileText className="h-4 w-4" aria-hidden="true" /></span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-medium text-[#25211D]">Share your introduction</span>
+                  <span className="mt-0.5 block text-xs text-[#716B62]">Share your introduction and award cover</span>
+                </span>
+              </button>
+              <button type="button" onClick={() => void confirmExternalShare()} disabled={shareSaving} aria-label="Mark share introduction step complete" title="Mark complete" aria-busy={shareSaving} className="inline-grid size-11 shrink-0 place-items-center rounded-full border border-[#E8DED3] bg-white text-[#716B62] transition-colors hover:border-[#E9A879] hover:bg-[#FFF7EF] hover:text-[#A94412] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60">
+                {shareSaving ? <RefreshCw className="h-4 w-4 animate-spin" aria-hidden="true" /> : <X className="h-4 w-4" aria-hidden="true" />}
+              </button>
+            </div>
             ) : null}
-            <details className="group">
-              <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 text-sm text-[#625B52] marker:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-inset [&::-webkit-details-marker]:hidden">
+            <details className="journey-explore-more group overflow-hidden rounded-[18px] border border-[#E8E1D9] bg-[#FAF8F5]">
+              <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-3 text-sm text-[#625B52] transition-colors hover:bg-[#F5EFE8] marker:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-inset [&::-webkit-details-marker]:hidden">
                 Explore more
                 <ChevronDown className="h-4 w-4 text-[#716B62] transition-transform group-open:rotate-180" aria-hidden="true" />
               </summary>
-              <ul className="divide-y divide-[#EEE7DF] border-t border-[#EEE7DF] pb-1">
-                {state.recommendedActions.map((action) => {
+              <div className="journey-explore-grid grid grid-cols-2 gap-2 bg-[#FAF8F5] p-3" aria-label="Completed onboarding tasks and useful links">
+                {state.recommendedActions.some(action => action.id === 'award' && !action.complete) ? <Link href={actionMeta.award.href} className="journey-explore-tile flex min-h-[64px] items-center rounded-[18px] border border-[#F97316] bg-gradient-to-br from-[#FF8A00] to-[#FFB21A] p-2.5 font-semibold text-[#171412] transition-colors hover:from-[#FF9A1F] hover:to-[#FFC247] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-offset-2">
+                  <span className="flex items-start justify-between gap-2"><span className="text-[13px] leading-4">Get your award</span><Trophy className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#171412]" aria-hidden="true" /></span>
+                </Link> : null}
+                {completedTiles.map(tile => {
+                  const content = <span className="flex items-start justify-between gap-2"><span className="text-[13px] font-medium leading-4 text-[#25211D]">{tile.label}</span><CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#39754A]" aria-label="Complete" /></span>
+                  const className = 'journey-explore-tile flex min-h-[64px] w-full items-center rounded-[18px] border border-[#E8E1D9] bg-white p-2.5 text-left transition-colors hover:border-[#E9A879] hover:bg-[#FFFCF9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412]'
+                  if (tile.action === 'static') return <div key={tile.id} className={`${className} cursor-default`}>{content}</div>
+                  if (tile.action === 'welcome') return <button key={tile.id} type="button" onClick={() => setWelcomeOpen(true)} className={className}>{content}</button>
+                  if (tile.action === 'post') return <button key={tile.id} type="button" onClick={() => setShareOpen(true)} className={className}>{content}</button>
+                  if (tile.action === 'whatsapp') return <a key={tile.id} href={tile.href} target="_blank" rel="noopener noreferrer" className={className}>{content}</a>
+                  return <Link key={tile.id} href={tile.href ?? '#'} className={className}>{content}</Link>
+                })}
+                <button type="button" onClick={() => { setHandbookError(''); setHandbookOpen(true) }} aria-haspopup="dialog" className="journey-explore-tile flex min-h-[64px] w-full items-center rounded-[18px] border border-[#F2C79F] bg-[#FFF7EF] p-2.5 text-left transition-colors hover:bg-[#FFF0E2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412]">
+                  <span className="flex items-start justify-between gap-2"><span className="text-[13px] font-medium leading-4 text-[#25211D]">2026 participant handbook</span><BookOpenText className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#A94412]" aria-hidden="true" /></span>
+                </button>
+                {state.recommendedActions.filter(action => !action.complete && action.id !== 'award').map((action) => {
                   const meta = actionMeta[action.id]
                   if (!meta) return null
                   const Icon = meta.icon
-                  return <li key={action.id}><Link href={meta.href} className="flex min-h-12 items-center gap-2 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700"><Icon className="h-4 w-4 shrink-0 text-[#9A4619]" aria-hidden="true" /><span className="min-w-0 flex-1"><span className="block font-medium text-[#29241F]">{action.label}</span><span className="mt-0.5 block truncate text-xs text-[#716B62]">{action.status}</span></span><ArrowRight className="h-4 w-4 shrink-0 text-[#716B62]" aria-hidden="true" /></Link></li>
+                  return <Link key={action.id} href={meta.href} className="journey-explore-tile flex min-h-[64px] items-center rounded-[18px] border border-[#E8E1D9] bg-white p-2.5 transition-colors hover:border-[#E9A879] hover:bg-[#FFFCF9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412]"><span className="flex items-start justify-between gap-2"><span className="text-[13px] font-medium leading-4 text-[#25211D]">{action.label}</span><Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#A94412]" aria-hidden="true" /></span></Link>
                 })}
-              </ul>
+              </div>
             </details>
           </div>
-          {state.shareConfirmation ? <p className="mt-4 inline-flex items-center gap-2 text-xs text-[#716B62]"><CheckCircle2 className="h-4 w-4 text-[#39754A]" aria-hidden="true" />External share · {state.shareConfirmation.label}</p> : null}
+          {state.shareConfirmation && taskCompleted < taskTotal ? <p className="mt-4 inline-flex items-center gap-2 text-xs text-[#716B62]"><CheckCircle2 className="h-4 w-4 text-[#39754A]" aria-hidden="true" />External share · {state.shareConfirmation.label}</p> : null}
         </div>
       </section>
+      <Dialog open={handbookOpen} onOpenChange={setHandbookOpen}>
+        <DialogContent overlayClassName="handbook-guide-overlay" className="handbook-guide-dialog max-h-[85dvh] max-w-md overflow-y-auto border-[#E8DED3] bg-white p-6 sm:p-7">
+          <Image src="/onboarding/participant-handbook.svg" alt="" width={280} height={160} className="mx-auto h-36 w-auto" />
+          <DialogTitle className="text-xl font-medium leading-tight text-[#171412]">Your 2026 participant handbook</DialogTitle>
+          <DialogDescription className="text-sm leading-6 text-[#625B52]">Get familiar with your first steps, the programme timeline, and where to find help. Open the guide when you’re ready to begin.</DialogDescription>
+          {handbookError ? <p role="alert" className="text-sm text-red-700">{handbookError}</p> : null}
+          <a href={PARTICIPANT_HANDBOOK.path} target="_blank" rel="noopener noreferrer" onClick={() => void acknowledgeHandbook()} className="handbook-open-button mt-2 inline-flex min-h-12 w-full items-center justify-center gap-2 bg-[#F97316] px-5 text-base font-semibold text-[#171412] hover:bg-[#FB923C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-offset-2">{handbookSaving ? 'Opening handbook…' : 'Open handbook'}<ExternalLink className="h-4 w-4" aria-hidden="true" /></a>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={introOpen} onOpenChange={setIntroOpen}>
+        <DialogContent className="max-w-md rounded-[22px] border-[#E8DED3] bg-white p-5 text-[#171412] sm:p-7">
+          <DialogTitle className="text-xl font-medium">Publish your awardee introduction</DialogTitle>
+          <DialogDescription className="text-sm leading-6 text-[#625B52]">Create your introduction on Top100, or confirm here if you’ve already published it. Your progress will be saved to your account.</DialogDescription>
+          {introError ? <p role="alert" className="text-sm text-red-700">{introError}</p> : null}
+          <Link href="/dashboard/me/posts/new?onboarding=introduction" onClick={() => setIntroOpen(false)} className="mt-2 inline-flex min-h-12 w-full items-center justify-center rounded-full bg-gradient-to-r from-[#F36D21] to-[#F5A313] px-5 text-sm font-semibold text-[#171412] hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-offset-2">Write my introduction</Link>
+          <Button type="button" variant="outline" onClick={() => void confirmManualTask('introPublished')} disabled={manualTaskSaving !== null} aria-busy={manualTaskSaving === 'introPublished'} className="min-h-12 w-full rounded-full border-[#D8CBBE] text-sm font-medium text-[#514B45]">{manualTaskSaving === 'introPublished' ? 'Saving…' : 'I’ve already published it'}</Button>
+        </DialogContent>
+      </Dialog>
       <Dialog open={shareOpen} onOpenChange={setShareOpen}>
         <DialogContent className="max-h-[min(88dvh,760px)] max-w-lg overflow-y-auto rounded-[22px] border-[#E8DED3] bg-white p-5 text-[#171412] sm:p-7">
           <DialogTitle className="text-xl font-medium">Share your introduction</DialogTitle>
@@ -399,12 +488,12 @@ export function AwardeeOnboardingJourney({ name }: Props) {
             {settings.facebookUrl ? <a href={settings.facebookUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[#D8CBBE] bg-white px-4 text-sm font-medium text-[#352A20] hover:bg-[#FFF7EF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-offset-2">Facebook <ExternalLink className="h-4 w-4" aria-hidden="true" /></a> : null}
             {settings.instagramUrl ? <a href={settings.instagramUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[#D8CBBE] bg-white px-4 text-sm font-medium text-[#352A20] hover:bg-[#FFF7EF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-offset-2">Instagram <ExternalLink className="h-4 w-4" aria-hidden="true" /></a> : null}
           </div>
-          {state.coreSteps[2]?.complete ? <div className="mt-4 border-t border-[#EEE7DF] pt-4"><p className="text-sm font-medium text-[#25211D]">Have you shared it?</p><div className="mt-2 flex flex-wrap gap-2">{(['linkedin', 'facebook', 'instagram'] as const).map((platform) => <button key={platform} type="button" disabled={shareSaving || state.shareConfirmation?.platform === platform} onClick={() => void confirmExternalShare(platform)} className={platform === 'linkedin' ? 'inline-flex min-h-10 items-center gap-2 rounded-full border border-[#0A66C2] bg-[#0A66C2] px-3.5 text-sm font-semibold capitalize text-white hover:bg-[#004182] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A66C2] disabled:opacity-60' : 'inline-flex min-h-10 items-center rounded-full border border-[#D8CBBE] bg-white px-3.5 text-sm font-medium capitalize text-[#514B45] hover:border-[#A94412] hover:bg-[#FFF7EF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] disabled:opacity-60'}>{platform === 'linkedin' ? <Linkedin className="h-4 w-4" aria-hidden="true" /> : null}{state.shareConfirmation?.platform === platform ? `Shared on ${platform} · you` : `I shared on ${platform}`}</button>)}</div></div> : null}
           <div className="sticky bottom-0 z-10 -mx-5 mt-5 border-t border-[#EEE7DF] bg-white/95 px-5 pb-1 pt-3 backdrop-blur sm:-mx-7 sm:px-7">
             <Button type="button" onClick={() => void shareIntroduction()} disabled={sharing || coverPreparing} className="min-h-12 w-full rounded-full bg-gradient-to-r from-[#F36D21] to-[#F5A313] px-5 font-semibold text-[#171412] hover:brightness-95 disabled:cursor-wait disabled:opacity-70">
               <Share2 className="mr-2 h-4 w-4" aria-hidden="true" />
               {sharing ? 'Opening share options…' : coverPreparing ? 'Preparing your cover…' : 'Share introduction'}
             </Button>
+            {!state.shareConfirmation ? <button type="button" onClick={() => void confirmExternalShare()} disabled={shareSaving} aria-busy={shareSaving} className="mx-auto mt-3 block min-h-8 text-sm text-[#716B62] underline decoration-[#BEB2A5] underline-offset-4 transition-colors hover:text-[#A94412] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-offset-2 disabled:opacity-60">{shareSaving ? 'Saving…' : 'I’ve done it'}</button> : null}
           </div>
         </DialogContent>
       </Dialog>

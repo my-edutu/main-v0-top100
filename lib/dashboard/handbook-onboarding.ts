@@ -3,12 +3,13 @@ export type HandbookPromptState = {
   promptSeenAt: string | null
   momentCompleted: boolean
   momentDismissed: boolean
+  welcomeFlowEnabled?: boolean
 }
 
 export function shouldShowHandbookPrompt(state: HandbookPromptState): boolean {
   return state.eligible
     && !state.promptSeenAt
-    && (state.momentCompleted || state.momentDismissed)
+    && (state.welcomeFlowEnabled === false || state.momentCompleted || state.momentDismissed)
 }
 
 export async function saveHandbookProgress(
