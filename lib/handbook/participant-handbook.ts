@@ -1,0 +1,16 @@
+export const PARTICIPANT_HANDBOOK = {
+  year: 2026,
+  path: '/handbooks/2026-participant-handbook.pdf',
+  notificationTitle: 'Your 2026 participant handbook is ready',
+  notificationMessage: 'Find your first steps, programme information, and key dates in one guide.',
+  notificationCta: 'Open handbook',
+  popupEyebrow: 'START HERE',
+  popupTitle: 'Your next steps are in one place.',
+  popupBody: 'Your selection is the beginning. The 2026 handbook explains how to get oriented, build your profile, stay connected, and prepare for what’s ahead.',
+  popupPrimaryAction: 'Read the handbook',
+  popupSecondaryAction: 'Read later',
+  checklistTitle: 'Read the 2026 participant handbook',
+  checklistDescription: 'Review the first steps, programme timeline, and where to find help.',
+  checklistAction: 'Open guide',
+  checklistCompleteAction: 'I’ve read it',
+} as const
