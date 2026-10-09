@@ -4,21 +4,6 @@
 // Cache name for offline support
 const CACHE_NAME = 'top100-afl-v1';
 
-// Import Brevo SDK if available
-try {
-    importScripts("https://cdn.brevo.com/js/sdk-loader.js");
-    if (typeof Brevo !== 'undefined') {
-        Brevo.push([
-            "init",
-            {
-                client_key: (location.search.match(/[?&]key=([^&]*)/) || [])[1],
-            },
-        ]);
-    }
-} catch (e) {
-    console.log('[SW] Brevo SDK not loaded');
-}
-
 // Install event - cache essential assets
 self.addEventListener('install', (event) => {
     console.log('[SW] Installing service worker...');
@@ -46,26 +31,28 @@ self.addEventListener('push', (event) => {
     let notificationData = {
         title: 'Top100 Africa Future Leaders',
         body: 'You have a new notification!',
-        icon: '/Top100 Africa Future leaders Logo .png',
-        badge: '/Top100 Africa Future leaders Logo .png',
-        tag: 'top100-notification',
+        icon: '/icons/top100-africa-192.png',
+        badge: '/icons/top100-africa-180.png',
+        tag: undefined,
         data: {
-            url: '/',
+            url: '/dashboard/notifications',
         },
     };
 
     // Try to parse push data
+    let raw = null;
     if (event.data) {
         try {
             const data = event.data.json();
+            raw = data;
             notificationData = {
                 title: data.title || notificationData.title,
                 body: data.body || notificationData.body,
                 icon: data.icon || notificationData.icon,
                 badge: data.badge || notificationData.badge,
-                tag: data.tag || notificationData.tag,
+                tag: data.tag || undefined,
                 data: {
-                    url: data.url || data.click_action || '/',
+                    url: data.url || data.click_action || '/dashboard/notifications',
                     ...data.data,
                 },
             };
@@ -75,29 +62,29 @@ self.addEventListener('push', (event) => {
         }
     }
 
-    const raw = (() => { try { return event.data?.json() } catch { return null } })();
     const count = raw?.unreadCount;
-    const badgeUpdate = Number.isInteger(count) && count >= 0 && self.navigator.setAppBadge
-      ? (count ? self.navigator.setAppBadge(count) : self.navigator.clearAppBadge()) : Promise.resolve();
+    // Badging is optional. A missing method or synchronous platform error must
+    // never stop the visible notification from being displayed.
+    const badgeUpdate = Promise.resolve().then(() => {
+        if (!Number.isInteger(count) || count < 0) return;
+        if (count && typeof self.navigator?.setAppBadge === 'function') return self.navigator.setAppBadge(count);
+        if (!count && typeof self.navigator?.clearAppBadge === 'function') return self.navigator.clearAppBadge();
+    });
+    const options = {
+        body: notificationData.body,
+        icon: notificationData.icon,
+        badge: notificationData.badge,
+        data: notificationData.data,
+    };
+    // A shared nonempty tag replaces earlier notifications in the panel.
+    if (notificationData.tag) options.tag = notificationData.tag;
     event.waitUntil(
-        Promise.all([badgeUpdate.catch(() => {}), self.registration.showNotification(notificationData.title, {
-            body: notificationData.body,
-            icon: notificationData.icon,
-            badge: notificationData.badge,
-            tag: notificationData.tag,
-            data: notificationData.data,
-            vibrate: [100, 50, 100],
-            actions: [
-                {
-                    action: 'open',
-                    title: 'View',
-                },
-                {
-                    action: 'close',
-                    title: 'Dismiss',
-                },
-            ],
-        })])
+        Promise.all([
+            badgeUpdate.catch(() => {}),
+            self.registration.showNotification(notificationData.title, options).catch((error) => {
+                console.error('[SW] Could not display push notification', error);
+            }),
+        ])
     );
 });
 
@@ -105,10 +92,6 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
     console.log('[SW] Notification clicked:', event.action);
     event.notification.close();
-
-    if (event.action === 'close') {
-        return;
-    }
 
     let urlToOpen = '/dashboard/notifications';
     try {

@@ -29,6 +29,12 @@ describe('push notification readiness', () => {
     expect(isPushPromptAvailable(readyInput)).toBe(true)
   })
 
+  it('requires Home Screen installation on iPhone and iPad', () => {
+    expect(isPushPromptAvailable({ ...readyInput, isIOS: true, isStandalone: false })).toBe(false)
+    expect(isPushPromptAvailable({ ...readyInput, isIOS: true, isStandalone: true })).toBe(true)
+    expect(isPushPromptAvailable({ ...readyInput, isIOS: false, isStandalone: false })).toBe(true)
+  })
+
   it('converts a URL-safe VAPID key into the bytes required by PushManager', () => {
     expect(Array.from(urlBase64ToUint8Array('AQID-_8'))).toEqual([1, 2, 3, 251, 255])
   })
