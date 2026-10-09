@@ -28,6 +28,9 @@ export default function AdminMemberHubPage() {
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
   const [sending, setSending] = useState(false)
+  const [handbookSending, setHandbookSending] = useState(false)
+  const [handbookPreview, setHandbookPreview] = useState<{ recipients: number; audienceFingerprint: string } | null>(null)
+  const [handbookStatus, setHandbookStatus] = useState('')
   const [approvingAll, setApprovingAll] = useState(false)
   const [pendingSearch, setPendingSearch] = useState('')
   const [pendingPage, setPendingPage] = useState(0)
@@ -107,6 +110,60 @@ export default function AdminMemberHubPage() {
       toast.error(msg)
     } finally {
       setSending(false)
+    }
+  }
+
+  async function previewHandbookAudience() {
+    setHandbookSending(true)
+    setHandbookStatus('Resolving the approved 2026 awardee audience…')
+    try {
+      const response = await fetch('/api/admin/notifications/broadcast', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ campaign: 'participant-handbook-2026', action: 'preview' }),
+      })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.message || 'Could not preview the handbook audience.')
+      const recipients = Number(data.recipients)
+      if (!Number.isSafeInteger(recipients) || recipients < 0 || typeof data.audienceFingerprint !== 'string') {
+        throw new Error('The audience preview could not be verified. Please try again.')
+      }
+      setHandbookPreview({ recipients, audienceFingerprint: data.audienceFingerprint })
+      setHandbookStatus(`Eligible approved 2026 awardees: ${recipients}.`)
+    } catch (cause) {
+      setHandbookPreview(null)
+      const message = cause instanceof Error ? cause.message : 'Could not preview the handbook audience.'
+      setHandbookStatus(message)
+    } finally {
+      setHandbookSending(false)
+    }
+  }
+
+  async function sendHandbookNotification() {
+    if (handbookPreview === null || handbookPreview.recipients < 1 || handbookSending) return
+    setHandbookSending(true)
+    setHandbookStatus('Checking the audience and sending the in-app notification…')
+    try {
+      const response = await fetch('/api/admin/notifications/broadcast', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ campaign: 'participant-handbook-2026', action: 'send', expectedRecipients: handbookPreview.recipients, audienceFingerprint: handbookPreview.audienceFingerprint }),
+      })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        if (response.status === 409) setHandbookPreview(null)
+        throw new Error(data.message || 'Could not send the handbook notification.')
+      }
+      setHandbookPreview(null)
+      setHandbookStatus(`Handbook notification sent to ${data.recipients ?? 0} eligible awardees.`)
+      toast.success(`Handbook notification sent to ${data.recipients ?? 0} awardees.`)
+      await refresh()
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : 'Could not send the handbook notification.'
+      setHandbookStatus(message)
+      toast.error(message)
+    } finally {
+      setHandbookSending(false)
     }
   }
 
@@ -254,6 +311,28 @@ export default function AdminMemberHubPage() {
       </Card>
 
       <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+        <Card className="rounded-[28px] border-amber-200 bg-amber-50/50 shadow-none xl:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-xl font-semibold text-zinc-950">
+              <Bell className="h-5 w-5 text-orange-600" />
+              2026 participant handbook
+            </CardTitle>
+            <p className="max-w-3xl text-sm leading-6 text-zinc-600">Preview the approved 2026 awardees whose profile cohort and linked awardee record both confirm 2026. Sending adds the guide to their in-app notification inbox and may send browser push to opted-in members.</p>
+          </CardHeader>
+          <CardContent className="flex flex-wrap items-center gap-3">
+            <Button type="button" variant="outline" disabled={handbookSending} onClick={() => void previewHandbookAudience()} className="min-h-11 rounded-full border-orange-200 bg-white text-zinc-900 hover:bg-orange-50">
+              {handbookSending && handbookPreview === null ? 'Checking audience…' : 'Preview audience'}
+            </Button>
+            {handbookPreview !== null ? <span className="text-sm font-semibold text-zinc-800" role="status">{handbookStatus}</span> : handbookStatus ? <span className="text-sm text-zinc-700" role="status">{handbookStatus}</span> : null}
+            {handbookPreview !== null ? (
+              <Button type="button" disabled={handbookSending || handbookPreview.recipients < 1} onClick={() => void sendHandbookNotification()} className="min-h-11 rounded-full bg-orange-600 px-5 text-white hover:bg-orange-700">
+                {handbookSending ? 'Sending…' : `Send to ${handbookPreview.recipients} approved awardees`}
+                <Send className="ml-2 h-4 w-4" />
+              </Button>
+            ) : null}
+          </CardContent>
+        </Card>
+
         <Card className="rounded-[28px] border-orange-100 shadow-none">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-2xl font-black text-zinc-950">

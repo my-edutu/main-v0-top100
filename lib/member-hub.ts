@@ -77,7 +77,7 @@ export type MemberNotification = {
   id: string
   title: string
   message: string
-  audience: 'all' | 'approved'
+  audience: 'all' | 'approved' | 'approved_2026'
   status: 'sent' | 'draft'
   createdAt: string
   readBy: string[]

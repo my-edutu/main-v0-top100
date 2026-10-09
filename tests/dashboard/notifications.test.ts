@@ -6,6 +6,7 @@ import {
   notificationUnreadCount,
 } from '@/app/dashboard/_lib/notifications'
 import { createDemoDashboardStore, DEMO_MEMBER_ID } from '@/lib/dev-dashboard/store'
+import { mapNotification } from '@/lib/member-hub-server'
 
 describe('routed notification inbox', () => {
   it('keeps the scalar badge in sync after marking one or all updates', () => {
@@ -40,5 +41,23 @@ describe('routed notification inbox', () => {
     expect(isNotificationMarkingDisabled('notification-a', 'notification-b')).toBe(false)
     expect(isNotificationMarkingDisabled('all', 'notification-b')).toBe(true)
     expect(isNotificationMarkingDisabled(null, 'notification-b')).toBe(false)
+  })
+
+  it('preserves the approved 2026 audience and handbook CTA in the member inbox model', () => {
+    expect(mapNotification({
+      id: 'handbook-notice',
+      user_id: 'member-2026',
+      title: 'Your 2026 participant handbook is ready',
+      body: 'Find your first steps, programme information, and key dates in one guide.',
+      category: 'admin',
+      cta_label: 'Open handbook',
+      cta_url: '/handbooks/2026-participant-handbook.pdf',
+      metadata: { audience: 'approved_2026' },
+      delivered_at: '2026-10-09T10:00:00.000Z',
+    })).toMatchObject({
+      audience: 'approved_2026',
+      ctaLabel: 'Open handbook',
+      ctaUrl: '/handbooks/2026-participant-handbook.pdf',
+    })
   })
 })

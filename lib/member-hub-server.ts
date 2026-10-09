@@ -126,7 +126,7 @@ export function mapNotification(row: any): MemberNotification {
     id: row.id,
     title: row?.title ?? '',
     message: row?.body ?? '',
-    audience: (metadata.audience === 'approved' ? 'approved' : 'all'),
+    audience: metadata.audience === 'approved_2026' ? 'approved_2026' : metadata.audience === 'approved' ? 'approved' : 'all',
     status: 'sent',
     createdAt: row?.delivered_at ?? row?.created_at ?? new Date(0).toISOString(),
     readBy: row?.read_at ? [row.user_id] : [],

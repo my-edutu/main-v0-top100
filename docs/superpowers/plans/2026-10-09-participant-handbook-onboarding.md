@@ -83,7 +83,7 @@
 - [ ] **Step 1: Add tests** for the one-time prompt queue, independent dismiss/read state, and acknowledgement persistence failure; the repository's Vitest setup is Node-only and has no React DOM testing library, so exercise the UI's pure state/save helpers directly.
 - [ ] **Step 2: Run** focused helper tests; expected: FAIL because the handbook prompt helpers are absent.
 - [ ] **Step 3: Implement** the checklist row and prompt using the shared PDF path and copy; opening the PDF alone does not mark it read.
-- [ ] **Step 4: Run** focused component tests and existing onboarding journey tests; expected: PASS with the dashboard usable after dismissal.
+- [ ] **Step 4: Run** focused prompt helper tests and existing onboarding journey tests; expected: PASS with the dashboard usable after dismissal.
 - [ ] **Step 5: Commit** as `feat: add handbook prompt and checklist step`.
 
 ### Task 4: Admin notification audience preview and deduplicated delivery
@@ -91,8 +91,9 @@
 **Files:**
 - Modify: `app/api/admin/notifications/broadcast/route.ts`
 - Modify: `app/admin/member-hub/page.tsx`
+- Create: `lib/dashboard/participant-handbook-broadcast.ts`
 - Modify: existing member notification insertion/query helpers as needed.
-- Test: `tests/admin/notifications-broadcast.test.ts`
+- Test: `tests/admin/participant-handbook-broadcast.test.ts`
 - Test: `tests/dashboard/notifications.test.ts`
 
 **Interfaces:**

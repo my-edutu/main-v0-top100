@@ -144,7 +144,8 @@ export function Top100MomentGate({ member, children }: { member: MemberProfile; 
   const [loading, setLoading] = useState(initialJourney.loading)
   const [dismissed, setDismissed] = useState(initialJourney.dismissed)
   const [showWelcome, setShowWelcome] = useState(false)
-  const [handbookPromptOpen, setHandbookPromptOpen] = useState(false)
+  const [handbookPromptDismissedFor, setHandbookPromptDismissedFor] = useState<string | null>(null)
+  const [handbookPromptPresentedFor, setHandbookPromptPresentedFor] = useState<string | null>(null)
   const [handbookPromptError, setHandbookPromptError] = useState('')
   const handbookPromptStartedFor = useRef<string | null>(null)
   const dismissalKey = `top100-moment-dismissed:${member.id}`
@@ -184,12 +185,16 @@ export function Top100MomentGate({ member, children }: { member: MemberProfile; 
     if (!shouldShow) return
 
     handbookPromptStartedFor.current = member.id
-    setHandbookPromptOpen(true)
     void saveHandbookProgress('handbookPromptSeen')
-      .then(() => setPayload(current => current ? {
-        ...current,
-        handbook: { ...current.handbook, promptSeenAt: new Date().toISOString() },
-      } : current))
+      .then(() => {
+        const updatedPayload = {
+          ...payload,
+          handbook: { ...payload.handbook, promptSeenAt: new Date().toISOString() },
+        }
+        journeyCache.set(member.id, updatedPayload)
+        setHandbookPromptPresentedFor(member.id)
+        setPayload(updatedPayload)
+      })
       .catch((cause) => setHandbookPromptError(cause instanceof Error ? cause.message : 'We could not save this update yet.'))
   }, [dismissed, loading, member.id, payload])
 
@@ -203,11 +208,21 @@ export function Top100MomentGate({ member, children }: { member: MemberProfile; 
     setShowWelcome(false)
   }
 
-  if (loading || !payload || dismissed || payload.moment.completedAt) return children
+  const momentIsComplete = Boolean(payload?.moment.completedAt)
+  const handbookPromptOpen = Boolean(payload
+    && handbookPromptDismissedFor !== member.id
+    && (shouldShowHandbookPrompt({
+      eligible: payload.handbook.eligible,
+      promptSeenAt: payload.handbook.promptSeenAt,
+      momentCompleted: momentIsComplete,
+      momentDismissed: dismissed,
+    }) || handbookPromptPresentedFor === member.id))
+
+  if (loading || !payload) return children
 
   return (
     <>
-      {showWelcome ? (
+      {dismissed || momentIsComplete ? children : showWelcome ? (
         <>
           {children}
           <Top100Moment member={member} payload={payload} onComplete={dismissWelcome} />
@@ -240,15 +255,15 @@ export function Top100MomentGate({ member, children }: { member: MemberProfile; 
           </div>
         </aside>
       )}
-      {showWelcome ? null : children}
-      <Dialog open={handbookPromptOpen} onOpenChange={setHandbookPromptOpen}>
+      {showWelcome || dismissed || momentIsComplete ? null : children}
+      <Dialog open={handbookPromptOpen} onOpenChange={(open) => { if (!open) setHandbookPromptDismissedFor(member.id) }}>
         <DialogContent className="max-w-lg rounded-[28px] border-[#E8DDCD] p-6 sm:p-8">
           <p className="text-xs font-semibold tracking-[0.2em] text-[#A94412]">{PARTICIPANT_HANDBOOK.popupEyebrow}</p>
           <DialogTitle className="mt-2 text-2xl font-semibold leading-tight tracking-[-0.02em] text-[#171412]">{PARTICIPANT_HANDBOOK.popupTitle}</DialogTitle>
           <DialogDescription className="mt-2 text-sm leading-6 text-[#625B52]">{PARTICIPANT_HANDBOOK.popupBody}</DialogDescription>
           {handbookPromptError ? <p role="alert" className="mt-3 text-sm text-red-700">{handbookPromptError}</p> : null}
           <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <Button type="button" variant="outline" onClick={() => setHandbookPromptOpen(false)} className="min-h-11 rounded-full">{PARTICIPANT_HANDBOOK.popupSecondaryAction}</Button>
+            <Button type="button" variant="outline" onClick={() => setHandbookPromptDismissedFor(member.id)} className="min-h-11 rounded-full">{PARTICIPANT_HANDBOOK.popupSecondaryAction}</Button>
             <Button asChild className="min-h-11 rounded-full bg-[#E95B0C] text-white hover:bg-[#C84B08]">
               <a href={PARTICIPANT_HANDBOOK.path} target="_blank" rel="noopener noreferrer">{PARTICIPANT_HANDBOOK.popupPrimaryAction}<ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" /></a>
             </Button>
