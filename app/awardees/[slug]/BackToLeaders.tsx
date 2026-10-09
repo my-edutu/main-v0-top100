@@ -11,7 +11,7 @@ export default function BackToLeaders({ year }: { year?: number | string | null 
   return (
     <Link
       href={fallback}
-      className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 transition-colors"
+      className="inline-flex min-h-11 items-center gap-2 text-sm text-stone-600 transition-colors hover:text-[#A94412] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412]"
       onClick={event => {
         if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return
         if (window.history.length > 1) {

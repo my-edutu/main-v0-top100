@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ProfileSocialIcon } from '@/components/profile-social-icon'
 import { SOCIAL_PLATFORMS, validateSocialLinks, type SocialLink } from '@/lib/profile-contact'
+import { publicBioUrl } from '@/lib/dashboard/bio-routing'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -234,7 +235,8 @@ function ProfileOverview({ member, onEdit }: { member: MemberProfile; onEdit: ()
     if (!member.publicSlug || sharing) return
     setSharing(true)
     try {
-      const url = `https://www.top100afl.com/bio/${encodeURIComponent(member.publicSlug)}`
+      const url = publicBioUrl(member.publicSlug)
+      if (!url) return
       if (navigator.share) await navigator.share({ title: member.name, url })
       else { await navigator.clipboard.writeText(url); toast.success('Profile link copied.') }
     } catch (cause) { if (!(cause instanceof Error && cause.name === 'AbortError')) toast.error('Could not share your profile. Please try again.') }

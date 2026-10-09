@@ -8,6 +8,7 @@ import Image from '@/components/safe-image'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { publicBioUrl } from '@/lib/dashboard/bio-routing'
 import { getCurrentPortfolioCover, startPortfolioCover } from '@/lib/portfolio-cover/client'
 import { peekPendingPortfolioCoverPhoto, takePendingPortfolioCoverPhoto } from '@/lib/portfolio-cover/draft-photo'
 import { useDashboardMember } from '@/app/dashboard/_providers/dashboard-member'
@@ -22,6 +23,7 @@ export function PortfolioCoverWizard() {
   const [step, setStep] = useState<'name' | 'photo' | 'preview'>(() => file ? 'photo' : 'name')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [sharing, setSharing] = useState(false)
   const [error, setError] = useState('')
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
@@ -101,25 +103,44 @@ export function PortfolioCoverWizard() {
   }
 
   const shareCover = async () => {
-    if (!coverUrl) return
-    const shareData = {
-      title: `${name.trim() || member.name} · Africa Future Leaders 2026`,
-      text: 'I’m proud to be selected as a Top100 Africa Future Leader 2026.',
-      url: coverUrl,
-    }
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData)
-        return
-      } catch (cause) {
-        if (cause instanceof Error && cause.name === 'AbortError') return
-      }
-    }
+    if (!coverUrl || sharing) return
+    const profileUrl = member.publicSlug ? publicBioUrl(member.publicSlug) : null
+    const title = `${name.trim() || member.name} · Africa Future Leaders 2026`
+    const caption = 'I’m proud to be selected as a Top100 Africa Future Leader 2026.'
+    setSharing(true)
     try {
-      await navigator.clipboard.writeText(`${shareData.text}\n${coverUrl}`)
-      toast.success('Your cover link and post text have been copied.')
-    } catch {
-      toast.error('Sharing is unavailable here. Open the cover image and copy its link to share.')
+      if (navigator.share) {
+        try {
+          const response = await fetch(coverUrl)
+          if (response.ok) {
+            const blob = await response.blob()
+            if (blob.type.startsWith('image/') && blob.size <= 10 * 1024 * 1024) {
+              const extension = blob.type === 'image/webp' ? 'webp' : blob.type === 'image/jpeg' ? 'jpg' : 'png'
+              const image = new File([blob], `afl-2026-cover.${extension}`, { type: blob.type })
+              if (navigator.canShare?.({ files: [image] })) {
+                const text = profileUrl ? `${caption}\n\nView my profile: ${profileUrl}` : caption
+                await navigator.share({ title, text, files: [image] })
+                return
+              }
+            }
+          }
+        } catch (cause) {
+          if (cause instanceof Error && cause.name === 'AbortError') return
+        }
+
+        await navigator.share({ title, text: caption, ...(profileUrl ? { url: profileUrl } : {}) })
+        return
+      }
+
+      await navigator.clipboard.writeText(profileUrl ? `${caption}\n\n${profileUrl}` : caption)
+      toast.success(profileUrl
+        ? 'Your Top100 profile link and post text have been copied. Download the cover to attach it to your post.'
+        : 'Your post text has been copied. Download the cover to attach it to your post.')
+    } catch (cause) {
+      if (cause instanceof Error && cause.name === 'AbortError') return
+      toast.error('Could not share your cover. Download it and share it from your public profile.')
+    } finally {
+      setSharing(false)
     }
   }
 
@@ -201,7 +222,7 @@ export function PortfolioCoverWizard() {
           <Image src={coverUrl} alt={`${name || member.name}'s Africa Future Leaders 2026 award cover`} width={720} height={900} unoptimized className="mx-auto block w-full max-w-[360px] rounded-lg border border-neutral-200" />
           <div className="mx-auto flex w-full max-w-[360px] items-center gap-2 pt-1">
             <a href="/api/member/portfolio-cover/download" download={downloadName} className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-md bg-orange-600 px-4 text-sm font-semibold text-white hover:bg-orange-700"><Download className="size-4" aria-hidden="true" />Download cover</a>
-            <Button type="button" variant="outline" onClick={() => void shareCover()} aria-label="Share cover link" title="Share cover link" className="size-11 shrink-0 rounded-md border-orange-200 text-orange-800 hover:bg-orange-50"><Share2 className="size-5" aria-hidden="true" /></Button>
+            <Button type="button" variant="outline" onClick={() => void shareCover()} disabled={sharing} aria-label={sharing ? 'Preparing cover to share' : 'Share cover'} title={sharing ? 'Preparing cover to share' : 'Share cover'} className="size-11 shrink-0 rounded-md border-orange-200 text-orange-800 hover:bg-orange-50">{sharing ? <LoaderCircle className="size-5 animate-spin" aria-hidden="true" /> : <Share2 className="size-5" aria-hidden="true" />}</Button>
           </div>
         </section>
       ) : null}

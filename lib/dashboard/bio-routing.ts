@@ -10,3 +10,8 @@ export function publicBioDestination(slug: string) {
   if (!PUBLIC_SLUG.test(slug)) return null
   return `/awardees/${slug}`
 }
+
+export function publicBioUrl(slug: string) {
+  const destination = publicBioDestination(slug)
+  return destination ? `https://www.top100afl.com${destination}` : null
+}

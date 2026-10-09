@@ -3,22 +3,19 @@ import { validateSocialLinks, type SocialLink } from '@/lib/profile-contact'
 import Image from '@/components/safe-image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { Calendar, ExternalLink, Globe, Instagram, Linkedin, Mail, MapPin, PenSquare, Trophy, Twitter, Users2, Youtube, GraduationCap, Quote, Award, Briefcase } from 'lucide-react'
+import { ChevronDown, ExternalLink, Globe, Instagram, Linkedin, Mail, PenSquare, Twitter, Users2, Youtube } from 'lucide-react'
 import type { Metadata } from 'next'
 
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { getAwardees } from '@/lib/awardees'
 import { normalizeAwardeeEntry } from '@/lib/awardees-shared'
 import { fetchAwardeeBySlug } from '@/lib/dashboard/profile-service'
-import { flagEmoji } from '@/lib/avatars'
 import { ogMetadata } from '@/lib/og'
 import type { Achievement, GalleryItem, SocialLinks } from '@/types/profile'
-import ConnectButton from './ConnectButton'
 import LinkedInPostCard from './LinkedInPostCard'
 import AwardeePostsList from './AwardeePostsList'
 import StructuredData from '@/components/StructuredData'
 import AwardeePortrait from './AwardeePortrait'
+import AwardeeMediaCarousel from './AwardeeMediaCarousel'
 import BackToLeaders from './BackToLeaders'
 
 export const runtime = 'nodejs'
@@ -36,7 +33,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
 
   const awardee = normalizeAwardeeEntry(raw)
-  const portfolioCoverUrl = typeof (raw as any).portfolio_cover_url === 'string' ? (raw as any).portfolio_cover_url : null
+  const portfolioCoverUrl = typeof raw.portfolio_cover_url === 'string' ? raw.portfolio_cover_url : null
   const showcaseYear = typeof awardee.year === 'number' && Number.isFinite(awardee.year) ? awardee.year : 2025
   const cohortLabel = awardee.cohort && awardee.cohort.trim().length > 0 ? awardee.cohort : `Top100 Africa Future Leader ${showcaseYear}`
 
@@ -102,6 +99,12 @@ const fallbackSocialLabel: Record<string, string> = {
 const hasGallery = (items?: GalleryItem[] | null) => Boolean(items && items.length > 0)
 const hasAchievements = (items?: Achievement[] | null) => Boolean(items && items.length > 0)
 
+function relatedLeaderScore(currentSlug: string, candidateSlug: string): number {
+  let score = 0
+  for (const character of `${currentSlug}:${candidateSlug}`) score = (score * 31 + character.charCodeAt(0)) >>> 0
+  return score
+}
+
 export default async function AwardeeDetail({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const raw = await fetchAwardeeBySlug(slug)
@@ -118,12 +121,11 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
   }
 
   const awardee = normalizeAwardeeEntry(raw)
-  const portfolioCoverUrl = typeof (raw as any).portfolio_cover_url === 'string' ? (raw as any).portfolio_cover_url : null
+  const portfolioCoverUrl = typeof raw.portfolio_cover_url === 'string' ? raw.portfolio_cover_url : null
 
-  // Fetch random other awardees for suggestions
-  const randomAwardees = (await getAwardees())
+  const relatedAwardees = (await getAwardees())
     .filter((entry) => entry.slug !== slug && entry.is_public !== false)
-    .sort(() => Math.random() - 0.5)
+    .sort((a, b) => relatedLeaderScore(slug, a.slug) - relatedLeaderScore(slug, b.slug) || a.slug.localeCompare(b.slug))
     .slice(0, 4)
 
   if (!awardee.slug) {
@@ -148,14 +150,18 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
     typeof awardee.year === 'number' && Number.isFinite(awardee.year)
       ? awardee.year
       : 2025
-  const spotlightLabel =
-    awardee.cohort && awardee.cohort.trim().length > 0
-      ? awardee.cohort
-      : `Top100 Africa Future Leader ${showcaseYear}`
+  const cohortName = awardee.cohort?.trim()
+  const spotlightLabel = cohortName && cohortName !== String(showcaseYear) && cohortName.toLowerCase() !== `class of ${showcaseYear}`
+    ? cohortName
+    : 'Top100 Africa Future Leaders'
   const heroSubtitle =
     awardee.tagline && awardee.tagline.trim().length > 0
       ? awardee.tagline
       : awardee.headline ?? null
+  const currentSchool = awardee.current_school?.trim() || null
+  const backgroundDetail = currentSchool && currentSchool.toLowerCase() !== heroSubtitle?.trim().toLowerCase()
+    ? currentSchool
+    : null
 
   // Person Schema for SEO
   const personSchema = {
@@ -180,126 +186,72 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
     <div className="min-h-screen bg-white">
       <StructuredData data={personSchema} />
 
-      {/* Forbes-Style Hero */}
-      <article className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Breadcrumb */}
-        <nav className="pt-8 pb-6 border-b border-gray-200">
+      <article className="mx-auto max-w-5xl px-5 sm:px-8 lg:px-10">
+        <nav className="py-4 sm:py-6">
           <BackToLeaders year={awardee.year} />
         </nav>
 
-        {/* Header Section */}
-        <header className="py-10 sm:py-16 border-b border-gray-100">
-          <div className="flex flex-col md:flex-row gap-8 md:gap-12">
-            {/* Photo */}
-            <div className="shrink-0 mx-auto md:mx-0">
-              <div className="relative w-48 h-48 sm:w-56 sm:h-56 md:w-64 md:h-64">
-                <AwardeePortrait name={awardee.name} sources={[awardee.avatar_url, awardee.cover_image_url]} />
-              </div>
-            </div>
+        <header className="border-b border-stone-200 pb-8 pt-2 sm:pb-10 sm:pt-4">
+          <div className="grid items-center gap-5 sm:grid-cols-[176px_minmax(0,1fr)] sm:gap-8 lg:grid-cols-[208px_minmax(0,1fr)] lg:gap-10">
+            <AwardeeMediaCarousel name={awardee.name} portraitSources={[awardee.avatar_url, awardee.cover_image_url]} coverUrl={portfolioCoverUrl} />
 
-            {/* Info */}
-            <div className="flex-1 text-center md:text-left">
-              {/* Category Tag */}
-              <div className="mb-4">
-                <span className="inline-block text-xs font-bold uppercase tracking-[0.2em] text-red-600 border-b-2 border-red-600 pb-1">
-                  {spotlightLabel}
-                </span>
-              </div>
-
-              {/* Name */}
-              <h1 className="text-4xl sm:text-5xl md:text-6xl font-serif font-bold text-gray-900 leading-tight tracking-tight">
+            <div className="min-w-0 text-center sm:text-left">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#A94412]">{spotlightLabel}</p>
+              <h1 className="mt-2 break-words text-[clamp(2rem,5vw,3.5rem)] font-semibold leading-[1.08] tracking-[-0.035em] text-[#171412]">
                 {awardee.name}
               </h1>
-
-              {/* Tagline - Shortened */}
               {heroSubtitle && (
-                <p className="mt-4 text-lg sm:text-xl text-gray-600 font-light leading-relaxed max-w-xl line-clamp-2">
-                  {heroSubtitle.length > 80 ? heroSubtitle.substring(0, 80) + '...' : heroSubtitle}
+                <p className="mx-auto mt-3 max-w-xl text-base leading-6 text-stone-600 sm:mx-0 sm:text-lg sm:leading-7">
+                  {heroSubtitle}
                 </p>
               )}
-
-              {/* Quick Meta */}
-              <div className="mt-6 flex flex-wrap justify-center md:justify-start gap-4 text-sm text-gray-500">
-                {awardee.country && (
-                  <span className="inline-flex items-center gap-1.5">
-                    <MapPin className="h-4 w-4" />
-                    {awardee.country}
-                  </span>
-                )}
-                {awardee.current_school && (
-                  <span className="inline-flex items-center gap-1.5">
-                    <GraduationCap className="h-4 w-4" />
-                    {awardee.current_school}
-                  </span>
-                )}
-                {awardee.year && (
-                  <span className="inline-flex items-center gap-1.5">
-                    <Calendar className="h-4 w-4" />
-                    Class of {awardee.year}
-                  </span>
-                )}
-                {awardee.cgpa && (
-                  <span className="inline-flex items-center gap-1.5 font-semibold text-gray-900">
-                    <Award className="h-4 w-4 text-red-600" />
-                    {awardee.cgpa} CGPA
-                  </span>
-                )}
-              </div>
-
-              {/* Actions Row - Social Links */}
-              <div className="mt-6 flex flex-wrap justify-center md:justify-start items-center gap-3">
-                {contactEmail ? <a href={`mailto:${contactEmail}`} className="inline-flex min-h-11 items-center gap-2 rounded-full border px-4 text-sm"><Mail className="h-4 w-4" />Email me</a> : null}
-                {/* Social Links */}
-                {socialEntries.map(([key, value]) => {
-                  const Icon = socialIconMap[key] ?? Globe
-                  const label = fallbackSocialLabel[key] ?? key
-                  return (
-                    <Link
-                      key={key}
-                      href={value}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label={`${awardee.name} on ${label}`}
-                      title={label}
-                      className="h-10 w-10 rounded-full bg-gray-100 hover:bg-orange-500 hover:text-white flex items-center justify-center text-gray-600 transition-all duration-300"
-                    >
-                      <Icon className="h-4 w-4" aria-hidden="true" />
-                    </Link>
-                  )
-                })}
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm text-stone-600 sm:justify-start">
+                {awardee.country ? <span>{awardee.country}</span> : null}
+                {awardee.country && awardee.year ? <span aria-hidden="true" className="text-stone-400">·</span> : null}
+                {awardee.year ? <span>Class of {awardee.year}</span> : null}
               </div>
             </div>
           </div>
+          {(contactEmail || socialEntries.length > 0) && (
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-2 sm:ml-[208px] sm:justify-start lg:ml-[248px]">
+              {contactEmail ? <a href={`mailto:${contactEmail}`} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[#C62828] bg-[#C62828] px-4 text-sm font-medium text-[#fff] transition-colors hover:bg-[#A91F1F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412]"><Mail className="h-4 w-4" aria-hidden="true" />Email me</a> : null}
+              {socialEntries.map(([key, value]) => {
+                const Icon = socialIconMap[key] ?? Globe
+                const label = fallbackSocialLabel[key] ?? key
+                const color = key === 'linkedin'
+                  ? 'border-[#0A66C2] bg-[#0A66C2] text-[#fff] hover:bg-[#084F96]'
+                  : key === 'instagram'
+                    ? 'border-[#B33383] text-[#fff] hover:brightness-110'
+                    : 'border-stone-300 bg-white text-stone-600 hover:border-[#E9A879] hover:bg-[#FFF7EF] hover:text-[#A94412]'
+                return <Link key={key} href={value} target="_blank" rel="noopener noreferrer" aria-label={`${awardee.name} on ${label}`} title={label} style={key === 'instagram' ? { backgroundImage: 'linear-gradient(135deg, #833AB4, #C13584 55%, #E1306C)' } : undefined} className={`inline-flex size-11 items-center justify-center rounded-xl border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] ${color}`}><Icon className="h-5 w-5" aria-hidden="true" /></Link>
+              })}
+            </div>
+          )}
         </header>
 
-        {portfolioCoverUrl ? (
-          <section className="border-b border-gray-100 py-10 sm:py-14" aria-labelledby="portfolio-cover-heading">
-            <div className="grid items-center gap-8 md:grid-cols-[240px_1fr] md:gap-12">
-              <Image src={portfolioCoverUrl} alt={`${awardee.name} Top100 Africa Future Leaders magazine cover`} width={480} height={600} className="mx-auto w-full max-w-[240px] rounded-sm shadow-2xl" />
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-700">Top100 editorial profile</p>
-                <h2 id="portfolio-cover-heading" className="mt-2 font-serif text-3xl font-bold text-gray-900 sm:text-4xl">Meet the future leader behind the work.</h2>
-                <p className="mt-4 max-w-xl text-base leading-7 text-gray-600">A shareable portrait of {awardee.name}, created for the Africa Future Leaders community.</p>
-              </div>
+        {(backgroundDetail || awardee.cgpa || awardee.location) && (
+          <details className="group border-b border-stone-200">
+            <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 text-sm font-medium text-[#25211D] marker:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-inset [&::-webkit-details-marker]:hidden">
+              Background and highlights
+              <ChevronDown className="h-4 w-4 shrink-0 text-stone-500 transition-transform group-open:rotate-180" aria-hidden="true" />
+            </summary>
+            <div className="grid gap-5 pb-6 sm:grid-cols-2 sm:gap-8">
+              {backgroundDetail && <div><h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">Background</h2><p className="mt-2 break-words text-sm leading-6 text-[#25211D] sm:text-base">{backgroundDetail}</p></div>}
+              {awardee.cgpa && <div><h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">Academic record</h2><p className="mt-2 break-words text-sm leading-6 text-[#25211D] sm:text-base">{awardee.cgpa}</p></div>}
+              {awardee.location && <div><h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">Location</h2><p className="mt-2 break-words text-sm leading-6 text-[#25211D] sm:text-base">{awardee.location}</p></div>}
             </div>
-          </section>
-        ) : null}
+          </details>
+        )}
 
-        {/* Main Content */}
-        <div className="py-10 sm:py-16">
-
-          {/* Biography - Magazine Style */}
+        <div className="max-w-3xl py-8 sm:py-12">
           {awardee.bio && (
-            <section className="mb-12">
-              {/* Drop Cap First Paragraph Style */}
-              <div className="prose prose-lg max-w-none space-y-4">
+            <section className="mb-10">
+              <h2 className="text-xl font-semibold tracking-tight text-[#171412]">About {awardee.name.split(/\s+/)[0]}</h2>
+              <div className="mt-4 space-y-4">
                 {awardee.bio.split(/\n\n+/).map((paragraph, index) => (
                   <p
                     key={index}
-                    className={`text-lg sm:text-xl text-gray-700 leading-relaxed ${index === 0
-                      ? 'first-letter:text-6xl first-letter:font-serif first-letter:font-bold first-letter:float-left first-letter:mr-3 first-letter:mt-1 first-letter:text-gray-900'
-                      : ''
-                      }`}
+                    className="text-base leading-7 text-stone-700"
                   >
                     {paragraph.trim()}
                   </p>
@@ -316,15 +268,14 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
             />
           )}
 
-          {/* Focus Areas */}
           {awardee.interests && awardee.interests.length > 0 && (
-            <section className="mb-12 pb-12 border-b border-gray-100">
-              <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400 mb-4">Areas of Focus</h2>
-              <div className="flex flex-wrap gap-2">
+            <section className="mb-10 border-t border-stone-200 pt-8">
+              <h2 className="text-xl font-semibold tracking-tight text-[#171412]">Areas of focus</h2>
+              <div className="mt-4 flex flex-wrap gap-2">
                 {awardee.interests.map((interest) => (
                   <span
                     key={interest}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+                    className="rounded-full border border-stone-200 bg-stone-50 px-3 py-1.5 text-sm text-stone-700"
                   >
                     {interest}
                   </span>
@@ -333,61 +284,52 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
             </section>
           )}
 
-          {/* Achievements - Editorial List */}
           {hasAchievements(achievements) && (
-            <section className="mb-12 pb-12 border-b border-gray-100">
-              <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400 mb-6">Recognition & Achievements</h2>
-              <div className="space-y-6">
+            <section className="mb-10 border-t border-stone-200 pt-8">
+              <h2 className="text-xl font-semibold tracking-tight text-[#171412]">Recognition and achievements</h2>
+              <div className="mt-5 space-y-6">
                 {achievements.map((achievement, index) => (
                   <div
                     key={achievement.id ?? `${achievement.title}-${index}`}
-                    className="flex gap-4 group"
+                    className="border-l-2 border-[#E9A879] pl-4"
                   >
-                    <div className="shrink-0 w-12 h-12 bg-red-600 flex items-center justify-center">
-                      <Trophy className="h-5 w-5 text-white" />
-                    </div>
-                    <div className="flex-1 pt-1">
-                      <h3 className="font-bold text-gray-900 group-hover:text-red-600 transition-colors">
+                    <div>
+                      <h3 className="text-base font-semibold text-[#25211D]">
                         {achievement.title}
                       </h3>
                       {achievement.organization && (
-                        <p className="text-sm text-gray-500 mt-0.5">{achievement.organization}</p>
+                        <p className="mt-1 text-sm text-stone-600">{achievement.organization}</p>
                       )}
                       {achievement.description && (
-                        <p className="text-sm text-gray-600 mt-2 leading-relaxed">{achievement.description}</p>
+                        <p className="mt-2 text-sm leading-6 text-stone-700">{achievement.description}</p>
                       )}
                       {achievement.link && (
                         <Link
                           href={achievement.link}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-sm text-red-600 hover:underline font-medium mt-2"
+                          className="mt-2 inline-flex min-h-11 items-center gap-1 text-sm font-medium text-[#A94412] hover:underline"
                         >
                           Learn more
-                          <ExternalLink className="h-3 w-3" />
+                          <ExternalLink className="h-3 w-3" aria-hidden="true" />
                         </Link>
                       )}
+                      {achievement.recognition_date && <p className="mt-2 text-xs text-stone-500">{achievement.recognition_date}</p>}
                     </div>
-                    {achievement.recognition_date && (
-                      <span className="shrink-0 text-xs text-gray-400 font-medium pt-1">
-                        {achievement.recognition_date}
-                      </span>
-                    )}
                   </div>
                 ))}
               </div>
             </section>
           )}
 
-          {/* Gallery - Magazine Grid */}
           {hasGallery(gallery) && (
-            <section className="mb-12 pb-12 border-b border-gray-100">
-              <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400 mb-6">Photo Gallery</h2>
-              <div className="grid gap-4 grid-cols-2 md:grid-cols-3">
+            <section className="mb-10 border-t border-stone-200 pt-8">
+              <h2 className="text-xl font-semibold tracking-tight text-[#171412]">Photos</h2>
+              <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {gallery.map((item, index) => (
                   <figure
                     key={item.id ?? `${item.url}-${index}`}
-                    className="group overflow-hidden bg-gray-100"
+                    className="overflow-hidden rounded-xl bg-stone-100"
                   >
                     <div className="relative aspect-square overflow-hidden">
                       <Image
@@ -395,11 +337,11 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
                         alt={item.caption ?? awardee.name}
                         fill
                         sizes="(max-width: 768px) 50vw, 33vw"
-                        className="object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-500"
+                        className="object-cover"
                       />
                     </div>
                     {item.caption && (
-                      <figcaption className="px-3 py-2 text-xs text-gray-500 italic">
+                      <figcaption className="px-3 py-2 text-xs text-stone-600">
                         {item.caption}
                       </figcaption>
                     )}
@@ -409,11 +351,10 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
             </section>
           )}
 
-          {/* YouTube Video */}
           {awardee.youtube_video_url && (
-            <section className="mb-12 pb-12 border-b border-gray-100">
-              <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400 mb-6">Featured Video</h2>
-              <div className="aspect-video bg-gray-900">
+            <section className="mb-10 border-t border-stone-200 pt-8">
+              <h2 className="text-xl font-semibold tracking-tight text-[#171412]">Featured video</h2>
+              <div className="mt-5 aspect-video overflow-hidden rounded-xl bg-stone-900">
                 <iframe
                   src={`https://www.youtube.com/embed/${awardee.youtube_video_url}`}
                   title="Featured Interview"
@@ -425,46 +366,31 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
             </section>
           )}
 
-          {/* Mentor */}
           {awardee.mentor && (
-            <section className="mb-12">
-              <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400 mb-4">Mentor</h2>
-              <div className="flex items-center gap-4 p-4 bg-gray-50">
-                <Briefcase className="h-6 w-6 text-gray-400" />
-                <p className="font-medium text-gray-900">{awardee.mentor}</p>
-              </div>
+            <section className="border-t border-stone-200 pt-8">
+              <h2 className="text-xl font-semibold tracking-tight text-[#171412]">Mentor</h2>
+              <p className="mt-3 text-base text-stone-700">{awardee.mentor}</p>
             </section>
-          )}
-
-          {/* Location */}
-          {awardee.location && (
-            <div className="py-6 border-t border-gray-100">
-              <p className="text-sm text-gray-400 flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                {awardee.location}
-              </p>
-            </div>
           )}
         </div>
 
         {/* Posts written by this awardee. Renders nothing when they have none. */}
         <AwardeePostsList slug={slug} />
 
-        {/* Related Leaders - Forbes "More From" Section */}
-        {randomAwardees.length > 0 && (
-          <section className="py-8 border-t border-gray-200">
-            <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400 mb-4">More Future Leaders</h2>
-            <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-4 sm:gap-4 sm:overflow-visible">
-              {randomAwardees.map((other: any) => (
+        {relatedAwardees.length > 0 && (
+          <section className="border-t border-stone-200 py-8">
+            <h2 className="mb-5 text-xl font-semibold tracking-tight text-[#171412]">More future leaders</h2>
+            <div className="-mx-5 flex gap-3 overflow-x-auto px-5 pb-2 sm:mx-0 sm:grid sm:grid-cols-4 sm:gap-4 sm:overflow-visible sm:px-0">
+              {relatedAwardees.map((other) => (
                 <Link
                   key={other.slug}
                   href={`/awardees/${other.slug}`}
-                  className="group flex-shrink-0 w-28 sm:w-auto"
+                  className="group w-28 flex-shrink-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] sm:w-auto"
                 >
-                  <div className="relative aspect-square bg-gray-100 overflow-hidden mb-2 rounded">
+                  <div className="relative mb-2 aspect-square overflow-hidden rounded-lg bg-stone-100">
                     <AwardeePortrait name={other.name} sources={[other.avatar_url, other.cover_image_url]} size={60} priority={false} />
                   </div>
-                  <h3 className="font-bold text-xs sm:text-sm text-gray-900 group-hover:text-orange-500 transition-colors line-clamp-1">
+                  <h3 className="line-clamp-2 text-xs font-medium leading-4 text-[#25211D] transition-colors group-hover:text-[#A94412] sm:text-sm">
                     {other.name}
                   </h3>
                 </Link>

@@ -49,30 +49,30 @@ export default async function AwardeePostsList({ slug }: { slug: string }) {
   if (posts.length === 0) return null
 
   return (
-    <section className="py-8 border-t border-gray-200">
-      <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400 mb-6">Writing</h2>
+    <section className="max-w-3xl border-t border-stone-200 py-8">
+      <h2 className="mb-5 text-xl font-semibold tracking-tight text-[#171412]">Writing</h2>
       <div className="grid gap-4 sm:grid-cols-2">
         {posts.map((post) => (
           <Link
             key={post.id}
             href={memberPostPath(slug, post.slug)}
-            className="group block border border-gray-200 p-5 rounded-lg hover:border-orange-300 transition-colors"
+            className="group block rounded-xl border border-stone-200 p-5 transition-colors hover:border-[#E9A879] hover:bg-[#FFFCF9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412]"
           >
             <div className="flex items-start justify-between gap-3">
-              <h3 className="font-bold text-gray-900 group-hover:text-orange-600 transition-colors line-clamp-2">
+              <h3 className="line-clamp-2 font-semibold text-[#25211D] transition-colors group-hover:text-[#A94412]">
                 {post.title}
               </h3>
-              <ArrowUpRight className="h-4 w-4 shrink-0 text-gray-300 group-hover:text-orange-500 transition-colors" />
+              <ArrowUpRight className="h-4 w-4 shrink-0 text-stone-500 transition-colors group-hover:text-[#A94412]" aria-hidden="true" />
             </div>
             {post.excerpt && (
-              <p className="mt-2 text-sm text-gray-600 leading-relaxed line-clamp-3">
+              <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-stone-600">
                 {post.excerpt}
               </p>
             )}
             {post.publishedAt && (
               <time
                 dateTime={post.publishedAt}
-                className="mt-3 block text-xs text-gray-400 font-medium"
+                className="mt-3 block text-xs text-stone-500"
               >
                 {new Date(post.publishedAt).toLocaleDateString('en-US', {
                   month: 'long',

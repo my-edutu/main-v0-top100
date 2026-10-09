@@ -12,6 +12,7 @@ import { FounderWelcomeDialog } from './founder-welcome-dialog'
 import { cn } from '@/lib/utils'
 import { activateHomeScreenExploreTile, triggerHomeScreenAction } from '@/lib/install-prompt'
 import { DEFAULT_AWARDEE_JOURNEY_SETTINGS, type AwardeeJourneySettings } from '@/lib/dashboard/awardee-journey-settings'
+import { publicBioUrl } from '@/lib/dashboard/bio-routing'
 import type { AwardeeJourneyState } from '@/lib/dashboard/awardee-journey'
 import { saveHandbookProgress } from '@/lib/dashboard/handbook-onboarding'
 import { PARTICIPANT_HANDBOOK } from '@/lib/handbook/participant-handbook'
@@ -253,7 +254,8 @@ export function AwardeeOnboardingJourney({ name }: Props) {
 
   async function copyCaption() {
     try {
-      await navigator.clipboard.writeText(introCaption)
+      const profileUrl = member.publicSlug ? publicBioUrl(member.publicSlug) : null
+      await navigator.clipboard.writeText(profileUrl ? `${introCaption}\n\nView my profile: ${profileUrl}` : introCaption)
       setCaptionCopied(true)
       window.setTimeout(() => setCaptionCopied(false), 2500)
       toast.success('Introduction caption copied. Add it to your post and tag the AFL page.')
@@ -263,6 +265,7 @@ export function AwardeeOnboardingJourney({ name }: Props) {
   }
 
   async function shareIntroduction() {
+    const profileUrl = member.publicSlug ? publicBioUrl(member.publicSlug) : null
     if (!navigator.share) {
       await copyCaption()
       toast.info('This browser cannot open the share menu. The caption is copied; use the cover preview when posting.')
@@ -274,11 +277,12 @@ export function AwardeeOnboardingJourney({ name }: Props) {
       const shareData: ShareData = {
         title: 'Top 100 Africa Future Leaders 2026',
         text: introCaption,
-        ...(member.portfolioCoverUrl ? { url: member.portfolioCoverUrl } : {}),
+        ...(profileUrl ? { url: profileUrl } : {}),
       }
       if (coverFile && navigator.canShare?.({ files: [coverFile] })) {
         shareData.files = [coverFile]
         delete shareData.url
+        if (profileUrl) shareData.text = `${introCaption}\n\nView my profile: ${profileUrl}`
       }
       await navigator.share(shareData)
       await confirmExternalShare()
