@@ -81,4 +81,21 @@ describe('/api/member/onboarding-journey', () => {
     expect(response.status).toBe(200)
     expect(await response.json()).not.toHaveProperty('memberId')
   })
+
+  it('saves handbook prompt-seen and read acknowledgements independently for the authenticated member', async () => {
+  const response = await PATCH(request('PATCH', {
+    memberId: 'another-member',
+    handbookPromptSeen: true,
+  }))
+
+  expect(response.status).toBe(200)
+  expect(mocks.saveProgress).toHaveBeenCalledWith('authenticated-member', { handbookPromptSeen: true })
+  })
+
+  it('rejects false handbook progress values', async () => {
+    const response = await PATCH(request('PATCH', { handbookRead: false }))
+
+    expect(response.status).toBe(400)
+    expect(mocks.saveProgress).not.toHaveBeenCalled()
+  })
 })

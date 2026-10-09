@@ -1,3 +1,5 @@
+import { PARTICIPANT_HANDBOOK } from '@/lib/handbook/participant-handbook'
+
 export type AwardeeJourneyInput = {
   profile: {
     fullName: string
@@ -9,6 +11,9 @@ export type AwardeeJourneyInput = {
     avatarUrl: string | null
   }
   welcomeReadAt: string | null
+  handbookEligible?: boolean
+  handbookReadAt?: string | null
+  handbookPromptSeenAt?: string | null
   hasPublishedIntroPost: boolean
   externalShareConfirmedAt: string | null
   externalSharePlatform: string | null
@@ -24,7 +29,7 @@ export type JourneyStep = {
 }
 
 export type AwardeeJourneyState = {
-  progress: { completed: number; total: 3; percent: number }
+  progress: { completed: number; total: number; percent: number }
   nextStepId: string | null
   coreSteps: JourneyStep[]
   recommendedActions: JourneyStep[]
@@ -61,6 +66,15 @@ export function deriveAwardeeJourney(input: AwardeeJourneyInput): AwardeeJourney
       status: introductionComplete ? 'Published' : 'Create your introduction post',
     },
   ]
+  if (input.handbookEligible) {
+    const handbookRead = isPersisted(input.handbookReadAt ?? null)
+    coreSteps.push({
+      id: 'handbook',
+      label: PARTICIPANT_HANDBOOK.checklistTitle,
+      complete: handbookRead,
+      status: handbookRead ? 'Read' : 'Open the participant guide',
+    })
+  }
   const completed = coreSteps.filter((step) => step.complete).length
   const nextStepId = coreSteps.find((step) => !step.complete)?.id ?? null
   const applicationStatus = input.magazine.applicationStatus
@@ -79,7 +93,7 @@ export function deriveAwardeeJourney(input: AwardeeJourneyInput): AwardeeJourney
       : 'Award payment needed'
 
   return {
-    progress: { completed, total: 3, percent: Math.round((completed / 3) * 100) },
+    progress: { completed, total: coreSteps.length, percent: Math.round((completed / coreSteps.length) * 100) },
     nextStepId,
     coreSteps,
     recommendedActions: [

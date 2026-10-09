@@ -107,3 +107,18 @@ describe('awardee journey progress', () => {
     expect(state.coreSteps.find((step) => step.id === 'introduction')?.complete).toBe(false)
   })
 })
+
+it('adds the handbook to core progress only for eligible 2026 awardees and tracks read separately from prompt display', () => {
+  const state = deriveAwardeeJourney(input({
+    handbookEligible: true,
+    handbookPromptSeenAt: '2026-10-09T10:00:00.000Z',
+    handbookReadAt: null,
+  }))
+
+  expect(state.progress.total).toBe(4)
+  expect(state.progress.completed).toBe(0)
+  expect(state.coreSteps.find(step => step.id === 'handbook')).toMatchObject({
+    label: 'Read the 2026 participant handbook',
+    complete: false,
+  })
+})

@@ -14,7 +14,7 @@ const PLATFORMS = ['linkedin', 'facebook', 'instagram', 'other'] as const
 function parseProgressPatch(input: unknown) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) return null
   const body = input as Record<string, unknown>
-  const allowed = new Set(['memberId', 'welcomeRead', 'externalShareConfirmed', 'externalSharePlatform', 'top100MomentComplete', 'whatsappChannelJoined'])
+  const allowed = new Set(['memberId', 'welcomeRead', 'externalShareConfirmed', 'externalSharePlatform', 'top100MomentComplete', 'whatsappChannelJoined', 'handbookPromptSeen', 'handbookRead'])
   if (Object.keys(body).some((key) => !allowed.has(key))) return null
 
   const patch: {
@@ -23,6 +23,8 @@ function parseProgressPatch(input: unknown) {
     externalSharePlatform?: typeof PLATFORMS[number]
     top100MomentComplete?: true
     whatsappChannelJoined?: true
+    handbookPromptSeen?: true
+    handbookRead?: true
   } = {}
   if (body.welcomeRead !== undefined) {
     if (body.welcomeRead !== true) return null
@@ -35,6 +37,14 @@ function parseProgressPatch(input: unknown) {
   if (body.whatsappChannelJoined !== undefined) {
     if (body.whatsappChannelJoined !== true) return null
     patch.whatsappChannelJoined = true
+  }
+  if (body.handbookPromptSeen !== undefined) {
+    if (body.handbookPromptSeen !== true) return null
+    patch.handbookPromptSeen = true
+  }
+  if (body.handbookRead !== undefined) {
+    if (body.handbookRead !== true) return null
+    patch.handbookRead = true
   }
   if (body.externalShareConfirmed !== undefined) {
     if (typeof body.externalShareConfirmed !== 'boolean') return null

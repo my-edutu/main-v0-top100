@@ -19,6 +19,7 @@ beforeEach(() => {
       avatar_url: 'https://media.example/ama.webp',
     },
     progress: { welcome_read_at: '2026-09-23T10:00:00.000Z', external_share_confirmed_at: null, external_share_platform: null },
+    handbook_eligible: false,
     settings: null,
     campaign: null,
     has_published_intro_post: true,
@@ -45,4 +46,27 @@ it('loads member journey and persisted WhatsApp completion with database RPCs', 
 it('fails closed when the data function cannot find the profile', async () => {
   state.rpc.mockImplementation(async () => ({ data: null, error: null }))
   await expect(getAwardeeJourneyForMember('missing')).rejects.toThrow('Member profile not found.')
+})
+
+it('returns handbook eligibility and the two independent persisted timestamps', async () => {
+  state.payload = {
+    ...state.payload,
+    handbook_eligible: true,
+    progress: {
+      welcome_read_at: null,
+      external_share_confirmed_at: null,
+      external_share_platform: null,
+      handbook_prompt_seen_at: '2026-10-09T10:00:00.000Z',
+      handbook_read_at: null,
+    },
+  }
+
+  const journey = await getAwardeeJourneyForMember('member-1')
+
+  expect(journey.handbook).toEqual({
+    eligible: true,
+    promptSeenAt: '2026-10-09T10:00:00.000Z',
+    readAt: null,
+  })
+  expect(journey.state.coreSteps.find(step => step.id === 'handbook')?.complete).toBe(false)
 })

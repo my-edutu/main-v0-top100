@@ -11,6 +11,8 @@ type ProgressPatch = {
   externalSharePlatform?: 'linkedin' | 'facebook' | 'instagram' | 'other'
   top100MomentComplete?: true
   whatsappChannelJoined?: true
+  handbookPromptSeen?: true
+  handbookRead?: true
 }
 
 type JourneyPayload = {
@@ -19,6 +21,11 @@ type JourneyPayload = {
   whatsappChannelJoinedAt: string | null
   moment: {
     completedAt: string | null
+  }
+  handbook: {
+    eligible: boolean
+    promptSeenAt: string | null
+    readAt: string | null
   }
 }
 
@@ -83,6 +90,9 @@ export async function getAwardeeJourneyForMember(memberId: string): Promise<Jour
       avatarUrl: profile.avatar_url ?? null,
     },
     welcomeReadAt: payload.progress?.welcome_read_at ?? null,
+    handbookEligible: payload.handbook_eligible === true,
+    handbookPromptSeenAt: payload.progress?.handbook_prompt_seen_at ?? null,
+    handbookReadAt: payload.progress?.handbook_read_at ?? null,
     hasPublishedIntroPost: payload.has_published_intro_post === true,
     externalShareConfirmedAt: payload.progress?.external_share_confirmed_at ?? null,
     externalSharePlatform: payload.progress?.external_share_platform ?? null,
@@ -102,6 +112,11 @@ export async function getAwardeeJourneyForMember(memberId: string): Promise<Jour
       completedAt: payload?.progress?.top100_moment_completed_at ?? null,
     },
     whatsappChannelJoinedAt: typeof whatsappChannelJoinedAt === 'string' ? whatsappChannelJoinedAt : null,
+    handbook: {
+      eligible: payload.handbook_eligible === true,
+      promptSeenAt: payload?.progress?.handbook_prompt_seen_at ?? null,
+      readAt: payload?.progress?.handbook_read_at ?? null,
+    },
   }
 }
 
@@ -110,6 +125,8 @@ export async function saveAwardeeJourneyProgress(memberId: string, patch: Progre
   const hasExistingProgress = patch.welcomeRead !== undefined
     || patch.externalShareConfirmed !== undefined
     || patch.top100MomentComplete !== undefined
+    || patch.handbookPromptSeen !== undefined
+    || patch.handbookRead !== undefined
   if (hasExistingProgress) {
     const { error } = await db.rpc('save_awardee_onboarding_progress', {
       p_profile_id: memberId,
@@ -117,6 +134,8 @@ export async function saveAwardeeJourneyProgress(memberId: string, patch: Progre
       p_external_share_confirmed: patch.externalShareConfirmed ?? null,
       p_external_share_platform: patch.externalShareConfirmed === true ? patch.externalSharePlatform ?? 'other' : null,
       p_top100_moment_complete: patch.top100MomentComplete ?? false,
+      p_handbook_prompt_seen: patch.handbookPromptSeen ?? false,
+      p_handbook_read: patch.handbookRead ?? false,
     })
     failOnDbError('progress update', error)
   }
