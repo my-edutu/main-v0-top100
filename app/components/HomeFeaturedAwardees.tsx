@@ -10,7 +10,6 @@ import { resolveSupabasePortrait } from "@/lib/media/remote-image-source"
 type SpotlightAwardee = {
   slug: string
   name: string
-  country?: string | null
   avatar_url?: string | null
   headline?: string | null
 }
@@ -90,7 +89,7 @@ export default function HomeFeaturedAwardees({ awardees }: Props) {
                         href={`/awardees/${encodeURIComponent(awardee.slug)}`}
                         aria-label={`View ${awardee.name}'s profile`}
                         tabIndex={isDuplicate ? -1 : undefined}
-                        className="group relative block aspect-[4/5] w-[116px] shrink-0 overflow-hidden rounded-lg bg-slate-800 ring-1 ring-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 sm:w-[158px] sm:rounded-2xl lg:w-[174px]"
+                        className="group relative block aspect-[4/5] w-[110px] shrink-0 overflow-hidden rounded-2xl bg-slate-800 ring-1 ring-white/10 shadow-[0_8px_20px_rgba(0,0,0,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 sm:w-[144px] lg:w-[158px]"
                       >
                         <div className="absolute inset-0 bg-slate-800">
                           {awardee.avatar_url && !imageErrors.has(awardee.slug) ? (
@@ -98,7 +97,7 @@ export default function HomeFeaturedAwardees({ awardees }: Props) {
                               src={awardee.avatar_url}
                               alt={`${awardee.name}, 2026 Africa Future Leader`}
                               fill
-                              sizes="(max-width: 640px) 116px, (max-width: 1024px) 158px, 174px"
+                              sizes="(max-width: 640px) 110px, (max-width: 1024px) 144px, 158px"
                               className="object-cover transition-transform duration-500 group-hover:scale-105 motion-reduce:transform-none"
                               loading={!isDuplicate && index < 4 ? "eager" : "lazy"}
                               fetchPriority={!isDuplicate && rowIndex === 0 && index < 2 ? "high" : "auto"}
@@ -108,19 +107,12 @@ export default function HomeFeaturedAwardees({ awardees }: Props) {
                             />
                           ) : null}
                         </div>
-                        <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/35 to-transparent" />
-                        <div className="absolute inset-x-0 bottom-0 p-2 sm:p-3.5">
-                          <p className="mb-1 truncate text-[8px] font-bold uppercase tracking-[0.12em] text-orange-300 sm:mb-1.5 sm:text-[10px] sm:tracking-[0.15em]">
-                            {awardee.country ?? "Africa"}
-                          </p>
-                          <h3 className="line-clamp-2 text-xs font-semibold leading-tight text-white sm:text-base">{awardee.name}</h3>
+                        <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/55 to-slate-950/0 transition-colors duration-300 group-hover:via-slate-950/70" />
+                        <div className="absolute inset-x-0 bottom-0 p-3 sm:p-4">
+                          <h3 className="line-clamp-2 text-sm font-semibold leading-snug tracking-[-0.01em] text-white sm:text-base">{awardee.name}</h3>
                           {awardee.headline && (
-                            <p className="mt-1 line-clamp-1 text-[9px] leading-3 text-slate-200 sm:mt-1.5 sm:text-xs sm:leading-4">{awardee.headline}</p>
+                            <p className="mt-1.5 line-clamp-2 text-[11px] leading-4 text-slate-200 sm:mt-2 sm:text-xs">{awardee.headline}</p>
                           )}
-                          <span className="mt-2 inline-flex items-center text-[9px] font-semibold text-white sm:mt-2.5 sm:text-xs">
-                            View profile
-                            <ArrowRight className="ml-1.5 size-3 transition-transform group-hover:translate-x-1" aria-hidden="true" />
-                          </span>
                         </div>
                       </Link>
                     ))}

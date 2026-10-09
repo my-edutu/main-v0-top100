@@ -12,7 +12,6 @@ export default async function HomeFeaturedAwardeesSection() {
     .map((entry) => ({
       slug: entry.slug ?? entry.awardee_id ?? entry.name,
       name: entry.name,
-      country: entry.country ?? null,
       avatar_url: resolveSupabasePortrait(entry.avatar_url),
       headline: entry.headline ?? entry.tagline ?? entry.field_of_study ?? entry.current_school ?? null,
     }))
