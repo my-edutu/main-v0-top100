@@ -37,6 +37,10 @@ function routeAwardeeJourney(request: NextRequest, store: DemoDashboardStore) {
         avatarUrl: store.profile.avatarUrl ?? null,
       },
       welcomeReadAt: store.welcomeReadAt,
+      handbookEligible: true,
+      handbookPromptSeenAt: store.handbookPromptSeenAt,
+      handbookReadAt: store.handbookReadAt,
+      introPublishedConfirmedAt: store.introPublishedConfirmedAt,
       hasPublishedIntroPost: store.posts.some((post) => post.status === 'published' && post.tags.includes('afl-introduction')),
       externalShareConfirmedAt: store.externalShareConfirmedAt,
       externalSharePlatform: store.externalSharePlatform,
@@ -50,13 +54,20 @@ function routeAwardeeJourney(request: NextRequest, store: DemoDashboardStore) {
       state,
       settings: DEFAULT_AWARDEE_JOURNEY_SETTINGS,
       moment: { completedAt: store.top100MomentCompletedAt },
+      handbook: {
+        eligible: true,
+        promptSeenAt: store.handbookPromptSeenAt,
+        readAt: store.handbookReadAt,
+      },
+      homeScreenAddedAt: store.homeScreenAddedAt,
+      introPublishedConfirmedAt: store.introPublishedConfirmedAt,
       whatsappChannelJoinedAt: store.whatsappChannelJoinedAt,
     } })
   }
   if (request.method !== 'PATCH') return null
 
   return readBody(request).then((body) => {
-    if (!body || Object.keys(body).some((key) => !['welcomeRead', 'externalShareConfirmed', 'externalSharePlatform', 'top100MomentComplete', 'whatsappChannelJoined', 'previewReset'].includes(key))) {
+    if (!body || Object.keys(body).some((key) => !['welcomeRead', 'externalShareConfirmed', 'externalSharePlatform', 'top100MomentComplete', 'whatsappChannelJoined', 'handbookPromptSeen', 'handbookRead', 'homeScreenAdded', 'introPublished', 'previewReset'].includes(key))) {
       return json({ message: 'Choose a supported onboarding update.' }, 400)
     }
     if (body.previewReset !== undefined) {
@@ -75,10 +86,18 @@ function routeAwardeeJourney(request: NextRequest, store: DemoDashboardStore) {
       }
     }
     if (body.whatsappChannelJoined !== undefined && body.whatsappChannelJoined !== true) return json({ message: 'Choose a supported onboarding update.' }, 400)
+    if (body.handbookPromptSeen !== undefined && body.handbookPromptSeen !== true) return json({ message: 'Choose a supported onboarding update.' }, 400)
+    if (body.handbookRead !== undefined && body.handbookRead !== true) return json({ message: 'Choose a supported onboarding update.' }, 400)
+    if (body.homeScreenAdded !== undefined && body.homeScreenAdded !== true) return json({ message: 'Choose a supported onboarding update.' }, 400)
+    if (body.introPublished !== undefined && body.introPublished !== true) return json({ message: 'Choose a supported onboarding update.' }, 400)
     const now = new Date().toISOString()
     if (body.whatsappChannelJoined === true) store.whatsappChannelJoinedAt ??= now
     if (body.welcomeRead === true) store.welcomeReadAt ??= now
     if (body.top100MomentComplete === true) store.top100MomentCompletedAt ??= now
+    if (body.handbookPromptSeen === true) store.handbookPromptSeenAt ??= now
+    if (body.handbookRead === true) store.handbookReadAt ??= now
+    if (body.homeScreenAdded === true) store.homeScreenAddedAt ??= now
+    if (body.introPublished === true) store.introPublishedConfirmedAt ??= now
     if (body.externalShareConfirmed === true) {
       store.externalShareConfirmedAt = now
       store.externalSharePlatform = String(body.externalSharePlatform)

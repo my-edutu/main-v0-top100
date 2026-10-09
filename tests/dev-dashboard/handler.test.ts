@@ -94,17 +94,37 @@ describe('interactive local dashboard demo API', () => {
     expect((await call(store, 'GET', 'onboarding-journey')).data.journey.whatsappChannelJoinedAt).toBe(completedAt)
   })
 
+  it('persists home-screen and published-introduction confirmations across journey reloads', async () => {
+    const saved = await call(store, 'PATCH', 'onboarding-journey', {
+      homeScreenAdded: true,
+      introPublished: true,
+    })
+    expect(saved.response.status).toBe(200)
+
+    const journey = (await call(store, 'GET', 'onboarding-journey')).data.journey
+    expect(journey.homeScreenAddedAt).toEqual(expect.any(String))
+    expect(journey.introPublishedConfirmedAt).toEqual(expect.any(String))
+    expect(journey.state.coreSteps.find((step: { id: string }) => step.id === 'introduction').complete).toBe(true)
+  })
+
   it('serves and persists the awardee onboarding journey in the local demo', async () => {
     const initial = await call(store, 'GET', 'onboarding-journey')
     expect(initial.response.status).toBe(200)
     expect(initial.data.journey.settings.founderName).toBe('Nwosu Paul Light')
-    expect(initial.data.journey.state.coreSteps).toHaveLength(3)
+    expect(initial.data.journey.state.coreSteps).toHaveLength(4)
+    expect(initial.data.journey.handbook).toMatchObject({ eligible: true, readAt: null, promptSeenAt: null })
     expect(initial.data.journey.state.coreSteps[1]).toMatchObject({ complete: false, status: 'Add your BIO and profile photo' })
 
     const saved = await call(store, 'PATCH', 'onboarding-journey', { welcomeRead: true })
     expect(saved.data.saved).toBe(true)
     const reloaded = await call(store, 'GET', 'onboarding-journey')
     expect(reloaded.data.journey.state.coreSteps[0].complete).toBe(true)
+
+    const handbookRead = await call(store, 'PATCH', 'onboarding-journey', { handbookRead: true })
+    expect(handbookRead.data.saved).toBe(true)
+    const handbookReloaded = await call(store, 'GET', 'onboarding-journey')
+    expect(handbookReloaded.data.journey.handbook.readAt).toEqual(expect.any(String))
+    expect(handbookReloaded.data.journey.state.coreSteps.find((step: { id: string }) => step.id === 'handbook').complete).toBe(true)
   })
 
   it('keeps Groups locked and prevents local-demo group mutations', async () => {
@@ -140,6 +160,19 @@ describe('interactive local dashboard demo API', () => {
     expect(removed.response.status).toBe(200)
     const list = await call(store, 'GET', 'posts')
     expect(list.data.posts.some((post: { id: string }) => post.id === postId)).toBe(false)
+  })
+
+  it('tracks a published onboarding introduction post in the journey', async () => {
+    const created = await call(store, 'POST', 'posts', {
+      title: 'My Top100 Africa Future Leaders introduction',
+      body: 'I am proud to join the Africa Future Leaders community and share the work I am building.',
+      status: 'published',
+      tags: ['afl-introduction'],
+    })
+
+    expect(created.response.status).toBe(201)
+    const journey = (await call(store, 'GET', 'onboarding-journey')).data.journey
+    expect(journey.state.coreSteps.find((step: { id: string }) => step.id === 'introduction').complete).toBe(true)
   })
 
   it('sends direct messages and returns them on the next read', async () => {

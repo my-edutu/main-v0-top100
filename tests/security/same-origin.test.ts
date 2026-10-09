@@ -21,6 +21,36 @@ describe('cookie-authenticated mutation origin checks', () => {
     ).toBeNull()
   })
 
+  it('accepts the browser-facing loopback origin when Next uses an internal dev URL', () => {
+    vi.stubEnv('NODE_ENV', 'development')
+    const request = new NextRequest('http://localhost:3000/api/auth/check-profile', {
+      method: 'POST',
+      headers: {
+        cookie: 'sb-auth=token',
+        host: '127.0.0.1:3000',
+        origin: 'http://127.0.0.1:3000',
+        'sec-fetch-site': 'same-origin',
+      },
+    })
+
+    expect(rejectCrossOriginMutation(request)).toBeNull()
+  })
+
+  it('still rejects a cross-site request with a forged loopback host', () => {
+    vi.stubEnv('NODE_ENV', 'development')
+    const request = new NextRequest('http://localhost:3000/api/auth/check-profile', {
+      method: 'POST',
+      headers: {
+        cookie: 'sb-auth=token',
+        host: '127.0.0.1:3000',
+        origin: 'http://127.0.0.1:3000',
+        'sec-fetch-site': 'cross-site',
+      },
+    })
+
+    expect(rejectCrossOriginMutation(request)?.status).toBe(403)
+  })
+
   it('accepts the configured public origin behind an internal host', () => {
     vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://top100afl.com/')
 

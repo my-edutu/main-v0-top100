@@ -143,7 +143,7 @@ export default function SignUpPage() {
       <div className="mx-auto grid max-w-5xl gap-10 lg:grid-cols-[0.8fr_1fr] lg:gap-20">
         <div className="pt-4">
           <h1 className="mt-0 text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">Find your awardee profile.</h1>
-          <p className="mt-5 max-w-md text-base leading-7 text-stone-600">New here? Find your name to create an account. Already registered? Sign in or reset your password.</p>
+          <p className="mt-5 max-w-md text-base leading-7 text-stone-600">Find your name to create an account.</p>
         </div>
 
         <section className="rounded-3xl border border-stone-200 bg-white p-5 shadow-sm sm:p-8" aria-label="Claim your winner profile">
@@ -184,7 +184,6 @@ export default function SignUpPage() {
           </form>}
           {submitted && <p className="text-sm text-stone-700">Your requested profile will appear after an admin approves it. <Link className="font-semibold text-orange-800 underline" href="/dashboard">Go to dashboard</Link>.</p>}
         </section>
-        <p className="text-sm text-stone-600 lg:col-start-2">Already have an account? <Link className="font-semibold text-orange-800 underline" href="/login">Sign in</Link> or <Link className="font-semibold text-orange-800 underline" href="/auth/forgot-password?area=member">Reset password</Link>.</p>
       </div>
     </main>
   )

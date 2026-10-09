@@ -77,6 +77,10 @@ export type DemoDashboardStore = {
   magazinePayment: DemoMagazinePaymentState
   whatsappChannelJoinedAt: string | null
   welcomeReadAt: string | null
+  handbookPromptSeenAt: string | null
+  handbookReadAt: string | null
+  homeScreenAddedAt: string | null
+  introPublishedConfirmedAt: string | null
   top100MomentCompletedAt: string | null
   externalShareConfirmedAt: string | null
   externalSharePlatform: string | null
@@ -131,6 +135,18 @@ export function createDemoDashboardStore(): DemoDashboardStore {
         category: 'member',
         ctaLabel: 'Update BIO',
         ctaUrl: '/dashboard/me/profile',
+      },
+      {
+        id: 'demo-handbook-notification',
+        title: 'Your 2026 participant handbook is ready',
+        message: 'Find your first steps, programme information, and key dates in one guide.',
+        audience: 'all',
+        status: 'sent',
+        createdAt: '2026-10-09T09:00:00.000Z',
+        readBy: [],
+        category: 'admin',
+        ctaLabel: 'Open handbook',
+        ctaUrl: '/handbooks/2026-participant-handbook.pdf',
       },
     ],
     featureSubmissions: [],
@@ -292,6 +308,10 @@ export function createDemoDashboardStore(): DemoDashboardStore {
     },
     whatsappChannelJoinedAt: null,
     welcomeReadAt: null,
+    handbookPromptSeenAt: null,
+    handbookReadAt: null,
+    homeScreenAddedAt: null,
+    introPublishedConfirmedAt: null,
     top100MomentCompletedAt: null,
     externalShareConfirmedAt: null,
     externalSharePlatform: null,
@@ -328,6 +348,8 @@ export function getDemoDashboardStore(): DemoDashboardStore {
   globalThis.__top100DemoDashboardStore.top100MomentCompletedAt ??= null
   globalThis.__top100DemoDashboardStore.externalShareConfirmedAt ??= null
   globalThis.__top100DemoDashboardStore.externalSharePlatform ??= null
+  globalThis.__top100DemoDashboardStore.homeScreenAddedAt ??= null
+  globalThis.__top100DemoDashboardStore.introPublishedConfirmedAt ??= null
   globalThis.__top100DemoDashboardStore.magazinePayment ??= {
     status: 'unpaid',
     selectedCurrency: null,

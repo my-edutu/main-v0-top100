@@ -16,7 +16,8 @@ function normalizedOrigin(value: string | null | undefined): string | null {
  * Never trust a client-supplied forwarded host to expand this list.
  */
 export function isTrustedRequestOrigin(request: Request): boolean {
-  const allowedOrigins = new Set<string>([new URL(request.url).origin])
+  const requestUrl = new URL(request.url)
+  const allowedOrigins = new Set<string>([requestUrl.origin])
   // The production proxy can expose an internal request URL and Dokploy's
   // service environment may be read-only. These are the only public origins
   // that route to this application.
@@ -25,6 +26,16 @@ export function isTrustedRequestOrigin(request: Request): boolean {
     allowedOrigins.add('https://www.top100afl.com')
   }
   if (process.env.NODE_ENV === 'development') {
+    // Next's dev server can construct request.url with an internal hostname
+    // while the browser uses the host it opened (for example, localhost vs
+    // 127.0.0.1). Trust that browser-facing authority only in development;
+    // production continues to require the public origin allowlist above.
+    const host = request.headers.get('host')
+    const browserFacingOrigin = host
+      ? normalizedOrigin(`${requestUrl.protocol}//${host}`)
+      : null
+    if (browserFacingOrigin) allowedOrigins.add(browserFacingOrigin)
+
     for (const value of (process.env.TOP100_DEV_ORIGINS ?? '').split(',')) {
       const origin = normalizedOrigin(value.trim())
       if (origin) allowedOrigins.add(origin)
