@@ -72,12 +72,12 @@ describe('platform-specific home screen CTA', () => {
   })
 })
 
-import { triggerHomeScreenAction, HOME_SCREEN_REQUEST_EVENT } from '@/lib/install-prompt'
+import { activateHomeScreenExploreTile, HOME_SCREEN_REQUEST_EVENT } from '@/lib/install-prompt'
 
-it('triggers the shared home-screen action in the same click call', () => {
+it('triggers the shared install guidance when a completed home-screen tile is clicked', () => {
   const target = new EventTarget()
   const listener = vi.fn()
   target.addEventListener(HOME_SCREEN_REQUEST_EVENT, listener)
-  triggerHomeScreenAction(target)
+  activateHomeScreenExploreTile(target)
   expect(listener).toHaveBeenCalledOnce()
 })

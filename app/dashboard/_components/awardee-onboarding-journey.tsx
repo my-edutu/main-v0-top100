@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 
 import { FounderWelcomeDialog } from './founder-welcome-dialog'
 import { cn } from '@/lib/utils'
-import { triggerHomeScreenAction } from '@/lib/install-prompt'
+import { activateHomeScreenExploreTile, triggerHomeScreenAction } from '@/lib/install-prompt'
 import { DEFAULT_AWARDEE_JOURNEY_SETTINGS, type AwardeeJourneySettings } from '@/lib/dashboard/awardee-journey-settings'
 import type { AwardeeJourneyState } from '@/lib/dashboard/awardee-journey'
 import { saveHandbookProgress } from '@/lib/dashboard/handbook-onboarding'
@@ -23,7 +23,7 @@ type ExploreTile = {
   id: string
   label: string
   detail: string
-  action: 'welcome' | 'profile' | 'introduction' | 'cover' | 'post' | 'whatsapp' | 'handbook' | 'recommendation' | 'static'
+  action: 'welcome' | 'profile' | 'introduction' | 'cover' | 'post' | 'whatsapp' | 'handbook' | 'recommendation' | 'home-screen'
   href?: string
 }
 
@@ -200,7 +200,7 @@ export function AwardeeOnboardingJourney({ name }: Props) {
       action: (step.id === 'welcome' ? 'welcome' : step.id === 'profile' ? 'profile' : 'introduction') as ExploreTile['action'],
       href: step.id === 'profile' ? '/dashboard/me/profile' : step.id === 'introduction' ? '/dashboard/me/posts' : undefined,
     })) ?? []),
-    ...(homeScreenComplete ? [{ id: 'home-screen', label: 'Add Top100 to your home screen', detail: 'Added to your home screen', action: 'static' as const }] : []),
+    ...(homeScreenComplete ? [{ id: 'home-screen', label: 'Add Top100 to your home screen', detail: 'Added to your home screen', action: 'home-screen' as const }] : []),
     ...(member.portfolioCoverUrl ? [{ id: 'cover', label: 'Update your awardee cover', detail: 'Your cover is ready', action: 'cover' as const, href: '/dashboard/me/portfolio-cover' }] : []),
     ...(state?.shareConfirmation ? [
       { id: 'share-introduction', label: 'Share your introduction', detail: 'Shared by you', action: 'post' as const },
@@ -423,7 +423,7 @@ export function AwardeeOnboardingJourney({ name }: Props) {
                 {completedTiles.map(tile => {
                   const content = <span className="flex items-start justify-between gap-2"><span className="text-[13px] font-medium leading-4 text-[#25211D]">{tile.label}</span><CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#39754A]" aria-label="Complete" /></span>
                   const className = 'journey-explore-tile flex min-h-[64px] w-full items-center rounded-[18px] border border-[#E8E1D9] bg-white p-2.5 text-left transition-colors hover:border-[#E9A879] hover:bg-[#FFFCF9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412]'
-                  if (tile.action === 'static') return <div key={tile.id} className={`${className} cursor-default`}>{content}</div>
+                  if (tile.action === 'home-screen') return <button key={tile.id} type="button" onClick={() => activateHomeScreenExploreTile()} className={className}>{content}</button>
                   if (tile.action === 'welcome') return <button key={tile.id} type="button" onClick={() => setWelcomeOpen(true)} className={className}>{content}</button>
                   if (tile.action === 'post') return <button key={tile.id} type="button" onClick={() => setShareOpen(true)} className={className}>{content}</button>
                   if (tile.action === 'whatsapp') return <a key={tile.id} href={tile.href} target="_blank" rel="noopener noreferrer" className={className}>{content}</a>

@@ -59,3 +59,8 @@ export const HOME_SCREEN_REQUEST_EVENT = 'top100:request-home-screen'
 export function triggerHomeScreenAction(target: Pick<Window, 'dispatchEvent'> = window) {
   target.dispatchEvent(new Event(HOME_SCREEN_REQUEST_EVENT))
 }
+
+/** Keep the completed Explore more tile connected to the install guidance. */
+export function activateHomeScreenExploreTile(target: Pick<Window, 'dispatchEvent'> = window) {
+  triggerHomeScreenAction(target)
+}
