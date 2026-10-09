@@ -11,14 +11,14 @@ import { mapNotification } from '@/lib/member-hub-server'
 describe('routed notification inbox', () => {
   it('keeps the scalar badge in sync after marking one or all updates', () => {
     const initial = createDemoDashboardStore().notifications
-    expect(notificationUnreadCount(initial, DEMO_MEMBER_ID)).toBe(1)
+    expect(notificationUnreadCount(initial, DEMO_MEMBER_ID)).toBe(2)
 
     const markedOne = markNotificationReadInList(
       initial,
       DEMO_MEMBER_ID,
       'demo-notification-1',
     )
-    expect(notificationUnreadCount(markedOne, DEMO_MEMBER_ID)).toBe(0)
+    expect(notificationUnreadCount(markedOne, DEMO_MEMBER_ID)).toBe(1)
 
     const allUnread = initial.map((notification) => ({
       ...notification,
@@ -33,7 +33,7 @@ describe('routed notification inbox', () => {
       createDemoDashboardStore().notifications.map(
         (notification) => notification.ctaUrl,
       ),
-    ).toEqual(['/dashboard/me/profile'])
+    ).toEqual(['/dashboard/me/profile', '/handbooks/2026-participant-handbook.pdf'])
   })
 
   it('keeps other notification actions available while one update is being marked', () => {
@@ -43,7 +43,7 @@ describe('routed notification inbox', () => {
     expect(isNotificationMarkingDisabled(null, 'notification-b')).toBe(false)
   })
 
-  it('preserves the approved 2026 audience and handbook CTA in the member inbox model', () => {
+  it('preserves the all-member audience and handbook CTA in the member inbox model', () => {
     expect(mapNotification({
       id: 'handbook-notice',
       user_id: 'member-2026',
@@ -52,10 +52,10 @@ describe('routed notification inbox', () => {
       category: 'admin',
       cta_label: 'Open handbook',
       cta_url: '/handbooks/2026-participant-handbook.pdf',
-      metadata: { audience: 'approved_2026' },
+      metadata: { audience: 'all' },
       delivered_at: '2026-10-09T10:00:00.000Z',
     })).toMatchObject({
-      audience: 'approved_2026',
+      audience: 'all',
       ctaLabel: 'Open handbook',
       ctaUrl: '/handbooks/2026-participant-handbook.pdf',
     })

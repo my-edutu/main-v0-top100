@@ -43,14 +43,15 @@ beforeEach(() => {
   mocks.push.mockReset().mockResolvedValue({ sent: 0 })
 })
 
-describe('2026 handbook notification audience', () => {
-  it('requires approved member, exact cohort, and exactly one linked 2026 awardee record', () => {
+describe('participant handbook notification audience', () => {
+  it('includes every member profile regardless of approval or cohort, but excludes admins', () => {
     const profiles = [
       { id: 'eligible', role: 'user', membership_status: 'approved', cohort: '2026' },
       { id: 'pending', role: 'user', membership_status: 'pending', cohort: '2026' },
       { id: 'ambiguous-cohort', role: 'user', membership_status: 'approved', cohort: '' },
       { id: 'missing-awardee', role: 'user', membership_status: 'approved', cohort: '2026' },
       { id: 'conflict', role: 'user', membership_status: 'approved', cohort: '2026' },
+      { id: 'admin', role: 'admin', membership_status: 'approved', cohort: '2026' },
     ]
     const awardees = [
       { profile_id: 'eligible', year: 2026 },
@@ -58,7 +59,9 @@ describe('2026 handbook notification audience', () => {
       { profile_id: 'conflict', year: 2026 },
     ]
 
-    expect(resolveHandbookAudience(profiles, awardees)).toEqual(['eligible'])
+    expect(resolveHandbookAudience(profiles)).toEqual([
+      'eligible', 'pending', 'ambiguous-cohort', 'missing-awardee', 'conflict',
+    ])
   })
 
   it('accepts only the exact same-origin handbook path', () => {
@@ -67,14 +70,16 @@ describe('2026 handbook notification audience', () => {
     expect(isParticipantHandbookPath('/dashboard')).toBe(false)
   })
 
-  it('previews the resolved count without inserting or pushing notifications', async () => {
-    mocks.profiles = [{ id: 'member-a', role: 'user', membership_status: 'approved', cohort: '2026' }]
-    mocks.awardees = [{ profile_id: 'member-a', year: 2026 }]
+  it('previews all member profiles without inserting or pushing notifications', async () => {
+    mocks.profiles = [
+      { id: 'member-a', role: 'user', membership_status: 'approved', cohort: '2026' },
+      { id: 'member-b', role: 'user', membership_status: 'pending', cohort: '2025' },
+    ]
 
     const response = await POST(request({ campaign: 'participant-handbook-2026', action: 'preview' }))
 
     expect(response.status).toBe(200)
-    expect(await response.json()).toMatchObject({ action: 'preview', recipients: 1, audienceFingerprint: handbookAudienceFingerprint(['member-a']) })
+    expect(await response.json()).toMatchObject({ action: 'preview', recipients: 2, audienceFingerprint: handbookAudienceFingerprint(['member-a', 'member-b']) })
     expect(mocks.upsert).not.toHaveBeenCalled()
     expect(mocks.push).not.toHaveBeenCalled()
   })
@@ -90,14 +95,19 @@ describe('2026 handbook notification audience', () => {
     expect(mocks.upsert).not.toHaveBeenCalled()
   })
 
-  it('requires a fresh matching preview before sending and upserts by member and campaign', async () => {
-    mocks.profiles = [{ id: 'member-a', role: 'user', membership_status: 'approved', cohort: '2026' }]
-    mocks.awardees = [{ profile_id: 'member-a', year: 2026 }]
+  it('requires a fresh matching preview before sending to all members', async () => {
+    mocks.profiles = [
+      { id: 'member-a', role: 'user', membership_status: 'approved', cohort: '2026' },
+      { id: 'member-b', role: 'user', membership_status: 'pending', cohort: '2025' },
+    ]
     mocks.upsert.mockImplementation(() => ({
       select: vi.fn(async () => ({ data: [{ user_id: 'member-a' }], error: null })),
     }))
 
-    const response = await POST(request({ campaign: 'participant-handbook-2026', action: 'send', expectedRecipients: 1, audienceFingerprint: handbookAudienceFingerprint(['member-a']) }))
+    mocks.upsert.mockImplementation(() => ({
+      select: vi.fn(async () => ({ data: [{ user_id: 'member-a' }, { user_id: 'member-b' }], error: null })),
+    }))
+    const response = await POST(request({ campaign: 'participant-handbook-2026', action: 'send', expectedRecipients: 2, audienceFingerprint: handbookAudienceFingerprint(['member-a', 'member-b']) }))
 
     expect(response.status).toBe(201)
     expect(mocks.upsert).toHaveBeenCalledWith(expect.arrayContaining([expect.objectContaining({
@@ -105,10 +115,11 @@ describe('2026 handbook notification audience', () => {
       cta_url: '/handbooks/2026-participant-handbook.pdf',
       cta_label: 'Open handbook',
       campaign_id: 'afl-2026-participant-handbook',
+      metadata: expect.objectContaining({ audience: 'all' }),
     })]), { onConflict: 'user_id,campaign_id', ignoreDuplicates: true })
   })
 
-  it('does not send when the cohort changes after preview', async () => {
+  it('does not send when the member audience changes after preview', async () => {
     mocks.profiles = [{ id: 'member-a', role: 'user', membership_status: 'approved', cohort: '2026' }]
     mocks.awardees = [{ profile_id: 'member-a', year: 2026 }]
 

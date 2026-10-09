@@ -20,35 +20,21 @@ type BroadcastRow = {
   delivered_at: string
   metadata: { broadcast_id?: string; audience?: string } | null
 }
-type HandbookProfile = { id: string; role?: unknown; membership_status?: unknown; cohort?: unknown }
-type HandbookAwardee = { profile_id: string; year?: unknown }
+type HandbookProfile = { id: string; role?: unknown }
 
 async function resolveHandbookRecipientIds(supabase: ReturnType<typeof createAdminClient>): Promise<string[]> {
   const profiles: HandbookProfile[] = []
   for (let offset = 0; ; offset += 1000) {
     const { data, error } = await supabase.from('profiles')
-      .select('id,role,membership_status,cohort')
+      .select('id,role')
       .eq('role', 'user')
-      .eq('membership_status', 'approved')
       .order('id')
       .range(offset, offset + 999)
-    if (error) throw new Error('Could not resolve approved awardees.')
+    if (error) throw new Error('Could not resolve member accounts.')
     profiles.push(...((data ?? []) as HandbookProfile[]))
     if (!data || data.length < 1000) break
   }
-
-  const cohortProfiles = profiles.filter(profile => typeof profile.cohort === 'string' && profile.cohort.trim() === String(PARTICIPANT_HANDBOOK.year))
-  const linkedAwardees: HandbookAwardee[] = []
-  const cohortIds = cohortProfiles.map(profile => String(profile.id))
-  for (let offset = 0; offset < cohortIds.length; offset += 500) {
-    const ids = cohortIds.slice(offset, offset + 500)
-    const { data, error } = await supabase.from('awardees')
-      .select('profile_id,year')
-      .in('profile_id', ids)
-    if (error) throw new Error('Could not verify linked awardee records.')
-    linkedAwardees.push(...((data ?? []) as HandbookAwardee[]))
-  }
-  return resolveHandbookAudience(profiles, linkedAwardees)
+  return resolveHandbookAudience(profiles)
 }
 
 async function handleHandbookCampaign(body: Record<string, unknown>, supabase: ReturnType<typeof createAdminClient>) {
@@ -89,7 +75,7 @@ async function handleHandbookCampaign(body: Record<string, unknown>, supabase: R
     cta_url: PARTICIPANT_HANDBOOK.path,
     campaign_id: PARTICIPANT_HANDBOOK_CAMPAIGN_ID,
     delivered_at: new Date().toISOString(),
-    metadata: { audience: 'approved_2026', broadcast_id: PARTICIPANT_HANDBOOK_CAMPAIGN_ID, campaign_id: PARTICIPANT_HANDBOOK_CAMPAIGN_ID },
+    metadata: { audience: 'all', broadcast_id: PARTICIPANT_HANDBOOK_CAMPAIGN_ID, campaign_id: PARTICIPANT_HANDBOOK_CAMPAIGN_ID },
   }))
 
   const { data, error } = await supabase.from('user_notifications')
