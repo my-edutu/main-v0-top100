@@ -40,11 +40,11 @@
 **Interfaces:**
 - Produces: `PARTICIPANT_HANDBOOK` with `year`, `path`, `notificationTitle`, `notificationMessage`, `notificationCta`, `popupTitle`, and checklist copy; all surfaces use its `path`.
 
-- [ ] **Step 1: Write failing tests** for the stable local PDF path, distinct notification/popup/checklist copy, and the year `2026`.
-- [ ] **Step 2: Run** `npm test -- tests/handbook/participant-handbook.test.ts`; expected: FAIL because the config module does not exist.
-- [ ] **Step 3: Implement** the typed shared configuration and copy the supplied PDF to the versioned public path without changing its contents.
-- [ ] **Step 4: Run** the focused test and verify the copied PDF with `pdfinfo`; expected: PASS and a valid 10-page PDF.
-- [ ] **Step 5: Commit** as `feat: add 2026 participant handbook asset`.
+- [x] **Step 1: Write failing tests** for the stable local PDF path, distinct notification/popup/checklist copy, and the year `2026`.
+- [x] **Step 2: Run** `npm test -- tests/handbook/participant-handbook.test.ts`; expected: FAIL because the config module does not exist.
+- [x] **Step 3: Implement** the typed shared configuration and copy the supplied PDF to the versioned public path without changing its contents.
+- [x] **Step 4: Run** the focused test and verify the copied PDF with `pdfinfo`; expected: PASS and a valid 10-page PDF.
+- [x] **Step 5: Commit** as `feat: add 2026 participant handbook asset`.
 
 ### Task 2: Persist handbook prompt and acknowledgement progress
 
@@ -61,12 +61,12 @@
 - Consumes: `PARTICIPANT_HANDBOOK` from Task 1.
 - Produces: `handbookPromptSeenAt` and `handbookReadAt` in journey state; authenticated PATCH accepts only `handbookPromptSeen: true` and `handbookRead: true` and writes through the existing service-role boundary.
 
-- [ ] **Step 1: Add tests** that prompt-seen is independent of read completion, read completion adds one core step, and API rejects false/unknown values while always using the authenticated member id.
-- [ ] **Step 2: Run** focused journey/API/server tests; expected: FAIL on missing fields and unsupported patch keys.
-- [ ] **Step 3: Create** the migration using `supabase migration new participant_handbook_onboarding_progress`; add nullable timestamps and preserve service-role-only RPC access.
-- [ ] **Step 4: Implement** the TypeScript journey derivation and API/server persistence without changing existing acknowledgement semantics.
-- [ ] **Step 5: Run** the three focused test files and inspect the migration diff; expected: PASS, existing table only.
-- [ ] **Step 6: Commit** as `feat: track participant handbook onboarding progress`.
+- [x] **Step 1: Add tests** that prompt-seen is independent of read completion, read completion adds one core step, and API rejects false/unknown values while always using the authenticated member id.
+- [x] **Step 2: Run** focused journey/API/server tests; expected: FAIL on missing fields and unsupported patch keys.
+- [x] **Step 3: Create** the migration using `supabase migration new participant_handbook_onboarding_progress`; add nullable timestamps and preserve service-role-only RPC access.
+- [x] **Step 4: Implement** the TypeScript journey derivation and API/server persistence without changing existing acknowledgement semantics.
+- [x] **Step 5: Run** the three focused test files and inspect the migration diff; expected: PASS, existing table only.
+- [x] **Step 6: Commit** as `feat: track participant handbook onboarding progress`.
 
 ### Task 3: Checklist item and queued one-time prompt
 
@@ -80,11 +80,11 @@
 - Consumes: handbook config and progress API from Tasks 1–2.
 - Produces: a checklist item with explicit “I’ve read it” save behavior and a dismissible one-time prompt shown only after the existing Top100 Moment is completed or dismissed.
 
-- [ ] **Step 1: Add tests** for the one-time prompt queue, independent dismiss/read state, and acknowledgement persistence failure; the repository's Vitest setup is Node-only and has no React DOM testing library, so exercise the UI's pure state/save helpers directly.
-- [ ] **Step 2: Run** focused helper tests; expected: FAIL because the handbook prompt helpers are absent.
-- [ ] **Step 3: Implement** the checklist row and prompt using the shared PDF path and copy; opening the PDF alone does not mark it read.
-- [ ] **Step 4: Run** focused prompt helper tests and existing onboarding journey tests; expected: PASS with the dashboard usable after dismissal.
-- [ ] **Step 5: Commit** as `feat: add handbook prompt and checklist step`.
+- [x] **Step 1: Add tests** for the one-time prompt queue, independent dismiss/read state, and acknowledgement persistence failure; the repository's Vitest setup is Node-only and has no React DOM testing library, so exercise the UI's pure state/save helpers directly.
+- [x] **Step 2: Run** focused helper tests; expected: FAIL because the handbook prompt helpers are absent.
+- [x] **Step 3: Implement** the checklist row and prompt using the shared PDF path and copy; opening the PDF alone does not mark it read.
+- [x] **Step 4: Run** focused prompt helper tests and existing onboarding journey tests; expected: PASS with the dashboard usable after dismissal.
+- [x] **Step 5: Commit** as `feat: add handbook prompt and checklist step`.
 
 ### Task 4: Admin notification audience preview and deduplicated delivery
 
@@ -100,9 +100,9 @@
 - Consumes: handbook metadata and path from Task 1.
 - Produces: an admin-only audience preview resolving approved 2026 awardees by both cohort and linked awardee year; a separately confirmed send action creates one in-app notification per eligible member, with CTA `/handbooks/2026-participant-handbook.pdf` and a stable campaign key.
 
-- [ ] **Step 1: Add tests** for cohort/year intersection, exclusion of ambiguous rows, local-path validation, count preview without inserts, and campaign retry deduplication.
-- [ ] **Step 2: Run** focused broadcast and notification tests; expected: FAIL because preview/campaign semantics do not exist.
-- [ ] **Step 3: Implement** server-side audience resolution and a preview response; add an explicit admin send control that displays the count, but do not invoke the send.
-- [ ] **Step 4: Implement** allowlisted local CTA validation and deduplication on the existing notifications data model; keep push optional and do not add email.
-- [ ] **Step 5: Run** focused admin/notification tests plus the full test suite, typecheck, and lint; inspect the 2026 cohort filter and migration for unintended data/table creation.
-- [ ] **Step 6: Commit** as `feat: add handbook notification audience preview`.
+- [x] **Step 1: Add tests** for cohort/year intersection, exclusion of ambiguous rows, local-path validation, count preview without inserts, and campaign retry deduplication.
+- [x] **Step 2: Run** focused broadcast and notification tests; expected: FAIL because preview/campaign semantics do not exist.
+- [x] **Step 3: Implement** server-side audience resolution and a preview response; add an explicit admin send control that displays the count, but do not invoke the send.
+- [x] **Step 4: Implement** allowlisted local CTA validation and deduplication on the existing notifications data model; keep push optional and do not add email.
+- [x] **Step 5: Run** focused admin/notification tests plus the full test suite, typecheck, and lint; inspect the 2026 cohort filter and migration for unintended data/table creation.
+- [x] **Step 6: Commit** as `feat: add handbook notification audience preview`.
