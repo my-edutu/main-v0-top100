@@ -316,7 +316,12 @@ export default function AdminMemberHubPage() {
                 <article key={submission.id} className="rounded-3xl border border-orange-100 bg-orange-50/60 p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-600">{submission.category}</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-600">{submission.category}</p>
+                        <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-zinc-600">
+                          {submission.memberId ? 'Awardee' : 'Public applicant'}
+                        </span>
+                      </div>
                       <h3 className="mt-2 text-xl font-black tracking-tight text-zinc-950">{submission.title}</h3>
                       <p className="mt-1 text-sm font-semibold text-zinc-500">{submission.memberName} · {submission.contactEmail}</p>
                     </div>

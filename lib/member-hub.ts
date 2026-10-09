@@ -63,7 +63,7 @@ export type HubOpportunity = {
 
 export type MemberFeatureSubmission = {
   id: string
-  memberId: string
+  memberId: string | null
   memberName: string
   title: string
   category: 'bio' | 'story' | 'product' | 'project'

@@ -39,6 +39,10 @@ async function activeCampaign(db: any): Promise<MagazineCampaign> {
   return campaignFromRow(data)
 }
 
+export async function getActiveMagazineCampaign(): Promise<MagazineCampaign> {
+  return activeCampaign(createAdminClient())
+}
+
 export async function getMagazineFeaturePaymentView(profileId: string) {
   const db = createAdminClient()
   const campaign = await activeCampaign(db)

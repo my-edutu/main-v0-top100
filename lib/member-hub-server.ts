@@ -140,7 +140,7 @@ export function mapNotification(row: any): MemberNotification {
 export function mapFeature(row: any): MemberFeatureSubmission {
   return {
     id: row.id,
-    memberId: row.member_id,
+    memberId: row.member_id ?? null,
     memberName: row?.member_name ?? '',
     title: row?.title ?? '',
     category: (row?.category ?? 'bio') as MemberFeatureSubmission['category'],
