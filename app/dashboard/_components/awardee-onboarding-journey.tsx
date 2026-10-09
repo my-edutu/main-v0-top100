@@ -13,6 +13,8 @@ import { cn } from '@/lib/utils'
 import { triggerHomeScreenAction } from '@/lib/install-prompt'
 import { DEFAULT_AWARDEE_JOURNEY_SETTINGS, type AwardeeJourneySettings } from '@/lib/dashboard/awardee-journey-settings'
 import type { AwardeeJourneyState } from '@/lib/dashboard/awardee-journey'
+import { saveHandbookProgress } from '@/lib/dashboard/handbook-onboarding'
+import { PARTICIPANT_HANDBOOK } from '@/lib/handbook/participant-handbook'
 import { useDashboardMember } from '../_providers/dashboard-member'
 
 type Payload = { state: AwardeeJourneyState; settings: AwardeeJourneySettings; whatsappChannelJoinedAt: string | null }
@@ -57,6 +59,8 @@ export function AwardeeOnboardingJourney({ name }: Props) {
   const [profileClickedFor, setProfileClickedFor] = useState<string | null>(null)
   const [joinedChannelSaving, setJoinedChannelSaving] = useState(false)
   const [joinedChannelFor, setJoinedChannelFor] = useState<string | null>(null)
+  const [handbookSaving, setHandbookSaving] = useState(false)
+  const [handbookError, setHandbookError] = useState('')
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
       try {
@@ -97,6 +101,7 @@ export function AwardeeOnboardingJourney({ name }: Props) {
       const result = await response.json()
       if (!response.ok) throw new Error(result.message || 'Your onboarding guide could not load.')
       setPayload(result.journey as Payload)
+      setError('')
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Your onboarding guide could not load.')
     } finally {
@@ -170,6 +175,23 @@ export function AwardeeOnboardingJourney({ name }: Props) {
       toast.error(cause instanceof Error ? cause.message : 'Could not save this yet.')
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function acknowledgeHandbook() {
+    if (handbookSaving) return
+    setHandbookSaving(true)
+    setHandbookError('')
+    try {
+      await saveHandbookProgress('handbookRead')
+      await load(false)
+      toast.success('Handbook acknowledgement saved.')
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : 'Could not save that update.'
+      setHandbookError(message)
+      toast.error(message)
+    } finally {
+      setHandbookSaving(false)
     }
   }
 
@@ -263,6 +285,19 @@ export function AwardeeOnboardingJourney({ name }: Props) {
               return <li key={step.id}>
                 {step.id === 'welcome' ? (
                   <button type="button" onClick={() => setWelcomeOpen(true)} className="flex min-h-14 w-full items-center gap-2 text-left transition-colors hover:bg-[#FFFCF9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-inset">{content}</button>
+                ) : step.id === 'handbook' ? (
+                  <div className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center text-[#A94412]"><BookOpenText className="h-4 w-4" aria-hidden="true" /></span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-medium leading-5 text-[#25211D]">{PARTICIPANT_HANDBOOK.checklistTitle}</span>
+                      <span className="mt-0.5 block text-xs leading-5 text-[#716B62]">{PARTICIPANT_HANDBOOK.checklistDescription}</span>
+                      {handbookError ? <span role="alert" className="mt-1 block text-xs text-red-700">{handbookError}</span> : null}
+                    </span>
+                    <span className="flex flex-wrap items-center gap-2 pl-11 sm:pl-0">
+                      <a href={PARTICIPANT_HANDBOOK.path} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 items-center gap-1 rounded-full border border-[#E8DDCD] px-3 text-sm font-medium text-[#7F3515] hover:bg-[#FFF8EF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412]">{PARTICIPANT_HANDBOOK.checklistAction}<ExternalLink className="h-3.5 w-3.5" aria-hidden="true" /></a>
+                      <Button type="button" size="sm" disabled={handbookSaving} aria-busy={handbookSaving} onClick={() => void acknowledgeHandbook()} className="min-h-10 rounded-full bg-[#171412] px-4 text-white hover:bg-[#302923]">{handbookSaving ? 'Saving…' : PARTICIPANT_HANDBOOK.checklistCompleteAction}</Button>
+                    </span>
+                  </div>
                 ) : href ? (
                   <Link href={href} onClick={() => { if (step.id === 'profile') { setProfileClickedFor(member.id); try { localStorage.setItem(`afl-profile-done:${member.id}`, 'yes') } catch { /* Keep completion for this visit. */ } toast.success('Profile task marked complete') } }} className="flex min-h-14 items-center gap-2 transition-colors hover:bg-[#FFFCF9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-inset">{content}</Link>
                 ) : null}

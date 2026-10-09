@@ -11,10 +11,15 @@ import { setPendingPortfolioCoverPhoto } from '@/lib/portfolio-cover/draft-photo
 import { Top100ApplicantCountryDetails } from './top100-moment-country-details'
 import type { MemberProfile } from '@/lib/member-hub'
 import { cn } from '@/lib/utils'
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { saveHandbookProgress, shouldShowHandbookPrompt } from '@/lib/dashboard/handbook-onboarding'
+import { PARTICIPANT_HANDBOOK } from '@/lib/handbook/participant-handbook'
 
 type JourneyPayload = {
   settings: AwardeeJourneySettings
   moment: { completedAt: string | null }
+  handbook: { eligible: boolean; promptSeenAt: string | null; readAt: string | null }
 }
 
 const journeyCache = new Map<string, JourneyPayload | null>()
@@ -91,6 +96,7 @@ function loadMemberJourney(memberId: string): Promise<JourneyPayload | null> {
       return {
         settings: { ...DEFAULT_AWARDEE_JOURNEY_SETTINGS, ...journey.settings },
         moment: journey.moment ?? { completedAt: null },
+        handbook: journey.handbook ?? { eligible: false, promptSeenAt: null, readAt: null },
       }
     })
     .then((journey) => {
@@ -138,6 +144,9 @@ export function Top100MomentGate({ member, children }: { member: MemberProfile; 
   const [loading, setLoading] = useState(initialJourney.loading)
   const [dismissed, setDismissed] = useState(initialJourney.dismissed)
   const [showWelcome, setShowWelcome] = useState(false)
+  const [handbookPromptOpen, setHandbookPromptOpen] = useState(false)
+  const [handbookPromptError, setHandbookPromptError] = useState('')
+  const handbookPromptStartedFor = useRef<string | null>(null)
   const dismissalKey = `top100-moment-dismissed:${member.id}`
 
   useEffect(() => {
@@ -145,11 +154,15 @@ export function Top100MomentGate({ member, children }: { member: MemberProfile; 
     void loadMemberJourney(member.id)
       .then((journey) => {
         if (!active) return
-        if (!journey || journey.moment.completedAt) {
+        if (!journey) {
           setDismissed(true)
           return
         }
         setPayload(journey)
+        if (journey.moment.completedAt) {
+          setDismissed(true)
+          return
+        }
         try {
           setDismissed(window.sessionStorage.getItem(dismissalKey) === '1')
         } catch {
@@ -159,6 +172,26 @@ export function Top100MomentGate({ member, children }: { member: MemberProfile; 
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [member.id, dismissalKey])
+
+  useEffect(() => {
+    if (loading || !payload || handbookPromptStartedFor.current === member.id) return
+    const shouldShow = shouldShowHandbookPrompt({
+      eligible: payload.handbook.eligible,
+      promptSeenAt: payload.handbook.promptSeenAt,
+      momentCompleted: Boolean(payload.moment.completedAt),
+      momentDismissed: dismissed,
+    })
+    if (!shouldShow) return
+
+    handbookPromptStartedFor.current = member.id
+    setHandbookPromptOpen(true)
+    void saveHandbookProgress('handbookPromptSeen')
+      .then(() => setPayload(current => current ? {
+        ...current,
+        handbook: { ...current.handbook, promptSeenAt: new Date().toISOString() },
+      } : current))
+      .catch((cause) => setHandbookPromptError(cause instanceof Error ? cause.message : 'We could not save this update yet.'))
+  }, [dismissed, loading, member.id, payload])
 
   function dismissWelcome() {
     try {
@@ -208,6 +241,20 @@ export function Top100MomentGate({ member, children }: { member: MemberProfile; 
         </aside>
       )}
       {showWelcome ? null : children}
+      <Dialog open={handbookPromptOpen} onOpenChange={setHandbookPromptOpen}>
+        <DialogContent className="max-w-lg rounded-[28px] border-[#E8DDCD] p-6 sm:p-8">
+          <p className="text-xs font-semibold tracking-[0.2em] text-[#A94412]">{PARTICIPANT_HANDBOOK.popupEyebrow}</p>
+          <DialogTitle className="mt-2 text-2xl font-semibold leading-tight tracking-[-0.02em] text-[#171412]">{PARTICIPANT_HANDBOOK.popupTitle}</DialogTitle>
+          <DialogDescription className="mt-2 text-sm leading-6 text-[#625B52]">{PARTICIPANT_HANDBOOK.popupBody}</DialogDescription>
+          {handbookPromptError ? <p role="alert" className="mt-3 text-sm text-red-700">{handbookPromptError}</p> : null}
+          <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button type="button" variant="outline" onClick={() => setHandbookPromptOpen(false)} className="min-h-11 rounded-full">{PARTICIPANT_HANDBOOK.popupSecondaryAction}</Button>
+            <Button asChild className="min-h-11 rounded-full bg-[#E95B0C] text-white hover:bg-[#C84B08]">
+              <a href={PARTICIPANT_HANDBOOK.path} target="_blank" rel="noopener noreferrer">{PARTICIPANT_HANDBOOK.popupPrimaryAction}<ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" /></a>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }
