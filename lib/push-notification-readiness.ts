@@ -5,6 +5,8 @@ export type PushPromptReadiness = {
   permission: NotificationPermission
   vapidPublicKey: string | undefined
   alreadyPrompted: boolean
+  isIOS?: boolean
+  isStandalone?: boolean
 }
 
 export function isPushPromptAvailable(input: PushPromptReadiness): boolean {
@@ -14,6 +16,7 @@ export function isPushPromptAvailable(input: PushPromptReadiness): boolean {
       input.supportsPushManager &&
       input.permission === 'default' &&
       input.vapidPublicKey?.trim() &&
+      !(input.isIOS && !input.isStandalone) &&
       !input.alreadyPrompted,
   )
 }

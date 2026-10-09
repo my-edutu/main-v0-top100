@@ -6,7 +6,13 @@ export async function sendMemberPush(db: SupabaseClient, userIds: string[], payl
   const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
   const privateKey = process.env.VAPID_PRIVATE_KEY
   const subject = process.env.VAPID_SUBJECT || 'mailto:info@top100afl.com'
-  const result = { accepted: 0, failed: 0, expired: 0, configured: Boolean(publicKey && privateKey) }
+  const result = {
+    accepted: 0,
+    failed: 0,
+    expired: 0,
+    configured: Boolean(publicKey && privateKey),
+    failureStatusCodes: {} as Record<string, number>,
+  }
   if (!publicKey || !privateKey) return result
   // Bounded URLs and concurrency; never expose endpoints or keys in responses.
   for (let i = 0; i < userIds.length; i += 100) {
@@ -29,7 +35,11 @@ export async function sendMemberPush(db: SupabaseClient, userIds: string[], payl
           if (status === 404 || status === 410) {
             result.expired++
             await db.from('push_subscriptions').delete().eq('id', subscription.id)
-          } else { result.failed++ }
+          } else {
+            result.failed++
+            const statusKey = typeof status === 'number' ? String(status) : 'unknown'
+            result.failureStatusCodes[statusKey] = (result.failureStatusCodes[statusKey] ?? 0) + 1
+          }
         }
       }))
     }

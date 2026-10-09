@@ -7,9 +7,13 @@ export function DeviceNotificationSettings() {
   const [supported, setSupported] = useState(false)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
+  const [iosNeedsHomeScreen, setIosNeedsHomeScreen] = useState(false)
   useEffect(() => {
     const available = window.isSecureContext && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
-    setSupported(available)
+    const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    const standalone = window.matchMedia('(display-mode: standalone)').matches || Boolean((navigator as Navigator & { standalone?: boolean }).standalone)
+    setIosNeedsHomeScreen(ios && !standalone)
+    setSupported(available && !(ios && !standalone))
     if (available) void navigator.serviceWorker.getRegistration().then(async registration => {
       const subscription = await registration?.pushManager.getSubscription()
       if (!subscription) { setEnabled(false); return }
@@ -26,8 +30,8 @@ export function DeviceNotificationSettings() {
       if (!enabled && await Notification.requestPermission() !== 'granted') {
         setMessage('Allow notifications in your browser or phone settings, then try again.'); return
       }
-      const registration = await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
-      await navigator.serviceWorker.ready
+      await navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' })
+      const registration = await navigator.serviceWorker.ready
       let subscription = await registration.pushManager.getSubscription()
       if (enabled && subscription) {
         const response = await fetch('/api/notifications/subscribe', { method: 'DELETE', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ endpoint: subscription.endpoint }) })
@@ -42,7 +46,8 @@ export function DeviceNotificationSettings() {
       const response = await fetch('/api/notifications/subscribe', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ subscription: subscription.toJSON(), userAgent: navigator.userAgent }) })
       if (!response.ok) {
         if (!enabled) await subscription.unsubscribe()
-        throw new Error('Could not enable notifications. Sign in and try again.')
+        const data = await response.json().catch(() => null)
+        throw new Error(data?.error ?? 'Could not enable notifications. Sign in and try again.')
       }
       setEnabled(true)
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Try again shortly.') }
@@ -51,7 +56,7 @@ export function DeviceNotificationSettings() {
   return <section className="rounded-xl border border-orange-100 bg-white p-4">
     <h2 className="font-semibold">Notifications on this device</h2>
     <p className="mt-1 text-sm text-slate-600">Your choice. You can turn these off anytime; your in-app inbox will still work.</p>
-    <p className="mt-1 text-sm text-slate-600">{supported ? 'Get Top100 updates even when the app is closed.' : 'Notifications require a supported browser and HTTPS. On iPhone (iOS 16.4+), add Top100 to your Home Screen and open it there.'}</p>
+    <p className="mt-1 text-sm text-slate-600">{iosNeedsHomeScreen ? 'On iPhone or iPad, web notifications work from a Home Screen app on iOS/iPadOS 16.4 or later. In Safari, tap Share → Add to Home Screen, open the new Top100 icon, then enable notifications here.' : supported ? 'Get Top100 updates even when the app is closed.' : 'Notifications require a supported browser and HTTPS.'}</p>
     {supported && <button type="button" disabled={busy} onClick={toggle} className="mt-3 rounded-full bg-orange-600 px-4 py-2 font-semibold text-white disabled:opacity-50">{busy ? 'Please wait…' : enabled ? 'Turn off notifications' : 'Enable notifications'}</button>}
     {message && <p role="status" className="mt-2 text-sm">{message}</p>}
   </section>
