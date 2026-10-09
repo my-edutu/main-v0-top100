@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
-import { isInstallPromptRoute, shareTop100, registerInstallServiceWorker, isIOSDevice, homeScreenAction, requestNativeInstall, type NativeInstallEvent, HOME_SCREEN_REQUEST_EVENT } from '@/lib/install-prompt'
+import { isInstallPromptRoute, shareTop100, registerInstallServiceWorker, isIOSDevice, homeScreenAction, homeScreenRequestBehavior, requestNativeInstall, type NativeInstallEvent, HOME_SCREEN_REQUEST_EVENT } from '@/lib/install-prompt'
 
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 
@@ -107,13 +107,14 @@ export function AddToHomePrompt() {
 
   useEffect(() => {
     const onRequest = () => {
-      if (installed) return
-      if (action) {
-        void activate()
-      } else {
-        setInstallError('Your browser has not made home-screen installation available. Open Top100 in Safari on iPhone or Chrome on Android to continue.')
+      const behavior = homeScreenRequestBehavior(installed, action)
+      if (behavior === 'ignore') return
+      if (behavior === 'show-guidance') {
+        if (!action) setInstallError('Your browser has not made home-screen installation available. Open Top100 in Safari on iPhone or Chrome on Android to continue.')
         setVisible(true)
+        return
       }
+      void activate()
     }
     window.addEventListener(HOME_SCREEN_REQUEST_EVENT, onRequest)
     return () => window.removeEventListener(HOME_SCREEN_REQUEST_EVENT, onRequest)

@@ -55,7 +55,7 @@ describe('Top100 share action', () => {
   })
 })
 
-import { isIOSDevice, homeScreenAction } from '@/lib/install-prompt'
+import { isIOSDevice, homeScreenAction, homeScreenRequestBehavior } from '@/lib/install-prompt'
 
 describe('platform-specific home screen CTA', () => {
   it('recognizes iPhones and iPads using desktop user agents', () => {
@@ -69,6 +69,19 @@ describe('platform-specific home screen CTA', () => {
     expect(homeScreenAction(true, false, false)).toBe('instructions')
     expect(homeScreenAction(false, true, true)).toBe('install')
     expect(homeScreenAction(false, true, false)).toBe('instructions')
+  })
+})
+
+describe('home-screen action requests', () => {
+  it('opens install guidance when the browser has no native install prompt', () => {
+    expect(homeScreenRequestBehavior(false, 'instructions')).toBe('show-guidance')
+    expect(homeScreenRequestBehavior(false, null)).toBe('show-guidance')
+  })
+
+  it('uses native actions when available and ignores requests when already installed', () => {
+    expect(homeScreenRequestBehavior(false, 'install')).toBe('activate')
+    expect(homeScreenRequestBehavior(false, 'share')).toBe('activate')
+    expect(homeScreenRequestBehavior(true, 'instructions')).toBe('ignore')
   })
 })
 

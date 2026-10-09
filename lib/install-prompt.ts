@@ -52,6 +52,12 @@ export function homeScreenAction(ios: boolean, supportsShare: boolean, hasInstal
   return hasInstallEvent ? 'install' as const : 'instructions' as const
 }
 
+export function homeScreenRequestBehavior(installed: boolean, action: 'share' | 'install' | 'instructions' | null) {
+  if (installed) return 'ignore' as const
+  if (action === 'share' || action === 'install') return 'activate' as const
+  return 'show-guidance' as const
+}
+
 
 export const HOME_SCREEN_REQUEST_EVENT = 'top100:request-home-screen'
 
