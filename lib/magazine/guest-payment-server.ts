@@ -9,6 +9,7 @@ import { magazineBillingCurrency } from '@/lib/magazine/billing-country'
 import { hashMagazineGuestAccessToken } from './guest-access'
 import { magazineFeaturePrice, mapMagazinePaymentView, type MagazinePaymentAttempt } from './payment'
 import { getActiveMagazineCampaign, MagazinePaymentError } from './payment-server'
+export { MagazinePaymentError } from './payment-server'
 
 type GuestCustomer = { name: string; email: string; countryCode: string }
 
