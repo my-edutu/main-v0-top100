@@ -36,6 +36,8 @@ export function PushNotificationPrompt() {
                 supportsPushManager: supportsServiceWorker && 'PushManager' in window,
                 permission: supportsNotifications ? Notification.permission : 'denied',
                 vapidPublicKey: VAPID_PUBLIC_KEY,
+                isIOS: /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1),
+                isStandalone: window.matchMedia('(display-mode: standalone)').matches || Boolean((navigator as Navigator & { standalone?: boolean }).standalone),
                 alreadyPrompted: (() => { try { return Number(localStorage.getItem('top100-push-remind-after')) > Date.now() } catch { return false } })(),
             });
         };
@@ -81,19 +83,15 @@ export function PushNotificationPrompt() {
             });
 
             if (!response.ok) {
+                const data = await response.json().catch(() => null);
                 await pushSubscription.unsubscribe();
-                throw new Error('The notification subscription could not be saved.');
+                throw new Error(data?.error ?? 'The notification subscription could not be saved.');
             }
 
-            await registration.showNotification('Notifications enabled', {
-                body: 'You can now receive Top100 AFL updates on this device.',
-                icon: '/Top100 Africa Future leaders Logo .png',
-                silent: true,
-            });
             setIsVisible(false);
         } catch (error) {
             console.error('[Push] Error:', error);
-            setError('Notifications could not be enabled. Please try again later.');
+            setError(error instanceof Error ? error.message : 'Notifications could not be enabled. Please try again later.');
         } finally {
             setIsLoading(false);
         }
