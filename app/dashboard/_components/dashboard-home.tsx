@@ -1,10 +1,14 @@
 'use client'
 
 import Link from 'next/link'
+import Image from '@/components/safe-image'
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { useEffect, useMemo, useState } from 'react'
 import {
   ArrowUpRight,
+  CalendarPlus,
   Mail,
+  Video,
   UserRound,
 } from 'lucide-react'
 
@@ -57,6 +61,40 @@ function formatShortDate(value: string | null | undefined) {
     day: 'numeric',
     year: date.getFullYear() === new Date().getFullYear() ? undefined : 'numeric',
   }).format(date)
+}
+
+function downloadCalendarEvent(event: { title: string; startAt: string | null; endAt: string | null; summary: string | null; meetUrl: string | null }) {
+  if (!event.startAt) return
+  const escapeIcs = (value: string) => value.replace(/\\/g, '\\\\').replace(/\r?\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;')
+  const toUtc = (value: string) => new Date(value).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z')
+  const start = new Date(event.startAt)
+  const end = event.endAt ? new Date(event.endAt) : new Date(start.getTime() + 60 * 60 * 1000)
+  const description = [event.summary, event.meetUrl ? `Google Meet: ${event.meetUrl}` : null].filter(Boolean).join('\n\n')
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Africa Future Leaders//Programme Calendar//EN',
+    'CALSCALE:GREGORIAN',
+    'BEGIN:VEVENT',
+    `UID:${crypto.randomUUID()}@top100afl.com`,
+    `DTSTAMP:${toUtc(new Date().toISOString())}`,
+    `DTSTART:${toUtc(event.startAt)}`,
+    `DTEND:${toUtc(end.toISOString())}`,
+    `SUMMARY:${escapeIcs(event.title)}`,
+    ...(description ? [`DESCRIPTION:${escapeIcs(description)}`] : []),
+    ...(event.meetUrl ? [`URL:${event.meetUrl}`, `LOCATION:${event.meetUrl}`] : []),
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ]
+  const blob = new Blob([lines.join('\r\n') + '\r\n'], { type: 'text/calendar;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = `${event.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.ics`
+  document.body.append(anchor)
+  anchor.click()
+  anchor.remove()
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
 export function DashboardHome() {
@@ -131,6 +169,10 @@ export function DashboardHome() {
         sortAt: invitation.event?.startAt ? Date.parse(invitation.event.startAt) : Number.POSITIVE_INFINITY,
         cover: invitation.event?.cover ?? null,
         href: '/dashboard/discover/events',
+        startAt: invitation.event?.startAt ?? null,
+        endAt: null,
+        meetUrl: null,
+        summary: invitation.event?.summary ?? null,
       }))
 
     const programmePreviews = programmeEvents
@@ -144,6 +186,10 @@ export function DashboardHome() {
         sortAt: Date.parse(event.startAt),
         cover: event.cover,
         href: AFL_2026_CALENDAR.viewUrl,
+        startAt: event.startAt,
+        endAt: event.endAt,
+        meetUrl: event.meetUrl,
+        summary: null,
       }))
 
     return [...datedInvitations, ...programmePreviews]
@@ -176,22 +222,42 @@ export function DashboardHome() {
           </Link>
         </div>
         <div className="hub-events-rail mt-3" tabIndex={0} role="region" aria-label="Upcoming events, scroll horizontally">
-          {comingUp.length > 0 ? comingUp.map((item) => (
-            <Link
-              key={item.id}
-              href={item.href}
-              target={item.href.startsWith('https://') ? '_blank' : undefined}
-              rel={item.href.startsWith('https://') ? 'noopener noreferrer' : undefined}
-              className="hub-upcoming-event focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-2"
-              style={item.cover ? { backgroundImage: `linear-gradient(180deg, rgba(12,12,16,.08) 15%, rgba(12,12,16,.88) 100%), url(${item.cover})` } : undefined}
-            >
+          {comingUp.length > 0 ? comingUp.map((item) => {
+            const cardContent = <>
               <span className="hub-upcoming-event-label relative z-10 self-start">{item.detail}</span>
               <span className="relative z-10 min-w-0 self-end text-white">
                 <span className="block break-words text-sm font-semibold text-white">{item.title}</span>
                 <span className="mt-2 block text-xs font-medium text-white/90">{item.date}</span>
               </span>
-            </Link>
-          )) : loading ? <DashboardLoading label="Loading events" compact /> : loadError ? null : (
+            </>
+            const cardClass = "hub-upcoming-event text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-2"
+            return item.cover ? <Dialog key={item.id}>
+              <DialogTrigger asChild>
+                <button type="button" className={cardClass} style={{ backgroundImage: `linear-gradient(180deg, rgba(12,12,16,.08) 15%, rgba(12,12,16,.88) 100%), url(${item.cover})` }} aria-label={`Preview ${item.title}`}>{cardContent}</button>
+              </DialogTrigger>
+              <DialogContent className="max-h-[90dvh] w-[calc(100%-2rem)] max-w-xl overflow-y-auto rounded-[18px] border-0 bg-white p-0" overlayClassName="bg-black/75 backdrop-blur-sm" aria-describedby={undefined}>
+                <div className="bg-[#FFC528]">
+                  <Image src={item.cover} alt={`${item.title} event poster`} width={1755} height={2194} className="mx-auto max-h-[45dvh] w-auto max-w-full object-contain" />
+                </div>
+                <div className="px-5 pb-5 sm:px-6 sm:pb-6">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[#A6440D]">{item.detail}</p>
+                  <DialogTitle className="text-xl font-semibold leading-7 text-[#171412]">{item.title}</DialogTitle>
+                  {item.startAt ? <p className="mt-3 text-sm leading-6 text-[#625B52]">
+                    {new Intl.DateTimeFormat('en', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Africa/Lagos' }).format(new Date(item.startAt))}
+                    <br />
+                    {new Intl.DateTimeFormat('en', { hour: 'numeric', minute: '2-digit', timeZone: 'Africa/Lagos' }).format(new Date(item.startAt))}
+                    {item.endAt ? `–${new Intl.DateTimeFormat('en', { hour: 'numeric', minute: '2-digit', timeZone: 'Africa/Lagos' }).format(new Date(item.endAt))}` : ''} WAT (Lagos)
+                  </p> : null}
+                  {item.summary ? <p className="mt-3 text-sm leading-6 text-[#625B52]">{item.summary}</p> : null}
+                  <div className="mt-4 grid gap-2">
+                    {item.meetUrl ? <a href={item.meetUrl} target="_blank" rel="noopener noreferrer" className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#FF9D00] px-4 text-sm font-semibold text-[#171412] hover:bg-[#FFB329] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-700"><Video size={18} aria-hidden="true" />Join on Google Meet<ArrowUpRight size={16} aria-hidden="true" /></a> : null}
+                    {item.startAt ? <button type="button" onClick={() => downloadCalendarEvent(item)} className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-[#E9D6C5] px-4 text-sm font-semibold text-[#84330B] hover:bg-[#FFF8F0] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-700"><CalendarPlus size={18} aria-hidden="true" />Add to calendar</button> : null}
+                  </div>
+                  {item.startAt ? <p className="mt-2 text-center text-xs leading-5 text-[#625B52]">Calendar file for Apple Calendar, Google Calendar, and Android calendar apps.</p> : null}
+                </div>
+              </DialogContent>
+            </Dialog> : <Link key={item.id} href={item.href} target={item.href.startsWith('https://') ? '_blank' : undefined} rel={item.href.startsWith('https://') ? 'noopener noreferrer' : undefined} className={cardClass}>{cardContent}</Link>
+          }) : loading ? <DashboardLoading label="Loading events" compact /> : loadError ? null : (
             <div className="py-3"><p className="text-sm text-[#625B52]">No upcoming events yet.</p><Link className="mt-1 inline-flex min-h-11 items-center gap-1 text-xs font-medium text-[#171717]" href="/dashboard/discover/events">View events <ArrowUpRight size={14} aria-hidden="true" /></Link></div>
           )}
         </div>

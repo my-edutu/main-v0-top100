@@ -44,10 +44,10 @@ export function AflCalendarAnnouncement({ memberId, dashboardLoginCount }: { mem
         <DialogHeader className="text-left">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#A6440D]">Your 2026 programme</p>
           <DialogTitle className="text-2xl font-semibold leading-tight tracking-tight text-[#171412]">The event calendar is ready</DialogTitle>
-          <DialogDescription className="pt-1 text-sm leading-6 text-[#625B52]">View the full Africa Future Leaders schedule, or add it to Google Calendar to see the dates alongside your own. You can choose your own reminder settings there.</DialogDescription>
+          <DialogDescription className="pt-1 text-sm leading-6 text-[#625B52]">Keep every session in one place. Add the programme to Google Calendar, then choose the reminders that work for you.</DialogDescription>
         </DialogHeader>
         <div className="mt-1 flex flex-col gap-2 sm:flex-row">
-          <a href={AFL_2026_CALENDAR.addUrl} target="_blank" rel="noopener noreferrer" onClick={dismiss} className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#F36D21] px-4 text-sm font-semibold text-white hover:bg-[#D65412] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-2"><CalendarPlus className="h-4 w-4" aria-hidden="true" />Add to Google Calendar</a>
+          <a href={AFL_2026_CALENDAR.addUrl} target="_blank" rel="noopener noreferrer" onClick={dismiss} className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#FF9D00] px-4 text-sm font-semibold text-[#171412] hover:bg-[#FFB329] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-2"><CalendarPlus className="h-4 w-4" aria-hidden="true" />Add to Google Calendar</a>
           <a href={AFL_2026_CALENDAR.viewUrl} target="_blank" rel="noopener noreferrer" onClick={dismiss} className="inline-flex min-h-12 items-center justify-center gap-1.5 rounded-xl border border-[#E9D6C5] px-4 text-sm font-semibold text-[#84330B] hover:bg-[#FFF7EF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-2">View schedule<ArrowUpRight className="h-4 w-4" aria-hidden="true" /></a>
         </div>
       </DialogContent>
