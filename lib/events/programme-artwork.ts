@@ -1,4 +1,5 @@
 import { PROGRAMME_SCHEDULE } from './programme'
+import { AFL_2026_CALENDAR } from './afl-2026-calendar'
 
 export type ProgrammeArtwork = {
   src: string
@@ -22,7 +23,7 @@ const fileNames: Record<number, string> = {
 
 export const PROGRAMME_ARTWORK: Record<number, ProgrammeArtwork> = Object.fromEntries(
   PROGRAMME_SCHEDULE.map(item => [item.sessionNumber, {
-    src: `/programme/afl-october-2026/${fileNames[item.sessionNumber]}.png`,
+    src: item.sessionNumber === 0 ? AFL_2026_CALENDAR.artwork : `/programme/afl-october-2026/${fileNames[item.sessionNumber]}.png`,
     title: item.title,
     alt: `${item.title} — Africa Future Leaders October 2026`,
   }]),

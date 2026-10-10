@@ -133,6 +133,7 @@ export function mapNotification(row: any): MemberNotification {
     category: row?.category ?? 'general',
     ctaLabel: row?.cta_label ?? null,
     ctaUrl: row?.cta_url ?? null,
+    campaignId: row?.campaign_id ?? null,
   }
 }
 

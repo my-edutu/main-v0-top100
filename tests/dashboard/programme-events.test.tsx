@@ -32,7 +32,7 @@ describe('member programme event cards', () => {
   it('renders the speaker placeholder and keeps calendar action separate from event navigation', () => {
     const markup = renderToStaticMarkup(<ProgrammeEventCard event={fixtureWithoutSpeaker} />)
     expect(markup).toContain('Speaker to be unveiled')
-    expect(markup).toContain('Add to calendar')
+    expect(markup).toContain('Add full calendar')
     expect(markup).toContain('/dashboard/discover/events/global-talent-playbook')
   })
 
@@ -41,6 +41,6 @@ describe('member programme event cards', () => {
     expect(markup.match(/>The Global Talent Playbook: How to Become Competitive Beyond Africa</g)).toHaveLength(1)
     expect(markup.match(/>Sun, Oct 11</g)).toHaveLength(1)
     expect(markup).toContain('global-talent-playbook.png')
-    expect(markup).toContain('Add to calendar')
+    expect(markup).toContain('Add full calendar')
   })
 })

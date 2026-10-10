@@ -73,6 +73,7 @@ export function DashboardCelebration({
     } catch {
       // Dismissing still works when storage is unavailable for this browser.
     }
+    window.dispatchEvent(new Event('afl:dashboard-celebration-dismissed'))
   }
 
   return (

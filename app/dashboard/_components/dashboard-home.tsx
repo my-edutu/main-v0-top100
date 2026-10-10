@@ -22,6 +22,7 @@ import { selectUpcomingInvitations } from '../_lib/home-priority'
 import { useDashboardMember } from '../_providers/dashboard-member'
 import { AwardeeOnboardingJourney } from './awardee-onboarding-journey'
 import { DashboardCelebration } from './dashboard-celebration'
+import { AflCalendarAnnouncement } from './afl-calendar-announcement'
 
 const INTERVIEW_FORM_URL = '/dashboard/me/interview'
 const PARTNERSHIP_FORM_URL = 'https://docs.google.com/forms/d/1pabeSUOwN15Sr-VcAWIhl5k5_xwnKljFuzm90PCoEqQ/edit'
@@ -155,6 +156,7 @@ export function DashboardHome() {
         name={member.name}
         dashboardLoginCount={member.dashboardLoginCount ?? 0}
       />
+      <AflCalendarAnnouncement memberId={member.id} dashboardLoginCount={member.dashboardLoginCount ?? 0} />
       <section className="hub-welcome" aria-labelledby="hub-welcome-title">
         <h1 id="hub-welcome-title">{(member.dashboardLoginCount ?? 0) < 4 ? 'Congratulations' : 'Hey'}, {member.name.trim().split(/\s+/)[0]}.</h1>
         <p className="hub-welcome-description">Your people and opportunities.</p>

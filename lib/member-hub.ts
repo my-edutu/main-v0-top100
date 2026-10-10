@@ -84,6 +84,7 @@ export type MemberNotification = {
   category: string
   ctaLabel: string | null
   ctaUrl: string | null
+  campaignId?: string | null
 }
 
 export type ConversationSummary = {

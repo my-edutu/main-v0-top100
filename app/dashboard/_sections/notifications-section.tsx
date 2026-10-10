@@ -14,6 +14,7 @@ import {
   type MemberNotification,
 } from '@/lib/member-hub'
 import { cn } from '@/lib/utils'
+import { AFL_2026_CALENDAR } from '@/lib/events/afl-2026-calendar'
 import {
   isNotificationMarkingDisabled,
   markNotificationReadInList,
@@ -176,6 +177,11 @@ export function NotificationsSection() {
                         <Link href={notification.ctaUrl} className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-[#FFF2E8] px-3 text-sm font-medium text-[#84330B] transition-colors hover:bg-[#FFE6D4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-2">
                           {notification.ctaLabel}<ArrowUpRight className="h-4 w-4" aria-hidden="true" />
                         </Link>
+                      ) : null}
+                      {notification.campaignId === AFL_2026_CALENDAR.campaignId ? (
+                        <a href={AFL_2026_CALENDAR.addUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[#E9C9AE] px-3 text-sm font-medium text-[#84330B] transition-colors hover:bg-[#FFF7EF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-2">
+                          Add to Google Calendar<ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+                        </a>
                       ) : null}
                       {unread ? (
                         <button type="button" disabled={isNotificationMarkingDisabled(marking, notification.id)} onClick={() => void markOne(notification.id)} className="inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-sm font-medium text-[#625B52] hover:bg-[#F7F6F4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 disabled:opacity-50">

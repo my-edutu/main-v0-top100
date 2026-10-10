@@ -7,7 +7,7 @@ describe('programme artwork', () => {
     expect(Object.keys(PROGRAMME_ARTWORK)).toHaveLength(11)
     for (const item of PROGRAMME_SCHEDULE) {
       expect(PROGRAMME_ARTWORK[item.sessionNumber]?.title).toBe(item.title)
-      expect(PROGRAMME_ARTWORK[item.sessionNumber]?.src).toMatch(/^\/programme\/afl-october-2026\/.+\.png$/)
+      expect(PROGRAMME_ARTWORK[item.sessionNumber]?.src).toMatch(new RegExp(`^/programme/afl-october-2026/.+\\.${item.sessionNumber === 0 ? 'jpg' : 'png'}$`))
     }
   })
 })

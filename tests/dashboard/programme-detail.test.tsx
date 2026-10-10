@@ -18,6 +18,6 @@ describe('ProgrammeEventDetail', () => {
     expect(markup).toContain(event.title)
     expect(markup).toContain('See the competitive landscape')
     expect(markup).toContain('Speaker to be unveiled')
-    expect(markup).toContain('Add to calendar')
+    expect(markup).toContain('Add full calendar')
   })
 })
