@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server'
 
 import { buildCalendarEvent } from '@/lib/events/calendar'
-import { toMemberProgrammeEvent } from '@/lib/events/programme-api'
+import { isAfricaFutureLeadersProgrammeEvent, toMemberProgrammeEvent } from '@/lib/events/programme-api'
+import { AFL_2026_CALENDAR } from '@/lib/events/afl-2026-calendar'
 import { createAdminClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth-server'
 import { hasValidDemoSession, isLoopbackDevelopment } from '@/lib/dev-dashboard/auth'
@@ -29,6 +30,10 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     const user = await getCurrentUser()
     const isDemo = isLoopbackDevelopment(_request) && hasValidDemoSession(_request)
     if (!user?.id && !isDemo) return Response.json({ message: 'Event not found.' }, { status: 404 })
+  }
+
+  if (isAfricaFutureLeadersProgrammeEvent(data)) {
+    return Response.redirect(AFL_2026_CALENDAR.addUrl, 302)
   }
 
   const event = toMemberProgrammeEvent({ ...data, speaker: data.programme_speakers })

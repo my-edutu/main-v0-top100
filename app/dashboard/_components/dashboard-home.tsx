@@ -10,11 +10,11 @@ import {
 
 import {
   fetchEventInvitations,
-  fetchPublicEvents,
   type EventInvitation,
-  type PublicEvent,
 } from '@/lib/events/invitations-client'
-import { isAfricaFutureLeadersProgrammeEvent } from '@/lib/events/programme-api'
+import { fetchLiveCalendarEvents } from '@/lib/events/live-calendar-client'
+import type { LiveCalendarEvent } from '@/lib/events/live-calendar'
+import { AFL_2026_CALENDAR } from '@/lib/events/afl-2026-calendar'
 import { DashboardLoading } from './dashboard-loading'
 import { DashboardCard } from './dashboard-card'
 import { discoverNav, meNav } from '../_lib/navigation'
@@ -62,9 +62,10 @@ function formatShortDate(value: string | null | undefined) {
 export function DashboardHome() {
   const { member } = useDashboardMember()
   const [invitations, setInvitations] = useState<EventInvitation[]>([])
-  const [programmeEvents, setProgrammeEvents] = useState<PublicEvent[]>([])
+  const [programmeEvents, setProgrammeEvents] = useState<LiveCalendarEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
+  const [now, setNow] = useState(() => Date.now())
 
   useEffect(() => {
     let cancelled = false
@@ -76,12 +77,13 @@ export function DashboardHome() {
       const [invitationResult, programmeResult] =
         await Promise.allSettled([
           fetchEventInvitations(),
-          fetchPublicEvents(12, 'awardees', true),
+          fetchLiveCalendarEvents(),
         ])
 
       inFlight = false
       if (cancelled) return
       setLoading(false)
+      setNow(Date.now())
       setLoadError([invitationResult, programmeResult].some(result => result.status === 'rejected'))
 
       if (invitationResult.status === 'fulfilled') {
@@ -89,7 +91,7 @@ export function DashboardHome() {
       }
 
       if (programmeResult.status === 'fulfilled') {
-        setProgrammeEvents(programmeResult.value.filter(isAfricaFutureLeadersProgrammeEvent))
+        setProgrammeEvents(programmeResult.value)
       }
 
     }
@@ -126,28 +128,28 @@ export function DashboardHome() {
             ? 'Your RSVP is waiting'
             : `RSVP: ${invitation.rsvp}`,
         date: formatShortDate(invitation.event?.startAt),
+        sortAt: invitation.event?.startAt ? Date.parse(invitation.event.startAt) : Number.POSITIVE_INFINITY,
         cover: invitation.event?.cover ?? null,
         href: '/dashboard/discover/events',
       }))
 
-    const invitationIds = new Set(invitations.map((invitation) => invitation.eventId))
     const programmePreviews = programmeEvents
-      .filter((event) => event.start_at && new Date(event.start_at).getTime() >= Date.now())
-      .filter((event) => !invitationIds.has(event.id))
-      .sort((left, right) => new Date(left.start_at!).getTime() - new Date(right.start_at!).getTime())
+      .filter((event) => new Date(event.endAt).getTime() >= now)
+      .sort((left, right) => new Date(left.startAt).getTime() - new Date(right.startAt).getTime())
       .map((event) => ({
         id: `programme-${event.id}`,
         title: event.title,
-        detail: event.session_number === 0 ? 'Onboarding' : `Session ${String(event.session_number ?? '').padStart(2, '0')}`,
-        date: formatShortDate(event.start_at),
-        cover: event.cover ?? event.featured_image_url ?? null,
-        href: `/dashboard/discover/events/${event.slug ?? event.id}`,
+        detail: event.cover ? 'Onboarding' : 'Live calendar',
+        date: formatShortDate(event.startAt),
+        sortAt: Date.parse(event.startAt),
+        cover: event.cover,
+        href: AFL_2026_CALENDAR.viewUrl,
       }))
 
     return [...datedInvitations, ...programmePreviews]
-      .sort((left, right) => new Date(left.date).getTime() - new Date(right.date).getTime())
+      .sort((left, right) => left.sortAt - right.sortAt)
       .slice(0, 6)
-  }, [invitations, programmeEvents])
+  }, [invitations, programmeEvents, now])
 
   return (
     <div className="hub-home">
@@ -178,6 +180,8 @@ export function DashboardHome() {
             <Link
               key={item.id}
               href={item.href}
+              target={item.href.startsWith('https://') ? '_blank' : undefined}
+              rel={item.href.startsWith('https://') ? 'noopener noreferrer' : undefined}
               className="hub-upcoming-event focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-2"
               style={item.cover ? { backgroundImage: `linear-gradient(180deg, rgba(12,12,16,.08) 15%, rgba(12,12,16,.88) 100%), url(${item.cover})` } : undefined}
             >

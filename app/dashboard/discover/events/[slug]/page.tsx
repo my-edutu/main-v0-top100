@@ -1,6 +1,7 @@
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/server'
-import { toMemberProgrammeEvent } from '@/lib/events/programme-api'
+import { isAfricaFutureLeadersProgrammeEvent, toMemberProgrammeEvent } from '@/lib/events/programme-api'
+import { AFL_2026_CALENDAR } from '@/lib/events/afl-2026-calendar'
 import { ProgrammeEventDetail } from '../_components/programme-event-detail'
 
 export default async function ProgrammeEventPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -14,5 +15,6 @@ export default async function ProgrammeEventPage({ params }: { params: Promise<{
     .maybeSingle()
 
   if (error || !data) notFound()
+  if (isAfricaFutureLeadersProgrammeEvent(data)) redirect(AFL_2026_CALENDAR.viewUrl)
   return <ProgrammeEventDetail event={toMemberProgrammeEvent({ ...data, speaker: data.programme_speakers })} />
 }
