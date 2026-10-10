@@ -21,6 +21,7 @@ type Campaign = {
 
 type PaymentView = {
   campaign: Campaign
+  checkoutEnabled: boolean
   orderStatus: string
   currentAttempt: { status: string; checkoutUrl?: string } | null
   applicationStatus: string | null
@@ -139,12 +140,12 @@ export default function PublicFeatureApplication() {
         </Link>
 
         <section className="mt-6 overflow-hidden rounded-3xl bg-white shadow-xl shadow-slate-900/5">
-          <div className="relative overflow-hidden bg-gradient-to-br from-[#351b2a] via-[#752e21] to-[#f36b16] px-6 py-9 text-white sm:px-10 sm:py-12">
+          <div className="relative overflow-hidden bg-gradient-to-br from-[#291620] via-[#54221f] to-[#713514] px-6 py-9 text-white sm:px-10 sm:py-12">
             <div className="absolute -right-20 -top-28 h-80 w-80 rounded-full border border-white/15" />
             <div className="absolute -right-8 -top-16 h-56 w-56 rounded-full border border-white/15" />
             <div className="relative max-w-xl">
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/75">Africa Future Leaders · 2026</p>
-              <h1 className="mt-4 text-3xl font-bold leading-tight sm:text-5xl">Share the story behind your leadership.</h1>
+              <h1 className="mt-4 text-3xl font-bold leading-tight text-white sm:text-5xl">Share the story behind your leadership.</h1>
               <p className="mt-4 max-w-lg text-sm leading-6 text-white/85 sm:text-base">Applications are open to the public. Payment is required for editorial consideration and does not guarantee publication.</p>
             </div>
           </div>
@@ -187,9 +188,10 @@ export default function PublicFeatureApplication() {
                 </div>
                 <div className="space-y-2"><Label htmlFor="billing-country">Country</Label><select id="billing-country" value={countryCode} onChange={(event) => setCountryCode(event.target.value)} className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm">{countries.map((country) => <option key={country.code} value={country.code}>{country.name}</option>)}</select></div>
                 {price && <div className="flex items-center justify-between rounded-xl bg-orange-50 px-4 py-4"><span className="text-sm font-medium text-slate-700">Editorial consideration fee</span><span className="text-lg font-bold text-slate-900">{price}</span></div>}
+                {!view.checkoutEnabled ? <div role="status" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950">Online payment is temporarily unavailable. Please contact <a className="font-semibold underline underline-offset-2" href="mailto:info@top100afl.com?subject=Magazine%20feature%20payment">info@top100afl.com</a> for help with your application.</div> : null}
                 {pending && <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><ShieldCheck className="mt-0.5 h-5 w-5 shrink-0" /><div><p className="font-semibold">Payment status is being confirmed</p><p className="mt-1">The application form unlocks after Bachs confirms payment. Use the status button below to check again.</p></div></div>}
                 {view.orderStatus === 'exception' && <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Your payment needs support review before you can continue.</div>}
-                <Button type="submit" className="w-full bg-orange-500 text-slate-950 hover:bg-orange-600" disabled={checkoutBusy || !view.campaign.applicationOpen}>{checkoutBusy ? <><LoaderCircle className="mr-2 h-4 w-4 animate-spin" />Opening secure checkout…</> : <>Continue to secure payment <ArrowRight className="ml-2 h-4 w-4" /></>}</Button>
+                <Button type="submit" className="w-full bg-orange-500 text-slate-950 hover:bg-orange-600" disabled={checkoutBusy || !view.campaign.applicationOpen || !view.checkoutEnabled}>{checkoutBusy ? <><LoaderCircle className="mr-2 h-4 w-4 animate-spin" />Opening secure checkout…</> : view.checkoutEnabled ? <>Continue to secure payment <ArrowRight className="ml-2 h-4 w-4" /></> : 'Payment temporarily unavailable'}</Button>
                 <p className="text-xs leading-5 text-slate-500">After checkout, return in this browser to finish your application. Need help? <a className="font-semibold text-orange-700 underline underline-offset-2" href="mailto:info@top100afl.com?subject=2026%20Magazine%20Feature%20Application">Contact the team</a>.</p>
                 <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500"><span>Secure checkout · No account required</span><button type="button" onClick={() => void refresh(true)} disabled={refreshing} className="inline-flex items-center gap-1.5 font-medium text-slate-700 hover:text-slate-950">{refreshing ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />} Check payment status</button></div>
               </form>
