@@ -33,7 +33,14 @@ export default function EventInvitationsSection({ member }: { member: MemberProf
       setError(published.status === 'rejected' ? 'The live calendar could not load. Open it directly in Google Calendar.' : '')
       setLoading(false)
     })
-    return () => { cancelled = true }
+    const refresh = window.setInterval(() => {
+      void fetchLiveCalendarEvents().then(liveEvents => {
+        if (!cancelled) { setEvents(liveEvents); setError('') }
+      }).catch(() => {
+        if (!cancelled) setError('The live calendar could not refresh. Open it directly in Google Calendar.')
+      })
+    }, 300_000)
+    return () => { cancelled = true; window.clearInterval(refresh) }
   }, [member.id, retry])
 
   return <section aria-label="Events" className="space-y-5">
