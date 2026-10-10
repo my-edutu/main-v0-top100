@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from '@/components/safe-image'
-import { ArrowLeft, ArrowRight, Loader2, Search } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Loader2, Search, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -38,6 +38,8 @@ export default function SignUpPage() {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [hasSession, setHasSession] = useState(false)
+  const [signedInEmail, setSignedInEmail] = useState<string | null>(null)
+  const [signingOut, setSigningOut] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const captchaUnavailable = process.env.NODE_ENV === 'production' && !process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
   const searchText = query.trim()
@@ -45,8 +47,13 @@ export default function SignUpPage() {
   const visibleResults = searchedQuery === searchText ? results : []
 
   useEffect(() => {
-    void supabase.auth.getUser().then(({ data }) => setHasSession(Boolean(data.user)))
+    void supabase.auth.getUser().then(({ data }) => {
+      setHasSession(Boolean(data.user))
+      setSignedInEmail(data.user?.email?.trim().toLowerCase() || null)
+    })
   }, [])
+
+  const accountMismatch = Boolean(signedInEmail && email.trim() && signedInEmail !== email.trim().toLowerCase())
 
   useEffect(() => {
     const text = query.trim()
@@ -101,8 +108,9 @@ export default function SignUpPage() {
       const normalizedEmail = email.trim().toLowerCase()
       const { data: sessionData } = await supabase.auth.getSession()
       const { data: userData } = await supabase.auth.getUser()
-      if (userData.user && userData.user.email?.toLowerCase() !== normalizedEmail) {
-        throw new Error('Sign out first, or use the email on your current account.')
+      setSignedInEmail(userData.user?.email?.trim().toLowerCase() || null)
+      if (userData.user && userData.user.email?.trim().toLowerCase() !== normalizedEmail) {
+        throw new Error('This browser is signed in to a different account. Sign out below to continue with the email on your winner record.')
       }
       if (!userData.user && password.length < 8) throw new Error('Choose a password of at least 8 characters.')
       const response = await fetch('/api/auth/claim-request', {
@@ -135,6 +143,24 @@ export default function SignUpPage() {
       setError(cause instanceof Error ? cause.message : 'Could not submit your claim.')
     } finally {
       setBusy(false)
+    }
+  }
+
+  async function signOutToContinue() {
+    if (signingOut) return
+    setSigningOut(true)
+    setError('')
+    setNotice('')
+    try {
+      const { error: signOutError } = await supabase.auth.signOut()
+      if (signOutError) throw signOutError
+      setHasSession(false)
+      setSignedInEmail(null)
+      setNotice('You’re signed out. Your selected winner profile and details are still here; continue with the email on that record.')
+    } catch {
+      setError('Could not sign out of this account. Please sign out, then return here to continue your claim.')
+    } finally {
+      setSigningOut(false)
     }
   }
 
@@ -171,7 +197,9 @@ export default function SignUpPage() {
             </div>
           </div>}
 
-          {!submitted && <div className="my-5 rounded-xl border border-stone-200 bg-stone-50 p-4"><p className="text-sm font-semibold">Already registered?</p><p className="mt-1 text-sm text-stone-600">Use your account to continue. Waiting for approval? You can still sign in.</p><div className="mt-3 flex flex-wrap gap-4 text-sm font-semibold text-orange-800"><Link href="/login" className="underline">Sign in</Link><Link href="/auth/forgot-password?area=member" className="underline">Reset password</Link></div></div>}
+          {!submitted && accountMismatch && <div className="my-5 rounded-xl border border-amber-300 bg-amber-50 p-4"><p className="text-sm font-semibold text-amber-950">A different account is signed in</p><p className="mt-1 text-sm leading-6 text-amber-900">Sign out to continue this claim with the email on your winner record. Your selected profile and form details will stay here.</p><Button type="button" variant="outline" className="mt-3 border-amber-400 bg-white text-amber-950 hover:bg-amber-100" disabled={signingOut} onClick={() => void signOutToContinue()}>{signingOut ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogOut className="mr-2 h-4 w-4" />}{signingOut ? 'Signing out…' : 'Sign out and continue'}</Button></div>}
+          {!submitted && !accountMismatch && step === 1 && <div className="my-5 rounded-xl border border-stone-200 bg-stone-50 p-4"><p className="text-sm font-semibold">Already registered?</p><p className="mt-1 text-sm text-stone-600">Sign in to continue to your dashboard. If you’re waiting for approval, you can still sign in.</p><div className="mt-3 flex flex-wrap gap-4 text-sm font-semibold text-orange-800"><Link href="/login" className="underline">Sign in</Link><Link href="/auth/forgot-password?area=member" className="underline">Reset password</Link></div></div>}
+          {!submitted && !accountMismatch && step === 2 && <p className="my-5 rounded-xl border border-stone-200 bg-stone-50 p-4 text-sm text-stone-700">Already have an account? <Link href="/login" className="font-semibold text-orange-800 underline">Sign in</Link> to continue.</p>}
 
           {step === 2 && !submitted && <form onSubmit={requestClaim} className="space-y-5">
             <div><Label htmlFor="claim-email">Email on your winner record</Label><Input id="claim-email" className="mt-2 h-12" type="email" required autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" />{selected?.emailHint && <p className="mt-1 text-xs text-stone-500">On file: {selected.emailHint}</p>}</div>

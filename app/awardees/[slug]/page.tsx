@@ -192,7 +192,7 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
         </nav>
 
         <header className="border-b border-stone-200 pb-8 pt-2 sm:pb-10 sm:pt-4">
-          <div className="grid items-center gap-5 sm:grid-cols-[176px_minmax(0,1fr)] sm:gap-8 lg:grid-cols-[208px_minmax(0,1fr)] lg:gap-10">
+          <div className="grid items-center gap-5 sm:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] sm:gap-8 lg:gap-10">
             <AwardeeMediaCarousel name={awardee.name} portraitSources={[awardee.avatar_url, awardee.cover_image_url]} coverUrl={portfolioCoverUrl} />
 
             <div className="min-w-0 text-center sm:text-left">
