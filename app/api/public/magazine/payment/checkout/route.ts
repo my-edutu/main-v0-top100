@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { verifySignupCaptcha } from '@/lib/auth/signup-turnstile'
 
 import { isMagazineCheckoutEnabled } from '@/lib/production-readiness'
 import { normalizeMagazineCountryCode } from '@/lib/magazine/billing-country'
@@ -20,6 +21,7 @@ import { checkRateLimit, createRateLimitResponse, getClientIdentifier, RATE_LIMI
 export const runtime = 'nodejs'
 
 const schema = z.object({
+  captchaToken: z.string().max(2048).optional(),
   name: z.string().trim().min(2, 'Enter your full name.').max(120),
   email: z.string().trim().email('Enter a valid email address.').max(320),
   countryCode: z.string().trim().length(2, 'Select a valid country.'),
@@ -39,6 +41,16 @@ export async function POST(request: NextRequest) {
   let guestToken: string | null = null
   try {
     const clientIp = getClientIdentifier(request.headers)
+    const captchaOk = await verifySignupCaptcha(parsed.data.captchaToken, {
+      secret: process.env.TURNSTILE_SECRET_KEY,
+      hostnames: process.env.NODE_ENV === 'production'
+        ? process.env.TURNSTILE_HOSTNAMES || 'top100afl.com,www.top100afl.com'
+        : 'localhost,127.0.0.1',
+      remoteIp: clientIp,
+      nodeEnv: process.env.NODE_ENV,
+      expectedAction: 'magazine_checkout',
+    })
+    if (!captchaOk) return NextResponse.json({ message: 'Please complete the security check and try again.' }, { status: 403 })
     const [ipRate, emailRate] = await Promise.all([
       checkRateLimit({ ...RATE_LIMITS.AUTH, identifier: `public-magazine-payment-ip:${clientIp}` }),
       checkRateLimit({ ...RATE_LIMITS.AUTH, identifier: `public-magazine-payment-email:${parsed.data.email.trim().toLowerCase()}` }),

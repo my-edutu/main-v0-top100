@@ -9,6 +9,7 @@ type VerifyOptions = {
   hostnames: string | undefined
   remoteIp?: string
   request?: typeof fetch
+  expectedAction?: string
   nodeEnv?: string
 }
 
@@ -51,7 +52,7 @@ export async function verifySignupCaptcha(token: string | undefined, options: Ve
     })
     if (!response.ok) return false
     const result = (await response.json()) as SiteverifyResult
-    return result.success === true && result.action === 'signup' && approvedHostnames.has(result.hostname ?? '')
+    return result.success === true && result.action === (options.expectedAction ?? 'signup') && approvedHostnames.has(result.hostname ?? '')
   } catch {
     return false
   }

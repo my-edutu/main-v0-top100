@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { TurnstileCaptcha } from '@/components/ui/turnstile'
 
 type Campaign = {
   id: string
@@ -33,11 +34,14 @@ const countries = getCountries().map((code) => ({ code, name: countryNames.of(co
 
 async function readResponse(response: Response) {
   const result = await response.json().catch(() => ({}))
-  if (!response.ok) throw new Error(result.message || 'Something went wrong. Please try again.')
+  if (!response.ok) throw new Error(result.message || result.error || (response.status === 503 ? 'Payment is temporarily unavailable. Please try again shortly.' : 'Something went wrong. Please try again.'))
   return result
 }
 
 export default function PublicFeatureApplication() {
+  const [captchaToken, setCaptchaToken] = useState('')
+  const [captchaVersion, setCaptchaVersion] = useState(0)
+  const captchaRequired = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY)
   const [view, setView] = useState<PaymentView | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -47,8 +51,13 @@ export default function PublicFeatureApplication() {
   const [error, setError] = useState('')
   const [submitted, setSubmitted] = useState(false)
   const [recoveryRequired, setRecoveryRequired] = useState(false)
+  const [continueCheckoutAfterCode, setContinueCheckoutAfterCode] = useState(false)
   const [recoveryBusy, setRecoveryBusy] = useState(false)
+  const [sendingCode, setSendingCode] = useState(false)
   const [recoveryMessage, setRecoveryMessage] = useState('')
+  const [otpSent, setOtpSent] = useState(false)
+  const [otpCode, setOtpCode] = useState('')
+  const [resendSeconds, setResendSeconds] = useState(0)
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -67,6 +76,7 @@ export default function PublicFeatureApplication() {
       if (result.customer?.email) setEmail((current) => current || result.customer?.email || '')
       setSubmitted(Boolean(result.applicationStatus))
       setError('')
+      return result
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not load magazine payment details.')
     } finally {
@@ -92,15 +102,16 @@ export default function PublicFeatureApplication() {
       } catch (cause) {
         await refresh()
         setRecoveryRequired(true)
-        setRecoveryMessage(cause instanceof Error ? cause.message : 'Request a new private link to continue.')
+        setRecoveryMessage(cause instanceof Error ? cause.message : 'Request a new email code to continue.')
       }
     })()
     }, 0)
     return () => window.clearTimeout(timer)
   }, [refresh])
 
-  async function requestResumeLink(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  async function requestResumeCode(event?: FormEvent<HTMLFormElement>) {
+    event?.preventDefault()
+    setSendingCode(true)
     setRecoveryBusy(true)
     setError('')
     setRecoveryMessage('')
@@ -109,8 +120,42 @@ export default function PublicFeatureApplication() {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }),
       }))
       setRecoveryMessage(result.message)
+      setOtpSent(true)
+      setOtpCode('')
+      setResendSeconds(result.resendAfter ?? 60)
     } catch (cause) {
       setRecoveryMessage(cause instanceof Error ? cause.message : 'Please try again shortly.')
+    } finally { setRecoveryBusy(false); setSendingCode(false) }
+  }
+
+  useEffect(() => {
+    if (!otpSent) return
+    const timer = window.setInterval(() => setResendSeconds(seconds => Math.max(0, seconds - 1)), 1000)
+    return () => window.clearInterval(timer)
+  }, [otpSent])
+
+  async function verifyResumeCode(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setRecoveryBusy(true)
+    setRecoveryMessage('')
+    try {
+      await readResponse(await fetch('/api/public/magazine/recover', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: otpCode }),
+      }))
+      setView(null)
+      const restored = await refresh(true)
+      if (!restored) throw new Error('Your email is verified. Please retry loading your payment status.')
+      setRecoveryRequired(false)
+      setOtpSent(false)
+      setOtpCode('')
+      if (continueCheckoutAfterCode && ['unpaid', 'failed'].includes(restored.orderStatus)) {
+        setContinueCheckoutAfterCode(false)
+        await startCheckout()
+      } else {
+        setContinueCheckoutAfterCode(false)
+      }
+    } catch (cause) {
+      setRecoveryMessage(cause instanceof Error ? cause.message : 'Please check your code and try again.')
     } finally { setRecoveryBusy(false) }
   }
 
@@ -132,20 +177,28 @@ export default function PublicFeatureApplication() {
     return new Intl.NumberFormat(countryCode === 'NG' ? 'en-NG' : 'en-US', { style: 'currency', currency }).format(amountMinor / 100)
   }, [countryCode, view])
 
-  async function startCheckout(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  async function startCheckout(event?: FormEvent<HTMLFormElement>) {
+    event?.preventDefault()
+    if (captchaRequired && !captchaToken) {
+      setError('Please complete the security check to continue.')
+      return
+    }
     setCheckoutBusy(true)
     setError('')
     try {
       const response = await fetch('/api/public/magazine/payment/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, countryCode }),
+        body: JSON.stringify({ name, email, countryCode, captchaToken }),
       })
+      setCaptchaToken('')
+      setCaptchaVersion(version => version + 1)
       const result = await readResponse(response) as { checkoutUrl?: string; nextStep?: 'recover' | 'refresh' }
       if (result.nextStep === 'recover') {
+        setContinueCheckoutAfterCode(true)
         setRecoveryRequired(true)
         setRecoveryMessage('')
+        await requestResumeCode()
         setCheckoutBusy(false)
       } else if (result.nextStep === 'refresh') {
         await refresh(true)
@@ -156,6 +209,8 @@ export default function PublicFeatureApplication() {
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not start payment.')
       setCheckoutBusy(false)
+      setCaptchaToken('')
+      setCaptchaVersion(version => version + 1)
     }
   }
 
@@ -204,19 +259,28 @@ export default function PublicFeatureApplication() {
             {loading ? (
               <div className="flex min-h-48 items-center justify-center text-slate-500"><LoaderCircle className="mr-2 h-5 w-5 animate-spin" /> Loading application details…</div>
             ) : !view ? (
-              <div className="rounded-xl bg-slate-50 p-5 text-sm text-slate-600">{error || 'Magazine applications are temporarily unavailable.'}</div>
+              <div className="rounded-xl bg-slate-50 p-5 text-sm text-slate-600"><p>{error || 'Magazine applications are temporarily unavailable.'}</p><button type="button" onClick={() => void refresh()} className="mt-3 font-medium text-orange-700 underline underline-offset-4">Reload application details</button></div>
             ) : !view.campaign.applicationOpen && !paid ? (
               <div className="rounded-xl bg-slate-50 p-5 text-slate-700">Applications for this magazine campaign are currently closed.</div>
             ) : recoveryRequired ? (
-              <form onSubmit={requestResumeLink} className="space-y-5">
+              <form onSubmit={otpSent ? verifyResumeCode : requestResumeCode} className="space-y-5">
                 <div>
-                  <h2 className="text-2xl font-bold">Continue your application</h2>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">We’ll email you a private link to your application and payment status. You can open it in any browser.</p>
+                  <h2 className="text-2xl font-bold">{otpSent ? 'Enter your email code' : 'Continue your application'}</h2>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">{otpSent ? <>Enter the six-digit code sent to <strong className="break-all font-medium">{email}</strong> to return to your application.</> : 'Enter your application email. We’ll send a six-digit code so you can continue right here.'}</p>
                 </div>
-                <div className="space-y-2"><Label htmlFor="resume-email">Email used for your application</Label><Input id="resume-email" type="email" value={email} onChange={event => setEmail(event.target.value)} autoComplete="email" maxLength={320} required /></div>
+                {otpSent ? <div className="space-y-2">
+                  <Label htmlFor="resume-code">Verification code</Label>
+                  <Input id="resume-code" value={otpCode} onChange={event => setOtpCode(event.target.value.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" required autoFocus aria-describedby="resume-code-hint" className="h-14 text-center font-mono text-2xl tracking-[.35em]" placeholder="000000" />
+                  <p id="resume-code-hint" className="text-xs text-slate-500">Paste the full code. It expires in 10 minutes.</p>
+                </div> : <div className="space-y-2"><Label htmlFor="resume-email">Email used for your application</Label><Input id="resume-email" type="email" value={email} onChange={event => setEmail(event.target.value)} autoComplete="email" maxLength={320} required /></div>}
                 {recoveryMessage && <p role="status" className="rounded-xl bg-orange-50 px-4 py-3 text-sm leading-6 text-slate-700">{recoveryMessage}</p>}
-                <Button type="submit" className="w-full bg-orange-500 text-white hover:bg-orange-600" disabled={recoveryBusy}>{recoveryBusy ? <><LoaderCircle className="mr-2 h-4 w-4 animate-spin" />Sending your link…</> : 'Email my private link'}</Button>
-                <button type="button" onClick={() => { setRecoveryRequired(false); setError(''); setRecoveryMessage('') }} className="text-sm font-medium text-slate-600 underline underline-offset-4">Back to application details</button>
+                {otpSent && continueCheckoutAfterCode && <TurnstileCaptcha key={captchaVersion} action="magazine_checkout" onVerify={setCaptchaToken} onExpire={() => setCaptchaToken('')} onError={() => { setCaptchaToken(''); setError('The security check could not load. Please retry shortly.') }} />}
+                <Button type="submit" className="w-full bg-orange-500 text-white hover:bg-orange-600" disabled={recoveryBusy || (otpSent && otpCode.length !== 6)}>{recoveryBusy ? <><LoaderCircle className="mr-2 h-4 w-4 animate-spin" />{sendingCode ? 'Sending your code…' : 'Verifying…'}</> : otpSent ? 'Verify and continue' : 'Send my code'}</Button>
+                {otpSent && <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+                  <button type="button" onClick={() => void requestResumeCode()} disabled={recoveryBusy || resendSeconds > 0} className="font-medium text-orange-700 underline underline-offset-4 disabled:text-slate-400 disabled:no-underline">{resendSeconds > 0 ? `Resend code in ${resendSeconds}s` : 'Resend code'}</button>
+                  <button type="button" disabled={recoveryBusy} onClick={() => { setOtpSent(false); setOtpCode(''); setRecoveryMessage('') }} className="text-slate-600 underline underline-offset-4">Change email</button>
+                </div>}
+                <button type="button" disabled={recoveryBusy} onClick={() => { setRecoveryRequired(false); setOtpSent(false); setOtpCode(''); setError(''); setRecoveryMessage('') }} className="text-sm font-medium text-slate-600 underline underline-offset-4">Back to application details</button>
               </form>
             ) : submitted ? (
               <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center sm:p-8">
@@ -236,6 +300,15 @@ export default function PublicFeatureApplication() {
                 <div className="space-y-2"><Label htmlFor="feature-summary">Your work and impact</Label><Textarea id="feature-summary" value={summary} onChange={(event) => setSummary(event.target.value)} minLength={20} maxLength={10_000} required rows={7} placeholder="Describe your work, the impact it has made, and what you would like readers to know." /></div>
                 <Button type="submit" className="w-full bg-orange-500 text-slate-950 hover:bg-orange-600" disabled={applicationBusy}>{applicationBusy ? <><LoaderCircle className="mr-2 h-4 w-4 animate-spin" />Submitting…</> : <>Submit application <ArrowRight className="ml-2 h-4 w-4" /></>}</Button>
               </form>
+            ) : ['exception', 'refunded'].includes(view.orderStatus) || pending ? (
+              <div role="status" className="space-y-5">
+                <ShieldCheck className="h-10 w-10 text-orange-600" />
+                <h2 className="text-2xl font-bold">{view.orderStatus === 'refunded' ? 'Your payment was refunded' : view.orderStatus === 'exception' ? 'We’re checking your payment' : view.currentAttempt?.status === 'open' ? 'Continue your payment' : 'Confirming your payment'}</h2>
+                <p className="text-sm leading-6 text-slate-600">{view.orderStatus === 'exception' ? 'Your application is saved. Please contact our team to resolve this payment before paying again.' : view.orderStatus === 'refunded' ? 'Contact our team if you would like to continue your application.' : view.currentAttempt?.status === 'open' ? 'Your details are saved. Complete your existing checkout, or check whether payment has been confirmed.' : 'Your details are saved. We’re waiting for the payment provider to confirm your status. Please check again shortly.'}</p>
+                {pending && view.currentAttempt?.status === 'open' && view.currentAttempt.checkoutUrl && <Button asChild className="w-full bg-orange-500 text-slate-950 hover:bg-orange-600"><a href={view.currentAttempt.checkoutUrl}>Continue secure payment <ArrowRight className="ml-2 h-4 w-4" /></a></Button>}
+                <Button type="button" variant="outline" onClick={() => void refresh(true)} disabled={refreshing} className="w-full">{refreshing ? 'Checking…' : 'Check payment status'}</Button>
+                <a href="mailto:info@top100afl.com?subject=Magazine%20payment%20help" className="block text-center text-sm font-semibold text-orange-700 underline">Contact the team</a>
+              </div>
             ) : (
               <form onSubmit={startCheckout} className="space-y-5">
                 <div>
@@ -250,10 +323,10 @@ export default function PublicFeatureApplication() {
                 {price && <div className="flex items-center justify-between rounded-xl bg-orange-50 px-4 py-4"><span className="text-sm font-medium text-slate-700">Editorial consideration fee</span><span className="text-lg font-bold text-slate-900">{price}</span></div>}
                 {!view.checkoutEnabled ? <div role="status" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950">Online payment is temporarily unavailable. Please contact <a className="font-semibold underline underline-offset-2" href="mailto:info@top100afl.com?subject=Magazine%20feature%20payment">info@top100afl.com</a> for help with your application.</div> : null}
                 {pending && <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><ShieldCheck className="mt-0.5 h-5 w-5 shrink-0" /><div><p className="font-semibold">Payment status is being confirmed</p><p className="mt-1">The application form unlocks after Bachs confirms payment. Use the status button below to check again.</p></div></div>}
-                {view.orderStatus === 'exception' && <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Your payment needs support review before you can continue.</div>}
-                <Button type="submit" className="w-full bg-orange-500 text-slate-950 hover:bg-orange-600" disabled={checkoutBusy || !view.campaign.applicationOpen || !view.checkoutEnabled}>{checkoutBusy ? <><LoaderCircle className="mr-2 h-4 w-4 animate-spin" />Opening secure checkout…</> : view.checkoutEnabled ? <>Continue to secure payment <ArrowRight className="ml-2 h-4 w-4" /></> : 'Payment temporarily unavailable'}</Button>
+                {view.checkoutEnabled && <TurnstileCaptcha key={captchaVersion} action="magazine_checkout" onVerify={setCaptchaToken} onExpire={() => setCaptchaToken('')} onError={() => { setCaptchaToken(''); setError('The security check could not load. Please retry shortly.') }} />}
+                <Button type="submit" className="w-full bg-orange-500 text-slate-950 hover:bg-orange-600" disabled={checkoutBusy || (captchaRequired && !captchaToken) || !view.campaign.applicationOpen || !view.checkoutEnabled}>{checkoutBusy ? <><LoaderCircle className="mr-2 h-4 w-4 animate-spin" />Opening secure checkout…</> : view.checkoutEnabled ? <>Continue to secure payment <ArrowRight className="ml-2 h-4 w-4" /></> : 'Payment temporarily unavailable'}</Button>
                 <p className="text-xs leading-5 text-slate-500">After checkout, return here to finish your application. Need help? <a className="font-semibold text-orange-700 underline underline-offset-2" href="mailto:info@top100afl.com?subject=2026%20Magazine%20Feature%20Application">Contact the team</a>.</p>
-                <button type="button" onClick={() => { setRecoveryRequired(true); setError(''); setRecoveryMessage('') }} className="text-sm font-medium text-orange-700 underline underline-offset-4">Already started? Continue your application</button>
+                <button type="button" onClick={() => { setContinueCheckoutAfterCode(false); setRecoveryRequired(true); setError(''); setRecoveryMessage('') }} className="text-sm font-medium text-orange-700 underline underline-offset-4">Already started? Continue your application</button>
                 <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500"><span>Secure checkout · No account required</span><button type="button" onClick={() => void refresh(true)} disabled={refreshing} className="inline-flex items-center gap-1.5 font-medium text-slate-700 hover:text-slate-950">{refreshing ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />} Check payment status</button></div>
               </form>
             )}

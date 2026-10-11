@@ -71,9 +71,15 @@ export async function handleBachsMagazineEvent(rawBody: string, headers: Headers
     && (!data.reference || data.reference === attempt.provider_reference)
     && (!data.checkout_id || !attempt.provider_checkout_id || data.checkout_id === attempt.provider_checkout_id))
 
-  const currency = typeof data.currency === 'string' ? data.currency.toUpperCase() : null
+  // Expiry describes an abandoned session, not a captured payment. Providers
+  // may report a display currency here; retain it in the audit payload only.
+  const abandonedCheckout = identityMatches && event.type === 'checkout.expired'
+    && data.status?.toLowerCase() === 'expired' && !data.charge_id
+    && !data.charge && !data.completed_at && !data.payment_status
+  const currency = abandonedCheckout ? attempt!.currency
+    : typeof data.currency === 'string' ? data.currency.toUpperCase() : null
   let amountMinor: number | null = null
-  if (typeof data.amount === 'string' && (currency === 'NGN' || currency === 'USD')) {
+  if (!abandonedCheckout && typeof data.amount === 'string' && (currency === 'NGN' || currency === 'USD')) {
     try { amountMinor = parseBachsAmount(data.amount, currency) } catch { amountMinor = null }
   }
   // The isolated RPC records mismatched currency/amount as an exception or
