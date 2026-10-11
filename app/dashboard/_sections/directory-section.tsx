@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ProfileSocialLinks } from '@/components/profile-social-icon'
+import { ProfileSocialIcon } from '@/components/profile-social-icon'
 import Link from 'next/link'
 import { ArrowRight, Mail, UsersRound, MapPin, RefreshCw, Search, ShieldAlert } from 'lucide-react'
 
@@ -101,7 +101,40 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
 
   return (
     <div className="hub-directory min-w-0">
-      <Dialog open={Boolean(connecting)} onOpenChange={open => { if (!open) setConnecting(null) }}><DialogContent className="max-w-sm rounded-2xl"><DialogHeader><DialogTitle>Connect with {connecting?.name}</DialogTitle><DialogDescription>Choose a contact option shared by this member.</DialogDescription></DialogHeader>{connecting ? <div className="space-y-4"><div className="flex items-center gap-3"><div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-orange-50 text-orange-800">{getInitials(connecting.name)}</div><div><p className="font-medium">{connecting.name}</p><p className="text-sm text-neutral-500">{connecting.headline || connecting.country}</p></div></div><ProfileSocialLinks links={connecting.socialLinks} />{connecting.email ? <a href={`mailto:${connecting.email}`} className="flex min-h-12 items-center gap-3 rounded-xl border px-4 py-3 hover:bg-orange-50"><Mail className="size-5 shrink-0" /><span className="min-w-0"><span className="block text-sm font-medium">Email</span><span className="block break-all text-xs text-neutral-500">{connecting.email}</span></span></a> : null}{!connecting.email && !connecting.socialLinks?.length ? <p className="rounded-xl bg-neutral-50 p-4 text-sm text-neutral-600">This member hasn’t shared any public contact options yet.</p> : null}</div> : null}</DialogContent></Dialog>
+      <Dialog open={Boolean(connecting)} onOpenChange={open => { if (!open) setConnecting(null) }}>
+        <DialogContent className="directory-connect-dialog" overlayClassName="directory-connect-overlay">
+          <DialogHeader className="pr-12 text-left">
+            <DialogTitle className="text-xl leading-7">Connect</DialogTitle>
+            <DialogDescription className="leading-5">Contact options shared by this awardee.</DialogDescription>
+          </DialogHeader>
+          {connecting ? <>
+            <div className="directory-connect-person">
+              <AwardeeThumbnail key={connecting.slug} awardee={connecting} />
+              <div className="min-w-0">
+                <h3 className="break-words text-base font-semibold leading-6">{connecting.name}</h3>
+                <p className="mt-1 break-words text-sm leading-5 text-neutral-600">{connecting.headline || connecting.country || 'Africa Future Leader'}</p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              {connecting.email ? <a href={`mailto:${connecting.email}`} className="directory-contact-option">
+                <Mail className="size-5 shrink-0" aria-hidden="true" />
+                <span className="min-w-0 flex-1"><span className="block font-medium">Send an email</span><span className="mt-0.5 block break-all text-xs text-neutral-600">{connecting.email}</span></span>
+                <ArrowRight className="size-4 shrink-0" aria-hidden="true" />
+              </a> : null}
+              {connecting.socialLinks?.map(link => <a key={link.platform} href={link.url} target="_blank" rel="noopener noreferrer" className="directory-contact-option">
+                <ProfileSocialIcon platform={link.platform} />
+                <span className="min-w-0 flex-1 capitalize">{link.platform === 'website' ? 'Visit website' : link.platform}</span>
+                <ArrowRight className="size-4 shrink-0" aria-hidden="true" /><span className="sr-only"> (opens in a new tab)</span>
+              </a>)}
+              {!connecting.email && !connecting.socialLinks?.length ? <div className="directory-contact-empty">
+                <p className="font-medium text-neutral-800">No public contact details yet</p>
+                <p className="mt-1 text-sm leading-6 text-neutral-600">You can still explore their profile to learn about their work.</p>
+              </div> : null}
+            </div>
+            <Link href={`/awardees/${connecting.slug}`} className="directory-connect-profile" onClick={() => setConnecting(null)}>View full profile <ArrowRight className="size-4" aria-hidden="true" /></Link>
+          </> : null}
+        </DialogContent>
+      </Dialog>
       <div className="space-y-5">
         {restrictedStatus ? <DirectoryRecoveryCard status={restrictedStatus} /> : null}
 
@@ -117,7 +150,7 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
               aria-label={`${cohort.year} cohort${selectedYear === cohort.year ? ', selected; activate to show all years' : ''}`}
               aria-pressed={selectedYear === cohort.year}
               className={cn(
-                'group flex min-h-16 flex-col justify-center rounded-[20px] border p-3 text-left text-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 focus-visible:ring-offset-2',
+                'group flex min-h-16 flex-col justify-center rounded-xl border p-3 text-left text-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 focus-visible:ring-offset-2',
                 cohort.surface,
                 selectedYear === cohort.year ? 'border-black/15 ring-1 ring-black/10' : 'border-black/5',
               )}
@@ -152,49 +185,45 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
                 }}
                 placeholder="Search name, country, field..."
                 aria-label="Search awardees by name, country, or field"
-                className="h-12 rounded-full border-black/10 pl-11 text-base text-black placeholder:text-black/35"
+                className="h-12 rounded-xl border-black/10 pl-11 text-base text-black placeholder:text-black/35"
               />
             </div>
           </div>
 
-          <div id="top-awardee-list" className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {!loading && !loadFailed ? <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-sm text-neutral-600">
+            <p role="status">{filteredAwardees.length} {filteredAwardees.length === 1 ? 'awardee' : 'awardees'}{selectedYear !== 'all' ? ` · ${selectedYear} cohort` : ' · All cohorts'}</p>
+            {(searchTerm || selectedYear !== 'all') ? <button type="button" className="px-2 text-orange-800 underline underline-offset-4" onClick={() => { setSearchTerm(''); setSelectedYear('all'); setPage(0) }}>Clear filters</button> : null}
+          </div> : null}
+
+          <div id="top-awardee-list" className="mt-3 grid gap-3 md:grid-cols-2">
             {visibleAwardees.map((awardee) => (
               <article
                 key={awardee.awardee_id || awardee.slug}
-                className="min-w-0 rounded-2xl border border-neutral-200 bg-white p-4"
+                className="directory-member min-w-0 rounded-2xl border border-neutral-200 bg-white p-4"
               >
-                <div className="flex items-start gap-3">
+                <div className="directory-identity">
                   <AwardeeThumbnail awardee={awardee} />
                   <div className="min-w-0 flex-1">
-                    <h3 className="break-words text-base font-medium text-black">{awardee.name}</h3>
-                    <p className="mt-1 line-clamp-2 text-[15px] font-medium leading-6 text-black/55">
-                      {awardee.headline || awardee.tagline || awardee.bio || 'Africa Future Leader'}
-                    </p>
+                    <h3 className="directory-name">{awardee.name}</h3>
+                    <div className="directory-meta">
+                      {awardee.country ? <span><MapPin className="size-3.5 shrink-0" aria-hidden="true" />{awardee.country}</span> : null}
+                      {awardee.year ? <span className="directory-year">{awardee.year} awardee</span> : null}
+                    </div>
                   </div>
                 </div>
-                <div className="mt-4 flex flex-wrap items-center gap-2">
-                  {awardee.country ? (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-black/65">
-                      <MapPin className="h-3.5 w-3.5" strokeWidth={2.8} />
-                      {awardee.country}
-                    </span>
-                  ) : null}
-                  {awardee.year ? (
-                    <span className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-orange-700">
-                      {awardee.year}
-                    </span>
-                  ) : null}
-                </div>
-                <div className="mt-4 grid grid-cols-2 gap-2">
+                <p className="directory-description">
+                  {awardee.headline || awardee.tagline || awardee.bio || 'Africa Future Leader'}
+                </p>
+                <div className="directory-actions mt-4 grid grid-cols-2 gap-2">
                   <Button
                     asChild
-                    className="h-10 rounded-full border border-black/10 bg-[#f5f5f2] px-4 text-sm font-semibold text-black/80 shadow-none hover:bg-white"
+                    className="directory-profile h-11 rounded-xl border border-orange-200 bg-orange-50 px-4 text-sm text-orange-900 shadow-none hover:bg-orange-100"
                   >
                     <Link href={`/awardees/${awardee.slug}`} prefetch>
-                      View BIO
+                      View profile <ArrowRight className="ml-2 size-4" aria-hidden="true" />
                     </Link>
                   </Button>
-                  <Button type="button" variant="outline" disabled={contactRestricted} onClick={() => setConnecting(awardee)} aria-label={`Connect with ${awardee.name}`} className="min-h-11 rounded-full border-black/10 bg-white text-black/75 hover:bg-orange-50"><UsersRound className="mr-2 size-4" />Connect</Button>
+                  <Button type="button" variant="outline" disabled={contactRestricted} onClick={() => setConnecting(awardee)} aria-label={`Connect with ${awardee.name}`} className="min-h-11 rounded-xl border-black/10 bg-white text-black/75 hover:bg-orange-50"><UsersRound className="mr-2 size-4" />Connect</Button>
                 </div>
               </article>
             ))}
@@ -280,7 +309,7 @@ function AwardeeThumbnail({ awardee }: { awardee: DirectoryCard }) {
   const [failed, setFailed] = useState(false)
   const image = awardee.avatar_url
   if (!image || failed) {
-    return <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#050505] text-sm font-bold text-[#fffaf0]">{getInitials(awardee.name)}</div>
+    return <div className="directory-avatar flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-orange-50 text-base font-medium text-orange-900">{getInitials(awardee.name)}</div>
   }
-  return <img src={image} alt="" loading="lazy" decoding="async" width={48} height={48} className="h-12 w-12 shrink-0 rounded-2xl object-cover" onError={() => setFailed(true)} />
+  return <img src={image} alt="" loading="lazy" decoding="async" width={56} height={56} className="directory-avatar h-14 w-14 shrink-0 rounded-full object-cover" onError={() => setFailed(true)} />
 }

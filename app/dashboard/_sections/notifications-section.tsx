@@ -130,9 +130,9 @@ export function NotificationsSection() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="hub-notifications space-y-5">
       {error && <p role="status" className="text-sm text-orange-800">Updates couldn’t refresh. Your last loaded messages are shown. <button type="button" className="underline" onClick={() => void loadNotifications(true)}>Try again</button></p>}
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-[#E8E4DD] pb-4">
+      <div className="updates-summary flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <div>
           <p className="text-sm font-medium text-[#27241F]">
             {unreadCount > 0 ? `${unreadCount} unread ${unreadCount === 1 ? 'update' : 'updates'}` : 'You’re all caught up'}
@@ -153,14 +153,13 @@ export function NotificationsSection() {
 
       {notifications.length > 0 ? (
         <ul className="space-y-3" aria-label="Member updates">
-          {notifications.map((notification) => {
+          {notifications.map((notification, index) => {
             const unread = !notification.readBy.includes(member.id)
             return (
-              <li key={notification.id} className={cn('relative overflow-hidden rounded-2xl border bg-white transition-colors', unread ? 'border-[#E9C9AE]' : 'border-[#E8E4DD]')}>
-                {unread ? <span className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-[#F36D21] to-[#F5A313]" aria-hidden="true" /> : null}
-                <article className="p-4 pl-5 sm:p-5 sm:pl-6">
+              <li key={notification.id} style={{ animationDelay: `${Math.min(index, 5) * 65}ms` }} className={cn('updates-item relative overflow-hidden rounded-2xl border bg-white transition-colors', unread ? 'is-unread border-[#E9C9AE]' : 'border-[#E8E4DD]')}>
+                  <article className="updates-article p-4 sm:p-5">
                   <div className="flex min-w-0 items-start gap-3">
-                    <span className={cn('mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl', unread ? 'bg-[#FFF2E8] text-[#943A0A]' : 'bg-[#F4F3F1] text-[#716B62]')}>
+                    <span className={cn('updates-icon mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl', unread ? 'bg-[#FFF2E8] text-[#943A0A]' : 'bg-[#F4F3F1] text-[#716B62]')}>
                       <BellRing className="h-[18px] w-[18px]" strokeWidth={1.8} aria-hidden="true" />
                     </span>
                     <div className="min-w-0 flex-1">
@@ -171,10 +170,10 @@ export function NotificationsSection() {
                         </div>
                         <time dateTime={displayNotificationDate(notification, member.createdAt)} className="text-xs font-normal text-[#716B62] sm:shrink-0 sm:pt-1">{formatNotificationDate(displayNotificationDate(notification, member.createdAt))}</time>
                       </div>
-                      <p className="mt-2 max-w-3xl text-sm font-normal leading-6 text-[#625B52]">{notification.message}</p>
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <p className="updates-body mt-2 max-w-3xl text-sm font-normal leading-6 text-[#625B52]">{notification.message}</p>
+                      <div className="updates-actions mt-3 flex flex-wrap items-center gap-2">
                       {notification.ctaUrl && notification.ctaLabel ? (
-                        <Link href={notification.ctaUrl} className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-[#FFF2E8] px-3 text-sm font-medium text-[#84330B] transition-colors hover:bg-[#FFE6D4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-2">
+                        <Link href={notification.ctaUrl} className="updates-cta inline-flex min-h-10 items-center gap-2 rounded-lg bg-[#FFF2E8] px-3 text-sm font-medium text-[#84330B] transition-colors hover:bg-[#FFE6D4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-2">
                           {notification.ctaLabel}<ArrowUpRight className="h-4 w-4" aria-hidden="true" />
                         </Link>
                       ) : null}

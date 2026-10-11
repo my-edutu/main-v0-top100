@@ -40,7 +40,7 @@ const scheduleItem = (
 }
 
 export const PROGRAMME_SCHEDULE: ProgrammeScheduleItem[] = [
-  scheduleItem(0, 'afl-2026-cohort-onboarding', 'Africa Future Leaders 2026: Cohort Onboarding', '2026-10-10', '16:00'),
+  scheduleItem(0, 'afl-2026-cohort-onboarding', 'Africa Future Leaders 2026: Cohort Onboarding', '2026-10-11', '19:00'),
   scheduleItem(1, 'global-talent-playbook', 'The Global Talent Playbook: How to Become Competitive Beyond Africa', '2026-10-11', '16:00'),
   scheduleItem(2, 'beyond-the-paycheck', 'Beyond the Paycheck: Building Career Capital and Financial Power', '2026-10-13', '18:00'),
   scheduleItem(3, 'from-expertise-to-authority', 'From Expertise to Authority: Becoming a Voice People Listen To', '2026-10-15', '18:00'),

@@ -110,9 +110,6 @@ export default function HomeFeaturedAwardees({ awardees }: Props) {
                         <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/55 to-slate-950/0 transition-colors duration-300 group-hover:via-slate-950/70" />
                         <div className="absolute inset-x-0 bottom-0 p-3 sm:p-4">
                           <h3 className="line-clamp-2 text-sm font-semibold leading-snug tracking-[-0.01em] text-white sm:text-base">{awardee.name}</h3>
-                          {awardee.headline && (
-                            <p className="mt-1.5 line-clamp-2 text-[11px] leading-4 text-slate-200 sm:mt-2 sm:text-xs">{awardee.headline}</p>
-                          )}
                         </div>
                       </Link>
                     ))}

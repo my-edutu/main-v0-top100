@@ -7,9 +7,11 @@ export const AFL_2026_CALENDAR = {
   artwork: '/programme/afl-october-2026/onboarding-2026.jpg',
 } as const
 
-// October 10 in Lagos (UTC+1). The popup is deliberately unavailable after today.
-export const AFL_2026_CALENDAR_POPUP_START = Date.parse('2026-10-09T23:00:00Z')
-export const AFL_2026_CALENDAR_POPUP_END = Date.parse('2026-10-10T23:00:00Z')
+export const AFL_2026_MEET_URL = 'https://meet.google.com/efd-hxeb-hkc'
+
+// October 11 in Lagos (UTC+1). The popup is deliberately unavailable after today.
+export const AFL_2026_CALENDAR_POPUP_START = Date.parse('2026-10-10T23:00:00Z')
+export const AFL_2026_CALENDAR_POPUP_END = Date.parse('2026-10-11T23:00:00Z')
 
 export function isAflCalendarPopupDay(now: number): boolean {
   return now >= AFL_2026_CALENDAR_POPUP_START && now < AFL_2026_CALENDAR_POPUP_END

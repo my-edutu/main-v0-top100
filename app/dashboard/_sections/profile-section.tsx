@@ -90,6 +90,14 @@ export function ProfileSection() {
   const pages = ['Photo', 'Headline', 'Field', 'Location', 'Organization', 'BIO', 'Social media', 'Visibility', 'Consent', 'Preview']
   const [page, setPage] = useState(0)
   const [editing, setEditing] = useState(false)
+  useEffect(() => {
+    if (window.location.hash !== '#social-media') return
+    const openSocialMediaEditor = window.setTimeout(() => {
+      setPage(6)
+      setEditing(true)
+    }, 0)
+    return () => window.clearTimeout(openSocialMediaEditor)
+  }, [])
   const [draft, setDraft] = useState<ProfileDraft>(() => draftFromMember(member))
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)

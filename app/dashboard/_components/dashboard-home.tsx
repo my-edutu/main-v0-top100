@@ -10,6 +10,7 @@ import {
   Mail,
   Video,
   UserRound,
+  Award,
 } from 'lucide-react'
 
 import {
@@ -34,14 +35,13 @@ const INTERVIEW_FORM_URL = '/dashboard/me/interview'
 const PARTNERSHIP_FORM_URL = 'https://docs.google.com/forms/d/1pabeSUOwN15Sr-VcAWIhl5k5_xwnKljFuzm90PCoEqQ/edit'
 
 const launchBanners = [
-  { title: 'Project100 Scholarship', description: 'Put your next chapter in motion.', href: '/dashboard/me/project100-scholarship', image: '/dashboard/banners/project100-scholarship-v2.png' },
+  { title: 'Project100 Scholarship', description: 'Put your next chapter in motion.', href: '/dashboard/me/project100-scholarship', image: '/dashboard/banners/project100-scholarship-roadside.png' },
   { title: 'Impact Series Interviews', description: 'Share the work behind your impact.', href: INTERVIEW_FORM_URL, image: '/dashboard/banners/impact-series-v2.png' },
   { title: 'Let your organization partner with Africa Future Leaders', description: 'Create more impact together.', href: PARTNERSHIP_FORM_URL, image: '/dashboard/banners/impact-series-v2.png', external: true },
 ] as const
 
 const shortcutDescriptions: Record<string, string> = {
   Members: 'Meet fellow awardees',
-  Opportunities: 'Find your next opening',
   Profile: 'Keep your BIO current',
   'My award': 'Pay your award fee securely',
   'Portfolio cover': 'Create your magazine profile',
@@ -154,7 +154,7 @@ export function DashboardHome() {
     }
   }, [])
 
-  const shortcuts = [discoverNav[0], discoverNav[2], meNav[0], meNav[2], meNav[4],
+  const shortcuts = [discoverNav[0], meNav[0], meNav[2], meNav[4],
     { label:'Apply for magazine', href:'/magazine/feature', icon:Mail, color:'burgundy' as const },
     { label:'Schedule an interview', href:INTERVIEW_FORM_URL, icon:Mail, color:'ember' as const },
     { label:'Contact the team', href:'mailto:info@top100afl.com', icon:Mail, color:'forest' as const },
@@ -216,9 +216,26 @@ export function DashboardHome() {
         <p className="hub-welcome-description">Your people and opportunities.</p>
       </section>
       <AwardeeOnboardingJourney name={member.name} />
-      {awardPayment && <section aria-label="Your physical award reservation" className="hub-updates-panel flex flex-wrap items-center justify-between gap-3 rounded-[18px] border border-[#E7DDCF] bg-[#FFF8EC] p-4">
-        <div><p className="text-sm font-medium text-[#171412]">Your physical award</p><p className="mt-1 text-xs leading-5 text-[#625B52]">{awardPayment.status === 'paid' || awardPayment.confirmedPayment ? 'Payment confirmed · contact the team for collection or dispatch.' : awardPayment.status === 'pending' ? 'Your payment is being confirmed. Check its status before trying again.' : awardPayment.status === 'refunded' ? 'Contact the team to review your payment.' : 'Not yet reserved · official presentation in November 2026.'}</p></div>
-        <Link href="/dashboard/me/award/payment" className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-[#8C4317] underline underline-offset-4">{awardPayment.needsPayment && awardPayment.status !== 'pending' && awardPayment.status !== 'refunded' ? 'View award options' : 'View payment status'}<ArrowUpRight size={16} aria-hidden="true" /></Link>
+      {awardPayment && <section aria-label="Your physical award reservation" className="hub-updates-panel relative isolate overflow-hidden rounded-[22px] border border-[#F0C98B] bg-[#FFF7E8] p-5 shadow-[0_12px_32px_rgba(115,63,18,.08)] sm:p-6">
+        <div aria-hidden="true" className="pointer-events-none absolute -right-7 -top-10 z-0 text-[#EFCB96]/45">
+          <Award className="h-40 w-40 rotate-12" strokeWidth={1.2} />
+        </div>
+        <div className="relative z-10 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-start gap-4">
+            <span aria-hidden="true" className="grid size-12 shrink-0 place-items-center rounded-2xl bg-[#FFE7BF] text-[#9A3412] ring-1 ring-inset ring-[#F5D6A8]">
+              <Award className="size-6" strokeWidth={1.8} />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-[0.19em] text-[#9A4B1D]">Africa Future Leaders · 2026</p>
+              <h2 className="mt-1 text-lg font-semibold tracking-tight text-[#23170F]">Your physical award</h2>
+              <p className="mt-1 max-w-xl text-sm leading-6 text-[#675448]">{awardPayment.status === 'paid' || awardPayment.confirmedPayment ? 'Payment confirmed · contact the team for collection or dispatch.' : awardPayment.status === 'pending' ? 'Your payment is being confirmed. Check its status before trying again.' : awardPayment.status === 'refunded' ? 'Contact the team to review your payment.' : 'Not yet reserved · official presentation in November 2026.'}</p>
+            </div>
+          </div>
+          <Link href="/dashboard/me/award/payment" className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#F97316] px-5 text-sm font-semibold text-[#171412] shadow-sm transition hover:bg-[#FB923C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9A3412] focus-visible:ring-offset-2">
+            {awardPayment.needsPayment && awardPayment.status !== 'pending' && awardPayment.status !== 'refunded' ? 'View award options' : 'View payment status'}
+            <ArrowUpRight size={16} aria-hidden="true" />
+          </Link>
+        </div>
       </section>}
       {loadError && <p role="status" className="hub-status rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-sm leading-5 text-neutral-700">Some events couldn’t load. We’ll retry automatically; you can also open Events directly.</p>}
 

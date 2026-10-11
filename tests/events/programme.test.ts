@@ -11,8 +11,8 @@ describe('October 2026 programme schedule', () => {
     expect(PROGRAMME_SCHEDULE).toHaveLength(11)
     expect(PROGRAMME_SCHEDULE[0]).toMatchObject({
       sessionNumber: 0,
-      date: '2026-10-10',
-      time: '16:00',
+      date: '2026-10-11',
+      time: '19:00',
       title: 'Africa Future Leaders 2026: Cohort Onboarding',
     })
     expect(PROGRAMME_SCHEDULE.at(-1)).toMatchObject({

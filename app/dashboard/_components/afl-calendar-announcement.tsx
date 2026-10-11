@@ -8,7 +8,7 @@ import { dashboardCelebrationStorageKey } from '@/lib/dashboard/celebration'
 
 export function AflCalendarAnnouncement({ memberId, dashboardLoginCount }: { memberId: string; dashboardLoginCount: number }) {
   const [open, setOpen] = useState(false)
-  const storageKey = `afl:calendar-announcement-seen:${AFL_2026_CALENDAR.campaignId}:${memberId}`
+  const storageKey = `afl:calendar-announcement-seen:${AFL_2026_CALENDAR.campaignId}:2026-10-11:${memberId}`
 
   useEffect(() => {
     if (!isAflCalendarPopupDay(Date.now())) return

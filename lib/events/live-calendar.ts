@@ -1,4 +1,4 @@
-import { AFL_2026_CALENDAR } from './afl-2026-calendar'
+import { AFL_2026_CALENDAR, AFL_2026_MEET_URL } from './afl-2026-calendar'
 
 export type LiveCalendarEvent = {
   id: string
@@ -46,9 +46,7 @@ export function parseAflCalendar(ics: string): LiveCalendarEvent[] {
     const description = unescapeIcs(fields.get('DESCRIPTION') ?? '')
     const sessionTitle = /<strong>Session:<\/strong>\s*<br\s*\/?>(?:\s*<strong>)?([^<]+)/i.exec(description)?.[1]
     const title = sessionTitle ? decodeHtml(sessionTitle) : unescapeIcs(fields.get('SUMMARY') ?? '')
-    const conference = fields.get('X-GOOGLE-CONFERENCE')
-    const descriptionMeet = /https:\/\/meet\.google\.com\/[a-z-]+/i.exec(description)?.[0]
-    const meetUrl = [conference, descriptionMeet].find(url => url && /^https:\/\/meet\.google\.com\/[a-z-]+$/i.test(url)) ?? null
+    const meetUrl = AFL_2026_MEET_URL
     events.push({
       id,
       title,
