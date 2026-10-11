@@ -253,6 +253,12 @@ html.light .interviews-hero h1 {
   color: #ffffff !important;
 }
 
+/* Magazine artwork and its feature form use white titles on dark backgrounds. */
+html.light .magazine-popup-artwork .text-white,
+html.light .magazine-feature-hero h1 {
+  color: #ffffff !important;
+}
+
 /* Keep LinkedIn's white label/icon on the brand-blue button inside Radix portals. */
 html.light a.awardee-linkedin-button {
   color: #ffffff !important;
@@ -591,3 +597,9 @@ html.light a.awardee-linkedin-button {
     will-change: auto;
   }
 }
+
+/* Dark magazine hero typography must retain contrast in every theme and viewport. */
+.magazine-feature-page .magazine-feature-hero h1,
+html.light .magazine-feature-page .magazine-feature-hero h1 { color:#fff !important; }
+.magazine-feature-page .magazine-feature-hero p { color:rgba(255,255,255,.85) !important; }
+.magazine-feature-page button.bg-orange-500.text-white { color:#fff !important; }

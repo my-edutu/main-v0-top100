@@ -12,12 +12,14 @@ import {
   type SetStateAction,
 } from 'react'
 
-import { fetchAwardPayment } from '@/lib/awards/payment'
+import { fetchAwardPayment, type AwardPaymentView } from '@/lib/awards/payment'
+import { initializeAwardFunnel, trackConfirmedAwardPayment } from '@/lib/awards/funnel'
 import { useDashboardMember } from './dashboard-member'
 
 type DashboardBadgeContextValue = {
   unreadUpdates: number
   awardNeedsAttention: boolean
+  awardPayment: AwardPaymentView | null
   setUnreadUpdates: Dispatch<SetStateAction<number>>
   setAwardNeedsAttention: Dispatch<SetStateAction<boolean>>
   refreshBadges: () => Promise<void>
@@ -29,15 +31,20 @@ export function DashboardBadgeProvider({ children }: { children: ReactNode }) {
   const { member, notifications } = useDashboardMember()
   const [unreadUpdates, setUnreadUpdates] = useState(0)
   const [awardNeedsAttention, setAwardNeedsAttention] = useState(false)
+  const [awardPayment, setAwardPayment] = useState<AwardPaymentView | null>(null)
+
+  useEffect(() => initializeAwardFunnel(), [])
 
   const refreshBadges = useCallback(async () => {
     try {
       const award = await fetchAwardPayment()
+      setAwardPayment(award)
       setAwardNeedsAttention(award.needsPayment)
+      trackConfirmedAwardPayment(member.id, award)
     } catch {
       // Keep the last known badge state when a transient request fails.
     }
-  }, [])
+  }, [member.id])
 
   useEffect(() => {
     setUnreadUpdates(notifications.filter(
@@ -99,11 +106,12 @@ export function DashboardBadgeProvider({ children }: { children: ReactNode }) {
     () => ({
       unreadUpdates,
       awardNeedsAttention,
+      awardPayment,
       setUnreadUpdates,
       setAwardNeedsAttention,
       refreshBadges,
     }),
-    [awardNeedsAttention, refreshBadges, unreadUpdates],
+    [awardNeedsAttention, awardPayment, refreshBadges, unreadUpdates],
   )
 
   return (

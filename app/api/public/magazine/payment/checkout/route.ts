@@ -14,6 +14,7 @@ import {
   MAGAZINE_GUEST_ACCESS_MAX_AGE,
   MAGAZINE_GUEST_ACCESS_PATH,
 } from '@/lib/magazine/guest-access'
+import { getPublicMagazinePaymentView } from '@/lib/magazine/guest-payment-server'
 import { checkRateLimit, createRateLimitResponse, getClientIdentifier, RATE_LIMITS } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
@@ -47,6 +48,13 @@ export async function POST(request: NextRequest) {
 
     const existingToken = request.cookies.get(MAGAZINE_GUEST_ACCESS_COOKIE)?.value
     guestToken = existingToken && hashMagazineGuestAccessToken(existingToken) ? existingToken : createMagazineGuestAccessToken()
+    // A shared browser must not pin the next applicant to a different email.
+    if (existingToken && hashMagazineGuestAccessToken(existingToken)) {
+      const previous = await getPublicMagazinePaymentView(existingToken)
+      if ('customer' in previous && previous.customer?.email?.toLowerCase() !== parsed.data.email.trim().toLowerCase()) {
+        guestToken = createMagazineGuestAccessToken()
+      }
+    }
     const checkout = await createPublicMagazineFeatureCheckout({ ...parsed.data, countryCode }, guestToken)
     const response = NextResponse.json(checkout)
     response.cookies.set(MAGAZINE_GUEST_ACCESS_COOKIE, guestToken, {

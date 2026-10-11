@@ -46,6 +46,15 @@ export default function PublicFeatureApplication() {
   const [countryCode, setCountryCode] = useState('NG')
   const [error, setError] = useState('')
   const [submitted, setSubmitted] = useState(false)
+  const [recoveryRequired, setRecoveryRequired] = useState(false)
+  const [recoveryBusy, setRecoveryBusy] = useState(false)
+  const [recoveryMessage, setRecoveryMessage] = useState('')
+
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [title, setTitle] = useState('')
+  const [category, setCategory] = useState<'bio' | 'story' | 'product' | 'project'>('story')
+  const [summary, setSummary] = useState('')
 
   const refresh = useCallback(async (quiet = false) => {
     if (quiet) setRefreshing(true)
@@ -66,13 +75,44 @@ export default function PublicFeatureApplication() {
     }
   }, [])
 
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [title, setTitle] = useState('')
-  const [category, setCategory] = useState<'bio' | 'story' | 'product' | 'project'>('story')
-  const [summary, setSummary] = useState('')
 
-  useEffect(() => { void refresh() }, [refresh])
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+    const token = new URLSearchParams(window.location.hash.slice(1)).get('resume')
+    if (!token) { void refresh(); return }
+    // The fragment keeps private tokens out of request URLs and referrer headers.
+    window.history.replaceState(null, '', window.location.pathname + window.location.search)
+    void (async () => {
+      try {
+        await readResponse(await fetch('/api/public/magazine/recover', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }),
+        }))
+        await refresh()
+      } catch (cause) {
+        await refresh()
+        setRecoveryRequired(true)
+        setRecoveryMessage(cause instanceof Error ? cause.message : 'Request a new private link to continue.')
+      }
+    })()
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [refresh])
+
+  async function requestResumeLink(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setRecoveryBusy(true)
+    setError('')
+    setRecoveryMessage('')
+    try {
+      const result = await readResponse(await fetch('/api/public/magazine/recover', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }),
+      }))
+      setRecoveryMessage(result.message)
+    } catch (cause) {
+      setRecoveryMessage(cause instanceof Error ? cause.message : 'Please try again shortly.')
+    } finally { setRecoveryBusy(false) }
+  }
 
   useEffect(() => {
     if (typeof window === 'undefined' || new URLSearchParams(window.location.search).get('payment') !== 'done') return
@@ -102,8 +142,17 @@ export default function PublicFeatureApplication() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, countryCode }),
       })
-      const result = await readResponse(response) as { checkoutUrl: string }
-      window.location.assign(result.checkoutUrl)
+      const result = await readResponse(response) as { checkoutUrl?: string; nextStep?: 'recover' | 'refresh' }
+      if (result.nextStep === 'recover') {
+        setRecoveryRequired(true)
+        setRecoveryMessage('')
+        setCheckoutBusy(false)
+      } else if (result.nextStep === 'refresh') {
+        await refresh(true)
+        setCheckoutBusy(false)
+      } else if (result.checkoutUrl) {
+        window.location.assign(result.checkoutUrl)
+      } else { throw new Error('Please check your payment status and try again.') }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not start payment.')
       setCheckoutBusy(false)
@@ -133,14 +182,14 @@ export default function PublicFeatureApplication() {
   const pending = ['pending', 'processing'].includes(view?.orderStatus ?? '') || ['open', 'processing', 'creating'].includes(view?.currentAttempt?.status ?? '')
 
   return (
-    <main className="min-h-screen bg-[#f7f5f2] px-4 py-8 text-[#151d2c] sm:px-6 sm:py-14">
+    <main className="magazine-feature-page min-h-screen bg-[#f7f5f2] px-4 py-8 text-[#151d2c] sm:px-6 sm:py-14">
       <div className="mx-auto max-w-3xl">
         <Link href="/" className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-900">
           <ArrowLeft className="h-4 w-4" /> Back to Africa Future Leaders
         </Link>
 
         <section className="mt-6 overflow-hidden rounded-3xl bg-white shadow-xl shadow-slate-900/5">
-          <div className="relative overflow-hidden bg-gradient-to-br from-[#291620] via-[#54221f] to-[#713514] px-6 py-9 text-white sm:px-10 sm:py-12">
+          <div className="magazine-feature-hero relative overflow-hidden bg-gradient-to-br from-[#291620] via-[#54221f] to-[#713514] px-6 py-9 text-white sm:px-10 sm:py-12">
             <div className="absolute -right-20 -top-28 h-80 w-80 rounded-full border border-white/15" />
             <div className="absolute -right-8 -top-16 h-56 w-56 rounded-full border border-white/15" />
             <div className="relative max-w-xl">
@@ -158,6 +207,17 @@ export default function PublicFeatureApplication() {
               <div className="rounded-xl bg-slate-50 p-5 text-sm text-slate-600">{error || 'Magazine applications are temporarily unavailable.'}</div>
             ) : !view.campaign.applicationOpen && !paid ? (
               <div className="rounded-xl bg-slate-50 p-5 text-slate-700">Applications for this magazine campaign are currently closed.</div>
+            ) : recoveryRequired ? (
+              <form onSubmit={requestResumeLink} className="space-y-5">
+                <div>
+                  <h2 className="text-2xl font-bold">Continue your application</h2>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">We’ll email you a private link to your application and payment status. You can open it in any browser.</p>
+                </div>
+                <div className="space-y-2"><Label htmlFor="resume-email">Email used for your application</Label><Input id="resume-email" type="email" value={email} onChange={event => setEmail(event.target.value)} autoComplete="email" maxLength={320} required /></div>
+                {recoveryMessage && <p role="status" className="rounded-xl bg-orange-50 px-4 py-3 text-sm leading-6 text-slate-700">{recoveryMessage}</p>}
+                <Button type="submit" className="w-full bg-orange-500 text-white hover:bg-orange-600" disabled={recoveryBusy}>{recoveryBusy ? <><LoaderCircle className="mr-2 h-4 w-4 animate-spin" />Sending your link…</> : 'Email my private link'}</Button>
+                <button type="button" onClick={() => { setRecoveryRequired(false); setError(''); setRecoveryMessage('') }} className="text-sm font-medium text-slate-600 underline underline-offset-4">Back to application details</button>
+              </form>
             ) : submitted ? (
               <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center sm:p-8">
                 <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-600" />
@@ -192,7 +252,8 @@ export default function PublicFeatureApplication() {
                 {pending && <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><ShieldCheck className="mt-0.5 h-5 w-5 shrink-0" /><div><p className="font-semibold">Payment status is being confirmed</p><p className="mt-1">The application form unlocks after Bachs confirms payment. Use the status button below to check again.</p></div></div>}
                 {view.orderStatus === 'exception' && <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Your payment needs support review before you can continue.</div>}
                 <Button type="submit" className="w-full bg-orange-500 text-slate-950 hover:bg-orange-600" disabled={checkoutBusy || !view.campaign.applicationOpen || !view.checkoutEnabled}>{checkoutBusy ? <><LoaderCircle className="mr-2 h-4 w-4 animate-spin" />Opening secure checkout…</> : view.checkoutEnabled ? <>Continue to secure payment <ArrowRight className="ml-2 h-4 w-4" /></> : 'Payment temporarily unavailable'}</Button>
-                <p className="text-xs leading-5 text-slate-500">After checkout, return in this browser to finish your application. Need help? <a className="font-semibold text-orange-700 underline underline-offset-2" href="mailto:info@top100afl.com?subject=2026%20Magazine%20Feature%20Application">Contact the team</a>.</p>
+                <p className="text-xs leading-5 text-slate-500">After checkout, return here to finish your application. Need help? <a className="font-semibold text-orange-700 underline underline-offset-2" href="mailto:info@top100afl.com?subject=2026%20Magazine%20Feature%20Application">Contact the team</a>.</p>
+                <button type="button" onClick={() => { setRecoveryRequired(true); setError(''); setRecoveryMessage('') }} className="text-sm font-medium text-orange-700 underline underline-offset-4">Already started? Continue your application</button>
                 <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500"><span>Secure checkout · No account required</span><button type="button" onClick={() => void refresh(true)} disabled={refreshing} className="inline-flex items-center gap-1.5 font-medium text-slate-700 hover:text-slate-950">{refreshing ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />} Check payment status</button></div>
               </form>
             )}

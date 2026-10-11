@@ -5,15 +5,18 @@ import { ArrowRight, Loader2 } from 'lucide-react'
 import Image from '@/components/safe-image'
 
 import { startAwardPaymentCheckout, type AwardPaymentCurrency, type AwardPaymentView } from '@/lib/awards/payment'
+import { trackAwardFunnel } from '@/lib/awards/funnel'
 
 type AwardPaymentCardProps = {
   view: AwardPaymentView
   cancelled?: boolean
+  memberId?: string
 }
 
 export function AwardPaymentCard({
   view,
   cancelled = false,
+  memberId,
 }: AwardPaymentCardProps) {
   const [currency, setCurrency] = useState<AwardPaymentCurrency>('NGN')
   const [startingCheckout, setStartingCheckout] = useState(false)
@@ -27,6 +30,7 @@ export function AwardPaymentCard({
     setCheckoutError('')
     try {
       const checkout = await startAwardPaymentCheckout(currency)
+      if (memberId) trackAwardFunnel(memberId, 'checkout_started', undefined, currency)
       window.location.assign(checkout.checkoutUrl)
     } catch (error) {
       setCheckoutError(error instanceof Error ? error.message : 'Could not start payment. Please try again.')

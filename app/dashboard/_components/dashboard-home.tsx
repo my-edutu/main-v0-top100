@@ -27,6 +27,8 @@ import { useDashboardMember } from '../_providers/dashboard-member'
 import { AwardeeOnboardingJourney } from './awardee-onboarding-journey'
 import { DashboardCelebration } from './dashboard-celebration'
 import { AflCalendarAnnouncement } from './afl-calendar-announcement'
+import MagazinePopup from '@/app/components/MagazinePopup'
+import { useDashboardBadges } from '../_providers/dashboard-badges'
 
 const INTERVIEW_FORM_URL = '/dashboard/me/interview'
 const PARTNERSHIP_FORM_URL = 'https://docs.google.com/forms/d/1pabeSUOwN15Sr-VcAWIhl5k5_xwnKljFuzm90PCoEqQ/edit'
@@ -45,6 +47,7 @@ const shortcutDescriptions: Record<string, string> = {
   'Portfolio cover': 'Create your magazine profile',
   Posts: 'Write in your own words',
   'Get featured': 'Share your work with the team',
+  'Apply for magazine': 'Share the story behind your leadership',
   'Schedule an interview': 'Request an interview time',
   'Contact the team': 'Ask a question or get support',
   'Partner with us': 'Explore working together',
@@ -99,6 +102,7 @@ function downloadCalendarEvent(event: { title: string; startAt: string | null; e
 
 export function DashboardHome() {
   const { member } = useDashboardMember()
+  const { awardPayment } = useDashboardBadges()
   const [invitations, setInvitations] = useState<EventInvitation[]>([])
   const [programmeEvents, setProgrammeEvents] = useState<LiveCalendarEvent[]>([])
   const [loading, setLoading] = useState(true)
@@ -151,6 +155,7 @@ export function DashboardHome() {
   }, [])
 
   const shortcuts = [discoverNav[0], discoverNav[2], meNav[0], meNav[2], meNav[4],
+    { label:'Apply for magazine', href:'/magazine/feature', icon:Mail, color:'burgundy' as const },
     { label:'Schedule an interview', href:INTERVIEW_FORM_URL, icon:Mail, color:'ember' as const },
     { label:'Contact the team', href:'mailto:info@top100afl.com', icon:Mail, color:'forest' as const },
     { label:'Partner with us', href:'/partnership', icon:UserRound, color:'cobalt' as const },
@@ -199,6 +204,7 @@ export function DashboardHome() {
 
   return (
     <div className="hub-home">
+      <MagazinePopup member={member} />
       <DashboardCelebration
         memberId={member.id}
         name={member.name}
@@ -210,6 +216,10 @@ export function DashboardHome() {
         <p className="hub-welcome-description">Your people and opportunities.</p>
       </section>
       <AwardeeOnboardingJourney name={member.name} />
+      {awardPayment && <section aria-label="Your physical award reservation" className="hub-updates-panel flex flex-wrap items-center justify-between gap-3 rounded-[18px] border border-[#E7DDCF] bg-[#FFF8EC] p-4">
+        <div><p className="text-sm font-medium text-[#171412]">Your physical award</p><p className="mt-1 text-xs leading-5 text-[#625B52]">{awardPayment.status === 'paid' || awardPayment.confirmedPayment ? 'Payment confirmed · contact the team for collection or dispatch.' : awardPayment.status === 'pending' ? 'Your payment is being confirmed. Check its status before trying again.' : awardPayment.status === 'refunded' ? 'Contact the team to review your payment.' : 'Not yet reserved · official presentation in November 2026.'}</p></div>
+        <Link href="/dashboard/me/award/payment" className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-[#8C4317] underline underline-offset-4">{awardPayment.needsPayment && awardPayment.status !== 'pending' && awardPayment.status !== 'refunded' ? 'View award options' : 'View payment status'}<ArrowUpRight size={16} aria-hidden="true" /></Link>
+      </section>}
       {loadError && <p role="status" className="hub-status rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-sm leading-5 text-neutral-700">Some events couldn’t load. We’ll retry automatically; you can also open Events directly.</p>}
 
       <section aria-labelledby="coming-up-title" className="hub-upcoming-events min-w-0">

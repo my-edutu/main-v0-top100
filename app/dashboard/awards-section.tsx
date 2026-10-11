@@ -10,6 +10,7 @@ import {
   type AwardPaymentView,
 } from '@/lib/awards/payment'
 import type { MemberProfile } from '@/lib/member-hub'
+import { trackConfirmedAwardPayment } from '@/lib/awards/funnel'
 
 import {
   awardPaymentScreen,
@@ -138,6 +139,9 @@ export default function AwardsSection({
   }, [onClaimStateChange, view?.needsPayment])
 
   const screen = awardPaymentScreen(view, resolvedReturnState)
+  useEffect(() => {
+    if (view) trackConfirmedAwardPayment(member.id, view)
+  }, [member.id, view])
   useEffect(() => {
     // A local test return can outlive the in-memory demo store (for example
     // after restarting `next dev`). If its simulated attempt no longer exists,
@@ -276,6 +280,7 @@ export default function AwardsSection({
   return (
     <div className="space-y-6">
       <AwardPaymentCard
+        memberId={member.id}
         view={view}
         cancelled={resolvedReturnState === 'cancelled'}
       />

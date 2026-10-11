@@ -88,9 +88,8 @@ export async function createPublicMagazineFeatureCheckout(customer: GuestCustome
   })
   if (error) throw new MagazinePaymentError(503, 'Could not reserve a magazine payment. Please try again.')
   if (reservation?.outcome === 'campaign_closed') throw new MagazinePaymentError(409, 'This magazine campaign is closed to new applications.')
-  if (reservation?.outcome === 'access_conflict') throw new MagazinePaymentError(409, 'This email or browser is already linked to a magazine application. Use the email and browser from checkout, or contact info@top100afl.com for help.')
-  if (reservation?.outcome === 'already_paid') throw new MagazinePaymentError(409, 'Your magazine payment is already confirmed.')
-  if (reservation?.outcome === 'needs_review') throw new MagazinePaymentError(409, 'Your earlier magazine payment needs support review.')
+  if (reservation?.outcome === 'access_conflict') return { nextStep: 'recover' as const }
+  if (reservation?.outcome === 'already_paid' || reservation?.outcome === 'needs_review') return { nextStep: 'refresh' as const }
 
   if (reservation?.outcome === 'existing') {
     const { data: existing, error: existingError } = await db.from('magazine_feature_payment_attempts')
@@ -99,7 +98,7 @@ export async function createPublicMagazineFeatureCheckout(customer: GuestCustome
     if (existingError) throw new MagazinePaymentError(503, 'Could not load the current payment session.')
     const savedUrl = checkoutUrl(existing as MagazinePaymentAttempt | null)
     if (savedUrl) return { checkoutUrl: savedUrl, attemptId: reservation.attempt_id }
-    throw new MagazinePaymentError(409, 'A magazine payment is already in progress. Refresh to check its status.')
+    return { nextStep: 'refresh' as const }
   }
   if (reservation?.outcome !== 'created') throw new MagazinePaymentError(409, 'Could not start this magazine payment. Refresh and try again.')
 

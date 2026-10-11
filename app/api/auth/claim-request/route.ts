@@ -38,8 +38,21 @@ export async function POST(request: NextRequest) {
     .select('id,email,profile_id')
     .eq('id', awardeeId)
     .maybeSingle()
-  if (error || !awardee || awardee.profile_id || !awardee.email || awardee.email.trim().toLowerCase() !== email) {
-    return NextResponse.json({ message: 'This record cannot be claimed with that email. Contact the admin team if your email has changed.' }, { status: 403 })
+  if (error) {
+    console.error('[claim-request] Could not verify awardee record', { code: error.code })
+    return NextResponse.json({ message: 'We could not check this winner record right now. Please try again shortly.' }, { status: 503 })
+  }
+  if (!awardee) {
+    return NextResponse.json({ message: 'This winner record could not be found. Search for your name again or contact the AFL team.' }, { status: 404 })
+  }
+  if (awardee.profile_id) {
+    return NextResponse.json({ message: 'This winner profile already has an account. Sign in to continue.' }, { status: 409 })
+  }
+  if (!awardee.email) {
+    return NextResponse.json({ message: 'No email is linked to this winner record yet. Contact the AFL team to update it before claiming your profile.' }, { status: 409 })
+  }
+  if (awardee.email.trim().toLowerCase() !== email) {
+    return NextResponse.json({ message: 'That email does not match the email linked to this winner record. Use the email on file, or contact the AFL team if it has changed.' }, { status: 403 })
   }
   const code = await validateCode(inviteCode, email)
   if (!code.ok) return NextResponse.json({ message: 'The invite code is invalid or unavailable for this email.' }, { status: 403 })

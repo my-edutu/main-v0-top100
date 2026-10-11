@@ -13,7 +13,6 @@ import HallOfFamePreview from "./components/HallOfFamePreview"
 import HomeFeaturedAwardeesSection from "./components/HomeFeaturedAwardeesSection"
 import BlogSection from "./components/BlogSection"
 import MagazineSection from "./components/MagazineSection"
-import MagazinePopup from "./components/MagazinePopup"
 import ImpactSection from "./components/ImpactSection"
 import ImpactSeriesSection from "./components/ImpactSeriesSection"
 import PartnershipHeroSection from "./components/PartnershipHeroSection"
@@ -230,7 +229,6 @@ export default async function HomePage() {
           </div>
         </section>
       </div>
-      <MagazinePopup />
     </div>
   )
 }

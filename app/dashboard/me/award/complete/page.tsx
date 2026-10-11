@@ -8,8 +8,11 @@ import { AwardPaymentSuccess } from '../../../award-payment-success'
 import { paymentIsConfirmed } from '../../../award-payment-view'
 import { claimAwardPaymentSuccess } from '@/lib/awards/payment-success-visit'
 import type { AwardPaymentView } from '@/lib/awards/payment'
+import { trackConfirmedAwardPayment } from '@/lib/awards/funnel'
+import { useDashboardMember } from '../../../_providers/dashboard-member'
 
 export default function AwardCompletePage() {
+  const { member } = useDashboardMember()
   const router = useRouter()
   const [view, setView] = useState<AwardPaymentView | null>(null)
   const [error, setError] = useState('')
@@ -23,6 +26,7 @@ export default function AwardCompletePage() {
       if (!response.ok) throw new Error(body?.message || 'Could not verify your award payment.')
       const paymentView = body as AwardPaymentView
       setView(paymentView)
+      trackConfirmedAwardPayment(member.id, paymentView)
       const isPaymentReturn = new URLSearchParams(window.location.search).get('payment') === 'done'
       const confirmedPayment = paymentView.confirmedPayment
       let shouldShowSuccess = false
@@ -44,7 +48,7 @@ export default function AwardCompletePage() {
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not verify your award payment.')
     }
-  }, [])
+  }, [member.id])
 
   useEffect(() => {
     void loadPayment()

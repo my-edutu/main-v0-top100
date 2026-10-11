@@ -26,6 +26,7 @@ type DashboardMemberContextValue = {
   replaceNotifications: (notifications: MemberNotification[]) => void
   replaceMember: (member: MemberProfile) => void
   refreshMember: () => Promise<void>
+  dashboardVisitReady: boolean
 }
 
 const DashboardMemberContext = createContext<DashboardMemberContextValue | null>(null)
@@ -38,6 +39,7 @@ export function DashboardMemberProvider({ children }: { children: ReactNode }) {
   const [loadedAt, setLoadedAt] = useState(0)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
+  const [recordedVisitMemberId, setRecordedVisitMemberId] = useState<string | null>(null)
   const [replayingWelcome, setReplayingWelcome] = useState(false)
   const [welcomeReplayError, setWelcomeReplayError] = useState('')
   const replaceMember = useCallback((nextMember: MemberProfile) => {
@@ -90,7 +92,9 @@ export function DashboardMemberProvider({ children }: { children: ReactNode }) {
       if (!response.ok) return
       const data = await response.json()
       if (!cancelled) setMember(current => current ? { ...current, dashboardLoginCount: data.count } : current)
-    }).catch(() => undefined)
+    }).catch(() => undefined).finally(() => {
+      if (!cancelled) setRecordedVisitMemberId(member.id)
+    })
     return () => { cancelled = true }
   }, [member?.id, member?.onboardingCompletedAt])
 
@@ -150,7 +154,7 @@ export function DashboardMemberProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <DashboardMemberContext.Provider value={{ member, notifications, loadedAt, replaceNotifications: setNotifications, refreshMember, replaceMember }}>
+    <DashboardMemberContext.Provider value={{ member, notifications, loadedAt, replaceNotifications: setNotifications, refreshMember, replaceMember, dashboardVisitReady: recordedVisitMemberId === member.id }}>
       {isLocalPreview && <div className={`award-preview-banner px-4 py-2 text-center text-xs text-orange-900 ${awardDark ? 'award-preview-dark' : 'bg-orange-50'}`}>Local preview · sample account and activity {member.onboardingCompletedAt && <button type="button" className="ml-2 underline disabled:opacity-60" onClick={() => void replayWelcome()} disabled={replayingWelcome}>{replayingWelcome ? 'Reopening welcome…' : 'Replay welcome'}</button>}{welcomeReplayError && <span role="alert" className="ml-2">{welcomeReplayError}</span>}</div>}
       {showDashboardOnboarding ? (
         <Top100MomentGate

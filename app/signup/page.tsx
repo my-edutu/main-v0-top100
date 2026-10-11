@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from '@/components/safe-image'
-import { ArrowLeft, ArrowRight, Loader2, Search, LogOut } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Eye, EyeOff, Loader2, Search, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -29,6 +29,7 @@ export default function SignUpPage() {
   const [email, setEmail] = useState('')
   const [inviteCode, setInviteCode] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [captcha, setCaptcha] = useState('')
   const [busy, setBusy] = useState(false)
   const [searchedQuery, setSearchedQuery] = useState('')
@@ -201,10 +202,12 @@ export default function SignUpPage() {
           {!submitted && !accountMismatch && step === 1 && <div className="my-5 rounded-xl border border-stone-200 bg-stone-50 p-4"><p className="text-sm font-semibold">Already registered?</p><p className="mt-1 text-sm text-stone-600">Sign in to continue to your dashboard. If you’re waiting for approval, you can still sign in.</p><div className="mt-3 flex flex-wrap gap-4 text-sm font-semibold text-orange-800"><Link href="/login" className="underline">Sign in</Link><Link href="/auth/forgot-password?area=member" className="underline">Reset password</Link></div></div>}
           {!submitted && !accountMismatch && step === 2 && <p className="my-5 rounded-xl border border-stone-200 bg-stone-50 p-4 text-sm text-stone-700">Already have an account? <Link href="/login" className="font-semibold text-orange-800 underline">Sign in</Link> to continue.</p>}
 
-          {step === 2 && !submitted && <form onSubmit={requestClaim} className="space-y-5">
+          {step === 2 && !submitted && selected?.emailHint === null && <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-800"><p className="font-semibold">This winner record has no email on file yet.</p><p className="mt-1">The AFL team needs to add or confirm your email before you can claim this profile. <a className="font-semibold underline" href="mailto:info@top100afl.com?subject=Help%20claiming%20my%20winner%20profile">Contact the team</a> and include your awardee name.</p><Button type="button" variant="ghost" className="mt-2 px-0 text-red-900" onClick={() => setStep(1)}><ArrowLeft className="mr-2 h-4 w-4" />Back to search</Button></div>}
+
+          {step === 2 && !submitted && !accountMismatch && selected && selected.emailHint !== null && <form onSubmit={requestClaim} className="space-y-5">
             <div><Label htmlFor="claim-email">Email on your winner record</Label><Input id="claim-email" className="mt-2 h-12" type="email" required autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" />{selected?.emailHint && <p className="mt-1 text-xs text-stone-500">On file: {selected.emailHint}</p>}</div>
             <div><Label htmlFor="claim-code">Invite code from the AFL team</Label><Input id="claim-code" className="mt-2 h-12" required value={inviteCode} onChange={(event) => setInviteCode(event.target.value)} placeholder="AFL-XXXXX-XXXXX" /></div>
-            {!hasSession && <div><Label htmlFor="claim-password">Choose a sign-in password</Label><Input id="claim-password" className="mt-2 h-12" required minLength={8} type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} /></div>}
+            {!hasSession && <div><Label htmlFor="claim-password">Choose a sign-in password</Label><div className="relative mt-2"><Input id="claim-password" className="h-12 pr-12" required minLength={8} type={showPassword ? 'text' : 'password'} autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} /><button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-1 text-stone-500 hover:text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword} aria-controls="claim-password">{showPassword ? <EyeOff aria-hidden="true" className="h-5 w-5" /> : <Eye aria-hidden="true" className="h-5 w-5" />}</button></div></div>}
             <LegalConsent id="claim-legal-consent" />
             <TurnstileCaptcha action="signup" onVerify={setCaptcha} onExpire={() => setCaptcha('')} onError={() => setCaptcha('')} />
             {captchaUnavailable && <p role="alert" className="text-sm text-red-800">The security check is unavailable. Please try again shortly.</p>}
