@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
   catch { return Response.json({ error: 'Invalid request body.' }, { status: 400 }) }
   const response = await broadcast(new NextRequest(request.url, {
     method: 'POST', headers: request.headers,
-    body: JSON.stringify({ title: body.title, message: body.body, audience: 'all' }),
+    body: JSON.stringify({ title: body.title, message: body.body, audience: 'all', url: body.url }),
   }))
   const data = await response.json()
   if (!response.ok) return Response.json({ error: data.message }, { status: response.status })
@@ -17,8 +17,8 @@ export async function POST(request: NextRequest) {
   await createAdminClient().from('notification_history').insert({
     title: String(body.title ?? '').slice(0, 120),
     body: String(body.body ?? '').slice(0, 2000),
-    url: '/dashboard/notifications',
-    recipient_count: data.push?.accepted ?? 0,
+    url: typeof body.url === 'string' && /^\/dashboard(?:\/|$)/.test(body.url) ? body.url : '/dashboard/notifications',
+    recipient_count: data.recipients ?? 0,
     status: pushStatus,
     sent_at: new Date().toISOString(),
   })
