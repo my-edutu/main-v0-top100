@@ -79,6 +79,22 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ message: 'You cannot suspend or demote your own administrator account.' }, { status: 403 })
     }
 
+    // Only a superadmin may edit an administrator account or promote an ordinary
+    // member to admin. Do not trust the caller's proposed role as their current role.
+    const { data: targetProfile, error: targetError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', id)
+      .maybeSingle()
+    if (targetError) return NextResponse.json({ message: 'Could not verify the target account.' }, { status: 503 })
+    if (!targetProfile) return NextResponse.json({ message: 'Account not found.' }, { status: 404 })
+    if (
+      adminCheck.profile.role !== 'superadmin' &&
+      (targetProfile.role === 'superadmin' || targetProfile.role === 'admin' || role === 'admin')
+    ) {
+      return NextResponse.json({ message: 'Superadmin approval is required for administrator account changes.' }, { status: 403 })
+    }
+
     // Prepare update data
     const updates: Record<string, any> = {}
 
@@ -185,6 +201,20 @@ export async function DELETE(req: NextRequest) {
         { message: 'You cannot delete your own account' },
         { status: 403 }
       )
+    }
+
+    const { data: targetProfile, error: targetError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', id)
+      .maybeSingle()
+    if (targetError) return NextResponse.json({ message: 'Could not verify the target account.' }, { status: 503 })
+    if (!targetProfile) return NextResponse.json({ message: 'Account not found.' }, { status: 404 })
+    if (
+      adminCheck.profile.role !== 'superadmin' &&
+      (targetProfile.role === 'superadmin' || targetProfile.role === 'admin')
+    ) {
+      return NextResponse.json({ message: 'Only superadmins can remove administrator accounts.' }, { status: 403 })
     }
 
     // Preserve historical payments and submissions while revoking account access.
