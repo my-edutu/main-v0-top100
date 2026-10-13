@@ -8,28 +8,35 @@ export type WhatsAppGroup = {
   inviteUrl: string
 }
 
-export const WHATSAPP_GROUPS: Record<WhatsAppGroupKey, WhatsAppGroup> = {
-  'group-1': {
-    key: 'group-1',
-    label: 'Group 1',
-    inviteUrl: 'https://chat.whatsapp.com/CBxGOfyMbCP3YzceNrHLkm?mode=gi_t',
-  },
-  'group-2': {
-    key: 'group-2',
-    label: 'Group 2',
-    inviteUrl: 'https://chat.whatsapp.com/F8p9rErOr6VAYGZbhaske8?mode=gi_t',
-  },
-  'group-3': {
-    key: 'group-3',
-    label: 'Group 3',
-    inviteUrl: 'https://chat.whatsapp.com/FyQZI3OJ0OJJJpHW71lGeR?mode=gi_t',
-  },
+// Invite links must be rotated and supplied through private server environment
+// variables. Never embed active group invites in source control or client bundles.
+export const WHATSAPP_GROUPS: Record<WhatsAppGroupKey, Omit<WhatsAppGroup, 'inviteUrl'>> = {
+  'group-1': { key: 'group-1', label: 'Group 1' },
+  'group-2': { key: 'group-2', label: 'Group 2' },
+  'group-3': { key: 'group-3', label: 'Group 3' },
+}
+
+const GROUP_URL_ENV: Record<WhatsAppGroupKey, string> = {
+  'group-1': 'WHATSAPP_GROUP_1_INVITE_URL',
+  'group-2': 'WHATSAPP_GROUP_2_INVITE_URL',
+  'group-3': 'WHATSAPP_GROUP_3_INVITE_URL',
+}
+
+export class WhatsAppGroupSetupError extends Error {
+  constructor() {
+    super('WhatsApp group invitations are not configured.')
+    this.name = 'WhatsAppGroupSetupError'
+  }
 }
 
 export function getWhatsAppGroup(groupKey: unknown): WhatsAppGroup | null {
-  return typeof groupKey === 'string' && Object.hasOwn(WHATSAPP_GROUPS, groupKey)
-    ? WHATSAPP_GROUPS[groupKey as WhatsAppGroupKey]
-    : null
+  if (typeof groupKey !== 'string' || !Object.hasOwn(WHATSAPP_GROUPS, groupKey)) return null
+  const key = groupKey as WhatsAppGroupKey
+  const inviteUrl = process.env[GROUP_URL_ENV[key]]?.trim() ?? ''
+  if (!/^https:\/\/chat\.whatsapp\.com\/[A-Za-z0-9]+(?:\?.*)?$/.test(inviteUrl)) {
+    throw new WhatsAppGroupSetupError()
+  }
+  return { ...WHATSAPP_GROUPS[key], inviteUrl }
 }
 
 export function isMissingWhatsAppGroupAssignmentsTable(
@@ -65,6 +72,8 @@ export async function resolveWhatsAppGroupAssignment(
   }
 
   const candidate = Object.values(WHATSAPP_GROUPS)[randomIndex]
+  // Fail before reserving a group if an invitation has not been configured.
+  getWhatsAppGroup(candidate.key)
   const inserted = await supabase
     .from('whatsapp_group_assignments')
     .upsert(
