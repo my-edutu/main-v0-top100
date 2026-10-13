@@ -37,6 +37,7 @@ export default defineConfig([
     'next-env.d.ts',
     'lib/generated/prisma/**',
     '.playwright-cli/**',
+    '.claude/worktrees/**',
     'remotion-advert/**',
     'scripts/**',
     'tests/**',

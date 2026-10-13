@@ -60,10 +60,15 @@ describe('distributed production rate limiting', () => {
       const content = readFileSync(filePath, 'utf8')
       if (!content.includes('checkRateLimit(')) return []
 
-      return content
-        .split(/\r?\n/)
+      const lines = content.split(/\r?\n/)
+      return lines
         .map((line, index) => ({ line, index }))
-        .filter(({ line }) => line.includes('checkRateLimit(') && !line.includes('await checkRateLimit('))
+        .filter(({ line, index }) => {
+          if (!line.includes('checkRateLimit(') || line.includes('await checkRateLimit(')) return false
+          // Concurrent checks are awaited as a group, so the call itself is
+          // intentionally not prefixed with `await`.
+          return !lines.slice(Math.max(0, index - 3), index + 1).some((nearby) => nearby.includes('await Promise.all(['))
+        })
         .map(({ line, index }) => `${filePath.replace(`${root}/`, '')}:${index + 1}: ${line.trim()}`)
     })
 

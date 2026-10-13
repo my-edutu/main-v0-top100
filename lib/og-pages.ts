@@ -194,6 +194,13 @@ export const PAGE_OG: Record<string, OgCard> = {
     hero: "/magazine-cover-2025.jpg",
     variant: "cover",
   },
+  "/magazine/feature": {
+    eyebrow: "Africa Future Leaders · 2026",
+    title: "Apply for a magazine feature",
+    subtitle: "Share the story behind your leadership.",
+    hero: "/magazine-cover-2025.jpg",
+    variant: "cover",
+  },
   "/magazine/afl2025": {
     eyebrow: "Magazine 2025",
     title: "Africa Future Leaders Magazine 2025",

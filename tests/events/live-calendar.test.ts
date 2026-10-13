@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { parseAflCalendar } from '@/lib/events/live-calendar'
+import { AFL_2026_MEET_URL } from '@/lib/events/afl-2026-calendar'
 
 describe('live AFL calendar', () => {
   it('uses edited Google event details, including its conference link and time', () => {
@@ -9,7 +10,7 @@ describe('live AFL calendar', () => {
       title: 'Impact Beyond Recognition',
       startAt: '2026-10-10T18:00:00Z',
       endAt: '2026-10-10T19:00:00Z',
-      meetUrl: 'https://meet.google.com/abc-defg-hij',
+      meetUrl: AFL_2026_MEET_URL,
       cover: '/programme/afl-october-2026/onboarding-2026.jpg',
     }])
   })
