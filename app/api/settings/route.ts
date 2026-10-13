@@ -146,7 +146,42 @@ const DEFAULT_SETTINGS: Partial<SiteSettings> = {
   featured_awardees_count: 6,
 }
 
+const PUBLIC_SITE_SETTINGS_KEYS = [
+  'site_name', 'site_description', 'site_url', 'site_tagline',
+  'contact_email', 'support_email', 'social_links',
+  'seo_meta_title', 'seo_meta_description', 'seo_meta_keywords',
+  'seo_og_image', 'seo_twitter_card', 'google_analytics_id',
+  'google_tag_manager_id', 'google_search_console_verification',
+  'facebook_pixel_id', 'logo_url', 'logo_dark_url', 'favicon_url',
+  'primary_color', 'secondary_color', 'accent_color',
+  'hero_title', 'hero_subtitle', 'hero_cta_text', 'hero_cta_url',
+  'hero_background_image', 'hero_video_url', 'show_hero_section',
+  'show_featured_awardees', 'show_recent_events', 'show_blog_section',
+  'show_impact_section', 'show_newsletter_section',
+  'featured_awardees_title', 'featured_awardees_count',
+  'footer_about_text', 'footer_copyright', 'footer_links',
+  'show_footer_social', 'show_footer_newsletter',
+  'registration_enabled', 'newsletter_enabled', 'blog_enabled',
+  'events_enabled', 'awardees_directory_enabled', 'contact_form_enabled',
+  'maintenance_mode', 'maintenance_message', 'allow_public_profiles',
+  'sitemap_enabled',
+] as const
+
+function publicSiteSettings(settings: Partial<SiteSettings>) {
+  const values = settings as Record<string, unknown>
+  return Object.fromEntries(
+    PUBLIC_SITE_SETTINGS_KEYS
+      .filter(key => values[key] !== undefined)
+      .map(key => [key, values[key]]),
+  )
+}
+
 export async function GET(req: NextRequest) {
+  const adminScope = req.nextUrl.searchParams.get('scope') === 'admin'
+  if (adminScope) {
+    const adminCheck = await requireAdmin(req)
+    if ('error' in adminCheck) return adminCheck.error
+  }
   try {
     const supabase = createAdminClient()
 
@@ -162,7 +197,7 @@ export async function GET(req: NextRequest) {
 
       // If table doesn't exist, return default settings
       if (error.message.includes('relation "site_settings" does not exist')) {
-        return NextResponse.json(DEFAULT_SETTINGS)
+        return NextResponse.json(adminScope ? DEFAULT_SETTINGS : publicSiteSettings(DEFAULT_SETTINGS))
       }
 
       return NextResponse.json(
@@ -173,10 +208,10 @@ export async function GET(req: NextRequest) {
 
     // If no settings exist, return defaults
     if (!data) {
-      return NextResponse.json(DEFAULT_SETTINGS)
+      return NextResponse.json(adminScope ? DEFAULT_SETTINGS : publicSiteSettings(DEFAULT_SETTINGS))
     }
 
-    return NextResponse.json(data)
+    return NextResponse.json(adminScope ? data : publicSiteSettings(data))
   } catch (error) {
     console.error('Error in settings GET:', error)
     return NextResponse.json(
