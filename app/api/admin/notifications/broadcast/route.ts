@@ -150,6 +150,11 @@ export async function POST(request: NextRequest) {
   const title = sanitizeInput(String(body.title ?? ''))
   const message = sanitizeInput(String(body.message ?? ''))
   const audience = body.audience === 'approved' ? 'approved' : 'all'
+  // Broadcast CTAs may only target an internal member route.
+  const candidateUrl = typeof body.url === 'string' ? body.url.trim() : ''
+  const safeUrl = /^\/dashboard(?:\/[a-zA-Z0-9/_-]*)?(?:\?[a-zA-Z0-9_=&%-]+)?$/.test(candidateUrl)
+    ? candidateUrl
+    : '/dashboard/notifications'
 
   if (!title || !message) {
     return NextResponse.json({ message: 'Add a title and message before sending.' }, { status: 400 })
@@ -176,6 +181,8 @@ export async function POST(request: NextRequest) {
     title,
     body: message,
     category: 'admin',
+    cta_label: 'View update',
+    cta_url: safeUrl,
     delivered_at: deliveredAt,
     metadata: { audience, broadcast_id: broadcastId },
   }))
@@ -185,6 +192,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Could not send the notification.' }, { status: 500 })
   }
 
-  const push = await sendMemberPush(supabase, targets.map((t: { id: string }) => t.id), { title, body: message, url: '/dashboard/notifications', tag: broadcastId })
+  const push = await sendMemberPush(supabase, targets.map((t: { id: string }) => t.id), { title, body: message, url: safeUrl, tag: broadcastId })
   return NextResponse.json({ recipients: rows.length, broadcastId, push }, { status: 201 })
 }
