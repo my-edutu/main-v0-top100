@@ -40,11 +40,16 @@ describe('WhatsApp group assignment', () => {
     expect(first.group.key).toBe(second.group.key)
     expect([first.created, second.created].sort()).toEqual([false, true])
     expect(supabase.assignments).toHaveLength(1)
+    expect(supabase.upsertOptions).toEqual([
+      { onConflict: 'profile_id', ignoreDuplicates: true },
+      { onConflict: 'profile_id', ignoreDuplicates: true },
+    ])
   })
 })
 
 function createAssignmentStore() {
   const assignments: Array<{ profile_id: string; group_key: string }> = []
+  const upsertOptions: unknown[] = []
   const supabase = {
     from: vi.fn((table: string) => {
       if (table !== 'whatsapp_group_assignments') throw new Error(`Unexpected table: ${table}`)
@@ -57,7 +62,11 @@ function createAssignmentStore() {
             })),
           })),
         })),
-        upsert: vi.fn((row: { profile_id: string; group_key: string }) => {
+        upsert: vi.fn((
+          row: { profile_id: string; group_key: string },
+          options?: { onConflict?: string; ignoreDuplicates?: boolean },
+        ) => {
+          upsertOptions.push(options)
           const query = {
             select: vi.fn(() => query),
             maybeSingle: vi.fn(async () => {
@@ -73,6 +82,7 @@ function createAssignmentStore() {
       }
     }),
     assignments,
+    upsertOptions,
   }
   return supabase as unknown as SupabaseClient & { assignments: typeof assignments }
 }
