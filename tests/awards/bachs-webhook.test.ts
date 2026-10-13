@@ -165,6 +165,7 @@ function depsFor(state: DbState, notify = vi.fn()): BachsWebhookDeps {
       siteUrl: 'https://top100afl.com',
     },
     nowSeconds: () => NOW,
+    fetchProvider: vi.fn().mockResolvedValue(Response.json({})),
     notifyAwardPayment: notify,
   }
 }
@@ -244,6 +245,32 @@ describe('handleBachsEvent', () => {
     expect(result.status).toBe('exception')
     expect(state.rpcCalls).toHaveLength(1)
     expect(state.rpcCalls[0].args).toMatchObject({ p_captured_amount_minor: 2_500_100 })
+  })
+
+  it('confirms a fee-inclusive successful collection using authenticated checkout evidence', async () => {
+    const state: DbState = { attempt: attemptFor('NGN'), updates: [], rpcCalls: [] }
+    const event = eventFor('NGN', '25375.00')
+    const raw = JSON.stringify(event)
+    const deps = depsFor(state)
+    deps.fetchProvider = vi.fn().mockResolvedValue(Response.json({
+      checkout_id: 'chk-1', reference: event.data.reference, status: 'completed', payment_status: 'succeeded',
+      amount: '25000.00', currency: 'NGN', metadata: event.data.metadata,
+      charge: { payment_id: 'ch-ngn', checkout_id: 'chk-1', reference: event.data.reference, status: 'succeeded',
+        amount_paid: '25375.00', currency: 'NGN', fees: { amount: '375.00', currency: 'NGN' }, refunds: null },
+    }))
+    expect(await handleBachsEvent(raw, signedHeaders(raw), deps)).toMatchObject({ status: 'processed' })
+    expect(state.rpcCalls[0].args.p_captured_amount_minor).toBe(2_500_000)
+    // Keep the original gross payment evidence in the durable event ledger.
+    expect(state.rpcCalls[0].args.p_payload).toEqual(event)
+  })
+
+  it('retries a fee-inclusive event before mutating payment state when Bachs is unavailable', async () => {
+    const state: DbState = { attempt: attemptFor('NGN'), updates: [], rpcCalls: [] }
+    const raw = JSON.stringify(eventFor('NGN', '25375.00'))
+    const deps = depsFor(state)
+    deps.fetchProvider = vi.fn().mockRejectedValue(new Error('Provider offline'))
+    expect(await handleBachsEvent(raw, signedHeaders(raw), deps)).toMatchObject({ status: 'retryable_error', httpStatus: 503 })
+    expect(state.rpcCalls).toHaveLength(0)
   })
 
   it('acknowledges a replay without repeating the claim or notification', async () => {

@@ -1,5 +1,6 @@
 import { bachsConfig } from '@/lib/payments/bachs/config'
 import { parseBachsAmount } from '@/lib/payments/bachs/money'
+import { verifiedBachsAwardAmount } from '@/lib/payments/bachs/settlement'
 import { isBachsTerminalSuccess, parseBachsEvent } from '@/lib/payments/bachs/events'
 import { verifyBachsSignature } from '@/lib/payments/bachs/signature'
 import type { BachsConfig, BachsWebhookEvent, BachsWebhookData } from '@/lib/payments/bachs/types'
@@ -19,6 +20,7 @@ export type BachsWebhookDeps = {
   verifySignature?: (input: Record<string, unknown>) => boolean
   parseEvent?: (input: unknown) => BachsWebhookEvent
   parseAmount?: (value: string, currency: 'NGN' | 'USD') => number
+  fetchProvider?: typeof fetch
   notifyAwardPayment?: (input: AwardPaymentNotificationInput) => Promise<unknown>
   notifyAwardPaymentReminder?: (attemptId: string) => Promise<{ failed?: number; errors?: string[] }>
 }
@@ -425,6 +427,22 @@ export async function handleBachsEvent(
   // A signed but unmatched/malformed event is still sent through the RPC with
   // a null attempt so it is durably acknowledged as an exception/ignored row.
   const matchedAttemptId = identifiersMatch && attempt ? attempt.id : null
+  const requestedMinor = numberMinor(attempt?.requested_amount_minor)
+  if (matchedAttemptId && attempt && successEvent && amountMinor !== null && requestedMinor !== null &&
+      amountMinor > requestedMinor && attempt.provider_checkout_id && attempt.provider_reference &&
+      (currencyRaw === 'NGN' || currencyRaw === 'USD')) {
+    try {
+      const principal = await verifiedBachsAwardAmount({
+        checkoutId: attempt.provider_checkout_id, reference: attempt.provider_reference,
+        chargeId: valueString(data.charge_id), orderId: attempt.order_id, attemptId: attempt.id,
+        currency: currencyRaw, requestedMinor, grossMinor: amountMinor,
+      }, config, dependencies.fetchProvider)
+      if (principal !== null) amountMinor = principal
+    } catch {
+      // Retry before recording an overpayment when provider evidence is unavailable.
+      return { status: 'retryable_error', httpStatus: 503, eventId: event.id, attemptId: attempt.id, error: 'provider verification unavailable' }
+    }
+  }
   let processResult: ProcessOutcome
   try {
     processResult = await processEvent(dependencies.db, event, data, matchedAttemptId, amountMinor, receivedAt)
