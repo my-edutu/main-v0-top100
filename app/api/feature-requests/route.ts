@@ -91,22 +91,25 @@ export async function GET(request: NextRequest) {
     try {
         const supabase = createAdminClient()
 
-        const { data, error } = await supabase
-            .from('feature_requests')
-            .select('*')
-            .order('created_at', { ascending: false })
-
-        if (error) {
-            console.error('Error fetching feature requests:', error)
-            return Response.json({
-                success: false,
-                message: 'Failed to fetch feature requests'
-            }, { status: 500 })
+        const requests = []
+        for (let offset = 0; ; offset += 1000) {
+            const { data, error } = await supabase
+                .from('feature_requests')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .order('id', { ascending: true })
+                .range(offset, offset + 999)
+            if (error) {
+                console.error('Error fetching feature requests:', error)
+                return Response.json({ success: false, message: 'Failed to fetch feature requests' }, { status: 500 })
+            }
+            requests.push(...(data ?? []))
+            if ((data ?? []).length < 1000) break
         }
 
         return Response.json({
             success: true,
-            data
+            data: requests
         })
     } catch (error) {
         console.error('Error in feature requests GET:', error)
