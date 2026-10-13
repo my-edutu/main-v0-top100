@@ -2,11 +2,12 @@
 import Link from 'next/link'
 import { useDashboardMember } from '../_providers/dashboard-member'
 import { MemberAvatar } from '../_components/member-avatar'
-import { ArrowUpRight } from 'lucide-react'
+import { ArrowUpRight, BadgeCheck } from 'lucide-react'
 
 import { RouteSection } from '../_components/route-section'
 import { meNav } from '../_lib/navigation'
 import { SignOutControl } from '../dashboard-header'
+import { useDashboardBadges } from '../_providers/dashboard-badges'
 
 const meDescriptions: Record<string, string> = {
   Profile: 'Edit your public BIO and visibility',
@@ -23,6 +24,8 @@ const FEATURE_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSfA0yU8IK1jVB
 
 export default function MePage() {
   const { member } = useDashboardMember()
+  const { awardPayment } = useDashboardBadges()
+  const paymentConfirmed = awardPayment?.status === 'paid' || Boolean(awardPayment?.confirmedPayment)
   return (
     <RouteSection
       title="Me"
@@ -35,7 +38,13 @@ export default function MePage() {
           size={72}
         />
         <div className="min-w-0">
-          <h2 className="break-words text-2xl font-medium">{member.name}</h2>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <h2 className="break-words text-2xl font-medium">{member.name}</h2>
+            {paymentConfirmed && <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-800 ring-1 ring-inset ring-emerald-200" title="Award payment confirmed">
+              <BadgeCheck size={15} aria-hidden="true" />
+              Payment confirmed
+            </span>}
+          </div>
           <p className="mt-1 text-sm leading-6 text-neutral-600">
             {member.headline}
           </p>
