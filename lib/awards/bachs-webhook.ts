@@ -4,6 +4,7 @@ import { isBachsTerminalSuccess, parseBachsEvent } from '@/lib/payments/bachs/ev
 import { verifyBachsSignature } from '@/lib/payments/bachs/signature'
 import type { BachsConfig, BachsWebhookEvent, BachsWebhookData } from '@/lib/payments/bachs/types'
 import { notifyAwardPaymentConfirmed, type AwardPaymentNotificationInput } from '@/lib/awards/payment-notify'
+import { processAwardPaymentReminders } from '@/lib/awards/payment-reminders'
 import { createAdminClient } from '@/lib/supabase/server'
 
 export type BachsWebhookDb = {
@@ -19,6 +20,7 @@ export type BachsWebhookDeps = {
   parseEvent?: (input: unknown) => BachsWebhookEvent
   parseAmount?: (value: string, currency: 'NGN' | 'USD') => number
   notifyAwardPayment?: (input: AwardPaymentNotificationInput) => Promise<unknown>
+  notifyAwardPaymentReminder?: (attemptId: string) => Promise<{ failed?: number; errors?: string[] }>
 }
 
 export type BachsWebhookResult = {
@@ -206,6 +208,32 @@ function isSuccessEvent(event: BachsWebhookEvent, status: string | null): boolea
   } catch {
     return status === 'SUCCEEDED' || status === 'ACCEPTED'
   }
+}
+
+function isRetryReminderEvent(event: BachsWebhookEvent): boolean {
+  return event.type === 'collection.failed' || event.type === 'checkout.expired'
+}
+
+async function sendFailedPaymentReminder(
+  attemptId: string,
+  eventId: string,
+  notify: ((attemptId: string) => Promise<{ failed?: number; errors?: string[] }>) | undefined,
+): Promise<boolean> {
+  if (!notify) return false
+  try {
+    const result = await notify(attemptId)
+    if ((result.failed ?? 0) > 0) {
+      console.error('[bachs-webhook] failed-payment reminder needs retry', { eventId, errors: result.errors ?? [] })
+      return true
+    }
+  } catch (error) {
+    console.error('[bachs-webhook] failed-payment reminder could not be sent', {
+      eventId,
+      error: safeErrorMessage(error),
+    })
+    return true
+  }
+  return false
 }
 
 async function sendPaymentNotification(
@@ -409,6 +437,10 @@ export async function handleBachsEvent(
   const notificationNeeded = processResult.notification_needed === true
 
   if (outcome === 'duplicate_event') {
+    if (attempt && isRetryReminderEvent(event)) {
+      const retry = await sendFailedPaymentReminder(attempt.id, event.id, dependencies.notifyAwardPaymentReminder)
+      if (retry) return notificationRetryResponse(event.id, attempt.id)
+    }
     // A previous invocation may have committed the payment but crashed before
     // delivering its notification. Re-run the durable notification claim on
     // replay; the notification log prevents duplicate channels.
@@ -457,6 +489,10 @@ export async function handleBachsEvent(
   // `processed` covers failed, underpaid, and expired event outcomes. They are
   // acknowledged only after the transaction has durably written their state.
   if (outcome === 'processed') {
+    if (attempt && isRetryReminderEvent(event)) {
+      const retry = await sendFailedPaymentReminder(attempt.id, event.id, dependencies.notifyAwardPaymentReminder)
+      if (retry) return notificationRetryResponse(event.id, attempt.id)
+    }
     return { status: 'processed', httpStatus: 200, eventId: event.id, attemptId: attempt?.id ?? null, outcome }
   }
 
@@ -471,5 +507,6 @@ export function defaultBachsWebhookDeps(): BachsWebhookDeps {
     db,
     config: bachsConfig(),
     notifyAwardPayment: (input) => notifyAwardPaymentConfirmed(input, { db }),
+    notifyAwardPaymentReminder: (attemptId) => processAwardPaymentReminders(db, { attemptId }),
   }
 }

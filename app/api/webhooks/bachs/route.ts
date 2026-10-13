@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 import { handleBachsEvent, type BachsWebhookResult } from '@/lib/awards/bachs-webhook'
 import { notifyAwardPaymentConfirmed } from '@/lib/awards/payment-notify'
+import { processAwardPaymentReminders } from '@/lib/awards/payment-reminders'
 import { bachsConfig } from '@/lib/payments/bachs/config'
 import { createAdminClient } from '@/lib/supabase/server'
 
@@ -32,6 +33,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       db,
       config,
       notifyAwardPayment: (input) => notifyAwardPaymentConfirmed(input, { db }),
+      notifyAwardPaymentReminder: (attemptId) => processAwardPaymentReminders(db, { attemptId }),
     })
     return responseFor(result)
   } catch (error) {
