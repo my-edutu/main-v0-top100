@@ -91,5 +91,5 @@ it('uses the authenticated user scope for the authoritative completion check', a
   state.prefs = { onboardingCompletedAt: '2026-10-06T22:30:47.031Z' }
   const response = await updateSession(new NextRequest('https://www.top100afl.com/dashboard'))
   expect(response.status).toBe(200)
-  expect(fetch).toHaveBeenCalledWith('https://example.supabase.co/rest/v1/profiles?id=eq.member-1&select=notification_prefs', expect.objectContaining({ cache: 'no-store' }))
+  expect(fetch).toHaveBeenCalledWith('https://example.supabase.co/rest/v1/profiles?id=eq.member-1&select=notification_prefs,account_status', expect.objectContaining({ cache: 'no-store' }))
 })
