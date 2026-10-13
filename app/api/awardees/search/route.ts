@@ -14,8 +14,7 @@ export async function GET(request: NextRequest) {
 
         // This route is public: hidden profiles must never be discoverable
         // here. Verified members manage their own details inside the dashboard.
-        const sanitizedQuery = query.trim().replace(/[\\%_]/g, '\\        // Search for ALL awardees by name (case-insensitive)
-        // Include non-public awardees since they should still be able to edit their profile')
+        const sanitizedQuery = query.trim().replace(/[\\%_]/g, '\\$&')
         const { data, error } = await supabase
             .from('awardees')
             .select('id, name, slug, avatar_url, country, headline, email')
