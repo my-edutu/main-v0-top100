@@ -208,6 +208,21 @@ export async function GET(req: NextRequest) {
   // admin views retain their current behavior until they opt in.
   if (scope !== 'admin' && limit !== null) query.limit(limit)
 
+  if (scope === 'admin') {
+    const rows = []
+    for (let offset = 0; ; offset += 1000) {
+      const { data, error } = await supabase.from('events')
+        .select('*, programme_speakers(*)')
+        .order('start_at', { ascending: false })
+        .order('id', { ascending: true })
+        .range(offset, offset + 999)
+      if (error) return toJsonResponse({ message: 'Could not load events.' }, 503)
+      rows.push(...(data ?? []))
+      if ((data ?? []).length < 1000) break
+    }
+    return toJsonResponse(rows)
+  }
+
   const { data, error } = await query
 
   if (error) {
