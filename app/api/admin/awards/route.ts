@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
             console.error('[admin-awards] Failed to load payment attempts:', attemptsResult.error)
           }
         } else {
-          for (const attempt of attemptsResult.data ?? []) {
+          for (const attempt of (attemptsResult.data ?? []) as unknown as Array<Record<string, unknown>>) {
             const orderId = nullableString(attempt?.order_id)
             if (!orderId) continue
             const existing = attemptsByOrder.get(orderId) ?? []
