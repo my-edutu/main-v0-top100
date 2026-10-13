@@ -26,7 +26,7 @@ const approvedMember = { id: 'profile-1', membership_status: 'approved' }
 const assignedGroup = {
   key: 'group-2',
   label: 'Group 2',
-  inviteUrl: 'https://chat.whatsapp.com/F8p9rErOr6VAYGZbhaske8?mode=gi_t',
+  inviteUrl: 'https://chat.whatsapp.com/TestInviteGroupTwo',
 }
 
 function request(body?: unknown) {
