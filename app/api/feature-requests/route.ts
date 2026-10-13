@@ -1,8 +1,18 @@
 import { NextRequest } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
+import { requireAdmin } from '@/lib/api/require-admin'
+import { rejectCrossOriginMutation } from '@/lib/security/same-origin'
+import { checkRateLimit, getClientIdentifier, RATE_LIMITS, createRateLimitResponse } from '@/lib/rate-limit'
 
 // Submit a feature request
 export async function POST(request: NextRequest) {
+    const originError = rejectCrossOriginMutation(request)
+    if (originError) return originError
+    const rate = await checkRateLimit({
+        ...RATE_LIMITS.CONTACT,
+        identifier: `feature-request:${getClientIdentifier(request.headers)}`,
+    })
+    if (!rate.success) return createRateLimitResponse(rate, 'Too many submissions. Please try later.')
     try {
         const body = await request.json()
 
@@ -14,13 +24,16 @@ export async function POST(request: NextRequest) {
             needs_article_written,
             contact_email,
             whatsapp_number,
-            amount,
-            currency,
-            status
         } = body
 
         // Validate required fields
-        if (!awardee_id || !contact_email || !whatsapp_number) {
+        if (
+            typeof awardee_id !== 'string' || !awardee_id || awardee_id.length > 100 ||
+            typeof contact_email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact_email) || contact_email.length > 254 ||
+            typeof whatsapp_number !== 'string' || !/^[+0-9 ()-]{7,24}$/.test(whatsapp_number) ||
+            (awardee_name !== undefined && (typeof awardee_name !== 'string' || awardee_name.length > 200)) ||
+            (article_content !== undefined && (typeof article_content !== 'string' || article_content.length > 12000))
+        ) {
             return Response.json({
                 success: false,
                 message: 'Missing required fields'
@@ -40,9 +53,9 @@ export async function POST(request: NextRequest) {
                 needs_article_written: needs_article_written || false,
                 contact_email,
                 whatsapp_number,
-                amount: amount || 40000,
-                currency: currency || 'NGN',
-                status: status || 'pending',
+                amount: 40000,
+                currency: 'NGN',
+                status: 'pending',
                 created_at: new Date().toISOString()
             })
             .select()
@@ -73,6 +86,8 @@ export async function POST(request: NextRequest) {
 
 // Get all feature requests (for admin)
 export async function GET(request: NextRequest) {
+    const adminCheck = await requireAdmin(request)
+    if ('error' in adminCheck) return adminCheck.error
     try {
         const supabase = createAdminClient()
 
@@ -104,11 +119,20 @@ export async function GET(request: NextRequest) {
 
 // Update feature request status (for admin)
 export async function PUT(request: NextRequest) {
+    const originError = rejectCrossOriginMutation(request)
+    if (originError) return originError
+    const adminCheck = await requireAdmin(request)
+    if ('error' in adminCheck) return adminCheck.error
     try {
         const body = await request.json()
         const { id, status, admin_notes, payment_status } = body
 
-        if (!id) {
+        if (
+            typeof id !== 'string' || !id ||
+            (status !== undefined && !['pending', 'contacted', 'paid', 'in_progress', 'published', 'cancelled'].includes(status)) ||
+            (payment_status !== undefined && !['pending', 'confirmed', 'refunded'].includes(payment_status)) ||
+            (admin_notes !== undefined && (typeof admin_notes !== 'string' || admin_notes.length > 4000))
+        ) {
             return Response.json({
                 success: false,
                 message: 'Request ID is required'
