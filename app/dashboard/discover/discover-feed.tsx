@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { ProfileSocialLinks } from '@/components/profile-social-icon'
 import Link from 'next/link'
 import { ArrowUpRight, ChevronLeft, ChevronRight, Trophy } from 'lucide-react'
+import SafeImage from '@/components/safe-image'
 import type { DirectoryCard } from '@/lib/awardees/directory-cards'
 import { fetchPublicDirectory, peekPublicDirectory } from '@/lib/awardees/directory-client'
 import { DashboardLoading } from '../_components/dashboard-loading'
@@ -85,6 +86,17 @@ export function DiscoverFeed({ posts }: { posts: Story[] }) {
     return () => { cancelled = true }
   }, [member.id, retry, rotationWindow])
   return <div className="discover-feed">
+    <Link href="/dashboard/discover/groups" className="discover-advert" aria-label="Find your WhatsApp group and connect with Africa Future Leaders">
+      <div className="discover-advert__copy">
+        <p>Your people are here</p>
+        <h2>Find your community.</h2>
+        <span>Discover your group <ArrowUpRight size={14} aria-hidden="true" /></span>
+      </div>
+      <div className="discover-advert__art" aria-hidden="true">
+        <i /><i /><i />
+        <SafeImage src="/illustrations/discover-community.svg" alt="" width={160} height={160} />
+      </div>
+    </Link>
     <header><h1 className="text-xl font-semibold tracking-tight">Find your people. Make an impact.</h1></header>
     <nav aria-label="Discover shortcuts" className="discover-shortcuts">
       {shortcutItems.map(({ href, label, icon: Icon }) =>

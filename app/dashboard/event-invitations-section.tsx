@@ -8,6 +8,7 @@ import { fetchLiveCalendarEvents } from '@/lib/events/live-calendar-client'
 import type { LiveCalendarEvent } from '@/lib/events/live-calendar'
 import { AFL_2026_CALENDAR } from '@/lib/events/afl-2026-calendar'
 import Image from '@/components/safe-image'
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('en', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'Africa/Lagos' }).format(new Date(value))
@@ -23,6 +24,7 @@ export default function EventInvitationsSection({ member }: { member: MemberProf
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [retry, setRetry] = useState(0)
+  const [posterToView, setPosterToView] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -58,10 +60,10 @@ export default function EventInvitationsSection({ member }: { member: MemberProf
     {error ? <div role="alert" className="rounded-xl border border-orange-200 bg-orange-50 p-4 text-sm"><p>{error}</p><button onClick={() => setRetry(value => value + 1)} className="mt-2 min-h-11 underline">Try again</button></div> : null}
     {!loading && !error && !events.length ? <p className="py-8 text-sm text-stone-500">No events are currently listed on the live calendar.</p> : null}
     {events.length ? <ol className="grid items-start gap-4 sm:grid-cols-2">{events.map(event => <li key={event.id} className="overflow-hidden rounded-[18px] border border-[#E9D6C5] bg-white">
-      {event.cover ? <a href={event.cover} target="_blank" rel="noopener noreferrer" aria-label="View full onboarding poster" className="block bg-[#FFC528] focus-visible:outline-2 focus-visible:outline-orange-700">
-        <Image src={event.cover} alt="Africa Future Leaders 2026 onboarding poster" width={1755} height={2194} className="mx-auto h-64 w-auto object-contain sm:h-72" />
-        <span className="flex min-h-11 items-center justify-center gap-1 text-sm font-medium text-[#171412]">View full poster<ArrowUpRight className="h-4 w-4" aria-hidden="true" /></span>
-      </a> : null}
+      {event.cover ? <button type="button" onClick={() => setPosterToView(event.cover)} aria-label="View full onboarding poster" className="relative block h-[300px] w-full overflow-hidden bg-[#FFC528] focus-visible:outline-2 focus-visible:outline-orange-700 sm:h-[332px]">
+        <Image src={event.cover} alt="" aria-hidden="true" width={1755} height={2194} className="absolute inset-0 h-full w-full scale-110 object-cover opacity-45 blur-xl" />
+        <Image src={event.cover} alt="Africa Future Leaders 2026 onboarding poster" width={1755} height={2194} className="relative z-10 mx-auto h-full w-auto max-w-full object-contain" />
+      </button> : null}
       <div className="p-5">
         <p className="flex items-center gap-2 text-sm font-medium text-[#A6440D]"><CalendarDays className="h-4 w-4 shrink-0" aria-hidden="true" /><time dateTime={event.startAt}>{formatDate(event.startAt)}</time></p>
         <h3 className="mt-3 text-lg font-semibold leading-7 text-[#171412]">{event.title}</h3>
@@ -69,5 +71,17 @@ export default function EventInvitationsSection({ member }: { member: MemberProf
         {event.meetUrl ? <a href={event.meetUrl} target="_blank" rel="noopener noreferrer" className="mt-5 flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#FFF1DF] px-4 text-sm font-semibold text-[#84330B] hover:bg-[#FFE3BC] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-orange-700"><Video className="h-4 w-4" aria-hidden="true" />Open Google Meet<ArrowUpRight className="h-4 w-4" aria-hidden="true" /></a> : <p className="mt-5 text-sm text-stone-500">Meeting link coming soon</p>}
       </div>
     </li>)}</ol> : null}
+    <Dialog open={posterToView !== null} onOpenChange={open => { if (!open) setPosterToView(null) }}>
+      <DialogContent
+        aria-describedby="event-poster-viewer-description"
+        className="event-poster-dialog"
+        overlayClassName="bg-black/95"
+        style={{ inset: 0, left: 0, top: 0, width: '100vw', maxWidth: 'none', height: '100dvh', maxHeight: '100dvh', transform: 'none', border: 0, borderRadius: 0, padding: 0, backgroundColor: '#100e0a' }}
+      >
+        <DialogTitle className="sr-only">Africa Future Leaders event poster</DialogTitle>
+        <DialogDescription id="event-poster-viewer-description" className="sr-only">Full-screen event poster. Close the viewer to return to Events.</DialogDescription>
+        {posterToView ? <Image src={posterToView} alt="Africa Future Leaders 2026 onboarding event poster, full-screen view" width={1755} height={2194} className="mx-auto h-auto max-h-[calc(100dvh-32px)] w-auto max-w-[calc(100vw-32px)] object-contain" /> : null}
+      </DialogContent>
+    </Dialog>
   </section>
 }

@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 220" fill="none">
+  <defs>
+    <radialGradient id="communityGlow" cx="0" cy="0" r="1" gradientTransform="matrix(0 111 -134 0 147 105)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8D96C" stop-opacity=".5"/>
+      <stop offset="1" stop-color="#F8D96C" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="orbitGold" x1="50" y1="31" x2="222" y2="176" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF0A8"/>
+      <stop offset="1" stop-color="#E6A827"/>
+    </linearGradient>
+    <linearGradient id="nodeTeal" x1="41" y1="52" x2="102" y2="132" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#76D5B0"/>
+      <stop offset="1" stop-color="#176C59"/>
+    </linearGradient>
+    <linearGradient id="nodeViolet" x1="119" y1="20" x2="179" y2="92" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D5B6F0"/>
+      <stop offset="1" stop-color="#7951A8"/>
+    </linearGradient>
+    <linearGradient id="nodeCoral" x1="157" y1="92" x2="218" y2="164" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFB27A"/>
+      <stop offset="1" stop-color="#B84D32"/>
+    </linearGradient>
+    <linearGradient id="hub" x1="102" y1="70" x2="163" y2="145" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF5CA"/>
+      <stop offset="1" stop-color="#E7B93F"/>
+    </linearGradient>
+    <filter id="softShadow" x="18" y="12" width="248" height="202" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="10" stdDeviation="8" flood-color="#1B1400" flood-opacity=".3"/>
+    </filter>
+    <filter id="hubShadow" x="88" y="60" width="94" height="105" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="5" stdDeviation="4" flood-color="#1B1400" flood-opacity=".25"/>
+    </filter>
+  </defs>
+  <ellipse cx="147" cy="108" fill="url(#communityGlow)" rx="133" ry="110"/>
+  <path d="M38 147c18 24 46 37 79 40 37 4 75-8 103-32" stroke="url(#orbitGold)" stroke-linecap="round" stroke-opacity=".48" stroke-width="2"/>
+  <path d="M43 91c12-31 40-53 76-60 39-7 78 7 101 34" stroke="url(#orbitGold)" stroke-dasharray="3 8" stroke-linecap="round" stroke-opacity=".7" stroke-width="2"/>
+  <path d="m76 91 56-43 39 70-75 9-20-36Z" stroke="#F8D96C" stroke-opacity=".64" stroke-width="2"/>
+  <path d="M79 88c18-7 29-12 48-34m3 37c15 5 26 13 40 26" stroke="#FFF0A8" stroke-linecap="round" stroke-opacity=".58" stroke-width="2"/>
+  <g filter="url(#softShadow)">
+    <circle cx="72" cy="87" r="34" fill="#173D32" stroke="#F6D36B" stroke-opacity=".9" stroke-width="2"/>
+    <circle cx="72" cy="87" r="28" fill="url(#nodeTeal)"/>
+    <path d="M56 105c2-10 8-16 16-16s14 6 16 16" fill="#F2C78C"/>
+    <ellipse cx="72" cy="80" fill="#754629" rx="9" ry="11"/>
+    <path d="M63 78c1-9 5-14 11-14 7 0 11 6 10 14-4-4-7-6-11-6-3 0-6 2-10 6Z" fill="#171412"/>
+    <circle cx="148" cy="47" r="32" fill="#173D32" stroke="#F6D36B" stroke-opacity=".9" stroke-width="2"/>
+    <circle cx="148" cy="47" r="26" fill="url(#nodeViolet)"/>
+    <path d="M132 66c2-10 8-15 16-15s14 5 16 15" fill="#30203D"/>
+    <ellipse cx="148" cy="41" fill="#8B5736" rx="9" ry="10"/>
+    <path d="M139 39c0-9 4-14 9-14 7 0 10 5 10 14-3-3-6-5-10-5s-6 2-9 5Z" fill="#211728"/>
+    <circle cx="187" cy="126" r="34" fill="#173D32" stroke="#F6D36B" stroke-opacity=".9" stroke-width="2"/>
+    <circle cx="187" cy="126" r="28" fill="url(#nodeCoral)"/>
+    <path d="M170 146c2-11 8-16 17-16s15 5 17 16" fill="#274F48"/>
+    <ellipse cx="187" cy="119" fill="#5D382A" rx="9" ry="11"/>
+    <path d="M178 117c1-8 4-13 10-13 7 0 10 5 10 13-4-4-7-5-10-5-4 0-7 1-10 5Z" fill="#20191A"/>
+  </g>
+  <g filter="url(#hubShadow)">
+    <circle cx="132" cy="105" r="27" fill="#3B2B0B" stroke="url(#orbitGold)" stroke-width="2.5"/>
+    <circle cx="132" cy="105" r="21" fill="url(#hub)"/>
+    <path d="M132 87c-4 5-8 9-8 15 0 5 3 8 7 8 5 0 8-4 8-9 0-4-3-8-7-14Zm-7 28 5 7 7-2 3-7-6-4-8 1-1 5Z" fill="#6E4B11"/>
+    <path d="M120 104c4 2 7 4 12 3 5-1 9-4 13-3" stroke="#FFF8DC" stroke-linecap="round" stroke-width="1.5"/>
+  </g>
+  <circle cx="38" cy="63" r="4" fill="#FFF0A8"/>
+  <circle cx="216" cy="69" r="3" fill="#FFE17A"/>
+  <path d="m225 98 3 8 8 3-8 3-3 8-3-8-8-3 8-3 3-8Z" fill="#FFF0A8"/>
+  <path d="m59 137 2.5 6.5L68 146l-6.5 2.5L59 155l-2.5-6.5L50 146l6.5-2.5L59 137Z" fill="#EAAE37"/>
+  <path d="M99 170h94" stroke="#F8D96C" stroke-linecap="round" stroke-opacity=".5" stroke-width="3"/>
+  <ellipse cx="147" cy="181" fill="#120E05" fill-opacity=".16" rx="69" ry="8"/>
+</svg>

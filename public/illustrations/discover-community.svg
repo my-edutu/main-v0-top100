@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180" fill="none">
+  <defs>
+    <linearGradient id="gold" x1="29" y1="33" x2="206" y2="151" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFE58A"/>
+      <stop offset=".52" stop-color="#F6C94D"/>
+      <stop offset="1" stop-color="#D99416"/>
+    </linearGradient>
+    <filter id="shadow" x="8" y="6" width="224" height="178" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="12" stdDeviation="9" flood-color="#1B1400" flood-opacity=".32"/>
+    </filter>
+  </defs>
+  <g filter="url(#shadow)">
+    <path d="M120 20c38 0 69 28 69 64 0 17-7 32-19 43l8 25-34-10c-8 3-16 5-24 5-38 0-69-28-69-63s31-64 69-64Z" fill="url(#gold)"/>
+    <path d="M120 27c34 0 61 25 61 57 0 15-7 29-18 39l5 16-23-7c-8 4-16 6-25 6-34 0-61-25-61-54s27-57 61-57Z" fill="#503C06"/>
+    <circle cx="101" cy="72" r="12" fill="#FFE58A"/>
+    <circle cx="139" cy="72" r="12" fill="#FFE58A"/>
+    <path d="M80 119c2-16 11-25 21-25 9 0 15 4 19 13 4-9 10-13 19-13 11 0 20 9 22 25" stroke="#FFE58A" stroke-linecap="round" stroke-linejoin="round" stroke-width="8"/>
+    <path d="m188 27 4 11 11 4-11 4-4 11-4-11-11-4 11-4 4-11Z" fill="#FFF4C7"/>
+    <circle cx="47" cy="72" r="4" fill="#F6C94D"/>
+    <circle cx="201" cy="104" r="3" fill="#FFF4C7"/>
+  </g>
+</svg>

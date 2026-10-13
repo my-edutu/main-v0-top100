@@ -37,12 +37,12 @@ export async function requestWhatsAppGroupAssignment(isDemoPreview = false): Pro
 export function WhatsAppGroupAssigned({ group, created }: Assignment) {
   return (
     <div className={`whatsapp-group-card${created ? ' whatsapp-group-card--reveal' : ''}`}>
-      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#E8F7EC] text-[#176B35]">
-        <UsersRound aria-hidden="true" className="h-6 w-6" />
+      <div aria-hidden="true" className="whatsapp-group-card__icon">
+        <UsersRound className="h-7 w-7" />
       </div>
-      <p className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-[#8a5a00]">Your community</p>
-      <h2 className="mt-2 text-3xl font-semibold tracking-tight text-[#171412]">{group.label}</h2>
-      <p className="mt-2 max-w-md text-sm leading-6 text-[#625B52]" role="status" aria-live="polite">
+      <p className="whatsapp-group-card__eyebrow">Your community</p>
+      <h2 className="whatsapp-group-card__title">{group.label}</h2>
+      <p className="whatsapp-group-card__description" role="status" aria-live="polite">
         {created
           ? `You’ve been matched with ${group.label}. Connect with fellow Africa Future Leaders on WhatsApp.`
           : `You’re in ${group.label}. Connect with fellow Africa Future Leaders on WhatsApp.`}
@@ -51,12 +51,12 @@ export function WhatsAppGroupAssigned({ group, created }: Assignment) {
         href={group.inviteUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="mt-6 inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[#176B35] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#10542A] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#176B35]"
+        className="whatsapp-group-card__cta"
       >
         Join your WhatsApp group
-        <ExternalLink aria-hidden="true" className="h-4 w-4" />
+        <ExternalLink aria-hidden="true" className="h-5 w-5" />
       </a>
-      <p className="mt-3 text-xs leading-5 text-[#746B61]">Your group assignment is saved, so you’ll return to this same group.</p>
+      <p className="whatsapp-group-card__saved">Your group assignment is saved, so you’ll return to this same group.</p>
     </div>
   )
 }
@@ -91,18 +91,19 @@ export function WhatsAppGroupsSection({ approved, isDemoPreview = false }: { app
 
   if (loading) {
     return (
-      <div className="flex min-h-64 flex-col items-center justify-center rounded-3xl border border-[#E7DDCF] bg-white p-8 text-center" role="status" aria-live="polite">
-        <LoaderCircle className="h-7 w-7 animate-spin text-[#176B35] motion-reduce:animate-none" aria-hidden="true" />
-        <p className="mt-4 text-sm font-medium text-[#625B52]">Finding your WhatsApp group</p>
+      <div className="whatsapp-group-card whatsapp-group-card--state" role="status" aria-live="polite">
+        <LoaderCircle className="h-8 w-8 animate-spin text-white motion-reduce:animate-none" aria-hidden="true" />
+        <p className="mt-5 text-lg font-semibold text-white">Finding your WhatsApp group</p>
       </div>
     )
   }
 
   if (error || !assignment) {
     return (
-      <section className="rounded-3xl border border-[#E7DDCF] bg-white p-7 text-center sm:p-10" role="alert">
-        <h2 className="text-xl font-semibold tracking-tight text-[#171412]">Your group hasn’t loaded yet</h2>
-        <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#625B52]">
+      <section className="whatsapp-group-card whatsapp-group-card--state" role="alert">
+        <UsersRound aria-hidden="true" className="h-9 w-9 text-white" />
+        <h2 className="mt-5 text-2xl font-bold tracking-tight text-white">Your group hasn’t loaded yet</h2>
+        <p className="mt-2 max-w-lg text-base leading-7 text-white/85">
           {error || 'Please try again to discover your WhatsApp group.'}
         </p>
         <Button
@@ -113,7 +114,7 @@ export function WhatsAppGroupsSection({ approved, isDemoPreview = false }: { app
             setLoading(true)
             setAttempt((current) => current + 1)
           }}
-          className="mt-5 bg-[#171412] text-white hover:bg-[#312B27]"
+          className="whatsapp-group-card__cta mt-6 max-w-lg bg-[#0A8A49] text-white hover:bg-[#08773E]"
         >
           <RotateCcw aria-hidden="true" className="mr-2 h-4 w-4" />
           Try again

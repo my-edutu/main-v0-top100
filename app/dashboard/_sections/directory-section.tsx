@@ -190,9 +190,9 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
             </div>
           </div>
 
-          {!loading && !loadFailed ? <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-sm text-neutral-600">
-            <p role="status">{filteredAwardees.length} {filteredAwardees.length === 1 ? 'awardee' : 'awardees'}{selectedYear !== 'all' ? ` · ${selectedYear} cohort` : ' · All cohorts'}</p>
-            {(searchTerm || selectedYear !== 'all') ? <button type="button" className="px-2 text-orange-800 underline underline-offset-4" onClick={() => { setSearchTerm(''); setSelectedYear('all'); setPage(0) }}>Clear filters</button> : null}
+          {!loading && !loadFailed ? <p role="status" className="sr-only">{filteredAwardees.length} {filteredAwardees.length === 1 ? 'awardee' : 'awardees'}{selectedYear !== 'all' ? ` · ${selectedYear} cohort` : ' · All cohorts'}</p> : null}
+          {!loading && !loadFailed && (searchTerm || selectedYear !== 'all') ? <div className="mt-2 flex justify-end">
+            <button type="button" className="px-2 text-orange-800 underline underline-offset-4" onClick={() => { setSearchTerm(''); setSelectedYear('all'); setPage(0) }}>Clear filters</button>
           </div> : null}
 
           <div id="top-awardee-list" className="mt-3 grid gap-3 md:grid-cols-2">

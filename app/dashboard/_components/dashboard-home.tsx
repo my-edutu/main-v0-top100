@@ -8,9 +8,9 @@ import {
   ArrowUpRight,
   CalendarPlus,
   Mail,
+  MessageCircle,
   Video,
   UserRound,
-  Award,
 } from 'lucide-react'
 
 import {
@@ -22,7 +22,7 @@ import type { LiveCalendarEvent } from '@/lib/events/live-calendar'
 import { AFL_2026_CALENDAR } from '@/lib/events/afl-2026-calendar'
 import { DashboardLoading } from './dashboard-loading'
 import { DashboardCard } from './dashboard-card'
-import { discoverNav, meNav } from '../_lib/navigation'
+import { meNav } from '../_lib/navigation'
 import { selectUpcomingInvitations } from '../_lib/home-priority'
 import { useDashboardMember } from '../_providers/dashboard-member'
 import { AwardeeOnboardingJourney } from './awardee-onboarding-journey'
@@ -30,6 +30,7 @@ import { DashboardCelebration } from './dashboard-celebration'
 import { AflCalendarAnnouncement } from './afl-calendar-announcement'
 import MagazinePopup from '@/app/components/MagazinePopup'
 import { useDashboardBadges } from '../_providers/dashboard-badges'
+import { DashboardPromoCarousel } from './dashboard-promo-carousel'
 
 const INTERVIEW_FORM_URL = '/dashboard/me/interview'
 const PARTNERSHIP_FORM_URL = 'https://docs.google.com/forms/d/1pabeSUOwN15Sr-VcAWIhl5k5_xwnKljFuzm90PCoEqQ/edit'
@@ -43,13 +44,13 @@ const launchBanners = [
 const shortcutDescriptions: Record<string, string> = {
   Members: 'Meet fellow awardees',
   Profile: 'Keep your BIO current',
-  'My award': 'Pay your award fee securely',
+  'Event videos': 'Revisit class recordings and past courses',
   'Portfolio cover': 'Create your magazine profile',
   Posts: 'Write in your own words',
   'Get featured': 'Share your work with the team',
   'Apply for magazine': 'Share the story behind your leadership',
   'Schedule an interview': 'Request an interview time',
-  'Contact the team': 'Ask a question or get support',
+  'Contact Top100': 'Chat with the Top100 team on WhatsApp',
   'Partner with us': 'Explore working together',
 }
 
@@ -154,10 +155,11 @@ export function DashboardHome() {
     }
   }, [])
 
-  const shortcuts = [discoverNav[0], meNav[0], meNav[2], meNav[4],
+  const shortcuts = [meNav[2],
+    { label:'Event videos', href:'/dashboard/discover/event-videos', icon:Video, color:'charcoal' as const },
     { label:'Apply for magazine', href:'/magazine/feature', icon:Mail, color:'burgundy' as const },
     { label:'Schedule an interview', href:INTERVIEW_FORM_URL, icon:Mail, color:'ember' as const },
-    { label:'Contact the team', href:'mailto:info@top100afl.com', icon:Mail, color:'forest' as const },
+    { label:'Contact Top100', href:'https://wa.link/2349131866959', icon:MessageCircle, color:'forest' as const, external:true },
     { label:'Partner with us', href:'/partnership', icon:UserRound, color:'cobalt' as const },
   ]
 
@@ -216,27 +218,7 @@ export function DashboardHome() {
         <p className="hub-welcome-description">Your people and opportunities.</p>
       </section>
       <AwardeeOnboardingJourney name={member.name} />
-      {awardPayment && <section aria-label="Your physical award reservation" className="hub-updates-panel relative isolate overflow-hidden rounded-[22px] border border-[#F0C98B] bg-[#FFF7E8] p-5 shadow-[0_12px_32px_rgba(115,63,18,.08)] sm:p-6">
-        <div aria-hidden="true" className="pointer-events-none absolute -right-7 -top-10 z-0 text-[#EFCB96]/45">
-          <Award className="h-40 w-40 rotate-12" strokeWidth={1.2} />
-        </div>
-        <div className="relative z-10 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex min-w-0 items-start gap-4">
-            <span aria-hidden="true" className="grid size-12 shrink-0 place-items-center rounded-2xl bg-[#FFE7BF] text-[#9A3412] ring-1 ring-inset ring-[#F5D6A8]">
-              <Award className="size-6" strokeWidth={1.8} />
-            </span>
-            <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-[0.19em] text-[#9A4B1D]">Africa Future Leaders · 2026</p>
-              <h2 className="mt-1 text-lg font-semibold tracking-tight text-[#23170F]">Your physical award</h2>
-              <p className="mt-1 max-w-xl text-sm leading-6 text-[#675448]">{awardPayment.status === 'paid' || awardPayment.confirmedPayment ? 'Payment confirmed · contact the team for collection or dispatch.' : awardPayment.status === 'pending' ? 'Your payment is being confirmed. Check its status before trying again.' : awardPayment.status === 'refunded' ? 'Contact the team to review your payment.' : 'Not yet reserved · official presentation in November 2026.'}</p>
-            </div>
-          </div>
-          <Link href="/dashboard/me/award/payment" className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#F97316] px-5 text-sm font-semibold text-[#171412] shadow-sm transition hover:bg-[#FB923C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9A3412] focus-visible:ring-offset-2">
-            {awardPayment.needsPayment && awardPayment.status !== 'pending' && awardPayment.status !== 'refunded' ? 'View award options' : 'View payment status'}
-            <ArrowUpRight size={16} aria-hidden="true" />
-          </Link>
-        </div>
-      </section>}
+      <DashboardPromoCarousel payment={awardPayment} showCommunity={member.status === 'approved'} />
       {loadError && <p role="status" className="hub-status rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-sm leading-5 text-neutral-700">Some events couldn’t load. We’ll retry automatically; you can also open Events directly.</p>}
 
       <section aria-labelledby="coming-up-title" className="hub-upcoming-events min-w-0">

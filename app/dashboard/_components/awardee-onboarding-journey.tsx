@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import Image from '@/components/safe-image'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ArrowRight, BookOpenText, Check, CheckCircle2, ChevronDown, Circle, Compass, Copy, ExternalLink, FileText, Linkedin, MessageCircle, RefreshCw, Smartphone, Share2, Trophy, UserRound, X } from 'lucide-react'
+import { BookOpenText, Check, CheckCircle2, ChevronDown, Circle, Compass, Copy, ExternalLink, FileText, Linkedin, MessageCircle, RefreshCw, Smartphone, Share2, Trophy, UserRound, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -44,6 +44,24 @@ const whatsappChannelUrl = 'https://whatsapp.com/channel/0029Vb8lUNm96H4bB5keg40
 
 export function AwardeeOnboardingJourney({ name }: Props) {
   const { member } = useDashboardMember()
+  const [dismissedState, setDismissedState] = useState<{ memberId: string; ids: string[] }>({ memberId: '', ids: [] })
+  const dismissed = dismissedState.memberId === member.id ? dismissedState.ids : []
+  const dismissalKey = `afl-onboarding-dismissed:${member.id}`
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      try {
+        const saved: unknown = JSON.parse(localStorage.getItem(`afl-onboarding-dismissed:${member.id}`) ?? '[]')
+        setDismissedState({ memberId: member.id, ids: Array.isArray(saved) ? saved.filter((id): id is string => typeof id === 'string') : [] })
+      } catch { setDismissedState({ memberId: member.id, ids: [] }) }
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [member.id])
+  function dismissStep(id: string) {
+    const ids = [...new Set([...dismissed, id])]
+    setDismissedState({ memberId: member.id, ids })
+    try { localStorage.setItem(dismissalKey, JSON.stringify(ids)) } catch { /* Keep dismissal for this visit when storage is unavailable. */ }
+  }
+  const closeStep = (id: string, label: string) => <button type="button" onClick={() => dismissStep(id)} aria-label={`Dismiss ${label}`} className="journey-dismiss-step inline-grid size-11 shrink-0 place-items-center rounded-full text-[#716B62] hover:bg-[#FFF7EF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412]"><X className="h-4 w-4" aria-hidden="true" /></button>
   const [homeScreenInstalled, setHomeScreenInstalled] = useState(false)
   useEffect(() => {
     const standalone = window.matchMedia('(display-mode: standalone)')
@@ -191,6 +209,11 @@ export function AwardeeOnboardingJourney({ name }: Props) {
     + Number(Boolean(state?.shareConfirmation))
     + Number(joinedChannel)
     + Number(homeScreenComplete)
+  const hasVisibleTasks = Boolean(state?.coreSteps.some(step => !step.complete && !dismissed.includes(step.id)))
+    || (!homeScreenComplete && !dismissed.includes('home-screen'))
+    || (!member.portfolioCoverUrl && !dismissed.includes('cover'))
+    || (!joinedChannel && !dismissed.includes('whatsapp'))
+    || (!state?.shareConfirmation && !dismissed.includes('share-introduction'))
   const coverFile = preparedCover && preparedCover.url === member.portfolioCoverUrl ? preparedCover.file : null
   const coverPreparing = Boolean(shareOpen && member.portfolioCoverUrl && preparedCover?.url !== member.portfolioCoverUrl)
   const completedTiles: ExploreTile[] = [
@@ -324,9 +347,9 @@ export function AwardeeOnboardingJourney({ name }: Props) {
 
   return (
     <>
-      <section className="relative" aria-labelledby={taskCompleted < taskTotal ? 'journey-title' : undefined} aria-label={taskCompleted === taskTotal ? 'Explore more onboarding links' : undefined}>
+      <section className="relative" aria-labelledby={hasVisibleTasks ? 'journey-title' : undefined} aria-label={!hasVisibleTasks ? 'Explore more onboarding links' : undefined}>
         <div>
-          {taskCompleted < taskTotal ? <>
+          {hasVisibleTasks ? <>
             <div className="flex items-center justify-between gap-4">
               <h2 id="journey-title" className="text-xl font-medium leading-tight tracking-[-0.02em] text-[#171412] sm:text-2xl">Your next steps, {name.trim().split(/\s+/)[0]}</h2>
               <span className="shrink-0 text-sm tabular-nums text-[#625B52]">{taskCompleted}<span className="px-1 text-[#B5A99B]">/</span>{taskTotal}</span>
@@ -336,17 +359,17 @@ export function AwardeeOnboardingJourney({ name }: Props) {
             </div>
           </> : null}
 
-          {state.coreSteps.some(step => !step.complete) ? <ol className="mt-2 divide-y divide-[#EEE7DF] border-y border-[#EEE7DF]" aria-label="Awardee onboarding checklist">
-            {state.coreSteps.map((step, index) => ({ step, index })).filter(({ step }) => !step.complete).map(({ step, index }) => {
+          {state.coreSteps.some(step => !step.complete && !dismissed.includes(step.id)) ? <ol className="mt-2 divide-y divide-[#EEE7DF] border-y border-[#EEE7DF]" aria-label="Awardee onboarding checklist">
+            {state.coreSteps.map((step, index) => ({ step, index })).filter(({ step }) => !step.complete && !dismissed.includes(step.id)).map(({ step, index }) => {
               const href = coreDestinations[step.id as keyof typeof coreDestinations]
               const content = <>
                 <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center', step.complete ? 'text-[#276039]' : 'text-[#A94412]')}>
                   {step.complete ? <Check className="h-4 w-4" aria-hidden="true" /> : index === 0 ? <BookOpenText className="h-4 w-4" aria-hidden="true" /> : index === 1 ? <UserRound className="h-4 w-4" aria-hidden="true" /> : <FileText className="h-4 w-4" aria-hidden="true" />}
                 </span>
                 <span className="min-w-0 flex-1 text-sm font-medium leading-5 text-[#25211D]">{step.label}</span>
-                {step.complete ? <CheckCircle2 className="h-5 w-5 shrink-0 text-[#39754A]" aria-label="Complete" /> : <ArrowRight className="h-4 w-4 shrink-0 text-[#9A4619]" aria-hidden="true" />}
+
               </>
-              return <li key={step.id}>
+              return <li key={step.id} className="journey-dismissible-row">
                 {step.id === 'welcome' ? (
                   <button type="button" onClick={() => setWelcomeOpen(true)} className="flex min-h-14 w-full items-center gap-2 text-left transition-colors hover:bg-[#FFFCF9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-inset">{content}</button>
                 ) : step.id === 'handbook' ? (
@@ -356,52 +379,54 @@ export function AwardeeOnboardingJourney({ name }: Props) {
                       <span className="block text-sm font-medium leading-5 text-[#25211D]">{PARTICIPANT_HANDBOOK.checklistTitle}</span>
                       <span className="mt-0.5 block text-xs leading-5 text-[#716B62]">{PARTICIPANT_HANDBOOK.checklistDescription}</span>
                     </span>
-                    <ArrowRight className="h-4 w-4 shrink-0 text-[#A94412]" aria-hidden="true" />
                   </button>
                 ) : step.id === 'introduction' ? (
                   <button type="button" onClick={() => { setIntroError(''); setIntroOpen(true) }} aria-haspopup="dialog" className="flex min-h-14 w-full items-center gap-2 text-left transition-colors hover:bg-[#FFFCF9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-inset">{content}</button>
                 ) : href ? (
                   <Link href={href} className="flex min-h-14 items-center gap-2 transition-colors hover:bg-[#FFFCF9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-inset">{content}</Link>
                 ) : null}
+                {closeStep(step.id, step.label)}
               </li>
             })}
           </ol> : null}
           <div className="mt-2 divide-y divide-[#EEE7DF] border-b border-[#EEE7DF]">
-            {!homeScreenComplete ? (
+            {!homeScreenComplete && !dismissed.includes('home-screen') ? (
               <div className="flex min-h-14 items-center gap-2 py-2">
                 <button type="button" onClick={() => triggerHomeScreenAction()} className="group flex min-h-12 min-w-0 flex-1 items-center gap-2 text-left transition-colors hover:bg-[#FFFCF9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-inset">
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center text-[#A94412]"><Smartphone className="h-4 w-4" aria-hidden="true" /></span>
                   <span className="min-w-0 flex-1 text-sm font-medium text-[#25211D]">Add Top100 to your home screen</span>
-                  <ArrowRight className="h-4 w-4 shrink-0 text-[#A94412]" aria-hidden="true" />
                 </button>
                 <button type="button" onClick={() => void confirmManualTask('homeScreenAdded')} disabled={manualTaskSaving !== null} aria-busy={manualTaskSaving === 'homeScreenAdded'} className="min-h-10 shrink-0 rounded-full border border-[#D8CBBE] px-3 text-xs font-medium text-[#514B45] hover:bg-[#FFF7EF] disabled:opacity-60">{manualTaskSaving === 'homeScreenAdded' ? 'Saving…' : 'I’ve added it'}</button>
+                {closeStep('home-screen', 'Add Top100 to your home screen')}
               </div>
             ) : null}
 
-            {!member.portfolioCoverUrl ? (
+            {!member.portfolioCoverUrl && !dismissed.includes('cover') ? (
+            <div className="journey-dismissible-row">
             <Link href="/dashboard/me/portfolio-cover" className="group flex min-h-14 items-center gap-2 py-2 transition-colors hover:bg-[#FFFCF9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-inset">
               <span className="flex h-9 w-9 shrink-0 items-center justify-center text-[#A94412]"><UserRound className="h-4 w-4" aria-hidden="true" /></span>
               <span className="min-w-0 flex-1 text-sm font-medium text-[#25211D]">Update your awardee cover{member.portfolioCoverUrl ? ' · Complete' : ''}</span>
-              <ArrowRight className="h-4 w-4 shrink-0 text-[#A94412] transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
             </Link>
+            {closeStep('cover', 'Update your awardee cover')}
+            </div>
             ) : null}
-            {!joinedChannel ? (
-              <>
+            {!joinedChannel && !dismissed.includes('whatsapp') ? (
+              <div className="journey-dismissible-row">
             <a href={whatsappChannelUrl} target="_blank" rel="noopener noreferrer" className="group flex min-h-14 items-center gap-2 py-2 transition-colors hover:bg-[#FFFCF9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-inset">
               <span className="flex h-9 w-9 shrink-0 items-center justify-center text-[#A94412]"><MessageCircle className="h-4 w-4" aria-hidden="true" /></span>
               <span className="min-w-0 flex-1">
                 <span className="block text-sm font-medium leading-5 text-[#25211D]">Join the Africa Future Leaders WhatsApp channel</span>
                 <span className="mt-0.5 block text-xs text-[#716B62]">Get updates and announcements from the community</span>
               </span>
-              <ExternalLink className="h-4 w-4 shrink-0 text-[#A94412]" aria-hidden="true" />
             </a>
             <button type="button" onClick={() => void confirmChannelJoined()} disabled={joinedChannelSaving || joinedChannel} aria-busy={joinedChannelSaving} className="flex min-h-10 items-center gap-2 px-2 text-xs text-[#625B52] disabled:opacity-70">
               <Circle className="h-4 w-4" aria-hidden="true" />
               {joinedChannelSaving ? 'Saving confirmation…' : 'I’ve joined the WhatsApp channel'}
             </button>
-              </>
+              {closeStep('whatsapp', 'Join the Africa Future Leaders WhatsApp channel')}
+              </div>
             ) : null}
-            {!state.shareConfirmation ? (
+            {!state.shareConfirmation && !dismissed.includes('share-introduction') ? (
             <div className="flex min-h-14 items-center gap-1">
               <button type="button" onClick={() => setShareOpen(true)} aria-haspopup="dialog" className="group flex min-h-14 min-w-0 flex-1 items-center gap-2 text-left transition-colors hover:bg-[#FFFCF9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-inset">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center text-[#A94412]"><FileText className="h-4 w-4" aria-hidden="true" /></span>
@@ -410,9 +435,7 @@ export function AwardeeOnboardingJourney({ name }: Props) {
                   <span className="mt-0.5 block text-xs text-[#716B62]">Share your introduction and award cover</span>
                 </span>
               </button>
-              <button type="button" onClick={() => void confirmExternalShare()} disabled={shareSaving} aria-label="Mark share introduction step complete" title="Mark complete" aria-busy={shareSaving} className="inline-grid size-11 shrink-0 place-items-center rounded-full border border-[#E8DED3] bg-white text-[#716B62] transition-colors hover:border-[#E9A879] hover:bg-[#FFF7EF] hover:text-[#A94412] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60">
-                {shareSaving ? <RefreshCw className="h-4 w-4 animate-spin" aria-hidden="true" /> : <X className="h-4 w-4" aria-hidden="true" />}
-              </button>
+              {closeStep('share-introduction', 'Share your introduction')}
             </div>
             ) : null}
             <details className="journey-explore-more group overflow-hidden rounded-[18px] border border-[#E8E1D9] bg-[#FAF8F5]">
