@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/api/require-admin'
 import { createAdminClient } from '@/lib/supabase/server'
+import { rejectCrossOriginMutation } from '@/lib/security/same-origin'
 
 export async function GET(req: NextRequest) {
   const adminCheck = await requireAdmin(req)
@@ -55,6 +56,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
+  const originError = rejectCrossOriginMutation(req)
+  if (originError) return originError
   const adminCheck = await requireAdmin(req)
   if ('error' in adminCheck) {
     return adminCheck.error
@@ -178,6 +181,8 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const originError = rejectCrossOriginMutation(req)
+  if (originError) return originError
   const adminCheck = await requireAdmin(req)
   if ('error' in adminCheck) {
     return adminCheck.error
