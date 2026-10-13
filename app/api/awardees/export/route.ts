@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     const supabase = await createClient(true); // Use service role for admin operations
 
     // Fetch all awardees from the database
-    const awardees: Record<string, any>[] = [];
+    const awardees: unknown[] = [];
     for (let offset = 0; ; offset += 1000) {
       const { data, error } = await supabase
         .from('awardees')
