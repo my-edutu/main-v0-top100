@@ -1,5 +1,3 @@
-import { MEMBER_GROUPS_LOCKED_MESSAGE } from '@/lib/groups/access'
-
 export function GroupsLockedState() {
   return (
     <section
@@ -9,7 +7,7 @@ export function GroupsLockedState() {
     >
       <svg
         role="img"
-        aria-label="Groups are not available"
+        aria-label="WhatsApp groups are for approved members"
         viewBox="0 0 240 190"
         className="h-44 w-56 max-w-full sm:h-48 sm:w-60"
         fill="none"
@@ -31,9 +29,11 @@ export function GroupsLockedState() {
         <path d="M165 127h16" stroke="#A94412" strokeWidth="4" strokeLinecap="round" />
       </svg>
       <h2 id="groups-unavailable-title" className="mt-5 text-xl font-medium tracking-tight text-[#171412]">
-        Groups aren’t available right now
+        WhatsApp groups are for approved members
       </h2>
-      <p className="mt-2 max-w-sm text-sm leading-6 text-[#625B52]">{MEMBER_GROUPS_LOCKED_MESSAGE}</p>
+      <p className="mt-2 max-w-sm text-sm leading-6 text-[#625B52]">
+        Group access is available to approved members. Once your membership is approved, return here to discover your group.
+      </p>
     </section>
   )
 }

@@ -1,4 +1,5 @@
 import type { NextRequest } from 'next/server'
+import { randomInt } from 'node:crypto'
 
 import { hasValidDemoSession } from '@/lib/dev-dashboard/auth'
 import {
@@ -22,6 +23,7 @@ import { deriveAwardeeJourney } from '@/lib/dashboard/awardee-journey'
 import { DEFAULT_AWARDEE_JOURNEY_SETTINGS } from '@/lib/dashboard/awardee-journey-settings'
 import { magazineBillingCurrency } from '@/lib/magazine/billing-country'
 import { MEMBER_GROUPS_ENABLED, memberGroupsLockedResponse } from '@/lib/groups/access'
+import { getWhatsAppGroup, WHATSAPP_GROUPS } from '@/lib/groups/whatsapp'
 import type { AwardPaymentCurrency } from '@/lib/payments/bachs/types'
 
 function routeAwardeeJourney(request: NextRequest, store: DemoDashboardStore) {
@@ -876,6 +878,22 @@ export async function handleDemoMemberRequest(
     case 'groups':
       response = await routeGroups(request, path, store)
       break
+    case 'whatsapp-group': {
+      if (request.method !== 'POST') break
+      if (store.profile.status !== 'approved') {
+        response = json({ message: 'Approved members can access WhatsApp groups.' }, 403)
+        break
+      }
+      const created = store.whatsappGroupKey === null
+      if (created) store.whatsappGroupKey = Object.values(WHATSAPP_GROUPS)[randomInt(0, 3)].key
+      const group = getWhatsAppGroup(store.whatsappGroupKey)
+      if (!group) {
+        response = json({ message: 'Your group could not be loaded. Please try again.' }, 500)
+        break
+      }
+      response = json({ group, created })
+      break
+    }
     case 'opportunities':
       response = await routeOpportunities(request, path, store)
       break

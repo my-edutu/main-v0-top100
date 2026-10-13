@@ -594,6 +594,11 @@ html.light .awardee-dashboard .hub-notifications .updates-cta { background:#ffff
 @media(prefers-reduced-transparency:reduce) { html.light .awardee-dashboard .hub-notifications .updates-item { background:#f2f2f7!important; backdrop-filter:none; -webkit-backdrop-filter:none; } }
 
 /* Read updates recede; unread updates retain a warm, brighter surface. */
+.whatsapp-group-card { display:flex; min-height:300px; flex-direction:column; align-items:center; justify-content:center; border:1px solid #e7ddcf; border-radius:24px; background:#fff; padding:32px 24px; text-align:center; }
+.whatsapp-group-card--reveal { animation:whatsapp-group-reveal .72s cubic-bezier(.2,.8,.25,1) both; }
+@keyframes whatsapp-group-reveal { 0% { opacity:0; transform:translateY(14px) scale(.97); } 70% { opacity:1; transform:translateY(-2px) scale(1.005); } 100% { opacity:1; transform:translateY(0) scale(1); } }
+@media(prefers-reduced-motion:reduce) { .whatsapp-group-card--reveal { animation:none; } }
+
 html.light .awardee-dashboard .hub-notifications .updates-item.is-unread, .awardee-dashboard .hub-notifications .updates-item.is-unread { background:linear-gradient(135deg,#fff7ecf2,#fff0dfcc)!important; border-color:#f3d5b8; }
 html.light .awardee-dashboard .hub-notifications .updates-item:not(.is-unread), .awardee-dashboard .hub-notifications .updates-item:not(.is-unread) { background:#f7f7f9b3!important; border-color:#efeff2; box-shadow:inset 0 1px 0 #ffffff80; }
 .awardee-dashboard .hub-notifications .updates-item:not(.is-unread) h2 { color:#62626b; font-weight:500; }

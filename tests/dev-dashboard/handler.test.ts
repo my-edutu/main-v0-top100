@@ -138,6 +138,43 @@ describe('interactive local dashboard demo API', () => {
     expect(store.groups).toHaveLength(initialGroupCount)
   })
 
+  it('assigns the local demo member one WhatsApp group and reuses it on return', async () => {
+    const first = await call(store, 'POST', 'whatsapp-group', {
+      groupKey: 'group-1',
+      inviteUrl: 'https://evil.example',
+    })
+    const second = await call(store, 'POST', 'whatsapp-group')
+
+    expect(first.response.status).toBe(200)
+    expect(first.data.created).toBe(true)
+    expect(first.data.group.key).toMatch(/^group-[123]$/)
+    expect(first.data.group.inviteUrl).toMatch(/^https:\/\/chat\.whatsapp\.com\//)
+    expect(second.data).toEqual({ ...first.data, created: false })
+    expect(store.whatsappGroupKey).toBe(first.data.group.key)
+  })
+
+  it('includes the approved-member WhatsApp launch notice in the local demo inbox', async () => {
+    const { data } = await call(store, 'GET', 'me')
+    const notification = data.notifications.find((item: { campaignId?: string }) => item.campaignId === 'afl-whatsapp-member-groups')
+
+    expect(notification).toMatchObject({
+      title: 'Your AFL WhatsApp community is here',
+      audience: 'approved',
+      ctaLabel: 'Discover your group',
+      ctaUrl: '/dashboard/discover/groups',
+    })
+  })
+
+  it('does not assign a WhatsApp group to a local-demo member without approval', async () => {
+    store.profile.status = 'pending'
+
+    const { response, data } = await call(store, 'POST', 'whatsapp-group')
+
+    expect(response.status).toBe(403)
+    expect(data.group).toBeUndefined()
+    expect(store.whatsappGroupKey).toBeNull()
+  })
+
   it('creates, updates, and deletes member posts', async () => {
     const created = await call(store, 'POST', 'posts', {
       title: 'Notes from the demo workspace',

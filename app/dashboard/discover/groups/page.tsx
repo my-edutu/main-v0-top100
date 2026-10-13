@@ -1,31 +1,22 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
-
 import { RouteSection } from '../../_components/route-section'
-import { groupExitDestination } from '../../_lib/navigation'
 import { useDashboardMember } from '../../_providers/dashboard-member'
-import GroupsSection from '../../groups-section'
-import { MEMBER_GROUPS_ENABLED } from '@/lib/groups/access'
-import { GroupsLockedState } from '../../_components/groups-locked-state'
+import { WhatsAppGroupsSection } from './whatsapp-groups-section'
 
 export default function GroupsPage() {
   const { member } = useDashboardMember()
-  const router = useRouter()
 
   return (
     <RouteSection
-      eyebrow="Communities"
-      title="Groups"
-      description="Member communities and group conversations."
+      eyebrow="Connect"
+      title="Your WhatsApp group"
+      description="Meet and connect with fellow Africa Future Leaders."
     >
-      {MEMBER_GROUPS_ENABLED ? (
-        <GroupsSection
-          member={member}
-          onGroupSelected={(groupId) => router.push(`/dashboard/discover/groups/${encodeURIComponent(groupId)}`)}
-          onGroupExited={() => router.replace(groupExitDestination())}
-        />
-      ) : <GroupsLockedState />}
+      <WhatsAppGroupsSection
+        approved={member.status === 'approved'}
+        isDemoPreview={process.env.NODE_ENV !== 'production' && member.id === 'demo-member-1'}
+      />
     </RouteSection>
   )
 }

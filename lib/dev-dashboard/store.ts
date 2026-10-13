@@ -5,6 +5,7 @@ import type {
 } from '@/lib/awards/payment'
 import type { EventInvitation } from '@/lib/events/invitations-client'
 import type { GroupMessageView, GroupSummary } from '@/lib/groups/types'
+import type { WhatsAppGroupKey } from '@/lib/groups/whatsapp'
 import type {
   ConversationSummary,
   DirectMessage,
@@ -69,6 +70,7 @@ export type DemoDashboardStore = {
   posts: MemberPost[]
   conversations: DemoConversation[]
   groups: DemoGroup[]
+  whatsappGroupKey: WhatsAppGroupKey | null
   messages: DemoInboxMessage[]
   opportunities: Opportunity[]
   invitations: EventInvitation[]
@@ -147,6 +149,19 @@ export function createDemoDashboardStore(): DemoDashboardStore {
         category: 'admin',
         ctaLabel: 'Open handbook',
         ctaUrl: '/handbooks/2026-participant-handbook.pdf',
+      },
+      {
+        id: 'demo-whatsapp-groups-notification',
+        title: 'Your AFL WhatsApp community is here',
+        message: 'Connect with fellow Africa Future Leaders. Open Groups to discover your assigned WhatsApp group.',
+        audience: 'approved',
+        status: 'sent',
+        createdAt: '2026-10-13T09:00:00.000Z',
+        readBy: [],
+        category: 'admin',
+        ctaLabel: 'Discover your group',
+        ctaUrl: '/dashboard/discover/groups',
+        campaignId: 'afl-whatsapp-member-groups',
       },
     ],
     featureSubmissions: [],
@@ -248,6 +263,7 @@ export function createDemoDashboardStore(): DemoDashboardStore {
         pendingMembers: [],
       },
     ],
+    whatsappGroupKey: null,
     messages: [],
     opportunities: [
       {
@@ -344,6 +360,22 @@ export function getDemoDashboardStore(): DemoDashboardStore {
     globalThis.__top100DemoDashboardStore.messages = []
   }
   globalThis.__top100DemoDashboardStore.whatsappChannelJoinedAt ??= null
+  globalThis.__top100DemoDashboardStore.whatsappGroupKey ??= null
+  if (!globalThis.__top100DemoDashboardStore.notifications.some((notification) => notification.campaignId === 'afl-whatsapp-member-groups')) {
+    globalThis.__top100DemoDashboardStore.notifications.push({
+      id: 'demo-whatsapp-groups-notification',
+      title: 'Your AFL WhatsApp community is here',
+      message: 'Connect with fellow Africa Future Leaders. Open Groups to discover your assigned WhatsApp group.',
+      audience: 'approved',
+      status: 'sent',
+      createdAt: '2026-10-13T09:00:00.000Z',
+      readBy: [],
+      category: 'admin',
+      ctaLabel: 'Discover your group',
+      ctaUrl: '/dashboard/discover/groups',
+      campaignId: 'afl-whatsapp-member-groups',
+    })
+  }
   globalThis.__top100DemoDashboardStore.welcomeReadAt ??= null
   globalThis.__top100DemoDashboardStore.top100MomentCompletedAt ??= null
   globalThis.__top100DemoDashboardStore.externalShareConfirmedAt ??= null
