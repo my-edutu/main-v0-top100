@@ -15,6 +15,7 @@ export async function GET(req: NextRequest) {
     const { data: profiles, error } = await supabase
       .from('profiles')
       .select('*')
+      .neq('account_status', 'deleted')
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -31,7 +32,7 @@ export async function GET(req: NextRequest) {
       name: profile.full_name || 'Unnamed User',
       email: profile.email || '',
       role: profile.role || 'user',
-      status: profile.is_public === false ? 'inactive' : 'active',
+      status: profile.account_status === 'suspended' ? 'inactive' : 'active',
       joinedDate: profile.created_at || new Date().toISOString(),
       lastActive: profile.updated_at || profile.created_at || new Date().toISOString(),
       avatar_url: profile.avatar_url,
@@ -68,6 +69,13 @@ export async function PUT(req: NextRequest) {
       )
     }
 
+    if (
+      id === adminCheck.user.id &&
+      (status === 'inactive' || (role !== undefined && role !== adminCheck.profile.role))
+    ) {
+      return NextResponse.json({ message: 'You cannot suspend or demote your own administrator account.' }, { status: 403 })
+    }
+
     // Prepare update data
     const updates: Record<string, any> = {}
 
@@ -83,8 +91,10 @@ export async function PUT(req: NextRequest) {
     }
 
     if (status !== undefined) {
-      // Map status to is_public
-      updates.is_public = status === 'active'
+      if (status !== 'active' && status !== 'inactive') {
+        return NextResponse.json({ message: 'Invalid account status.' }, { status: 400 })
+      }
+      updates.account_status = status === 'inactive' ? 'suspended' : 'active'
     }
 
     if (full_name !== undefined) updates.full_name = full_name
@@ -98,6 +108,17 @@ export async function PUT(req: NextRequest) {
         { message: 'No fields to update' },
         { status: 400 }
       )
+    }
+
+    // Revoke refresh access at the identity provider, independently of directory visibility.
+    if (status !== undefined) {
+      const { error: authError } = await supabase.auth.admin.updateUserById(id, {
+        ban_duration: status === 'inactive' ? '876000h' : 'none',
+      })
+      if (authError) {
+        console.error('Could not change authentication status:', authError)
+        return NextResponse.json({ message: 'Could not change authentication status.' }, { status: 503 })
+      }
     }
 
     // Update the user
@@ -122,7 +143,7 @@ export async function PUT(req: NextRequest) {
       name: data.full_name || 'Unnamed User',
       email: data.email || '',
       role: data.role || 'user',
-      status: data.is_public === false ? 'inactive' : 'active',
+      status: data.account_status === 'suspended' ? 'inactive' : 'active',
       joinedDate: data.created_at || new Date().toISOString(),
       lastActive: data.updated_at || data.created_at || new Date().toISOString(),
     }
@@ -155,19 +176,22 @@ export async function DELETE(req: NextRequest) {
       )
     }
 
-    // Don't allow admins to delete themselves
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user?.id === id) {
+    // Compare against the authenticated requesting admin, not the service client.
+    if (adminCheck.user.id === id) {
       return NextResponse.json(
         { message: 'You cannot delete your own account' },
         { status: 403 }
       )
     }
 
-    // Soft delete by setting is_public to false and archiving
+    // Preserve historical payments and submissions while revoking account access.
+    const { error: banError } = await supabase.auth.admin.updateUserById(id, { ban_duration: '876000h' })
+    if (banError) {
+      return NextResponse.json({ message: 'Could not revoke account access.' }, { status: 503 })
+    }
     const { error } = await supabase
       .from('profiles')
-      .update({ is_public: false, role: 'user' })
+      .update({ account_status: 'deleted', role: 'user' })
       .eq('id', id)
 
     if (error) {
