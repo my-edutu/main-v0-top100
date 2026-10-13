@@ -124,7 +124,7 @@ type SiteSettings = {
 const DEFAULT_SETTINGS: Partial<SiteSettings> = {
   site_name: 'Top100 Africa Future Leaders',
   site_description: "Showcasing Africa's emerging leaders",
-  site_url: 'https://top100afl.org',
+  site_url: 'https://www.top100afl.com',
   contact_email: 'admin@top100afl.org',
   social_links: {
     twitter: 'https://twitter.com/top100afl',
