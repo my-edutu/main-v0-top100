@@ -36,10 +36,10 @@ export default function AnalyticsDashboard() {
 
       // Fetch real data from APIs
       const [awardeesRes, postsRes, eventsRes, youtubeRes] = await Promise.all([
-        fetch('/api/awardees?scope=admin').then(r => r.ok ? r.json() : []),
-        fetch('/api/posts').then(r => r.ok ? r.json() : []),
-        fetch('/api/events').then(r => r.ok ? r.json() : []),
-        fetch('/api/youtube').then(r => r.ok ? r.json() : [])
+        fetch('/api/awardees?scope=admin').then(r => { if (!r.ok) throw new Error('Awardees unavailable'); return r.json() }),
+        fetch('/api/posts?scope=admin').then(r => { if (!r.ok) throw new Error('Posts unavailable'); return r.json() }),
+        fetch('/api/events?scope=admin').then(r => { if (!r.ok) throw new Error('Events unavailable'); return r.json() }),
+        fetch('/api/youtube').then(r => { if (!r.ok) throw new Error('Videos unavailable'); return r.json() })
       ])
 
       const awardees = Array.isArray(awardeesRes) ? awardeesRes : []
