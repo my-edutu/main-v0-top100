@@ -1,3 +1,4 @@
+import { rejectCrossOriginMutation } from '@/lib/security/same-origin'
 // app/api/admin/event-invitations/route.ts
 // Admin: send event invitations, and read the RSVP roster for one event.
 //   POST -> { eventId, audience, profileIds?, cohortYear?, message? }
@@ -28,6 +29,8 @@ const setupResponse = () =>
   NextResponse.json({ message: EVENT_INVITATIONS_SETUP_MESSAGE, setupRequired: true }, { status: 503 })
 
 export async function POST(request: NextRequest) {
+  const originError = rejectCrossOriginMutation(request)
+  if (originError) return originError
   const adminCheck = await requireAdmin(request)
   if ('error' in adminCheck) return adminCheck.error
 
