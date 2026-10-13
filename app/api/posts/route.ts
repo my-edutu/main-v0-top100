@@ -65,14 +65,21 @@ export async function GET(req: NextRequest) {
         return NextResponse.json(data)
       }
 
-      const { data, error } = await supabase.from('posts').select('*').order('created_at', { ascending: false })
-
-      if (error) {
-        console.error('Error fetching posts:', error)
-        return NextResponse.json({ message: 'Error fetching posts', error: error.message }, { status: 500 })
+      // Paginate server-side; the default PostgREST limit is only 1,000 records.
+      const posts = []
+      for (let offset = 0; ; offset += 1000) {
+        const { data, error } = await supabase.from('posts').select('*')
+          .order('created_at', { ascending: false }).order('id')
+          .range(offset, offset + 999)
+        if (error) {
+          console.error('Error fetching posts:', error)
+          return NextResponse.json({ message: 'Error fetching posts' }, { status: 500 })
+        }
+        posts.push(...(data ?? []))
+        if ((data ?? []).length < 1000) break
       }
 
-      return NextResponse.json(data ?? [])
+      return NextResponse.json(posts)
     }
 
     if (slug) {
