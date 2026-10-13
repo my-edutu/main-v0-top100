@@ -1,3 +1,4 @@
+import { rejectCrossOriginMutation } from '@/lib/security/same-origin'
 // app/api/admin/access-codes/[id]/route.ts
 // Admin-only: revoke a single access code.
 import { NextRequest, NextResponse } from 'next/server'
@@ -8,6 +9,8 @@ export const runtime = 'nodejs'
 
 // PATCH — revoke the code (only supported action for now)
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const originError = rejectCrossOriginMutation(request)
+  if (originError) return originError
   const adminCheck = await requireAdmin(request)
   if ('error' in adminCheck) return adminCheck.error
 
@@ -40,6 +43,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
 // DELETE — active, unexpired codes must be revoked before they can be removed.
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const originError = rejectCrossOriginMutation(request)
+  if (originError) return originError
   const adminCheck = await requireAdmin(request)
   if ('error' in adminCheck) return adminCheck.error
 
