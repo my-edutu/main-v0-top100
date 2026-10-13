@@ -14,6 +14,10 @@ describe('web application stabilization security regressions', () => {
     expect(list).not.toContain('return Response.json(fallbackAwardees)')
     expect(detail).toContain("if (!adminMode) query = query.eq('is_public', true)")
     expect(detail).not.toContain('delete safeData.email')
+    const search = source('app/api/awardees/search/route.ts')
+    expect(search).toContain(".eq('is_public', true)")
+    expect(search).toContain(".limit(100)")
+    expect(search).toContain('sanitizedQuery')
   })
 
   it.each([
