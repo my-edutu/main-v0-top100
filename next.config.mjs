@@ -89,7 +89,15 @@ const nextConfig = {
           },
           {
             key: 'Cache-Control',
-            value: 'no-cache, max-age=0, must-revalidate',
+            value: 'no-store, max-age=0, must-revalidate',
+          },
+          {
+            key: 'CDN-Cache-Control',
+            value: 'no-store',
+          },
+          {
+            key: 'Cloudflare-CDN-Cache-Control',
+            value: 'no-store',
           },
         ],
       },
