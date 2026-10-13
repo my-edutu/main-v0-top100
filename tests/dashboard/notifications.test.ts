@@ -11,14 +11,14 @@ import { mapNotification } from '@/lib/member-hub-server'
 describe('routed notification inbox', () => {
   it('keeps the scalar badge in sync after marking one or all updates', () => {
     const initial = createDemoDashboardStore().notifications
-    expect(notificationUnreadCount(initial, DEMO_MEMBER_ID)).toBe(2)
+    expect(notificationUnreadCount(initial, DEMO_MEMBER_ID)).toBe(3)
 
     const markedOne = markNotificationReadInList(
       initial,
       DEMO_MEMBER_ID,
       'demo-notification-1',
     )
-    expect(notificationUnreadCount(markedOne, DEMO_MEMBER_ID)).toBe(1)
+    expect(notificationUnreadCount(markedOne, DEMO_MEMBER_ID)).toBe(2)
 
     const allUnread = initial.map((notification) => ({
       ...notification,
@@ -33,7 +33,11 @@ describe('routed notification inbox', () => {
       createDemoDashboardStore().notifications.map(
         (notification) => notification.ctaUrl,
       ),
-    ).toEqual(['/dashboard/me/profile', '/handbooks/2026-participant-handbook.pdf'])
+    ).toEqual([
+      '/dashboard/me/profile',
+      '/handbooks/2026-participant-handbook.pdf',
+      '/dashboard/discover/groups',
+    ])
   })
 
   it('keeps other notification actions available while one update is being marked', () => {
