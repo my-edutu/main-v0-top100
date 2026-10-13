@@ -33,7 +33,7 @@ import { useDashboardBadges } from '../_providers/dashboard-badges'
 import { DashboardPromoCarousel } from './dashboard-promo-carousel'
 
 const INTERVIEW_FORM_URL = '/dashboard/me/interview'
-const PARTNERSHIP_FORM_URL = 'https://docs.google.com/forms/d/1pabeSUOwN15Sr-VcAWIhl5k5_xwnKljFuzm90PCoEqQ/edit'
+const PARTNERSHIP_FORM_URL = '/partnership'
 
 const launchBanners = [
   { title: 'Project100 Scholarship', description: 'Put your next chapter in motion.', href: '/dashboard/me/project100-scholarship', image: '/dashboard/banners/project100-scholarship-roadside.png' },

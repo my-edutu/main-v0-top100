@@ -22,6 +22,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 import { requireAdmin } from '@/lib/api/require-admin'
+import { rejectCrossOriginMutation } from '@/lib/security/same-origin'
 import { createAdminClient } from '@/lib/supabase/server'
 import { paidAmountMatches, verifyTransaction } from '@/lib/payments/paystack'
 import { canTransition, type AwardStatus } from '@/lib/awards/status'
@@ -36,6 +37,8 @@ function isMissingPaymentAttemptTable(error: { code?: string; message?: string }
 }
 
 export async function POST(request: NextRequest) {
+  const originError = rejectCrossOriginMutation(request)
+  if (originError) return originError
   const adminCheck = await requireAdmin(request)
   if ('error' in adminCheck) return adminCheck.error
 

@@ -1,3 +1,4 @@
+import { rejectCrossOriginMutation } from '@/lib/security/same-origin'
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/api/require-admin'
 import { createAdminClient } from '@/lib/supabase/server'
@@ -26,6 +27,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const originError = rejectCrossOriginMutation(request)
+  if (originError) return originError
   const access = await requireAdmin(request)
   if ('error' in access) return access.error
   const length = Number(request.headers.get('content-length') ?? 0)

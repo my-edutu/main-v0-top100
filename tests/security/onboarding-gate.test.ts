@@ -6,6 +6,7 @@ import { updateSession } from '@/utils/supabase/middleware'
 const state = vi.hoisted(() => ({
   prefs: {} as Record<string, unknown>,
   error: null as unknown,
+  accountStatus: 'active' as string,
 }))
 vi.mock('@supabase/ssr', () => ({
   createServerClient: () => ({
@@ -28,9 +29,10 @@ vi.mock('@supabase/ssr', () => ({
 beforeEach(() => {
   state.prefs = {}
   state.error = null
+  state.accountStatus = 'active'
   vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://example.supabase.co')
   vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'test-server-key')
-  vi.stubGlobal('fetch', vi.fn(async () => state.error ? new Response(null, { status: 503 }) : Response.json([{ notification_prefs: state.prefs }])))
+  vi.stubGlobal('fetch', vi.fn(async () => state.error ? new Response(null, { status: 503 }) : Response.json([{ notification_prefs: state.prefs, account_status: state.accountStatus }])))
 })
 it('redirects incomplete members from deep dashboard links', async () => {
   const response = await updateSession(
@@ -91,5 +93,14 @@ it('uses the authenticated user scope for the authoritative completion check', a
   state.prefs = { onboardingCompletedAt: '2026-10-06T22:30:47.031Z' }
   const response = await updateSession(new NextRequest('https://www.top100afl.com/dashboard'))
   expect(response.status).toBe(200)
-  expect(fetch).toHaveBeenCalledWith('https://example.supabase.co/rest/v1/profiles?id=eq.member-1&select=notification_prefs', expect.objectContaining({ cache: 'no-store' }))
+  expect(fetch).toHaveBeenCalledWith('https://example.supabase.co/rest/v1/profiles?id=eq.member-1&select=notification_prefs,account_status', expect.objectContaining({ cache: 'no-store' }))
+})
+
+it('blocks suspended accounts even on onboarding-exempt APIs', async () => {
+  state.accountStatus = 'suspended'
+  expect((
+    await updateSession(new NextRequest('https://www.top100afl.com/api/member/me'))
+  ).status).toBe(403)
+  const dashboard = await updateSession(new NextRequest('https://www.top100afl.com/dashboard'))
+  expect(dashboard.headers.get('location')).toContain('/login?reason=inactive')
 })

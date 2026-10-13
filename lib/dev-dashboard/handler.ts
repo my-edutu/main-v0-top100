@@ -23,7 +23,7 @@ import { deriveAwardeeJourney } from '@/lib/dashboard/awardee-journey'
 import { DEFAULT_AWARDEE_JOURNEY_SETTINGS } from '@/lib/dashboard/awardee-journey-settings'
 import { magazineBillingCurrency } from '@/lib/magazine/billing-country'
 import { MEMBER_GROUPS_ENABLED, memberGroupsLockedResponse } from '@/lib/groups/access'
-import { getWhatsAppGroup, WHATSAPP_GROUPS } from '@/lib/groups/whatsapp'
+import { getWhatsAppGroup, WhatsAppGroupSetupError, WHATSAPP_GROUPS } from '@/lib/groups/whatsapp'
 import type { AwardPaymentCurrency } from '@/lib/payments/bachs/types'
 
 function routeAwardeeJourney(request: NextRequest, store: DemoDashboardStore) {
@@ -886,7 +886,16 @@ export async function handleDemoMemberRequest(
       }
       const created = store.whatsappGroupKey === null
       if (created) store.whatsappGroupKey = Object.values(WHATSAPP_GROUPS)[randomInt(0, 3)].key
-      const group = getWhatsAppGroup(store.whatsappGroupKey)
+      let group
+      try {
+        group = getWhatsAppGroup(store.whatsappGroupKey)
+      } catch (error) {
+        if (!(error instanceof WhatsAppGroupSetupError)) throw error
+        // The loopback-only demo illustrates the group UI without publishing
+        // real invitation URLs or requiring deployment secrets on a laptop.
+        const demoKey = store.whatsappGroupKey
+        group = demoKey ? { key: demoKey, label: WHATSAPP_GROUPS[demoKey].label, inviteUrl: 'https://chat.whatsapp.com/DemoPreviewOnly' } : null
+      }
       if (!group) {
         response = json({ message: 'Your group could not be loaded. Please try again.' }, 500)
         break

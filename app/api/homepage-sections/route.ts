@@ -6,6 +6,10 @@ import { requireAdmin } from '@/lib/api/require-admin'
 export async function GET(req: NextRequest) {
   try {
     const scope = req.nextUrl.searchParams.get('scope') ?? 'public'
+    if (scope === 'admin') {
+      const adminCheck = await requireAdmin(req)
+      if ('error' in adminCheck) return adminCheck.error
+    }
     const supabase = createAdminClient()
 
     let query = supabase

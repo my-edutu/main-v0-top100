@@ -171,6 +171,10 @@ export async function GET(req: NextRequest) {
   const supabase = createAdminClient()
   const searchParams = req.nextUrl.searchParams
   const scope = searchParams.get('scope')
+  if (scope === 'admin') {
+    const adminCheck = await requireAdmin(req)
+    if ('error' in adminCheck) return adminCheck.error
+  }
   const requestedLimit = Number(searchParams.get('limit'))
   const limit = Number.isInteger(requestedLimit) && requestedLimit > 0
     ? Math.min(requestedLimit, 100)
@@ -203,6 +207,21 @@ export async function GET(req: NextRequest) {
   // Dashboard previews pass a small explicit limit. Full event pages and
   // admin views retain their current behavior until they opt in.
   if (scope !== 'admin' && limit !== null) query.limit(limit)
+
+  if (scope === 'admin') {
+    const rows = []
+    for (let offset = 0; ; offset += 1000) {
+      const { data, error } = await supabase.from('events')
+        .select('*, programme_speakers(*)')
+        .order('start_at', { ascending: false })
+        .order('id', { ascending: true })
+        .range(offset, offset + 999)
+      if (error) return toJsonResponse({ message: 'Could not load events.' }, 503)
+      rows.push(...(data ?? []))
+      if ((data ?? []).length < 1000) break
+    }
+    return toJsonResponse(rows)
+  }
 
   const { data, error } = await query
 

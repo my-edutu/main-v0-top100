@@ -132,6 +132,22 @@ export default function AdminMessagesPage() {
     }
   }
 
+  const markAsReplied = async (messageId: string) => {
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.from('messages').update({ status: 'replied' }).eq('id', messageId)
+      if (error) throw error
+      setMessages((current) => current.map((message) =>
+        message.id === messageId ? { ...message, status: 'replied' } : message))
+      setSelectedMessage((current) =>
+        current?.id === messageId ? { ...current, status: 'replied' } : current)
+      toast.success('Response recorded')
+    } catch (error) {
+      console.error('Could not mark message as replied:', error)
+      toast.error('Could not record the reply')
+    }
+  }
+
   const handleReply = (email: string, subject: string) => {
     window.open(`mailto:${email}?subject=${encodeURIComponent(`Re: ${subject}`)}`, '_blank', 'noopener,noreferrer')
   }
@@ -228,6 +244,7 @@ export default function AdminMessagesPage() {
                   </div>
                   <div className="message-detail-actions">
                     <Button variant="outline" onClick={() => handleReply(selectedMessage.email, selectedMessage.subject || '')}><Reply className="h-4 w-4" /> Reply</Button>
+                    <Button variant="outline" disabled={selectedMessage.status === 'replied'} onClick={() => void markAsReplied(selectedMessage.id)}><CheckCircle2 className="h-4 w-4" /> Mark replied</Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild><Button variant="outline" size="icon" aria-label="Delete message"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
                       <AlertDialogContent className="bg-white">

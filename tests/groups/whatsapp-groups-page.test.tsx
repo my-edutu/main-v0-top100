@@ -20,7 +20,7 @@ import GroupDetailPage from '@/app/dashboard/discover/groups/[id]/page'
 const group = {
   key: 'group-2' as const,
   label: 'Group 2',
-  inviteUrl: 'https://chat.whatsapp.com/F8p9rErOr6VAYGZbhaske8?mode=gi_t',
+  inviteUrl: 'https://chat.whatsapp.com/TestInviteGroupTwo',
 }
 
 describe('WhatsApp groups page', () => {
@@ -71,7 +71,7 @@ describe('WhatsApp groups page', () => {
 
     expect(markup).toContain('Group 2')
     expect(markup).toContain('role="status"')
-    expect(markup).toContain('href="https://chat.whatsapp.com/F8p9rErOr6VAYGZbhaske8?mode=gi_t"')
+    expect(markup).toContain('href="https://chat.whatsapp.com/TestInviteGroupTwo"')
     expect(markup).toContain('target="_blank"')
     expect(markup).toContain('rel="noopener noreferrer"')
     expect(markup).toContain('Join your WhatsApp group')

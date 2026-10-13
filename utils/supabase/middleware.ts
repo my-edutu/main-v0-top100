@@ -168,34 +168,43 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (user && (pathname.startsWith('/dashboard') || pathname.startsWith('/api/member/'))) {
-    const allowed = ['/api/member/me', '/api/member/onboarding', '/api/member/uploads', '/api/member/avatar']
-    if (!allowed.includes(pathname)) {
-      // Match /api/member/me: read only this authenticated user's preferences
-      // authoritatively, independent of profile RLS visibility.
-      let profile: { notification_prefs?: Record<string, unknown> } | undefined
-      try {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-        if (!url || !key) throw new Error('Profile lookup unavailable')
-        const result = await fetch(`${url}/rest/v1/profiles?id=eq.${encodeURIComponent(user.sub)}&select=notification_prefs`, {
-          headers: { apikey: key, Authorization: `Bearer ${key}` },
-          cache: 'no-store',
-        })
-        if (!result.ok) throw new Error('Profile lookup unavailable')
-        profile = (await result.json())[0]
-      } catch {
-        const response = NextResponse.json({ message: 'Your profile status could not be checked. Please retry.' }, { status: 503 })
+    const onboardingAllowed = ['/api/member/me', '/api/member/onboarding', '/api/member/uploads', '/api/member/avatar']
+    // Check account status on every authenticated member route, even the routes
+    // exempt from onboarding. Directory visibility is unrelated to login access.
+    let profile: { notification_prefs?: Record<string, unknown>; account_status?: string } | undefined
+    try {
+      const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+      if (!url || !key) throw new Error('Profile lookup unavailable')
+      const result = await fetch(`${url}/rest/v1/profiles?id=eq.${encodeURIComponent(user.sub)}&select=notification_prefs,account_status`, {
+        headers: { apikey: key, Authorization: `Bearer ${key}` },
+        cache: 'no-store',
+      })
+      if (!result.ok) throw new Error('Profile lookup unavailable')
+      profile = (await result.json())[0]
+    } catch {
+      const response = NextResponse.json({ message: 'Your account could not be verified. Please retry.' }, { status: 503 })
+      supabaseResponse.cookies.getAll().forEach(cookie => response.cookies.set(cookie))
+      return response
+    }
+    if (!profile || (profile.account_status && profile.account_status !== 'active')) {
+      if (pathname.startsWith('/api/member/')) {
+        return NextResponse.json({ message: 'This account is not active. Contact support.' }, { status: 403 })
+      }
+      const url = request.nextUrl.clone()
+      url.pathname = '/login'
+      url.search = '?reason=inactive'
+      const response = NextResponse.redirect(url)
+      supabaseResponse.cookies.getAll().forEach(cookie => response.cookies.set(cookie))
+      return response
+    }
+    if (!onboardingAllowed.includes(pathname) && !onboardingComplete(profile.notification_prefs)) {
+      if (pathname.startsWith('/api/member/')) return NextResponse.json({ message: 'Complete your profile setup first.', onboardingRequired: true }, { status: 403 })
+      if (pathname !== '/dashboard/onboarding') {
+        const url = request.nextUrl.clone(); url.pathname = '/dashboard/onboarding'; url.search = ''
+        const response = NextResponse.redirect(url)
         supabaseResponse.cookies.getAll().forEach(cookie => response.cookies.set(cookie))
         return response
-      }
-      if (!onboardingComplete(profile?.notification_prefs)) {
-        if (pathname.startsWith('/api/member/')) return NextResponse.json({ message: 'Complete your profile setup first.', onboardingRequired: true }, { status: 403 })
-        if (pathname !== '/dashboard/onboarding') {
-          const url = request.nextUrl.clone(); url.pathname = '/dashboard/onboarding'; url.search = ''
-          const response = NextResponse.redirect(url)
-          supabaseResponse.cookies.getAll().forEach(cookie => response.cookies.set(cookie))
-          return response
-        }
       }
     }
   }

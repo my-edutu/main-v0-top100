@@ -1,3 +1,4 @@
+import { rejectCrossOriginMutation } from '@/lib/security/same-origin'
 import { NextRequest, NextResponse } from 'next/server'
 
 import { requireAdmin } from '@/lib/api/require-admin'
@@ -5,6 +6,8 @@ import { sanitizeSpeaker } from '@/app/api/admin/programme-speakers/route'
 import { createAdminClient } from '@/lib/supabase/server'
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const originError = rejectCrossOriginMutation(request)
+  if (originError) return originError
   const adminCheck = await requireAdmin(request)
   if ('error' in adminCheck) return adminCheck.error
   const { id } = await params
@@ -21,6 +24,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 }
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const originError = rejectCrossOriginMutation(request)
+  if (originError) return originError
   const adminCheck = await requireAdmin(request)
   if ('error' in adminCheck) return adminCheck.error
   const { id } = await params

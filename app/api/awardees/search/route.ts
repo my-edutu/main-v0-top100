@@ -6,20 +6,22 @@ export async function GET(request: NextRequest) {
         const { searchParams } = new URL(request.url)
         const query = searchParams.get('q')
 
-        if (!query || query.trim().length < 2) {
+        if (!query || query.trim().length < 2 || query.trim().length > 100) {
             return Response.json({ awardees: [] })
         }
 
         const supabase = createAdminClient()
 
-        // Search for ALL awardees by name (case-insensitive)
-        // Include non-public awardees since they should still be able to edit their profile
+        // This route is public: hidden profiles must never be discoverable
+        // here. Verified members manage their own details inside the dashboard.
+        const sanitizedQuery = query.trim().replace(/[\\%_]/g, '\\$&')
         const { data, error } = await supabase
             .from('awardees')
             .select('id, name, slug, avatar_url, country, headline, email')
-            .ilike('name', `%${query}%`)
+             .eq('is_public', true)
+            .ilike('name', `%${sanitizedQuery}%`)
             .order('name', { ascending: true })
-            .limit(500) // Allow all 400+ awardees to be returned
+            .limit(100) // Bound public search results for predictable response time
 
         if (error) {
             console.error('Error searching awardees:', error)

@@ -1,3 +1,4 @@
+import { rejectCrossOriginMutation } from '@/lib/security/same-origin'
 import { sendMemberPush } from '@/lib/push/send'
 // app/api/admin/members/[id]/route.ts
 // Admin: approve / reject / suspend a member, or reset their BIO update limit.
@@ -18,6 +19,8 @@ const STATUS_ACTIONS: Record<string, string> = {
 }
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const originError = rejectCrossOriginMutation(request)
+  if (originError) return originError
   const adminCheck = await requireAdmin(request)
   if ('error' in adminCheck) return adminCheck.error
 

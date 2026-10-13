@@ -1,3 +1,4 @@
+import { rejectCrossOriginMutation } from '@/lib/security/same-origin'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireAdmin } from '@/lib/api/require-admin'
@@ -8,6 +9,8 @@ import { parseMarkPostedInput } from '@/lib/admin-social/validation'
 export const runtime = 'nodejs'
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const originError = rejectCrossOriginMutation(request)
+  if (originError) return originError
   const access = await requireAdmin(request)
   if ('error' in access) return access.error
   const { id } = await params

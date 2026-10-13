@@ -1,3 +1,4 @@
+import { rejectCrossOriginMutation } from '@/lib/security/same-origin'
 // app/api/admin/member-features/[id]/route.ts
 // Admin: update the status of a member feature submission.
 import { NextRequest, NextResponse } from 'next/server'
@@ -10,6 +11,8 @@ export const runtime = 'nodejs'
 const STATUSES = ['pending', 'reviewing', 'approved', 'published'] as const
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const originError = rejectCrossOriginMutation(request)
+  if (originError) return originError
   const adminCheck = await requireAdmin(request)
   if ('error' in adminCheck) return adminCheck.error
 

@@ -1,3 +1,4 @@
+import { rejectCrossOriginMutation } from '@/lib/security/same-origin'
 import { NextRequest } from 'next/server'
 import { requireAdmin } from '@/lib/api/require-admin'
 import {
@@ -10,6 +11,8 @@ export async function GET(request: NextRequest, context: Context) {
   return 'error' in access ? access.error : read(request, context)
 }
 export async function POST(request: NextRequest, context: Context) {
+  const originError = rejectCrossOriginMutation(request)
+  if (originError) return originError
   const access = await requireAdmin(request)
   return 'error' in access ? access.error : send(request, context)
 }

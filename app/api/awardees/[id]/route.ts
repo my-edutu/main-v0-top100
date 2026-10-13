@@ -30,11 +30,14 @@ export async function GET(
 
     const supabase = createAdminClient()
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('awardees')
-      .select('*')
+      .select(adminMode
+        ? '*'
+        : 'id,name,slug,avatar_url,image_url,country,course,bio,year,cgpa,tagline,headline,featured,is_public,created_at')
       .eq('id', id)
-      .single()
+    if (!adminMode) query = query.eq('is_public', true)
+    const { data, error } = await query.maybeSingle()
 
     if (error) {
       console.error('Error fetching awardee:', error)
@@ -49,15 +52,6 @@ export async function GET(
         { message: 'Awardee not found' },
         { status: 404 }
       )
-    }
-
-    // For non-admin requests, mask sensitive data
-    // We allow fetching even if is_public is false for self-service editing
-    if (!adminMode) {
-      const safeData = { ...data }
-      delete safeData.email
-      delete safeData.personal_email
-      return NextResponse.json(safeData)
     }
 
     return NextResponse.json(data)

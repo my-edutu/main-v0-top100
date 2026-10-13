@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   getWhatsAppGroup,
@@ -8,19 +8,25 @@ import {
 } from '@/lib/groups/whatsapp'
 
 describe('WhatsApp group assignment', () => {
+  beforeEach(() => {
+    vi.stubEnv('WHATSAPP_GROUP_1_INVITE_URL', 'https://chat.whatsapp.com/TestInviteGroupOne')
+    vi.stubEnv('WHATSAPP_GROUP_2_INVITE_URL', 'https://chat.whatsapp.com/TestInviteGroupTwo')
+    vi.stubEnv('WHATSAPP_GROUP_3_INVITE_URL', 'https://chat.whatsapp.com/TestInviteGroupThree')
+  })
+  afterEach(() => vi.unstubAllEnvs())
   it('resolves each random index to its fixed group invite', async () => {
     const supabase = createAssignmentStore()
 
     await expect(resolveWhatsAppGroupAssignment(supabase, 'member-1', 0)).resolves.toMatchObject({
-      group: { key: 'group-1', inviteUrl: 'https://chat.whatsapp.com/CBxGOfyMbCP3YzceNrHLkm?mode=gi_t' },
+      group: { key: 'group-1', inviteUrl: 'https://chat.whatsapp.com/TestInviteGroupOne' },
       created: true,
     })
     await expect(resolveWhatsAppGroupAssignment(supabase, 'member-2', 1)).resolves.toMatchObject({
-      group: { key: 'group-2', inviteUrl: 'https://chat.whatsapp.com/F8p9rErOr6VAYGZbhaske8?mode=gi_t' },
+      group: { key: 'group-2', inviteUrl: 'https://chat.whatsapp.com/TestInviteGroupTwo' },
       created: true,
     })
     await expect(resolveWhatsAppGroupAssignment(supabase, 'member-3', 2)).resolves.toMatchObject({
-      group: { key: 'group-3', inviteUrl: 'https://chat.whatsapp.com/FyQZI3OJ0OJJJpHW71lGeR?mode=gi_t' },
+      group: { key: 'group-3', inviteUrl: 'https://chat.whatsapp.com/TestInviteGroupThree' },
       created: true,
     })
     expect(Object.keys(WHATSAPP_GROUPS)).toEqual(['group-1', 'group-2', 'group-3'])

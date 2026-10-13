@@ -4,73 +4,46 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/api/require-admin';
 import { createAdminClient } from '@/lib/supabase/server';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const supabase = createAdminClient();
-
+    const supabase = createAdminClient()
     const { data, error, status } = await supabase
       .from('youtube_videos')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
 
     if (error) {
-      console.error('Error fetching YouTube videos:', error);
-      // Handle case where table doesn't exist or other issues
-      if (status === 404 || error.message.includes('does not exist')) {
-        // Return empty array when table doesn't exist
-        return Response.json([]);
-      }
-      // For other errors, return empty array as fallback
-      return Response.json([]);
+      console.error('Error fetching YouTube videos:', error)
+      if (status === 404 || /does not exist/i.test(error.message)) return Response.json([])
+      return Response.json({ message: 'Videos are temporarily unavailable.' }, { status: 503 })
     }
 
-    // Fetch actual YouTube titles using oEmbed API to avoid needing a YouTube API key
-    if (data && data.length > 0) {
-      // Create an array to hold the updated videos
-      const updatedData = [];
-      
-      for (const video of data) {
+    const videos = data ?? []
+    const enriched = []
+    // Limit concurrent external requests to avoid making video pages queue
+    // hundreds of serial calls (or overwhelming YouTube's oEmbed endpoint).
+    for (let offset = 0; offset < videos.length; offset += 8) {
+      const batch = videos.slice(offset, offset + 8)
+      const resolved = await Promise.all(batch.map(async (video) => {
         try {
-          // Use oEmbed to get actual YouTube video information
+          if (!/^[A-Za-z0-9_-]{11}$/.test(video.video_id ?? '')) return video
           const response = await fetch(
-            `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${video.video_id}&format=json`
-          );
-          
-          if (response.ok) {
-            const videoInfo = await response.json();
-            // Update the video with the actual title from YouTube
-            updatedData.push({
-              ...video,
-              title: videoInfo.title,
-              // Optionally update other fields too
-              description: videoInfo.description || video.description,
-            });
-          } else {
-            // If oEmbed fails, keep the original video data
-            updatedData.push(video);
-          }
-        } catch (embedError) {
-          console.error(`Error fetching oEmbed for video ${video.video_id}:`, embedError);
-          // If oEmbed fails, keep the original video data
-          updatedData.push(video);
+            `https://www.youtube.com/oembed?url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3D${encodeURIComponent(video.video_id)}&format=json`,
+            { signal: AbortSignal.timeout(2500), next: { revalidate: 3600 } },
+          )
+          if (!response.ok) return video
+          const info = await response.json()
+          return { ...video, title: info.title || video.title, description: info.description || video.description }
+        } catch {
+          return video
         }
-      }
-      
-      return Response.json(updatedData);
-    } else {
-      // If no data, return the original data array
-      return Response.json(data);
+      }))
+      enriched.push(...resolved)
     }
-
-    // Return stored data if all else fails
-    return Response.json(data);
+    return Response.json(enriched)
   } catch (error) {
-    console.error('Error in YouTube GET:', error);
-    return Response.json({
-      success: false,
-      message: 'Failed to fetch YouTube videos',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    console.error('Error in YouTube GET:', error)
+    return Response.json({ message: 'Videos are temporarily unavailable.' }, { status: 503 })
   }
 }
 

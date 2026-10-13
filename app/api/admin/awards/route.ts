@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 import { requireAdmin } from '@/lib/api/require-admin'
+import { rejectCrossOriginMutation } from '@/lib/security/same-origin'
 import { createAdminClient } from '@/lib/supabase/server'
 import { totalKobo } from '@/lib/awards/money'
 import { assertTransition, type AwardStatus } from '@/lib/awards/status'
@@ -51,42 +52,52 @@ export async function GET(request: NextRequest) {
   if ('error' in adminCheck) return adminCheck.error
 
   const supabase = createAdminClient()
-  const { data, error } = await supabase
-    .from('award_orders')
-    .select('*, profiles!award_orders_profile_id_fkey(full_name, email)')
-    .order('created_at', { ascending: false })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const orderRows: any[] = []
+  // PostgREST limits single responses to 1,000 rows. An award campaign can
+  // exceed that, so paginate in stable order rather than silently hiding orders.
+  for (let offset = 0; ; offset += 1000) {
+    const { data, error } = await supabase
+      .from('award_orders')
+      .select('*, profiles!award_orders_profile_id_fkey(full_name, email)')
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
+      .range(offset, offset + 999)
 
-  if (error) {
-    if (isMissingAwardTable(error)) return NextResponse.json({ message: AWARD_SETUP_MESSAGE }, { status: 503 })
-    return NextResponse.json({ message: 'Could not load award orders.' }, { status: 500 })
+    if (error) {
+      if (isMissingAwardTable(error)) return NextResponse.json({ message: AWARD_SETUP_MESSAGE }, { status: 503 })
+      return NextResponse.json({ message: 'Could not load award orders.' }, { status: 500 })
+    }
+    orderRows.push(...(data ?? []))
+    if ((data ?? []).length < 1000) break
   }
 
-  const orderRows = data ?? []
   const attemptsByOrder = new Map<string, any[]>()
   const orderIds = orderRows.map((row: any) => row?.id).filter((id: unknown): id is string => typeof id === 'string')
 
   if (orderIds.length > 0) {
     try {
-      const attemptsResult = await supabase
-        .from('award_payment_attempts')
-        .select(ADMIN_PAYMENT_ATTEMPT_COLUMNS)
-        .in('order_id', orderIds)
-        .order('created_at', { ascending: false })
+      for (let start = 0; start < orderIds.length; start += 100) {
+        const attemptsResult = await supabase
+          .from('award_payment_attempts')
+          .select(ADMIN_PAYMENT_ATTEMPT_COLUMNS)
+          .in('order_id', orderIds.slice(start, start + 100))
+          .order('created_at', { ascending: false })
 
-      if (attemptsResult.error) {
-        // The additive migration may not have reached a deployment yet. Keep
-        // historical Paystack rows visible while the rest of the admin page
-        // continues to work against the existing award_orders table.
-        if (!isMissingPaymentAttemptTable(attemptsResult.error)) {
-          console.error('[admin-awards] Failed to load payment attempts:', attemptsResult.error)
-        }
-      } else {
-        for (const attempt of (attemptsResult.data ?? []) as any[]) {
-          const orderId = nullableString(attempt?.order_id)
-          if (!orderId) continue
-          const existing = attemptsByOrder.get(orderId) ?? []
-          existing.push(attempt)
-          attemptsByOrder.set(orderId, existing)
+        if (attemptsResult.error) {
+          // Historical orders remain visible when an additive payment migration
+          // has not arrived yet; newer payments can be retried after deployment.
+          if (!isMissingPaymentAttemptTable(attemptsResult.error)) {
+            console.error('[admin-awards] Failed to load payment attempts:', attemptsResult.error)
+          }
+        } else {
+          for (const attempt of (attemptsResult.data ?? []) as unknown as Array<Record<string, unknown>>) {
+            const orderId = nullableString(attempt?.order_id)
+            if (!orderId) continue
+            const existing = attemptsByOrder.get(orderId) ?? []
+            existing.push(attempt)
+            attemptsByOrder.set(orderId, existing)
+          }
         }
       }
     } catch (attemptError) {
@@ -128,6 +139,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  const originError = rejectCrossOriginMutation(request)
+  if (originError) return originError
   const adminCheck = await requireAdmin(request)
   if ('error' in adminCheck) return adminCheck.error
 

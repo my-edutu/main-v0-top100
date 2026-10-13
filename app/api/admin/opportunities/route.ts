@@ -1,3 +1,4 @@
+import { rejectCrossOriginMutation } from '@/lib/security/same-origin'
 // app/api/admin/opportunities/route.ts
 // Admin: list every opportunity, and create a new one.
 import { NextRequest, NextResponse } from 'next/server'
@@ -42,6 +43,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const originError = rejectCrossOriginMutation(request)
+  if (originError) return originError
   const adminCheck = await requireAdmin(request)
   if ('error' in adminCheck) return adminCheck.error
 

@@ -1,13 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 import { requireAdmin } from '@/lib/api/require-admin'
+import { rejectCrossOriginMutation } from '@/lib/security/same-origin'
 import { buildAdminInviteEmail, buildAdminInviteMetadata, getAdminInviteRedirectUrl, normalizeAdminInviteInput } from '@/lib/admin/user-invite'
 import { sendTransactionalEmail } from '@/lib/email/send'
 import { createAdminClient } from '@/lib/supabase/server'
 
 export async function POST(request: NextRequest) {
+  const originError = rejectCrossOriginMutation(request)
+  if (originError) return originError
   const adminCheck = await requireAdmin(request)
   if ('error' in adminCheck) return adminCheck.error
+  // Only a superadmin may create another administrator account. Checking
+  // requireAdmin alone lets any ordinary admin create unlimited peers.
+  if (adminCheck.profile.role !== 'superadmin') {
+    return NextResponse.json({ message: 'Superadmin access required to invite administrators.' }, { status: 403 })
+  }
 
   let payload: { email?: unknown; fullName?: unknown }
   try {

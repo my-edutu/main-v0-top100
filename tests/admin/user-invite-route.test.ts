@@ -26,7 +26,7 @@ describe('POST /api/admin/users/invite', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    requireAdmin.mockResolvedValue({ user: { id: 'inviter-1' }, profile: { role: 'admin' } })
+    requireAdmin.mockResolvedValue({ user: { id: 'inviter-1' }, profile: { role: 'superadmin' } })
     sendTransactionalEmail.mockResolvedValue({ ok: true })
   })
 
@@ -66,6 +66,13 @@ describe('POST /api/admin/users/invite', () => {
     requireAdmin.mockResolvedValue({ error: Response.json({ message: 'Admin access required' }, { status: 403 }) })
     const response = await POST(request({ email: 'blocked@example.com' }))
 
+    expect(response.status).toBe(403)
+    expect(createAdminClient).not.toHaveBeenCalled()
+  })
+
+  it('rejects ordinary admins from creating new administrator accounts', async () => {
+    requireAdmin.mockResolvedValue({ user: { id: 'ordinary-admin' }, profile: { role: 'admin' } })
+    const response = await POST(request({ email: 'new.admin@example.com' }))
     expect(response.status).toBe(403)
     expect(createAdminClient).not.toHaveBeenCalled()
   })

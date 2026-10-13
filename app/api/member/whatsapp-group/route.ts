@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth-server'
 import {
   isMissingWhatsAppGroupAssignmentsTable,
+  WhatsAppGroupSetupError,
   resolveWhatsAppGroupAssignment,
 } from '@/lib/groups/whatsapp'
 import { loadProfileForGroups } from '@/lib/groups/server'
@@ -31,6 +32,12 @@ export async function POST(request: NextRequest) {
     const assignment = await resolveWhatsAppGroupAssignment(supabase, user.id, randomInt(0, 3))
     return NextResponse.json(assignment, { headers: { 'Cache-Control': 'private, no-store' } })
   } catch (error) {
+    if (error instanceof WhatsAppGroupSetupError) {
+      return NextResponse.json(
+        { message: 'Community invitations are being updated. Please try again soon.', setupRequired: true },
+        { status: 503, headers: { 'Cache-Control': 'private, no-store' } },
+      )
+    }
     if (isMissingWhatsAppGroupAssignmentsTable(error as { code?: string; message?: string })) {
       return NextResponse.json(
         {
