@@ -229,7 +229,7 @@ export default function SettingsPage() {
   const fetchSettings = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/settings')
+      const response = await fetch('/api/settings?scope=admin')
       if (!response.ok) throw new Error('Failed to fetch settings')
 
       const data = await response.json()
