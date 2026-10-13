@@ -72,7 +72,7 @@ export const requireAdmin = async (
     const supabaseAdmin = createAdminClient();
     const { data: profile, error: profileError } = await supabaseAdmin
       .from("profiles")
-      .select("role, email, full_name")
+      .select("role, email, full_name, account_status")
       .eq("id", serverSession.user.id)
       .single();
 
@@ -88,6 +88,10 @@ export const requireAdmin = async (
           { status: 500 }
         ),
       };
+    }
+
+    if (profile?.account_status && profile.account_status !== "active") {
+      return { error: NextResponse.json({ message: "Administrator account is inactive" }, { status: 403 }) };
     }
 
     const roleFromDB = normalizeRole(profile?.role);
