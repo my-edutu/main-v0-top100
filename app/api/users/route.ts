@@ -86,11 +86,12 @@ export async function PUT(req: NextRequest) {
     // member to admin. Do not trust the caller's proposed role as their current role.
     const { data: targetProfile, error: targetError } = await supabase
       .from('profiles')
-      .select('role')
+      .select('role, account_status')
       .eq('id', id)
       .maybeSingle()
     if (targetError) return NextResponse.json({ message: 'Could not verify the target account.' }, { status: 503 })
     if (!targetProfile) return NextResponse.json({ message: 'Account not found.' }, { status: 404 })
+    if (targetProfile.account_status === 'deleted') return NextResponse.json({ message: 'Deleted accounts cannot be updated.' }, { status: 409 })
     if (
       adminCheck.profile.role !== 'superadmin' &&
       (targetProfile.role === 'superadmin' || targetProfile.role === 'admin' || role === 'admin')
@@ -152,11 +153,21 @@ export async function PUT(req: NextRequest) {
       .single()
 
     if (error) {
+      // Authentication bans are performed before the profile write so an auth
+      // failure cannot leave an apparently successful operation. If the DB
+      // write fails, restore the original ban state and surface any drift.
+      if (status !== undefined) {
+        const previousBan = targetProfile.account_status === 'suspended' ? '876000h' : 'none'
+        const { error: rollbackError } = await supabase.auth.admin.updateUserById(id, {
+          ban_duration: previousBan,
+        })
+        if (rollbackError) {
+          console.error('[admin-users] Account ban state requires reconciliation:', rollbackError)
+          return NextResponse.json({ message: 'Account update failed; account access needs administrator reconciliation.' }, { status: 503 })
+        }
+      }
       console.error('Error updating user:', error)
-      return NextResponse.json(
-        { message: 'Error updating user', error: error.message },
-        { status: 500 }
-      )
+      return NextResponse.json({ message: 'Could not update account settings.' }, { status: 500 })
     }
 
     // Transform back to frontend format
@@ -210,11 +221,12 @@ export async function DELETE(req: NextRequest) {
 
     const { data: targetProfile, error: targetError } = await supabase
       .from('profiles')
-      .select('role')
+      .select('role, account_status')
       .eq('id', id)
       .maybeSingle()
     if (targetError) return NextResponse.json({ message: 'Could not verify the target account.' }, { status: 503 })
     if (!targetProfile) return NextResponse.json({ message: 'Account not found.' }, { status: 404 })
+    if (targetProfile.account_status === 'deleted') return NextResponse.json({ message: 'Deleted accounts cannot be updated.' }, { status: 409 })
     if (
       adminCheck.profile.role !== 'superadmin' &&
       (targetProfile.role === 'superadmin' || targetProfile.role === 'admin')
@@ -233,11 +245,16 @@ export async function DELETE(req: NextRequest) {
       .eq('id', id)
 
     if (error) {
+      const previousBan = targetProfile.account_status === 'suspended' ? '876000h' : 'none'
+      const { error: rollbackError } = await supabase.auth.admin.updateUserById(id, {
+        ban_duration: previousBan,
+      })
+      if (rollbackError) {
+        console.error('[admin-users] Account deletion rollback requires reconciliation:', rollbackError)
+        return NextResponse.json({ message: 'Account removal failed; account access needs administrator reconciliation.' }, { status: 503 })
+      }
       console.error('Error deleting user:', error)
-      return NextResponse.json(
-        { message: 'Error deleting user', error: error.message },
-        { status: 500 }
-      )
+      return NextResponse.json({ message: 'Could not remove account.' }, { status: 500 })
     }
 
     return new NextResponse(null, { status: 204 })
