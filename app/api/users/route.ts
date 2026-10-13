@@ -12,18 +12,21 @@ export async function GET(req: NextRequest) {
     const supabase = createAdminClient()
 
     // Fetch all users from profiles table
-    const { data: profiles, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .neq('account_status', 'deleted')
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      console.error('Error fetching users:', error)
-      return NextResponse.json(
-        { message: 'Error fetching users', error: error.message },
-        { status: 500 }
-      )
+    const profiles = []
+    for (let offset = 0; ; offset += 1000) {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .neq('account_status', 'deleted')
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: true })
+        .range(offset, offset + 999)
+      if (error) {
+        console.error('Error fetching users:', error)
+        return NextResponse.json({ message: 'Could not load users.' }, { status: 500 })
+      }
+      profiles.push(...(data ?? []))
+      if ((data ?? []).length < 1000) break
     }
 
     // Transform profiles to match the User interface expected by the frontend
