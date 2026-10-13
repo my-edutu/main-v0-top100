@@ -28,11 +28,13 @@ const COLORS = ['#f97316', '#06b6d4', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444'
 export default function AnalyticsDashboard() {
   const [data, setData] = useState<AnalyticsData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
 
   const fetchAnalytics = useCallback(async () => {
     try {
       setLoading(true)
+      setLoadError(false)
 
       // Fetch real data from APIs
       const [awardeesRes, postsRes, eventsRes, youtubeRes] = await Promise.all([
@@ -106,6 +108,7 @@ export default function AnalyticsDashboard() {
       setLastUpdated(new Date())
     } catch (error) {
       console.error('Error fetching analytics:', error)
+      setLoadError(true)
     } finally {
       setLoading(false)
     }
@@ -188,6 +191,13 @@ export default function AnalyticsDashboard() {
           </Button>
         </div>
       </div>
+
+      {loadError && (
+        <div role="alert" className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-orange-400/50 bg-orange-950/30 px-4 py-3 text-sm text-orange-100">
+          <span>Live analytics could not be fully updated. Displayed figures may be outdated.</span>
+          <Button variant="outline" size="sm" onClick={() => void fetchAnalytics()}>Retry loading</Button>
+        </div>
+      )}
 
       {loading && !data ? (
         <div className="space-y-6 sm:space-y-8" aria-busy="true" aria-label="Loading analytics">
