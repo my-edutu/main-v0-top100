@@ -75,7 +75,7 @@ export default function AdminNotificationsPage() {
         title,
         body,
         sent_at: new Date().toISOString(),
-        recipient_count: data.sentCount || 0,
+        recipient_count: data.recipients || 0,
         status: 'sent',
       }, ...current])
       setTitle('')
