@@ -13,6 +13,10 @@ export async function GET(req: NextRequest) {
     const supabase = createAdminClient()
     const searchParams = req.nextUrl.searchParams
     const scope = searchParams.get('scope')
+    if (scope === 'admin') {
+        const adminCheck = await requireAdmin(req)
+        if ('error' in adminCheck) return adminCheck.error
+    }
 
     let query = supabase
         .from('announcements')
