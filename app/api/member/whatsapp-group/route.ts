@@ -1,9 +1,10 @@
-import { randomInt } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 
 import { getCurrentUser } from '@/lib/auth-server'
 import {
+  getWhatsAppGroupIndexForProfile,
   isMissingWhatsAppGroupAssignmentsTable,
+  getWhatsAppGroupForProfile,
   resolveWhatsAppGroupAssignment,
 } from '@/lib/groups/whatsapp'
 import { loadProfileForGroups } from '@/lib/groups/server'
@@ -28,16 +29,14 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const assignment = await resolveWhatsAppGroupAssignment(supabase, user.id, randomInt(0, 3))
+    const stableIndex = getWhatsAppGroupIndexForProfile(user.id)
+    const assignment = await resolveWhatsAppGroupAssignment(supabase, user.id, stableIndex)
     return NextResponse.json(assignment, { headers: { 'Cache-Control': 'private, no-store' } })
   } catch (error) {
     if (isMissingWhatsAppGroupAssignmentsTable(error as { code?: string; message?: string })) {
       return NextResponse.json(
-        {
-          message: 'WhatsApp groups are being set up. Please try again shortly.',
-          setupRequired: true,
-        },
-        { status: 503, headers: { 'Cache-Control': 'private, no-store' } },
+        { group: getWhatsAppGroupForProfile(user.id), created: true },
+        { headers: { 'Cache-Control': 'private, no-store' } },
       )
     }
 

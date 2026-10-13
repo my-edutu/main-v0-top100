@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 export type WhatsAppGroupKey = 'group-1' | 'group-2' | 'group-3'
@@ -30,6 +31,15 @@ export function getWhatsAppGroup(groupKey: unknown): WhatsAppGroup | null {
   return typeof groupKey === 'string' && Object.hasOwn(WHATSAPP_GROUPS, groupKey)
     ? WHATSAPP_GROUPS[groupKey as WhatsAppGroupKey]
     : null
+}
+
+export function getWhatsAppGroupIndexForProfile(profileId: string): number {
+  return createHash('sha256').update(profileId).digest().readUInt32BE(0) % 3
+}
+
+export function getWhatsAppGroupForProfile(profileId: string): WhatsAppGroup {
+  const index = getWhatsAppGroupIndexForProfile(profileId)
+  return Object.values(WHATSAPP_GROUPS)[index]
 }
 
 export function isMissingWhatsAppGroupAssignmentsTable(

@@ -56,7 +56,7 @@ export function WhatsAppGroupAssigned({ group, created }: Assignment) {
         Join your WhatsApp group
         <ExternalLink aria-hidden="true" className="h-5 w-5" />
       </a>
-      <p className="whatsapp-group-card__saved">Your group assignment is saved, so you’ll return to this same group.</p>
+      <p className="whatsapp-group-card__saved">Your account will always lead to the same group.</p>
     </div>
   )
 }
