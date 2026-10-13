@@ -33,6 +33,10 @@ export async function fetchAwardPayment(): Promise<AwardPaymentView> {
   return readResponse(await dashboardRead('/api/member/award/payment'))
 }
 
+export async function reconcileAwardPayment(): Promise<AwardPaymentView> {
+  return readResponse(await fetch('/api/member/award/payment/reconcile', { method: 'POST', cache: 'no-store' }))
+}
+
 export async function startAwardPaymentCheckout(currency: AwardPaymentCurrency): Promise<{
   checkoutUrl: string
   attemptId: string

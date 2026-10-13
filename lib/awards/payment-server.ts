@@ -3,6 +3,7 @@ import crypto from 'node:crypto'
 import { bachsConfig } from '@/lib/payments/bachs/config'
 import {
   createCheckoutSession,
+  buildCheckoutRequest,
   isDefinitiveNoSessionError,
 } from '@/lib/payments/bachs/checkout'
 import type { BachsCheckoutSession } from '@/lib/payments/bachs/types'
@@ -13,6 +14,7 @@ import { mapPaymentView } from './payment-state'
 import { awardFee } from './payment-price'
 import { AwardPaymentError } from './payment-errors'
 import type { AwardPaymentView } from './payment'
+import { reconcileAwardAttempt } from './payment-reconciliation'
 
 export function paymentDatabaseError(error: { code?: string; message?: string } | null): never {
   if (isMissingAwardTable(error) || error?.code === '42883' || error?.code === 'PGRST202') {
@@ -45,7 +47,7 @@ export async function getAwardPaymentView(userId: string): Promise<AwardPaymentV
     try {
       const config = bachsConfig()
       const url = new URL(latest.provider_response.checkout_url)
-      if (url.protocol === 'https:' && !url.username && !url.password && !url.port && config.checkoutHosts.has(url.hostname)
+      if (url.protocol === 'https:' && !url.username && !url.password && !url.port && !url.search && !url.hash && config.checkoutHosts.has(url.hostname)
         && Date.parse(view.currentAttempt.expiresAt ?? '') > Date.now()) {
         view.currentAttempt.checkoutUrl = url.href
       }
@@ -206,8 +208,44 @@ export async function createAwardPaymentCheckout(
   if (reservation?.outcome === 'legacy_pending') {
     throw new AwardPaymentError(409, 'An earlier payment needs confirmation. Please contact support before paying again.')
   }
-  if (reservation?.outcome !== 'created') {
+  let savedRequest: { body: string; apiKeyFingerprint: string; apiBaseUrl: string } | null = null
+  const keyFingerprint = crypto.createHash('sha256').update(config.apiKey).digest('hex')
+  if (reservation?.outcome === 'existing' && reservation.attempt_id && reservation.order_id) {
+    const { data: existing, error: existingError } = await db.from('award_payment_attempts').select('*')
+      .eq('id', reservation.attempt_id).eq('order_id', reservation.order_id).maybeSingle()
+    if (existingError) paymentDatabaseError(existingError)
+    if (existing?.provider_checkout_id) {
+      await reconcileAwardAttempt(db, existing, { config })
+      const view = await getAwardPaymentView(member.id)
+      if (view.currentAttempt?.checkoutUrl) return { checkoutUrl: view.currentAttempt.checkoutUrl, attemptId: existing.id }
+      throw new AwardPaymentError(409, 'Your payment status has been updated. Refresh your award page to continue.')
+    }
+    savedRequest = existing?.provider_response?.checkout_request ?? null
+    if (existing?.status !== 'creating' || !savedRequest?.body ||
+        !Number.isFinite(Date.parse(existing.created_at)) || Date.now() - Date.parse(existing.created_at) >= 23 * 60 * 60_000 ||
+        savedRequest.apiKeyFingerprint !== keyFingerprint || savedRequest.apiBaseUrl !== config.apiBaseUrl) {
+      throw new AwardPaymentError(409, 'This checkout needs verification. Check payment status on your award page before trying again.')
+    }
+    currency = existing.currency
+  }
+  if (reservation?.outcome !== 'created' && !savedRequest) {
     throw new AwardPaymentError(409, 'A payment is already being processed or needs review. Refresh your award page before continuing.')
+  }
+
+  const input = {
+    orderId: reservation.order_id, attemptId: reservation.attempt_id,
+    reference: reservation.provider_reference, idempotencyKey: reservation.idempotency_key,
+    currency, customer: { email: savedRequest ? JSON.parse(savedRequest.body).customer.email : member.email.trim() }, config,
+  }
+  const requestBody = savedRequest?.body ?? JSON.stringify(buildCheckoutRequest(input))
+  if (!savedRequest) {
+    const { data: saved, error: saveError } = await db.from('award_payment_attempts')
+      .update({ provider_response: { checkout_request: { body: requestBody, apiKeyFingerprint: keyFingerprint, apiBaseUrl: config.apiBaseUrl } } })
+      .eq('id', reservation.attempt_id).eq('order_id', reservation.order_id).eq('status', 'creating').select('id')
+    if (saveError || !saved?.length) {
+      await failCreatingAttemptBestEffort(db, reservation, new Error('Could not save the request before sending it.'))
+      throw new AwardPaymentError(503, 'Could not prepare secure checkout. Please check payment status before trying again.')
+    }
   }
 
   // The provider adapter retries the SAME body and idempotency key. If the
@@ -215,15 +253,7 @@ export async function createAwardPaymentCheckout(
   // Never mark a network timeout failed and expose another charge.
   let session: BachsCheckoutSession
   try {
-    session = await createCheckoutSession({
-      orderId: reservation.order_id,
-      attemptId: reservation.attempt_id,
-      reference: reservation.provider_reference,
-      idempotencyKey: reservation.idempotency_key,
-      currency,
-      customer: { email: member.email.trim() },
-      config,
-    })
+    session = await createCheckoutSession({ ...input, requestBody, recover: Boolean(savedRequest) })
   } catch (error) {
     if (isDefinitiveNoSessionError(error)) {
       await failCreatingAttemptBestEffort(db, reservation, error)
@@ -233,6 +263,12 @@ export async function createAwardPaymentCheckout(
 
   const persisted = await persistCheckoutSession(db, reservation, session)
   if (persisted === 'persisted') {
+    if (savedRequest && (session.status !== 'open' || Date.parse(session.expiresAt) <= Date.now())) {
+      const { data: recovered, error: recoveryError } = await db.from('award_payment_attempts').select('*').eq('id', reservation.attempt_id).maybeSingle()
+      if (recoveryError) paymentDatabaseError(recoveryError)
+      if (recovered) await reconcileAwardAttempt(db, recovered, { config })
+      throw new AwardPaymentError(409, 'Your payment status has been updated. Refresh your award page to continue.')
+    }
     return { checkoutUrl: session.checkoutUrl, attemptId: reservation.attempt_id }
   }
 

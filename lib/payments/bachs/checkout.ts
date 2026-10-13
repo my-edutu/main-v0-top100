@@ -158,18 +158,18 @@ function responseObject(value: unknown): BachsCheckoutResponse {
   return value as BachsCheckoutResponse
 }
 
-function parseSession(response: unknown, config: BachsConfig, now: Date): BachsCheckoutSession {
+function parseSession(response: unknown, config: BachsConfig, now: Date, recover = false): BachsCheckoutSession {
   const payload = responseObject(response)
   const checkoutId = asNonEmptyString(payload.checkout_id, 'Bachs checkout_id', 255)
   const checkoutUrl = asNonEmptyString(payload.checkout_url, 'Bachs checkout_url', 2_048)
   const status = typeof payload.status === 'string' ? payload.status.trim().toLowerCase() : ''
-  if (status !== 'open') throw new BachsCheckoutError('Bachs checkout session is not open.', null, false)
+  if (status !== 'open' && !(recover && ['expired', 'completed'].includes(status))) throw new BachsCheckoutError('Bachs checkout session is not open.', null, false)
 
   const createdAt = asNonEmptyString(payload.created_at, 'Bachs created_at', 100)
   const expiresAt = asNonEmptyString(payload.expires_at, 'Bachs expires_at', 100)
   const createdMs = Date.parse(createdAt)
   const expiresMs = Date.parse(expiresAt)
-  if (!Number.isFinite(createdMs) || !Number.isFinite(expiresMs) || expiresMs <= createdMs || expiresMs <= now.getTime()) {
+  if (!Number.isFinite(createdMs) || !Number.isFinite(expiresMs) || expiresMs <= createdMs || (!recover && expiresMs <= now.getTime())) {
     throw new BachsCheckoutError('Bachs checkout session has invalid or expired timestamps.', null, false)
   }
 
@@ -187,7 +187,7 @@ function parseSession(response: unknown, config: BachsConfig, now: Date): BachsC
   return {
     checkoutId,
     checkoutUrl: url.toString(),
-    status: 'open',
+    status: status as BachsCheckoutSession['status'],
     createdAt,
     expiresAt,
     safeProviderResponse: safeProviderResponse(payload),
@@ -208,7 +208,16 @@ export async function createCheckoutSession(
   options: CreateCheckoutOptions = {},
 ): Promise<BachsCheckoutSession> {
   const config = options.config ?? input.config ?? bachsConfig()
-  const body = JSON.stringify(buildCheckoutRequest({ ...input, config }))
+  const canonical = buildCheckoutRequest({ ...input, config })
+  const body = input.requestBody ?? JSON.stringify(canonical)
+  if (input.requestBody) {
+    const saved = JSON.parse(body) as BachsCheckoutRequest
+    if (saved.reference !== canonical.reference || saved.metadata?.order_id !== input.orderId ||
+        saved.metadata?.payment_attempt_id !== input.attemptId || saved.metadata?.purpose !== canonical.metadata.purpose ||
+        saved.billing_currency !== canonical.billing_currency || JSON.stringify(saved.pricing) !== JSON.stringify(canonical.pricing)) {
+      throw new BachsCheckoutError('Saved checkout request does not match this reservation.', null, false)
+    }
+  }
   const timeoutMs = options.timeoutMs ?? 12_000
   const maxAttempts = Math.min(3, Math.max(1, options.maxAttempts ?? 3))
   const retryBaseMs = Math.max(0, options.retryBaseMs ?? 250)
@@ -261,12 +270,14 @@ export async function createCheckoutSession(
         }
       }
       if (!response.ok) {
-        const retryable = response.status === 429 || response.status >= 500
+        const inProgress = response.status === 409 && payload && typeof payload === 'object' &&
+          'error_code' in payload && payload.error_code === 'IDEMPOTENCY_IN_PROGRESS'
+        const retryable = response.status === 429 || response.status >= 500 || Boolean(inProgress)
         const retryAfter = response.status === 429 ? parseRetryAfter(response.headers.get('Retry-After'), nowMs) : null
         throw new BachsCheckoutError(`Bachs checkout request failed with HTTP ${response.status}.`, response.status, retryable, retryAfter)
       }
       try {
-        return parseSession(payload, config, nowDate())
+        return parseSession(payload, config, nowDate(), input.recover)
       } catch (error) {
         if (error instanceof BachsCheckoutError) throw error
         throw new BachsCheckoutError('Bachs returned an invalid checkout response.', null, false)

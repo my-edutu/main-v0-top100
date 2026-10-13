@@ -54,6 +54,9 @@ export type BachsCheckoutRequest = {
 
 /** Application input for one immutable checkout attempt. */
 export type CreateCheckoutInput = {
+  /** Server-persisted, immutable request for replaying the same operation. */
+  requestBody?: string
+  recover?: boolean
   orderId: string
   attemptId: string
   idempotencyKey: string
@@ -90,7 +93,7 @@ export type BachsCheckoutResponse = {
 export type BachsCheckoutSession = {
   checkoutId: string
   checkoutUrl: string
-  status: 'open'
+  status: 'open' | 'expired' | 'completed'
   createdAt: string
   expiresAt: string
   safeProviderResponse: Record<string, unknown>

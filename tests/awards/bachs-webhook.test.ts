@@ -173,6 +173,33 @@ function depsFor(state: DbState, notify = vi.fn()): BachsWebhookDeps {
 describe('handleBachsEvent', () => {
   beforeEach(() => vi.restoreAllMocks())
 
+  it.each(['collection.succeeded', 'checkout.completed'])('verifies converted payments for %s using the original checkout price', async type => {
+    const state: DbState = { attempt: attemptFor('NGN'), updates: [], rpcCalls: [] }
+    const event = eventFor('NGN', '250.79')
+    event.type = type
+    event.data.currency = type === 'checkout.completed' ? 'USD' : 'GHS'
+    event.data.charge_id = 'pay-1'
+    const deps = depsFor(state)
+    deps.fetchProvider = vi.fn().mockResolvedValue(Response.json({
+      checkout_id: 'chk-1', reference: state.attempt!.provider_reference, status: 'completed', payment_status: 'succeeded',
+      currency: 'NGN', amount: '25000.00', metadata: event.data.metadata,
+      charge: { payment_id: 'pay-1', checkout_id: 'chk-1', reference: state.attempt!.provider_reference, status: 'succeeded',
+        currency: 'GHS', amount_paid: '250.79', fees: { currency: 'GHS', amount: '8.48' }, refunds: null },
+    }))
+    const raw = JSON.stringify(event)
+    await handleBachsEvent(raw, signedHeaders(raw), deps)
+    expect(state.rpcCalls[0].args).toMatchObject({ p_event_type: 'collection.succeeded', p_attempt_id: 'attempt-1', p_currency: 'NGN', p_captured_amount_minor: 2_500_000, p_provider_status: 'SUCCEEDED', p_provider_charge_id: 'pay-1' })
+    expect(state.rpcCalls[0].args.p_payload).toEqual(event)
+  })
+
+  it('matches checkout expiry identity despite the event using its base USD currency', async () => {
+    const state: DbState = { attempt: attemptFor('NGN'), updates: [], rpcCalls: [] }
+    const event = eventFor('USD', '20.00'); event.type = 'checkout.expired'; event.data.status = 'expired'
+    const raw = JSON.stringify(event)
+    await handleBachsEvent(raw, signedHeaders(raw), depsFor(state))
+    expect(state.rpcCalls[0].args).toMatchObject({ p_attempt_id: 'attempt-1', p_currency: 'NGN', p_event_type: 'checkout.expired' })
+  })
+
   it.each([
     ['NGN', '25000.00', 2_500_000],
     ['USD', '20.00', 2_000],

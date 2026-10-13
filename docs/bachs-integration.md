@@ -32,7 +32,7 @@ Production uses `https://api.bachs.io` and an `sk_live_` key. Mixing sandbox and
 
 Apply the additive `supabase/migrations/20260908113639_bachs_award_payments.sql` migration after the existing award order and member hub migrations. It preserves historical payment and delivery records, adds the payment attempt/event ledger, and restricts payment mutation RPCs to the service role.
 
-Register both webhook destinations in Bachs and subscribe each to `collection.succeeded`, `collection.failed`, `collection.underpaid`, and `checkout.expired`:
+Register both webhook destinations in Bachs. Subscribe the award destination to `checkout.completed`, `collection.succeeded`, `collection.failed`, `collection.underpaid`, and `checkout.expired`. Subscribe the magazine destination to `collection.succeeded`, `collection.failed`, `collection.underpaid`, and `checkout.expired`:
 
 - Award payments: `https://www.top100afl.com/api/webhooks/bachs`; store its signing secret as `BACHS_AWARD_WEBHOOK_SECRET`.
 - Magazine payments: `https://www.top100afl.com/api/webhooks/bachs-magazine`; store its distinct signing secret as `BACHS_MAGAZINE_WEBHOOK_SECRET`.
@@ -55,6 +55,14 @@ Enable `AWARD_CHECKOUT_ENABLED=true` only after award configuration and migratio
 - Inspect `/admin/awards` for selected/captured amounts, provider reference and exceptions.
 
 Keep underpaid, overpaid, duplicate and ambiguous attempts for support reconciliation. Do not manually overwrite them with a paid status. Existing unpaid Paystack sessions must be reconciled before another provider session can safely be opened.
+
+## Recovering award checkouts
+
+Apply `20261013215353_bachs_award_checkout_reconciliation.sql` before deploying the checkout recovery routes. In Dokploy, schedule a POST every five minutes to `/api/internal/award-payment-reconciliation`, with `Authorization: Bearer <CRON_SECRET>`; configure the existing `CRON_SECRET` as a protected application environment variable. The worker verifies each saved Bachs checkout by API before recording a payment or expiry. It also retries an interrupted checkout creation only when the original request body, idempotency key, API key fingerprint, and API endpoint are unchanged and the idempotency window is still safe.
+
+For one-off incident repair, run `npx tsx scripts/reconcile-award-payments.ts` to inspect at most 100 pending award attempts. Add `--limit=500` to inspect a larger batch. The script is read-only by default; `--apply` records only provider-verified paid/open/expired outcomes through the atomic reconciliation RPC. It never creates a replacement checkout, refunds a payment, changes delivery, or sends email. Preserve ambiguous attempts for support review.
+
+Bachs may report the original checkout price in USD while settling a successful local-currency charge. The award webhook handler verifies the checkout and charge against Bachs, then records the reserved award fee in the order currency. `checkout.completed` is handled as a success signal alongside `collection.succeeded`; both callback forms retain their original payloads in the webhook ledger.
 
 ## Provider references
 

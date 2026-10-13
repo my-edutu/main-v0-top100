@@ -1,6 +1,6 @@
 import { bachsConfig } from '@/lib/payments/bachs/config'
 import { parseBachsAmount } from '@/lib/payments/bachs/money'
-import { verifiedBachsAwardAmount } from '@/lib/payments/bachs/settlement'
+import { verifiedBachsAwardAmount, verifyBachsAwardCheckout } from '@/lib/payments/bachs/settlement'
 import { isBachsTerminalSuccess, parseBachsEvent } from '@/lib/payments/bachs/events'
 import { verifyBachsSignature } from '@/lib/payments/bachs/signature'
 import type { BachsConfig, BachsWebhookEvent, BachsWebhookData } from '@/lib/payments/bachs/types'
@@ -180,10 +180,11 @@ async function processEvent(
   attemptId: string | null,
   capturedAmountMinor: number | null,
   receivedAt: string,
+  eventType = event.type,
 ): Promise<ProcessOutcome> {
   const { data: result, error } = await db.rpc('process_bachs_webhook_event', {
     p_event_id: event.id,
-    p_event_type: event.type,
+    p_event_type: eventType,
     p_organization_id: event.organization_id ?? null,
     p_attempt_id: attemptId,
     p_provider_checkout_id: valueString(data.checkout_id),
@@ -204,6 +205,7 @@ function configValue(config: BachsConfig, key: keyof BachsConfig): unknown {
 }
 
 function isSuccessEvent(event: BachsWebhookEvent, status: string | null): boolean {
+  if (event.type === 'checkout.completed') return true
   if (event.type !== 'collection.succeeded') return false
   try {
     return isBachsTerminalSuccess(status)
@@ -399,7 +401,7 @@ export async function handleBachsEvent(
     attempt &&
       (!providerCheckoutId || !attempt.provider_checkout_id || providerCheckoutId === attempt.provider_checkout_id) &&
       (!providerReference || !attempt.provider_reference || providerReference === attempt.provider_reference) &&
-      (!currencyRaw || currencyRaw === upper(valueString(attempt.currency))),
+      (!currencyRaw || currencyRaw === upper(valueString(attempt.currency)) || successEvent || isRetryReminderEvent(event)),
   )
   // Successful collections must carry the complete server-owned identity so a
   // charge cannot be claimed from a merely similar provider reference. Some
@@ -411,9 +413,8 @@ export async function handleBachsEvent(
       purpose === 'afl_award_fee_v1' &&
       providerReference &&
       providerReference === attempt?.provider_reference &&
-      (currencyRaw === 'NGN' || currencyRaw === 'USD') &&
-      currencyRaw === upper(valueString(attempt?.currency)) &&
-      numberMinor(attempt?.requested_amount_minor) === SERVER_AWARD_FEE_MINOR[currencyRaw as 'NGN' | 'USD'],
+      (attempt?.currency === 'NGN' || attempt?.currency === 'USD') &&
+      numberMinor(attempt?.requested_amount_minor) === SERVER_AWARD_FEE_MINOR[attempt.currency],
   )
   const identifiersMatch = Boolean(
     attempt &&
@@ -426,8 +427,38 @@ export async function handleBachsEvent(
 
   // A signed but unmatched/malformed event is still sent through the RPC with
   // a null attempt so it is durably acknowledged as an exception/ignored row.
-  const matchedAttemptId = identifiersMatch && attempt ? attempt.id : null
+  let matchedAttemptId = identifiersMatch && attempt ? attempt.id : null
   const requestedMinor = numberMinor(attempt?.requested_amount_minor)
+  let processingData = data
+  let processingType = event.type
+  if (matchedAttemptId && attempt && successEvent && requestedMinor !== null && attempt.provider_checkout_id &&
+      attempt.provider_reference && (attempt.currency === 'NGN' || attempt.currency === 'USD') &&
+      (event.type === 'checkout.completed' || currencyRaw !== attempt.currency)) {
+    try {
+      const verified = await verifyBachsAwardCheckout({
+        checkoutId: attempt.provider_checkout_id, reference: attempt.provider_reference,
+        orderId: attempt.order_id, attemptId: attempt.id, currency: attempt.currency, requestedMinor,
+      }, config, dependencies.fetchProvider)
+      const chargeMatches = event.type === 'checkout.completed' || Boolean(verified &&
+        verified.chargeCurrency === currencyRaw && verified.grossAmount === amountRaw &&
+        (!data.charge_id || data.charge_id === verified.chargeId))
+      if (!verified || verified.status !== 'paid' || !chargeMatches) {
+        matchedAttemptId = null
+      } else {
+        amountMinor = verified.amountMinor
+        processingType = 'collection.succeeded'
+        processingData = { ...data, currency: verified.currency, status: 'SUCCEEDED', charge_id: verified.chargeId }
+      }
+    } catch {
+      return { status: 'retryable_error', httpStatus: 503, eventId: event.id, attemptId: attempt.id, error: 'provider verification unavailable' }
+    }
+  }
+  if (matchedAttemptId && attempt && isRetryReminderEvent(event)) {
+    // A checkout expiry reports base pricing currency, and failed collections
+    // may report a local charge currency. Neither changes the reserved price.
+    processingData = { ...data, currency: attempt.currency ?? undefined }
+    amountMinor = null
+  }
   if (matchedAttemptId && attempt && successEvent && amountMinor !== null && requestedMinor !== null &&
       amountMinor > requestedMinor && attempt.provider_checkout_id && attempt.provider_reference &&
       (currencyRaw === 'NGN' || currencyRaw === 'USD')) {
@@ -445,7 +476,7 @@ export async function handleBachsEvent(
   }
   let processResult: ProcessOutcome
   try {
-    processResult = await processEvent(dependencies.db, event, data, matchedAttemptId, amountMinor, receivedAt)
+    processResult = await processEvent(dependencies.db, event, processingData, matchedAttemptId, amountMinor, receivedAt, processingType)
   } catch (error) {
     console.error('[bachs-webhook] durable event processing failed', { eventId: event.id, error: safeErrorMessage(error) })
     return { status: 'retryable_error', httpStatus: 503, eventId: event.id, error: 'database unavailable' }

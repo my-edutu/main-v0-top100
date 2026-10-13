@@ -5,12 +5,16 @@ type AwardPaymentConfirmationProps = {
   timedOut?: boolean
   resumeUrl?: string | null
   supportRequired?: boolean
+  checking?: boolean
+  onCheck?: () => void
 }
 
 export function AwardPaymentConfirmation({
   timedOut = false,
   resumeUrl = null,
   supportRequired = false,
+  checking = false,
+  onCheck,
 }: AwardPaymentConfirmationProps) {
   return (
     <section
@@ -20,7 +24,7 @@ export function AwardPaymentConfirmation({
     >
       <div className="flex items-start gap-4">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[15px] bg-[#50381D] text-[#FFD997]">
-          {timedOut ? (
+          {timedOut || resumeUrl || supportRequired ? (
             <ShieldCheck className="h-6 w-6" aria-hidden="true" />
           ) : (
             <Loader2
@@ -36,6 +40,8 @@ export function AwardPaymentConfirmation({
           <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
             {supportRequired
               ? 'Your payment needs support review'
+              : resumeUrl
+              ? 'Continue your payment'
               : timedOut
               ? 'Still confirming your payment'
               : "We're confirming your payment"}
@@ -44,7 +50,7 @@ export function AwardPaymentConfirmation({
             {supportRequired
               ? 'Please contact support so we can reconcile this payment. Do not retry while this review is open.'
               : timedOut
-              ? "Still confirming — please don't retry payment. Contact support if this does not update shortly."
+              ? 'Confirmation is taking longer than expected. Check your payment status below. If you have already paid, please do not pay again.'
               : resumeUrl
                 ? 'A payment checkout is still open. Continue that checkout to finish, or return here once your payment is confirmed.'
                 : "You've returned to Top100. We're waiting for your payment confirmation. Please don't start another checkout."}
@@ -56,6 +62,12 @@ export function AwardPaymentConfirmation({
             >
               Continue payment checkout
             </Link>
+          ) : null}
+          {onCheck ? (
+            <button type="button" disabled={checking} onClick={onCheck}
+              className="mt-5 ml-0 inline-flex min-h-11 items-center rounded-xl border border-[#6A5038] px-4 text-sm font-semibold text-white disabled:opacity-60 sm:ml-3">
+              {checking ? 'Checking payment…' : 'Check payment status'}
+            </button>
           ) : null}
         </div>
       </div>

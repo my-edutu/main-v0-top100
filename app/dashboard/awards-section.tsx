@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import {
   fetchAwardPayment,
+  reconcileAwardPayment,
   type AwardPaymentView,
 } from '@/lib/awards/payment'
 import type { MemberProfile } from '@/lib/member-hub'
@@ -98,6 +99,7 @@ export default function AwardsSection({
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [confirmationTimedOut, setConfirmationTimedOut] = useState(false)
+  const [checkingPayment, setCheckingPayment] = useState(false)
   const pollingStartedRef = useRef(false)
 
   const readPayment = useCallback(async () => {
@@ -111,7 +113,15 @@ export default function AwardsSection({
     setLoadError('')
 
     try {
-      setView(await readPayment())
+      const payment = await readPayment()
+      setView(payment)
+      if (!resolvedDemoReturn && payment.needsPayment && payment.currentAttempt &&
+          ['open', 'processing', 'creating', 'overpaid'].includes(payment.currentAttempt.status)) {
+        setCheckingPayment(true)
+        try { setView(await reconcileAwardPayment()) }
+        catch { setConfirmationTimedOut(true) }
+        finally { setCheckingPayment(false) }
+      }
     } catch (cause) {
       setLoadError(
         cause instanceof Error
@@ -121,7 +131,7 @@ export default function AwardsSection({
     } finally {
       setLoading(false)
     }
-  }, [readPayment])
+  }, [readPayment, resolvedDemoReturn])
 
   useEffect(() => {
     if (!step) void loadPayment()
@@ -249,6 +259,8 @@ export default function AwardsSection({
   if (screen === 'confirming') {
     return (
       <AwardPaymentConfirmation
+        checking={checkingPayment}
+        onCheck={() => { void loadPayment() }}
         timedOut={confirmationTimedOut}
         supportRequired={
           view?.status === 'refunded' ||

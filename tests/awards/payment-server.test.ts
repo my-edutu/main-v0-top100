@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createHash } from 'node:crypto'
 const mocks = vi.hoisted(() => ({ rpc:vi.fn(), from:vi.fn(), create:vi.fn(), config:vi.fn(), fee:vi.fn(), isDefinitiveNoSessionError:vi.fn() }))
 vi.mock('@/lib/supabase/server', () => ({ createAdminClient: () => ({rpc:mocks.rpc,from:mocks.from}) }))
-vi.mock('@/lib/payments/bachs/checkout', () => ({ createCheckoutSession:mocks.create, isDefinitiveNoSessionError:mocks.isDefinitiveNoSessionError }))
+vi.mock('@/lib/payments/bachs/checkout', () => ({ createCheckoutSession:mocks.create, isDefinitiveNoSessionError:mocks.isDefinitiveNoSessionError,
+ buildCheckoutRequest: (input: any) => ({ customer: input.customer, reference: input.reference, metadata: { order_id: input.orderId, payment_attempt_id: input.attemptId, purpose: 'afl_award_fee_v1' } }) }))
 vi.mock('@/lib/payments/bachs/config', () => ({bachsConfig:mocks.config}))
 vi.mock('@/lib/awards/payment-price', () => ({awardFee:mocks.fee}))
 import { createAwardPaymentCheckout, getAwardPaymentView } from '@/lib/awards/payment-server'
@@ -9,7 +11,7 @@ const member = {id:'11b7e533-cc9e-4792-a5a8-428a746ae634',email:'member@example.
 let update: ReturnType<typeof vi.fn>
 beforeEach(() => {
  vi.resetAllMocks()
- mocks.config.mockReturnValue({checkoutHosts:new Set(['checkout.bachs.io'])})
+ mocks.config.mockReturnValue({apiKey:'test-key',apiBaseUrl:'https://api.bachs.io',checkoutHosts:new Set(['checkout.bachs.io'])})
  mocks.fee.mockReturnValue({amountMinor:2500000,priceVersion:'afl-award-2026-v1'})
  mocks.isDefinitiveNoSessionError.mockReturnValue(false)
  mocks.rpc.mockResolvedValue({data:{outcome:'created',order_id:'order',attempt_id:'attempt',provider_reference:'ref',idempotency_key:'key',currency:'NGN',requested_amount_minor:2500000},error:null})
@@ -32,14 +34,15 @@ describe('award payment checkout service',()=>{
   expect(mocks.create).not.toHaveBeenCalled()
  })
  it('does not expose checkout when persistence loses a concurrent webhook race',async()=>{
-  const query:any={update:vi.fn(()=>query),eq:vi.fn(()=>query),select:vi.fn().mockResolvedValue({data:[],error:null})}
+  const query:any={update:vi.fn(()=>query),eq:vi.fn(()=>query),select:vi.fn().mockResolvedValueOnce({data:[{id:'attempt'}],error:null}).mockResolvedValue({data:[],error:null})}
   mocks.from.mockReturnValue(query)
   await expect(createAwardPaymentCheckout(member,'NGN')).rejects.toMatchObject({statusCode:409})
  })
  it('retains the reserved attempt on uncertain provider failure',async()=>{
   mocks.create.mockRejectedValue(new Error('network timeout'))
   await expect(createAwardPaymentCheckout(member,'NGN')).rejects.toThrow()
-  expect(update).not.toHaveBeenCalled()
+  expect(update).toHaveBeenCalledTimes(1)
+  expect(update).toHaveBeenCalledWith(expect.objectContaining({provider_response:expect.objectContaining({checkout_request:expect.any(Object)})}))
  })
  it('marks a definitively rejected provider reservation failed so it can be retried',async()=>{
   const providerError = new Error('provider rejected')
@@ -47,14 +50,16 @@ describe('award payment checkout service',()=>{
   mocks.isDefinitiveNoSessionError.mockReturnValue(true)
   await expect(createAwardPaymentCheckout(member,'NGN')).rejects.toBe(providerError)
   expect(mocks.rpc).toHaveBeenNthCalledWith(2,'fail_bachs_award_checkout_creation',expect.objectContaining({p_attempt_id:'attempt',p_order_id:'order'}))
-  expect(update).not.toHaveBeenCalled()
+  expect(update).toHaveBeenCalledTimes(1)
  })
  it('retries checkout persistence and never returns before the guarded write succeeds',async()=>{
   let persistCalls = 0
+  let snapshotWrite = false
   const query:any = {
-   update:vi.fn(()=>query),
+   update:vi.fn(values=>{snapshotWrite=Boolean(values.provider_response?.checkout_request);return query}),
    eq:vi.fn(()=>query),
    select:vi.fn(()=>{
+    if(snapshotWrite)return Promise.resolve({data:[{id:'attempt'}],error:null})
     persistCalls += 1
     return Promise.resolve(persistCalls < 3
       ? {data:null,error:{message:'temporary database error'}}
@@ -67,10 +72,12 @@ describe('award payment checkout service',()=>{
  })
  it('records the provider checkout as an exception when the open write cannot be saved',async()=>{
   let persistCalls = 0
+  let snapshotWrite = false
   const query:any = {
-   update:vi.fn(()=>query),
+   update:vi.fn(values=>{snapshotWrite=Boolean(values.provider_response?.checkout_request);return query}),
    eq:vi.fn(()=>query),
    select:vi.fn(()=>{
+    if(snapshotWrite)return Promise.resolve({data:[{id:'attempt'}],error:null})
     persistCalls += 1
     return Promise.resolve(persistCalls === 4
       ? {data:[{id:'attempt'}],error:null}
@@ -85,6 +92,15 @@ describe('award payment checkout service',()=>{
  it('rejects a member without email before creating any payment record',async()=>{
   await expect(createAwardPaymentCheckout({id:member.id},'NGN')).rejects.toMatchObject({statusCode:400})
   expect(mocks.rpc).not.toHaveBeenCalled()
+ })
+ it('recovers a creating attempt with its original body, email, and idempotency key',async()=>{
+  const body=JSON.stringify({customer:{email:'original@example.com'}})
+  mocks.rpc.mockResolvedValue({data:{outcome:'existing',order_id:'order',attempt_id:'attempt',provider_reference:'ref',idempotency_key:'original-key'},error:null})
+  const q:any={select:vi.fn(()=>q),eq:vi.fn(()=>q),maybeSingle:vi.fn().mockResolvedValue({data:{status:'creating',currency:'NGN',created_at:new Date().toISOString(),provider_response:{checkout_request:{body,apiKeyFingerprint:createHash('sha256').update('test-key').digest('hex'),apiBaseUrl:'https://api.bachs.io'}}},error:null}),update:vi.fn(()=>q),then:(resolve:any)=>Promise.resolve({data:[{id:'attempt'}],error:null}).then(resolve)}
+  mocks.from.mockReturnValue(q)
+  mocks.create.mockResolvedValue({checkoutId:'checkout',checkoutUrl:'https://checkout.bachs.io/c/checkout',status:'open',expiresAt:new Date(Date.now()+60000).toISOString(),safeProviderResponse:{}})
+  await expect(createAwardPaymentCheckout(member,'USD')).resolves.toMatchObject({attemptId:'attempt'})
+  expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({requestBody:body,idempotencyKey:'original-key',currency:'NGN',recover:true,customer:{email:'original@example.com'}}))
  })
 })
 
