@@ -16,18 +16,24 @@ export async function GET(req: NextRequest) {
     const supabase = await createClient(true); // Use service role for admin operations
 
     // Fetch all awardees from the database
-    const { data: awardees, error } = await supabase
-      .from('awardees')
-      .select('*')
-      .order('name', { ascending: true });
+    const awardees: Record<string, any>[] = [];
+    for (let offset = 0; ; offset += 1000) {
+      const { data, error } = await supabase
+        .from('awardees')
+        .select('*')
+        .order('name', { ascending: true })
+        .order('id', { ascending: true })
+        .range(offset, offset + 999);
 
-    if (error) {
-      console.error('Error fetching awardees for export:', error);
-      return NextResponse.json({
-        success: false,
-        message: 'Failed to fetch awardees for export',
-        error: error.message
-      }, { status: 500 });
+      if (error) {
+        console.error('Error fetching awardees for export:', error);
+        return NextResponse.json({
+          success: false,
+          message: 'Failed to fetch awardees for export'
+        }, { status: 500 });
+      }
+      awardees.push(...(data ?? []));
+      if ((data ?? []).length < 1000) break;
     }
 
     if (!awardees || awardees.length === 0) {
