@@ -7,7 +7,7 @@ import Image from '@/components/safe-image'
 import type { AwardPaymentView } from '@/lib/awards/payment'
 
 const whatsappChannelUrl = 'https://whatsapp.com/channel/0029Vb8lUNm96H4bB5keg402'
-const eventVideosUrl = '/dashboard/discover/event-videos'
+const eventVideosUrl = '/dashboard/discover/events'
 
 function awardStatus(payment: AwardPaymentView) {
   if (payment.status === 'paid' || payment.confirmedPayment) return 'Payment confirmed · contact the team for collection or dispatch.'
@@ -67,9 +67,9 @@ export function DashboardPromoCarousel({ payment, showCommunity = false }: { pay
       href: eventVideosUrl,
       image: '/illustrations/promo-learning.svg',
       eyebrow: 'Learn at your own pace',
-      title: 'Event videos & past courses',
-      description: 'Replay classes and past sessions whenever you’re ready.',
-      linkLabel: 'Watch recordings',
+      title: 'Explore programme events',
+      description: 'See event details, speakers and upcoming sessions.',
+      linkLabel: 'Explore events',
       tone: 'learning',
       external: false,
     },
