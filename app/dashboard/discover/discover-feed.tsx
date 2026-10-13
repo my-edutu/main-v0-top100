@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { ProfileSocialLinks } from '@/components/profile-social-icon'
 import Link from 'next/link'
 import { ArrowUpRight, ChevronLeft, ChevronRight, Trophy } from 'lucide-react'
 import SafeImage from '@/components/safe-image'
@@ -59,6 +58,39 @@ function shuffleForMember<T>(items: T[], memberId: string, rotationWindow: numbe
   return shuffled
 }
 
+function PersonCard({ person }: { person: DirectoryCard }) {
+  const [avatarFailed, setAvatarFailed] = useState(false)
+  const initials = person.name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map(part => part[0])
+    .join('')
+    .toUpperCase()
+
+  return <Link
+    href={`/awardees/${person.slug}`}
+    aria-label={`View ${person.name}'s profile`}
+    className="discover-person"
+  >
+    <div className="discover-person-profile">
+      {person.avatar_url && !avatarFailed
+        ? <SafeImage
+            src={person.avatar_url}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            width={168}
+            height={224}
+            className="discover-avatar"
+            onError={() => setAvatarFailed(true)}
+          />
+        : <span className="discover-avatar discover-avatar--fallback" aria-hidden="true">{initials || 'A'}</span>}
+      <h3>{person.name}</h3>
+    </div>
+  </Link>
+}
+
 export function DiscoverFeed({ posts }: { posts: Story[] }) {
   const { member } = useDashboardMember()
   const [people, setPeople] = useState<DirectoryCard[]>(() => peekPublicDirectory() ?? [])
@@ -109,12 +141,7 @@ export function DiscoverFeed({ posts }: { posts: Story[] }) {
       {state === 'loading' && <DashboardLoading label="Loading members" compact />}
       {state === 'error' && <div className="discover-empty" role="status">Members couldn’t load. <button className="underline" onClick={() => { setState('loading'); setRetry(value => value + 1) }}>Try again</button></div>}
       {state === 'ready' && !people.length && <p className="discover-empty">Explore the <Link href="/dashboard/discover/members" className="underline">member directory</Link> to meet fellow awardees.</p>}
-      {state === 'ready' && people.filter(person => person.profile_id !== member.id).slice(0, 8).map(person => <div className="discover-person" key={person.slug}><Link href={`/awardees/${person.slug}`} aria-label={`View ${person.name}'s profile`} className="block">
-        <div className="discover-person-profile">
-          {person.avatar_url ? <img src={person.avatar_url} alt="" loading="lazy" decoding="async" width={56} height={56} className="discover-avatar" /> : <span className="discover-avatar">{person.name.split(' ').map(part => part[0]).slice(0, 2).join('')}</span>}
-          <h3>{person.name}</h3>
-        </div>
-      </Link><ProfileSocialLinks links={person.socialLinks} /></div>)}
+      {state === 'ready' && people.filter(person => person.profile_id !== member.id).slice(0, 8).map(person => <PersonCard person={person} key={person.slug} />)}
     </Rail>
     <Rail title="Stories & ideas" href="/blog">
       {stories.length ? stories.map((post, index) => <Link className="discover-story" href={`/blog/${post.slug}`} key={post.id}>
