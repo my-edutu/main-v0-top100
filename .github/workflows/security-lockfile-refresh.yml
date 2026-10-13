@@ -1,0 +1,49 @@
+name: One-time security lockfile refresh
+
+on:
+  push:
+    branches:
+      - audit/webapp-stabilization-2026-10-13
+    paths:
+      - .github/workflows/security-lockfile-refresh.yml
+
+permissions:
+  contents: read
+
+jobs:
+  update-lockfile:
+    if: github.repository == 'my-edutu/main-v0-top100' && github.ref == 'refs/heads/audit/webapp-stabilization-2026-10-13'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout the exact authorized stabilization branch
+        uses: actions/checkout@v4
+        with:
+          ref: audit/webapp-stabilization-2026-10-13
+          persist-credentials: true
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Refresh fixable lockfile advisories without changing major dependencies
+        shell: bash
+        run: |
+          set +e
+          npm audit fix --package-lock-only --ignore-scripts --no-fund
+          code=$?
+          set -e
+          echo "npm audit fix outcome: $code (may remain nonzero for packages with no compatible fix)"
+          git diff --check
+          git status --short
+          if git diff --quiet -- package-lock.json; then
+            echo "No compatible fixes changed package-lock.json."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- package-lock.json
+          git commit -m "chore(deps): refresh compatible security patches in npm lockfile"
+          git push origin HEAD:refs/heads/audit/webapp-stabilization-2026-10-13
