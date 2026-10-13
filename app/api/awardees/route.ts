@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
     }
 
     // If no awardees exist in the database, try to initialize from the Excel file
-    if (!countError && count === 0) {
+    if (includeAllForAdmin && !countError && count === 0) {
       await initializeAwardeesFromExcel();
     }
 
@@ -93,12 +93,16 @@ export async function GET(request: NextRequest) {
     const pageSize = 1000;
     const allAwardees: unknown[] = [];
     for (let offset = 0; ; offset += pageSize) {
-      const { data, error } = await supabase
+      let query = supabase
         .from('awardees')
-        .select('*')
+        .select(includeAllForAdmin
+          ? '*'
+          : 'id,name,slug,avatar_url,image_url,country,course,bio,year,cgpa,tagline,headline,featured,is_public,created_at')
         .order('updated_at', { ascending: false, nullsFirst: false })
         .order('id', { ascending: true })
-        .range(offset, offset + pageSize - 1);
+        .range(offset, offset + pageSize - 1)
+      if (!includeAllForAdmin) query = query.eq('is_public', true);
+      const { data, error } = await query;
 
       if (error) {
         console.error('Error fetching awardees:', error);
@@ -110,7 +114,7 @@ export async function GET(request: NextRequest) {
       }
 
       allAwardees.push(...(data ?? []));
-      if (!includeAllForAdmin || (data ?? []).length < pageSize) break;
+      if ((data ?? []).length < pageSize) break;
     }
 
     console.log(`[GET /api/awardees] Fetched ${allAwardees.length} awardees (including hidden)`);
@@ -118,10 +122,6 @@ export async function GET(request: NextRequest) {
     return Response.json(allAwardees);
   } catch (error) {
     console.error('Error in awardees GET:', error);
-    const fallbackAwardees = await getAwardees();
-    if (fallbackAwardees.length > 0) {
-      return Response.json(fallbackAwardees);
-    }
     return Response.json({
       success: false,
       message: 'Failed to fetch awardees',
