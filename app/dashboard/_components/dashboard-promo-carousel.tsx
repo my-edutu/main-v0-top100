@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, type PointerEvent, type CSSProperties } from 'react'
-import { ArrowUpRight } from 'lucide-react'
+import { ArrowUpRight, ChevronLeft, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import Image from '@/components/safe-image'
 import type { AwardPaymentView } from '@/lib/awards/payment'
@@ -180,6 +180,26 @@ export function DashboardPromoCarousel({ payment, showCommunity = false }: { pay
             </Link>
           )
         })}
+      </div>
+
+      <div className="mt-3 flex items-center justify-center gap-3" aria-label="Featured update controls">
+        <button
+          type="button"
+          aria-label="Previous featured update"
+          onClick={() => switchCard(-1)}
+          className="grid size-11 place-items-center rounded-full border border-[#E7DDCF] bg-white text-[#171412] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-700"
+        >
+          <ChevronLeft aria-hidden="true" size={20} />
+        </button>
+        <span className="text-xs font-semibold tabular-nums text-[#625B52]">{activeCardIndex + 1} / {cards.length}</span>
+        <button
+          type="button"
+          aria-label="Next featured update"
+          onClick={() => switchCard(1)}
+          className="grid size-11 place-items-center rounded-full border border-[#E7DDCF] bg-white text-[#171412] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-700"
+        >
+          <ChevronRight aria-hidden="true" size={20} />
+        </button>
       </div>
       <p className="sr-only" aria-live="polite">{cards[activeCardIndex].eyebrow}: {cards[activeCardIndex].title}, {activeCardIndex + 1} of {cards.length}.</p>
     </section>
