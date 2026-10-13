@@ -84,18 +84,17 @@ export async function GET(request: NextRequest) {
           .order('created_at', { ascending: false })
 
         if (attemptsResult.error) {
-        // The additive migration may not have reached a deployment yet. Keep
-        // historical Paystack rows visible while the rest of the admin page
-        // continues to work against the existing award_orders table.
-        if (!isMissingPaymentAttemptTable(attemptsResult.error)) {
-          console.error('[admin-awards] Failed to load payment attempts:', attemptsResult.error)
-        }
+          // Historical orders remain visible when an additive payment migration
+          // has not arrived yet; newer payments can be retried after deployment.
+          if (!isMissingPaymentAttemptTable(attemptsResult.error)) {
+            console.error('[admin-awards] Failed to load payment attempts:', attemptsResult.error)
+          }
         } else {
-          for (const attempt of (attemptsResult.data ?? []) as any[]) {
-          const orderId = nullableString(attempt?.order_id)
-          if (!orderId) continue
-          const existing = attemptsByOrder.get(orderId) ?? []
-          existing.push(attempt)
+          for (const attempt of attemptsResult.data ?? []) {
+            const orderId = nullableString(attempt?.order_id)
+            if (!orderId) continue
+            const existing = attemptsByOrder.get(orderId) ?? []
+            existing.push(attempt)
             attemptsByOrder.set(orderId, existing)
           }
         }
