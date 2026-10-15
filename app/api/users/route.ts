@@ -11,18 +11,38 @@ export async function GET(req: NextRequest) {
   try {
     const supabase = createAdminClient()
 
-    // Fetch all users from profiles table
-    const { data: profiles, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .order('created_at', { ascending: false })
+    // Dashboard overview needs a database count, not a profile payload subject
+    // to PostgREST's row limit.
+    if (req.nextUrl.searchParams.get('count') === 'exact') {
+      const { count, error } = await supabase
+        .from('profiles')
+        .select('id', { count: 'exact', head: true })
 
-    if (error) {
-      console.error('Error fetching users:', error)
-      return NextResponse.json(
-        { message: 'Error fetching users', error: error.message },
-        { status: 500 }
-      )
+      if (error) {
+        console.error('Error counting users:', error)
+        return NextResponse.json({ message: 'Error counting users' }, { status: 500 })
+      }
+
+      return NextResponse.json({ count: count ?? 0 })
+    }
+
+    // Fetch in bounded pages so the API row cap does not silently hide accounts.
+    const profiles = []
+    for (let offset = 0; ; offset += 500) {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
+        .range(offset, offset + 499)
+
+      if (error) {
+        console.error('Error fetching users:', error)
+        return NextResponse.json({ message: 'Error fetching users' }, { status: 500 })
+      }
+
+      profiles.push(...(data ?? []))
+      if (!data || data.length < 500) break
     }
 
     // Transform profiles to match the User interface expected by the frontend

@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
   for (let offset = 0; ; offset += 500) {
     const { data, error } = await supabase
       .from('profiles')
-      .select('*')
+      .select('id,full_name,email,membership_status,bio_update_count,bio_update_limit,created_at')
       .eq('role', 'user')
       .order('created_at', { ascending: false })
       .order('id', { ascending: false })

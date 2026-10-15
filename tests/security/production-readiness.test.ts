@@ -36,9 +36,9 @@ describe('production readiness configuration', () => {
       'NEXT_PUBLIC_SITE_URL',
       'NEXT_PUBLIC_TURNSTILE_SITE_KEY',
       'TURNSTILE_SECRET_KEY',
-      'BREVO_API_KEY',
       'BREVO_SENDER_EMAIL',
       'ADMIN_NOTIFICATION_EMAIL',
+      'BREVO_SMTP_LOGIN',
     ])
   })
 

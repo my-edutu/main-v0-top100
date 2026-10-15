@@ -50,19 +50,19 @@ type WorkspaceCard = {
   icon: LucideIcon
   stat?: StatsKey
   statLabel?: string
-  featured?: boolean
+  tone: 'orange' | 'gold' | 'lilac' | 'sage' | 'peach' | 'sand' | 'rose' | 'lavender' | 'mint'
 }
 
 const workspaceCards: WorkspaceCard[] = [
-  { title: 'Awardees', description: 'Review profiles, visibility, cohorts, and featured leaders.', href: '/admin/awardees', icon: Users, stat: 'totalAwardees', statLabel: 'leaders', featured: true },
-  { title: 'Awards & delivery', description: 'Track verified payments, shipping quotes, and dispatch exceptions.', href: '/admin/awards', icon: Award, featured: true },
-  { title: 'Invites', description: 'Create claim codes and guide awardees into the member workspace.', href: '/admin/invites', icon: KeyRound },
-  { title: 'Member Hub', description: 'Review members, submissions, and dashboard communications.', href: '/admin/member-hub', icon: Bell, stat: 'totalUsers', statLabel: 'accounts' },
-  { title: 'Editorial', description: 'Create and publish stories from across the Top100 community.', href: '/admin/blog', icon: FileText, stat: 'totalPosts', statLabel: 'posts' },
-  { title: 'Programs', description: 'Manage events, summits, webinars, and member invitations.', href: '/admin/events', icon: Calendar, stat: 'totalEvents', statLabel: 'programs' },
-  { title: 'Channel', description: 'Curate interviews and video stories for the public platform.', href: '/admin/youtube', icon: Youtube, stat: 'totalYouTubeVideos', statLabel: 'videos' },
-  { title: 'Insights', description: 'Understand the real reach and activity recorded by the platform.', href: '/admin/analytics', icon: BarChart3 },
-  { title: 'Settings', description: 'Manage platform preferences and operational integrations.', href: '/admin/settings', icon: Settings },
+  { title: 'Awardees', description: 'Review profiles, visibility, cohorts, and featured leaders.', href: '/admin/awardees', icon: Users, stat: 'totalAwardees', statLabel: 'leaders', tone: 'orange' },
+  { title: 'Awards & delivery', description: 'Track verified payments, shipping quotes, and dispatch exceptions.', href: '/admin/awards', icon: Award, tone: 'lilac' },
+  { title: 'Invites', description: 'Create claim codes and guide awardees into the member workspace.', href: '/admin/invites', icon: KeyRound, tone: 'gold' },
+  { title: 'Member Hub', description: 'Review members, submissions, and dashboard communications.', href: '/admin/member-hub', icon: Bell, stat: 'totalUsers', statLabel: 'accounts', tone: 'sage' },
+  { title: 'Editorial', description: 'Create and publish stories from across the Top100 community.', href: '/admin/blog', icon: FileText, stat: 'totalPosts', statLabel: 'posts', tone: 'peach' },
+  { title: 'Programs', description: 'Manage events, summits, webinars, and member invitations.', href: '/admin/events', icon: Calendar, stat: 'totalEvents', statLabel: 'programs', tone: 'sand' },
+  { title: 'Channel', description: 'Curate interviews and video stories for the public platform.', href: '/admin/youtube', icon: Youtube, stat: 'totalYouTubeVideos', statLabel: 'videos', tone: 'rose' },
+  { title: 'Insights', description: 'Understand the real reach and activity recorded by the platform.', href: '/admin/analytics', icon: BarChart3, tone: 'lavender' },
+  { title: 'Settings', description: 'Manage platform preferences and operational integrations.', href: '/admin/settings', icon: Settings, tone: 'mint' },
 ]
 
 function asArray(value: unknown): unknown[] | null {
@@ -97,58 +97,79 @@ function displayMetric(value: MetricValue) {
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [partialFailure, setPartialFailure] = useState(false)
-  const [stats, setStats] = useState<Stats | null>(null)
+  const [stats, setStats] = useState<Stats>({
+    totalAwardees: null,
+    totalCountries: null,
+    totalPosts: null,
+    publishedPosts: null,
+    totalYouTubeVideos: null,
+    recentAwardees: null,
+    totalEvents: null,
+    totalUsers: null,
+    draftPosts: null,
+    recentVideos: null,
+  })
   const [cohorts, setCohorts] = useState<[string, number][]>([])
   const [updatedAt, setUpdatedAt] = useState<string | null>(null)
 
   const fetchStats = useCallback(async ({ withSpinner = true }: { withSpinner?: boolean } = {}) => {
     if (withSpinner) setLoading(true)
 
-    try {
-      const responses = await Promise.allSettled([
-        fetch('/api/awardees?scope=admin'),
-        fetch('/api/events?scope=admin'),
-        fetch('/api/posts?scope=admin'),
-        fetch('/api/youtube'),
-        fetch('/api/users'),
-      ])
-      const payloads = await Promise.all(
-        responses.map(async (result) => (result.status === 'fulfilled' && result.value.ok ? result.value.json().catch(() => null) : null)),
-      )
-
-      const awardees = readObjectArray(payloads[0], 'awardees')
-      const events = readObjectArray(payloads[1], 'events')
-      const posts = readObjectArray(payloads[2], 'posts')
-      const videos = readObjectArray(payloads[3], 'videos')
-      const users = readObjectArray(payloads[4], 'users')
-
-      setPartialFailure([awardees, events, posts, videos, users].some((value) => value === null))
-      const counts = new Map<string, number>()
-      for (const row of awardees ?? []) {
-        const year = String((row as Record<string, unknown>).year || 'Unspecified')
-        counts.set(year, (counts.get(year) ?? 0) + 1)
+    let failed = false
+    const load = async (url: string, apply: (payload: unknown) => void) => {
+      try {
+        const response = await fetch(url, { cache: 'no-store' })
+        if (!response.ok) throw new Error(`Request failed: ${url}`)
+        apply(await response.json())
+      } catch {
+        failed = true
       }
-      setCohorts([...counts].sort(([a], [b]) => a.localeCompare(b)))
-      setUpdatedAt(new Date().toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit' }))
-      setStats({
-        totalAwardees: awardees?.length ?? null,
-        totalCountries: awardees
-          ? new Set(awardees.map((row) => stringField(row, 'country').trim()).filter(Boolean)).size
-          : null,
-        totalPosts: posts?.length ?? null,
-        publishedPosts: posts ? posts.filter((row) => stringField(row, 'status') === 'published').length : null,
-        totalYouTubeVideos: videos?.length ?? null,
-        recentAwardees: recentCount(awardees),
-        totalEvents: events?.length ?? null,
-        totalUsers: users?.length ?? null,
-        draftPosts: posts ? posts.filter((row) => stringField(row, 'status') === 'draft').length : null,
-        recentVideos: recentCount(videos),
-      })
-    } catch {
-      setPartialFailure(true)
-    } finally {
-      setLoading(false)
     }
+
+    await Promise.all([
+      load('/api/awardees?scope=admin', (payload) => {
+        const awardees = readObjectArray(payload, 'awardees')
+        if (!awardees) throw new Error('Directory totals are unavailable.')
+        const counts = new Map<string, number>()
+        for (const row of awardees) {
+          const year = String((row as Record<string, unknown>).year || 'Unspecified')
+          counts.set(year, (counts.get(year) ?? 0) + 1)
+        }
+        setCohorts([...counts].sort(([a], [b]) => a.localeCompare(b)))
+        setStats((current) => ({
+          ...current,
+          totalAwardees: awardees.length,
+          totalCountries: new Set(awardees.map((row) => stringField(row, 'country').trim()).filter(Boolean)).size,
+          recentAwardees: recentCount(awardees),
+        }))
+      }),
+      load('/api/events?scope=admin', (payload) => {
+        const events = readObjectArray(payload, 'events')
+        if (!events) throw new Error('Programme totals are unavailable.')
+        setStats((current) => ({ ...current, totalEvents: events.length }))
+      }),
+      load('/api/posts?scope=admin', (payload) => {
+        const posts = readObjectArray(payload, 'posts')
+        if (!posts) throw new Error('Editorial totals are unavailable.')
+        const publishedPosts = posts.filter((row) => stringField(row, 'status') === 'published').length
+        const draftPosts = posts.filter((row) => stringField(row, 'status') === 'draft').length
+        setStats((current) => ({ ...current, totalPosts: posts.length, publishedPosts, draftPosts }))
+      }),
+      load('/api/youtube', (payload) => {
+        const videos = readObjectArray(payload, 'videos')
+        if (!videos) throw new Error('Channel totals are unavailable.')
+        setStats((current) => ({ ...current, totalYouTubeVideos: videos.length, recentVideos: recentCount(videos) }))
+      }),
+      load('/api/users?count=exact', (payload) => {
+        if (!payload || typeof payload !== 'object' || typeof (payload as Record<string, unknown>).count !== 'number') {
+          throw new Error('Account total is unavailable.')
+        }
+        setStats((current) => ({ ...current, totalUsers: (payload as Record<string, number>).count }))
+      }),
+    ])
+    setPartialFailure(failed)
+    setUpdatedAt(new Date().toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit' }))
+    setLoading(false)
   }, [])
 
   useEffect(() => {
@@ -175,6 +196,7 @@ export default function AdminDashboard() {
     { label: 'Published stories', value: stats?.publishedPosts ?? null, detail: `${displayMetric(stats?.draftPosts ?? null)} drafts awaiting work`, icon: FileText },
     { label: 'Platform accounts', value: stats?.totalUsers ?? null, detail: 'Registered platform users', icon: KeyRound },
   ]
+  const otherPosts = Math.max(0, (stats?.totalPosts ?? 0) - (stats?.publishedPosts ?? 0) - (stats?.draftPosts ?? 0))
 
   return (
     <div className="admin-overview space-y-6 pb-4">
@@ -224,29 +246,32 @@ export default function AdminDashboard() {
       </section>
 
       <div className="overview-bento">
-        <section className="overview-focus" aria-labelledby="focus-title">
-          <p className="admin-kicker">Start here</p><h2 id="focus-title">A little attention.<br />A lot of impact.</h2>
-          <p className="overview-focus-copy">Keep the next step moving for your community.</p>
-          <Link href="/admin/awards" className="overview-task"><span><strong>Awards & delivery</strong><small>Check paid orders waiting for dispatch.</small></span><ArrowUpRight size={20} /></Link>
-          <Link href="/admin/blog" className="overview-task"><span><strong>Editorial desk</strong><small>{displayMetric(stats?.draftPosts ?? null)} draft stories to work on</small></span><ArrowUpRight size={20} /></Link>
-          <Link href="/admin/messages" className="overview-task"><span><strong>Community inbox</strong><small>Review volunteer offers and cash pledges.</small></span><ArrowUpRight size={20} /></Link>
-          <details className="overview-hint"><summary>What should I handle first?</summary><p>Start with delivery exceptions, then review submissions. Opening a workspace does not send messages, publish content, or dispatch awards.</p></details>
-        </section>
-        <section className="admin-panel overview-chart" aria-labelledby="cohort-title">
+        <section className="admin-panel overview-chart overview-chart--cohorts" aria-labelledby="cohort-title">
           <div className="overview-chart-heading"><div><p className="admin-kicker">Our community</p><h2 id="cohort-title">Leaders by cohort</h2></div><Users size={20} /></div>
-          <p className="overview-chart-caption">Distribution of the current public directory.</p>
-          {stats?.totalAwardees == null ? <p className="py-8 text-sm">{loading ? 'Loading directory…' : 'Directory data unavailable.'}</p> : !cohorts.length ? <p className="py-8 text-sm">No directory entries yet.</p> : <div className="overview-bars">{cohorts.map(([year, count]) => <div key={year}><div className="flex justify-between gap-3 text-sm"><span>{year}</span><span className="tabular-nums">{displayMetric(count)}</span></div><div className="overview-bar-track" aria-hidden="true"><div style={{ width: `${count / Math.max(...cohorts.map(([, value]) => value), 1) * 100}%` }} /></div></div>)}</div>}
+          <p className="overview-chart-caption">Directory leaders grouped by award year.</p>
+          {stats?.totalAwardees != null ? <div className="overview-chart-total"><strong>{displayMetric(stats.totalAwardees)}</strong><span>leaders across {cohorts.length} cohorts</span></div> : null}
+          {stats?.totalAwardees == null ? <p className="py-8 text-sm">{loading ? 'Loading directory…' : 'Directory data unavailable.'}</p> : !cohorts.length ? <p className="py-8 text-sm">No directory entries yet.</p> : <div className="overview-bars">{cohorts.map(([year, count]) => {
+            const percentage = Math.round(count / Math.max(stats.totalAwardees ?? 0, 1) * 100)
+            return <div className="overview-cohort-row" key={year}>
+              <div className="overview-cohort-label"><span>{year}</span><strong className="tabular-nums">{displayMetric(count)}</strong><small>{percentage}%</small></div>
+              <div className="overview-bar-track" role="progressbar" aria-label={`${year} cohort share`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percentage}><div style={{ width: `${percentage}%` }} /></div>
+            </div>
+          })}</div>}
           <Link className="overview-text-link" href="/admin/awardees">Explore directory <ArrowUpRight size={16} /></Link>
         </section>
-        <section className="admin-panel overview-chart" aria-labelledby="publishing-title">
+        <section className="admin-panel overview-chart overview-chart--publishing" aria-labelledby="publishing-title">
           <div className="overview-chart-heading"><div><p className="admin-kicker">Editorial pulse</p><h2 id="publishing-title">Stories in motion</h2></div><FileText size={20} /></div>
-          <p className="overview-chart-caption">Current publishing status, not a growth forecast.</p>
+          <p className="overview-chart-caption">A live view of what is published and what still needs work.</p>
           {stats?.totalPosts == null ? <p className="py-8 text-sm">{loading ? 'Loading stories…' : 'Editorial data unavailable.'}</p> : <>
-            <div className="overview-publishing-total">{displayMetric(stats.totalPosts)} <span>stories</span></div>
-            <div className="overview-publishing-bar" aria-hidden="true"><span style={{width:`${(stats.publishedPosts ?? 0) / Math.max(stats.totalPosts, 1) * 100}%`}} /><span style={{width:`${(stats.draftPosts ?? 0) / Math.max(stats.totalPosts, 1) * 100}%`}} /></div>
-            <div className="overview-legend"><span>Published <b>{displayMetric(stats.publishedPosts)}</b></span><span>Drafts <b>{displayMetric(stats.draftPosts)}</b></span><span>Other <b>{displayMetric(stats.totalPosts - (stats.publishedPosts ?? 0) - (stats.draftPosts ?? 0))}</b></span></div>
+            <div className="overview-publishing-total"><strong>{displayMetric(stats.totalPosts)}</strong><span>stories in the library</span></div>
+            <div className="overview-publishing-bar" role="img" aria-label={`${displayMetric(stats.publishedPosts)} published, ${displayMetric(stats.draftPosts)} drafts, ${displayMetric(otherPosts)} other`}><span style={{width:`${(stats.publishedPosts ?? 0) / Math.max(stats.totalPosts, 1) * 100}%`}} /><span style={{width:`${(stats.draftPosts ?? 0) / Math.max(stats.totalPosts, 1) * 100}%`}} /><span style={{width:`${otherPosts / Math.max(stats.totalPosts, 1) * 100}%`}} /></div>
+            <div className="overview-legend">
+              <div><span className="overview-status-dot overview-status-dot--published" /><span>Published</span><b>{displayMetric(stats.publishedPosts)}</b></div>
+              <div><span className="overview-status-dot overview-status-dot--draft" /><span>Drafts</span><b>{displayMetric(stats.draftPosts)}</b></div>
+              <div><span className="overview-status-dot overview-status-dot--other" /><span>Other</span><b>{displayMetric(otherPosts)}</b></div>
+            </div>
           </>}
-          <details className="overview-hint"><summary>About these numbers</summary><p>Counts come from the editorial API. Other includes any status besides published and draft. A dash means the source could not be loaded.</p></details>
+          <Link className="overview-text-link" href="/admin/blog">Open editorial <ArrowUpRight size={16} /></Link>
         </section>
       </div>
 
@@ -257,17 +282,17 @@ export default function AdminDashboard() {
             const Icon = card.icon
             const value = card.stat && stats ? stats[card.stat] : null
             return (
-              <Link key={card.href} href={card.href} className="admin-panel overview-workspace group relative flex flex-col p-4 transition-colors hover:border-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2">
+              <Link key={card.href} href={card.href} data-tone={card.tone} className={cn('admin-panel overview-workspace group relative flex flex-col p-4 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2', `overview-workspace--${card.tone}`)}>
                 <div className="flex items-start justify-between gap-4">
-                  <span className={cn('grid size-10 place-items-center rounded-xl', card.featured ? 'bg-white/60' : 'bg-zinc-100')}><Icon className="size-[19px]" strokeWidth={1.9} aria-hidden="true" /></span>
-                  <ArrowUpRight className="size-[18px] text-zinc-500 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" aria-hidden="true" />
+                  <span className="overview-workspace-icon"><Icon className="size-[19px]" strokeWidth={1.9} aria-hidden="true" /></span>
+                  <ArrowUpRight className="overview-workspace-arrow size-[18px] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" aria-hidden="true" />
                 </div>
                 <div className="mt-auto pt-5">
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <h3 className="text-base font-semibold tracking-tight text-zinc-950">{card.title}</h3>
-                    {card.stat && value !== null ? <span className="text-xs font-medium tabular-nums text-zinc-600">{displayMetric(value)} {card.statLabel}</span> : null}
+                    <h3 className="text-base font-semibold tracking-tight">{card.title}</h3>
+                    {card.stat && value !== null ? <span className="overview-workspace-stat"><strong>{displayMetric(value)}</strong><small>{card.statLabel}</small></span> : null}
                   </div>
-                  <p className="mt-1.5 max-w-sm text-sm font-normal leading-5 text-zinc-600">{card.description}</p>
+                  <p className="mt-1.5 max-w-sm text-sm font-normal leading-5">{card.description}</p>
                 </div>
               </Link>
             )

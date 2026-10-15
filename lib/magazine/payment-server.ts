@@ -6,6 +6,7 @@ import type { AwardPaymentCurrency, BachsCheckoutSession } from '@/lib/payments/
 import { createAdminClient } from '@/lib/supabase/server'
 import { DEFAULT_AWARDEE_JOURNEY_SETTINGS } from '@/lib/dashboard/awardee-journey-settings'
 import { magazineBillingCurrency } from '@/lib/magazine/billing-country'
+import { sendPaymentLifecycleEmail } from '@/lib/payments/payment-emails'
 
 import { magazineFeaturePrice, mapMagazinePaymentView, type MagazineCampaign, type MagazinePaymentAttempt } from './payment'
 
@@ -87,6 +88,20 @@ export async function createMagazineFeatureCheckout(
   if (reservation?.outcome === 'already_paid') throw new MagazinePaymentError(409, 'Your magazine payment is already confirmed.')
   if (reservation?.outcome === 'campaign_closed') throw new MagazinePaymentError(409, 'This magazine campaign is closed to new applications.')
   if (reservation?.outcome === 'needs_review') throw new MagazinePaymentError(409, 'Your earlier magazine payment needs support review.')
+  if (reservation?.outcome === 'existing' && reservation.attempt_id) {
+    const view = await getMagazineFeaturePaymentView(member.id)
+    const currentAttempt = view.currentAttempt
+    if (currentAttempt && currentAttempt.id === reservation.attempt_id && currentAttempt.checkoutUrl) {
+      const emailResult = await sendPaymentLifecycleEmail({
+        product: 'magazine', status: 'checkout', attemptId: reservation.attempt_id,
+        email: customer.email.trim(), name: customer.name, currency: currentAttempt.currency as AwardPaymentCurrency,
+        amountMinor: currentAttempt.amountMinor, checkoutUrl: currentAttempt.checkoutUrl,
+      })
+      if (!emailResult.ok) console.error('[magazine-payment] checkout email could not be sent', { attemptId: reservation.attempt_id, reason: emailResult.reason })
+      return { checkoutUrl: currentAttempt.checkoutUrl, attemptId: reservation.attempt_id }
+    }
+    throw new MagazinePaymentError(409, 'Your current magazine payment needs a status check. Refresh before trying again.')
+  }
   if (reservation?.outcome !== 'created') throw new MagazinePaymentError(409, 'A magazine payment is already in progress. Refresh to check its status.')
 
   let session: BachsCheckoutSession
@@ -119,5 +134,10 @@ export async function createMagazineFeatureCheckout(
     status: 'open',
   }).eq('id', reservation.attempt_id).eq('order_id', reservation.order_id).eq('status', 'creating').select('id')
   if (persistError || !persisted?.length) throw new MagazinePaymentError(503, 'The payment session needs review before it can be opened. Please contact support.')
+  const emailResult = await sendPaymentLifecycleEmail({
+    product: 'magazine', status: 'checkout', attemptId: reservation.attempt_id,
+    email: customer.email.trim(), name: customer.name, currency, amountMinor: price.amountMinor, checkoutUrl: session.checkoutUrl,
+  })
+  if (!emailResult.ok) console.error('[magazine-payment] checkout email could not be sent', { attemptId: reservation.attempt_id, reason: emailResult.reason })
   return { checkoutUrl: session.checkoutUrl, attemptId: reservation.attempt_id }
 }

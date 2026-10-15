@@ -11,6 +11,12 @@ Store credentials in the deployment's secret environment and in an untracked `.e
 ```dotenv
 AWARD_CHECKOUT_ENABLED=false
 MAGAZINE_CHECKOUT_ENABLED=false
+BREVO_SMTP_HOST=smtp-relay.brevo.com
+BREVO_SMTP_PORT=587
+BREVO_SMTP_LOGIN=your_brevo_smtp_login
+BREVO_SMTP_KEY=your_brevo_smtp_key
+BREVO_SENDER_EMAIL=payments@top100afl.com
+BREVO_SENDER_NAME=Top100 Africa Future Leaders
 BACHS_API_BASE_URL=https://sandbox-api.bachs.io
 BACHS_API_KEY=sk_sandbox_replace_me
 BACHS_AWARD_WEBHOOK_SECRET=replace_with_award_endpoint_secret
@@ -30,14 +36,16 @@ Production uses `https://api.bachs.io` and an `sk_live_` key. Mixing sandbox and
 
 ## Database and webhook
 
-Apply the additive `supabase/migrations/20260908113639_bachs_award_payments.sql` migration after the existing award order and member hub migrations. It preserves historical payment and delivery records, adds the payment attempt/event ledger, and restricts payment mutation RPCs to the service role.
+Apply pending migrations in order, including `supabase/migrations/20261015120000_magazine_payment_email_log.sql`, after the existing award order and member hub migrations. The payment migrations preserve historical payment and delivery records, add the payment attempt/event ledger and notification retry log, and restrict payment mutation RPCs to the service role.
 
 Register both webhook destinations in Bachs. Subscribe the award destination to `checkout.completed`, `collection.succeeded`, `collection.failed`, `collection.underpaid`, and `checkout.expired`. Subscribe the magazine destination to `collection.succeeded`, `collection.failed`, `collection.underpaid`, and `checkout.expired`:
 
 - Award payments: `https://www.top100afl.com/api/webhooks/bachs`; store its signing secret as `BACHS_AWARD_WEBHOOK_SECRET`.
 - Magazine payments: `https://www.top100afl.com/api/webhooks/bachs-magazine`; store its distinct signing secret as `BACHS_MAGAZINE_WEBHOOK_SECRET`.
 
-Award payment confirmations are sent by the app after the signed `collection.succeeded` event is verified and the captured amount is committed. Configure `RESEND_API_KEY` and `RESEND_FROM_EMAIL` with a verified Resend sender domain for the Top100-branded receipt. Resend is preferred when configured; the existing Brevo sender is the fallback when Resend is not configured. The confirmation includes the captured fee and a link back to the member's award page. A webhook replay retries an email that was not recorded as sent, using the same Resend idempotency key to prevent duplicate receipts.
+Payment lifecycle emails are sent for both award and magazine checkouts: a secure checkout link after the provider session is created, a receipt only after the signed webhook confirms payment, and a recovery message when payment fails or the checkout expires. Ambiguous or mismatched captures tell the customer not to pay again until support verifies the transaction. Award confirmation and failure handling use the existing award notification and reminder logs. Magazine status emails are recorded in `magazine_feature_payment_email_log` so Bachs webhook retries can retry a failed message without duplicating a delivered email.
+
+Configure Brevo SMTP with `BREVO_SMTP_LOGIN` and `BREVO_SMTP_KEY`, plus a verified `BREVO_SENDER_EMAIL`. Use `smtp-relay.brevo.com` on port `587`; the app also supports the existing Brevo API key as a fallback when SMTP credentials are absent. Email secrets must remain server-only. Payment status messages use stable message IDs and durable delivery logs where the payment flow supports retry.
 
 Bachs issues a signing secret per destination. Do not reuse one endpoint's secret for the other. Keep both checkout switches false until their corresponding endpoint is registered, secrets are deployed, and sandbox verification has passed. Either checkout can be activated without enabling the other.
 
@@ -49,6 +57,7 @@ Enable `AWARD_CHECKOUT_ENABLED=true` only after award configuration and migratio
 - Verify each webhook destination accepts only its own endpoint secret and routes events to the corresponding payment ledger.
 - Confirm a success redirect alone never marks an award paid.
 - Replay the same signed event: only one payment claim and notification should exist.
+- Confirm checkout-started, paid, failed, expired, and ambiguous-payment emails reach the matching customer; replay events to check delivery recovery and deduplication.
 - Exercise failed, underpaid, expired, wrong-signature, mismatched-currency and duplicate-success events.
 - Confirm paid members have no payment prompt and no GIG shipment is created.
 - Verify interrupted checkout creation remains recoverable without creating a second charge.

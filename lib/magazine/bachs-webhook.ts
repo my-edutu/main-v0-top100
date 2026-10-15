@@ -9,7 +9,7 @@ type Db = {
   rpc(name: string, args: Record<string, unknown>): PromiseLike<{ data: unknown; error: unknown }>
 }
 
-export type MagazineWebhookResult = { httpStatus: 200 | 400 | 401 | 503; outcome: string }
+export type MagazineWebhookResult = { httpStatus: 200 | 400 | 401 | 503; outcome: string; attemptId?: string | null }
 export type MagazineWebhookDeps = {
   db: Db
   config?: BachsConfig
@@ -108,5 +108,5 @@ export async function handleBachsMagazineEvent(rawBody: string, headers: Headers
   if (rpcResult.error) return { httpStatus: 503, outcome: 'database_unavailable' }
   const result = rpcResult.data
   const outcome = typeof result === 'string' ? result : result && typeof result === 'object' && 'outcome' in result ? String(result.outcome) : 'unknown'
-  return { httpStatus: 200, outcome }
+  return { httpStatus: 200, outcome, attemptId: matchedAttemptId }
 }

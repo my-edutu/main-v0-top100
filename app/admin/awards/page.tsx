@@ -14,7 +14,6 @@
 // so that queue is surfaced unconditionally at the top of the page (not just
 // as one filter option among many) whenever it is non-empty.
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -30,7 +29,11 @@ import {
 import { toast } from 'sonner'
 import {
   AlertTriangle,
-  Award,
+  ArrowDown,
+  ArrowRight,
+  BadgeCheck,
+  CircleDollarSign,
+  ClipboardList,
   Loader2,
   Package,
   RefreshCw,
@@ -46,6 +49,7 @@ import PageHeader from '../components/PageHeader'
 // route actually returns.
 import { formatNaira, totalKobo } from '@/lib/awards/money'
 import { canTransition, type AwardStatus } from '@/lib/awards/status'
+import { buildAdminAwardSummary, hasPaymentException, type AdminAwardSummary } from '@/lib/awards/admin-summary'
 
 type AwardOrder = {
   id: string
@@ -74,6 +78,7 @@ type AwardOrder = {
   adminNote: string | null
   paystackReference: string | null
   awardPaymentStatus: string
+  awardPaymentVerified: boolean
   awardPaidAt: string | null
   awardPaidAttemptId: string | null
   awardPriceVersion: string | null
@@ -129,7 +134,7 @@ const MANUAL_ADVANCE_TARGETS: AwardStatus[] = ['in_transit', 'delivered', 'cance
 // paid-but-undispatched recovery queue (Requirement A). It is not a real
 // order status — it is `status === 'paid' && !waybill` — so it is kept out
 // of `AwardStatus` itself and handled specially wherever it is used.
-type StatusFilter = 'all' | AwardStatus | 'paid_no_waybill'
+type StatusFilter = 'all' | AwardStatus | 'paid_no_waybill' | 'payment_confirmed' | 'payment_exceptions' | 'in_delivery'
 
 const STATUS_LABELS: Record<AwardStatus, string> = {
   draft: 'Draft',
@@ -174,10 +179,6 @@ function isPaymentException(payment: AwardPaymentAttempt): boolean {
   return Boolean(payment.exceptionStatus || PAYMENT_EXCEPTION_STATUSES.has(payment.status) || payment.failureReason)
 }
 
-function needsPaymentReconciliation(payment: AwardPaymentAttempt): boolean {
-  return Boolean(payment.exceptionStatus || PAYMENT_EXCEPTION_STATUSES.has(payment.status))
-}
-
 function paymentAttemptsWithWarnings(order: AwardOrder): AwardPaymentAttempt[] {
   return (order.paymentAttempts ?? []).filter(isPaymentException)
 }
@@ -189,7 +190,7 @@ function canVerifyLegacyPayment(order: AwardOrder): boolean {
   const hasBachsSuccess = (order.paymentAttempts ?? []).some(
     (attempt) => attempt.provider === 'bachs' && ['succeeded', 'duplicate_succeeded'].includes(attempt.status),
   )
-  return hasLegacyReference && !hasBachsSuccess && order.awardPaymentStatus !== 'paid'
+  return hasLegacyReference && !hasBachsSuccess && !order.awardPaymentVerified
 }
 
 function legacyPaymentReference(order: AwardOrder): string {
@@ -199,7 +200,38 @@ function legacyPaymentReference(order: AwardOrder): string {
 }
 
 function isPaidWithoutWaybill(order: AwardOrder): boolean {
-  return order.status === 'paid' && !order.waybill
+  return order.awardPaymentVerified && order.status === 'paid' && !order.waybill
+}
+
+function paymentEvidenceLabel(order: AwardOrder): string {
+  if (order.awardPaymentVerified) return `Confirmed${order.payment?.providerLabel ? ` · ${order.payment.providerLabel}` : ''}`
+  if (order.awardPaymentStatus === 'paid') return 'Paid flag needs verification'
+  if (order.payment?.status === 'succeeded') return 'Provider success · unclaimed'
+  if (order.payment?.status === 'duplicate_succeeded') return 'Duplicate success · review'
+  if (order.payment) return paymentStatusLabel(order.payment.status)
+  return paymentStatusLabel(order.awardPaymentStatus || 'unpaid')
+}
+
+function statusFilterTitle(filter: StatusFilter): string {
+  if (filter === 'all') return 'All award orders'
+  if (filter === 'paid_no_waybill') return 'Orders needing dispatch'
+  if (filter === 'payment_confirmed') return 'Provider-confirmed payments'
+  if (filter === 'payment_exceptions') return 'Payment exceptions'
+  if (filter === 'in_delivery') return 'Orders in delivery'
+  return STATUS_LABELS[filter]
+}
+
+function isAdminAwardSummary(value: unknown): value is AdminAwardSummary {
+  if (!value || typeof value !== 'object') return false
+  const summary = value as Record<string, unknown>
+  const nullableCount = (count: unknown) => count === null || typeof count === 'number'
+  return typeof summary.totalOrders === 'number' &&
+    typeof summary.paymentDataAvailable === 'boolean' &&
+    nullableCount(summary.confirmedPayments) &&
+    nullableCount(summary.dispatchNeeded) &&
+    nullableCount(summary.paymentExceptions) &&
+    typeof summary.quoteFailures === 'number' &&
+    typeof summary.inDelivery === 'number'
 }
 
 /** Timestamps a note and appends it to any existing one, mirroring the
@@ -222,6 +254,7 @@ export default function AdminAwardsPage() {
   const [loading, setLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [setupMessage, setSetupMessage] = useState<string | null>(null)
+  const [summary, setSummary] = useState<AdminAwardSummary | null>(null)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [savingId, setSavingId] = useState<string | null>(null)
 
@@ -250,7 +283,9 @@ export default function AdminAwardsPage() {
         return
       }
 
-      setOrders(data?.orders ?? [])
+      if (!Array.isArray(data?.orders)) throw new Error('The awards API returned an invalid order list.')
+      setOrders(data.orders)
+      setSummary(isAdminAwardSummary(data.summary) ? data.summary : buildAdminAwardSummary(data.orders))
     } catch (error) {
       console.error('Error fetching award orders:', error)
       setErrorMessage('Failed to load award orders.')
@@ -263,28 +298,18 @@ export default function AdminAwardsPage() {
     fetchOrders()
   }, [fetchOrders])
 
+  const stats = summary ?? buildAdminAwardSummary(orders)
   const paidWithoutWaybill = useMemo(() => orders.filter(isPaidWithoutWaybill), [orders])
-
   const filteredOrders = useMemo(() => {
     if (statusFilter === 'all') return orders
     if (statusFilter === 'paid_no_waybill') return paidWithoutWaybill
+    if (statusFilter === 'payment_confirmed') return orders.filter((order) => order.awardPaymentVerified)
+    if (statusFilter === 'payment_exceptions') return orders.filter(hasPaymentException)
+    if (statusFilter === 'in_delivery') return orders.filter((order) =>
+      (['dispatched', 'in_transit', 'delivered'] as AwardStatus[]).includes(order.status),
+    )
     return orders.filter((order) => order.status === statusFilter)
   }, [orders, statusFilter, paidWithoutWaybill])
-
-  const stats = useMemo(
-    () => ({
-      total: orders.length,
-      paidNoWaybill: paidWithoutWaybill.length,
-      quoteFailed: orders.filter((order) => order.status === 'quote_failed').length,
-      dispatchedOrLater: orders.filter((order) =>
-        (['dispatched', 'in_transit', 'delivered'] as AwardStatus[]).includes(order.status),
-      ).length,
-      paymentExceptions: orders.filter((order) =>
-        (order.paymentAttempts ?? []).some(needsPaymentReconciliation),
-      ).length,
-    }),
-    [orders, paidWithoutWaybill],
-  )
 
   const patchOrder = useCallback(
     async (
@@ -468,107 +493,73 @@ export default function AdminAwardsPage() {
         description="Track every payment, resolve delivery issues, and keep awards moving."
       />
 
-      {/* Stats */}
+      {/* Every metric is derived from the protected award API response. */}
       <section aria-labelledby="award-pulse-heading" className="space-y-3">
         <div className="award-section-heading">
-          <div><p className="admin-kicker">Live operations</p><h2 id="award-pulse-heading">Delivery pulse</h2></div>
-          <p>{stats.total === 0 ? 'Waiting for the first order' : `${stats.total} order${stats.total === 1 ? '' : 's'} recorded`}</p>
+          <div><p className="admin-kicker">Live from award orders API</p><h2 id="award-pulse-heading">Award operations</h2></div>
+          <p>{stats.totalOrders === 0 ? 'No award orders recorded' : `${stats.totalOrders} order${stats.totalOrders === 1 ? '' : 's'} in the API`}</p>
         </div>
         <div className="award-metrics">
-          <article className="award-metric">
-            <span><Award aria-hidden="true" /></span><div><strong>{stats.total}</strong><p>Total orders</p><small>Across every status</small></div>
-          </article>
-          <article className={`award-metric ${stats.paidNoWaybill > 0 ? 'award-metric-urgent' : ''}`}>
-            <button
-              type="button"
-              className="award-metric-button"
-              onClick={() => setStatusFilter('paid_no_waybill')}
-            >
-              <span><AlertTriangle aria-hidden="true" /></span><div><strong>{stats.paidNoWaybill}</strong><p>Needs dispatch</p><small>Paid, no waybill</small></div>
-            </button>
-          </article>
-          <article className="award-metric">
-            <span><AlertTriangle aria-hidden="true" /></span><div><strong>{stats.quoteFailed}</strong><p>Quote failed</p><small>Needs a manual price</small></div>
-          </article>
-          <article className={`award-metric ${stats.paymentExceptions > 0 ? 'award-metric-urgent' : ''}`}>
-            <span><AlertTriangle aria-hidden="true" /></span><div><strong>{stats.paymentExceptions}</strong><p>Payment exceptions</p><small>Needs reconciliation</small></div>
-          </article>
-          <article className="award-metric">
-            <span><Truck aria-hidden="true" /></span><div><strong>{stats.dispatchedOrLater}</strong><p>On the move</p><small>Dispatched or delivered</small></div>
-          </article>
+          <button type="button" aria-pressed={statusFilter === 'all'} className="award-metric" onClick={() => setStatusFilter('all')}>
+            <span><ClipboardList aria-hidden="true" /></span><div><strong>{stats.totalOrders}</strong><p>Total orders</p><small>All delivery statuses</small></div>
+          </button>
+          <button type="button" disabled={!stats.paymentDataAvailable} aria-pressed={statusFilter === 'payment_confirmed'} className="award-metric" onClick={() => setStatusFilter('payment_confirmed')}>
+          <span><BadgeCheck aria-hidden="true" /></span><div><strong>{stats.confirmedPayments ?? '—'}</strong><p>Confirmed payments</p><small>Bachs or verified legacy evidence</small></div>
+          </button>
+          <button type="button" disabled={!stats.paymentDataAvailable} aria-pressed={statusFilter === 'paid_no_waybill'} className={`award-metric ${stats.dispatchNeeded != null && stats.dispatchNeeded > 0 ? 'award-metric-urgent' : ''}`} onClick={() => setStatusFilter('paid_no_waybill')}>
+            <span><AlertTriangle aria-hidden="true" /></span><div><strong>{stats.dispatchNeeded ?? '—'}</strong><p>Needs dispatch</p><small>Confirmed and awaiting waybill</small></div>
+          </button>
+          <button type="button" disabled={!stats.paymentDataAvailable} aria-pressed={statusFilter === 'payment_exceptions'} className={`award-metric ${stats.paymentExceptions != null && stats.paymentExceptions > 0 ? 'award-metric-urgent' : ''}`} onClick={() => setStatusFilter('payment_exceptions')}>
+            <span><CircleDollarSign aria-hidden="true" /></span><div><strong>{stats.paymentExceptions ?? '—'}</strong><p>Payment review</p><small>Underpaid, duplicate, or exception</small></div>
+          </button>
+          <button type="button" aria-pressed={statusFilter === 'in_delivery'} className="award-metric" onClick={() => setStatusFilter('in_delivery')}>
+            <span><Truck aria-hidden="true" /></span><div><strong>{stats.inDelivery}</strong><p>In delivery</p><small>Dispatched through delivered</small></div>
+          </button>
         </div>
       </section>
 
-      {/* Requirement A: the paid-without-waybill recovery queue. Rendered
-          unconditionally above the filters and the main table whenever it is
-          non-empty — this is the only place a stalled dispatch is ever
-          discovered, so it must never depend on which filter is selected. */}
-      {paidWithoutWaybill.length > 0 && (
-        <Card className="border-destructive/60 bg-destructive/5">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-destructive text-xl sm:text-2xl">
-              <AlertTriangle className="h-6 w-6" />
-              {paidWithoutWaybill.length} order{paidWithoutWaybill.length === 1 ? '' : 's'} paid but not dispatched
-            </CardTitle>
-            <CardDescription>
-              The courier booking failed, or did not finish, for these orders. The member has already paid — record
-              the courier waybill below to mark each one dispatched. Nothing else will ever surface these
-              automatically.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {paidWithoutWaybill.map((order) => (
-              <div key={order.id} className="rounded-2xl border border-destructive/30 bg-card p-4 space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                  <div>
-                    <p className="font-semibold">{order.memberName}</p>
-                    <p className="text-xs text-muted-foreground">{order.memberEmail}</p>
-                  </div>
-                  <div className="text-sm font-medium">
-                    {order.totalAmountKobo != null ? formatNaira(order.totalAmountKobo) : 'Total unknown'}
-                    <span className="text-muted-foreground"> · paid {order.paidAt ? formatDate(order.paidAt) : '—'}</span>
-                  </div>
-                </div>
-
-                {order.adminNote && (
-                  <div className="rounded-lg bg-muted/60 p-3 text-xs whitespace-pre-wrap font-mono text-muted-foreground">
-                    {order.adminNote}
-                  </div>
-                )}
-
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <Input
-                    placeholder="Courier waybill number"
-                    value={waybillDrafts[order.id] ?? ''}
-                    onChange={(event) =>
-                      setWaybillDrafts((prev) => ({ ...prev, [order.id]: event.target.value }))
-                    }
-                    className="sm:max-w-xs"
-                  />
-                  <Button
-                    size="sm"
-                    disabled={savingId === order.id}
-                    onClick={() => handleRecordWaybill(order)}
-                  >
-                    {savingId === order.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    ) : (
-                      <Truck className="h-4 w-4 mr-2" />
-                    )}
-                    Record waybill &amp; mark dispatched
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
+      <section className="award-attention" aria-labelledby="award-attention-heading">
+        <div className="award-section-heading">
+          <div><p className="admin-kicker">Action queues</p><h2 id="award-attention-heading">Needs attention</h2></div>
+          <p>{stats.paymentDataAvailable
+            ? `${(stats.dispatchNeeded ?? 0) + (stats.paymentExceptions ?? 0) + stats.quoteFailures} items`
+            : `${stats.quoteFailures} known shipping issues`}</p>
+        </div>
+        <div className="award-attention-list">
+          {stats.dispatchNeeded != null && stats.dispatchNeeded > 0 ? (
+            <button type="button" onClick={() => setStatusFilter('paid_no_waybill')}>
+              <span className="award-attention-icon award-attention-icon--urgent"><Truck aria-hidden="true" /></span>
+              <span><strong>{stats.dispatchNeeded} confirmed order{stats.dispatchNeeded === 1 ? '' : 's'} need dispatch</strong><small>Open an order to record its courier waybill.</small></span>
+              <ArrowRight aria-hidden="true" />
+            </button>
+          ) : null}
+          {stats.paymentExceptions != null && stats.paymentExceptions > 0 ? (
+            <button type="button" onClick={() => setStatusFilter('payment_exceptions')}>
+              <span className="award-attention-icon award-attention-icon--urgent"><CircleDollarSign aria-hidden="true" /></span>
+              <span><strong>{stats.paymentExceptions} payment{stats.paymentExceptions === 1 ? '' : 's'} need review</strong><small>Open the affected order to inspect webhook attempt details.</small></span>
+              <ArrowRight aria-hidden="true" />
+            </button>
+          ) : null}
+          {stats.quoteFailures > 0 ? (
+            <button type="button" onClick={() => setStatusFilter('quote_failed')}>
+              <span className="award-attention-icon"><AlertTriangle aria-hidden="true" /></span>
+              <span><strong>{stats.quoteFailures} shipping quote{stats.quoteFailures === 1 ? '' : 's'} failed</strong><small>Set a shipping price to reopen checkout.</small></span>
+              <ArrowRight aria-hidden="true" />
+            </button>
+          ) : null}
+          {!stats.paymentDataAvailable ? (
+            <p className="award-attention-unavailable"><AlertTriangle aria-hidden="true" /> Payment attempt records could not be loaded. Payment counts are hidden until the award payment ledger is available.</p>
+          ) : stats.dispatchNeeded === 0 && stats.paymentExceptions === 0 && stats.quoteFailures === 0 ? (
+            <p className="award-attention-clear"><BadgeCheck aria-hidden="true" /> No payment or delivery exceptions are waiting.</p>
+          ) : null}
+        </div>
+      </section>
 
       {/* Filters */}
       <section className="admin-panel award-toolbar" aria-label="Order filters">
           <div className="award-toolbar-copy">
             <p className="admin-kicker">Order queue</p>
-            <h2>{statusFilter === 'all' ? 'All award orders' : statusFilter === 'paid_no_waybill' ? 'Orders needing dispatch' : STATUS_LABELS[statusFilter]}</h2>
+            <h2>{statusFilterTitle(statusFilter)}</h2>
             <p>Showing {filteredOrders.length} of {orders.length}</p>
           </div>
           <div className="award-toolbar-actions">
@@ -578,9 +569,12 @@ export default function AdminAwardsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All statuses</SelectItem>
-                <SelectItem value="paid_no_waybill">
-                  Paid, no waybill {stats.paidNoWaybill > 0 ? `(${stats.paidNoWaybill})` : ''}
+                <SelectItem value="paid_no_waybill" disabled={!stats.paymentDataAvailable}>
+                  Confirmed, needs dispatch ({stats.dispatchNeeded ?? '—'})
                 </SelectItem>
+                <SelectItem value="payment_confirmed" disabled={!stats.paymentDataAvailable}>Confirmed payment ({stats.confirmedPayments ?? '—'})</SelectItem>
+                <SelectItem value="payment_exceptions" disabled={!stats.paymentDataAvailable}>Payment review ({stats.paymentExceptions ?? '—'})</SelectItem>
+                <SelectItem value="in_delivery">In delivery ({stats.inDelivery})</SelectItem>
                 {ALL_STATUSES.map((status) => (
                   <SelectItem key={status} value={status}>
                     {STATUS_LABELS[status]}
@@ -610,26 +604,25 @@ export default function AdminAwardsPage() {
             )
 
             return (
-              <Card key={order.id} className="hover:shadow-md transition-shadow">
-                <CardContent className="pt-6 space-y-4">
-                  <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2 mb-1">
-                        <h3 className="font-semibold text-lg">{order.memberName}</h3>
-                        <Badge variant={STATUS_BADGE_VARIANT[order.status]}>{STATUS_LABELS[order.status]}</Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground">{order.memberEmail}</p>
-                    </div>
-                  <div className="text-sm md:text-right">
-                    <p className="font-semibold">
-                      {order.totalAmountKobo != null ? formatNaira(order.totalAmountKobo) : 'Awaiting shipping quote'}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Award {formatNaira(order.awardAmountKobo)}
-                        {order.shippingAmountKobo != null ? ` + shipping ${formatNaira(order.shippingAmountKobo)}` : ''}
-                      </p>
-                    </div>
-                  </div>
+              <details key={order.id} className="award-order-card">
+                <summary className="award-order-summary">
+                  <span className="award-order-identity">
+                    <span className="award-order-title">
+                      <strong>{order.memberName || 'Awardee'}</strong>
+                      <Badge variant={STATUS_BADGE_VARIANT[order.status]}>{STATUS_LABELS[order.status]}</Badge>
+                      <Badge variant={order.awardPaymentVerified ? 'success' : 'outline'}>
+                        {paymentEvidenceLabel(order)}
+                      </Badge>
+                    </span>
+                    <span className="award-order-email">{order.memberEmail || 'No email on record'}</span>
+                  </span>
+                  <span className="award-order-total">
+                    <strong>{order.totalAmountKobo != null ? formatNaira(order.totalAmountKobo) : 'Awaiting quote'}</strong>
+                    <small>{order.awardPaymentVerified ? 'Provider confirmed' : `Created ${formatDate(order.createdAt)}`}</small>
+                  </span>
+                  <ArrowDown aria-hidden="true" className="award-order-chevron" />
+                </summary>
+                <div className="award-order-details">
 
                   {/* Award-fee payment is its own state machine. Keep this
                       provider-neutral projection separate from the legacy
@@ -642,9 +635,9 @@ export default function AdminAwardsPage() {
                         <p className="text-xs text-muted-foreground">Award fee and delivery are recorded separately.</p>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
-                        {order.payment ? <Badge variant={isPaymentException(order.payment) ? 'destructive' : order.payment.status === 'succeeded' ? 'success' : 'warning'}>{order.payment.providerLabel}</Badge> : null}
-                        <Badge variant={order.awardPaymentStatus === 'paid' || order.payment?.status === 'succeeded' ? 'success' : 'outline'}>
-                          {paymentStatusLabel(order.awardPaymentStatus || 'unpaid')}
+                        {order.payment ? <Badge variant={isPaymentException(order.payment) ? 'destructive' : order.awardPaymentVerified ? 'success' : 'warning'}>{order.payment.providerLabel}</Badge> : null}
+                        <Badge variant={order.awardPaymentVerified ? 'success' : 'outline'}>
+                          {paymentEvidenceLabel(order)}
                         </Badge>
                       </div>
                     </div>
@@ -672,9 +665,11 @@ export default function AdminAwardsPage() {
                       <p className="text-sm text-muted-foreground">No award-fee payment attempt has been recorded.</p>
                     )}
 
-                    {order.payment && (order.payment.paidAt || order.awardPaidAt || order.awardPriceVersion) ? (
+                    {order.payment && (order.awardPaymentVerified || order.payment.priceVersion || order.awardPriceVersion) ? (
                       <p className="text-xs text-muted-foreground">
-                        {order.payment.paidAt || order.awardPaidAt ? `Paid ${formatDate(order.payment.paidAt || order.awardPaidAt || '')}` : 'Not confirmed'}
+                        {order.awardPaymentVerified && (order.payment.paidAt || order.awardPaidAt)
+                          ? `Provider confirmed ${formatDate(order.payment.paidAt || order.awardPaidAt || '')}`
+                          : 'Payment is not confirmed'}
                         {order.payment.priceVersion || order.awardPriceVersion ? ` · price ${order.payment.priceVersion || order.awardPriceVersion}` : ''}
                         {order.payment.isLegacy ? ' · historical Paystack record' : ''}
                       </p>
@@ -803,7 +798,7 @@ export default function AdminAwardsPage() {
 
                   {/* Waybill entry also lives here so it is reachable from the
                       main table, not only from the recovery banner above. */}
-                  {order.status === 'paid' && !order.waybill && (
+                  {order.awardPaymentVerified && order.status === 'paid' && !order.waybill && (
                     <div className="rounded-xl border border-destructive/40 p-3 space-y-2">
                       <label className="text-sm font-medium block">Record courier waybill</label>
                       <div className="flex flex-col sm:flex-row gap-2">
@@ -866,8 +861,8 @@ export default function AdminAwardsPage() {
                       ))}
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </details>
             )
           })}
         </div>

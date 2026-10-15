@@ -14,6 +14,7 @@ import {
   mapAdminPaymentAttempt,
   selectAdminPaymentAttempt,
 } from '@/lib/awards/admin-payment-view'
+import { buildAdminAwardSummary, hasVerifiedAwardPayment } from '@/lib/awards/admin-summary'
 
 export const runtime = 'nodejs'
 
@@ -64,6 +65,7 @@ export async function GET(request: NextRequest) {
   const orderRows = data ?? []
   const attemptsByOrder = new Map<string, any[]>()
   const orderIds = orderRows.map((row: any) => row?.id).filter((id: unknown): id is string => typeof id === 'string')
+  let paymentDataAvailable = true
 
   if (orderIds.length > 0) {
     try {
@@ -77,8 +79,11 @@ export async function GET(request: NextRequest) {
         // The additive migration may not have reached a deployment yet. Keep
         // historical Paystack rows visible while the rest of the admin page
         // continues to work against the existing award_orders table.
-        if (!isMissingPaymentAttemptTable(attemptsResult.error)) {
+        if (isMissingPaymentAttemptTable(attemptsResult.error)) {
+          paymentDataAvailable = false
+        } else {
           console.error('[admin-awards] Failed to load payment attempts:', attemptsResult.error)
+          return NextResponse.json({ message: 'Could not verify award payment records. Refresh and try again.' }, { status: 503 })
         }
       } else {
         for (const attempt of (attemptsResult.data ?? []) as any[]) {
@@ -90,40 +95,52 @@ export async function GET(request: NextRequest) {
         }
       }
     } catch (attemptError) {
-      // A partially deployed Supabase schema or a narrow test double should
-      // not hide the order queue; legacy fallback mapping remains available.
       console.error('[admin-awards] Failed to load payment attempts:', attemptError)
+      return NextResponse.json({ message: 'Could not verify award payment records. Refresh and try again.' }, { status: 503 })
     }
   }
 
-  return NextResponse.json({
-    orders: orderRows.map((row: any) => {
+  const orders = orderRows.map((row: any) => {
       const rawAttempts = attemptsByOrder.get(row.id) ?? []
       const payment = selectAdminPaymentAttempt(row, rawAttempts)
+      const paymentAttempts = rawAttempts.length > 0
+        ? rawAttempts.map(mapAdminPaymentAttempt)
+        : payment
+          ? [payment]
+          : []
       const legacyPaid = Boolean(
         payment?.isLegacy &&
           ['paid', 'success', 'successful', 'succeeded', 'complete', 'completed', 'accepted'].includes(payment.status.toLowerCase()),
       ) || Boolean(row.status === 'paid' || row.paid_at)
+      const awardPaymentStatus =
+        nullableString(row.award_payment_status) ??
+        (payment?.provider === 'bachs' ? payment.status : legacyPaid ? 'paid' : 'unpaid')
+      const mappedOrder = mapAwardOrder(row)
+      const awardPaymentVerified = hasVerifiedAwardPayment({
+        awardPaymentStatus,
+        awardPaidAttemptId: nullableString(row.award_paid_attempt_id),
+        payment,
+        paymentAttempts,
+      })
       return {
-        ...mapAwardOrder(row),
+        ...mappedOrder,
         memberName: row.profiles?.full_name ?? row.recipient_name ?? 'Awardee',
         memberEmail: row.profiles?.email ?? row.email ?? '',
         adminNote: row.admin_note ?? null,
         paystackReference: row.paystack_reference ?? null,
-        awardPaymentStatus:
-          nullableString(row.award_payment_status) ??
-          (payment?.provider === 'bachs' ? payment.status : legacyPaid ? 'paid' : 'unpaid'),
+        awardPaymentStatus,
+        awardPaymentVerified,
         awardPaidAt: nullableString(row.award_paid_at) ?? (legacyPaid ? payment?.paidAt ?? nullableString(row.paid_at) : null),
         awardPaidAttemptId: nullableString(row.award_paid_attempt_id),
         awardPriceVersion: nullableString(row.award_price_version),
         payment,
-        paymentAttempts: rawAttempts.length > 0
-          ? rawAttempts.map(mapAdminPaymentAttempt)
-          : payment
-            ? [payment]
-            : [],
+        paymentAttempts,
       }
-    }),
+    })
+
+  return NextResponse.json({
+    orders,
+    summary: buildAdminAwardSummary(orders, paymentDataAvailable),
   })
 }
 

@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
+import Image from '@/components/safe-image'
 import SessionSecurityGuard from '@/app/components/SessionSecurityGuard'
 import AdminSidebar from './AdminSidebar'
 import AdminFooter from './AdminFooter'
@@ -38,13 +39,18 @@ export default function AdminShell({
         */}
         <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-[#e7e3dc] bg-white/95 px-3 backdrop-blur md:hidden">
           <SidebarTrigger className="size-11 rounded-xl text-zinc-700 hover:bg-orange-50" />
-          <span className="h-5 w-px bg-[#e7e3dc]" aria-hidden="true" />
-          <h1 className="truncate text-sm font-medium text-zinc-900">
+          <Image
+            src="/Top100 Africa Future leaders Logo .png"
+            alt="Top100 Africa Future Leaders"
+            width={104}
+            height={24}
+            className="h-auto w-[92px] shrink-0 object-contain"
+            priority
+          />
+          <span className="h-5 w-px shrink-0 bg-[#e7e3dc]" aria-hidden="true" />
+          <h1 className="min-w-0 truncate text-sm font-medium text-zinc-900">
             {resolvePageTitle(pathname)}
           </h1>
-          <span className="ml-auto rounded-full bg-gradient-to-r from-orange-500 to-amber-500 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-white">
-            Staff
-          </span>
         </header>
 
         <main className="admin-content mx-auto flex-grow px-4 pb-12 pt-5 sm:px-6 md:px-8 md:pt-8 xl:px-10">

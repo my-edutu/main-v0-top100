@@ -9,6 +9,7 @@ import { magazineBillingCurrency } from '@/lib/magazine/billing-country'
 import { hashMagazineGuestAccessToken } from './guest-access'
 import { magazineFeaturePrice, mapMagazinePaymentView, type MagazinePaymentAttempt } from './payment'
 import { getActiveMagazineCampaign, MagazinePaymentError } from './payment-server'
+import { sendPaymentLifecycleEmail } from '@/lib/payments/payment-emails'
 export { MagazinePaymentError } from './payment-server'
 
 type GuestCustomer = { name: string; email: string; countryCode: string }
@@ -97,7 +98,15 @@ export async function createPublicMagazineFeatureCheckout(customer: GuestCustome
       .eq('id', reservation.attempt_id).eq('order_id', reservation.order_id).maybeSingle()
     if (existingError) throw new MagazinePaymentError(503, 'Could not load the current payment session.')
     const savedUrl = checkoutUrl(existing as MagazinePaymentAttempt | null)
-    if (savedUrl) return { checkoutUrl: savedUrl, attemptId: reservation.attempt_id }
+    if (savedUrl) {
+      const emailResult = await sendPaymentLifecycleEmail({
+        product: 'magazine', status: 'checkout', attemptId: reservation.attempt_id,
+        email, name, currency: (existing as MagazinePaymentAttempt).currency as AwardPaymentCurrency,
+        amountMinor: Number((existing as MagazinePaymentAttempt).requested_amount_minor), checkoutUrl: savedUrl,
+      })
+      if (!emailResult.ok) console.error('[magazine-payment] guest checkout email could not be sent', { attemptId: reservation.attempt_id, reason: emailResult.reason })
+      return { checkoutUrl: savedUrl, attemptId: reservation.attempt_id }
+    }
     return { nextStep: 'refresh' as const }
   }
   if (reservation?.outcome !== 'created') throw new MagazinePaymentError(409, 'Could not start this magazine payment. Refresh and try again.')
@@ -136,6 +145,11 @@ export async function createPublicMagazineFeatureCheckout(customer: GuestCustome
     status: 'open',
   }).eq('id', reservation.attempt_id).eq('order_id', reservation.order_id).eq('status', 'creating').select('id')
   if (persistError || !persisted?.length) throw new MagazinePaymentError(503, 'The payment session needs review before it can be opened. Please contact support.')
+  const emailResult = await sendPaymentLifecycleEmail({
+    product: 'magazine', status: 'checkout', attemptId: reservation.attempt_id,
+    email, name, currency, amountMinor: price.amountMinor, checkoutUrl: session.checkoutUrl,
+  })
+  if (!emailResult.ok) console.error('[magazine-payment] guest checkout email could not be sent', { attemptId: reservation.attempt_id, reason: emailResult.reason })
   return { checkoutUrl: session.checkoutUrl, attemptId: reservation.attempt_id }
 }
 

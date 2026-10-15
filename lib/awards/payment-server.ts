@@ -15,6 +15,7 @@ import { awardFee } from './payment-price'
 import { AwardPaymentError } from './payment-errors'
 import type { AwardPaymentView } from './payment'
 import { reconcileAwardAttempt } from './payment-reconciliation'
+import { sendPaymentLifecycleEmail } from '@/lib/payments/payment-emails'
 
 export function paymentDatabaseError(error: { code?: string; message?: string } | null): never {
   if (isMissingAwardTable(error) || error?.code === '42883' || error?.code === 'PGRST202') {
@@ -217,7 +218,15 @@ export async function createAwardPaymentCheckout(
     if (existing?.provider_checkout_id) {
       await reconcileAwardAttempt(db, existing, { config })
       const view = await getAwardPaymentView(member.id)
-      if (view.currentAttempt?.checkoutUrl) return { checkoutUrl: view.currentAttempt.checkoutUrl, attemptId: existing.id }
+      if (view.currentAttempt?.checkoutUrl) {
+        const emailResult = await sendPaymentLifecycleEmail({
+          product: 'award', status: 'checkout', attemptId: existing.id,
+          email: member.email.trim(), currency: existing.currency,
+          amountMinor: Number(existing.requested_amount_minor), checkoutUrl: view.currentAttempt.checkoutUrl,
+        })
+        if (!emailResult.ok) console.error('[award-payment] checkout email could not be sent', { attemptId: existing.id, reason: emailResult.reason })
+        return { checkoutUrl: view.currentAttempt.checkoutUrl, attemptId: existing.id }
+      }
       throw new AwardPaymentError(409, 'Your payment status has been updated. Refresh your award page to continue.')
     }
     savedRequest = existing?.provider_response?.checkout_request ?? null
@@ -269,6 +278,11 @@ export async function createAwardPaymentCheckout(
       if (recovered) await reconcileAwardAttempt(db, recovered, { config })
       throw new AwardPaymentError(409, 'Your payment status has been updated. Refresh your award page to continue.')
     }
+    const emailResult = await sendPaymentLifecycleEmail({
+      product: 'award', status: 'checkout', attemptId: reservation.attempt_id,
+      email: member.email.trim(), currency, amountMinor: awardFee(currency).amountMinor, checkoutUrl: session.checkoutUrl,
+    })
+    if (!emailResult.ok) console.error('[award-payment] checkout email could not be sent', { attemptId: reservation.attempt_id, reason: emailResult.reason })
     return { checkoutUrl: session.checkoutUrl, attemptId: reservation.attempt_id }
   }
 

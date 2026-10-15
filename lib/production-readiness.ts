@@ -10,7 +10,6 @@ const CORE_SETTINGS = [
   'NEXT_PUBLIC_SITE_URL',
   'NEXT_PUBLIC_TURNSTILE_SITE_KEY',
   'TURNSTILE_SECRET_KEY',
-  'BREVO_API_KEY',
   'BREVO_SENDER_EMAIL',
   'ADMIN_NOTIFICATION_EMAIL',
 ] as const
@@ -88,6 +87,13 @@ export function evaluateProductionReadiness(
 
   for (const key of CORE_SETTINGS) {
     if (!present(env, key)) issues.push({ key, message: `${key} is required.` })
+  }
+
+  if (!present(env, 'BREVO_API_KEY') && !(present(env, 'BREVO_SMTP_LOGIN') && present(env, 'BREVO_SMTP_KEY'))) {
+    issues.push({
+      key: 'BREVO_SMTP_LOGIN',
+      message: 'Configure both BREVO_SMTP_LOGIN and BREVO_SMTP_KEY, or provide BREVO_API_KEY.',
+    })
   }
 
   if (

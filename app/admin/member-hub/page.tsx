@@ -21,30 +21,62 @@ type AdminNotification = {
   recipients: number
 }
 
+type MemberHubStats = {
+  members: number
+  pendingFeatures: number
+  notifications: number
+}
+
 export default function AdminMemberHubPage() {
   const [members, setMembers] = useState<MemberProfile[]>([])
   const [featureSubmissions, setFeatureSubmissions] = useState<MemberFeatureSubmission[]>([])
   const [notifications, setNotifications] = useState<AdminNotification[]>([])
+  const [stats, setStats] = useState<MemberHubStats>({ members: 0, pendingFeatures: 0, notifications: 0 })
+  const [statsLoading, setStatsLoading] = useState(true)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
   const [sending, setSending] = useState(false)
   const [approvingAll, setApprovingAll] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [pendingSearch, setPendingSearch] = useState('')
   const [pendingPage, setPendingPage] = useState(0)
+  const [memberSearch, setMemberSearch] = useState('')
+  const [memberPage, setMemberPage] = useState(0)
 
   const refresh = useCallback(async () => {
+    const statsRequest = fetch('/api/admin/member-hub/stats', { cache: 'no-store' })
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Could not load member totals.')
+        setStats(await response.json())
+        setStatsLoading(false)
+        return true
+      })
+      .catch(() => { setStatsLoading(false); return false })
+
     try {
-      const [membersRes, featuresRes, notificationsRes] = await Promise.all([
+      const responses = await Promise.all([
         fetch('/api/admin/members', { cache: 'no-store' }),
         fetch('/api/admin/member-features', { cache: 'no-store' }),
         fetch('/api/admin/notifications/broadcast', { cache: 'no-store' }),
       ])
-      if (membersRes.ok) setMembers((await membersRes.json()).members ?? [])
-      if (featuresRes.ok) setFeatureSubmissions((await featuresRes.json()).featureSubmissions ?? [])
-      if (notificationsRes.ok) setNotifications((await notificationsRes.json()).notifications ?? [])
-      setError('')
+      if (responses.some((response) => !response.ok)) throw new Error('Could not load the member hub.')
+      const [membersData, featuresData, notificationsData] = await Promise.all(responses.map((response) => response.json()))
+      setMembers(membersData.members ?? [])
+      setFeatureSubmissions(featuresData.featureSubmissions ?? [])
+      setNotifications(notificationsData.notifications ?? [])
+      setLoadError('')
+      if (!(await statsRequest)) {
+        setStats({
+          members: membersData.members?.length ?? 0,
+          pendingFeatures: (featuresData.featureSubmissions ?? []).filter((submission: MemberFeatureSubmission) => submission.status === 'pending').length,
+          notifications: (notificationsData.notifications ?? []).length,
+        })
+      }
     } catch {
-      setError('Could not load the member hub.')
+      setLoadError('Could not load the latest member hub data. Try refreshing the page.')
+    } finally {
+      setLoading(false)
     }
   }, [])
 
@@ -61,15 +93,14 @@ export default function AdminMemberHubPage() {
   const pendingPageCount = Math.max(1, Math.ceil(matchingPending.length / pendingPageSize))
   const currentPendingPage = Math.min(pendingPage, pendingPageCount - 1)
   const visiblePending = matchingPending.slice(currentPendingPage * pendingPageSize, (currentPendingPage + 1) * pendingPageSize)
-
-  const stats = useMemo(
-    () => ({
-      members: members.length,
-      pendingFeatures: featureSubmissions.filter((s) => s.status === 'pending').length,
-      notifications: notifications.length,
-    }),
-    [members, featureSubmissions, notifications],
-  )
+  const matchingMembers = useMemo(() => {
+    const query = memberSearch.trim().toLowerCase()
+    return query ? members.filter((member) => `${member.name} ${member.email}`.toLowerCase().includes(query)) : members
+  }, [members, memberSearch])
+  const memberPageSize = 20
+  const memberPageCount = Math.max(1, Math.ceil(matchingMembers.length / memberPageSize))
+  const currentMemberPage = Math.min(memberPage, memberPageCount - 1)
+  const visibleMembers = matchingMembers.slice(currentMemberPage * memberPageSize, (currentMemberPage + 1) * memberPageSize)
 
   async function handleNotificationSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -167,39 +198,42 @@ export default function AdminMemberHubPage() {
 
   return (
     <div className="space-y-8">
-      <section className="rounded-[32px] bg-gradient-to-br from-orange-500 to-amber-500 p-7 text-white">
-        <div className="flex flex-wrap items-end justify-between gap-5">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.22em] text-white/70">Awardee dashboard controls</p>
-            <h1 className="mt-3 text-4xl font-black tracking-tight">Member Hub</h1>
-            <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-white/80">
+      <section aria-busy={loading} className="rounded-3xl border border-orange-200 bg-white p-5 sm:p-7">
+        <div className="flex min-w-0 flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="min-w-0 max-w-2xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-orange-700">Awardee dashboard controls</p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-zinc-950 sm:text-4xl">Member Hub</h1>
+            <p className="mt-2 text-sm leading-6 text-zinc-600 sm:text-base">
               Approve awardees, send dashboard notifications, and review feature requests in one place.
             </p>
           </div>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-            <StatPill icon={Users} label="Members" value={stats.members} />
-            <StatPill icon={Sparkles} label="Pending" value={stats.pendingFeatures} />
-            <StatPill icon={Bell} label="Sent" value={stats.notifications} />
+          <div className="grid w-full min-w-0 grid-cols-3 gap-2 sm:gap-3 lg:max-w-[28rem]">
+            <StatPill icon={Users} label="Members" value={stats.members} loading={statsLoading} />
+            <StatPill icon={Sparkles} label="Pending" value={stats.pendingFeatures} loading={statsLoading} />
+            <StatPill icon={Bell} label="Sent" value={stats.notifications} loading={statsLoading} />
           </div>
         </div>
+        {loadError ? <p role="status" className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">{loadError}</p> : null}
       </section>
 
-      <Card className="rounded-[28px] border-orange-100 shadow-none">
+      <Card className="min-w-0 rounded-[28px] border-orange-100 shadow-none">
         <CardHeader className="gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <CardTitle className="flex items-center gap-2 text-xl font-semibold text-zinc-950">
               <Users className="h-5 w-5 text-orange-500" />
-              Pending awardees <span className="text-base font-medium text-zinc-500">({pendingMembers.length})</span>
+              Pending awardees <span className="text-base font-medium text-zinc-500">({loading ? '…' : pendingMembers.length})</span>
             </CardTitle>
             <p className="mt-1 text-sm text-zinc-600">Approve all pending accounts and profile claims together. Claims with conflicting records stay pending for review.</p>
           </div>
-          <Button type="button" disabled={!pendingMembers.length || approvingAll} className="min-h-11 bg-orange-500 text-white hover:bg-orange-600" onClick={() => void approveAllPending()}>
+          <Button type="button" disabled={!pendingMembers.length || approvingAll || loading} className="min-h-11 bg-orange-500 text-white hover:bg-orange-600" onClick={() => void approveAllPending()}>
             <CheckCircle2 className="mr-2 h-4 w-4" />
-            {approvingAll ? 'Approving...' : `Approve all ${pendingMembers.length} pending`}
+            {approvingAll ? 'Approving...' : loading ? 'Loading awardees…' : `Approve all ${pendingMembers.length} pending`}
           </Button>
         </CardHeader>
         <CardContent>
-          {pendingMembers.length > 0 ? (
+          {loading ? (
+            <p role="status" className="rounded-xl border border-orange-100 bg-orange-50/40 p-6 text-center text-sm text-zinc-600">Loading pending awardees…</p>
+          ) : pendingMembers.length > 0 ? (
             <>
               <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
                 <div className="w-full max-w-sm">
@@ -253,7 +287,7 @@ export default function AdminMemberHubPage() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+      <div className="grid min-w-0 gap-6 xl:grid-cols-[0.9fr_1.1fr]">
         <Card className="rounded-[28px] border-amber-200 bg-amber-50/50 shadow-none xl:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl font-semibold text-zinc-950">
@@ -355,7 +389,7 @@ export default function AdminMemberHubPage() {
         </Card>
       </div>
 
-      <Card className="rounded-[28px] border-orange-100 shadow-none">
+      <Card className="min-w-0 rounded-[28px] border-orange-100 shadow-none">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-2xl font-black text-zinc-950">
             <CheckCircle2 className="h-6 w-6 text-orange-500" />
@@ -389,11 +423,21 @@ export default function AdminMemberHubPage() {
             All members &amp; BIO limits
           </CardTitle>
         </CardHeader>
-        <CardContent className="divide-y divide-orange-100 p-0">
-          {members.length > 0 ? members.map((member) => {
+        <CardContent className="p-0">
+          <div className="flex flex-col gap-3 border-b border-orange-100 p-4 sm:flex-row sm:items-end sm:justify-between sm:p-5">
+            <div className="w-full max-w-sm space-y-1.5">
+              <Label htmlFor="member-search" className="text-sm font-medium text-zinc-700">Find a member</Label>
+              <Input id="member-search" value={memberSearch} onChange={(event) => { setMemberSearch(event.target.value); setMemberPage(0) }} placeholder="Search name or email" />
+            </div>
+            <p className="text-sm text-zinc-500" aria-live="polite">
+              {loading ? 'Loading members…' : `${new Intl.NumberFormat('en').format(matchingMembers.length)} matching · ${memberPageSize} per page`}
+            </p>
+          </div>
+          <div className="divide-y divide-orange-100">
+          {visibleMembers.length > 0 ? visibleMembers.map((member) => {
             const remaining = Math.max(0, member.bioUpdateLimit - member.bioUpdateCount)
             return (
-              <div key={member.id} className="grid gap-4 p-5 md:grid-cols-[1fr_auto] md:items-center">
+              <div key={member.id} className="grid min-w-0 gap-4 p-4 sm:p-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="font-black text-zinc-950">{member.name}</h3>
@@ -429,20 +473,34 @@ export default function AdminMemberHubPage() {
               </div>
             )
           }) : (
-            <div className="p-5 text-sm font-medium text-zinc-500">No members yet.</div>
+            <div className="p-5 text-sm font-medium text-zinc-500">
+              {loading ? 'Loading member records…' : memberSearch.trim() ? 'No members match that search.' : 'No members yet.'}
+            </div>
           )}
+          </div>
+          {memberPageCount > 1 ? <div className="flex flex-wrap items-center justify-between gap-3 border-t border-orange-100 p-4 text-sm text-zinc-600">
+            <span>Page {currentMemberPage + 1} of {memberPageCount}</span>
+            <div className="flex gap-2">
+              <Button type="button" size="sm" variant="outline" disabled={currentMemberPage === 0} onClick={() => setMemberPage(currentMemberPage - 1)}>Previous</Button>
+              <Button type="button" size="sm" variant="outline" disabled={currentMemberPage >= memberPageCount - 1} onClick={() => setMemberPage(currentMemberPage + 1)}>Next</Button>
+            </div>
+          </div> : null}
         </CardContent>
       </Card>
     </div>
   )
 }
 
-function StatPill({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: number }) {
+function StatPill({ icon: Icon, label, value, loading }: { icon: LucideIcon; label: string; value: number; loading: boolean }) {
   return (
-    <div className="rounded-2xl bg-white/18 px-4 py-3 text-white backdrop-blur">
-      <Icon className="h-5 w-5" />
-      <p className="mt-2 text-2xl font-black leading-none">{value}</p>
-      <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-white/70">{label}</p>
+    <div className="min-w-0 rounded-2xl border border-orange-100 bg-[#faf8f5] p-3 sm:p-4">
+      <div className="flex min-w-0 items-center gap-1.5 text-orange-700">
+        <Icon className="size-4 shrink-0" aria-hidden="true" />
+        <p className="truncate text-[10px] font-semibold uppercase tracking-[0.1em] sm:text-xs">{label}</p>
+      </div>
+      <p className="mt-2 text-xl font-semibold leading-none tabular-nums tracking-tight text-zinc-950 sm:text-2xl" aria-live="polite">
+        {loading ? <span className="text-zinc-400" aria-label={`Loading ${label.toLowerCase()}`}>—</span> : new Intl.NumberFormat('en').format(value)}
+      </p>
     </div>
   )
 }
