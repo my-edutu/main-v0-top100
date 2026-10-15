@@ -31,6 +31,7 @@ export default function SignUpPage() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [captcha, setCaptcha] = useState('')
+  const [captchaKey, setCaptchaKey] = useState(0)
   const [busy, setBusy] = useState(false)
   const [searchedQuery, setSearchedQuery] = useState('')
   const [suggested, setSuggested] = useState(false)
@@ -105,6 +106,7 @@ export default function SignUpPage() {
     if (!selected || busy) return
     setBusy(true)
     setError('')
+    let captchaAttempted = false
     try {
       const normalizedEmail = email.trim().toLowerCase()
       const { data: sessionData } = await supabase.auth.getSession()
@@ -114,10 +116,13 @@ export default function SignUpPage() {
         throw new Error('This browser is signed in to a different account. Sign out below to continue with the email on your winner record.')
       }
       if (!userData.user && password.length < 8) throw new Error('Choose a password of at least 8 characters.')
-      const response = await fetch('/api/auth/claim-request', {
+      const token = captcha
+      setCaptcha('')
+      captchaAttempted = true
+      const response = await createTimedFetch(fetch, 25_000)('/api/auth/claim-request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ awardeeId: selected.id, email: normalizedEmail, inviteCode, captchaToken: captcha, password: userData.user ? undefined : password }),
+        body: JSON.stringify({ awardeeId: selected.id, email: normalizedEmail, inviteCode, captchaToken: token, password: userData.user ? undefined : password }),
       })
       const body = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(body.message || 'Could not verify this record.')
@@ -143,6 +148,8 @@ export default function SignUpPage() {
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not submit your claim.')
     } finally {
+      // Siteverify consumes the token even if eligibility checks fail afterward.
+      if (captchaAttempted) setCaptchaKey(value => value + 1)
       setBusy(false)
     }
   }
@@ -209,7 +216,7 @@ export default function SignUpPage() {
             <div><Label htmlFor="claim-code">Invite code from the AFL team</Label><Input id="claim-code" className="mt-2 h-12" required value={inviteCode} onChange={(event) => setInviteCode(event.target.value)} placeholder="AFL-XXXXX-XXXXX" /></div>
             {!hasSession && <div><Label htmlFor="claim-password">Choose a sign-in password</Label><div className="relative mt-2"><Input id="claim-password" className="h-12 pr-12" required minLength={8} type={showPassword ? 'text' : 'password'} autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} /><button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-1 text-stone-500 hover:text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword} aria-controls="claim-password">{showPassword ? <EyeOff aria-hidden="true" className="h-5 w-5" /> : <Eye aria-hidden="true" className="h-5 w-5" />}</button></div></div>}
             <LegalConsent id="claim-legal-consent" />
-            <TurnstileCaptcha action="signup" onVerify={setCaptcha} onExpire={() => setCaptcha('')} onError={() => setCaptcha('')} />
+            <TurnstileCaptcha key={captchaKey} action="signup" onVerify={setCaptcha} onExpire={() => setCaptcha('')} onError={() => setCaptcha('')} />
             {captchaUnavailable && <p role="alert" className="text-sm text-red-800">The security check is unavailable. Please try again shortly.</p>}
             <div className="flex justify-between gap-3"><Button type="button" variant="ghost" onClick={() => setStep(1)}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button><Button disabled={busy || captchaUnavailable || (Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY) && !captcha)}>{busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Submit for review<ArrowRight className="ml-2 h-4 w-4" /></Button></div>
           </form>}

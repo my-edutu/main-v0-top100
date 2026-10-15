@@ -67,6 +67,7 @@ export default function SignInContent() {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (isLoading) return
     setError('')
     setIsLoading(true)
 
@@ -93,12 +94,12 @@ export default function SignInContent() {
         return
       }
       if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && captchaToken) {
-        const captchaValid = await verifyCaptcha(captchaToken)
+        const captchaValid = await verifyCaptcha(captchaToken, 'login')
         // Turnstile tokens are single-use, including when password sign-in fails.
         setCaptchaToken('')
         setCaptchaKey(key => key + 1)
         if (!captchaValid) {
-          setError('CAPTCHA verification failed. Please try again.')
+          setError('The security check expired or could not be verified. Complete the new check and try again.')
           setCaptchaError(true)
           setIsLoading(false)
           return
@@ -356,6 +357,7 @@ export default function SignInContent() {
             <div className="empty:hidden">
               <TurnstileCaptcha
                 key={captchaKey}
+                action="login"
                 onVerify={(token) => {
                   setCaptchaToken(token)
                   setCaptchaError(false)

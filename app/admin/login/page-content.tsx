@@ -26,6 +26,7 @@ export default function AdminLoginContent() {
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [captchaToken, setCaptchaToken] = useState('')
+  const [captchaKey, setCaptchaKey] = useState(0)
 
   const searchParams = useSearchParams()
   const passwordWasReset =
@@ -37,12 +38,20 @@ export default function AdminLoginContent() {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (isLoading) return
     setError('')
     setIsLoading(true)
 
     try {
+      if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !captchaToken) {
+        setError('Complete the security check before signing in.')
+        setIsLoading(false)
+        return
+      }
       if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && captchaToken) {
-        const captchaValid = await verifyCaptcha(captchaToken)
+        const captchaValid = await verifyCaptcha(captchaToken, 'admin_login')
+        setCaptchaToken('')
+        setCaptchaKey(value => value + 1)
         if (!captchaValid) {
           setError('CAPTCHA verification failed. Please try again.')
           setIsLoading(false)
@@ -192,6 +201,8 @@ export default function AdminLoginContent() {
 
           <div className="empty:hidden">
             <TurnstileCaptcha
+              key={captchaKey}
+              action="admin_login"
               onVerify={(token) => setCaptchaToken(token)}
               onError={() => setCaptchaToken('')}
               onExpire={() => setCaptchaToken('')}

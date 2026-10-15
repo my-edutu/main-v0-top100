@@ -5,17 +5,25 @@ interface TurnstileResponse {
     'error-codes'?: string[];
     challenge_ts?: string;
     hostname?: string;
+    action?: string;
 }
 
 export async function POST(req: NextRequest) {
     try {
-        const { token } = await req.json();
+        const body = await req.json().catch(() => null);
+        if (!body || typeof body !== 'object' || Array.isArray(body)) {
+            return Response.json({ success: false, error: 'Invalid security check request' }, { status: 400 });
+        }
+        const { token, action } = body;
 
-        if (!token) {
+        if (typeof token !== 'string' || !token.trim() || token.length > 2048) {
             return Response.json(
                 { success: false, error: 'CAPTCHA token is required' },
                 { status: 400 }
             );
+        }
+        if (action !== undefined && action !== 'login' && action !== 'admin_login') {
+            return Response.json({ success: false, error: 'Invalid security check action' }, { status: 400 });
         }
 
         const secretKey = process.env.TURNSTILE_SECRET_KEY;
@@ -46,15 +54,27 @@ export async function POST(req: NextRequest) {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
                 body: formData.toString(),
+                signal: AbortSignal.timeout(10_000),
+                cache: 'no-store',
             }
         );
+        if (!response.ok) {
+            console.error('[CAPTCHA] Siteverify unavailable', { status: response.status });
+            return Response.json({ success: false, error: 'Security check temporarily unavailable. Please retry.' }, { status: 503 });
+        }
 
         const data: TurnstileResponse = await response.json();
+        const hostnames = new Set((process.env.NODE_ENV === 'production'
+            ? process.env.TURNSTILE_HOSTNAMES || 'top100afl.com,www.top100afl.com'
+            : 'localhost,127.0.0.1').split(',').map(hostname => hostname.trim()).filter(Boolean));
 
-        if (data.success) {
+        // Keep older deployed clients (without an action) working during rollout.
+        if (data.success === true && hostnames.has(data.hostname ?? '') && (!action || data.action === action)) {
             return Response.json({ success: true });
         } else {
-            console.warn('[CAPTCHA] Verification failed:', data['error-codes']);
+            console.warn('[CAPTCHA] Verification failed:', {
+                codes: data['error-codes'], hostname: data.hostname, action: data.action,
+            });
             return Response.json(
                 {
                     success: false,
@@ -67,8 +87,8 @@ export async function POST(req: NextRequest) {
     } catch (error) {
         console.error('[CAPTCHA] Error verifying token:', error);
         return Response.json(
-            { success: false, error: 'Internal server error' },
-            { status: 500 }
+            { success: false, error: 'Security check temporarily unavailable. Please retry.' },
+            { status: 503 }
         );
     }
 }
