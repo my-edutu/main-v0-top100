@@ -1,17 +1,21 @@
 # Top100 password recovery email
 
-In Supabase Authentication → Email Templates → Reset password:
+The app sends password recovery emails through its transactional Brevo mailer. The forgot-password page calls `/api/auth/password-reset`; that route uses Supabase Admin `generateLink` to mint a recovery token, then sends the branded email through `sendTransactionalEmail`. Supabase Auth's own reset-password email template is not used for this flow. `recovery.html` is retained as a visual reference for the email design.
 
-- Subject: `Choose your Top100 password`
-- Body: paste `recovery.html`.
+Configure these variables on the **web app service** in Dokploy:
 
-Keep `{{ .ConfirmationURL }}` intact. Supabase verifies the single-use recovery token before redirecting to the requested password form. Do not replace this with a plain link to the form or a cohort access code.
+- `BREVO_SMTP_HOST=smtp-relay.brevo.com`
+- `BREVO_SMTP_PORT=587`
+- `BREVO_SMTP_LOGIN` and `BREVO_SMTP_KEY` from the Brevo SMTP settings
+- `BREVO_SENDER_EMAIL` set to an authenticated sender on the Top100 domain
+- `SUPABASE_SERVICE_ROLE_KEY` for the self-hosted Supabase project used by the app
+- `NEXT_PUBLIC_SITE_URL=https://www.top100afl.com` (or set server-only `TOP100_SITE_URL`)
 
-In Authentication → URL Configuration, allow the production recovery destinations:
+Keep `SUPABASE_SERVICE_ROLE_KEY` server-only. In Supabase Auth → URL Configuration, allow both recovery form destinations:
 
 - `https://www.top100afl.com/auth/reset-password?area=member`
 - `https://www.top100afl.com/auth/reset-password?area=admin`
 
-Brevo SMTP settings: host `smtp-relay.brevo.com`, port `587`, username from Brevo SMTP login, password from Brevo SMTP key. Verify transactional sending is active and the sender domain is authenticated. Disable click tracking for Auth email links. Check both Supabase Auth email limits and Brevo account quota.
+The email link carries the token hash in the URL fragment. The browser verifies it only when the user submits the new-password form, so opening the link in a mail security scanner does not consume it. Keep Brevo click tracking disabled for these messages.
 
-Verify using an existing authorized account: request recovery, confirm delivery in Brevo, open the received link, choose a new password, then sign in. A `/recover` HTTP 200 alone does not establish mailbox delivery or prove the account exists.
+Verify with an authorized test account: request recovery, confirm delivery in Brevo, open the link, choose a new password, and sign in. The page deliberately gives the same confirmation whether or not an account exists. A successful HTTP response alone does not establish mailbox delivery.

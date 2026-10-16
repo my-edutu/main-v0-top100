@@ -28,6 +28,7 @@ function ResetPasswordContent() {
   const [isCheckingLink, setIsCheckingLink] = useState(true)
   const [isRecoveryReady, setIsRecoveryReady] = useState(false)
   const recoveryClientRef = useRef<SupabaseClient | null>(null)
+  const tokenHashRef = useRef<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -36,6 +37,19 @@ function ResetPasswordContent() {
     recoveryClientRef.current = recoveryClient
 
     async function establishRecoverySession() {
+      const linkParams = new URLSearchParams(window.location.hash.replace(/^#/, ''))
+      const tokenHash = linkParams.get('token_hash')
+      if (tokenHash && linkParams.get('type') === 'recovery') {
+        // Keep the single-use token in memory until the user submits the form.
+        // Email security scanners can load this page but cannot consume the token.
+        tokenHashRef.current = tokenHash
+        if (!cancelled) {
+          setIsRecoveryReady(true)
+          setIsCheckingLink(false)
+        }
+        return
+      }
+
       const { data, error: sessionError } = await recoveryClient.auth.getSession()
       if (cancelled) return
 
@@ -74,6 +88,22 @@ function ResetPasswordContent() {
 
     setIsLoading(true)
     try {
+      const tokenHash = tokenHashRef.current
+      if (tokenHash) {
+        const { error: verificationError } = await recoveryClient.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: 'recovery',
+        })
+        if (verificationError) {
+          tokenHashRef.current = null
+          setIsRecoveryReady(false)
+          setError(INVALID_RECOVERY_MESSAGE)
+          return
+        }
+        tokenHashRef.current = null
+        window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`)
+      }
+
       const { error: updateError } = await recoveryClient.auth.updateUser({ password })
       if (updateError) {
         setError(passwordUpdateErrorMessage(updateError))

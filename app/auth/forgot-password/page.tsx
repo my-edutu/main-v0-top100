@@ -9,14 +9,7 @@ import { Loader2, MailCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { createPasswordRecoveryClient } from '@/lib/supabase/password-recovery-client'
-import {
-  getRecoveryRedirectUrl,
-  getRecoveryRequestOrigin,
-  type RecoveryArea,
-} from '@/lib/auth/password-recovery'
-import { passwordRecoveryErrorMessage } from '@/lib/auth-recovery'
-import { SITE_URL } from '@/lib/site'
+import type { RecoveryArea } from '@/lib/auth/password-recovery'
 
 function ForgotPasswordContent() {
   const searchParams = useSearchParams()
@@ -35,18 +28,19 @@ function ForgotPasswordContent() {
     setIsLoading(true)
 
     try {
-      const recoveryClient = createPasswordRecoveryClient()
-      const recoveryOrigin = getRecoveryRequestOrigin({
-        browserOrigin: window.location.origin,
-        canonicalSiteUrl: SITE_URL,
-        isProduction: process.env.NODE_ENV === 'production',
+      const response = await fetch('/api/auth/password-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), area }),
       })
-      const { error: resetError } = await recoveryClient.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: getRecoveryRedirectUrl(recoveryOrigin, area),
-      })
-
-      if (resetError) {
-        setError(passwordRecoveryErrorMessage(resetError.status))
+      if (!response.ok) {
+        const result = await response.json().catch(() => null) as { message?: unknown; error?: unknown } | null
+        const message = typeof result?.message === 'string'
+          ? result.message
+          : typeof result?.error === 'string'
+            ? result.error
+            : 'We could not send the reset email. Please try again shortly.'
+        setError(message)
         return
       }
 
