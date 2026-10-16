@@ -93,8 +93,20 @@ function ForgotPasswordContent() {
             </h1>
             <p className="mt-2 text-center text-sm leading-6 text-slate-600">
               Enter the email address used for your {isAdmin ? 'administrator' : 'member'} account.
-              You can also use this if you never chose a password.
+              {isAdmin
+                ? ' A reset link can only be sent for an existing administrator account.'
+                : ' If your dashboard account has already been created but you have not chosen a password, this link will work too.'}
             </p>
+
+            {!isAdmin && (
+              <p className="mt-3 text-center text-sm leading-6 text-slate-600">
+                First time setting up your dashboard?{' '}
+                <Link href="/signup" className="font-semibold text-orange-700 underline-offset-4 hover:underline">
+                  Create your account and claim your awardee profile
+                </Link>
+                . Password reset is available after your account exists.
+              </p>
+            )}
 
             <form onSubmit={handleSubmit} className="mt-8 space-y-5">
               {error && (
