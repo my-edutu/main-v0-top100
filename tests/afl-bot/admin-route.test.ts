@@ -73,3 +73,13 @@ describe('AFL bot admin bridge', () => {
     expect(mocks.fetch).toHaveBeenCalledTimes(1)
   })
 })
+
+
+it('preserves the exact announcement text through the server bridge', async () => {
+  const content = '\n  Reviewed announcement\n\n'
+  mocks.fetch.mockResolvedValue(new Response(JSON.stringify({ id: 'abcdef123456' }), { status: 201 }))
+  expect((await POST(request({ action: 'createAnnouncement', data: {
+    title: 'Title', content, request_id: 'literal-content',
+  } }))).status).toBe(201)
+  expect(JSON.parse(mocks.fetch.mock.calls[0][1].body).content).toBe(content)
+})

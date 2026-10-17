@@ -14,7 +14,7 @@ function text(value: unknown, name: string, max: number, required = false): stri
     return undefined
   }
   if (typeof value !== 'string' || value.length > max || !value.trim()) throw new Error(`Invalid ${name}.`)
-  return value.trim()
+  return name === 'Announcement' ? value : value.trim()
 }
 function id(value: unknown): string {
   if (typeof value !== 'string' || !recordId.test(value)) throw new Error('Invalid record ID.')
