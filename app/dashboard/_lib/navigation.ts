@@ -82,7 +82,7 @@ export function isDashboardNavActive(pathname: string, href: string) {
 
 export function resolveDashboardTitle(pathname: string) {
   if (pathname === '/dashboard/me/interview') return 'Request an interview'
-  if (pathname === '/dashboard/discover/event-videos') return 'Event videos'
+  if (pathname.startsWith('/dashboard/discover/event-videos')) return 'Past sessions'
   const matchingItem = allDashboardNav
     .filter(({ href }) => isDashboardNavActive(pathname, href))
     .sort((left, right) => right.href.length - left.href.length)[0]

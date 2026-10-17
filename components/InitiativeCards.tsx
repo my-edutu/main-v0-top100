@@ -22,7 +22,7 @@ const InitiativeCard = ({
   gradientClass
 }: InitiativeCardProps) => {
   return (
-    <Link href={href}>
+    <Link href={href} className="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2">
       <motion.div
         whileHover={{ y: -10 }}
         className={`rounded-2xl p-0.5 ${gradientClass} shadow-lg transition-all duration-300 cursor-pointer`}

@@ -141,7 +141,7 @@ const nextConfig = {
               "img-src * data: blob:",
               "font-src 'self' data: https://fonts.gstatic.com",
               "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://supabase.top100afl.com wss://supabase.top100afl.com https://api.brevo.com https://in-automate.brevo.com https://sibautomation.com https://challenges.cloudflare.com https://cloudflareinsights.com",
-              "frame-src https://challenges.cloudflare.com https://www.youtube-nocookie.com https://www.youtube.com",
+              "frame-src https://challenges.cloudflare.com https://www.youtube-nocookie.com https://www.youtube.com https://player.vimeo.com",
               "media-src 'self' https: data:",
               "object-src 'none'",
               "base-uri 'self'",

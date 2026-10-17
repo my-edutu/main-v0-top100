@@ -16,7 +16,7 @@ function awardStatus(payment: AwardPaymentView) {
   return 'Official presentation in November 2026. Reserve your physical award.'
 }
 
-export function DashboardPromoCarousel({ payment, showCommunity = false }: { payment?: AwardPaymentView | null; showCommunity?: boolean }) {
+export function DashboardPromoCarousel({ payment, showCommunity = false, showLearningLibrary = false }: { payment?: AwardPaymentView | null; showCommunity?: boolean; showLearningLibrary?: boolean }) {
   const [activeSlide, setActiveSlide] = useState(0)
   const [dragX, setDragX] = useState(0)
   const [showSwipeHint, setShowSwipeHint] = useState(true)
@@ -62,17 +62,17 @@ export function DashboardPromoCarousel({ payment, showCommunity = false }: { pay
       tone: 'community',
       external: false,
     }] : []),
-    {
+    ...(showLearningLibrary ? [{
       key: 'videos',
       href: eventVideosUrl,
       image: '/illustrations/promo-learning.svg',
       eyebrow: 'Learn at your own pace',
-      title: 'Event videos & past courses',
-      description: 'Replay classes and past sessions whenever you’re ready.',
-      linkLabel: 'Watch recordings',
+      title: 'Past sessions & courses',
+      description: 'Revisit recordings, presentations, workshops, and notes from earlier sessions.',
+      linkLabel: 'Open sessions',
       tone: 'learning',
       external: false,
-    },
+    }] : []),
   ]
   const activeCardIndex = activeSlide % cards.length
   const switchCard = (direction = 1) => setActiveSlide((current) => (current + direction + cards.length) % cards.length)

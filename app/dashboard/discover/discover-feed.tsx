@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import Link from 'next/link'
-import { ArrowUpRight, ChevronLeft, ChevronRight, Trophy } from 'lucide-react'
+import { ArrowUpRight, BookOpen, ChevronLeft, ChevronRight, Trophy } from 'lucide-react'
 import SafeImage from '@/components/safe-image'
 import type { DirectoryCard } from '@/lib/awardees/directory-cards'
 import { fetchPublicDirectory, peekPublicDirectory } from '@/lib/awardees/directory-client'
@@ -98,9 +98,14 @@ export function DiscoverFeed({ posts }: { posts: Story[] }) {
   const [retry, setRetry] = useState(0)
   const [rotationWindow] = useState(() => Math.floor(Date.now() / (1000 * 60 * 60 * 24)))
   const stories = shuffleForMember(posts, member.id, rotationWindow)
-  const shortcutItems = discoverNav.map(item => item.label === 'Saved'
-    ? { ...item, label: 'Award', title: 'My award', href: '/dashboard/me/award', icon: Trophy }
-    : item)
+  const shortcutItems = discoverNav.map(item => {
+    if (item.label === 'Members') {
+      return { ...item, label: 'Past sessions', href: '/dashboard/discover/event-videos', icon: BookOpen }
+    }
+    return item.label === 'Saved'
+      ? { ...item, label: 'Award', title: 'My award', href: '/dashboard/me/award', icon: Trophy }
+      : item
+  })
   useEffect(() => {
     let cancelled = false
     fetchPublicDirectory(retry > 0).then(data => {
