@@ -21,6 +21,7 @@ import {
   Settings,
   HeartHandshake,
   Share2,
+  Bot,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -71,6 +72,7 @@ export const navGroups: NavGroup[] = [
       { label: 'Opportunities', href: '/admin/opportunities', icon: Briefcase },
       { label: 'Feature Requests', href: '/admin/feature-requests', icon: Newspaper },
       { label: 'Awardee onboarding', href: '/admin/onboarding', icon: HeartHandshake },
+      { label: 'AFL WhatsApp bot', href: '/admin/afl-bot', icon: Bot },
     ],
   },
   {
