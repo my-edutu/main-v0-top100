@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import Image from '@/components/safe-image'
 import Link from 'next/link'
-import { ArrowLeft, Loader2, Share2, UserRound, Mail } from 'lucide-react'
+import { Loader2, Share2, UserRound, Mail, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -87,17 +87,19 @@ const stepCopy: Record<Exclude<ProfileEditStep, 'photo' | 'visibility'>, { title
 
 export function ProfileSection() {
   const { member, refreshMember, replaceMember } = useDashboardMember()
-  const pages = ['Photo', 'Headline', 'Field', 'Location', 'Organization', 'BIO', 'Social media', 'Visibility', 'Consent', 'Preview']
-  const [page, setPage] = useState(0)
   const [editing, setEditing] = useState(false)
   useEffect(() => {
-    if (window.location.hash !== '#social-media') return
-    const openSocialMediaEditor = window.setTimeout(() => {
-      setPage(6)
-      setEditing(true)
-    }, 0)
-    return () => window.clearTimeout(openSocialMediaEditor)
+    if (!['#social-links', '#social-media'].includes(window.location.hash)) return
+    const openSocialLinksEditor = window.setTimeout(() => setEditing(true), 0)
+    return () => window.clearTimeout(openSocialLinksEditor)
   }, [])
+  useEffect(() => {
+    if (!editing || !['#social-links', '#social-media'].includes(window.location.hash)) return
+    const scrollToSocialLinks = window.setTimeout(() => {
+      document.getElementById('profile-social-links')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 0)
+    return () => window.clearTimeout(scrollToSocialLinks)
+  }, [editing])
   const [draft, setDraft] = useState<ProfileDraft>(() => draftFromMember(member))
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
@@ -107,16 +109,15 @@ export function ProfileSection() {
     const initialize = window.setTimeout(() => setPhotoPreview(url), 0)
     return () => { window.clearTimeout(initialize); URL.revokeObjectURL(url) }
   }, [photoFile])
-  const photoInputRef = useRef<HTMLInputElement>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [warning, setWarning] = useState('')
-  function startEditing() {
+  function startEditing(section?: 'social-links') {
     setDraft(draftFromMember(member))
     setPhotoFile(null)
     setError('')
     setWarning('')
-    setPage(0)
+    if (section === 'social-links') window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}#social-links`)
     setEditing(true)
   }
 
@@ -137,7 +138,8 @@ export function ProfileSection() {
 
   async function saveProfile() {
     if (saving) return
-    const validation = validateProfileDraft(draft) || validateSocialLinks(draft.socialLinks ?? [])
+    const socialLinks = (draft.socialLinks ?? []).filter(link => link.url.trim())
+    const validation = validateProfileDraft(draft) || validateSocialLinks(socialLinks)
     if (validation) { setError(validation); return }
     setSaving(true)
     setError('')
@@ -151,7 +153,7 @@ export function ProfileSection() {
       }
 
       const result = await persistThenRefresh({
-        persist: () => updateMemberProfile(member.id, { ...buildProfileUpdatePatch(draft, true), socialLinks: draft.socialLinks, socialLinksConsent: draft.socialLinksConsent, contactEmailConsent: draft.contactEmailConsent }),
+        persist: () => updateMemberProfile(member.id, { ...buildProfileUpdatePatch(draft, true), socialLinks, socialLinksConsent: draft.socialLinksConsent, contactEmailConsent: draft.contactEmailConsent }),
         applyPersisted: (persisted) => replaceMember({
           ...persisted,
           ...(uploadedAvatarUrl ? { avatarUrl: uploadedAvatarUrl } : {}),
@@ -183,61 +185,57 @@ export function ProfileSection() {
 
   if (!editing) {
     return (
-      <ProfileOverview member={member} onEdit={startEditing} />
+      <ProfileOverview member={member} onEdit={() => startEditing()} onEditSocials={() => startEditing('social-links')} />
     )
   }
 
-
   return (
-    <section className="hub-profile-editor mx-auto w-full max-w-2xl space-y-6" aria-label="Update your profile">
-      <div className="space-y-4"><div className="flex items-center justify-between text-sm text-neutral-500"><span>Step {page + 1} of {pages.length}</span><span>{Math.round((page + 1) / pages.length * 100)}%</span></div><div role="progressbar" aria-label="Profile setup progress" aria-valuenow={page + 1} aria-valuemin={0} aria-valuemax={pages.length} className="h-1.5 w-full overflow-hidden rounded-full bg-neutral-200"><div className="h-full rounded-full bg-orange-600 transition-all" style={{ width: `${(page + 1) / pages.length * 100}%` }} /></div><p className="text-sm text-neutral-600">One section at a time. Review and save at the end.</p></div>
-      <div className="min-w-0 rounded-xl border border-neutral-200 bg-white p-5 sm:p-7">
-        <div className="min-w-0 space-y-5">
-          <fieldset disabled={saving} className="space-y-5">
-            <div hidden={page !== 0} className="space-y-2"><h3 className="mb-4 text-lg font-semibold">Choose your profile photo</h3><Label htmlFor="profile-photo">Profile photo</Label><MemberAvatar src={photoFile && photoPreview ? photoPreview : member.avatarUrl} initials={member.avatarInitials} size={64} /><Input ref={photoInputRef} id="profile-photo" type="file" accept="image/jpeg,image/png,image/webp" onChange={event => selectPhoto(event.target.files?.[0])} /><p className="text-xs text-neutral-500">JPG, PNG or WebP, up to 5 MB.</p></div>
-            {page >= 1 && page <= 5 ? <ProfileQuestion step={(['headline', 'field', 'location', 'organization', 'bio'] as const)[page - 1]} value={draft[(['headline', 'field', 'location', 'organization', 'bio'] as const)[page - 1]]} onChange={value => updateDraft((['headline', 'field', 'location', 'organization', 'bio'] as const)[page - 1], value)} /> : null}
-            <section hidden={page !== 6} className="space-y-3"><h3 className="text-lg font-semibold">Social media</h3><p className="text-sm text-neutral-600">Add up to three links. Use complete https:// URLs.</p>
-              {(draft.socialLinks ?? []).map((link, index) => <div key={index} className="space-y-2 rounded-lg border p-3"><div className="space-y-2"><Label htmlFor={`social-platform-${index}`}>Platform</Label><Select value={link.platform} onValueChange={value => updateDraft('socialLinks', draft.socialLinks!.map((item, i) => i === index ? { ...item, platform: value as SocialLink['platform'] } : item))}><SelectTrigger id={`social-platform-${index}`} aria-label={`Social platform ${index + 1}`}><SelectValue /></SelectTrigger><SelectContent>{SOCIAL_PLATFORMS.map(platform => <SelectItem key={platform} value={platform} disabled={draft.socialLinks?.some((item, i) => i !== index && item.platform === platform)}><span className="flex items-center gap-2"><ProfileSocialIcon platform={platform} /><span className="capitalize">{platform === 'twitter' ? 'X / Twitter' : platform}</span></span></SelectItem>)}</SelectContent></Select></div><Input aria-label={`Social URL ${index + 1}`} type="url" maxLength={500} placeholder="https://" value={link.url} onChange={event => updateDraft('socialLinks', draft.socialLinks!.map((item, i) => i === index ? { ...item, url: event.target.value } : item))} /><button type="button" className="min-h-11 text-sm text-orange-800" onClick={() => updateDraft('socialLinks', draft.socialLinks!.filter((_, i) => i !== index))}>Remove link</button></div>)}
-              {(draft.socialLinks ?? []).length < 3 ? <Button type="button" variant="outline" onClick={() => updateDraft('socialLinks', [...(draft.socialLinks ?? []), { platform: SOCIAL_PLATFORMS.find(p => !draft.socialLinks?.some(l => l.platform === p)) ?? 'website', url: '' }])}>Add social link</Button> : null}
-            </section>
-            <section hidden={page !== 8} className="space-y-3"><h3 className="text-lg font-semibold">Your consent</h3><p className="text-sm text-neutral-600">These choices are optional. You can withdraw consent here at any time.</p><label className="flex min-h-11 items-start gap-3 text-sm"><input type="checkbox" checked={draft.socialLinksConsent ?? false} onChange={event => updateDraft('socialLinksConsent', event.target.checked)} />I agree to display my social links on my public profile.</label><label className="flex min-h-11 items-start gap-3 text-sm"><input type="checkbox" checked={draft.contactEmailConsent ?? false} onChange={event => updateDraft('contactEmailConsent', event.target.checked)} />I agree to display a public email button so visitors can contact me.</label></section>
-            <div hidden={page !== 7}><h3 className="text-lg font-semibold">Profile visibility</h3><VisibilityOption label="Recruiters can find my profile" checked={draft.recruiterVisible} onChange={checked => updateDraft('recruiterVisible', checked)} />
-            <VisibilityOption label="Show my email on my public profile" checked={draft.emailVisible} onChange={checked => updateDraft('emailVisible', checked)} /></div>
-          </fieldset>
-        </div>
-        <aside hidden={page !== 9} className="min-w-0 self-start rounded-xl border border-neutral-200 bg-white p-5 " aria-label="Live profile preview">
-          <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">Live preview · not saved yet</p>
-          <div className="mt-4"><MemberAvatar src={photoFile && photoPreview ? photoPreview : member.avatarUrl} initials={member.avatarInitials} size={64} /></div>
-          <h3 className="mt-4 text-xl font-semibold">{member.name}</h3>
-          <p className="mt-1 break-words text-sm">{draft.headline}</p>
-          <dl className="mt-4"><ProfileValue label="Field" value={draft.field} /><ProfileValue label="Location" value={draft.location} /><ProfileValue label="Organization" value={draft.organization} /></dl>
-          <h4 className="mt-4 font-medium">BIO</h4><p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{draft.bio || 'Your BIO will appear here.'}</p>
-          <ProfileContact links={draft.socialLinksConsent ? draft.socialLinks : []} email={draft.emailVisible && draft.contactEmailConsent ? member.email : undefined} />
-        </aside>
+    <section className="hub-profile-editor mx-auto w-full max-w-3xl space-y-5" aria-label="Update your profile">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div><h2 className="text-xl font-semibold text-neutral-950">Update your profile</h2><p className="mt-1 text-sm text-neutral-600">Make the changes you need, then save once at the bottom.</p></div>
+        <Button type="button" variant="ghost" disabled={saving} className="min-h-11" onClick={() => setEditing(false)}>Cancel</Button>
+      </div>
+      <div className="min-w-0 rounded-xl border border-neutral-200 bg-white p-4 sm:p-6">
+        <fieldset disabled={saving} className="space-y-8 disabled:opacity-70">
+          <section className="space-y-3" aria-labelledby="profile-photo-heading">
+            <div><h3 id="profile-photo-heading" className="text-base font-semibold">Profile photo</h3><p className="mt-1 text-sm text-neutral-600">Use a clear JPG, PNG or WebP image up to 5 MB.</p></div>
+            <div className="flex flex-wrap items-center gap-4"><MemberAvatar src={photoFile && photoPreview ? photoPreview : member.avatarUrl} initials={member.avatarInitials} size={64} /><div className="min-w-0 flex-1"><Label htmlFor="profile-photo" className="sr-only">Choose profile photo</Label><Input id="profile-photo" type="file" accept="image/jpeg,image/png,image/webp" onChange={event => selectPhoto(event.target.files?.[0])} className="min-h-11 max-w-full" /></div></div>
+          </section>
+          <section className="space-y-4 border-t border-neutral-100 pt-6" aria-labelledby="profile-details-heading">
+            <div><h3 id="profile-details-heading" className="text-base font-semibold">About you</h3><p className="mt-1 text-sm text-neutral-600">These details appear on your awardee profile.</p></div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {(['headline', 'field', 'location', 'organization'] as const).map(step => <ProfileQuestion key={step} step={step} value={draft[step]} onChange={value => updateDraft(step, value)} />)}
+            </div>
+            <ProfileQuestion step="bio" value={draft.bio} onChange={value => updateDraft('bio', value)} />
+          </section>
+          <section id="profile-social-links" className="scroll-mt-6 space-y-4 border-t border-neutral-100 pt-6" aria-labelledby="profile-social-heading">
+            <div><h3 id="profile-social-heading" className="text-base font-semibold">Social links</h3><p className="mt-1 text-sm text-neutral-600">Add up to three links. Use a full https:// address.</p></div>
+            {(draft.socialLinks ?? []).map((link, index) => <div key={`${link.platform}-${index}`} className="grid gap-3 rounded-lg border border-neutral-200 p-3 sm:grid-cols-[minmax(150px,0.7fr)_minmax(0,1.3fr)_auto] sm:items-end">
+              <div className="space-y-2"><Label htmlFor={`social-platform-${index}`}>Platform</Label><Select value={link.platform} onValueChange={value => updateDraft('socialLinks', draft.socialLinks!.map((item, i) => i === index ? { ...item, platform: value as SocialLink['platform'] } : item))}><SelectTrigger id={`social-platform-${index}`} aria-label={`Social platform ${index + 1}`} className="min-h-11"><SelectValue /></SelectTrigger><SelectContent>{SOCIAL_PLATFORMS.map(platform => <SelectItem key={platform} value={platform} disabled={draft.socialLinks?.some((item, i) => i !== index && item.platform === platform)}><span className="flex items-center gap-2"><ProfileSocialIcon platform={platform} /><span className="capitalize">{platform === 'twitter' ? 'X / Twitter' : platform}</span></span></SelectItem>)}</SelectContent></Select></div>
+              <div className="space-y-2"><Label htmlFor={`social-url-${index}`}>Profile link</Label><Input id={`social-url-${index}`} type="url" inputMode="url" autoComplete="url" maxLength={500} placeholder="https://" value={link.url} onChange={event => updateDraft('socialLinks', draft.socialLinks!.map((item, i) => i === index ? { ...item, url: event.target.value } : item))} className="min-h-11" /></div>
+              <Button type="button" variant="ghost" className="min-h-11 justify-self-start text-neutral-600 hover:text-red-700" aria-label={`Remove ${link.platform} link`} onClick={() => updateDraft('socialLinks', draft.socialLinks!.filter((_, i) => i !== index))}><Trash2 className="mr-2 size-4" />Remove</Button>
+            </div>)}
+            {(draft.socialLinks ?? []).length < 3 ? <Button type="button" variant="outline" className="min-h-11" onClick={() => updateDraft('socialLinks', [...(draft.socialLinks ?? []), { platform: SOCIAL_PLATFORMS.find(platform => !draft.socialLinks?.some(link => link.platform === platform)) ?? 'website', url: '' }])}><Plus className="mr-2 size-4" />Add a social link</Button> : <p className="text-sm text-neutral-500">You can add up to three social links.</p>}
+            <label className="flex min-h-11 items-start gap-3 rounded-lg bg-neutral-50 p-3 text-sm leading-5"><input type="checkbox" checked={draft.socialLinksConsent ?? false} onChange={event => updateDraft('socialLinksConsent', event.target.checked)} className="mt-0.5 size-4 shrink-0 accent-orange-600" /><span>Show these links on my public profile</span></label>
+          </section>
+          <section className="space-y-3 border-t border-neutral-100 pt-6" aria-labelledby="profile-visibility-heading">
+            <div><h3 id="profile-visibility-heading" className="text-base font-semibold">Visibility</h3><p className="mt-1 text-sm text-neutral-600">Choose what appears publicly and who can find you.</p></div>
+            <VisibilityOption label="Recruiters can find my profile" checked={draft.recruiterVisible} onChange={checked => updateDraft('recruiterVisible', checked)} />
+            <label className="flex min-h-11 items-start gap-3 py-2 text-sm leading-5"><input type="checkbox" checked={draft.emailVisible && draft.contactEmailConsent} onChange={event => { updateDraft('emailVisible', event.target.checked); updateDraft('contactEmailConsent', event.target.checked) }} className="mt-0.5 size-4 shrink-0 accent-orange-600" /><span>Show my email contact button on my public profile</span></label>
+          </section>
+        </fieldset>
       </div>
       {error ? <p role="alert" className="text-sm text-red-800">{error}</p> : null}
       {warning ? <p role="status" className="text-sm text-amber-800">{warning}</p> : null}
-      <footer className="space-y-3 border-t border-neutral-200 pt-5">
-        <div className="flex items-center gap-3">
-          {page > 0 ? <Button type="button" variant="ghost" disabled={saving} className="min-h-12 shrink-0 px-3 text-neutral-600" onClick={() => { setPage(current => current - 1); setError('') }}><ArrowLeft className="mr-2 size-4" />Back</Button> : null}
-          <Button type="button" disabled={saving} className="min-h-12 flex-1 rounded-lg bg-orange-600 text-white hover:bg-orange-700" onClick={() => {
-            if (page === pages.length - 1) { void saveProfile(); return }
-            const problem = page === 6 ? validateSocialLinks(draft.socialLinks ?? []) : null
-            if (problem) { setError(problem); return }
-            setError(''); setPage(current => current + 1)
-          }}>{saving ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}{saving ? 'Saving profile…' : page === pages.length - 1 ? 'Save profile' : page === pages.length - 2 ? 'Review profile →' : 'Continue →'}</Button>
-        </div>
-        <div className="flex items-center justify-between gap-3 text-xs text-neutral-500"><span>{page === pages.length - 1 ? 'Review your details before saving.' : 'Changes are saved after your final review.'}</span><button type="button" disabled={saving} onClick={() => setEditing(false)} className="min-h-11 shrink-0 px-2 text-sm underline underline-offset-4 hover:text-neutral-900">Cancel</button></div>
+      <footer className="sticky bottom-[calc(76px+env(safe-area-inset-bottom))] z-20 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-neutral-200 bg-white/95 p-3 backdrop-blur lg:bottom-4">
+        <p className="min-w-0 flex-1 text-sm text-neutral-600">Your public profile updates after you save.</p>
+        <Button type="button" disabled={saving} className="min-h-11 rounded-lg bg-orange-600 text-white hover:bg-orange-700" onClick={() => void saveProfile()}>{saving ? <Loader2 className="mr-2 size-4 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : null}{saving ? 'Saving…' : 'Save changes'}</Button>
       </footer>
     </section>
   )
 }
 
-export function ProfileEditorFields({ draft, onChange }: { draft: ProfileDraft; onChange: <K extends keyof ProfileDraft>(key: K, value: ProfileDraft[K]) => void }) {
-  return <>{(['headline', 'field', 'location', 'organization', 'bio'] as const).map(step => <ProfileQuestion key={step} step={step} value={draft[step]} onChange={value => onChange(step, value)} />)}</>
-}
-
-function ProfileOverview({ member, onEdit }: { member: MemberProfile; onEdit: () => void }) {
+function ProfileOverview({ member, onEdit, onEditSocials }: { member: MemberProfile; onEdit: () => void; onEditSocials: () => void }) {
   const [sharing, setSharing] = useState(false)
   async function shareProfile() {
     if (!member.publicSlug || sharing) return
@@ -260,9 +258,7 @@ function ProfileOverview({ member, onEdit }: { member: MemberProfile; onEdit: ()
             <p className="mt-1 break-words text-sm text-neutral-600">{member.headline || 'Add a headline to introduce yourself.'}</p>
           </div>
         </div>
-        <Button type="button" onClick={onEdit} className="min-h-11 w-full bg-orange-600 font-semibold text-white hover:bg-orange-700 sm:w-auto">
-          Update profile
-        </Button>
+        <Button type="button" onClick={onEdit} className="min-h-11 w-full bg-orange-600 font-semibold text-white hover:bg-orange-700 sm:w-auto">Update profile</Button>
       </header>
 
       {member.portfolioCoverUrl ? (
@@ -282,7 +278,11 @@ function ProfileOverview({ member, onEdit }: { member: MemberProfile; onEdit: ()
         </div>
       )}
 
-      <ProfileContact links={member.socialLinksConsent ? member.socialLinks : []} email={member.emailVisible && member.contactEmailConsent ? member.email : undefined} />
+      <section className="space-y-2" aria-labelledby="profile-contact-title">
+        <div className="flex flex-wrap items-center justify-between gap-2"><h3 id="profile-contact-title" className="text-base font-semibold text-neutral-950">Social links & contact</h3><button type="button" onClick={onEditSocials} className="min-h-11 text-sm font-medium text-orange-800 underline-offset-4 hover:underline">Edit social links</button></div>
+        <ProfileContact links={member.socialLinksConsent ? member.socialLinks : []} email={member.emailVisible && member.contactEmailConsent ? member.email : undefined} />
+        {!member.socialLinksConsent && member.socialLinks?.length ? <p className="text-sm text-neutral-500">Your social links are saved but hidden from your public profile.</p> : null}
+      </section>
       {member.publicSlug ? <Button variant="outline" disabled={sharing} onClick={() => void shareProfile()} className="min-h-11"><Share2 className="mr-2 size-4" />Share profile</Button> : <p className="text-sm text-neutral-500">Your public profile link will appear here when it is available.</p>}
       <section className="space-y-3" aria-labelledby="profile-details-title">
         <div className="flex flex-wrap items-center justify-between gap-2">

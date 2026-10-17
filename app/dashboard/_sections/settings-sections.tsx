@@ -1,7 +1,7 @@
 'use client'
 
 import { type FormEvent, type ReactNode, useState } from 'react'
-import { Bell, ChevronRight, Eye, KeyRound, Loader2, LockKeyhole, Trash2 } from 'lucide-react'
+import { Bell, ChevronRight, Eye, KeyRound, Link2, Loader2, LockKeyhole, Trash2, UserRound } from 'lucide-react'
 import Link from 'next/link'
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 
@@ -44,6 +44,21 @@ export function SettingsOverview({ member }: { member: MemberProfile }) {
 
   return (
     <div className="space-y-5">
+      <section aria-labelledby="settings-profile-title" className="space-y-2">
+        <h2 id="settings-profile-title" className="text-base font-semibold">Your profile</h2>
+        <div className="divide-y divide-neutral-200 rounded-xl border border-neutral-200">
+          <Link href="/dashboard/me/profile" className="flex min-h-16 items-center gap-3 px-4 py-3 hover:bg-orange-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-600">
+            <UserRound size={20} strokeWidth={1.7} className="shrink-0 text-orange-700" aria-hidden="true" />
+            <span className="min-w-0 flex-1"><span className="block text-sm font-medium">Edit profile</span><span className="mt-1 block text-sm text-neutral-500">Update your photo, BIO, work details and visibility.</span></span>
+            <ChevronRight size={18} className="shrink-0 text-neutral-400" aria-hidden="true" />
+          </Link>
+          <Link href="/dashboard/me/profile#social-links" className="flex min-h-16 items-center gap-3 px-4 py-3 hover:bg-orange-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-600">
+            <Link2 size={20} strokeWidth={1.7} className="shrink-0 text-orange-700" aria-hidden="true" />
+            <span className="min-w-0 flex-1"><span className="block text-sm font-medium">Edit social links</span><span className="mt-1 block text-sm text-neutral-500">Add or update the links on your public profile.</span></span>
+            <ChevronRight size={18} className="shrink-0 text-neutral-400" aria-hidden="true" />
+          </Link>
+        </div>
+      </section>
       <nav aria-label="Settings categories" className="divide-y divide-neutral-200 rounded-xl border border-neutral-200">
         {[
           { path:'visibility', title:'Visibility', description:'Profile and contact access', icon:Eye },
