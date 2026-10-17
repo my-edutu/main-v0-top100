@@ -738,6 +738,11 @@ html.light .discover-feed .discover-advert__copy p { color:#f7e9b8!important; }
 .awardee-dashboard .event-session-course .event-session-featured-video { border-radius:0; box-shadow:none; }
 .awardee-dashboard .event-session-video-placeholder { position:absolute; inset:0; display:flex; width:auto; height:auto; align-items:center; justify-content:center; flex-direction:column; gap:12px; background-color:#30271c; background-position:center 35%; background-size:cover; color:#fff; }
 .awardee-dashboard .event-session-video-placeholder__play { display:grid; width:58px; height:58px; place-items:center; border:1px solid rgba(255,255,255,.45); border-radius:50%; background:rgba(255,255,255,.16); backdrop-filter:blur(8px); }
+.awardee-dashboard .event-session-video-placeholder__play-button { display:flex; align-items:center; flex-direction:column; gap:12px; border:0; background:transparent; color:#fff; font:inherit; cursor:pointer; }
+.awardee-dashboard .event-session-video-placeholder__play-button:hover .event-session-video-placeholder__play { background:rgba(255,255,255,.28); transform:scale(1.04); }
+.awardee-dashboard .event-session-video-placeholder__play { transition:background .18s ease,transform .18s ease; }
+.awardee-dashboard .event-session-video-placeholder__play-label { border-radius:999px; background:#ff9d00; padding:11px 17px; color:#171412; font-size:13px; font-weight:650; }
+.awardee-dashboard .event-session-video-placeholder__play-button:focus-visible { outline:2px solid #fff; outline-offset:5px; border-radius:8px; }
 .awardee-dashboard .event-session-video-placeholder p { font-size:13px; font-weight:600; }
 .awardee-dashboard .event-session-video-placeholder__link { display:inline-flex; min-height:42px; align-items:center; gap:7px; border-radius:999px; background:#ff9d00; padding:0 16px; color:#171412; font-size:12px; font-weight:650; text-decoration:none; }
 .awardee-dashboard .event-session-video-placeholder__link:hover { background:#ffb329; }
@@ -770,6 +775,7 @@ html.light .discover-feed .discover-advert__copy p { color:#f7e9b8!important; }
 .awardee-dashboard .event-course-resource__type, .awardee-dashboard .event-course-resource__description { color:#766e67; font-size:11px; text-transform:capitalize; }
 .awardee-dashboard .event-course-resources-empty { display:flex; align-items:center; gap:10px; padding:5px 0; color:#776e63; }
 .awardee-dashboard .event-course-resources-empty svg { flex:none; color:#8a5a00; }
+.awardee-dashboard .event-course-resources-empty h2 { color:#211c11; font-size:14px; font-weight:600; }
 .awardee-dashboard .event-course-resources-empty p { max-width:390px; font-size:13px; line-height:1.55; }
 .awardee-dashboard .event-session-section__heading { display:flex; align-items:center; gap:12px; margin-bottom:15px; }
 .awardee-dashboard .event-session-section__icon { display:grid; width:42px; height:42px; flex:none; place-items:center; border:1px solid #f1dfb0; border-radius:13px; background:#fff6dd; color:#765300; }

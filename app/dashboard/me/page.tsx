@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import { useDashboardMember } from '../_providers/dashboard-member'
 import { MemberAvatar } from '../_components/member-avatar'
-import { ArrowUpRight, BadgeCheck } from 'lucide-react'
+import { ArrowUpRight, BadgeCheck, LockKeyhole } from 'lucide-react'
 
 import { RouteSection } from '../_components/route-section'
 import { meNav } from '../_lib/navigation'
@@ -19,8 +19,6 @@ const meDescriptions: Record<string, string> = {
   'Get featured': 'Pitch your work to the AFL team',
   Settings: 'Choose alerts, privacy and security',
 }
-
-const FEATURE_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSfA0yU8IK1jVBNZ-V1RRksZXJAkAh4XwL7Pk8mubZ31ZHMNlYQ/viewform?usp=header'
 
 export default function MePage() {
   const { member } = useDashboardMember()
@@ -52,27 +50,25 @@ export default function MePage() {
       </header>
       <div className="divide-y divide-neutral-200 rounded-2xl border border-neutral-200">
         {meNav.map((item) => {
-          const external = item.label === 'Get featured'
-          const href = external ? FEATURE_FORM_URL : item.href
-          return <Link
-            key={item.href}
-            href={href}
-            target={external ? '_blank' : undefined}
-            rel={external ? 'noopener noreferrer' : undefined}
-            className="flex min-h-20 items-center gap-4 px-4 py-4 hover:bg-orange-50 focus-visible:outline-orange-600"
-          >
-            <item.icon
-              size={21}
-              strokeWidth={1.6}
-              className="shrink-0 text-orange-700"
-            />
+          const content = <>
+            <item.icon size={21} strokeWidth={1.6} className="shrink-0 text-orange-700" />
             <span className="min-w-0 flex-1">
               <span className="block text-base font-medium">{item.label}</span>
-              <span className="mt-1 block text-sm leading-5 text-neutral-500">
-                {meDescriptions[item.label]}
-              </span>
+              <span className="mt-1 block text-sm leading-5 text-neutral-500">{meDescriptions[item.label]}</span>
             </span>
-            <ArrowUpRight size={18} className="shrink-0 text-neutral-400" />
+            {item.label === 'Get featured'
+              ? <LockKeyhole size={17} className="shrink-0 text-neutral-400" aria-hidden="true" />
+              : <ArrowUpRight size={18} className="shrink-0 text-neutral-400" />}
+          </>
+
+          if (item.label === 'Get featured') {
+            return <div key={item.href} aria-disabled="true" aria-label="Get featured, currently locked" className="flex min-h-20 cursor-not-allowed items-center gap-4 px-4 py-4 opacity-60">
+              {content}
+            </div>
+          }
+
+          return <Link key={item.href} href={item.href} className="flex min-h-20 items-center gap-4 px-4 py-4 hover:bg-orange-50 focus-visible:outline-orange-600">
+            {content}
           </Link>
         })}
       </div>

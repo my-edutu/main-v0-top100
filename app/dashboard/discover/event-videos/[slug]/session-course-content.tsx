@@ -32,7 +32,7 @@ function SessionResourceLink({ resource }: { resource: SessionResource }) {
 }
 
 export function SessionCourseContent({ session, resources }: { session: Session; resources: SessionResource[] }) {
-  const [activeTab, setActiveTab] = useState<CourseTab>('description')
+  const [activeTab, setActiveTab] = useState<CourseTab>(resources.length ? 'resources' : 'description')
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([])
 
   function selectTab(index: number) {
@@ -97,7 +97,10 @@ export function SessionCourseContent({ session, resources }: { session: Session;
           ) : (
             <div className="event-course-resources-empty" role="status">
               <BookOpen size={20} aria-hidden="true" />
-              <p>Slides, workshop materials, and session notes will appear here as they’re added.</p>
+              <div>
+                <h2>Coming soon</h2>
+                <p>Slides, workshop materials, and session notes will be added here.</p>
+              </div>
             </div>
           )
         )}

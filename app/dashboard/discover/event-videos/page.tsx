@@ -1,7 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import type { Metadata } from 'next'
-import { ArrowRight, BookOpen, LockKeyhole, Play } from 'lucide-react'
+import { ArrowRight, LockKeyhole } from 'lucide-react'
 
 import { requireSessionsAccess } from '@/lib/sessions-access'
 import { archiveYears, getSessionsByYear } from '@/lib/sessions'
@@ -17,7 +17,6 @@ export const metadata: Metadata = {
 const yearParamValues = archiveYears.map(String)
 
 function SessionArchiveCard({ session }: { session: Session }) {
-  const hasVideo = session.resources.some((resource) => resource.type === 'video')
   const content = (
     <>
       <span className="event-library-session-row__cover" aria-hidden="true" style={{ position: 'relative' }}>
@@ -30,11 +29,7 @@ function SessionArchiveCard({ session }: { session: Session }) {
             sizes="(max-width: 700px) 92px, 108px"
             className="event-library-session-row__cover-image"
           />
-        ) : (
-          <span className="event-library-session-row__fallback">
-            {hasVideo ? <Play size={22} /> : <BookOpen size={22} />}
-          </span>
-        )}
+        ) : <span className="event-library-session-row__fallback" />}
       </span>
       <span className="event-library-session-row__copy">
         <span className="event-library-session-row__title">{session.title}</span>

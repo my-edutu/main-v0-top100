@@ -1,11 +1,10 @@
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
-import { ArrowUpRight, Play } from 'lucide-react'
-
 import { requireSessionsAccess } from '@/lib/sessions-access'
 import { getSessionBySlug, getSessionsByYear } from '@/lib/sessions'
 import { loadAflCalendarEvents } from '@/lib/events/live-calendar'
 import { SessionCourseContent } from './session-course-content'
+import { SessionVideoPlayer } from './session-video-player'
 
 export const metadata: Metadata = { title: 'Member session | Past sessions' }
 
@@ -14,6 +13,11 @@ function getVideoEmbedUrl(rawUrl: string): string | undefined {
     const url = new URL(rawUrl)
     if (url.protocol !== 'https:') return undefined
     const host = url.hostname.toLowerCase().replace(/^www\./, '')
+
+    if (host === 'drive.google.com') {
+      const id = url.pathname.match(/^\/file\/d\/([\w-]+)\/(?:preview|view)\/?$/)?.[1]
+      return id ? `https://drive.google.com/file/d/${id}/preview` : undefined
+    }
 
     if (['youtube.com', 'm.youtube.com', 'youtube-nocookie.com'].includes(host)) {
       const id = url.pathname === '/watch'
@@ -71,19 +75,12 @@ export default async function SessionPage({ params }: { params: Promise<{ slug: 
   return (
     <main className="event-session event-session-course">
       <section className="event-session-featured-video" aria-label="Session recording">
-        {videoEmbedUrl ? (
-          <iframe src={videoEmbedUrl} title={`${session.title} recording`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen loading="eager" />
-        ) : featuredVideo ? (
-          <div className="event-session-video-placeholder" style={session.coverImage ? { backgroundImage: `linear-gradient(120deg,rgba(23,20,18,.82),rgba(23,20,18,.42)),url("${session.coverImage}")` } : undefined}>
-            <span className="event-session-video-placeholder__play" aria-hidden="true"><Play size={23} fill="currentColor" /></span>
-            <a className="event-session-video-placeholder__link" href={featuredVideo.url} target="_blank" rel="noopener noreferrer">Open session recording <ArrowUpRight size={15} aria-hidden="true" /></a>
-          </div>
-        ) : (
-          <div className="event-session-video-placeholder" style={session.coverImage ? { backgroundImage: `linear-gradient(120deg,rgba(23,20,18,.82),rgba(23,20,18,.42)),url("${session.coverImage}")` } : undefined}>
-            <span className="event-session-video-placeholder__play" aria-hidden="true"><Play size={23} fill="currentColor" /></span>
-            <p>Session recording coming soon</p>
-          </div>
-        )}
+        <SessionVideoPlayer
+          title={session.title}
+          embedUrl={videoEmbedUrl}
+          recordingUrl={featuredVideo?.url}
+          coverImage={session.coverImage}
+        />
       </section>
       <SessionCourseContent session={session} resources={resources} />
     </main>

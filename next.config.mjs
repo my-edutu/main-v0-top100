@@ -39,6 +39,9 @@ const nextConfig = {
   compress: false,
   // Docker runs its minimal server; Dokploy's npm build uses next start.
   ...(process.env.NEXT_OUTPUT_STANDALONE === 'true' ? { output: 'standalone' } : {}),
+  outputFileTracingIncludes: {
+    '/api/session-materials/beyond-the-paycheck/presentation': ['./private/session-materials/beyond-the-paycheck.pptx'],
+  },
   async redirects() {
     return [
       {
@@ -141,7 +144,7 @@ const nextConfig = {
               "img-src * data: blob:",
               "font-src 'self' data: https://fonts.gstatic.com",
               "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://supabase.top100afl.com wss://supabase.top100afl.com https://api.brevo.com https://in-automate.brevo.com https://sibautomation.com https://challenges.cloudflare.com https://cloudflareinsights.com",
-              "frame-src https://challenges.cloudflare.com https://www.youtube-nocookie.com https://www.youtube.com https://player.vimeo.com",
+              "frame-src https://challenges.cloudflare.com https://www.youtube-nocookie.com https://www.youtube.com https://player.vimeo.com https://drive.google.com",
               "media-src 'self' https: data:",
               "object-src 'none'",
               "base-uri 'self'",
