@@ -1,5 +1,6 @@
-// Transactional mail uses Brevo SMTP when its SMTP credentials are configured.
-// The Brevo API remains a compatibility fallback for existing deployments.
+// Transactional mail prefers Brevo SMTP, then a configured Resend sender, then
+// the Brevo API. A provider failure is returned without trying another
+// provider so an accepted message is not accidentally sent twice.
 // `lib/brevo.ts` is a 'use server' module for the newsletter contact API.
 
 import { createHash } from 'node:crypto'
@@ -24,11 +25,10 @@ export type SendInput = {
 export async function sendTransactionalEmail(input: SendInput): Promise<{ ok: boolean; reason?: string }> {
   const smtpLogin = process.env.BREVO_SMTP_LOGIN?.trim()
   const smtpKey = process.env.BREVO_SMTP_KEY
-  if (smtpLogin || smtpKey) {
-    if (!smtpLogin || !smtpKey) return { ok: false, reason: 'BREVO_SMTP_LOGIN and BREVO_SMTP_KEY must both be configured.' }
+  if (smtpLogin && smtpKey) {
     const port = Number(process.env.BREVO_SMTP_PORT || '587')
     if (!Number.isInteger(port) || port < 1 || port > 65535) return { ok: false, reason: 'BREVO_SMTP_PORT is invalid.' }
-    const senderEmail = process.env.BREVO_SENDER_EMAIL ?? 'info@top100afl.com'
+    const senderEmail = process.env.BREVO_SENDER_EMAIL?.trim() || 'paul@top100afl.com'
     const senderName = process.env.BREVO_SENDER_NAME ?? 'Top100 Africa Future Leaders'
     try {
       const transporter = nodemailer.createTransport({
@@ -53,15 +53,58 @@ export async function sendTransactionalEmail(input: SendInput): Promise<{ ok: bo
         } : {}),
       })
       return { ok: true }
+    } catch (error) {
+      const smtpError = error && typeof error === 'object'
+        ? error as { code?: unknown; responseCode?: unknown }
+        : {}
+      const code = typeof smtpError.code === 'string' ? smtpError.code : undefined
+      const responseCode = typeof smtpError.responseCode === 'number' ? smtpError.responseCode : undefined
+      const details = [code, responseCode].filter((value) => value !== undefined).join(' ')
+      return {
+        ok: false,
+        reason: `Brevo SMTP could not deliver the message${details ? ` (${details})` : ''}.`,
+      }
+    }
+  }
+
+  // Keep older local and transitional deployments working when they have a
+  // Resend configuration but no complete Brevo SMTP configuration.
+  const resendApiKey = process.env.RESEND_API_KEY
+  const resendFrom = process.env.RESEND_FROM_EMAIL?.trim()
+  if (resendApiKey && resendFrom) {
+    try {
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${resendApiKey}`,
+          'Content-Type': 'application/json',
+          ...(input.idempotencyKey ? { 'Idempotency-Key': input.idempotencyKey } : {}),
+        },
+        body: JSON.stringify({
+          from: resendFrom,
+          to: [input.to],
+          subject: input.subject,
+          html: input.html,
+          ...(input.text ? { text: input.text } : {}),
+        }),
+        signal: AbortSignal.timeout(10_000),
+      })
+      return response.ok
+        ? { ok: true }
+        : { ok: false, reason: `Resend returned ${response.status}` }
     } catch {
-      return { ok: false, reason: 'Brevo SMTP could not deliver the message.' }
+      return { ok: false, reason: 'Resend could not be reached.' }
     }
   }
 
   const apiKey = process.env.BREVO_API_KEY
-  if (!apiKey) return { ok: false, reason: 'Configure Brevo SMTP credentials or BREVO_API_KEY.' }
+  if (!apiKey) {
+    if (resendApiKey) return { ok: false, reason: 'RESEND_FROM_EMAIL must be a verified sender.' }
+    if (smtpLogin || smtpKey) return { ok: false, reason: 'BREVO_SMTP_LOGIN and BREVO_SMTP_KEY must both be configured.' }
+    return { ok: false, reason: 'Configure Brevo SMTP credentials, RESEND_API_KEY, or BREVO_API_KEY.' }
+  }
 
-  const senderEmail = process.env.BREVO_SENDER_EMAIL ?? 'info@top100afl.com'
+  const senderEmail = process.env.BREVO_SENDER_EMAIL?.trim() || 'paul@top100afl.com'
   const senderName = process.env.BREVO_SENDER_NAME ?? 'Top100 Africa Future Leaders'
 
   try {

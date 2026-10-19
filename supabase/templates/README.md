@@ -1,13 +1,13 @@
 # Top100 password recovery email
 
-The app sends password recovery emails through its transactional Brevo mailer. The forgot-password page calls `/api/auth/password-reset`; that route uses Supabase Admin `generateLink` to mint a recovery token, then sends the branded email through `sendTransactionalEmail`. Supabase Auth's own reset-password email template is not used for this flow. `recovery.html` is retained as a visual reference for the email design.
+The forgot-password page calls `/api/auth/password-reset`; that route uses Supabase Admin `generateLink` to mint a recovery token, then sends the branded email through `sendTransactionalEmail`. Brevo SMTP is preferred. If complete Brevo SMTP credentials are absent, the mailer can use a configured Resend sender, then the Brevo API. It does not switch providers after a send attempt fails, which avoids duplicate emails when delivery is uncertain. Supabase Auth's own reset-password email template is not used for this flow. `recovery.html` is retained as a visual reference for the email design.
 
 Configure these variables on the **web app service** in Dokploy:
 
 - `BREVO_SMTP_HOST=smtp-relay.brevo.com`
 - `BREVO_SMTP_PORT=587`
 - `BREVO_SMTP_LOGIN` and `BREVO_SMTP_KEY` from the Brevo SMTP settings
-- `BREVO_SENDER_EMAIL` set to an authenticated sender on the Top100 domain
+- `BREVO_SENDER_EMAIL` set to an active sender on the Top100 domain (currently `paul@top100afl.com`; this is also the code fallback)
 - `SUPABASE_SERVICE_ROLE_KEY` for the self-hosted Supabase project used by the app
 - `NEXT_PUBLIC_SITE_URL=https://www.top100afl.com` (or set server-only `TOP100_SITE_URL`)
 
