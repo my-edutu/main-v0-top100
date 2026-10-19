@@ -54,14 +54,6 @@ export const metadata: Metadata = {
     description: globalDescription,
     url: SITE_URL,
     siteName: "Top100 Africa Future Leaders",
-    images: [
-      {
-        url: "/og-home.png",
-        width: 2400,
-        height: 1260,
-        alt: "Top100 Africa Future Leaders — Celebrating Impact Beyond Recognition",
-      },
-    ],
     locale: "en_US",
     type: "website",
   },
@@ -69,7 +61,6 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: globalTitle,
     description: globalDescription,
-    images: ["/og-home.png"],
   },
   icons: {
     icon: "/Top100 Africa Future leaders Logo .png",

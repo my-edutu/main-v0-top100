@@ -118,7 +118,7 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
             <div className="space-y-2">
               {connecting.email ? <a href={`mailto:${connecting.email}`} className="directory-contact-option">
                 <Mail className="size-5 shrink-0" aria-hidden="true" />
-                <span className="min-w-0 flex-1"><span className="block font-medium">Send an email</span><span className="mt-0.5 block break-all text-xs text-neutral-600">{connecting.email}</span></span>
+                <span className="min-w-0 flex-1"><span className="block font-medium">Send an email</span><span className="mt-0.5 block text-xs text-neutral-600">Open your email app</span></span>
                 <ArrowRight className="size-4 shrink-0" aria-hidden="true" />
               </a> : null}
               {connecting.socialLinks?.map(link => <a key={link.platform} href={link.url} target="_blank" rel="noopener noreferrer" className="directory-contact-option">

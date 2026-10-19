@@ -213,12 +213,8 @@ export function DashboardHome() {
         dashboardLoginCount={member.dashboardLoginCount ?? 0}
       />
       <AflCalendarAnnouncement memberId={member.id} dashboardLoginCount={member.dashboardLoginCount ?? 0} />
-      <section className="hub-welcome" aria-labelledby="hub-welcome-title">
-        <h1 id="hub-welcome-title">{(member.dashboardLoginCount ?? 0) < 4 ? 'Congratulations' : 'Hey'}, {member.name.trim().split(/\s+/)[0]}.</h1>
-        <p className="hub-welcome-description">Your people and opportunities.</p>
-      </section>
-      <AwardeeOnboardingJourney name={member.name} />
       <DashboardPromoCarousel payment={awardPayment} showCommunity={member.status === 'approved'} showLearningLibrary />
+      <AwardeeOnboardingJourney name={member.name} />
       {loadError && <p role="status" className="hub-status rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-sm leading-5 text-neutral-700">Some events couldn’t load. We’ll retry automatically; you can also open Events directly.</p>}
 
       <section aria-labelledby="coming-up-title" className="hub-upcoming-events min-w-0">
@@ -233,7 +229,6 @@ export function DashboardHome() {
         <div className="hub-events-rail mt-3" tabIndex={0} role="region" aria-label="Upcoming events, scroll horizontally">
           {comingUp.length > 0 ? comingUp.map((item) => {
             const cardContent = <>
-              <span className="hub-upcoming-event-label relative z-10 self-start">{item.detail}</span>
               <span className="relative z-10 min-w-0 self-end text-white">
                 <span className="block break-words text-sm font-semibold text-white">{item.title}</span>
                 <span className="mt-2 block text-xs font-medium text-white/90">{item.date}</span>
@@ -242,7 +237,7 @@ export function DashboardHome() {
             const cardClass = "hub-upcoming-event text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-2"
             return item.cover ? <Dialog key={item.id}>
               <DialogTrigger asChild>
-                <button type="button" className={cardClass} style={{ backgroundImage: `linear-gradient(180deg, rgba(12,12,16,.08) 15%, rgba(12,12,16,.88) 100%), url(${item.cover})` }} aria-label={`Preview ${item.title}`}>{cardContent}</button>
+                <button type="button" className={cardClass} style={{ backgroundImage: `linear-gradient(180deg, rgba(124,45,8,.12) 15%, rgba(124,45,8,.9) 100%), url(${item.cover})` }} aria-label={`Preview ${item.title}`}>{cardContent}</button>
               </DialogTrigger>
               <DialogContent className="max-h-[90dvh] w-[calc(100%-2rem)] max-w-xl overflow-y-auto rounded-[18px] border-0 bg-white p-0" overlayClassName="bg-black/75 backdrop-blur-sm" aria-describedby={undefined}>
                 <div className="bg-[#FFC528]">

@@ -41,20 +41,11 @@ export const metadata: Metadata = {
     url: SITE_URL,
     siteName: "Top100 Africa Future Leaders Hub",
     type: "website",
-    images: [
-      {
-        url: "/og-home.png",
-        width: 2400,
-        height: 1260,
-        alt: "Top100 Africa Future Leaders Hub homepage hero",
-      },
-    ],
   },
   twitter: {
     card: "summary_large_image",
     title: homepageTitle,
     description: homepageDescription,
-    images: ["/og-home.png"],
   },
 }
 

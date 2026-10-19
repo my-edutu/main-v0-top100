@@ -1,10 +1,9 @@
 'use client'
 
-import Image from '@/components/safe-image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
-import { ArrowLeft, Bell, Search } from 'lucide-react'
+import { ArrowLeft, Bell, Mail, Search } from 'lucide-react'
 
 import { resolveDashboardTitle } from '../_lib/navigation'
 import { useDashboardBadges } from '../_providers/dashboard-badges'
@@ -65,21 +64,18 @@ export function DashboardAppBar() {
     <header className={`hub-app-bar sticky top-0 z-40 h-[60px] border-b text-[#171412] ${top100DashboardTheme.appBar}`}>
       <div className="flex h-full items-center gap-2 px-4 sm:px-6">
         {isHome ? (
-          <Link
-            href="/dashboard"
-            className="flex min-h-11 min-w-0 items-center gap-2 rounded-xl pr-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-2"
-          >
-            <span className="flex h-12 w-28 shrink-0 items-center justify-center overflow-hidden bg-white">
-              <Image
-                src="/Top100 Africa Future leaders Logo .png"
-                alt="Top100 Africa Future Leaders"
-                width={112}
-                height={48}
-                className="h-12 w-28 object-contain"
-                priority
-              />
-            </span>
-          </Link>
+          <div className="flex min-w-0 items-center gap-2">
+            <Link
+              href="/dashboard/me"
+              aria-label={`Open ${member.name}'s account`}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-2"
+            >
+              <MemberAvatar src={member.avatarUrl} initials={member.avatarInitials} />
+            </Link>
+            <h1 className="truncate text-lg font-semibold tracking-tight sm:text-xl">
+              Hey, {member.name.trim().split(/\s+/)[0]}.
+            </h1>
+          </div>
         ) : (
           <div className="flex min-w-0 items-center gap-1">
             <button
@@ -113,6 +109,14 @@ export function DashboardAppBar() {
             <Bell className="h-5 w-5" strokeWidth={2.35} aria-hidden="true" />
             <CountBadge count={unreadUpdates} />
           </Link>
+          <a
+            href="mailto:nigeriatop100@gmail.com?subject=Africa%20Future%20Leaders%20member%20support"
+            aria-label="Contact customer support by email"
+            title="Contact support"
+            className="flex h-11 w-11 items-center justify-center rounded-xl text-[#171412] transition hover:bg-orange-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-2"
+          >
+            <Mail className="h-5 w-5" strokeWidth={2.2} aria-hidden="true" />
+          </a>
           {isNewPost ? (
             <button
               type="submit"
@@ -122,7 +126,7 @@ export function DashboardAppBar() {
             >
               {member.status === 'approved' ? 'Post' : 'Save'}
             </button>
-          ) : (
+          ) : !isHome ? (
             <Link
               href="/dashboard/me"
               aria-label={`Open ${member.name}'s account`}
@@ -130,7 +134,7 @@ export function DashboardAppBar() {
             >
               <MemberAvatar src={member.avatarUrl} initials={member.avatarInitials} />
             </Link>
-          )}
+          ) : null}
         </div>
       </div>
     </header>

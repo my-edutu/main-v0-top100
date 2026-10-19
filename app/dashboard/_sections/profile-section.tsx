@@ -88,18 +88,19 @@ const stepCopy: Record<Exclude<ProfileEditStep, 'photo' | 'visibility'>, { title
 export function ProfileSection() {
   const { member, refreshMember, replaceMember } = useDashboardMember()
   const [editing, setEditing] = useState(false)
+  const [activeStep, setActiveStep] = useState<0 | 1 | 2>(0)
   useEffect(() => {
     if (!['#social-links', '#social-media'].includes(window.location.hash)) return
-    const openSocialLinksEditor = window.setTimeout(() => setEditing(true), 0)
+    const openSocialLinksEditor = window.setTimeout(() => { setActiveStep(1); setEditing(true) }, 0)
     return () => window.clearTimeout(openSocialLinksEditor)
   }, [])
   useEffect(() => {
-    if (!editing || !['#social-links', '#social-media'].includes(window.location.hash)) return
+    if (!editing || activeStep !== 1 || !['#social-links', '#social-media'].includes(window.location.hash)) return
     const scrollToSocialLinks = window.setTimeout(() => {
       document.getElementById('profile-social-links')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }, 0)
     return () => window.clearTimeout(scrollToSocialLinks)
-  }, [editing])
+  }, [editing, activeStep])
   const [draft, setDraft] = useState<ProfileDraft>(() => draftFromMember(member))
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
@@ -117,6 +118,7 @@ export function ProfileSection() {
     setPhotoFile(null)
     setError('')
     setWarning('')
+    setActiveStep(section === 'social-links' ? 1 : 0)
     if (section === 'social-links') window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}#social-links`)
     setEditing(true)
   }
@@ -139,8 +141,10 @@ export function ProfileSection() {
   async function saveProfile() {
     if (saving) return
     const socialLinks = (draft.socialLinks ?? []).filter(link => link.url.trim())
-    const validation = validateProfileDraft(draft) || validateSocialLinks(socialLinks)
-    if (validation) { setError(validation); return }
+    const profileValidation = validateProfileDraft(draft)
+    if (profileValidation) { setError(profileValidation); setActiveStep(0); return }
+    const socialValidation = validateSocialLinks(socialLinks)
+    if (socialValidation) { setError(socialValidation); setActiveStep(1); return }
     setSaving(true)
     setError('')
     setWarning('')
@@ -192,11 +196,19 @@ export function ProfileSection() {
   return (
     <section className="hub-profile-editor mx-auto w-full max-w-3xl space-y-5" aria-label="Update your profile">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div><h2 className="text-xl font-semibold text-neutral-950">Update your profile</h2><p className="mt-1 text-sm text-neutral-600">Make the changes you need, then save once at the bottom.</p></div>
+        <div><h2 className="text-xl font-semibold text-neutral-950">Update your profile</h2><p className="mt-1 text-sm text-neutral-600">Work through each section, then save your changes.</p></div>
         <Button type="button" variant="ghost" disabled={saving} className="min-h-11" onClick={() => setEditing(false)}>Cancel</Button>
       </div>
+      <nav aria-label="Profile editing steps" className="grid grid-cols-3 gap-2">
+        {(['About you', 'Social links', 'Visibility'] as const).map((label, index) => (
+          <button key={label} type="button" aria-current={activeStep === index ? 'step' : undefined} onClick={() => { setActiveStep(index as 0 | 1 | 2); setError('') }} className={`min-h-12 rounded-lg border px-2 text-sm font-medium transition-colors ${activeStep === index ? 'border-orange-500 bg-orange-50 text-orange-900' : 'border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50'}`}>
+            <span className="mr-1.5 text-xs text-neutral-500">{index + 1}</span>{label}
+          </button>
+        ))}
+      </nav>
       <div className="min-w-0 rounded-xl border border-neutral-200 bg-white p-4 sm:p-6">
         <fieldset disabled={saving} className="space-y-8 disabled:opacity-70">
+          {activeStep === 0 ? <>
           <section className="space-y-3" aria-labelledby="profile-photo-heading">
             <div><h3 id="profile-photo-heading" className="text-base font-semibold">Profile photo</h3><p className="mt-1 text-sm text-neutral-600">Use a clear JPG, PNG or WebP image up to 5 MB.</p></div>
             <div className="flex flex-wrap items-center gap-4"><MemberAvatar src={photoFile && photoPreview ? photoPreview : member.avatarUrl} initials={member.avatarInitials} size={64} /><div className="min-w-0 flex-1"><Label htmlFor="profile-photo" className="sr-only">Choose profile photo</Label><Input id="profile-photo" type="file" accept="image/jpeg,image/png,image/webp" onChange={event => selectPhoto(event.target.files?.[0])} className="min-h-11 max-w-full" /></div></div>
@@ -208,6 +220,8 @@ export function ProfileSection() {
             </div>
             <ProfileQuestion step="bio" value={draft.bio} onChange={value => updateDraft('bio', value)} />
           </section>
+          </> : null}
+          {activeStep === 1 ? <>
           <section id="profile-social-links" className="scroll-mt-6 space-y-4 border-t border-neutral-100 pt-6" aria-labelledby="profile-social-heading">
             <div><h3 id="profile-social-heading" className="text-base font-semibold">Social links</h3><p className="mt-1 text-sm text-neutral-600">Add up to three links. Use a full https:// address.</p></div>
             {(draft.socialLinks ?? []).map((link, index) => <div key={`${link.platform}-${index}`} className="grid gap-3 rounded-lg border border-neutral-200 p-3 sm:grid-cols-[minmax(150px,0.7fr)_minmax(0,1.3fr)_auto] sm:items-end">
@@ -218,18 +232,24 @@ export function ProfileSection() {
             {(draft.socialLinks ?? []).length < 3 ? <Button type="button" variant="outline" className="min-h-11" onClick={() => updateDraft('socialLinks', [...(draft.socialLinks ?? []), { platform: SOCIAL_PLATFORMS.find(platform => !draft.socialLinks?.some(link => link.platform === platform)) ?? 'website', url: '' }])}><Plus className="mr-2 size-4" />Add a social link</Button> : <p className="text-sm text-neutral-500">You can add up to three social links.</p>}
             <label className="flex min-h-11 items-start gap-3 rounded-lg bg-neutral-50 p-3 text-sm leading-5"><input type="checkbox" checked={draft.socialLinksConsent ?? false} onChange={event => updateDraft('socialLinksConsent', event.target.checked)} className="mt-0.5 size-4 shrink-0 accent-orange-600" /><span>Show these links on my public profile</span></label>
           </section>
+          </> : null}
+          {activeStep === 2 ? <>
           <section className="space-y-3 border-t border-neutral-100 pt-6" aria-labelledby="profile-visibility-heading">
             <div><h3 id="profile-visibility-heading" className="text-base font-semibold">Visibility</h3><p className="mt-1 text-sm text-neutral-600">Choose what appears publicly and who can find you.</p></div>
             <VisibilityOption label="Recruiters can find my profile" checked={draft.recruiterVisible} onChange={checked => updateDraft('recruiterVisible', checked)} />
             <label className="flex min-h-11 items-start gap-3 py-2 text-sm leading-5"><input type="checkbox" checked={draft.emailVisible && draft.contactEmailConsent} onChange={event => { updateDraft('emailVisible', event.target.checked); updateDraft('contactEmailConsent', event.target.checked) }} className="mt-0.5 size-4 shrink-0 accent-orange-600" /><span>Show my email contact button on my public profile</span></label>
           </section>
+          </> : null}
         </fieldset>
       </div>
       {error ? <p role="alert" className="text-sm text-red-800">{error}</p> : null}
       {warning ? <p role="status" className="text-sm text-amber-800">{warning}</p> : null}
       <footer className="sticky bottom-[calc(76px+env(safe-area-inset-bottom))] z-20 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-neutral-200 bg-white/95 p-3 backdrop-blur lg:bottom-4">
-        <p className="min-w-0 flex-1 text-sm text-neutral-600">Your public profile updates after you save.</p>
-        <Button type="button" disabled={saving} className="min-h-11 rounded-lg bg-orange-600 text-white hover:bg-orange-700" onClick={() => void saveProfile()}>{saving ? <Loader2 className="mr-2 size-4 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : null}{saving ? 'Saving…' : 'Save changes'}</Button>
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          {activeStep > 0 ? <Button type="button" variant="outline" disabled={saving} className="min-h-11" onClick={() => { setActiveStep((activeStep - 1) as 0 | 1 | 2); setError('') }}>Back</Button> : null}
+          <p className="text-sm text-neutral-600">Step {activeStep + 1} of 3 · Your changes save together.</p>
+        </div>
+        {activeStep < 2 ? <Button type="button" disabled={saving} className="min-h-11 rounded-lg bg-orange-600 text-white hover:bg-orange-700" onClick={() => { setError(''); setActiveStep((activeStep + 1) as 0 | 1 | 2) }}>Continue</Button> : <Button type="button" disabled={saving} className="min-h-11 rounded-lg bg-orange-600 text-white hover:bg-orange-700" onClick={() => void saveProfile()}>{saving ? <Loader2 className="mr-2 size-4 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : null}{saving ? 'Saving…' : 'Save changes'}</Button>}
       </footer>
     </section>
   )

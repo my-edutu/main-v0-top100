@@ -22,6 +22,7 @@ export function DashboardPromoCarousel({ payment, showCommunity = false, showLea
   const [showSwipeHint, setShowSwipeHint] = useState(true)
   const touchStart = useRef<{ x: number; y: number } | null>(null)
   const swiped = useRef(false)
+  const interacted = useRef(false)
 
   useEffect(() => {
     const timeout = window.setTimeout(() => setShowSwipeHint(false), 1500)
@@ -29,6 +30,17 @@ export function DashboardPromoCarousel({ payment, showCommunity = false, showLea
   }, [])
 
   const cards = [
+    ...(showLearningLibrary ? [{
+      key: 'videos',
+      href: eventVideosUrl,
+      image: '/illustrations/promo-learning.svg',
+      eyebrow: 'Learn at your own pace',
+      title: 'Past sessions & courses',
+      description: 'Revisit recordings, presentations, workshops, and notes from earlier sessions.',
+      linkLabel: 'Open sessions',
+      tone: 'learning',
+      external: false,
+    }] : []),
     ...(payment ? [{
       key: 'award',
       href: '/dashboard/me/award/payment',
@@ -62,20 +74,26 @@ export function DashboardPromoCarousel({ payment, showCommunity = false, showLea
       tone: 'community',
       external: false,
     }] : []),
-    ...(showLearningLibrary ? [{
-      key: 'videos',
-      href: eventVideosUrl,
-      image: '/illustrations/promo-learning.svg',
-      eyebrow: 'Learn at your own pace',
-      title: 'Past sessions & courses',
-      description: 'Revisit recordings, presentations, workshops, and notes from earlier sessions.',
-      linkLabel: 'Open sessions',
-      tone: 'learning',
-      external: false,
-    }] : []),
   ]
   const activeCardIndex = activeSlide % cards.length
   const switchCard = (direction = 1) => setActiveSlide((current) => (current + direction + cards.length) % cards.length)
+
+  useEffect(() => {
+    if (cards.length < 2 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    let interval: number | undefined
+    const advance = () => {
+      if (interacted.current || document.hidden) return
+      setActiveSlide((current) => (current + 1) % cards.length)
+    }
+    const timeout = window.setTimeout(() => {
+      advance()
+      interval = window.setInterval(advance, 5000)
+    }, 1000)
+    return () => {
+      window.clearTimeout(timeout)
+      if (interval !== undefined) window.clearInterval(interval)
+    }
+  }, [cards.length])
 
   function finishSwipe(event: PointerEvent<HTMLElement>) {
     const start = touchStart.current
@@ -102,12 +120,14 @@ export function DashboardPromoCarousel({ payment, showCommunity = false, showLea
       style={{ '--promo-drag': `${dragX}px` } as CSSProperties}
       onKeyDown={(event) => {
         if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+          interacted.current = true
           event.preventDefault()
           setShowSwipeHint(false)
           switchCard(event.key === 'ArrowRight' ? 1 : -1)
         }
       }}
       onPointerDown={(event) => {
+        interacted.current = true
         setShowSwipeHint(false)
         touchStart.current = { x: event.clientX, y: event.clientY }
         swiped.current = false
@@ -132,6 +152,7 @@ export function DashboardPromoCarousel({ payment, showCommunity = false, showLea
           swiped.current = false
         }
       }}
+      onFocusCapture={() => { interacted.current = true }}
     >
       <div className="dashboard-promo__stack">
         {cards.map((card, index) => {
