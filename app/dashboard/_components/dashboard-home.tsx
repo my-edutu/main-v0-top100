@@ -156,7 +156,7 @@ export function DashboardHome() {
   }, [])
 
   const shortcuts = [meNav[2],
-    ...(member.status === 'approved' ? [{ label:'Past sessions', href:'/dashboard/discover/event-videos', icon:Video, color:'charcoal' as const }] : []),
+    { label:'Past sessions', href:'/dashboard/discover/event-videos', icon:Video, color:'charcoal' as const },
     { label:'Apply for magazine', href:'/magazine/feature', icon:Mail, color:'burgundy' as const },
     { label:'Schedule an interview', href:INTERVIEW_FORM_URL, icon:Mail, color:'ember' as const },
     { label:'Contact Top100', href:'https://wa.link/2349131866959', icon:MessageCircle, color:'forest' as const, external:true },
@@ -218,7 +218,7 @@ export function DashboardHome() {
         <p className="hub-welcome-description">Your people and opportunities.</p>
       </section>
       <AwardeeOnboardingJourney name={member.name} />
-      <DashboardPromoCarousel payment={awardPayment} showCommunity={member.status === 'approved'} showLearningLibrary={member.status === 'approved'} />
+      <DashboardPromoCarousel payment={awardPayment} showCommunity={member.status === 'approved'} showLearningLibrary />
       {loadError && <p role="status" className="hub-status rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-sm leading-5 text-neutral-700">Some events couldn’t load. We’ll retry automatically; you can also open Events directly.</p>}
 
       <section aria-labelledby="coming-up-title" className="hub-upcoming-events min-w-0">
