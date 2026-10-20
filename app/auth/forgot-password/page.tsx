@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type { RecoveryArea } from '@/lib/auth/password-recovery'
+import { AuthHelpDialog } from '@/components/auth/auth-help-dialog'
 
 function ForgotPasswordContent() {
   const searchParams = useSearchParams()
@@ -161,6 +162,9 @@ function ForgotPasswordContent() {
             </p>
           </>
         )}
+        <div className="mt-6 border-t border-slate-100 pt-4 text-center">
+          <AuthHelpDialog />
+        </div>
       </div>
     </main>
   )

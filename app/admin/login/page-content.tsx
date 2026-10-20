@@ -13,6 +13,7 @@ import { TurnstileCaptcha, verifyCaptcha } from '@/components/ui/turnstile'
 import { supabase } from '@/lib/supabase/client'
 import { isAdminRole } from '@/lib/types/roles'
 import { friendlySignInError, normalizeRole } from '@/lib/auth-utils'
+import { AuthHelpDialog } from '@/components/auth/auth-help-dialog'
 
 /**
  * Administrator sign-in. Deliberately separate from the member /login page:
@@ -234,6 +235,9 @@ export default function AdminLoginContent() {
         <p className="mt-2 text-center text-[11px] text-slate-400">
           Access attempts are logged. Sessions expire after 30 minutes of inactivity.
         </p>
+        <div className="mt-4 text-center">
+          <AuthHelpDialog />
+        </div>
       </div>
     </main>
   )

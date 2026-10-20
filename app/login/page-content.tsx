@@ -15,6 +15,7 @@ import { Role, isAdminRole } from '@/lib/types/roles'
 import { friendlySignInError, normalizeRole, profileCheckFeedback } from '@/lib/auth-utils'
 import { sanitizeDashboardRedirect } from '@/lib/dashboard/redirect'
 import { attemptLocalDashboardLogin } from '@/lib/dev-dashboard/login'
+import { AuthHelpDialog } from '@/components/auth/auth-help-dialog'
 
 export default function SignInContent() {
   const [email, setEmail] = useState('')
@@ -398,6 +399,9 @@ export default function SignInContent() {
               Sign up
             </Link>
           </p>
+          <div className="mt-4">
+            <AuthHelpDialog />
+          </div>
         </div>
       </div>
     </main>

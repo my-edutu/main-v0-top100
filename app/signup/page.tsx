@@ -11,6 +11,7 @@ import { TurnstileCaptcha } from '@/components/ui/turnstile'
 import LegalConsent from '@/app/components/LegalConsent'
 import { createTimedFetch } from '@/lib/network/fetch-with-timeout'
 import { supabase } from '@/lib/supabase/client'
+import { AuthHelpDialog } from '@/components/auth/auth-help-dialog'
 
 type Awardee = {
   id: string
@@ -221,6 +222,9 @@ export default function SignUpPage() {
             <div className="flex justify-between gap-3"><Button type="button" variant="ghost" onClick={() => setStep(1)}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button><Button disabled={busy || captchaUnavailable || (Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY) && !captcha)}>{busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Submit for review<ArrowRight className="ml-2 h-4 w-4" /></Button></div>
           </form>}
           {submitted && <p className="text-sm text-stone-700">Your requested profile will appear after an admin approves it. <Link className="font-semibold text-orange-800 underline" href="/dashboard">Go to dashboard</Link>.</p>}
+          <div className="mt-6 border-t border-stone-100 pt-4">
+            <AuthHelpDialog />
+          </div>
         </section>
       </div>
     </main>
