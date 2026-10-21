@@ -110,7 +110,7 @@ export function buildCheckoutRequest(input: CreateCheckoutInput): BachsCheckoutR
     NGN: awardFee('NGN').amountMinor,
     USD: awardFee('USD').amountMinor,
   }
-  const billingCurrency = input.currency
+  const billingCurrency = input.adaptivePricing ? undefined : input.currency
 
   const customer: BachsCheckoutRequest['customer'] = { email }
   if (input.customer.name?.trim()) customer.name = input.customer.name.trim()
@@ -122,7 +122,7 @@ export function buildCheckoutRequest(input: CreateCheckoutInput): BachsCheckoutR
       amount: amountString(prices.USD),
       currency_options: { NGN: amountString(prices.NGN) },
     },
-    billing_currency: billingCurrency,
+    ...(billingCurrency ? { billing_currency: billingCurrency } : {}),
     customer,
     reference,
     metadata: { order_id: orderId, payment_attempt_id: attemptId, purpose },

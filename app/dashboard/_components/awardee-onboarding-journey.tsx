@@ -3,14 +3,14 @@
 import Link from 'next/link'
 import Image from '@/components/safe-image'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { BookOpenText, Check, CheckCircle2, ChevronDown, Circle, Compass, Copy, ExternalLink, FileText, Linkedin, MessageCircle, RefreshCw, Smartphone, Share2, Trophy, UserRound, X } from 'lucide-react'
+import { BookOpenText, Check, CheckCircle2, Circle, Compass, Copy, ExternalLink, FileText, Linkedin, MessageCircle, RefreshCw, Smartphone, Share2, Trophy, UserRound, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 
 import { FounderWelcomeDialog } from './founder-welcome-dialog'
 import { cn } from '@/lib/utils'
-import { activateHomeScreenExploreTile, triggerHomeScreenAction } from '@/lib/install-prompt'
+import { triggerHomeScreenAction } from '@/lib/install-prompt'
 import { DEFAULT_AWARDEE_JOURNEY_SETTINGS, type AwardeeJourneySettings } from '@/lib/dashboard/awardee-journey-settings'
 import { publicBioUrl } from '@/lib/dashboard/bio-routing'
 import type { AwardeeJourneyState } from '@/lib/dashboard/awardee-journey'
@@ -20,14 +20,6 @@ import { useDashboardMember } from '../_providers/dashboard-member'
 
 type Payload = { state: AwardeeJourneyState; settings: AwardeeJourneySettings; whatsappChannelJoinedAt: string | null; homeScreenAddedAt: string | null; introPublishedConfirmedAt: string | null }
 type Props = { name: string }
-type ExploreTile = {
-  id: string
-  label: string
-  detail: string
-  action: 'welcome' | 'profile' | 'introduction' | 'cover' | 'post' | 'whatsapp' | 'handbook' | 'recommendation' | 'home-screen'
-  href?: string
-}
-
 const coreDestinations = {
   welcome: null,
   profile: '/dashboard/me/profile',
@@ -216,25 +208,6 @@ export function AwardeeOnboardingJourney({ name }: Props) {
     || (!state?.shareConfirmation && !dismissed.includes('share-introduction'))
   const coverFile = preparedCover && preparedCover.url === member.portfolioCoverUrl ? preparedCover.file : null
   const coverPreparing = Boolean(shareOpen && member.portfolioCoverUrl && preparedCover?.url !== member.portfolioCoverUrl)
-  const completedTiles: ExploreTile[] = [
-    ...(state?.coreSteps.filter(step => step.complete && step.id !== 'handbook').map(step => ({
-      id: step.id,
-      label: step.label,
-      detail: step.status,
-      action: (step.id === 'welcome' ? 'welcome' : step.id === 'profile' ? 'profile' : 'introduction') as ExploreTile['action'],
-      href: step.id === 'profile' ? '/dashboard/me/profile' : step.id === 'introduction' ? '/dashboard/me/posts' : undefined,
-    })) ?? []),
-    ...(homeScreenComplete ? [{ id: 'home-screen', label: 'Add Top100 to your home screen', detail: 'Added to your home screen', action: 'home-screen' as const }] : []),
-    ...(member.portfolioCoverUrl ? [{ id: 'cover', label: 'Update your awardee cover', detail: 'Your cover is ready', action: 'cover' as const, href: '/dashboard/me/portfolio-cover' }] : []),
-    ...(state?.shareConfirmation ? [
-      { id: 'share-introduction', label: 'Share your introduction', detail: 'Shared by you', action: 'post' as const },
-    ] : []),
-    ...(joinedChannel ? [{ id: 'whatsapp', label: 'Africa Future Leaders WhatsApp channel', detail: 'Joined by you', action: 'whatsapp' as const, href: whatsappChannelUrl }] : []),
-    ...(state?.recommendedActions.filter(action => action.complete).flatMap(action => {
-      const meta = actionMeta[action.id]
-      return meta ? [{ id: `completed-${action.id}`, label: action.label, detail: action.status, action: 'recommendation' as const, href: meta.href }] : []
-    }) ?? []),
-  ]
   const introCaption = `I’m proud to share that I’ve been selected as one of the Top100 Africa Future Leaders for ${settings.cohortYear}.\n\nThis cohort brings leaders together from ${settings.applicantCountryCount} countries. I’m honoured to be part of this community and grateful for the opportunity to contribute to a brighter future for our continent.\n\nI look forward to learning, collaborating, and building impact alongside fellow leaders across Africa. Thank you, @Africa Future Leaders, for this recognition.\n\n#Top100AfricaFutureLeaders #AfricaFutureLeaders #LeadershipInAfrica`
 
   async function acknowledgeWelcome() {
@@ -347,7 +320,7 @@ export function AwardeeOnboardingJourney({ name }: Props) {
 
   return (
     <>
-      <section className="relative" aria-labelledby={hasVisibleTasks ? 'journey-title' : undefined} aria-label={!hasVisibleTasks ? 'Explore more onboarding links' : undefined}>
+      <section className="relative" aria-labelledby={hasVisibleTasks ? 'journey-title' : undefined} aria-label={!hasVisibleTasks ? 'Onboarding progress' : undefined}>
         <div>
           {hasVisibleTasks ? <>
             <div className="flex items-center justify-between gap-4">
@@ -438,35 +411,6 @@ export function AwardeeOnboardingJourney({ name }: Props) {
               {closeStep('share-introduction', 'Share your introduction')}
             </div>
             ) : null}
-            <details className="journey-explore-more group overflow-hidden rounded-[18px] border border-[#E8E1D9] bg-[#FAF8F5]">
-              <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-3 text-sm text-[#625B52] transition-colors hover:bg-[#F5EFE8] marker:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-inset [&::-webkit-details-marker]:hidden">
-                Explore more
-                <ChevronDown className="h-4 w-4 text-[#716B62] transition-transform group-open:rotate-180" aria-hidden="true" />
-              </summary>
-              <div className="journey-explore-grid grid grid-cols-2 gap-2 bg-[#FAF8F5] p-3" aria-label="Completed onboarding tasks and useful links">
-                {state.recommendedActions.some(action => action.id === 'award' && !action.complete) ? <Link href={actionMeta.award.href} className="journey-explore-tile flex min-h-[64px] items-center rounded-[18px] border border-[#F97316] bg-gradient-to-br from-[#FF8A00] to-[#FFB21A] p-2.5 font-semibold text-[#171412] transition-colors hover:from-[#FF9A1F] hover:to-[#FFC247] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-offset-2">
-                  <span className="flex items-start justify-between gap-2"><span className="text-[13px] leading-4">Get your award</span><Trophy className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#171412]" aria-hidden="true" /></span>
-                </Link> : null}
-                {completedTiles.map(tile => {
-                  const content = <span className="flex items-start justify-between gap-2"><span className="text-[13px] font-medium leading-4 text-[#25211D]">{tile.label}</span><CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#39754A]" aria-label="Complete" /></span>
-                  const className = 'journey-explore-tile flex min-h-[64px] w-full items-center rounded-[18px] border border-[#E8E1D9] bg-white p-2.5 text-left transition-colors hover:border-[#E9A879] hover:bg-[#FFFCF9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412]'
-                  if (tile.action === 'home-screen') return <button key={tile.id} type="button" onClick={() => activateHomeScreenExploreTile()} className={className}>{content}</button>
-                  if (tile.action === 'welcome') return <button key={tile.id} type="button" onClick={() => setWelcomeOpen(true)} className={className}>{content}</button>
-                  if (tile.action === 'post') return <button key={tile.id} type="button" onClick={() => setShareOpen(true)} className={className}>{content}</button>
-                  if (tile.action === 'whatsapp') return <a key={tile.id} href={tile.href} target="_blank" rel="noopener noreferrer" className={className}>{content}</a>
-                  return <Link key={tile.id} href={tile.href ?? '#'} className={className}>{content}</Link>
-                })}
-                <button type="button" onClick={() => { setHandbookError(''); setHandbookOpen(true) }} aria-haspopup="dialog" className="journey-explore-tile flex min-h-[64px] w-full items-center rounded-[18px] border border-[#F2C79F] bg-[#FFF7EF] p-2.5 text-left transition-colors hover:bg-[#FFF0E2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412]">
-                  <span className="flex items-start justify-between gap-2"><span className="text-[13px] font-medium leading-4 text-[#25211D]">2026 participant handbook</span><BookOpenText className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#A94412]" aria-hidden="true" /></span>
-                </button>
-                {state.recommendedActions.filter(action => !action.complete && action.id !== 'award').map((action) => {
-                  const meta = actionMeta[action.id]
-                  if (!meta) return null
-                  const Icon = meta.icon
-                  return <Link key={action.id} href={meta.href} className="journey-explore-tile flex min-h-[64px] items-center rounded-[18px] border border-[#E8E1D9] bg-white p-2.5 transition-colors hover:border-[#E9A879] hover:bg-[#FFFCF9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412]"><span className="flex items-start justify-between gap-2"><span className="text-[13px] font-medium leading-4 text-[#25211D]">{action.label}</span><Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#A94412]" aria-hidden="true" /></span></Link>
-                })}
-              </div>
-            </details>
           </div>
           {state.shareConfirmation && taskCompleted < taskTotal ? <p className="mt-4 inline-flex items-center gap-2 text-xs text-[#716B62]"><CheckCircle2 className="h-4 w-4 text-[#39754A]" aria-hidden="true" />External share · {state.shareConfirmation.label}</p> : null}
         </div>

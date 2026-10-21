@@ -21,6 +21,8 @@ export interface Session {
   date?: string
   coverImage?: string
   locked?: boolean
+  unlockAt?: string
+  includeRecordingInResources?: boolean
   summary?: string
   featured?: boolean
   resources: SessionResource[]
@@ -30,14 +32,21 @@ export const archiveYears = [2024, 2025, 2026] as const
 
 const umunna = getSpeaker('odinakachi-umunna')
 
+function isSessionLocked(session: Session): boolean {
+  if (!session.locked) return false
+  if (!session.unlockAt) return true
+  const unlockAt = Date.parse(session.unlockAt)
+  return !Number.isFinite(unlockAt) || Date.now() < unlockAt
+}
+
 const additionalSessionDescriptions: Array<{ topic: RegExp; summary: string }> = [
   {
-    topic: /^the opportunity builder:/i,
-    summary: 'The skills you develop, the ideas you carry, and the people you know can become starting points for creating value. This session explores how to bring those assets together and recognise opportunities in the needs around you. Consider where your strengths can solve a problem, how an idea can become a useful offer, and how relationships can support meaningful work. Building opportunities also calls for initiative: making your contribution clear, starting conversations, and taking practical steps before every condition is perfect. Use this session to reflect on what you already have, where it could be useful, and what you could do next to turn that potential into something real.',
+    topic: /^(?:the opportunity builder:|bloom\s*[-–—])/i,
+    summary: 'Your potential creates more opportunities when people can see the value you bring. This session explores how to position yourself for world class opportunities by connecting your strengths and ambitions with a clear sense of purpose. Consider how visibility, relationships, and the way you communicate your work can help your contribution reach the right people and places. Reflect on what you want to be known for, where you want to make an impact, and the next steps that can help you move from potential to purpose and build a global outlook.',
   },
   {
-    topic: /^succeeding in the ai era:/i,
-    summary: 'Artificial intelligence is changing how people research, create, organise work, and make decisions. For young leaders, the opportunity is to understand where it can strengthen their contribution and how to use it with sound judgement. This session explores the role of AI in working more efficiently, considering information, and developing a competitive advantage. Reflect on the tasks that take up your time, the decisions that need your attention, and the skills you need as ways of working change. The focus is on approaching AI with curiosity and purpose while keeping responsibility for the quality and usefulness of your work. Use the session to consider where AI could support your goals and where human judgement remains essential.',
+    topic: /^(?:succeeding in the ai era:|succeeding in a tech driven society[;:])/i,
+    summary: 'Technology is changing the way young leaders learn, work, and make decisions. This session explores how to position yourself in a tech driven society, make better decisions, and build a competitive advantage. Consider how you assess new information, choose the tools and skills that support your goals, and stay focused on the human judgement behind important decisions. Reflect on where technology is changing your field and how you can keep learning and contribute with purpose.',
   },
   {
     topic: /^from problem to product to market:/i,
@@ -93,8 +102,55 @@ const availableSessions: Session[] = [
     slug: '2026-from-idea-to-scale',
     year: 2026,
     title: 'From Idea to Scale: How to Build Ventures, Programmes and Communities That Actually Grow [workshop]',
+    presenter: 'Nwosu Paul Light',
     coverImage: '/images/session-from-idea-to-scale.jpg',
+    includeRecordingInResources: true,
     summary: 'Turning an idea into something that grows requires decisions about who it serves, how it works, and what will keep it going. This workshop explores that journey through ventures, programmes, and communities, inviting you to think about the foundations behind meaningful growth. Consider the need your idea addresses, the value it offers, and the people whose participation could help it develop. As an initiative grows, questions about delivery, resources, relationships, and purpose become increasingly important. Use this workshop to look at your own idea or existing work, identify the assumptions that need attention, and consider what a practical next stage could look like. The goal is to connect your ambition with a clearer understanding of what growth will require.',
+    featured: true,
+    resources: [
+      {
+        title: 'From Idea to Scale session recording',
+        type: 'video',
+        url: 'https://drive.google.com/file/d/1yhon1_IU_3VVvu6rt8BwJ82uToaPVuVc/view?usp=sharing',
+      },
+      {
+        title: 'From Idea to Scale workshop preview',
+        type: 'presentation',
+        url: '/api/session-materials/from-idea-to-scale/presentation',
+      },
+    ],
+  },
+  {
+    slug: '2026-bloom-positioning',
+    year: 2026,
+    title: 'BLOOM - Positioning Yourself for World Class Opportunities: From Potential to Purpose, Visibility and Global Impact',
+    presenter: 'Cynthia Ohaeri',
+    coverImage: '/images/session-bloom-positioning.jpg',
+    includeRecordingInResources: true,
+    summary: 'Your potential creates more opportunities when people can see the value you bring. This session explores how to position yourself for world class opportunities by connecting your strengths and ambitions with a clear sense of purpose. Consider how visibility, relationships, and the way you communicate your work can help your contribution reach the right people and places. Reflect on what you want to be known for, where you want to make an impact, and the next steps that can help you move from potential to purpose and build a global outlook.',
+    featured: true,
+    resources: [
+      {
+        title: 'Cynthia Ohaeri BLOOM session recording',
+        type: 'video',
+        url: 'https://drive.google.com/file/d/1kR5dRZbhziH5tA1LUp6ii3gyG42Gz8Xg/view?usp=sharing',
+      },
+      {
+        title: 'BLOOM session preview',
+        type: 'presentation',
+        url: '/api/session-materials/bloom/presentation',
+      },
+    ],
+  },
+  {
+    slug: '2026-tech-driven-society',
+    year: 2026,
+    title: 'Succeeding in a tech driven society; How Young Leaders Can position themselves in Making Better Decisions and Building Competitive Advantage',
+    presenter: 'Emmanuel Chukwu',
+    coverImage: '/images/session-tech-driven-society.jpg',
+    locked: true,
+    unlockAt: '2026-10-23T00:00:00+01:00',
+    summary: 'Technology is changing the way young leaders learn, work, and make decisions. This session explores how to position yourself in a tech driven society, make better decisions, and build a competitive advantage. Consider how you assess new information, choose the tools and skills that support your goals, and stay focused on the human judgement behind important decisions. Reflect on where technology is changing your field and how you can keep learning and contribute with purpose.',
     featured: true,
     resources: [],
   },
@@ -127,11 +183,18 @@ function toArchiveSession(event: LiveCalendarEvent): Session {
   const isOnboarding = /awardee onboarding/i.test(event.title)
   const isUmunnaSession = /^beyond the paycheck:/i.test(event.title)
   const isIdeaToScale = /^from idea to scale:/i.test(event.title)
+  const isBloomSession = /^(?:the opportunity builder:|bloom\s*[-–—])/i.test(event.title)
+  const isTechSession = /^(?:succeeding in the ai era:|succeeding in a tech driven society[;:])/i.test(event.title)
+  const isKnowledgeImpactSession = /^from knowledge to impact:/i.test(event.title)
   const available = isOnboarding
     ? availableSessions[0]
     : isUmunnaSession
       ? availableSessions[1]
-      : isIdeaToScale ? availableSessions[2] : undefined
+      : isIdeaToScale
+        ? availableSessions[2]
+        : isBloomSession
+          ? availableSessions[3]
+          : isTechSession ? availableSessions[4] : undefined
 
   return {
     ...(available ?? {
@@ -140,19 +203,32 @@ function toArchiveSession(event: LiveCalendarEvent): Session {
       resources: [],
     }),
     // The archive title follows the member-facing programme event title.
-    title: isOnboarding ? 'Africa Future Leaders 2026: Cohort Onboarding' : event.title,
+    title: isOnboarding
+      ? 'Africa Future Leaders 2026: Cohort Onboarding'
+      : isBloomSession
+        ? availableSessions[3].title
+        : isTechSession ? availableSessions[4].title : event.title,
     summary: available?.summary ?? additionalSessionDescriptions.find(({ topic }) => topic.test(event.title))?.summary,
     date: formatProgrammeDate(event.startAt),
-    coverImage: isOnboarding ? event.cover ?? available?.coverImage : available?.coverImage,
-    presenter: isOnboarding ? 'Emmanuella Igboafu' : isUmunnaSession ? (umunna?.name ?? 'Odinakachi Umunna') : undefined,
+    coverImage: isOnboarding
+      ? event.cover ?? available?.coverImage
+      : isKnowledgeImpactSession ? '/images/session-from-knowledge-to-impact.jpg' : available?.coverImage,
+    presenter: isOnboarding
+      ? 'Emmanuella Igboafu'
+      : isUmunnaSession
+        ? (umunna?.name ?? 'Odinakachi Umunna')
+        : isIdeaToScale
+          ? 'Nwosu Paul Light'
+          : isBloomSession ? 'Cynthia Ohaeri' : isTechSession ? 'Emmanuel Chukwu' : undefined,
     resources: [...(available?.resources ?? []), ...(event.attachments ?? []).map(getAttachmentResource).filter((resource): resource is SessionResource => Boolean(resource))]
       .filter((resource, index, all) => all.findIndex((candidate) => candidate.url === resource.url) === index),
-    locked: !available,
+    locked: !available || isSessionLocked(available),
   }
 }
 
 export function getSessionBySlug(slug: string): Session | undefined {
-  return availableSessions.find((session) => session.slug === slug)
+  const session = availableSessions.find((candidate) => candidate.slug === slug)
+  return session && !isSessionLocked(session) ? session : undefined
 }
 
 export function getSessionsByYear(calendarEvents: LiveCalendarEvent[] = []): Array<{ year: number; sessions: Session[] }> {
@@ -161,7 +237,7 @@ export function getSessionsByYear(calendarEvents: LiveCalendarEvent[] = []): Arr
       .filter((event) => event.title.trim().length > 0)
       .filter((event, index, all) => all.findIndex((candidate) => candidate.title === event.title) === index)
       .map(toArchiveSession)
-    : availableSessions
+    : availableSessions.map((session) => ({ ...session, locked: isSessionLocked(session) }))
   const years = new Set<number>([...archiveYears, ...currentSessions.map((session) => session.year)])
 
   return [...years]

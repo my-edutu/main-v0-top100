@@ -184,10 +184,49 @@ html.light .awardee-dashboard .hub-cohort-filters button:nth-child(2)[aria-press
 html.light .awardee-dashboard .hub-cohort-filters button:nth-child(3)[aria-pressed=true] { background:#c4ead7!important; border-color:#32946d; }
 .awardee-dashboard .hub-events-route :is(h3,h4) { font-size:18px; font-weight:500; }
 .awardee-dashboard .hub-events-route p { font-weight:400; }
+.live-calendar-events { display:grid; gap:12px; margin:0; padding:0; list-style:none; }
+.live-calendar-event { display:grid; grid-template-columns:minmax(128px,40%) minmax(0,1fr); align-items:center; overflow:hidden; border:1px solid #eadfd3; border-radius:18px; background:#fff; }
+.live-calendar-event-poster { display:block; width:100%; aspect-ratio:4/5; align-self:center; overflow:hidden; border:0; padding:0; background:#fff1c7; cursor:zoom-in; }
+.live-calendar-event-poster img { display:block; width:100%; height:100%; object-fit:contain; }
+.live-calendar-event-poster:focus-visible,.live-calendar-event-meet:focus-visible { outline:2px solid #f97316; outline-offset:-2px; }
+.live-calendar-event-copy { display:flex; min-width:0; flex-direction:column; justify-content:center; padding:12px 14px; }
+.awardee-dashboard .hub-events-route .live-calendar-event-date { display:flex; align-items:center; gap:7px; margin:0; color:#a6440d; font-size:11px; font-weight:600; letter-spacing:.055em; line-height:1.3; text-transform:uppercase; }
+.live-calendar-event-date svg,.live-calendar-event-time svg { color:#a6440d; }
+.awardee-dashboard .hub-events-route .live-calendar-event-title { min-width:0; margin:7px 0 0; color:#221e1c; font-size:15px; font-weight:550; line-height:1.28; letter-spacing:-.012em; overflow-wrap:anywhere; }
+.awardee-dashboard .hub-events-route .live-calendar-event-time { display:flex; align-items:center; gap:7px; margin:8px 0 0; color:#625b52; font-size:12px; line-height:1.35; }
+.live-calendar-event-meet { display:inline-flex; width:max-content; max-width:100%; min-height:42px; align-items:center; gap:7px; margin-top:10px; border-radius:10px; background:#fff1df; padding:0 11px; color:#84330b; font-size:12px; font-weight:600; line-height:1.2; text-decoration:none; }
+.live-calendar-event-meet:hover { background:#ffe3bc; }
+.awardee-dashboard .hub-events-route .live-calendar-event-unavailable { margin:10px 0 0; color:#70685f; font-size:12px; line-height:1.4; }
+.live-calendar-event.is-without-poster { grid-template-columns:minmax(0,1fr); }
+.live-calendar-intro { position:relative; display:flex; min-width:0; align-items:center; justify-content:space-between; gap:16px; overflow:hidden; border:1px solid #f0d8c5; border-radius:16px; background:#fff8f0; padding:12px 14px; }
+.live-calendar-intro-hitarea { position:absolute; z-index:0; inset:0; border-radius:inherit; }
+.live-calendar-intro-hitarea:focus-visible { outline:3px solid #f97316; outline-offset:-3px; }
+.live-calendar-intro:hover { border-color:#e5a676; background:#fff4e8; }
+.live-calendar-intro-copy { min-width:0; pointer-events:none; }
+.live-calendar-intro-kicker { margin:0; color:#a6440d; font-size:10px; font-weight:600; letter-spacing:.12em; line-height:1.3; text-transform:uppercase; }
+.awardee-dashboard .hub-events-route .live-calendar-intro-copy h2 { display:flex; align-items:center; gap:6px; margin:3px 0 0; color:#171412; font-size:16px; font-weight:600; line-height:1.25; }
+.live-calendar-intro-arrow { width:14px; height:14px; flex:none; color:#9a4316; }
+.awardee-dashboard .hub-events-route .live-calendar-intro-copy > p:last-child { margin:3px 0 0; color:#625b52; font-size:12px; line-height:1.4; }
+.live-calendar-add-link { position:relative; z-index:1; display:inline-flex; min-height:36px; flex:none; align-items:center; justify-content:center; gap:6px; border:1px solid #edc89f; border-radius:10px; background:#ff9d00; padding:0 10px; color:#171412; font-size:12px; font-weight:600; line-height:1; text-decoration:none; }
+.live-calendar-add-link:hover { background:#ffb329; }
+.live-calendar-add-link:focus-visible { outline:2px solid #f97316; outline-offset:2px; }
+@media(min-width:701px) {
+ .live-calendar-event { grid-template-columns:minmax(190px,240px) minmax(0,1fr); }
+ .live-calendar-event-copy { padding:16px 20px; }
+ .awardee-dashboard .hub-events-route .live-calendar-event-title { font-size:17px; line-height:1.3; }
+ .awardee-dashboard .hub-events-route .live-calendar-event-time { font-size:13px; }
+ .live-calendar-event-meet { font-size:13px; }
+}
 @media(max-width:639px) {
  .awardee-dashboard :is(.hub-members-route,.hub-events-route) .hub-route-heading h1 { font-size:24px; font-weight:500; }
  .awardee-dashboard :is(.hub-members-route,.hub-events-route) .hub-route-heading { gap:8px; }
  .awardee-dashboard .hub-directory #top-awardee-list { grid-template-columns:minmax(0,1fr); }
+}
+@media(max-width:420px) {
+ .live-calendar-intro { gap:10px; padding:11px 12px; }
+ .live-calendar-intro-copy { flex:1; }
+ .live-calendar-add-link { min-height:34px; gap:5px; padding:0 8px; font-size:11px; }
+ .live-calendar-add-link svg { width:14px; height:14px; }
 }
 /* Directory cards keep identity, context and actions in a consistent reading order. */
 .awardee-dashboard .hub-directory .directory-member { display:flex; flex-direction:column; padding:18px; border-radius:16px; }
@@ -414,7 +453,7 @@ html.light .hub-award-dark .hub-desktop-nav, .hub-award-dark .hub-desktop-nav { 
 html.light .hub-award-dark .hub-desktop-nav a { color: #eee9ef !important; }
 html.light .award-welcome-backdrop, .award-welcome-backdrop { background: #f5f5f4 !important; opacity: 1 !important; animation: none !important; }
 .hub-events-rail { display:flex; gap:12px; overflow-x:auto; scroll-snap-type:x mandatory; padding:3px 2px 12px; scrollbar-width:thin; }
-.hub-upcoming-event { position:relative; flex:0 0 min(280px, 85%); scroll-snap-align:start; display:flex; flex-direction:column; justify-content:flex-end; gap:8px; min-height:150px; border:1px solid #e7ddcf; border-radius:18px; padding:18px; background-color:#8c3a0f; background-size:cover; background-position:center; overflow:hidden; }
+.hub-upcoming-event { position:relative; flex:0 0 min(220px, 70%); scroll-snap-align:start; display:flex; flex-direction:column; justify-content:flex-end; gap:6px; min-height:132px; border:1px solid #e7ddcf; border-radius:16px; padding:14px; background-color:#8c3a0f; background-size:cover; background-position:center; overflow:hidden; }
 html.light .awardee-dashboard .hub-upcoming-event,
 .awardee-dashboard .hub-upcoming-event { color:#fff!important; }
 html.light .awardee-dashboard .hub-upcoming-event :is(span,p),
@@ -620,10 +659,10 @@ html.light .awardee-dashboard .hub-notifications .updates-cta { background:#ffff
 @media(prefers-reduced-motion:reduce) { .whatsapp-group-card--reveal { animation:none; } }
 
 /* Swipeable advert deck: the next campaign peeks above the active card. */
- .dashboard-promo { min-width:0; grid-column:1/-1; padding-top:14px; touch-action:pan-y; }
-.dashboard-promo__stack { position:relative; height:200px; isolation:isolate; }
-.dashboard-promo__stack::before { position:absolute; inset:-14px 24px 24px; border-radius:22px; background:#f6cf5c; content:''; z-index:-1; }
-.dashboard-promo__card { position:absolute; inset:0; display:flex; align-items:center; overflow:hidden; border-radius:22px; padding:22px; text-decoration:none; user-select:none; transition:transform .3s cubic-bezier(.22,.8,.3,1),filter .3s ease; }
+ .dashboard-promo { min-width:0; grid-column:1/-1; padding-top:10px; touch-action:pan-y; }
+.dashboard-promo__stack { position:relative; height:140px; isolation:isolate; }
+.dashboard-promo__stack::before { position:absolute; inset:-10px 20px 18px; border-radius:20px; background:#f6cf5c; content:''; z-index:-1; }
+.dashboard-promo__card { position:absolute; inset:0; display:flex; align-items:center; overflow:hidden; border-radius:20px; padding:16px 18px; text-decoration:none; user-select:none; transition:transform .3s cubic-bezier(.22,.8,.3,1),filter .3s ease; }
 .dashboard-promo__card.is-front { z-index:3; transform:translateX(var(--promo-drag,0px)); box-shadow:0 8px 22px #152b1812; }
 .dashboard-promo[data-swipe-hint="true"] .dashboard-promo__card.is-front { animation:dashboard-promo-swipe-hint 1.15s cubic-bezier(.22,.8,.3,1) .2s 1; }
 @keyframes dashboard-promo-swipe-hint { 0%,100% { transform:translateX(var(--promo-drag,0px)); } 26% { transform:translateX(calc(var(--promo-drag,0px) - 8px)) rotate(-.35deg); } 52% { transform:translateX(calc(var(--promo-drag,0px) + 3px)) rotate(.12deg); } 76% { transform:translateX(calc(var(--promo-drag,0px) - 2px)); } }
@@ -633,16 +672,14 @@ html.light .awardee-dashboard .hub-notifications .updates-cta { background:#ffff
 .dashboard-promo__card--learning { background:linear-gradient(115deg,#17344c,#0c2033); color:#fff; }
 .dashboard-promo__card--community { background:linear-gradient(115deg,#604800,#352900); color:#fff; }
 .dashboard-promo__card--learning .dashboard-promo__art { filter:drop-shadow(0 10px 16px #06132155); }
-.dashboard-promo__copy { position:relative; z-index:1; width:66%; max-width:600px; }
-.dashboard-promo__eyebrow { font-size:9px; font-weight:600; letter-spacing:.12em; line-height:1.4; text-transform:uppercase; opacity:.8; }
-.dashboard-promo__copy h2 { margin-top:6px; font-size:clamp(21px,3.5vw,30px); font-weight:650; letter-spacing:-.035em; line-height:1.12; }
-.dashboard-promo__description { margin-top:8px; max-width:420px; font-size:12px; line-height:1.45; opacity:.88; }
-.dashboard-promo__link { display:inline-flex; align-items:center; gap:7px; margin-top:12px; font-size:12px; font-weight:500; }
-.dashboard-promo__art { position:absolute; right:-20px; bottom:0; width:175px; height:175px; pointer-events:none; }
+.dashboard-promo__copy { position:relative; z-index:1; width:65%; max-width:600px; }
+.dashboard-promo__copy h2 { margin:0; font-size:clamp(19px,3.5vw,25px); font-weight:650; letter-spacing:-.035em; line-height:1.12; }
+.dashboard-promo__description { display:-webkit-box; margin-top:5px; overflow:hidden; font-size:11px; line-height:1.35; opacity:.9; -webkit-box-orient:vertical; -webkit-line-clamp:3; }
+.dashboard-promo__art { position:absolute; top:50%; right:14px; bottom:auto; width:120px; height:120px; transform:translateY(-50%); pointer-events:none; }
 .dashboard-promo:focus-visible { outline:3px solid #d99416; outline-offset:4px; border-radius:22px; }
 .dashboard-promo__card:focus-visible { outline:3px solid currentColor; outline-offset:-6px; }
-@media(min-width:640px) { .dashboard-promo__stack { height:210px; } .dashboard-promo__card { padding:28px; } .dashboard-promo__copy { width:65%; } .dashboard-promo__art { width:230px; height:230px; right:24px; bottom:-15px; } }
-@media(max-width:399px) { .dashboard-promo__card { padding:18px; } .dashboard-promo__copy { width:70%; } .dashboard-promo__art { width:145px; height:145px; right:-28px; } }
+@media(min-width:640px) { .dashboard-promo__stack { height:156px; } .dashboard-promo__card { padding:18px 22px; } .dashboard-promo__copy { width:65%; } .dashboard-promo__art { width:140px; height:140px; right:22px; } }
+@media(max-width:399px) { .dashboard-promo__card { padding:14px; } .dashboard-promo__copy { width:68%; } .dashboard-promo__art { width:106px; height:106px; right:8px; } }
 @media(min-width:640px) {
  .whatsapp-groups-route { padding:28px; }
 }
@@ -672,6 +709,10 @@ html.light .awardee-dashboard .hub-notifications .updates-item:not(.is-unread), 
 .discover-advert__art i:nth-child(2) { left:58%; top:35%; background:#8a6813; border-radius:70px 70px 0 0; }
 .discover-advert__art i:nth-child(3) { left:62%; top:-35%; width:50%; height:65%; border-radius:50%; background:#d29b26; }
 .discover-advert__art img { position:absolute; width:110px; height:110px; object-fit:contain; bottom:-12px; right:-12px; }
+.discover-advert--whatsapp { background:linear-gradient(110deg,#075e54,#128c7e 60%,#075e54); }
+.discover-advert--whatsapp .discover-advert__art { display:grid; place-items:center; }
+.discover-advert--whatsapp .discover-advert__art::before { position:absolute; width:140px; height:140px; border-radius:50%; background:#ffffff12; content:''; }
+.discover-advert--whatsapp .discover-advert__art svg { position:absolute; right:18px; bottom:8px; width:88px; height:88px; filter:drop-shadow(0 5px 12px #003f3544); }
 .discover-advert:focus-visible { outline:3px solid #f6cf5c; outline-offset:4px; }
 @media(min-width:768px) { .discover-advert__copy { padding:24px 32px; } .discover-advert__art img { width:170px; height:170px; bottom:-22px; right:20px; } .discover-advert__copy p { font-size:12px; } .discover-advert__copy > span { font-size:13px; } }
 html.light .discover-feed .discover-advert, html.light .discover-feed .discover-advert :is(h2,p,span) { color:#fff!important; }
@@ -711,7 +752,7 @@ html.light .discover-feed .discover-advert__copy p { color:#f7e9b8!important; }
 .awardee-dashboard .event-library-session-row { display:flex; min-height:138px; min-width:0; align-items:center; gap:16px; border:1px solid #e7e2d9; border-radius:16px; background:#fbfaf7; padding:12px; color:#30271c; text-decoration:none; transition:border-color .18s ease,background .18s ease,transform .18s ease,box-shadow .18s ease; }
 .awardee-dashboard .event-library-session-row:hover { transform:translateY(-1px); border-color:#dec992; background:#fffdf8; box-shadow:0 8px 22px rgba(42,33,20,.06); }
 .awardee-dashboard .event-library-session-row.is-locked { border-color:#ebe8e1; background:#f8f7f4; color:#77716a; }
-.awardee-dashboard .event-library-session-row.is-locked .event-library-session-row__cover-image { filter:grayscale(.72); }
+.awardee-dashboard .event-library-session-row.is-locked:not(.has-cover) .event-library-session-row__cover-image { filter:grayscale(.72); }
 .awardee-dashboard .event-library-session-row__action.is-locked { color:#77716a; }
 .awardee-dashboard .event-library-session-row__cover { position:relative; display:block; width:104px; height:126px; flex:none; overflow:hidden; border:1px solid rgba(48,39,28,.08); border-radius:10px; background:#f3ebd6; }
 .awardee-dashboard .event-library-session-row__cover-image { object-fit:cover; object-position:center 25%; transition:transform .25s ease; }
@@ -733,7 +774,23 @@ html.light .discover-feed .discover-advert__copy p { color:#f7e9b8!important; }
 .awardee-dashboard .event-library-empty--detail { align-items:center; padding:22px; }
 .awardee-dashboard .event-session-course { min-height:calc(100dvh - 60px); overflow:visible; background:#fff; }
 .awardee-dashboard .event-session-featured-video { position:relative; width:100%; height:auto; min-height:0; aspect-ratio:16/9; overflow:hidden; border-radius:18px; background:#171412; box-shadow:0 10px 30px rgba(31,24,16,.12); }
-.awardee-dashboard .event-session-featured-video > iframe { position:absolute; inset:0; display:block; width:100%; height:100%; border:0; }
+.awardee-dashboard .event-session-featured-video.is-poster { width:100%; max-width:576px; max-height:min(75vh,720px); aspect-ratio:4/5; margin-inline:auto; background:#f5f2e9; }
+.awardee-dashboard .event-session-video-embed { position:absolute; inset:0; background:#080808; }
+.awardee-dashboard .event-session-video-embed iframe { position:absolute; inset:0; display:block; width:100%; height:100%; border:0; }
+.awardee-dashboard .event-session-video-embed:fullscreen { width:100vw; height:100vh; background:#080808; }
+.awardee-dashboard .event-session-video-controls { position:absolute; top:12px; right:12px; z-index:2; display:flex; gap:8px; opacity:0; pointer-events:none; transition:opacity .18s ease; }
+.awardee-dashboard .event-session-video-embed:hover .event-session-video-controls,
+.awardee-dashboard .event-session-video-embed:focus-within .event-session-video-controls,
+.awardee-dashboard .event-session-video-embed:fullscreen .event-session-video-controls { opacity:1; pointer-events:auto; }
+.awardee-dashboard .event-session-video-controls a,
+.awardee-dashboard .event-session-video-controls button { display:grid; width:42px; height:42px; place-items:center; border:1px solid #ffffff55; border-radius:12px; background:#121212c9; color:#fff; backdrop-filter:blur(8px); cursor:pointer; }
+.awardee-dashboard .event-session-video-controls a:hover,
+.awardee-dashboard .event-session-video-controls button:hover { background:#35291fd9; }
+.awardee-dashboard .event-session-video-controls a:focus-visible,
+.awardee-dashboard .event-session-video-controls button:focus-visible { outline:2px solid #ffb329; outline-offset:2px; }
+@media (hover:none) {
+ .awardee-dashboard .event-session-video-controls { opacity:1; pointer-events:auto; }
+}
 .awardee-dashboard .event-session-course .event-session-featured-video { border-radius:0; box-shadow:none; }
 .awardee-dashboard .event-session-video-placeholder { position:absolute; inset:0; display:flex; width:auto; height:auto; align-items:center; justify-content:center; flex-direction:column; gap:12px; background-color:#30271c; background-position:center 35%; background-size:cover; color:#fff; }
 .awardee-dashboard .event-session-video-placeholder__play { display:grid; width:58px; height:58px; place-items:center; border:1px solid rgba(255,255,255,.45); border-radius:50%; background:rgba(255,255,255,.16); backdrop-filter:blur(8px); }

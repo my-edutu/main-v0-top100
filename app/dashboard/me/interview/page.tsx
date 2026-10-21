@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { RouteSection } from '@/app/dashboard/_components/route-section'
 import { useDashboardMember } from '@/app/dashboard/_providers/dashboard-member'
 import { InterviewApplicationDraft, InterviewRequestForm } from './interview-request-form'
+import { AFL_2026_MEET_URL } from '@/lib/events/afl-2026-calendar'
 
 type Booking = {
   id: string
@@ -153,7 +154,7 @@ export default function InterviewRequestPage() {
                 {booking.state === 'declined' ? <p className="text-sm text-neutral-700">That time was released. The team will arrange another time.</p> : null}
                 {['expired', 'declined', 'cancelled'].includes(booking.state) ? <Button disabled={saving} variant="ghost" onClick={() => void bookingAction('member_cancel')} className="min-h-11">Withdraw request</Button> : null}
                 {booking.member_reason ? <p className="text-sm text-neutral-700">Message from the team: {booking.member_reason}</p> : null}
-                {booking.meeting_url && booking.state === 'confirmed' ? <a className="inline-flex min-h-11 items-center gap-2 underline underline-offset-2" href={booking.meeting_url} target="_blank" rel="noreferrer"><Video className="size-4" aria-hidden="true" />Join interview</a> : null}
+                {booking.state === 'confirmed' ? <a className="inline-flex min-h-11 items-center gap-2 underline underline-offset-2" href={AFL_2026_MEET_URL} target="_blank" rel="noreferrer"><Video className="size-4" aria-hidden="true" />Join interview</a> : null}
                 {booking.state === 'proposed' ? (
                   <div className="flex flex-wrap gap-2 pt-1">
                     <Button disabled={saving} onClick={() => void bookingAction('accept')} className="min-h-11 bg-orange-600 text-white hover:bg-orange-700">Accept this time</Button>

@@ -44,7 +44,14 @@ function SessionArchiveCard({ session }: { session: Session }) {
   )
 
   if (session.locked) {
-    return <article className="event-library-session-row is-locked" aria-label={`${session.title}, locked`}>{content}</article>
+    return (
+      <article
+        className={`event-library-session-row is-locked${session.coverImage ? ' has-cover' : ''}`}
+        aria-label={`${session.title}, locked`}
+      >
+        {content}
+      </article>
+    )
   }
 
   return (

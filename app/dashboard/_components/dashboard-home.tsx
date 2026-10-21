@@ -2,10 +2,11 @@
 
 import Link from 'next/link'
 import Image from '@/components/safe-image'
-import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { useEffect, useMemo, useState } from 'react'
 import {
   ArrowUpRight,
+  CalendarDays,
   CalendarPlus,
   Mail,
   MessageCircle,
@@ -25,6 +26,7 @@ import { DashboardCard } from './dashboard-card'
 import { meNav } from '../_lib/navigation'
 import { selectUpcomingInvitations } from '../_lib/home-priority'
 import { useDashboardMember } from '../_providers/dashboard-member'
+import { dashboardCelebrationStorageKey } from '@/lib/dashboard/celebration'
 import { AwardeeOnboardingJourney } from './awardee-onboarding-journey'
 import { DashboardCelebration } from './dashboard-celebration'
 import { AflCalendarAnnouncement } from './afl-calendar-announcement'
@@ -67,48 +69,15 @@ function formatShortDate(value: string | null | undefined) {
   }).format(date)
 }
 
-function downloadCalendarEvent(event: { title: string; startAt: string | null; endAt: string | null; summary: string | null; meetUrl: string | null }) {
-  if (!event.startAt) return
-  const escapeIcs = (value: string) => value.replace(/\\/g, '\\\\').replace(/\r?\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;')
-  const toUtc = (value: string) => new Date(value).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z')
-  const start = new Date(event.startAt)
-  const end = event.endAt ? new Date(event.endAt) : new Date(start.getTime() + 60 * 60 * 1000)
-  const description = [event.summary, event.meetUrl ? `Google Meet: ${event.meetUrl}` : null].filter(Boolean).join('\n\n')
-  const lines = [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//Africa Future Leaders//Programme Calendar//EN',
-    'CALSCALE:GREGORIAN',
-    'BEGIN:VEVENT',
-    `UID:${crypto.randomUUID()}@top100afl.com`,
-    `DTSTAMP:${toUtc(new Date().toISOString())}`,
-    `DTSTART:${toUtc(event.startAt)}`,
-    `DTEND:${toUtc(end.toISOString())}`,
-    `SUMMARY:${escapeIcs(event.title)}`,
-    ...(description ? [`DESCRIPTION:${escapeIcs(description)}`] : []),
-    ...(event.meetUrl ? [`URL:${event.meetUrl}`, `LOCATION:${event.meetUrl}`] : []),
-    'END:VEVENT',
-    'END:VCALENDAR',
-  ]
-  const blob = new Blob([lines.join('\r\n') + '\r\n'], { type: 'text/calendar;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const anchor = document.createElement('a')
-  anchor.href = url
-  anchor.download = `${event.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.ics`
-  document.body.append(anchor)
-  anchor.click()
-  anchor.remove()
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000)
-}
-
 export function DashboardHome() {
-  const { member } = useDashboardMember()
+  const { member, dashboardVisitReady } = useDashboardMember()
   const { awardPayment } = useDashboardBadges()
   const [invitations, setInvitations] = useState<EventInvitation[]>([])
   const [programmeEvents, setProgrammeEvents] = useState<LiveCalendarEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
   const [now, setNow] = useState(() => Date.now())
+  const [nextSessionOpen, setNextSessionOpen] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -204,6 +173,44 @@ export function DashboardHome() {
       .slice(0, 6)
   }, [invitations, programmeEvents, now])
 
+  const nextSession = comingUp.find((event) => event.sortAt >= now) ?? null
+  const loginCount = member.dashboardLoginCount ?? 0
+  const nextSessionPopupKey = `afl:next-session-popup:${member.id}:${loginCount}`
+
+  useEffect(() => {
+    if (!dashboardVisitReady || loginCount < 1 || !nextSession) return
+    let cancelled = false
+    const showIfReady = () => {
+      if (cancelled) return
+      try {
+        if (window.localStorage.getItem(nextSessionPopupKey) === 'true') return
+        if (loginCount === 1 && window.localStorage.getItem(dashboardCelebrationStorageKey(member.id)) !== 'true') return
+      } catch {
+        // Continue showing the next session when browser storage is unavailable.
+      }
+      setNextSessionOpen(true)
+    }
+
+    showIfReady()
+    window.addEventListener('afl:dashboard-celebration-dismissed', showIfReady)
+    return () => {
+      cancelled = true
+      window.removeEventListener('afl:dashboard-celebration-dismissed', showIfReady)
+    }
+  }, [dashboardVisitReady, loginCount, member.id, nextSession?.id, nextSessionPopupKey])
+
+  const dismissNextSession = () => {
+    setNextSessionOpen(false)
+    try { window.localStorage.setItem(nextSessionPopupKey, 'true') } catch { /* Dismiss for this dashboard visit. */ }
+  }
+
+  const nextSessionWhen = nextSession?.startAt
+    ? new Intl.DateTimeFormat('en', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Africa/Lagos' }).format(new Date(nextSession.startAt))
+    : 'Date and time to be announced'
+  const nextSessionTime = nextSession?.startAt
+    ? `${new Intl.DateTimeFormat('en', { hour: 'numeric', minute: '2-digit', timeZone: 'Africa/Lagos' }).format(new Date(nextSession.startAt))}${nextSession.endAt ? `–${new Intl.DateTimeFormat('en', { hour: 'numeric', minute: '2-digit', timeZone: 'Africa/Lagos' }).format(new Date(nextSession.endAt))}` : ''} WAT (Lagos)`
+    : null
+
   return (
     <div className="hub-home">
       <MagazinePopup member={member} />
@@ -212,6 +219,33 @@ export function DashboardHome() {
         name={member.name}
         dashboardLoginCount={member.dashboardLoginCount ?? 0}
       />
+      {nextSession ? <Dialog open={nextSessionOpen} onOpenChange={(open) => { if (!open) dismissNextSession(); else setNextSessionOpen(true) }}>
+        <DialogContent className="max-h-[90dvh] w-[calc(100%-2rem)] max-w-md overflow-y-auto rounded-[20px] border-0 bg-white p-0 shadow-2xl" overlayClassName="bg-black/75 backdrop-blur-sm" aria-describedby="next-session-description">
+          {nextSession.cover ? <div className="grid max-h-[36dvh] place-items-center overflow-hidden bg-[#FFC528]">
+            <Image src={nextSession.cover} alt={`${nextSession.title} session poster`} width={1755} height={2194} className="mx-auto max-h-[36dvh] w-auto max-w-full object-contain" />
+          </div> : <div className="relative grid min-h-[220px] place-items-center overflow-hidden bg-[linear-gradient(135deg,#17344c,#0c2033)] px-6 py-8 text-center text-white">
+            <div className="absolute -right-8 -top-10 h-40 w-40 rounded-full bg-[#F6CF5C]/15" aria-hidden="true" />
+            <div className="relative max-w-sm">
+              <CalendarDays className="mx-auto h-9 w-9 text-[#F6CF5C]" aria-hidden="true" />
+              <p className="mt-3 text-xs font-semibold uppercase tracking-[0.16em] text-[#F6CF5C]">Next scheduled session</p>
+              <p className="mt-2 text-xl font-semibold leading-tight">{nextSession.title}</p>
+              <p className="mt-2 text-sm text-white/80">{nextSessionWhen}</p>
+            </div>
+          </div>}
+          <div className="p-5 sm:p-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#A6440D]">Your next session · {nextSession.detail}</p>
+            <DialogTitle className="mt-2 text-xl font-semibold leading-tight tracking-tight text-[#171412]">{nextSession.title}</DialogTitle>
+            <DialogDescription id="next-session-description" className="mt-3 text-sm leading-6 text-[#625B52]">
+              {nextSessionWhen}{nextSessionTime ? <><br />{nextSessionTime}</> : null}
+              {nextSession.summary ? <><br /><br />{nextSession.summary}</> : null}
+            </DialogDescription>
+            <div className="mt-4 grid gap-2">
+              {nextSession.meetUrl ? <a href={nextSession.meetUrl} target="_blank" rel="noopener noreferrer" onClick={dismissNextSession} className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#FF9D00] px-4 text-sm font-semibold text-[#171412] hover:bg-[#FFB329] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-700"><Video size={18} aria-hidden="true" />Join on Google Meet<ArrowUpRight size={16} aria-hidden="true" /></a> : null}
+              {nextSession.startAt ? <a href={AFL_2026_CALENDAR.addUrl} target="_blank" rel="noopener noreferrer" className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-[#E9D6C5] px-4 text-sm font-semibold text-[#84330B] hover:bg-[#FFF8F0] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-700"><CalendarPlus size={18} aria-hidden="true" />Add to Google Calendar<ArrowUpRight size={16} aria-hidden="true" /></a> : null}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog> : null}
       <AflCalendarAnnouncement memberId={member.id} dashboardLoginCount={member.dashboardLoginCount ?? 0} />
       <DashboardPromoCarousel payment={awardPayment} showCommunity={member.status === 'approved'} showLearningLibrary />
       <AwardeeOnboardingJourney name={member.name} />
@@ -230,8 +264,8 @@ export function DashboardHome() {
           {comingUp.length > 0 ? comingUp.map((item) => {
             const cardContent = <>
               <span className="relative z-10 min-w-0 self-end text-white">
-                <span className="block break-words text-sm font-semibold text-white">{item.title}</span>
-                <span className="mt-2 block text-xs font-medium text-white/90">{item.date}</span>
+                <span className="line-clamp-4 block break-words text-[13px] font-semibold leading-4 text-white">{item.title}</span>
+                <span className="mt-1 block text-[11px] font-medium leading-4 text-white/90">{item.date}</span>
               </span>
             </>
             const cardClass = "hub-upcoming-event text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-2"
@@ -255,9 +289,9 @@ export function DashboardHome() {
                   {item.summary ? <p className="mt-3 text-sm leading-6 text-[#625B52]">{item.summary}</p> : null}
                   <div className="mt-4 grid gap-2">
                     {item.meetUrl ? <a href={item.meetUrl} target="_blank" rel="noopener noreferrer" className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#FF9D00] px-4 text-sm font-semibold text-[#171412] hover:bg-[#FFB329] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-700"><Video size={18} aria-hidden="true" />Join on Google Meet<ArrowUpRight size={16} aria-hidden="true" /></a> : null}
-                    {item.startAt ? <button type="button" onClick={() => downloadCalendarEvent(item)} className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-[#E9D6C5] px-4 text-sm font-semibold text-[#84330B] hover:bg-[#FFF8F0] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-700"><CalendarPlus size={18} aria-hidden="true" />Add to calendar</button> : null}
+                    {item.startAt ? <a href={AFL_2026_CALENDAR.addUrl} target="_blank" rel="noopener noreferrer" className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-[#E9D6C5] px-4 text-sm font-semibold text-[#84330B] hover:bg-[#FFF8F0] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-700"><CalendarPlus size={18} aria-hidden="true" />Add to Google Calendar<ArrowUpRight size={16} aria-hidden="true" /></a> : null}
                   </div>
-                  {item.startAt ? <p className="mt-2 text-center text-xs leading-5 text-[#625B52]">Calendar file for Apple Calendar, Google Calendar, and Android calendar apps.</p> : null}
+                  {item.startAt ? <p className="mt-2 text-center text-xs leading-5 text-[#625B52]">Opens the Africa Future Leaders calendar in Google Calendar.</p> : null}
                 </div>
               </DialogContent>
             </Dialog> : <Link key={item.id} href={item.href} target={item.href.startsWith('https://') ? '_blank' : undefined} rel={item.href.startsWith('https://') ? 'noopener noreferrer' : undefined} className={cardClass}>{cardContent}</Link>
@@ -266,6 +300,21 @@ export function DashboardHome() {
           )}
         </div>
       </section>
+
+      <Link href="/dashboard/discover/groups" className="discover-advert discover-advert--whatsapp" aria-label="Find your WhatsApp group and connect with Africa Future Leaders">
+        <div className="discover-advert__copy">
+          <p>Your people are here</p>
+          <h2>Find your community.</h2>
+          <span>Discover your group <ArrowUpRight size={14} aria-hidden="true" /></span>
+        </div>
+        <div className="discover-advert__art" aria-hidden="true">
+          <svg viewBox="0 0 64 64" focusable="false">
+            <circle cx="32" cy="32" r="27" fill="#fff" />
+            <path fill="#075e54" d="M32 5C17.1 5 5 17 5 31.8c0 4.8 1.3 9.4 3.7 13.5L5 59l14.1-3.7A27 27 0 1 0 32 5Zm0 48.7c-4.2 0-8.3-1.1-11.9-3.4l-.9-.5-8.4 2.2 2.2-8.2-.6-1A21.5 21.5 0 1 1 32 53.7Z" />
+            <path fill="#075e54" d="M43.8 37.3c-.7-.4-4-2-4.7-2.2-.6-.2-1.1-.4-1.5.4-.5.7-1.8 2.2-2.2 2.7-.4.5-.8.5-1.5.2-.7-.4-2.9-1.1-5.5-3.4-2-1.8-3.4-4-3.8-4.7-.4-.7 0-1.1.3-1.4.3-.3.7-.8 1.1-1.2.4-.4.5-.7.7-1.1.2-.5.1-.9 0-1.2-.2-.4-1.5-3.6-2.1-4.9-.5-1.2-1.1-1-1.5-1h-1.3c-.5 0-1.2.2-1.8.9-.6.7-2.4 2.3-2.4 5.5s2.5 6.4 2.8 6.9c.4.5 4.8 7.4 11.6 10.4 1.6.7 2.8 1.1 3.8 1.4 1.6.5 3 .4 4.1.2 1.3-.2 4-1.6 4.6-3.2.6-1.6.6-2.9.4-3.2-.2-.3-.6-.5-1.3-.8Z" />
+          </svg>
+        </div>
+      </Link>
 
       <section className="hub-launch-rail min-w-0" aria-labelledby="launch-title">
         <div className="mb-3 flex items-end justify-between gap-3">

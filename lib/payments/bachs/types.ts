@@ -39,7 +39,7 @@ export type BachsCheckoutCustomer = {
 /** Exact request body sent to POST /v1/checkout-sessions. */
 export type BachsCheckoutRequest = {
   pricing: BachsCheckoutPricing
-  billing_currency: AwardPaymentCurrency
+  billing_currency?: AwardPaymentCurrency
   customer: BachsCheckoutCustomer
   reference: string
   metadata: {
@@ -62,6 +62,8 @@ export type CreateCheckoutInput = {
   idempotencyKey: string
   reference: string
   currency: AwardPaymentCurrency
+  /** Leave unset on USD award pricing so Bachs can offer adaptive local currencies. */
+  adaptivePricing?: boolean
   /** Only set by the server-side magazine feature checkout service. */
   purpose?: 'afl_award_fee_v1' | 'afl_magazine_feature_v1'
   priceMinorByCurrency?: { NGN: number; USD: number }

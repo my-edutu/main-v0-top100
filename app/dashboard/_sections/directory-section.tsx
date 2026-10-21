@@ -29,8 +29,9 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
   const [loading, setLoading] = useState(() => !peekPublicDirectory())
   const [loadFailed, setLoadFailed] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
-  const [page, setPage] = useState(0)
+  const [visibleCount, setVisibleCount] = useState(12)
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const loadMoreRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const focusSearch = () => {
@@ -93,11 +94,24 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
     })
   }, [awardees, searchTerm, selectedYear])
 
-  const pageCount = Math.max(1, Math.ceil(filteredAwardees.length / 12))
-  const currentPage = Math.min(page, pageCount - 1)
-  const visibleAwardees = filteredAwardees.slice(currentPage * 12, (currentPage + 1) * 12)
+  const visibleAwardees = filteredAwardees.slice(0, visibleCount)
+  const hasMoreAwardees = visibleAwardees.length < filteredAwardees.length
   const restrictedStatus = member.status === 'suspended' || member.status === 'rejected' ? member.status : null
   const contactRestricted = restrictedStatus !== null
+
+  useEffect(() => {
+    const sentinel = loadMoreRef.current
+    if (!sentinel || !hasMoreAwardees || loading || loadFailed) return
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        setVisibleCount((count) => Math.min(count + 12, filteredAwardees.length))
+      }
+    }, { rootMargin: '480px 0px' })
+
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [filteredAwardees.length, hasMoreAwardees, loadFailed, loading])
 
   return (
     <div className="hub-directory min-w-0">
@@ -145,7 +159,7 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
               type="button"
               onClick={() => {
                 setSelectedYear(current => current === cohort.year ? 'all' : cohort.year)
-                setPage(0)
+                setVisibleCount(12)
               }}
               aria-label={`${cohort.year} cohort${selectedYear === cohort.year ? ', selected; activate to show all years' : ''}`}
               aria-pressed={selectedYear === cohort.year}
@@ -181,7 +195,7 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
                 value={searchTerm}
                 onChange={(event) => {
                   setSearchTerm(event.target.value)
-                  setPage(0)
+                  setVisibleCount(12)
                 }}
                 placeholder="Search name, country, field..."
                 aria-label="Search awardees by name, country, or field"
@@ -191,9 +205,6 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
           </div>
 
           {!loading && !loadFailed ? <p role="status" className="sr-only">{filteredAwardees.length} {filteredAwardees.length === 1 ? 'awardee' : 'awardees'}{selectedYear !== 'all' ? ` · ${selectedYear} cohort` : ' · All cohorts'}</p> : null}
-          {!loading && !loadFailed && (searchTerm || selectedYear !== 'all') ? <div className="mt-2 flex justify-end">
-            <button type="button" className="px-2 text-orange-800 underline underline-offset-4" onClick={() => { setSearchTerm(''); setSelectedYear('all'); setPage(0) }}>Clear filters</button>
-          </div> : null}
 
           <div id="top-awardee-list" className="mt-3 grid gap-3 md:grid-cols-2">
             {visibleAwardees.map((awardee) => (
@@ -249,17 +260,11 @@ export function DirectorySection({ member }: { member: MemberProfile }) {
           {!loading && !loadFailed && visibleAwardees.length === 0 ? (
             <div className="mt-4 rounded-[22px] border border-dashed border-black/10 bg-white p-8 text-center text-sm font-semibold text-black/50">
               <p>{searchTerm || selectedYear !== 'all' ? 'No awardees match your search.' : 'No members to show yet.'}</p>
-              {(searchTerm || selectedYear !== 'all') && <button type="button" className="mt-3 min-h-11 underline text-orange-800" onClick={() => { setSearchTerm(''); setSelectedYear('all'); setPage(0) }}>Clear filters</button>}
             </div>
           ) : null}
 
-          {filteredAwardees.length > visibleAwardees.length ? (
-            <p className="mt-4 text-center text-sm font-semibold text-black/45">
-              <button disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)} className="mr-4 rounded-xl border px-3 disabled:opacity-40">Previous</button>
-              Page {currentPage + 1} of {pageCount}
-              <button disabled={currentPage >= pageCount - 1} onClick={() => setPage(currentPage + 1)} className="ml-4 rounded-xl border px-3 disabled:opacity-40">Next</button>
-            </p>
-          ) : null}
+          {hasMoreAwardees ? <div ref={loadMoreRef} className="h-1" aria-hidden="true" /> : null}
+          {!loading && !loadFailed && hasMoreAwardees ? <p role="status" className="sr-only">Scroll to load more awardees</p> : null}
         </div>
       </div>
     </div>

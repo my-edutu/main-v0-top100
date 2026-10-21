@@ -68,13 +68,19 @@ export default async function SessionPage({ params }: { params: Promise<{ slug: 
   const videos = attachedResources.filter((resource) => resource.type === 'video')
   const featuredVideo = videos[0]
   const videoEmbedUrl = featuredVideo ? getVideoEmbedUrl(featuredVideo.url) : undefined
-  // The recording is already available above. Meeting chat is not a member
-  // learning resource; admin attached notes, slides, and workshop files remain.
-  const resources = attachedResources.filter((resource) => resource.type !== 'video' && !/^session chat$/i.test(resource.title))
+  // Selected sessions also list their featured recording in Resources. Meeting
+  // chat is not a member learning resource; notes, slides, and workshop files remain.
+  const resources = attachedResources.filter((resource) => (
+    (session.includeRecordingInResources || resource.type !== 'video')
+    && !/^session chat$/i.test(resource.title)
+  ))
 
   return (
     <main className="event-session event-session-course">
-      <section className="event-session-featured-video" aria-label="Session recording">
+      <section
+        className={`event-session-featured-video${session.coverImage && !featuredVideo ? ' is-poster' : ''}`}
+        aria-label={featuredVideo ? 'Session recording' : 'Session poster'}
+      >
         <SessionVideoPlayer
           title={session.title}
           embedUrl={videoEmbedUrl}

@@ -1,4 +1,6 @@
 import { AFL_2026_CALENDAR, AFL_2026_MEET_URL } from './afl-2026-calendar'
+import { PROGRAMME_ARTWORK } from './programme-artwork'
+import { PROGRAMME_SCHEDULE } from './programme'
 
 export type LiveCalendarEvent = {
   id: string
@@ -65,6 +67,22 @@ export function parseAflCalendar(ics: string): LiveCalendarEvent[] {
     const sessionTitle = /<strong>Session:<\/strong>\s*<br\s*\/?>(?:\s*<strong>)?([^<]+)/i.exec(description)?.[1]
     const title = sessionTitle ? decodeHtml(sessionTitle) : unescapeIcs(fields.get('SUMMARY') ?? '')
     const meetUrl = AFL_2026_MEET_URL
+    const titleKey = title.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+    const archiveCover = /bloom|world class opportunities/.test(titleKey)
+      ? '/images/session-bloom-positioning.jpg'
+      : /tech driven society|succeeding in the ai era/.test(titleKey)
+        ? '/images/session-tech-driven-society.jpg'
+        : /from idea to scale/.test(titleKey)
+          ? '/images/session-from-idea-to-scale.jpg'
+          : /from knowledge to impact/.test(titleKey)
+            ? '/images/session-from-knowledge-to-impact.jpg'
+            : /beyond the paycheck/.test(titleKey)
+              ? '/images/session-beyond-the-paycheck.jpg'
+              : null
+    const programmeArtwork = PROGRAMME_SCHEDULE.find(item => {
+      const scheduledTitle = item.title.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+      return titleKey.includes(scheduledTitle) || scheduledTitle.includes(titleKey)
+    })
     const attachments = content.split('\n').flatMap((line): LiveCalendarAttachment[] => {
       const urlStart = line.indexOf('https://')
       if (urlStart < 1 || !line.startsWith('ATTACH')) return []
@@ -81,7 +99,9 @@ export function parseAflCalendar(ics: string): LiveCalendarEvent[] {
       startAt,
       endAt,
       meetUrl,
-      cover: /onboarding/i.test(fields.get('SUMMARY') ?? '') ? AFL_2026_CALENDAR.artwork : null,
+      cover: /onboarding/i.test(`${title} ${fields.get('SUMMARY') ?? ''}`)
+        ? AFL_2026_CALENDAR.artwork
+        : archiveCover ?? (programmeArtwork ? PROGRAMME_ARTWORK[programmeArtwork.sessionNumber]?.src ?? null : null),
       attachments,
     })
   }

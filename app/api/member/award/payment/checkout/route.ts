@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { getCurrentUser } from '@/lib/auth-server'
 import { isAwardCheckoutEnabled } from '@/lib/production-readiness'
 import { checkRateLimit, RATE_LIMITS, createRateLimitResponse } from '@/lib/rate-limit'
-import { parseCheckoutCurrency } from '@/lib/awards/payment-state'
 import { AwardPaymentError } from '@/lib/awards/payment-errors'
 import { createAwardPaymentCheckout } from '@/lib/awards/payment-server'
+import { normalizeMagazineCountryCode } from '@/lib/magazine/billing-country'
 
 export const runtime = 'nodejs'
+
+const checkoutDetailsSchema = z.object({
+  countryCode: z.string().trim().length(2, 'Select a valid country.'),
+  email: z.string().trim().email('Enter a valid email address.').max(320, 'Enter a valid email address.'),
+}).strict()
 
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser()
@@ -17,14 +23,22 @@ export async function POST(request: NextRequest) {
   const rate = await checkRateLimit({ ...RATE_LIMITS.AUTH, identifier: `award-payment:${user.id}` })
   if (!rate.success) return createRateLimitResponse(rate, 'Too many payment attempts. Please wait a moment.')
 
-  let currency
+  let rawBody: unknown
   try {
-    currency = parseCheckoutCurrency(await request.json())
+    rawBody = await request.json()
   } catch {
-    return NextResponse.json({ message: 'Send only a supported currency (NGN or USD).' }, { status: 400 })
+    return NextResponse.json({ message: 'Enter your billing country and a valid email address.' }, { status: 400 })
+  }
+  const parsed = checkoutDetailsSchema.safeParse(rawBody)
+  if (!parsed.success) return NextResponse.json({ message: parsed.error.issues[0]?.message ?? 'Check your billing details.' }, { status: 400 })
+  let countryCode: string
+  try {
+    countryCode = normalizeMagazineCountryCode(parsed.data.countryCode)
+  } catch {
+    return NextResponse.json({ message: 'Select a valid country.' }, { status: 400 })
   }
   try {
-    return NextResponse.json(await createAwardPaymentCheckout(user, currency))
+    return NextResponse.json(await createAwardPaymentCheckout(user, 'USD', parsed.data.email.trim().toLowerCase(), countryCode))
   } catch (error) {
     if (error instanceof AwardPaymentError) {
       return NextResponse.json({ message: error.message }, { status: error.statusCode })

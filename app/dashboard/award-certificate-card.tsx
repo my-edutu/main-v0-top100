@@ -1,6 +1,6 @@
 'use client'
 
-import { Award, LockKeyhole } from 'lucide-react'
+import { Award, Clock3 } from 'lucide-react'
 
 export function AwardCertificateCard() {
   return (
@@ -19,12 +19,12 @@ export function AwardCertificateCard() {
         <button
           type="button"
           disabled
-          aria-label="Download certificate, locked"
-          title="Certificate download is locked"
+          aria-label="Download certificate, coming soon"
+          title="Certificate download is coming soon"
           className="inline-flex min-h-12 shrink-0 cursor-not-allowed items-center justify-center gap-2 rounded-xl bg-[#302D34] px-5 text-sm font-semibold text-[#AAA3AD] opacity-80"
         >
-          <LockKeyhole className="h-4 w-4" aria-hidden="true" />
-          Locked
+          <Clock3 className="h-4 w-4" aria-hidden="true" />
+          Coming soon
         </button>
       </div>
     </section>

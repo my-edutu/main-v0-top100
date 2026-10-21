@@ -3,6 +3,7 @@ import { rejectCrossOriginMutation } from '@/lib/security/same-origin'
 import { requireAdmin } from '@/lib/api/require-admin'
 import { createAdminClient } from '@/lib/supabase/server'
 import { adminBookingActionSchema } from '@/lib/interviews/booking-schema'
+import { AFL_2026_MEET_URL } from '@/lib/events/afl-2026-calendar'
 export async function GET(request:NextRequest) {
  const auth=await requireAdmin(request);if('error'in auth)return auth.error
  const db=createAdminClient();const [apps,bookings,events,settings,outbox]=await Promise.all([db.from('interview_applications').select('*').order('created_at',{ascending:false}),db.from('interview_bookings').select('*').order('revision',{ascending:false}),db.from('interview_booking_events').select('*').order('created_at',{ascending:false}).limit(100),db.from('interview_scheduling_settings').select('*').eq('id',true).single(),db.from('interview_notification_outbox').select('id,event_key,channel,state,attempts,last_error,created_at').in('state',['failed','processing']).order('created_at',{ascending:false}).limit(30)])
@@ -13,7 +14,7 @@ export async function POST(request:NextRequest) {
   const originFailure=rejectCrossOriginMutation(request);if(originFailure)return originFailure
  const auth=await requireAdmin(request);if('error'in auth)return auth.error
  const body=await request.json().catch(()=>null);const parsed=adminBookingActionSchema.safeParse(body);if(!parsed.success)return NextResponse.json({message:'Check the scheduling details.'},{status:400})
- const result=await createAdminClient().rpc('interview_booking_transition',{p_application_id:parsed.data.applicationId,p_actor_id:auth.user.id,p_actor_role:'admin',p_revision:parsed.data.revision??null,p_action:parsed.data.action,p_payload:{startsAt:parsed.data.startsAt,meetingUrl:parsed.data.meetingUrl,reason:parsed.data.reason}})
+ const result=await createAdminClient().rpc('interview_booking_transition',{p_application_id:parsed.data.applicationId,p_actor_id:auth.user.id,p_actor_role:'admin',p_revision:parsed.data.revision??null,p_action:parsed.data.action,p_payload:{startsAt:parsed.data.startsAt,meetingUrl:['propose','reschedule'].includes(parsed.data.action)?AFL_2026_MEET_URL:parsed.data.meetingUrl,reason:parsed.data.reason}})
  if(result.error){const map:Record<string,string>={slot_conflict:'That time was just reserved. Choose another available time.',daily_capacity_reached:'The daily interview limit is full.',availability_not_configured:'Set working hours before proposing interview times.',outside_working_hours:'Choose a time inside the configured working hours.',insufficient_notice:'Interview times need at least 24 hours notice.',meeting_url_required:'Add a secure meeting link before proposing this time.',stale_revision:'This request changed. Refresh and try again.'};return NextResponse.json({message:map[result.error.message]??'Could not update this interview request.'},{status:result.error.code==='23P01'?409:400})}
  return NextResponse.json({ok:true,...result.data})
 }

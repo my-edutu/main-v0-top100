@@ -2,6 +2,7 @@
 import { dashboardRead } from '@/lib/http/dashboard-read'
 
 export type AwardPaymentCurrency = 'NGN' | 'USD'
+export type AwardCheckoutDetails = { countryCode: string; email: string }
 
 export type AwardPaymentView = {
   checkoutEnabled?: boolean
@@ -37,7 +38,7 @@ export async function reconcileAwardPayment(): Promise<AwardPaymentView> {
   return readResponse(await fetch('/api/member/award/payment/reconcile', { method: 'POST', cache: 'no-store' }))
 }
 
-export async function startAwardPaymentCheckout(currency: AwardPaymentCurrency): Promise<{
+export async function startAwardPaymentCheckout(details: AwardCheckoutDetails): Promise<{
   checkoutUrl: string
   attemptId: string
 }> {
@@ -48,7 +49,7 @@ export async function startAwardPaymentCheckout(currency: AwardPaymentCurrency):
     return await readResponse(await fetch('/api/member/award/payment/checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ currency }),
+      body: JSON.stringify(details),
       signal: controller.signal,
     }))
   } catch (error) {

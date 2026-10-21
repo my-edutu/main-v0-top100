@@ -21,7 +21,7 @@ import { AVATAR_PRESET, processUpload } from '@/lib/image-processing'
 import { uploadMedia } from '@/lib/media/storage'
 import { deriveAwardeeJourney } from '@/lib/dashboard/awardee-journey'
 import { DEFAULT_AWARDEE_JOURNEY_SETTINGS } from '@/lib/dashboard/awardee-journey-settings'
-import { magazineBillingCurrency } from '@/lib/magazine/billing-country'
+import { magazineBillingCurrency, normalizeMagazineCountryCode } from '@/lib/magazine/billing-country'
 import { MEMBER_GROUPS_ENABLED, memberGroupsLockedResponse } from '@/lib/groups/access'
 import { getWhatsAppGroup, WHATSAPP_GROUPS } from '@/lib/groups/whatsapp'
 import type { AwardPaymentCurrency } from '@/lib/payments/bachs/types'
@@ -553,13 +553,22 @@ async function routeAward(request: NextRequest, path: string[], store: DemoDashb
   if (path[1] === 'payment' && path[2] === 'checkout' && path.length === 3 && request.method === 'POST') {
     const body = await readBody(request)
     const keys = body ? Object.keys(body) : []
-    const currency = body?.currency
     if (
       !body ||
-      keys.some((key) => key !== 'currency') ||
-      (currency !== 'NGN' && currency !== 'USD')
+      keys.some((key) => key !== 'countryCode' && key !== 'email') ||
+      keys.length !== 2 ||
+      typeof body.countryCode !== 'string' ||
+      typeof body.email !== 'string' ||
+      body.email.trim().length > 320 ||
+      !/^\S+@\S+\.\S+$/.test(body.email.trim())
     ) {
-      return json({ message: 'Choose NGN or USD to continue.' }, 400)
+      return json({ message: 'Enter your billing country and a valid email address.' }, 400)
+    }
+
+    try {
+      normalizeMagazineCountryCode(body.countryCode)
+    } catch {
+      return json({ message: 'Select a valid country.' }, 400)
     }
 
     if (store.awardPayment.status === 'paid') {
@@ -570,10 +579,8 @@ async function routeAward(request: NextRequest, path: string[], store: DemoDashb
       return json({ message: 'A payment checkout is already being confirmed.' }, 409)
     }
 
-    const selectedOption = DEMO_AWARD_PRICE_OPTIONS.find(
-      (option) => option.currency === currency,
-    )
-    if (!selectedOption) return json({ message: 'Choose NGN or USD to continue.' }, 400)
+    const selectedOption = DEMO_AWARD_PRICE_OPTIONS.find((option) => option.currency === 'USD')
+    if (!selectedOption) return json({ message: 'Award checkout is unavailable. Please try again.' }, 503)
 
     const attemptId = nextId(store, 'demo-bachs-attempt')
     store.awardPayment = {

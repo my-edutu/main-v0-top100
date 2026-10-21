@@ -41,6 +41,8 @@ const nextConfig = {
   ...(process.env.NEXT_OUTPUT_STANDALONE === 'true' ? { output: 'standalone' } : {}),
   outputFileTracingIncludes: {
     '/api/session-materials/beyond-the-paycheck/presentation': ['./private/session-materials/beyond-the-paycheck.pptx'],
+    '/api/session-materials/bloom/presentation': ['./private/session-materials/cynthia-ohaeri-bloom-preview.pdf'],
+    '/api/session-materials/from-idea-to-scale/presentation': ['./private/session-materials/from-idea-to-scale-top100-afl-2026.pdf'],
   },
   async redirects() {
     return [

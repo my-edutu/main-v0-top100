@@ -70,8 +70,13 @@ type CheckoutReservation = {
 
 type PaymentDb = ReturnType<typeof createAdminClient>
 
-function providerResponse(session: BachsCheckoutSession): Record<string, unknown> {
-  return { ...session.safeProviderResponse, checkout_url: session.checkoutUrl }
+function providerResponse(session: BachsCheckoutSession, checkoutContactEmail: string, checkoutCountryCode: string): Record<string, unknown> {
+  return {
+    ...session.safeProviderResponse,
+    checkout_url: session.checkoutUrl,
+    checkout_contact_email: checkoutContactEmail,
+    checkout_country_code: checkoutCountryCode,
+  }
 }
 
 function safeCreationFailureReason(error: unknown): string {
@@ -125,13 +130,15 @@ async function persistCheckoutSession(
   db: PaymentDb,
   reservation: CheckoutReservation,
   session: BachsCheckoutSession,
+  checkoutContactEmail: string,
+  checkoutCountryCode: string,
 ): Promise<'persisted' | 'raced' | 'failed'> {
   const values = {
     status: 'open',
     provider_checkout_id: session.checkoutId,
     provider_status: session.status,
     checkout_expires_at: session.expiresAt,
-    provider_response: providerResponse(session),
+    provider_response: providerResponse(session, checkoutContactEmail, checkoutCountryCode),
   }
 
   for (let attempt = 0; attempt < CHECKOUT_PERSIST_MAX_ATTEMPTS; attempt += 1) {
@@ -159,6 +166,8 @@ async function recordCreatedCheckoutExceptionBestEffort(
   db: PaymentDb,
   reservation: CheckoutReservation,
   session: BachsCheckoutSession,
+  checkoutContactEmail: string,
+  checkoutCountryCode: string,
 ): Promise<boolean> {
   try {
     const { data } = await db
@@ -168,7 +177,7 @@ async function recordCreatedCheckoutExceptionBestEffort(
         provider_checkout_id: session.checkoutId,
         provider_status: session.status,
         checkout_expires_at: session.expiresAt,
-        provider_response: providerResponse(session),
+        provider_response: providerResponse(session, checkoutContactEmail, checkoutCountryCode),
         failure_reason: 'Bachs created a checkout but saving it failed.',
       })
       .eq('id', reservation.attempt_id)
@@ -185,9 +194,12 @@ async function recordCreatedCheckoutExceptionBestEffort(
 export async function createAwardPaymentCheckout(
   member: { id: string; email?: string | null },
   currency: AwardPaymentCurrency,
+  contactEmail?: string,
+  countryCode?: string,
 ): Promise<{ checkoutUrl: string; attemptId: string }> {
-  if (!member.email?.trim()) {
-    throw new AwardPaymentError(400, 'Add an email address to your account before paying.')
+  let checkoutEmail = (contactEmail ?? member.email ?? '').trim().toLowerCase()
+  if (!checkoutEmail || checkoutEmail.length > 320 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(checkoutEmail)) {
+    throw new AwardPaymentError(400, 'Enter a valid email address for checkout.')
   }
   const config = bachsConfig()
   const fee = awardFee(currency)
@@ -210,6 +222,7 @@ export async function createAwardPaymentCheckout(
     throw new AwardPaymentError(409, 'An earlier payment needs confirmation. Please contact support before paying again.')
   }
   let savedRequest: { body: string; apiKeyFingerprint: string; apiBaseUrl: string } | null = null
+  let checkoutCountryCode = countryCode ?? ''
   const keyFingerprint = crypto.createHash('sha256').update(config.apiKey).digest('hex')
   if (reservation?.outcome === 'existing' && reservation.attempt_id && reservation.order_id) {
     const { data: existing, error: existingError } = await db.from('award_payment_attempts').select('*')
@@ -219,9 +232,12 @@ export async function createAwardPaymentCheckout(
       await reconcileAwardAttempt(db, existing, { config })
       const view = await getAwardPaymentView(member.id)
       if (view.currentAttempt?.checkoutUrl) {
+        const existingContactEmail = typeof existing.provider_response?.checkout_contact_email === 'string'
+          ? existing.provider_response.checkout_contact_email
+          : (member.email ?? checkoutEmail).trim().toLowerCase()
         const emailResult = await sendPaymentLifecycleEmail({
           product: 'award', status: 'checkout', attemptId: existing.id,
-          email: member.email.trim(), currency: existing.currency,
+          email: existingContactEmail, currency: existing.currency,
           amountMinor: Number(existing.requested_amount_minor), checkoutUrl: view.currentAttempt.checkoutUrl,
         })
         if (!emailResult.ok) console.error('[award-payment] checkout email could not be sent', { attemptId: existing.id, reason: emailResult.reason })
@@ -230,6 +246,9 @@ export async function createAwardPaymentCheckout(
       throw new AwardPaymentError(409, 'Your payment status has been updated. Refresh your award page to continue.')
     }
     savedRequest = existing?.provider_response?.checkout_request ?? null
+    if (typeof existing?.provider_response?.checkout_country_code === 'string') {
+      checkoutCountryCode = existing.provider_response.checkout_country_code
+    }
     if (existing?.status !== 'creating' || !savedRequest?.body ||
         !Number.isFinite(Date.parse(existing.created_at)) || Date.now() - Date.parse(existing.created_at) >= 23 * 60 * 60_000 ||
         savedRequest.apiKeyFingerprint !== keyFingerprint || savedRequest.apiBaseUrl !== config.apiBaseUrl) {
@@ -241,15 +260,21 @@ export async function createAwardPaymentCheckout(
     throw new AwardPaymentError(409, 'A payment is already being processed or needs review. Refresh your award page before continuing.')
   }
 
+  const savedCustomerEmail = savedRequest
+    ? (JSON.parse(savedRequest.body) as { customer?: { email?: unknown } }).customer?.email
+    : null
+  if (typeof savedCustomerEmail === 'string') checkoutEmail = savedCustomerEmail
+
   const input = {
     orderId: reservation.order_id, attemptId: reservation.attempt_id,
     reference: reservation.provider_reference, idempotencyKey: reservation.idempotency_key,
-    currency, customer: { email: savedRequest ? JSON.parse(savedRequest.body).customer.email : member.email.trim() }, config,
+    currency, customer: { email: checkoutEmail }, config,
+    adaptivePricing: Boolean(checkoutCountryCode),
   }
   const requestBody = savedRequest?.body ?? JSON.stringify(buildCheckoutRequest(input))
   if (!savedRequest) {
     const { data: saved, error: saveError } = await db.from('award_payment_attempts')
-      .update({ provider_response: { checkout_request: { body: requestBody, apiKeyFingerprint: keyFingerprint, apiBaseUrl: config.apiBaseUrl } } })
+      .update({ provider_response: { checkout_country_code: checkoutCountryCode, checkout_request: { body: requestBody, apiKeyFingerprint: keyFingerprint, apiBaseUrl: config.apiBaseUrl } } })
       .eq('id', reservation.attempt_id).eq('order_id', reservation.order_id).eq('status', 'creating').select('id')
     if (saveError || !saved?.length) {
       await failCreatingAttemptBestEffort(db, reservation, new Error('Could not save the request before sending it.'))
@@ -270,7 +295,7 @@ export async function createAwardPaymentCheckout(
     throw error
   }
 
-  const persisted = await persistCheckoutSession(db, reservation, session)
+  const persisted = await persistCheckoutSession(db, reservation, session, checkoutEmail, checkoutCountryCode)
   if (persisted === 'persisted') {
     if (savedRequest && (session.status !== 'open' || Date.parse(session.expiresAt) <= Date.now())) {
       const { data: recovered, error: recoveryError } = await db.from('award_payment_attempts').select('*').eq('id', reservation.attempt_id).maybeSingle()
@@ -280,13 +305,13 @@ export async function createAwardPaymentCheckout(
     }
     const emailResult = await sendPaymentLifecycleEmail({
       product: 'award', status: 'checkout', attemptId: reservation.attempt_id,
-      email: member.email.trim(), currency, amountMinor: awardFee(currency).amountMinor, checkoutUrl: session.checkoutUrl,
+      email: checkoutEmail, currency, amountMinor: awardFee(currency).amountMinor, checkoutUrl: session.checkoutUrl,
     })
     if (!emailResult.ok) console.error('[award-payment] checkout email could not be sent', { attemptId: reservation.attempt_id, reason: emailResult.reason })
     return { checkoutUrl: session.checkoutUrl, attemptId: reservation.attempt_id }
   }
 
-  const exceptionPersisted = await recordCreatedCheckoutExceptionBestEffort(db, reservation, session)
+  const exceptionPersisted = await recordCreatedCheckoutExceptionBestEffort(db, reservation, session, checkoutEmail, checkoutCountryCode)
   if (exceptionPersisted) {
     throw new AwardPaymentError(503, 'Your payment was created but needs support review. Please contact support before retrying.')
   }

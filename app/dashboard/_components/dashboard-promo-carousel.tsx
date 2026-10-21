@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useRef, useState, type PointerEvent, type CSSProperties } from 'react'
-import { ArrowUpRight } from 'lucide-react'
 import Link from 'next/link'
 import Image from '@/components/safe-image'
 import type { AwardPaymentView } from '@/lib/awards/payment'
@@ -34,10 +33,8 @@ export function DashboardPromoCarousel({ payment, showCommunity = false, showLea
       key: 'videos',
       href: eventVideosUrl,
       image: '/illustrations/promo-learning.svg',
-      eyebrow: 'Learn at your own pace',
       title: 'Past sessions & courses',
       description: 'Revisit recordings, presentations, workshops, and notes from earlier sessions.',
-      linkLabel: 'Open sessions',
       tone: 'learning',
       external: false,
     }] : []),
@@ -45,10 +42,8 @@ export function DashboardPromoCarousel({ payment, showCommunity = false, showLea
       key: 'award',
       href: '/dashboard/me/award/payment',
       image: '/illustrations/promo-award.svg',
-      eyebrow: 'Africa Future Leaders · 2026',
       title: 'Your physical award',
       description: awardStatus(payment),
-      linkLabel: payment.needsPayment && payment.status !== 'pending' && payment.status !== 'refunded' ? 'View award options' : 'View payment status',
       tone: 'award',
       external: false,
     }] : []),
@@ -56,10 +51,8 @@ export function DashboardPromoCarousel({ payment, showCommunity = false, showLea
       key: 'whatsapp',
       href: whatsappChannelUrl,
       image: '/illustrations/promo-whatsapp.svg',
-      eyebrow: 'Official updates',
       title: 'Join our WhatsApp channel',
       description: 'Follow announcements and news from Africa Future Leaders.',
-      linkLabel: 'Open channel',
       tone: 'whatsapp',
       external: true,
     },
@@ -67,10 +60,8 @@ export function DashboardPromoCarousel({ payment, showCommunity = false, showLea
       key: 'community',
       href: '/dashboard/discover/groups',
       image: '/illustrations/promo-community.svg',
-      eyebrow: 'Meet your people',
       title: 'Join your AFL community',
       description: 'Find your WhatsApp group and connect with fellow Africa Future Leaders.',
-      linkLabel: 'Find your group',
       tone: 'community',
       external: false,
     }] : []),
@@ -168,10 +159,8 @@ export function DashboardPromoCarousel({ payment, showCommunity = false, showLea
           const contents = <>
             <Image src={card.image} alt="" width={260} height={260} draggable={false} className="dashboard-promo__art" />
             <div className="dashboard-promo__copy">
-              <p className="dashboard-promo__eyebrow">{card.eyebrow}</p>
               <h2>{card.title}</h2>
               <p className="dashboard-promo__description">{card.description}</p>
-              <span className="dashboard-promo__link">{card.linkLabel}<ArrowUpRight size={17} aria-hidden="true" /></span>
             </div>
           </>
 
@@ -202,7 +191,7 @@ export function DashboardPromoCarousel({ payment, showCommunity = false, showLea
           )
         })}
       </div>
-      <p className="sr-only" aria-live="polite">{cards[activeCardIndex].eyebrow}: {cards[activeCardIndex].title}, {activeCardIndex + 1} of {cards.length}.</p>
+      <p className="sr-only" aria-live="polite">{cards[activeCardIndex].title}, {activeCardIndex + 1} of {cards.length}.</p>
     </section>
   )
 }

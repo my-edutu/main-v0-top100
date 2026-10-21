@@ -293,6 +293,7 @@ export default function AwardsSection({
     <div className="space-y-6">
       <AwardPaymentCard
         memberId={member.id}
+        memberEmail={member.email}
         view={view}
         cancelled={resolvedReturnState === 'cancelled'}
       />
