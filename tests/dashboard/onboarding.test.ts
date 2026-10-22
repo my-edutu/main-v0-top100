@@ -47,8 +47,8 @@ describe('mandatory onboarding', () => {
     expect(validateOnboarding({ ...profile, bio: 'Too short' })).toBeNull()
   })
   it('keeps a clear maximum for Bio without suggesting a minimum', () => {
-    expect(validateOnboarding({ ...profile, bio: 'a'.repeat(2001) })).toContain(
-      '2000 characters or fewer',
+    expect(validateOnboarding({ ...profile, bio: 'a'.repeat(5001) })).toContain(
+      '5000 characters or fewer',
     )
   })
 })

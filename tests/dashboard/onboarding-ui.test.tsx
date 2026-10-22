@@ -40,7 +40,7 @@ describe('onboarding Bio context', () => {
     expect(markup).not.toContain('Keep this page open')
     expect(textarea).not.toContain('required')
     expect(textarea).not.toContain('minlength')
-    expect(textarea).toContain('maxLength="2000"')
+    expect(textarea).toContain('maxLength="5000"')
   })
 
   it('explains in the final review that an empty Bio can be added later', () => {

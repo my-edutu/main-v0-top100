@@ -41,7 +41,7 @@ export const onboardingFields = [
     hint: 'A short introduction helps people learn about your work. Your Bio is optional and can be added or updated later.',
     placeholder: 'Start with what you are working on…',
     min: 0,
-    max: 2000,
+    max: 5000,
   },
 ] as const
 

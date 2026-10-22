@@ -12,6 +12,6 @@ describe('complete profile editor', () => {
   })
   it('allows optional fields to be cleared and rejects oversized BIOs', () => {
     expect(validateProfileDraft({ ...draft, bio: '' })).toBeNull()
-    expect(validateProfileDraft({ ...draft, bio: 'x'.repeat(2001) })).toContain('2,000')
+    expect(validateProfileDraft({ ...draft, bio: 'x'.repeat(5001) })).toContain('5,000')
   })
 })
