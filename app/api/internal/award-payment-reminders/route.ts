@@ -22,7 +22,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   try {
     const db = createAdminClient()
-    const result = await processAwardPaymentReminders(db, { limit: 5 })
+    const result = await processAwardPaymentReminders(db, { limit: 30 })
     if (result.errors.some((error) => error.startsWith('claim:'))) {
       console.error('[award-payment-reminders] could not claim reminders', { errors: result.errors })
       return NextResponse.json({ message: 'Could not claim award payment reminders.' }, { status: 503 })

@@ -3,7 +3,7 @@ import { formatAwardPaymentAmount } from '@/lib/awards/payment-notify'
 import type { AwardPaymentCurrency } from '@/lib/payments/bachs/types'
 import { SITE_URL } from '@/lib/site'
 
-export type AwardPaymentReminderKind = 'incomplete' | 'retry'
+export type AwardPaymentReminderKind = 'pre_expiry' | 'incomplete' | 'retry'
 
 export type AwardPaymentReminderRow = {
   reminder_id: string
@@ -15,6 +15,7 @@ export type AwardPaymentReminderRow = {
   email?: string | null
   currency: AwardPaymentCurrency
   amount_minor: number | string
+  checkout_expires_at?: string | null
 }
 
 export type AwardPaymentReminderDb = {
@@ -39,9 +40,15 @@ export function buildAwardPaymentReminder(input: Pick<AwardPaymentReminderRow, '
   const amountMinor = typeof input.amount_minor === 'number' ? input.amount_minor : Number(input.amount_minor)
   const amount = formatAwardPaymentAmount(amountMinor, input.currency)
   const retry = input.reminder_kind === 'retry'
-  const subject = retry ? 'Continue your Top100 award payment' : 'Your Top100 award payment is not confirmed yet'
+  const preExpiry = input.reminder_kind === 'pre_expiry'
+  const subject = preExpiry || retry ? 'Continue with your award' : 'Your Top100 award payment is not confirmed yet'
   const paymentUrl = new URL('/dashboard/me/award/payment', SITE_URL).toString()
-  const statusLine = retry
+  const expiryLabel = input.checkout_expires_at
+    ? new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Africa/Lagos' }).format(new Date(input.checkout_expires_at))
+    : null
+  const statusLine = preExpiry
+    ? `Your award fee checkout for ${amount} is still open${expiryLabel ? ` and is scheduled to expire at ${expiryLabel} WAT` : ''}. You can continue the same payment from your dashboard before it expires.`
+    : retry
     ? `The payment provider could not complete your award fee payment of ${amount}. You can return to your dashboard to try again.`
     : `We have not received confirmation for your award fee payment of ${amount} yet. Your checkout has expired, so you can return to your dashboard to start again.`
   const alreadyPaid = 'If you already paid, please do not pay again. Check your dashboard for the latest status or contact the Top100 team so we can verify it.'
@@ -69,7 +76,7 @@ export function buildAwardPaymentReminder(input: Pick<AwardPaymentReminderRow, '
         <p style="margin:0 0 14px;font-size:16px;line-height:1.6;color:#d0c9d0;">Hi ${escapeHtml(name)},</p>
         <p style="margin:0 0 14px;font-size:16px;line-height:1.6;color:#d0c9d0;">${escapeHtml(statusLine)}</p>
         <p style="margin:0 0 22px;font-size:14px;line-height:1.6;color:#d0c9d0;">${escapeHtml(alreadyPaid)}</p>
-        <p style="margin:0 0 24px;"><a href="${escapeHtml(paymentUrl)}" style="display:inline-block;min-height:44px;padding:13px 22px;border-radius:12px;background:#f97316;color:#171412;font-size:15px;font-weight:700;text-decoration:none;">Continue to payment</a></p>
+        <p style="margin:0 0 24px;"><a href="${escapeHtml(paymentUrl)}" style="display:inline-block;min-height:44px;padding:13px 22px;border-radius:12px;background:#f97316;color:#171412;font-size:15px;font-weight:700;text-decoration:none;">${preExpiry ? 'Continue with your award' : 'Continue to payment'}</a></p>
         <p style="margin:0;font-size:13px;color:#aaa3ad;">— The Top100 Africa Future Leaders team</p>
       </td></tr>
     </table>
@@ -100,13 +107,13 @@ function reminderRows(value: unknown): AwardPaymentReminderRow[] {
     entry && typeof entry === 'object' &&
     typeof (entry as AwardPaymentReminderRow).reminder_id === 'string' &&
     typeof (entry as AwardPaymentReminderRow).payment_attempt_id === 'string' &&
-    ((entry as AwardPaymentReminderRow).reminder_kind === 'incomplete' || (entry as AwardPaymentReminderRow).reminder_kind === 'retry') &&
+    ((entry as AwardPaymentReminderRow).reminder_kind === 'pre_expiry' || (entry as AwardPaymentReminderRow).reminder_kind === 'incomplete' || (entry as AwardPaymentReminderRow).reminder_kind === 'retry') &&
     typeof (entry as AwardPaymentReminderRow).email === 'string' &&
     ((entry as AwardPaymentReminderRow).currency === 'NGN' || (entry as AwardPaymentReminderRow).currency === 'USD'),
   ))
 }
 
-/** Claim and deliver payment reminders for expired open attempts and terminal failed attempts. */
+/** Claim and deliver reminders for soon-to-expire checkouts and unfinished payments. */
 export async function processAwardPaymentReminders(
   db: AwardPaymentReminderDb,
   dependencies: AwardPaymentReminderDeps = {},
