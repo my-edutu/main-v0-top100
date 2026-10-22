@@ -35,7 +35,7 @@ export type AwardPaymentReminderResult = {
   errors: string[]
 }
 
-export function buildAwardPaymentReminder(input: Pick<AwardPaymentReminderRow, 'reminder_kind' | 'recipient_name' | 'currency' | 'amount_minor'>) {
+export function buildAwardPaymentReminder(input: Pick<AwardPaymentReminderRow, 'reminder_kind' | 'recipient_name' | 'currency' | 'amount_minor' | 'checkout_expires_at'>) {
   const name = (input.recipient_name ?? '').trim() || 'Awardee'
   const amountMinor = typeof input.amount_minor === 'number' ? input.amount_minor : Number(input.amount_minor)
   const amount = formatAwardPaymentAmount(amountMinor, input.currency)
