@@ -152,7 +152,13 @@ const availableSessions: Session[] = [
     unlockAt: '2026-10-23T00:00:00+01:00',
     summary: 'Technology is changing the way young leaders learn, work, and make decisions. This session explores how to position yourself in a tech driven society, make better decisions, and build a competitive advantage. Consider how you assess new information, choose the tools and skills that support your goals, and stay focused on the human judgement behind important decisions. Reflect on where technology is changing your field and how you can keep learning and contribute with purpose.',
     featured: true,
-    resources: [],
+    resources: [
+      {
+        title: 'Succeeding in a tech driven society session recording',
+        type: 'video',
+        url: 'https://drive.google.com/file/d/1iyzOszSw4YhIKOBKc69_a6gbbYgsFe4j/view?usp=sharing',
+      },
+    ],
   },
 ]
 

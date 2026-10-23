@@ -31,7 +31,7 @@ export default function AdminInvitesPage() {
   const [label, setLabel] = useState('Awardee invite')
   const [email, setEmail] = useState('')
   const [mode, setMode] = useState<'single_use' | 'time_limited'>('single_use')
-  const [durationHours, setDurationHours] = useState<1 | 24 | 168>(1)
+  const [durationHours, setDurationHours] = useState<1 | 24 | 168 | 720>(1)
   const [copiedCode, setCopiedCode] = useState('')
   const [latestCode, setLatestCode] = useState('')
   const [error, setError] = useState('')
@@ -172,7 +172,7 @@ export default function AdminInvitesPage() {
               </Badge>
               <h1 className="mt-3 text-4xl font-black tracking-tight text-slate-950">Awardee codes</h1>
               <p className="mt-2 max-w-xl text-sm text-slate-600">
-                Create a one-person code or open a reusable signup window for 1 hour, 24 hours, or one week.
+                Create a one-person code or open a reusable signup window for 1 hour, 24 hours, one week, or one month.
               </p>
             </div>
           </div>
@@ -235,8 +235,8 @@ export default function AdminInvitesPage() {
               ) : (
                 <div className="space-y-2">
                   <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Expires after</p>
-                  <div className="grid grid-cols-3 gap-2">
-                    {([1, 24, 168] as const).map((hours) => (
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    {([1, 24, 168, 720] as const).map((hours) => (
                       <button
                         key={hours}
                         type="button"
@@ -244,7 +244,7 @@ export default function AdminInvitesPage() {
                         aria-pressed={durationHours === hours}
                         className={cn('rounded-full border px-4 py-2 text-sm font-bold transition', durationHours === hours ? 'border-orange-400 bg-orange-500 text-white shadow-sm' : 'border-slate-200 bg-white text-slate-700 hover:border-orange-300 hover:bg-orange-50')}
                       >
-                        {hours === 1 ? '1 hour' : hours === 24 ? '24 hours' : '1 week'}
+                        {hours === 1 ? '1 hour' : hours === 24 ? '24 hours' : hours === 168 ? '1 week' : '1 month'}
                       </button>
                     ))}
                   </div>

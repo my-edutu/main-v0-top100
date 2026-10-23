@@ -34,7 +34,9 @@ import {
   BadgeCheck,
   CircleDollarSign,
   ClipboardList,
+  Download,
   Loader2,
+  Mail,
   Package,
   RefreshCw,
   ShieldCheck,
@@ -265,6 +267,10 @@ export default function AdminAwardsPage() {
   const [summary, setSummary] = useState<AdminAwardSummary | null>(null)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [savingId, setSavingId] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [emailComposerId, setEmailComposerId] = useState<string | null>(null)
+  const [emailDrafts, setEmailDrafts] = useState<Record<string, { subject: string; message: string }>>({})
+  const [emailSendingId, setEmailSendingId] = useState<string | null>(null)
 
   // Per-row draft inputs, keyed by order id.
   const [shippingDrafts, setShippingDrafts] = useState<Record<string, string>>({})
@@ -308,7 +314,7 @@ export default function AdminAwardsPage() {
 
   const stats = summary ?? buildAdminAwardSummary(orders)
   const paidWithoutWaybill = useMemo(() => orders.filter(isPaidWithoutWaybill), [orders])
-  const filteredOrders = useMemo(() => {
+  const statusFilteredOrders = useMemo(() => {
     if (statusFilter === 'all') return orders
     if (statusFilter === 'paid_no_waybill') return paidWithoutWaybill
     if (statusFilter === 'payment_confirmed') return orders.filter((order) => order.awardPaymentVerified)
@@ -318,6 +324,92 @@ export default function AdminAwardsPage() {
     )
     return orders.filter((order) => order.status === statusFilter)
   }, [orders, statusFilter, paidWithoutWaybill])
+
+  const filteredOrders = useMemo(() => {
+    const query = searchQuery.trim().toLocaleLowerCase()
+    if (!query) return statusFilteredOrders
+    return statusFilteredOrders.filter((order) => [
+      order.memberName, order.recipientName, order.memberEmail, order.email, order.phone,
+      order.city, order.state, order.country, order.waybill, order.paystackReference,
+      order.payment?.providerReference, order.payment?.reference, order.payment?.status,
+      order.awardPaymentStatus, STATUS_LABELS[order.status], paymentEvidenceLabel(order),
+    ].some((value) => value?.toLocaleLowerCase().includes(query)))
+  }, [searchQuery, statusFilteredOrders])
+
+  const exportOrders = useCallback(async (format: 'csv' | 'xlsx') => {
+    const rows = filteredOrders.map((order) => ({
+      Name: order.memberName || order.recipientName || 'Awardee',
+      Email: order.memberEmail || order.email,
+      Phone: order.phone,
+      Status: STATUS_LABELS[order.status],
+      'Payment status': paymentEvidenceLabel(order),
+      'Award fee': formatNaira(order.awardAmountKobo),
+      'Shipping fee': order.shippingAmountKobo == null ? '' : formatNaira(order.shippingAmountKobo),
+      Total: order.totalAmountKobo == null ? '' : formatNaira(order.totalAmountKobo),
+      Currency: order.currency,
+      Country: order.country,
+      State: order.state,
+      City: order.city,
+      Waybill: order.waybill ?? '',
+      'Payment reference': order.payment?.providerReference ?? order.paystackReference ?? '',
+      'Created at': order.createdAt,
+    }))
+    const filename = `award-orders-${new Date().toISOString().slice(0, 10)}`
+    if (format === 'csv') {
+      const columns = Object.keys(rows[0] ?? { Name: '', Email: '' })
+      const escapeCell = (value: unknown) => {
+        const text = String(value ?? '')
+        const safeText = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text
+        return `"${safeText.replaceAll('"', '""')}"`
+      }
+      const csv = [columns.map(escapeCell).join(','), ...rows.map((row) => columns.map((column) => escapeCell(row[column as keyof typeof row])).join(','))].join('\r\n')
+      const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' }))
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = `${filename}.csv`
+      anchor.click()
+      URL.revokeObjectURL(url)
+      return
+    }
+    try {
+      const XLSX = await import('xlsx')
+      const sheet = XLSX.utils.json_to_sheet(rows)
+      const workbook = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(workbook, sheet, 'Award orders')
+      XLSX.writeFile(workbook, `${filename}.xlsx`)
+    } catch (error) {
+      console.error('Could not export award orders to XLSX:', error)
+      toast.error('Could not create the Excel export.')
+    }
+  }, [filteredOrders])
+
+  const handleSendOrderEmail = useCallback(async (order: AwardOrder) => {
+    const draft = emailDrafts[order.id]
+    if (!draft?.subject.trim() || !draft.message.trim()) {
+      toast.error('Add an email subject and message first.')
+      return
+    }
+    setEmailSendingId(order.id)
+    try {
+      const response = await fetch('/api/admin/awards/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: order.id, subject: draft.subject, message: draft.message }),
+      })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        toast.error(data?.message || 'Could not send this email.')
+        return
+      }
+      toast.success(`Email sent to ${data.sentTo || order.memberEmail}.`)
+      setEmailComposerId(null)
+    } catch (error) {
+      console.error('Could not send award order email:', error)
+      toast.error('Could not send this email. Please try again.')
+    } finally {
+      setEmailSendingId(null)
+    }
+  }, [emailDrafts])
 
   const patchOrder = useCallback(
     async (
@@ -598,9 +690,18 @@ export default function AdminAwardsPage() {
           <div className="award-toolbar-copy">
             <p className="admin-kicker">Order queue</p>
             <h2>{statusFilterTitle(statusFilter)}</h2>
-            <p>Showing {filteredOrders.length} of {orders.length}</p>
+            <p>Showing {filteredOrders.length} of {statusFilteredOrders.length} matching status · {orders.length} total</p>
           </div>
           <div className="award-toolbar-actions">
+            <label className="sr-only" htmlFor="award-order-search">Search award orders</label>
+            <Input
+              id="award-order-search"
+              type="search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Search name, email, phone, reference…"
+              autoComplete="off"
+            />
             <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as StatusFilter)}>
               <SelectTrigger className="w-full sm:w-[240px]">
                 <SelectValue placeholder="Filter by status" />
@@ -620,6 +721,14 @@ export default function AdminAwardsPage() {
                 ))}
               </SelectContent>
             </Select>
+            <div className="award-export-actions" aria-label="Export filtered orders">
+              <Button type="button" variant="outline" onClick={() => void exportOrders('csv')} disabled={filteredOrders.length === 0}>
+                <Download className="mr-2 h-4 w-4" aria-hidden="true" />CSV
+              </Button>
+              <Button type="button" variant="outline" onClick={() => void exportOrders('xlsx')} disabled={filteredOrders.length === 0}>
+                <Download className="mr-2 h-4 w-4" aria-hidden="true" />Excel
+              </Button>
+            </div>
           </div>
       </section>
 
@@ -628,11 +737,11 @@ export default function AdminAwardsPage() {
         <div className="admin-panel award-empty-state">
             <span className="award-empty-icon"><Package aria-hidden="true" /></span>
             <p className="admin-kicker">Queue clear</p>
-            <h2>{statusFilter === 'all' ? 'No award orders yet' : 'No orders match this filter'}</h2>
+            <h2>{orders.length === 0 ? 'No award orders yet' : 'No orders match this search'}</h2>
             <p>
-              {statusFilter === 'all' ? 'No award orders have been started yet.' : 'No orders match this filter.'}
+              {orders.length === 0 ? 'No award orders have been started yet.' : 'Try another name, email, phone number, reference, or status.'}
             </p>
-            {statusFilter !== 'all' ? <Button variant="outline" onClick={() => setStatusFilter('all')}>View all orders</Button> : null}
+            {statusFilter !== 'all' || searchQuery ? <Button variant="outline" onClick={() => { setStatusFilter('all'); setSearchQuery('') }}>Clear filters</Button> : null}
         </div>
       ) : (
         <div className="space-y-4">
@@ -662,6 +771,63 @@ export default function AdminAwardsPage() {
                   <ArrowDown aria-hidden="true" className="award-order-chevron" />
                 </summary>
                 <div className="award-order-details">
+
+                  <section className="award-order-email-panel" aria-label={`Email ${order.memberName || 'awardee'}`}>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold">Contact awardee</p>
+                        <p className="text-xs text-muted-foreground">{order.memberEmail || order.email || 'No email address on record'}</p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={!order.memberEmail && !order.email}
+                        onClick={() => {
+                          if (emailComposerId === order.id) setEmailComposerId(null)
+                          else {
+                            setEmailDrafts((current) => current[order.id] ? current : {
+                              ...current,
+                              [order.id]: { subject: 'Your Africa Future Leaders award', message: '' },
+                            })
+                            setEmailComposerId(order.id)
+                          }
+                        }}
+                      >
+                        <Mail className="mr-2 h-4 w-4" aria-hidden="true" />
+                        {emailComposerId === order.id ? 'Close composer' : 'Send email'}
+                      </Button>
+                    </div>
+                    {emailComposerId === order.id ? (
+                      <div className="award-email-composer">
+                        <label className="grid gap-1.5 text-sm font-medium">
+                          Subject
+                          <Input
+                            maxLength={160}
+                            value={emailDrafts[order.id]?.subject ?? ''}
+                            onChange={(event) => setEmailDrafts((current) => ({ ...current, [order.id]: { subject: event.target.value, message: current[order.id]?.message ?? '' } }))}
+                          />
+                        </label>
+                        <label className="grid gap-1.5 text-sm font-medium">
+                          Message
+                          <Textarea
+                            maxLength={4000}
+                            rows={5}
+                            placeholder={`Write a message to ${order.memberName || 'the awardee'}…`}
+                            value={emailDrafts[order.id]?.message ?? ''}
+                            onChange={(event) => setEmailDrafts((current) => ({ ...current, [order.id]: { subject: current[order.id]?.subject ?? '', message: event.target.value } }))}
+                          />
+                        </label>
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <p className="text-xs text-muted-foreground">Sent through the configured transactional email provider.</p>
+                          <Button type="button" disabled={emailSendingId === order.id} onClick={() => void handleSendOrderEmail(order)}>
+                            {emailSendingId === order.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : <Mail className="mr-2 h-4 w-4" aria-hidden="true" />}
+                            {emailSendingId === order.id ? 'Sending…' : 'Send email'}
+                          </Button>
+                        </div>
+                      </div>
+                    ) : null}
+                  </section>
 
                   {/* Award-fee payment is its own state machine. Keep this
                       provider-neutral projection separate from the legacy
