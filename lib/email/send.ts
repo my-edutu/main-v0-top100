@@ -42,7 +42,7 @@ export async function sendTransactionalEmail(input: SendInput): Promise<{ ok: bo
         disableFileAccess: true,
         disableUrlAccess: true,
       })
-      await transporter.sendMail({
+      const sendResult = await transporter.sendMail({
         from: { name: senderName, address: senderEmail },
         to: { name: input.toName, address: input.to },
         subject: input.subject,
@@ -52,6 +52,20 @@ export async function sendTransactionalEmail(input: SendInput): Promise<{ ok: bo
           messageId: `<${createHash('sha256').update(input.idempotencyKey).digest('hex')}@top100afl.com>`,
         } : {}),
       })
+      const normalizedRecipient = input.to.trim().toLowerCase()
+      const acceptedRecipients = sendResult.accepted as Array<string | { address?: string }>
+      const accepted = acceptedRecipients.some((recipient) => {
+        const address = typeof recipient === 'string' ? recipient : recipient.address
+        return typeof address === 'string' && address.trim().toLowerCase() === normalizedRecipient
+      })
+      if (!accepted) {
+        return {
+          ok: false,
+          reason: sendResult.rejected.length
+            ? 'Brevo SMTP rejected the recipient.'
+            : 'Brevo SMTP did not confirm acceptance of the recipient.',
+        }
+      }
       return { ok: true }
     } catch (error) {
       const smtpError = error && typeof error === 'object'

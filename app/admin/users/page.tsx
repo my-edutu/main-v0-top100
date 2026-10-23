@@ -39,7 +39,7 @@ import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
-import { Search, User, Shield, Eye, EyeOff, Edit, Trash2, Users, UserCheck, UserPlus, Loader2, ChevronLeft, ChevronRight, Copy, Check } from 'lucide-react'
+import { Search, User, Shield, Eye, EyeOff, Edit, Trash2, Users, UserCheck, UserPlus, Loader2, ChevronLeft, ChevronRight, Copy, Check, Mail } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getPageItems, getPageSlice } from '@/lib/admin/user-pagination'
 
@@ -67,6 +67,8 @@ export default function UserManagement() {
   const [updating, setUpdating] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [recoveryTarget, setRecoveryTarget] = useState<User | null>(null)
+  const [sendingRecoveryFor, setSendingRecoveryFor] = useState<string | null>(null)
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false)
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteName, setInviteName] = useState('')
@@ -248,6 +250,23 @@ export default function UserManagement() {
       toast.error(error instanceof Error ? error.message : 'Could not create admin setup link')
     } finally {
       setInviting(false)
+    }
+  }
+
+  const handleSendPasswordRecovery = async (user: User) => {
+    try {
+      setSendingRecoveryFor(user.id)
+      const response = await fetch(`/api/admin/users/${encodeURIComponent(user.id)}/password-reset`, {
+        method: 'POST',
+      })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.message || 'Could not send the password recovery email')
+      toast.success(`Recovery email accepted for ${data.sentTo || user.email}`)
+      setRecoveryTarget(null)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not send the password recovery email')
+    } finally {
+      setSendingRecoveryFor(null)
     }
   }
 
@@ -490,6 +509,17 @@ export default function UserManagement() {
                         <Button
                           variant="ghost"
                           size="icon"
+                          onClick={() => setRecoveryTarget(user)}
+                          disabled={sendingRecoveryFor !== null}
+                          className="h-8 w-8 text-zinc-400 hover:text-orange-600 hover:bg-orange-50"
+                          aria-label={`Send password recovery email to ${user.name}`}
+                          title="Send password recovery email"
+                        >
+                          <Mail className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={() => toggleStatus(user.id)}
                           className="h-8 w-8 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100"
                           aria-label={`Mark ${user.name} as ${user.status === 'active' ? 'inactive' : 'active'}`}
@@ -540,6 +570,9 @@ export default function UserManagement() {
                       </div>
                       {/* 44px targets — these were 32px, below the minimum for touch. */}
                       <div className="flex gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => setRecoveryTarget(user)} disabled={sendingRecoveryFor !== null} aria-label={`Send password recovery email to ${user.name}`} title="Send password recovery email" className="h-11 w-11 rounded-full bg-orange-50 text-orange-700 hover:bg-orange-100">
+                          <Mail className="h-4 w-4" />
+                        </Button>
                         <Button variant="ghost" size="icon" onClick={() => toggleStatus(user.id)} aria-label={`Toggle status for ${user.name}`} className="h-11 w-11 rounded-full bg-zinc-50 text-zinc-500">
                           {user.status === 'active' ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                         </Button>
@@ -723,6 +756,33 @@ export default function UserManagement() {
             >
               {deleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
               {deleting ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={recoveryTarget !== null} onOpenChange={(open) => {
+        if (!open && sendingRecoveryFor === null) setRecoveryTarget(null)
+      }}>
+        <AlertDialogContent className="bg-white border-orange-100 rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-zinc-900">Send a password recovery email?</AlertDialogTitle>
+            <AlertDialogDescription className="text-zinc-500">
+              Send a single-use link to <span className="font-medium text-zinc-800">{recoveryTarget?.name}</span> so they can choose a new password. The link goes to the email on their sign-in account; it will not be shown here. The provider accepting the email does not guarantee inbox delivery.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={sendingRecoveryFor !== null} className="rounded-xl border-zinc-200 text-zinc-600">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault()
+                if (recoveryTarget && sendingRecoveryFor === null) void handleSendPasswordRecovery(recoveryTarget)
+              }}
+              disabled={sendingRecoveryFor !== null}
+              className="rounded-xl bg-orange-600 hover:bg-orange-700 text-white"
+            >
+              {sendingRecoveryFor ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
+              {sendingRecoveryFor ? 'Submitting…' : 'Send recovery email'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
