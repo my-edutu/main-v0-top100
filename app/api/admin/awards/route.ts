@@ -17,6 +17,7 @@ import {
 import { buildAdminAwardSummary, hasVerifiedAwardPayment } from '@/lib/awards/admin-summary'
 
 export const runtime = 'nodejs'
+const PAYMENT_ATTEMPT_ORDER_BATCH_SIZE = 40
 
 function nullableString(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value : null
@@ -59,6 +60,7 @@ export async function GET(request: NextRequest) {
 
   if (error) {
     if (isMissingAwardTable(error)) return NextResponse.json({ message: AWARD_SETUP_MESSAGE }, { status: 503 })
+    console.error('[admin-awards] Failed to load award orders:', error)
     return NextResponse.json({ message: 'Could not load award orders.' }, { status: 500 })
   }
 
@@ -69,23 +71,28 @@ export async function GET(request: NextRequest) {
 
   if (orderIds.length > 0) {
     try {
-      const attemptsResult = await supabase
-        .from('award_payment_attempts')
-        .select(ADMIN_PAYMENT_ATTEMPT_COLUMNS)
-        .in('order_id', orderIds)
-        .order('created_at', { ascending: false })
+      // Keep the PostgREST URL below proxy limits. A single `.in()` across
+      // every order exceeds Dokploy/Traefik request-line limits as the ledger
+      // grows, failing the whole admin page with URI too long.
+      for (let offset = 0; offset < orderIds.length; offset += PAYMENT_ATTEMPT_ORDER_BATCH_SIZE) {
+        const batch = orderIds.slice(offset, offset + PAYMENT_ATTEMPT_ORDER_BATCH_SIZE)
+        const attemptsResult = await supabase
+          .from('award_payment_attempts')
+          .select(ADMIN_PAYMENT_ATTEMPT_COLUMNS)
+          .in('order_id', batch)
+          .order('created_at', { ascending: false })
 
-      if (attemptsResult.error) {
-        // The additive migration may not have reached a deployment yet. Keep
-        // historical Paystack rows visible while the rest of the admin page
-        // continues to work against the existing award_orders table.
-        if (isMissingPaymentAttemptTable(attemptsResult.error)) {
-          paymentDataAvailable = false
-        } else {
+        if (attemptsResult.error) {
+          // The additive migration may not have reached a deployment yet. Keep
+          // historical order rows visible while the rest of the admin page
+          // continues to work against the existing award_orders table.
+          if (isMissingPaymentAttemptTable(attemptsResult.error)) {
+            paymentDataAvailable = false
+            break
+          }
           console.error('[admin-awards] Failed to load payment attempts:', attemptsResult.error)
           return NextResponse.json({ message: 'Could not verify award payment records. Refresh and try again.' }, { status: 503 })
         }
-      } else {
         for (const attempt of (attemptsResult.data ?? []) as any[]) {
           const orderId = nullableString(attempt?.order_id)
           if (!orderId) continue

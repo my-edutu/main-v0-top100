@@ -193,6 +193,14 @@ function canVerifyLegacyPayment(order: AwardOrder): boolean {
   return hasLegacyReference && !hasBachsSuccess && !order.awardPaymentVerified
 }
 
+function bachsAttemptNeedsReconciliation(order: AwardOrder): AwardPaymentAttempt | null {
+  if (order.awardPaymentVerified) return null
+  return (order.paymentAttempts ?? []).find((attempt) =>
+    attempt.provider === 'bachs' && Boolean(attempt.id && attempt.providerCheckoutId) &&
+    ['creating', 'open', 'processing', 'overpaid'].includes(attempt.status),
+  ) ?? null
+}
+
 function legacyPaymentReference(order: AwardOrder): string {
   return order.paystackReference
     ?? (order.paymentAttempts ?? []).find((attempt) => attempt.isLegacy)?.providerReference
@@ -433,6 +441,36 @@ export default function AdminAwardsPage() {
     [fetchOrders],
   )
 
+  const handleReconcileBachsPayment = useCallback(
+    async (order: AwardOrder, attempt: AwardPaymentAttempt) => {
+      if (!attempt.id) return
+      setSavingId(order.id)
+      try {
+        const response = await fetch('/api/admin/awards/reconcile-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderId: order.id, attemptId: attempt.id }),
+        })
+        const data = await response.json().catch(() => ({}))
+
+        if (!response.ok) {
+          toast.error(data?.message || 'Could not verify this Bachs checkout.')
+          return
+        }
+
+        if (data?.outcome === 'succeeded') toast.success(data?.message || 'Bachs confirmed the payment.')
+        else toast.info(data?.message || 'Bachs has not confirmed this payment yet.')
+        await fetchOrders()
+      } catch (error) {
+        console.error('Error reconciling Bachs award payment:', error)
+        toast.error('Could not verify this Bachs checkout.')
+      } finally {
+        setSavingId(null)
+      }
+    },
+    [fetchOrders],
+  )
+
   if (loading) {
     return (
       <div className="award-orders-page space-y-6 pb-4">
@@ -602,6 +640,7 @@ export default function AdminAwardsPage() {
             const nextStatuses = MANUAL_ADVANCE_TARGETS.filter((candidate) =>
               canTransition(order.status, candidate),
             )
+            const bachsReconciliationAttempt = bachsAttemptNeedsReconciliation(order)
 
             return (
               <details key={order.id} className="award-order-card">
@@ -716,6 +755,33 @@ export default function AdminAwardsPage() {
                       </div>
                     </div>
                   )}
+
+                  {bachsReconciliationAttempt ? (
+                    <div className="rounded-xl border border-border/60 p-3 space-y-2">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div>
+                          <label className="text-sm font-medium block">Check payment with Bachs</label>
+                          <p className="text-xs text-muted-foreground">
+                            The provider is checked against this order, checkout, reference, and exact amount. The order is marked paid only if Bachs verifies a successful charge.
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          disabled={savingId === order.id}
+                          onClick={() => handleReconcileBachsPayment(order, bachsReconciliationAttempt)}
+                          className="sm:shrink-0"
+                        >
+                          {savingId === order.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          ) : (
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                          )}
+                          Check Bachs status
+                        </Button>
+                      </div>
+                    </div>
+                  ) : null}
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm text-muted-foreground">
                     <div>
