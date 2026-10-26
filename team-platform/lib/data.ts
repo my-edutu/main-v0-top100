@@ -56,12 +56,38 @@ export type AwardeeFilters = {
   followUp?: 'due' | 'overdue' | 'scheduled' | ''
   page?: number
   pageSize?: number
-  sort?: 'name' | 'newest' | 'followup' | 'last_contact'
+  sort?: 'name' | 'newest' | 'followup' | 'last_contact' | 'shuffle'
+  shuffleSeed?: string
   includeInactive?: boolean
 }
 
 function sanitizeSearch(value: string) {
   return value.replace(/[%,()*]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80)
+}
+
+function createSeededRandom(seed: string) {
+  let state = 2166136261
+  for (let index = 0; index < seed.length; index++) {
+    state = Math.imul(state ^ seed.charCodeAt(index), 16777619)
+  }
+
+  return () => {
+    state += 0x6d2b79f5
+    let value = state
+    value = Math.imul(value ^ (value >>> 15), value | 1)
+    value ^= value + Math.imul(value ^ (value >>> 7), value | 61)
+    return ((value ^ (value >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+function shuffleRows<T>(rows: T[], seed: string): T[] {
+  const shuffled = [...rows]
+  const random = createSeededRandom(seed)
+  for (let index = shuffled.length - 1; index > 0; index--) {
+    const swapIndex = Math.floor(random() * (index + 1))
+    ;[shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]]
+  }
+  return shuffled
 }
 
 function raise(error: { message: string } | null, context: string) {
@@ -84,28 +110,63 @@ export async function listAwardees(
   const from = (page - 1) * pageSize
   const to = from + pageSize - 1
 
-  let query = admin
-    .from('team_awardee_directory')
-    .select('*', { count: 'exact' })
-    .eq('team_id', member.membership.team_id)
+  const buildQuery = () => {
+    let query = admin
+      .from('team_awardee_directory')
+      .select('*', { count: 'exact' })
+      .eq('team_id', member.membership.team_id)
 
-  if (!filters.includeInactive) query = query.eq('is_active', true)
-  query = agentScope(query, member)
-  if (filters.agentId && isStaff(member.membership.role)) query = query.eq('agent_id', filters.agentId)
-  if (filters.assignment === 'unassigned') query = query.is('agent_id', null)
-  if (filters.assignment === 'assigned') query = query.not('agent_id', 'is', null)
-  if (filters.paymentStatus?.length) query = query.in('payment_status', filters.paymentStatus)
-  if (filters.contactStatus) query = query.eq('contact_status', filters.contactStatus)
-  if (filters.country) query = query.eq('country', filters.country)
-  if (filters.followUp === 'due') query = query.lte('next_followup_at', new Date().toISOString().slice(0, 10))
-  if (filters.followUp === 'overdue') query = query.lt('next_followup_at', new Date().toISOString().slice(0, 10))
-  if (filters.followUp === 'scheduled') query = query.gt('next_followup_at', new Date().toISOString().slice(0, 10))
+    if (!filters.includeInactive) query = query.eq('is_active', true)
+    query = agentScope(query, member)
+    if (filters.agentId && isStaff(member.membership.role)) query = query.eq('agent_id', filters.agentId)
+    if (filters.assignment === 'unassigned') query = query.is('agent_id', null)
+    if (filters.assignment === 'assigned') query = query.not('agent_id', 'is', null)
+    if (filters.paymentStatus?.length) query = query.in('payment_status', filters.paymentStatus)
+    if (filters.contactStatus) query = query.eq('contact_status', filters.contactStatus)
+    if (filters.country) query = query.eq('country', filters.country)
+    if (filters.followUp === 'due') query = query.lte('next_followup_at', new Date().toISOString().slice(0, 10))
+    if (filters.followUp === 'overdue') query = query.lt('next_followup_at', new Date().toISOString().slice(0, 10))
+    if (filters.followUp === 'scheduled') query = query.gt('next_followup_at', new Date().toISOString().slice(0, 10))
 
-  const search = sanitizeSearch(filters.search ?? '')
-  if (search) {
-    query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%`)
+    const search = sanitizeSearch(filters.search ?? '')
+    if (search) {
+      query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%`)
+    }
+
+    return query
   }
 
+  if (filters.sort === 'shuffle') {
+    const shuffledRows: AwardeeDirectoryRow[] = []
+    let total = 0
+    let offset = 0
+    const batchSize = 1000
+
+    while (true) {
+      const { data, error, count } = await buildQuery()
+        .order('id', { ascending: true })
+        .range(offset, offset + batchSize - 1)
+      raise(error, 'Could not load awardees')
+
+      const batch = (data ?? []) as AwardeeDirectoryRow[]
+      if (offset === 0) total = count ?? batch.length
+      shuffledRows.push(...batch)
+      offset += batch.length
+
+      if (batch.length < batchSize || offset >= total) break
+    }
+
+    const shuffled = shuffleRows(shuffledRows, filters.shuffleSeed ?? 'awardee-directory')
+    return {
+      rows: shuffled.slice(from, to + 1),
+      total,
+      page,
+      pageSize,
+      pages: Math.ceil(total / pageSize),
+    }
+  }
+
+  let query = buildQuery()
   switch (filters.sort) {
     case 'newest':
       query = query.order('created_at', { ascending: false })

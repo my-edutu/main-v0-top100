@@ -1,21 +1,13 @@
+import { randomUUID } from 'node:crypto'
 import Link from 'next/link'
 import {
-  CheckCircle2,
   Filter,
   Mail,
   MessageCircle,
   Phone,
   Search,
-  SlidersHorizontal,
 } from 'lucide-react'
-import {
-  Avatar,
-  EmptyState,
-  PageHeader,
-  Pagination,
-  StatusChip,
-} from '@/components/ui'
-import { formatDate, formatMinor, PAYMENT_LABELS } from '@/lib/format'
+import { Avatar, EmptyState, PageHeader, Pagination } from '@/components/ui'
 import { isStaff } from '@/lib/auth'
 import {
   getAgentOptions,
@@ -36,9 +28,10 @@ export type AwardeeSearchParams = {
   followup?: string
   sort?: string
   page?: string
+  shuffle?: string
 }
 
-function toFilters(params: AwardeeSearchParams): AwardeeFilters {
+function toFilters(params: AwardeeSearchParams, shuffleSeed: string): AwardeeFilters {
   return {
     search: params.search,
     paymentStatus: params.payment ? params.payment.split(',') : undefined,
@@ -47,69 +40,82 @@ function toFilters(params: AwardeeSearchParams): AwardeeFilters {
     agentId: params.agent,
     assignment: (params.assignment as AwardeeFilters['assignment']) ?? '',
     followUp: (params.followup as AwardeeFilters['followUp']) ?? '',
-    sort: (params.sort as AwardeeFilters['sort']) ?? 'name',
+    sort: 'shuffle',
+    shuffleSeed,
     page: Math.max(Number(params.page ?? 1) || 1, 1),
     pageSize: 25,
   }
 }
 
-function followupState(row: AwardeeDirectoryRow) {
-  if (!row.next_followup_at) return 'none'
-  const today = new Date().toISOString().slice(0, 10)
-  if (row.next_followup_at < today) return 'overdue'
-  if (row.next_followup_at === today) return 'due'
-  return 'scheduled'
-}
+function internationalPhone(phone: string | null, country: string | null) {
+  if (!phone) return null
+  const trimmed = phone.trim()
+  const digits = trimmed.replace(/\D/g, '')
+  if (!digits) return null
 
-function hasPaymentIdentity(row: AwardeeDirectoryRow) {
-  return Boolean(row.public_awardee_id || row.profile_id)
-}
+  let international = digits
+  if (trimmed.startsWith('+')) {
+    international = digits
+  } else if (digits.startsWith('00')) {
+    international = digits.slice(2)
+  } else if (country?.toLowerCase() === 'nigeria') {
+    if (digits.startsWith('234')) international = digits
+    else if (digits.startsWith('0')) international = `234${digits.slice(1)}`
+    else if (/^[789]\d{9}$/.test(digits)) international = `234${digits}`
+  }
 
-function whatsapp(phone: string | null) {
-  return phone ? `https://wa.me/${phone.replace(/\D/g, '')}` : null
+  return international.length >= 8 && international.length <= 15 ? international : null
 }
 
 function Actions({ row }: { row: AwardeeDirectoryRow }) {
+  const phone = internationalPhone(row.phone, row.country)
+  const whatsapp = phone ? `https://wa.me/${phone}` : null
   return (
-    <div className="flex items-center justify-end gap-0.5">
-      {row.phone ? (
+    <div className="flex items-center justify-end gap-2">
+      {phone ? (
         <a
-          href={`tel:${row.phone}`}
-          className="rounded-lg p-2 text-muted transition hover:bg-ink/5 hover:text-ink"
+          href={`tel:+${phone}`}
+          className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-50 text-amber-700 shadow-sm ring-1 ring-amber-200 transition hover:bg-amber-100 hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
           aria-label={`Call ${row.name}`}
           title="Call"
         >
-          <Phone className="h-3.5 w-3.5" />
+          <Phone className="h-5 w-5" strokeWidth={2.4} />
         </a>
-      ) : null}
-      {whatsapp(row.phone) ? (
+      ) : (
+        <span role="img" aria-label={`No phone number for ${row.name}`} title="No phone number on file" className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-50 text-slate-300 ring-1 ring-slate-200">
+          <Phone className="h-5 w-5" />
+        </span>
+      )}
+      {whatsapp ? (
         <a
-          href={whatsapp(row.phone)!}
+          href={whatsapp}
           target="_blank"
           rel="noreferrer"
-          className="rounded-lg p-2 text-muted transition hover:bg-moss-soft hover:text-moss"
+          className="flex h-11 w-11 items-center justify-center rounded-xl bg-green-50 text-green-700 shadow-sm ring-1 ring-green-200 transition hover:bg-green-100 hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
           aria-label={`WhatsApp ${row.name}`}
           title="WhatsApp"
         >
-          <MessageCircle className="h-3.5 w-3.5" />
+          <MessageCircle className="h-5 w-5" strokeWidth={2.4} />
         </a>
-      ) : null}
+      ) : (
+        <span role="img" aria-label={`No phone number for ${row.name}`} title="No phone number on file" className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-50 text-slate-300 ring-1 ring-slate-200">
+          <MessageCircle className="h-5 w-5" />
+        </span>
+      )}
       {row.email ? (
         <Link
           href={`/awardees/${row.id}?compose=email`}
-          className="rounded-lg p-2 text-muted transition hover:bg-sky-50 hover:text-sky-700"
+          className="flex h-11 w-11 items-center justify-center rounded-xl bg-sky-50 text-sky-700 shadow-sm ring-1 ring-sky-200 transition hover:bg-sky-100 hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
           aria-label={`Email ${row.name}`}
           title="Email"
         >
-          <Mail className="h-3.5 w-3.5" />
+          <Mail className="h-5 w-5" strokeWidth={2.4} />
         </Link>
-      ) : null}
-      <Link
-        href={`/awardees/${row.id}#record`}
-        className="ml-1 rounded-full border border-ink/10 px-2.5 py-1.5 text-[10px] font-semibold transition hover:border-ember/40 hover:text-ember"
-      >
-        Log
-      </Link>
+      ) : (
+        <span role="img" aria-label={`No email address for ${row.name}`} title="No email on file" className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-50 text-slate-300 ring-1 ring-slate-200">
+          <Mail className="h-5 w-5" />
+        </span>
+      )}
     </div>
   )
 }
@@ -145,7 +151,7 @@ function FilterBar({
             className="input pl-9"
             name="search"
             defaultValue={params.search ?? ''}
-            placeholder="Search name, email or phone"
+            placeholder="Search awardees"
             aria-label="Search awardees"
           />
         </div>
@@ -200,18 +206,11 @@ function FilterBar({
                   <option value="unassigned">Unassigned</option>
                 </select>
               ) : null}
-              <select className="select min-w-0 text-xs" name="sort" defaultValue={params.sort ?? 'name'} aria-label="Sort">
-                <option value="name">Name A–Z</option>
-                <option value="newest">Newest first</option>
-                <option value="followup">Next follow-up</option>
-                <option value="last_contact">Last contact</option>
-              </select>
             </div>
             <div className="mt-3 flex items-center gap-2">
               <Link href={basePath} className="flex min-h-11 flex-1 items-center justify-center rounded-xl px-3 text-xs font-medium text-muted hover:bg-ink/[0.04] hover:text-ink">Reset</Link>
               <button className="btn btn-primary min-h-11 flex-1" type="submit"><Filter className="h-4 w-4" /> Apply filters</button>
             </div>
-            <p className="mt-2 flex items-center gap-1 px-1 text-[10px] text-muted"><SlidersHorizontal className="h-3 w-3 shrink-0" /> Nigeria first in the assignment engine</p>
           </div>
         </details>
       </div>
@@ -219,40 +218,16 @@ function FilterBar({
   )
 }
 
-function AwardeeCard({ row, staff }: { row: AwardeeDirectoryRow; staff: boolean }) {
-  const followup = followupState(row)
+function AwardeeCard({ row }: { row: AwardeeDirectoryRow }) {
   return (
-    <div className="border-t border-ink/[0.07] p-4 first:border-t-0">
-      <div className="flex items-start gap-3">
-        <Avatar name={row.name} className="h-9 w-9 bg-sand text-ink" />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <Link href={`/awardees/${row.id}`} className="truncate text-sm font-semibold hover:text-ember">
-              {row.name}
-            </Link>
-            {row.payment_status === 'paid' && hasPaymentIdentity(row) ? (
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-moss"><CheckCircle2 className="h-4 w-4" /> Verified</span>
-            ) : row.payment_status === 'paid' ? <span className="chip bg-amber-50 text-amber-800">Payment link needed</span> : <StatusChip status={row.payment_status} label={PAYMENT_LABELS[row.payment_status]} dot />}
-          </div>
-          <dl className="mt-1 grid grid-cols-[52px_minmax(0,1fr)] gap-x-2 gap-y-0.5 text-[11px]">
-            <dt className="text-muted">Country</dt><dd className="truncate">{row.country ?? 'Not supplied'}</dd>
-            <dt className="text-muted">Phone</dt><dd className="truncate">{row.phone ?? 'Not supplied'}</dd>
-            <dt className="text-muted">Email</dt><dd className="truncate">{row.email ?? 'Not supplied'}</dd>
-          </dl>
-          <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px]">
-            {!hasPaymentIdentity(row) && row.payment_status !== 'paid' ? <span className="chip bg-amber-50 text-amber-800">Payment link needed</span> : null}
-            <StatusChip status={row.contact_status} label={row.contact_status.replace('_', ' ')} />
-            {row.next_followup_at ? <StatusChip status={followup} label={`${followup} ${formatDate(row.next_followup_at)}`} /> : null}
-            {staff ? <span className="text-muted">{row.agent_name ?? 'Unassigned'}</span> : null}
-          </div>
-        </div>
+    <div className="flex items-center justify-between gap-3 border-t border-ink/[0.07] px-4 py-3 first:border-t-0">
+      <div className="flex min-w-0 items-center gap-3">
+        <Avatar name={row.name} className="h-11 w-11 shrink-0 bg-sand text-ink" />
+        <Link href={`/awardees/${row.id}`} className="min-w-0 truncate text-sm font-semibold text-ink hover:text-ember">
+          {row.name}
+        </Link>
       </div>
-      <div className="mt-3 flex items-center justify-between border-t border-ink/[0.06] pt-2">
-        <span className="text-[10px] text-muted">
-          Last contact {row.last_contacted_at ? formatDate(row.last_contacted_at) : 'never'}
-        </span>
-        <Actions row={row} />
-      </div>
+      <Actions row={row} />
     </div>
   )
 }
@@ -268,7 +243,8 @@ export async function AwardeesView({
   basePath: string
   admin?: boolean
 }) {
-  const filters = toFilters(params)
+  const shuffleSeed = params.shuffle ?? randomUUID()
+  const filters = toFilters(params, shuffleSeed)
   const staff = isStaff(member.membership.role)
   const [result, countries, agents] = await Promise.all([
     listAwardees(member, filters),
@@ -279,8 +255,9 @@ export async function AwardeesView({
   const query = (page: number) => {
     const values = new URLSearchParams()
     for (const [key, value] of Object.entries(params)) {
-      if (value && key !== 'page') values.set(key, value)
+      if (value && key !== 'page' && key !== 'sort') values.set(key, value)
     }
+    values.set('shuffle', shuffleSeed)
     values.set('page', String(page))
     return `${basePath}?${values.toString()}`
   }
@@ -303,76 +280,34 @@ export async function AwardeesView({
 
       <div className="card overflow-hidden">
         <div className="hidden overflow-x-auto md:block">
-          <table className="w-full min-w-[1040px]">
+          <table className="w-full min-w-[560px]">
             <thead>
               <tr className="bg-ink/[0.015]">
-                <th className="th">Name</th>
-                <th className="th">Country</th>
-                <th className="th">Phone</th>
-                <th className="th">Email</th>
-                <th className="th">Payment</th>
-                <th className="th">Last contact</th>
-                <th className="th">Next follow-up</th>
-                {staff ? <th className="th">Agent</th> : null}
-                <th className="th text-right">Actions</th>
+                <th className="th">Awardee</th>
+                <th className="th text-right">Contact</th>
               </tr>
             </thead>
             <tbody>
-              {result.rows.map((row) => {
-                const followup = followupState(row)
-                return (
-                  <tr key={row.id} className="table-row">
-                    <td className="td">
-                      <div className="flex items-center gap-2.5">
-                        <Avatar name={row.name} className="h-8 w-8 bg-sand text-ink" />
-                        <div className="min-w-0">
-                          <Link href={`/awardees/${row.id}`} className="block truncate text-[13px] font-semibold hover:text-ember">
-                            {row.name}
-                          </Link>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="td text-xs">{row.country ?? '—'}</td>
-                    <td className="td text-xs">{row.phone ?? '—'}</td>
-                    <td className="td text-xs">{row.email ?? '—'}</td>
-                    <td className="td">
-                      {row.payment_status === 'paid' && hasPaymentIdentity(row) ? (
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-moss"><CheckCircle2 className="h-4 w-4" /> Verified</span>
-                      ) : row.payment_status === 'paid' ? <span className="chip bg-amber-50 text-amber-800">Payment link needed</span> : <StatusChip status={row.payment_status} label={PAYMENT_LABELS[row.payment_status]} dot />}
-                      {!hasPaymentIdentity(row) && row.payment_status !== 'paid' ? <p className="mt-1 text-[10px] text-amber-800">Payment link needed</p> : null}
-                      {row.payment_status === 'paid' && row.payment_amount_minor ? (
-                        <p className="mt-1 text-[10px] text-muted">{formatMinor(row.payment_amount_minor, row.payment_currency ?? 'NGN')}</p>
-                      ) : null}
-                    </td>
-                    <td className="td text-xs text-muted">{row.last_contacted_at ? formatDate(row.last_contacted_at) : 'Never'}</td>
-                    <td className="td">
-                      {row.next_followup_at ? (
-                        <div>
-                          <StatusChip status={followup} label={followup} />
-                          <p className="mt-1 text-[10px] text-muted">{formatDate(row.next_followup_at)}</p>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-muted">—</span>
-                      )}
-                    </td>
-                    {staff ? (
-                      <td className="td">
-                        <p className="max-w-[120px] truncate text-xs">{row.agent_name ?? 'Unassigned'}</p>
-                      </td>
-                    ) : null}
-                    <td className="td">
-                      <Actions row={row} />
-                    </td>
-                  </tr>
-                )
-              })}
+              {result.rows.map((row) => (
+                <tr key={row.id} className="table-row">
+                  <td className="td">
+                    <div className="flex items-center gap-3">
+                      <Avatar name={row.name} className="h-11 w-11 bg-sand text-ink" />
+                      <Link href={`/awardees/${row.id}`} className="block truncate text-sm font-semibold hover:text-ember">{row.name}</Link>
+                    </div>
+                  </td>
+                  <td className="td">
+                    <Actions row={row} />
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
 
         <div className="md:hidden">
           {result.rows.map((row) => (
-            <AwardeeCard key={row.id} row={row} staff={staff} />
+            <AwardeeCard key={row.id} row={row} />
           ))}
         </div>
 
