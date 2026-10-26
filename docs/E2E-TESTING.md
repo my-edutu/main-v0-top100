@@ -45,6 +45,7 @@ degrades safely, but the feature it powers is inert without it.
 | `MAGAZINE_CHECKOUT_ENABLED=true` | Magazine feature checkout cannot start until the independent Bachs configuration and magazine webhook secret are present. |
 | `BACHS_AWARD_WEBHOOK_SECRET`, `BACHS_MAGAZINE_WEBHOOK_SECRET`, `BACHS_ORGANIZATION_ID` | The corresponding signed Bachs confirmation cannot be accepted safely. See [Bachs setup](bachs-integration.md). |
 | `GIG_API_BASE_URL`, `GIG_API_USERNAME`, `GIG_API_PASSWORD` | `getCourier()` returns the manual adapter: every quote fails and every order lands in `quote_failed` for manual admin pricing. |
+| `GEOAPIFY_API_KEY` | Home-delivery quotes cannot resolve a street address and fail safely to `quote_failed`. Service-centre quotes still work from GIG's verified centre coordinates. |
 | `GIG_ENABLED=true` | **Required in addition to the credentials.** Without it the GIG adapter stays off even when fully configured — see the warning below. |
 | `BREVO_API_KEY` | Award milestone emails are skipped (logged, not sent). In-app notifications still write. |
 | `TURNSTILE_SECRET_KEY` | Signup CAPTCHA is skipped entirely (`verifyCaptchaToken` returns `true` when unset). Fine for testing. |
@@ -53,24 +54,24 @@ degrades safely, but the feature it powers is inert without it.
 
 ### The GIG kill switch — read before setting `GIG_ENABLED`
 
-The GIG adapter's field mapping was reconstructed from two third-party clients (GIG's own WooCommerce
-plugin and an independent TypeScript client), because GIG's developer portal returns 403 to
-non-browser clients and the API-reference host it links no longer resolves in DNS. **No vendor
-document was readable and no live call has ever been made.**
+Quoting now follows GIG's published Price V3 OpenAPI definition
+(`POST /price/v3` with mandatory `SenderLocation`, `ReceiverLocation`,
+`PickUpOptions` and `ShipmentItems`). Home addresses are geocoded server-side by
+Geoapify with a Nigeria-only filter; service centres use GIG's verified
+`serviceCentresByStation` coordinates. There is no fallback to guessed
+coordinates and no call to the undocumented `getaddressdetails` endpoint.
 
-Those two sources **disagree on which field holds the shipping amount**, so
-`GIG_FIELD_QUOTE_AMOUNT` defaults to an ordered candidate list. More seriously, it is unconfirmed
-whether GIG returns **naira or kobo**. The adapter converts naira → kobo (`* 100`). If GIG in fact
-returns kobo, **every member is quoted and charged 100× the real delivery cost.**
+The response amount field and currency are still account-specific. The adapter
+tries the documented fields and refuses a non-NGN amount, but before enabling
+live members you must:
 
-That is why credentials alone are not enough: `getCourier()` also requires `GIG_ENABLED=true`, and
-logs a warning when credentials are present without it. Before you set it:
+1. Quote a known route (e.g. Lagos → Abuja) against the production account.
+2. Pin `GIG_FIELD_QUOTE_AMOUNT` to the field your account actually returns.
+3. Confirm the figure is naira, not kobo, and matches GIG's own calculator.
+4. Book one controlled shipment and confirm exactly one waybill.
 
-1. Quote a known route (e.g. Lagos → Abuja) in a non-production environment.
-2. Compare the figure against GIG's own price calculator for the same route.
-3. Only then enable it.
-
-Manual pricing is slower. It cannot overcharge anyone. Prefer it until step 2 passes.
+Manual pricing is slower. It cannot overcharge anyone. Prefer it until those
+checks pass.
 
 ## 2. The walkthrough
 

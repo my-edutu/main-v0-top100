@@ -2,11 +2,11 @@
 // Zero network. `fetch` is stubbed for every test.
 //
 // These tests are the ONLY verification this adapter gets before it is pointed
-// at a live GIG account, so they assert the money and duplicate-shipment
-// invariants directly rather than just the happy path.
+// at a live GIG account, so they assert the money, coordinate and
+// duplicate-shipment invariants directly rather than just the happy path.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { gigCourier, mapCarrierStatus, nairaToKobo } from '@/lib/courier/gig'
+import { gigCourier, mapCarrierStatus, nairaToKobo, resetGigServiceCentreCache } from '@/lib/courier/gig'
 import { peekGigAuthCache, resetGigAuthCache } from '@/lib/courier/http'
 import { resetGigStationCache } from '@/lib/courier/gig'
 
@@ -26,9 +26,11 @@ const GIG_ENV_KEYS = [
   'GIG_PATH_QUOTE',
   'GIG_PATH_BOOK',
   'GIG_PATH_TRACK',
-  'GIG_PATH_GEOCODE',
+  'GIG_PATH_SERVICE_CENTRES',
+  'GIG_QUOTE_SCHEMA',
   'GIG_TRACK_FETCH_OPTION',
   'GIG_STATION_CACHE_MS',
+  'GIG_SERVICE_CENTRE_CACHE_MS',
   'GIG_RECEIVER_STATION_MAP_JSON',
   'GIG_FIELD_QUOTE_AMOUNT',
   'GIG_FIELD_QUOTE_CURRENCY',
@@ -41,6 +43,13 @@ const GIG_ENV_KEYS = [
   'GIG_EXPECTED_CURRENCY',
   'GIG_QUOTE_EXTRA_JSON',
   'GIG_BOOK_EXTRA_JSON',
+  'GIG_SENDER_LATITUDE',
+  'GIG_SENDER_LONGITUDE',
+  'GEOAPIFY_API_KEY',
+  'GEOAPIFY_BASE_URL',
+  'GEOAPIFY_RETRY_BASE_MS',
+  'GEOAPIFY_RETRIES',
+  'GEOAPIFY_TIMEOUT_MS',
 ]
 
 const ADDRESS = {
@@ -53,6 +62,41 @@ const ADDRESS = {
 }
 
 const BOOK_INPUT = { ...ADDRESS, orderId: 'order-123', email: 'ada@example.com' }
+
+const GEO_OK = {
+  results: [
+    {
+      lat: 6.4281,
+      lon: 3.4219,
+      formatted: '12 Adeola Odeku Street, Victoria Island, Lagos, Nigeria',
+      country_code: 'ng',
+      result_type: 'building',
+      rank: { confidence: 0.95 },
+    },
+  ],
+}
+
+const SERVICE_CENTRES_OK = {
+  success: true,
+  data: {
+    message: 'Success',
+    status: 200,
+    data: [
+      {
+        StationId: 4,
+        StationName: 'LAGOS',
+        StationCode: 'LOS',
+        StateId: 24,
+        ServiceCentreId: 18,
+        ServiceCentreName: 'IKOTUN',
+        ServiceCentreCode: 'IKT',
+        Latitude: 6.550577,
+        Longitude: 3.268126,
+        Address: '29, Idimu Road, Opp. Local Govt. Council, Ikotun, Lagos',
+      },
+    ],
+  },
+}
 
 type Call = { url: string; init: RequestInit }
 
@@ -97,6 +141,16 @@ function stubFetch(routes: Record<string, unknown>) {
   return fetchMock
 }
 
+/** A quote stub with the shared login + geocoder calls already present. */
+function quoteStub(extra: Record<string, unknown> = {}) {
+  return {
+    '/login': LOGIN_OK,
+    '/v1/geocode/search': GEO_OK,
+    '/price/v3': { Object: { GrandTotal: 3500 } },
+    ...extra,
+  }
+}
+
 function callsTo(fragment: string): Call[] {
   return calls.filter((call) => call.url.includes(fragment))
 }
@@ -108,17 +162,22 @@ function timeoutError(): Error {
 beforeEach(() => {
   calls = []
   resetGigAuthCache()
+  resetGigStationCache()
+  resetGigServiceCentreCache()
   process.env.GIG_API_BASE_URL = BASE
   process.env.GIG_API_USERNAME = 'api-user'
   process.env.GIG_API_PASSWORD = 'api-password'
-  // Explicit destination override keeps legacy adapter unit tests focused;
+  // Explicit destination override keeps these adapter unit tests focused;
   // production leaves this unset and resolves the station from the directory.
   process.env.GIG_RECEIVER_STATION_ID = '4'
   // Keep the suite fast; the retry backoff itself is exercised by call counts.
   process.env.GIG_RETRY_BASE_MS = '0'
-  // Geocoding is on by default in production; switched off here so each test
-  // stubs only the calls it is about. One test turns it back on.
-  process.env.GIG_GEOCODE_ENABLED = '0'
+  process.env.GIG_SENDER_LATITUDE = '6.529800'
+  process.env.GIG_SENDER_LONGITUDE = '3.314500'
+  process.env.GIG_GEOCODE_ENABLED = '1'
+  process.env.GEOAPIFY_API_KEY = 'geo-test-key'
+  process.env.GEOAPIFY_BASE_URL = 'https://geo.test'
+  process.env.GEOAPIFY_RETRY_BASE_MS = '0'
   vi.spyOn(console, 'error').mockImplementation(() => {})
 })
 
@@ -127,6 +186,7 @@ afterEach(() => {
   vi.restoreAllMocks()
   resetGigAuthCache()
   resetGigStationCache()
+  resetGigServiceCentreCache()
   delete process.env.GIG_RECEIVER_STATION_ID
   for (const key of GIG_ENV_KEYS) delete process.env[key]
 })
@@ -178,70 +238,86 @@ describe('gigCourier.quote', () => {
   })
 
   it('returns the quoted naira amount as kobo', async () => {
-    stubFetch({ '/login': LOGIN_OK, '/price': { Object: { GrandTotal: 3500 } } })
+    stubFetch(quoteStub())
 
     const result = await gigCourier.quote(ADDRESS)
 
     expect(result.ok).toBe(true)
     if (result.ok) expect(result.shippingKobo).toBe(350_000)
-    expect(callsTo('/price')).toHaveLength(1)
+    expect(callsTo('/price/v3')).toHaveLength(1)
   })
 
   it('reads GIG\'s documented nested login and price response', async () => {
-    stubFetch({
+    stubFetch(quoteStub({
       '/login': {
         success: true,
         data: { data: { UserName: 'ECO038082', 'access-token': 'official-token' } },
       },
-      '/price': { success: true, data: { data: { GrandTotal: 4100 } } },
-    })
+      '/price/v3': { success: true, data: { data: { GrandTotal: 4100 } } },
+    }))
 
     const result = await gigCourier.quote(ADDRESS)
     expect(result.ok && result.shippingKobo).toBe(410_000)
-    expect((callsTo('/price')[0].init.headers as Record<string, string>)['access-token']).toBe('official-token')
+    expect((callsTo('/price/v3')[0].init.headers as Record<string, string>)['access-token']).toBe('official-token')
+  })
+
+  it('sends the Price V3 body with verified receiver and sender coordinates', async () => {
+    stubFetch(quoteStub())
+    await gigCourier.quote(ADDRESS)
+
+    const body = JSON.parse(String(callsTo('/price/v3')[0].init.body))
+    expect(body.ReceiverLocation).toEqual({ Latitude: 6.4281, Longitude: 3.4219 })
+    expect(body.SenderLocation).toEqual({ Latitude: 6.5298, Longitude: 3.3145 })
+    expect(body.PickUpOptions).toBe(0) // HomeDelivery
+    expect(body.SenderStationId).toBe(4)
+    expect(body.ReceiverStationId).toBe(4)
+    expect(body.ShipmentItems[0].ItemName).toBe('Award plaque')
+    expect(callsTo('/v1/geocode/search')).toHaveLength(1)
+    // Price V3 rejects undeclared legacy fields; none of these may be sent.
+    expect(body.CustomerType).toBeUndefined()
+    expect(body.DeliveryOptionIds).toBeUndefined()
+    expect(body.IsFromAgility).toBeUndefined()
+    expect(body.CustomerCode).toBeUndefined()
+    expect(body.Value).toBeUndefined()
   })
 
   it('resolves the receiver station from the submitted state and city', async () => {
     delete process.env.GIG_RECEIVER_STATION_ID
-    stubFetch({
-      '/login': LOGIN_OK,
+    stubFetch(quoteStub({
       '/localstations/get': {
         success: true,
         data: { data: [{ StationId: 77, StationName: 'ABUJA', StationCode: 'ABJ', StateName: 'FCT' }] },
       },
-      '/price': { Object: { GrandTotal: 4100 } },
-    })
+      '/price/v3': { Object: { GrandTotal: 4100 } },
+    }))
 
     const result = await gigCourier.quote({ ...ADDRESS, city: 'Abuja', state: 'FCT' })
     expect(result.ok).toBe(true)
-    const body = JSON.parse(String(callsTo('/price')[0].init.body))
+    const body = JSON.parse(String(callsTo('/price/v3')[0].init.body))
     expect(body.ReceiverStationId).toBe(77)
     expect(callsTo('/localstations/get')).toHaveLength(1)
   })
 
   it('reads a numeric string amount', async () => {
-    stubFetch({ '/login': LOGIN_OK, '/price': { Object: { GrandTotal: '4,250.50' } } })
+    stubFetch(quoteStub({ '/price/v3': { Object: { GrandTotal: '4,250.50' } } }))
 
     const result = await gigCourier.quote(ADDRESS)
     expect(result.ok && result.shippingKobo).toBe(425_050)
   })
 
   it('falls back to DeliveryPrice when GrandTotal is absent', async () => {
-    stubFetch({ '/login': LOGIN_OK, '/price': { Object: { DeliveryPrice: 1200 } } })
+    stubFetch(quoteStub({ '/price/v3': { Object: { DeliveryPrice: 1200 } } }))
 
     const result = await gigCourier.quote(ADDRESS)
     expect(result.ok && result.shippingKobo).toBe(120_000)
   })
 
-  it('sends the documented access token and account fields', async () => {
-    stubFetch({ '/login': LOGIN_OK, '/price': { Object: { GrandTotal: 100 } } })
+  it('sends the documented access token', async () => {
+    stubFetch(quoteStub())
     await gigCourier.quote(ADDRESS)
 
-    const priceCall = callsTo('/price')[0]
+    const priceCall = callsTo('/price/v3')[0]
     expect((priceCall.init.headers as Record<string, string>)['access-token']).toBe('token-1')
-    const body = JSON.parse(String(priceCall.init.body))
-    expect(body.CustomerCode).toBe('CUST001')
-    expect(body.ShipmentItems[0].ItemName).toBe('Award plaque')
   })
 
   it.each([
@@ -252,63 +328,64 @@ describe('gigCourier.quote', () => {
     ['null', { Object: { GrandTotal: null } }],
     ['empty body', {}],
   ])('declines to quote when the amount is %s', async (_label, payload) => {
-    stubFetch({ '/login': LOGIN_OK, '/price': payload })
+    stubFetch(quoteStub({ '/price/v3': payload }))
 
     const result = await gigCourier.quote(ADDRESS)
 
     expect(result.ok).toBe(false)
-    if (!result.ok) expect(result.reason).toMatch(/could not calculate a delivery cost/i)
+    if (!result.ok) {
+      expect(result.reason).toMatch(/could not calculate a delivery cost/i)
+      expect(result.code).toBe('carrier_error')
+    }
   })
 
   it('declines on a non-2xx response', async () => {
-    stubFetch({ '/login': LOGIN_OK, '/price': json({ message: 'bad request' }, 400) })
+    stubFetch(quoteStub({ '/price/v3': json({ message: 'bad request' }, 400) }))
 
     const result = await gigCourier.quote(ADDRESS)
     expect(result.ok).toBe(false)
-    expect(callsTo('/price')).toHaveLength(1) // 4xx is not retried
+    expect(callsTo('/price/v3')).toHaveLength(1) // 4xx is not retried
   })
 
   it('declines on a timeout, after exhausting retries', async () => {
-    stubFetch({
-      '/login': LOGIN_OK,
-      '/price': () => {
+    stubFetch(quoteStub({
+      '/price/v3': () => {
         throw timeoutError()
       },
-    })
+    }))
 
     const result = await gigCourier.quote(ADDRESS)
     expect(result.ok).toBe(false)
-    expect(callsTo('/price')).toHaveLength(3) // 1 attempt + 2 retries
+    expect(callsTo('/price/v3')).toHaveLength(3) // 1 attempt + 2 retries
   })
 
   it('retries a 5xx and succeeds on the second attempt', async () => {
-    stubFetch({
-      '/login': LOGIN_OK,
-      '/price': [json({ message: 'boom' }, 500), json({ Object: { GrandTotal: 2000 } })],
-    })
+    stubFetch(quoteStub({
+      '/price/v3': [json({ message: 'boom' }, 500), json({ Object: { GrandTotal: 2000 } })],
+    }))
 
     const result = await gigCourier.quote(ADDRESS)
     expect(result.ok && result.shippingKobo).toBe(200_000)
-    expect(callsTo('/price')).toHaveLength(2)
+    expect(callsTo('/price/v3')).toHaveLength(2)
   })
 
   it('declines when the 2xx body is not JSON', async () => {
-    stubFetch({ '/login': LOGIN_OK, '/price': new Response('<html>maintenance</html>', { status: 200 }) })
+    stubFetch(quoteStub({ '/price/v3': new Response('<html>maintenance</html>', { status: 200 }) }))
 
     const result = await gigCourier.quote(ADDRESS)
     expect(result.ok).toBe(false)
-    expect(callsTo('/price')).toHaveLength(1) // unparseable is not retried
+    expect(callsTo('/price/v3')).toHaveLength(1) // unparseable is not retried
   })
 
   it('declines rather than converting a non-naira amount', async () => {
-    stubFetch({ '/login': LOGIN_OK, '/price': { Object: { GrandTotal: 25, CurrencyCode: 'USD' } } })
+    stubFetch(quoteStub({ '/price/v3': { Object: { GrandTotal: 25, CurrencyCode: 'USD' } } }))
 
     const result = await gigCourier.quote(ADDRESS)
     expect(result.ok).toBe(false)
   })
 
   it('accepts an explicit NGN currency and reports it', async () => {
-    stubFetch({ '/login': LOGIN_OK, '/price': { Object: { GrandTotal: 3500, CurrencyCode: 'ngn' } } })
+    stubFetch(quoteStub({ '/price/v3': { Object: { GrandTotal: 3500, CurrencyCode: 'ngn' } } }))
 
     const result = await gigCourier.quote(ADDRESS)
     expect(result.ok).toBe(true)
@@ -319,46 +396,135 @@ describe('gigCourier.quote', () => {
   })
 
   it('declines when login fails, without throwing', async () => {
-    stubFetch({ '/login': json({ message: 'bad credentials' }, 401) })
+    stubFetch(quoteStub({ '/login': json({ message: 'bad credentials' }, 401) }))
 
     const result = await gigCourier.quote(ADDRESS)
     expect(result.ok).toBe(false)
-    expect(callsTo('/price')).toHaveLength(0)
+    expect(callsTo('/price/v3')).toHaveLength(0)
   })
 
   it('never puts the password in the raw payload it hands back', async () => {
-    stubFetch({ '/login': LOGIN_OK, '/price': json({ message: 'nope' }, 400) })
+    stubFetch(quoteStub({ '/price/v3': json({ message: 'nope' }, 400) }))
 
     const result = await gigCourier.quote(ADDRESS)
     expect(JSON.stringify(result)).not.toContain('api-password')
   })
 
-  it('resolves receiver coordinates when geocoding is enabled', async () => {
-    process.env.GIG_GEOCODE_ENABLED = '1'
-    stubFetch({
-      '/login': LOGIN_OK,
-      '/getaddressdetails': { Object: { Latitude: '6.4281', Longitude: '3.4219' } },
-      '/price': { Object: { GrandTotal: 3500 } },
-    })
+  it('returns the verified delivery used for the quote', async () => {
+    stubFetch(quoteStub())
 
     const result = await gigCourier.quote(ADDRESS)
-
     expect(result.ok).toBe(true)
-    const body = JSON.parse(String(callsTo('/price')[0].init.body))
-    expect(body.ReceiverLocation).toEqual({ Latitude: 6.4281, Longitude: 3.4219 })
+    if (result.ok) {
+      expect(result.delivery).toMatchObject({
+        mode: 'home',
+        stationId: 4,
+        latitude: 6.4281,
+        longitude: 3.4219,
+      })
+    }
   })
 
-  it('still prices when geocoding fails', async () => {
-    process.env.GIG_GEOCODE_ENABLED = '1'
-    stubFetch({
-      '/login': LOGIN_OK,
-      '/getaddressdetails': json({ message: 'nope' }, 400),
-      '/price': { Object: { GrandTotal: 3500 } },
-    })
+  it('declines an unresolvable home address without calling GIG', async () => {
+    stubFetch(quoteStub({ '/v1/geocode/search': { results: [] } }))
 
     const result = await gigCourier.quote(ADDRESS)
-    expect(result.ok && result.shippingKobo).toBe(350_000)
-    expect(JSON.parse(String(callsTo('/price')[0].init.body)).ReceiverLocation).toBeUndefined()
+
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.code).toBe('no_match')
+      expect(result.reason).toMatch(/could not locate that address/i)
+    }
+    expect(callsTo('/price/v3')).toHaveLength(0)
+    expect(callsTo('/login')).toHaveLength(0)
+  })
+
+  it('declines when the geocoder is unavailable rather than inventing a point', async () => {
+    stubFetch(quoteStub({ '/v1/geocode/search': json({ message: 'down' }, 500) }))
+
+    const result = await gigCourier.quote(ADDRESS)
+
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.code).toBe('http_error')
+    expect(callsTo('/price/v3')).toHaveLength(0)
+  })
+
+  it('declines when the geocoder times out', async () => {
+    stubFetch(quoteStub({
+      '/v1/geocode/search': () => {
+        throw timeoutError()
+      },
+    }))
+
+    const result = await gigCourier.quote(ADDRESS)
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.code).toBe('timeout')
+    expect(callsTo('/price/v3')).toHaveLength(0)
+  })
+
+  it('declines when the sender location is not configured', async () => {
+    delete process.env.GIG_SENDER_LATITUDE
+    delete process.env.GIG_SENDER_LONGITUDE
+    stubFetch(quoteStub())
+
+    const result = await gigCourier.quote(ADDRESS)
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.code).toBe('configuration')
+    expect(callsTo('/price/v3')).toHaveLength(0)
+  })
+
+  it('quotes a service-centre destination with verified centre coordinates', async () => {
+    stubFetch(quoteStub({
+      '/serviceCentresByStation': SERVICE_CENTRES_OK,
+    }))
+
+    const result = await gigCourier.quote({
+      ...ADDRESS,
+      deliveryMode: 'service_centre',
+      serviceCentreId: 18,
+    })
+
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      expect(result.delivery).toMatchObject({
+        mode: 'service_centre',
+        stationId: 4,
+        serviceCentreId: 18,
+        serviceCentreName: 'IKOTUN',
+        latitude: 6.550577,
+        longitude: 3.268126,
+      })
+    }
+
+    const body = JSON.parse(String(callsTo('/price/v3')[0].init.body))
+    expect(body.PickUpOptions).toBe(1) // ServiceCentre
+    expect(body.ReceiverLocation).toEqual({ Latitude: 6.550577, Longitude: 3.268126 })
+    expect(body.ReceiverStationId).toBe(4)
+    // A service-centre quote must not geocode the member's street address.
+    expect(callsTo('/v1/geocode/search')).toHaveLength(0)
+  })
+
+  it('rejects a service-centre id that GIG does not list', async () => {
+    stubFetch(quoteStub({ '/serviceCentresByStation': SERVICE_CENTRES_OK }))
+
+    const result = await gigCourier.quote({
+      ...ADDRESS,
+      deliveryMode: 'service_centre',
+      serviceCentreId: 999,
+    })
+
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.code).toBe('service_centre_invalid')
+    expect(callsTo('/price/v3')).toHaveLength(0)
+  })
+
+  it('requires a service-centre id for service-centre delivery', async () => {
+    stubFetch(quoteStub())
+
+    const result = await gigCourier.quote({ ...ADDRESS, deliveryMode: 'service_centre' })
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.code).toBe('service_centre_required')
+    expect(callsTo('/price/v3')).toHaveLength(0)
   })
 })
 
@@ -366,18 +532,18 @@ describe('gigCourier.quote', () => {
 
 describe('token cache', () => {
   it('logs in once across multiple quotes', async () => {
-    stubFetch({ '/login': LOGIN_OK, '/price': { Object: { GrandTotal: 3500 } } })
+    stubFetch(quoteStub())
 
     await gigCourier.quote(ADDRESS)
     await gigCourier.quote(ADDRESS)
     await gigCourier.quote(ADDRESS)
 
     expect(callsTo('/login')).toHaveLength(1)
-    expect(callsTo('/price')).toHaveLength(3)
+    expect(callsTo('/price/v3')).toHaveLength(3)
   })
 
   it('logs in once for concurrent quotes', async () => {
-    stubFetch({ '/login': LOGIN_OK, '/price': { Object: { GrandTotal: 3500 } } })
+    stubFetch(quoteStub())
 
     await Promise.all([gigCourier.quote(ADDRESS), gigCourier.quote(ADDRESS)])
 
@@ -385,34 +551,34 @@ describe('token cache', () => {
   })
 
   it('re-logs in exactly once on a 401 and then succeeds', async () => {
-    stubFetch({
+    stubFetch(quoteStub({
       '/login': [json(LOGIN_OK), json({ Object: { access_token: 'token-2', UserId: 'user-1', UserName: 'CUST001' } })],
-      '/price': [json({ message: 'expired' }, 401), json({ Object: { GrandTotal: 3500 } })],
-    })
+      '/price/v3': [json({ message: 'expired' }, 401), json({ Object: { GrandTotal: 3500 } })],
+    }))
 
     const result = await gigCourier.quote(ADDRESS)
 
     expect(result.ok && result.shippingKobo).toBe(350_000)
     expect(callsTo('/login')).toHaveLength(2)
-    expect(callsTo('/price')).toHaveLength(2)
-    const headers = callsTo('/price')[1].init.headers as Record<string, string>
+    expect(callsTo('/price/v3')).toHaveLength(2)
+    const headers = callsTo('/price/v3')[1].init.headers as Record<string, string>
     expect(headers['access-token']).toBe('token-2')
   })
 
   it('gives up after a single re-login when the 401 persists', async () => {
-    stubFetch({ '/login': LOGIN_OK, '/price': json({ message: 'expired' }, 401) })
+    stubFetch(quoteStub({ '/price/v3': json({ message: 'expired' }, 401) }))
 
     const result = await gigCourier.quote(ADDRESS)
 
     expect(result.ok).toBe(false)
     expect(callsTo('/login')).toHaveLength(2)
-    expect(callsTo('/price')).toHaveLength(2)
+    expect(callsTo('/price/v3')).toHaveLength(2)
   })
 
   it('refreshes the token ahead of its expiry', async () => {
     process.env.GIG_TOKEN_TTL_MS = '120000'
     process.env.GIG_TOKEN_SKEW_MS = '60000'
-    stubFetch({ '/login': LOGIN_OK, '/price': { Object: { GrandTotal: 3500 } } })
+    stubFetch(quoteStub())
 
     const before = Date.now()
     await gigCourier.quote(ADDRESS)
@@ -426,17 +592,14 @@ describe('token cache', () => {
 
   it('prefers the expiry the carrier reports', async () => {
     process.env.GIG_TOKEN_SKEW_MS = '0'
-    stubFetch({
-      '/login': { Object: { access_token: 't', expires_in: 3600 } },
-      '/price': { Object: { GrandTotal: 100 } },
-    })
+    stubFetch(quoteStub({ '/login': { Object: { access_token: 't', expires_in: 3600 } } }))
 
     await gigCourier.quote(ADDRESS)
     expect(peekGigAuthCache()!.expiresAt).toBeGreaterThan(Date.now() + 3_500_000)
   })
 
   it('declines when the login response has no token', async () => {
-    stubFetch({ '/login': { Object: { UserId: 'user-1' } } })
+    stubFetch(quoteStub({ '/login': { Object: { UserId: 'user-1' } } }))
 
     const result = await gigCourier.quote(ADDRESS)
     expect(result.ok).toBe(false)
@@ -447,17 +610,110 @@ describe('token cache', () => {
 
 describe('gigCourier.book', () => {
   it('returns the waybill', async () => {
-    stubFetch({ '/login': LOGIN_OK, '/capture/preshipment': { Object: { waybill: 'AGL123456', message: 'ok' } } })
+    stubFetch({ '/login': LOGIN_OK, '/v1/geocode/search': GEO_OK, '/capture/preshipment': { Object: { waybill: 'AGL123456', message: 'ok' } } })
 
     const result = await gigCourier.book(BOOK_INPUT)
 
     expect(result.waybill).toBe('AGL123456')
     expect(result.trackingUrl).toBeNull()
-    expect(JSON.parse(String(callsTo('/capture/preshipment')[0].init.body)).ReceiverDetails.ReceiverName).toBe('Ada Obi')
+    const body = JSON.parse(String(callsTo('/capture/preshipment')[0].init.body))
+    expect(body.ReceiverDetails.ReceiverName).toBe('Ada Obi')
+    expect(body.ReceiverDetails.ReceiverLocation).toEqual({ Latitude: 6.4281, Longitude: 3.4219 })
+  })
+
+  it('books a service-centre order with the centre coordinates and id', async () => {
+    stubFetch({
+      '/login': LOGIN_OK,
+      '/serviceCentresByStation': SERVICE_CENTRES_OK,
+      '/capture/preshipment': { Object: { waybill: 'AGL-SC-1' } },
+    })
+
+    const result = await gigCourier.book({
+      ...BOOK_INPUT,
+      deliveryMode: 'service_centre',
+      serviceCentreId: 18,
+    })
+
+    expect(result.waybill).toBe('AGL-SC-1')
+    const body = JSON.parse(String(callsTo('/capture/preshipment')[0].init.body))
+    expect(body.ReceiverDetails.ReceiverLocation).toEqual({ Latitude: 6.550577, Longitude: 3.268126 })
+    expect(body.ReceiverDetails.DestinationServiceCenterId).toBe(18)
+    expect(callsTo('/v1/geocode/search')).toHaveLength(0)
+  })
+
+  it('reuses the quoted home destination instead of geocoding again', async () => {
+    stubFetch({ '/login': LOGIN_OK, '/capture/preshipment': { Object: { waybill: 'AGL-REUSE' } } })
+
+    const result = await gigCourier.book({
+      ...BOOK_INPUT,
+      quotedDelivery: {
+        mode: 'home',
+        stationId: 4,
+        latitude: 6.6001,
+        longitude: 3.3501,
+        formattedAddress: '12 Adeola Odeku Street, Victoria Island, Lagos',
+      },
+    })
+
+    expect(result.waybill).toBe('AGL-REUSE')
+    const body = JSON.parse(String(callsTo('/capture/preshipment')[0].init.body))
+    expect(body.ReceiverDetails.ReceiverLocation).toEqual({ Latitude: 6.6001, Longitude: 3.3501 })
+    expect(callsTo('/v1/geocode/search')).toHaveLength(0)
+  })
+
+  it('books a quoted service centre without re-reading the directory', async () => {
+    stubFetch({ '/login': LOGIN_OK, '/capture/preshipment': { Object: { waybill: 'AGL-SC-Q' } } })
+
+    const result = await gigCourier.book({
+      ...BOOK_INPUT,
+      deliveryMode: 'service_centre',
+      serviceCentreId: 18,
+      quotedDelivery: {
+        mode: 'service_centre',
+        stationId: 4,
+        latitude: 6.550577,
+        longitude: 3.268126,
+        formattedAddress: '29, Idimu Road, Ikotun, Lagos',
+        serviceCentreId: 18,
+        serviceCentreName: 'IKOTUN',
+      },
+    })
+
+    expect(result.waybill).toBe('AGL-SC-Q')
+    const body = JSON.parse(String(callsTo('/capture/preshipment')[0].init.body))
+    expect(body.ReceiverDetails.ReceiverLocation).toEqual({ Latitude: 6.550577, Longitude: 3.268126 })
+    expect(body.ReceiverDetails.DestinationServiceCenterId).toBe(18)
+    expect(callsTo('/serviceCentresByStation')).toHaveLength(0)
+  })
+
+  it('ignores a quoted destination that belongs to another service centre', async () => {
+    stubFetch({
+      '/login': LOGIN_OK,
+      '/serviceCentresByStation': SERVICE_CENTRES_OK,
+      '/capture/preshipment': { Object: { waybill: 'AGL-SC-2' } },
+    })
+
+    await gigCourier.book({
+      ...BOOK_INPUT,
+      deliveryMode: 'service_centre',
+      serviceCentreId: 18,
+      quotedDelivery: {
+        mode: 'service_centre',
+        stationId: 4,
+        latitude: 6.6001,
+        longitude: 3.3501,
+        formattedAddress: 'Somewhere else',
+        serviceCentreId: 99,
+      },
+    })
+
+    const body = JSON.parse(String(callsTo('/capture/preshipment')[0].init.body))
+    expect(body.ReceiverDetails.ReceiverLocation).toEqual({ Latitude: 6.550577, Longitude: 3.268126 })
+    expect(body.ReceiverDetails.DestinationServiceCenterId).toBe(18)
   })
 
   it('reads a capitalised waybill field and a numeric waybill', async () => {
-    stubFetch({ '/login': LOGIN_OK, '/capture/preshipment': { Object: { Waybill: 1234567890 } } })
+    stubFetch({ '/login': LOGIN_OK, '/v1/geocode/search': GEO_OK, '/capture/preshipment': { Object: { Waybill: 1234567890 } } })
 
     const result = await gigCourier.book(BOOK_INPUT)
     expect(result.waybill).toBe('1234567890')
@@ -465,20 +721,20 @@ describe('gigCourier.book', () => {
 
   it('builds a tracking URL from the configured template', async () => {
     process.env.GIG_TRACKING_URL_TEMPLATE = 'https://giglogistics.com/track/{waybill}'
-    stubFetch({ '/login': LOGIN_OK, '/capture/preshipment': { Object: { waybill: 'AGL123456' } } })
+    stubFetch({ '/login': LOGIN_OK, '/v1/geocode/search': GEO_OK, '/capture/preshipment': { Object: { waybill: 'AGL123456' } } })
 
     const result = await gigCourier.book(BOOK_INPUT)
     expect(result.trackingUrl).toBe('https://giglogistics.com/track/AGL123456')
   })
 
   it('throws when a 200 carries no waybill', async () => {
-    stubFetch({ '/login': LOGIN_OK, '/capture/preshipment': { Object: { message: 'accepted' } } })
+    stubFetch({ '/login': LOGIN_OK, '/v1/geocode/search': GEO_OK, '/capture/preshipment': { Object: { message: 'accepted' } } })
 
     await expect(gigCourier.book(BOOK_INPUT)).rejects.toThrow(/no waybill/i)
   })
 
   it('is never retried after a 500 — a second booking is a second parcel', async () => {
-    stubFetch({ '/login': LOGIN_OK, '/capture/preshipment': json({ message: 'server error' }, 500) })
+    stubFetch({ '/login': LOGIN_OK, '/v1/geocode/search': GEO_OK, '/capture/preshipment': json({ message: 'server error' }, 500) })
 
     await expect(gigCourier.book(BOOK_INPUT)).rejects.toThrow(/order-123/)
     expect(callsTo('/capture/preshipment')).toHaveLength(1)
@@ -487,6 +743,7 @@ describe('gigCourier.book', () => {
   it('is never retried after a network error', async () => {
     stubFetch({
       '/login': LOGIN_OK,
+      '/v1/geocode/search': GEO_OK,
       '/capture/preshipment': () => {
         throw new Error('ECONNRESET')
       },
@@ -499,6 +756,7 @@ describe('gigCourier.book', () => {
   it('is never retried after a timeout', async () => {
     stubFetch({
       '/login': LOGIN_OK,
+      '/v1/geocode/search': GEO_OK,
       '/capture/preshipment': () => {
         throw timeoutError()
       },
@@ -511,6 +769,7 @@ describe('gigCourier.book', () => {
   it('re-authenticates once on a 401 — a rejected request booked nothing', async () => {
     stubFetch({
       '/login': [json(LOGIN_OK), json({ Object: { access_token: 'token-2' } })],
+      '/v1/geocode/search': GEO_OK,
       '/capture/preshipment': [json({ message: 'expired' }, 401), json({ Object: { waybill: 'AGL999' } })],
     })
 
@@ -627,19 +886,26 @@ describe('gigCourier.track', () => {
 // ---------------------------------------------------------------------------
 
 describe('env overrides', () => {
-  it('honours an endpoint path override', async () => {
+  it('honours an endpoint path override and the legacy schema', async () => {
     process.env.GIG_PATH_QUOTE = 'v2/Thirdparty/price'
-    stubFetch({ '/login': LOGIN_OK, '/v2/Thirdparty/price': { Object: { GrandTotal: 3500 } } })
+    stubFetch({
+      '/login': LOGIN_OK,
+      '/v1/geocode/search': GEO_OK,
+      '/v2/Thirdparty/price': { Object: { GrandTotal: 3500 } },
+    })
 
     const result = await gigCourier.quote(ADDRESS)
 
     expect(result.ok).toBe(true)
     expect(callsTo('/v2/Thirdparty/price')[0].url).toBe(`${BASE}/v2/Thirdparty/price`)
+    const body = JSON.parse(String(callsTo('/v2/Thirdparty/price')[0].init.body))
+    expect(body.CustomerCode).toBe('CUST001')
+    expect(body.CustomerType).toBe(0)
   })
 
   it('honours the login path override', async () => {
     process.env.GIG_PATH_LOGIN = 'Admin/login'
-    stubFetch({ '/Admin/login': LOGIN_OK, '/price': { Object: { GrandTotal: 100 } } })
+    stubFetch(quoteStub({ '/Admin/login': LOGIN_OK }))
 
     const result = await gigCourier.quote(ADDRESS)
     expect(result.ok).toBe(true)
@@ -648,7 +914,7 @@ describe('env overrides', () => {
 
   it('honours an amount field-name override', async () => {
     process.env.GIG_FIELD_QUOTE_AMOUNT = 'data.shipping.amount'
-    stubFetch({ '/login': LOGIN_OK, '/price': { data: { shipping: { amount: 4200 } }, Object: { GrandTotal: 9999 } } })
+    stubFetch(quoteStub({ '/price/v3': { data: { shipping: { amount: 4200 } }, Object: { GrandTotal: 9999 } } }))
 
     const result = await gigCourier.quote(ADDRESS)
     expect(result.ok && result.shippingKobo).toBe(420_000)
@@ -656,7 +922,7 @@ describe('env overrides', () => {
 
   it('honours a waybill field-name override', async () => {
     process.env.GIG_FIELD_WAYBILL = 'data.shipment.reference'
-    stubFetch({ '/login': LOGIN_OK, '/capture/preshipment': { data: { shipment: { reference: 'REF-1' } } } })
+    stubFetch({ '/login': LOGIN_OK, '/v1/geocode/search': GEO_OK, '/capture/preshipment': { data: { shipment: { reference: 'REF-1' } } } })
 
     const result = await gigCourier.book(BOOK_INPUT)
     expect(result.waybill).toBe('REF-1')
@@ -671,19 +937,19 @@ describe('env overrides', () => {
   })
 
   it('merges GIG_QUOTE_EXTRA_JSON into the request body', async () => {
-    process.env.GIG_QUOTE_EXTRA_JSON = JSON.stringify({ VehicleType: 'VAN', PaymentType: 'Cash' })
-    stubFetch({ '/login': LOGIN_OK, '/price': { Object: { GrandTotal: 100 } } })
+    process.env.GIG_QUOTE_EXTRA_JSON = JSON.stringify({ IsPriorityShipment: true, PaymentType: 'Cash' })
+    stubFetch(quoteStub())
 
     await gigCourier.quote(ADDRESS)
 
-    const body = JSON.parse(String(callsTo('/price')[0].init.body))
-    expect(body.VehicleType).toBe('VAN')
+    const body = JSON.parse(String(callsTo('/price/v3')[0].init.body))
+    expect(body.IsPriorityShipment).toBe(true)
     expect(body.PaymentType).toBe('Cash')
   })
 
   it('ignores malformed extra JSON instead of crashing the quote', async () => {
     process.env.GIG_QUOTE_EXTRA_JSON = '{not json'
-    stubFetch({ '/login': LOGIN_OK, '/price': { Object: { GrandTotal: 100 } } })
+    stubFetch(quoteStub())
 
     const result = await gigCourier.quote(ADDRESS)
     expect(result.ok).toBe(true)

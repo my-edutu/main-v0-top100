@@ -86,6 +86,9 @@ describe('production readiness configuration', () => {
       'GIG_SENDER_PHONE',
       'GIG_SENDER_ADDRESS',
       'GIG_SENDER_CITY',
+      'GIG_SENDER_LATITUDE',
+      'GIG_SENDER_LONGITUDE',
+      'GEOAPIFY_API_KEY',
     ])
   })
 

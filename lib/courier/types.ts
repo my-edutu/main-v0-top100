@@ -2,6 +2,23 @@
 // The courier boundary. Everything above this interface is carrier-agnostic;
 // only lib/courier/gig.ts knows GIG's wire format.
 
+/** How the member receives the award. */
+export type DeliveryMode = 'home' | 'service_centre'
+
+/**
+ * The coordinates and station the carrier priced against. Persisted alongside
+ * a quote so booking uses the same verified destination, not a fresh guess.
+ */
+export type ResolvedDelivery = {
+  mode: DeliveryMode
+  stationId: number
+  latitude: number
+  longitude: number
+  formattedAddress: string | null
+  serviceCentreId?: number
+  serviceCentreName?: string
+}
+
 export type QuoteInput = {
   recipientName: string
   phone: string
@@ -11,6 +28,10 @@ export type QuoteInput = {
   state: string
   country: string
   postalCode?: string
+  /** Defaults to home delivery for backwards compatibility. */
+  deliveryMode?: DeliveryMode
+  /** Required when `deliveryMode` is `service_centre`. */
+  serviceCentreId?: number
 }
 
 export type QuoteResult =
@@ -20,11 +41,20 @@ export type QuoteResult =
       raw: unknown
       /** ISO currency the carrier quoted in, when it says. Additive; callers may ignore it. */
       currency?: string
+      /** Verified destination used for the quote. */
+      delivery: ResolvedDelivery
     }
-  | { ok: false; reason: string; raw: unknown }
+  | { ok: false; reason: string; raw: unknown; code?: string }
 
 export type BookInput = QuoteInput & {
   orderId: string
+  /**
+   * The destination verified when the order was quoted. Booking reuses this so
+   * the parcel goes to the coordinates the member was charged for, even if the
+   * geocoder or station directory later changes. Callers should only pass a
+   * value that was produced by a successful quote.
+   */
+  quotedDelivery?: ResolvedDelivery
   email: string
 }
 

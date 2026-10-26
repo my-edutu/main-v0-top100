@@ -18,6 +18,7 @@ import { createAdminClient } from '@/lib/supabase/server'
 import { paidAmountMatches, secretKey, verifyPaystackSignature } from '@/lib/payments/paystack'
 import { canTransition, isPaid, type AwardStatus } from '@/lib/awards/status'
 import { getCourier } from '@/lib/courier'
+import type { ResolvedDelivery } from '@/lib/courier/types'
 import { notifyAwardStatus } from '@/lib/awards/notify'
 
 export const runtime = 'nodejs'
@@ -67,6 +68,39 @@ function readMetadata(raw: unknown): Record<string, unknown> {
 
 function asString(value: unknown): string | null {
   return typeof value === 'string' && value.trim() !== '' ? value : null
+}
+
+/**
+ * Read the verified destination the quote route saved in `gig_quote`.
+ * Anything missing or malformed returns null so booking falls back to
+ * resolving the order's address the normal way.
+ */
+function readQuotedDelivery(value: unknown): ResolvedDelivery | null {
+  if (!value || typeof value !== 'object') return null
+  const record = value as Record<string, unknown>
+  const mode =
+    record.mode === 'service_centre' ? 'service_centre' : record.mode === 'home' ? 'home' : null
+  const stationId = Number(record.stationId)
+  const latitude = Number(record.latitude)
+  const longitude = Number(record.longitude)
+  if (!mode) return null
+  if (!Number.isSafeInteger(stationId) || stationId <= 0) return null
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null
+
+  const serviceCentreId = Number(record.serviceCentreId)
+  return {
+    mode,
+    stationId,
+    latitude,
+    longitude,
+    formattedAddress: typeof record.formattedAddress === 'string' ? record.formattedAddress : null,
+    ...(mode === 'service_centre' && Number.isSafeInteger(serviceCentreId) && serviceCentreId > 0
+      ? { serviceCentreId }
+      : {}),
+    ...(mode === 'service_centre' && typeof record.serviceCentreName === 'string'
+      ? { serviceCentreName: record.serviceCentreName }
+      : {}),
+  }
 }
 
 /** The note left on an order that a second, separate transaction also paid. */
@@ -460,6 +494,22 @@ export async function POST(request: NextRequest) {
   // stay as the second line of defence.
   if (!order.gig_waybill) {
     try {
+      // The quote route stores the verified destination beside the carrier
+      // payload. Reusing it makes booking price and destination agree, and
+      // keeps service-centre orders pointed at the centre that was quoted.
+      const savedQuote = typeof order.gig_quote === 'string'
+        ? (() => { try { return JSON.parse(order.gig_quote) } catch { return null } })()
+        : order.gig_quote
+      const savedDelivery = savedQuote && typeof savedQuote === 'object'
+        ? (savedQuote as Record<string, unknown>).delivery
+        : null
+      const deliveryRecord = savedDelivery && typeof savedDelivery === 'object'
+        ? savedDelivery as Record<string, unknown>
+        : null
+      const deliveryMode = deliveryRecord?.mode === 'service_centre' ? 'service_centre' : 'home'
+      const serviceCentreId = Number(deliveryRecord?.serviceCentreId)
+      const quotedDelivery = readQuotedDelivery(deliveryRecord)
+
       const booking = await getCourier().book({
         orderId: order.id,
         email: order.email ?? '',
@@ -471,6 +521,11 @@ export async function POST(request: NextRequest) {
         state: order.state ?? '',
         country: order.country ?? '',
         postalCode: order.postal_code ?? undefined,
+        deliveryMode,
+        ...(quotedDelivery ? { quotedDelivery } : {}),
+        ...(deliveryMode === 'service_centre' && Number.isSafeInteger(serviceCentreId) && serviceCentreId > 0
+          ? { serviceCentreId }
+          : {}),
       })
 
       const { error: bookingRecordError } = await supabase

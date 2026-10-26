@@ -43,6 +43,8 @@ export type DeliveryDetails = {
   state: string
   country: string
   postalCode?: string
+  deliveryMode?: 'home' | 'service_centre'
+  serviceCentreId?: number
 }
 
 export class AwardRequestError extends Error {

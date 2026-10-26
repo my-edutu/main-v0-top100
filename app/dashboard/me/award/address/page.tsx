@@ -1,18 +1,9 @@
 'use client'
 
-import AwardsSection from '../../../awards-section'
-import { useDashboardBadges } from '../../../_providers/dashboard-badges'
 import { useDashboardMember } from '../../../_providers/dashboard-member'
+import { DeliveryAddressForm } from './delivery-address-form'
 
 export default function AwardAddressPage() {
   const { member } = useDashboardMember()
-  const { setAwardNeedsAttention } = useDashboardBadges()
-
-  return (
-    <AwardsSection
-      member={member}
-      step="address"
-      onClaimStateChange={setAwardNeedsAttention}
-    />
-  )
+  return <DeliveryAddressForm member={member} />
 }

@@ -1,6 +1,7 @@
 'use client'
 
-import { LockKeyhole, Truck } from 'lucide-react'
+import { Truck } from 'lucide-react'
+import Link from 'next/link'
 
 import { AwardCertificateCard } from '../award-certificate-card'
 
@@ -40,16 +41,13 @@ export function AwardOptions() {
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            disabled
-            aria-label="Arrange delivery, coming soon"
-            title="Coming soon"
-            className="inline-flex min-h-12 shrink-0 cursor-not-allowed items-center justify-center gap-2 rounded-xl bg-[#302D34] px-5 text-sm font-semibold text-[#AAA3AD] opacity-80"
+          <Link
+            href="/dashboard/me/award/address"
+            className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#FFDF45] px-5 text-sm font-semibold text-[#171412] transition hover:bg-[#FFE66C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[#211C24]"
           >
-            Coming soon
-            <LockKeyhole className="h-4 w-4" aria-hidden="true" />
-          </button>
+            Get delivery price
+            <Truck className="h-4 w-4" aria-hidden="true" />
+          </Link>
         </div>
       </section>
 

@@ -26,7 +26,7 @@ const questions = [
   {
     question: 'How do I arrange delivery?',
     answer:
-      'After completing the physical award fee, contact the team to arrange delivery. They will provide a quote based on your destination.',
+      'After completing the physical award fee, enter your Nigerian street address to see a live GIG shipping quote. You can then contact our team to arrange delivery.',
   },
 ]
 

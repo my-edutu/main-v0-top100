@@ -30,6 +30,8 @@ const deliverySchema = z.object({
   state: z.string().trim().min(2, 'Enter your state or region.').max(100),
   country: z.string().trim().min(2, 'Enter your country.').max(100),
   postalCode: z.string().trim().max(32).optional().default(''),
+  deliveryMode: z.enum(['home', 'service_centre']).optional().default('home'),
+  serviceCentreId: z.coerce.number().int().positive().optional(),
 })
 
 export async function POST(request: NextRequest) {
@@ -61,6 +63,28 @@ export async function POST(request: NextRequest) {
     if (!state) return NextResponse.json({ message: 'Select a valid Nigerian state or FCT.' }, { status: 400 })
     details.state = state.name
     details.country = 'Nigeria'
+  }
+
+  // Service-centre delivery prices the member's chosen GIG centre, so an id is
+  // mandatory. Home delivery must not silently inherit a stray centre id.
+  if (details.deliveryMode === 'service_centre') {
+    if (!details.serviceCentreId) {
+      return NextResponse.json(
+        { message: 'Choose a GIG service centre for service-centre delivery.' },
+        { status: 400 },
+      )
+    }
+    if (!isNigeria(details.country)) {
+      return NextResponse.json(
+        { message: 'Service-centre delivery is only available within Nigeria.' },
+        { status: 400 },
+      )
+    }
+  } else if (details.serviceCentreId) {
+    return NextResponse.json(
+      { message: 'A service centre can only be selected for service-centre delivery.' },
+      { status: 400 },
+    )
   }
 
   const supabase = createAdminClient()
@@ -129,7 +153,13 @@ export async function POST(request: NextRequest) {
     columns.status = 'quoted'
     columns.shipping_amount_kobo = quote.shippingKobo
     columns.total_amount_kobo = totalKobo(award, quote.shippingKobo)
-    columns.gig_quote = quote.raw ?? null
+    // `gig_quote` is ours, not GIG's: keep the carrier payload plus the exact
+    // verified destination. The booking webhook reads `delivery` back so a
+    // service-centre order is booked to the same centre it was priced for.
+    columns.gig_quote = {
+      raw: quote.raw ?? null,
+      delivery: quote.delivery ?? null,
+    }
     columns.gig_quote_expires_at = quoteExpiresAt()
   } else {
     // No usable quote: park the order for the admin team rather than guessing
@@ -187,5 +217,6 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({
     order: mapAwardOrder(saved),
     message: quote.ok ? null : quote.reason,
+    ...(quote.ok ? {} : { code: quote.code ?? 'quote_failed' }),
   })
 }
