@@ -49,7 +49,9 @@ export function buildAccessCodeInsert(opts: {
   now?: Date
 }) {
   const now = opts.now ?? new Date()
-  const durationHours = opts.mode === 'time_limited' ? (opts.durationHours ?? 1) : 90 * 24
+  // Individual codes keep the existing 90-day default, but callers may set a
+  // shorter expiry when issuing codes for a specific onboarding campaign.
+  const durationHours = opts.durationHours ?? (opts.mode === 'time_limited' ? 1 : 90 * 24)
 
   return {
     redemption_mode: opts.mode,
@@ -84,7 +86,12 @@ export function parseAccessCodeRequest(body: Record<string, unknown>) {
     if (!/^\S+@\S+\.\S+$/.test(email)) {
       throw new Error('A valid recipient email is required for an individual code.')
     }
-    return { mode, label, email }
+    if (body.durationHours === undefined) return { mode, label, email }
+    const durationHours = Number(body.durationHours)
+    if (durationHours !== 1 && durationHours !== 24 && durationHours !== 168 && durationHours !== 720) {
+      throw new Error('Choose an individual-code expiry of 1 hour, 24 hours, 1 week, or 1 month.')
+    }
+    return { mode, label, email, durationHours: durationHours as 1 | 24 | 168 | 720 }
   }
 
   const durationHours = Number(body.durationHours)
