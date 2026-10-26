@@ -628,10 +628,10 @@ export function LeaderDashboardView({
 
       <div className="grid grid-cols-2 gap-3">
         <Link href="/awardees" className="block rounded-2xl focus-visible:outline-offset-4" aria-label="View team awardees">
-          <Stat className="dashboard-stat h-full transition-colors hover:border-ink/[0.16]" label="Total awardees" value={dashboard.total_awardees.toLocaleString()} hint="In your team workspace" />
+          <Stat className="dashboard-stat h-full transition-colors hover:border-ink/[0.16]" label="Awardees" value={dashboard.total_awardees.toLocaleString()} />
         </Link>
         <Link href="/earnings" className="block rounded-2xl focus-visible:outline-offset-4" aria-label="View team rewards">
-          <Stat className="dashboard-stat dashboard-stat-reward h-full transition-colors hover:border-ink/[0.16]" label="Rewards" value={formatMinor(dashboard.commissions_generated_minor)} hint="Commission earned by your team" accent="moss" />
+          <Stat className="dashboard-stat dashboard-stat-reward h-full transition-colors hover:border-ink/[0.16]" label="Rewards" value={formatMinor(dashboard.commissions_generated_minor)} accent="moss" />
         </Link>
       </div>
 
