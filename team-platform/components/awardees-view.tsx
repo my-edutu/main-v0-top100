@@ -2,16 +2,18 @@ import { randomUUID } from 'node:crypto'
 import Link from 'next/link'
 import {
   Filter,
-  Mail,
   MessageCircle,
   Phone,
   Search,
 } from 'lucide-react'
 import { Avatar, EmptyState, PageHeader, Pagination } from '@/components/ui'
+import { AwardeeEmailDialog } from '@/components/awardee-email-dialog'
 import { isStaff } from '@/lib/auth'
+import { smtpConfigured } from '@/lib/env'
 import {
   getAgentOptions,
   getCountries,
+  getTemplates,
   listAwardees,
   type AwardeeDirectoryRow,
   type AwardeeFilters,
@@ -67,7 +69,19 @@ function internationalPhone(phone: string | null, country: string | null) {
   return international.length >= 8 && international.length <= 15 ? international : null
 }
 
-function Actions({ row }: { row: AwardeeDirectoryRow }) {
+function Actions({
+  row,
+  emailTemplates,
+  smtpReady,
+  canSendEmail,
+  agentName,
+}: {
+  row: AwardeeDirectoryRow
+  emailTemplates: Array<{ id: string; name: string; subject: string | null; body: string; channel: 'email' }>
+  smtpReady: boolean
+  canSendEmail: boolean
+  agentName: string
+}) {
   const phone = internationalPhone(row.phone, row.country)
   const whatsapp = phone ? `https://wa.me/${phone}` : null
   return (
@@ -102,20 +116,15 @@ function Actions({ row }: { row: AwardeeDirectoryRow }) {
           <MessageCircle className="h-5 w-5" />
         </span>
       )}
-      {row.email ? (
-        <Link
-          href={`/awardees/${row.id}?compose=email`}
-          className="flex h-11 w-11 items-center justify-center rounded-xl bg-sky-50 text-sky-700 shadow-sm ring-1 ring-sky-200 transition hover:bg-sky-100 hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
-          aria-label={`Email ${row.name}`}
-          title="Email"
-        >
-          <Mail className="h-5 w-5" strokeWidth={2.4} />
-        </Link>
-      ) : (
-        <span role="img" aria-label={`No email address for ${row.name}`} title="No email on file" className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-50 text-slate-300 ring-1 ring-slate-200">
-          <Mail className="h-5 w-5" />
-        </span>
-      )}
+      <AwardeeEmailDialog
+        awardeeId={row.id}
+        awardeeName={row.name}
+        email={row.email}
+        agentName={agentName}
+        templates={emailTemplates}
+        smtpReady={smtpReady}
+        canSend={canSendEmail}
+      />
     </div>
   )
 }
@@ -218,7 +227,19 @@ function FilterBar({
   )
 }
 
-function AwardeeCard({ row }: { row: AwardeeDirectoryRow }) {
+function AwardeeCard({
+  row,
+  emailTemplates,
+  smtpReady,
+  canSendEmail,
+  agentName,
+}: {
+  row: AwardeeDirectoryRow
+  emailTemplates: Array<{ id: string; name: string; subject: string | null; body: string; channel: 'email' }>
+  smtpReady: boolean
+  canSendEmail: boolean
+  agentName: string
+}) {
   return (
     <div className="flex items-center justify-between gap-3 border-t border-ink/[0.07] px-4 py-3 first:border-t-0">
       <div className="flex min-w-0 items-center gap-3">
@@ -227,7 +248,7 @@ function AwardeeCard({ row }: { row: AwardeeDirectoryRow }) {
           {row.name}
         </Link>
       </div>
-      <Actions row={row} />
+      <Actions row={row} emailTemplates={emailTemplates} smtpReady={smtpReady} canSendEmail={canSendEmail} agentName={agentName} />
     </div>
   )
 }
@@ -246,11 +267,23 @@ export async function AwardeesView({
   const shuffleSeed = params.shuffle ?? randomUUID()
   const filters = toFilters(params, shuffleSeed)
   const staff = isStaff(member.membership.role)
-  const [result, countries, agents] = await Promise.all([
+  const [result, countries, agents, templates] = await Promise.all([
     listAwardees(member, filters),
     getCountries(member),
     staff ? getAgentOptions(member) : Promise.resolve([]),
+    getTemplates(member),
   ])
+  const emailTemplates = templates
+    .filter((template) => template.is_active && template.channel === 'email')
+    .map((template) => ({
+      id: template.id,
+      name: template.name,
+      subject: template.subject,
+      body: template.body,
+      channel: 'email' as const,
+    }))
+  const smtpReady = smtpConfigured()
+  const canSendEmail = member.membership.role !== 'team_leader'
 
   const query = (page: number) => {
     const values = new URLSearchParams()
@@ -297,7 +330,7 @@ export async function AwardeesView({
                     </div>
                   </td>
                   <td className="td">
-                    <Actions row={row} />
+                    <Actions row={row} emailTemplates={emailTemplates} smtpReady={smtpReady} canSendEmail={canSendEmail} agentName={member.membership.full_name} />
                   </td>
                 </tr>
               ))}
@@ -307,7 +340,14 @@ export async function AwardeesView({
 
         <div className="md:hidden">
           {result.rows.map((row) => (
-            <AwardeeCard key={row.id} row={row} />
+            <AwardeeCard
+              key={row.id}
+              row={row}
+              emailTemplates={emailTemplates}
+              smtpReady={smtpReady}
+              canSendEmail={canSendEmail}
+              agentName={member.membership.full_name}
+            />
           ))}
         </div>
 

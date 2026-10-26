@@ -44,7 +44,11 @@ export function EmailComposer({
   )
   const [templateId, setTemplateId] = useState(emailTemplates[0]?.id ?? '')
   const initial = emailTemplates[0]
-  const [subject, setSubject] = useState(initial?.subject ? renderTemplate(initial.subject, vars) : 'Your Top100 Africa Future Leaders award')
+  const [subject, setSubject] = useState(
+    initial?.subject
+      ? renderTemplate(initial.subject, vars)
+      : 'Your Top100 Africa Future Leaders award',
+  )
   const [body, setBody] = useState(initial ? renderTemplate(initial.body, vars) : '')
   const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID())
   const [loading, setLoading] = useState(false)
@@ -53,9 +57,18 @@ export function EmailComposer({
 
   function chooseTemplate(id: string) {
     setTemplateId(id)
+    if (!id) {
+      setSubject('Your Top100 Africa Future Leaders award')
+      setBody('')
+      return
+    }
     const template = emailTemplates.find((item) => item.id === id)
     if (!template) return
-    setSubject(template.subject ? renderTemplate(template.subject, vars) : subject)
+    setSubject(
+      template.subject
+        ? renderTemplate(template.subject, vars)
+        : 'Your Top100 Africa Future Leaders award',
+    )
     setBody(renderTemplate(template.body, vars))
   }
 
