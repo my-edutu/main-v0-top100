@@ -11,12 +11,13 @@ Help sales reps contact awardees, support payment completion, and see verified r
 - The admin worklist exposes only Name, Email, Phone, Country, Address when available, payment state, and contact actions. Email and call icons sit together on the same row and appear only when their contact value exists.
 - A confirmed linked payment turns the payment cell and row tint moss green with a check. The state comes from the verified order projection and is never set by a contact action.
 - The canonical awardee record supplies name, email, and country; linked profile or awardee metadata supplies phone/address, with an existing award order as an address fallback. Missing optional details stay blank rather than being inferred.
-- Paginate the list. Assignment capacity is 100 active awardees per active sales rep; it is not a 100-row page size or a 100-person team limit.
+- Paginate the list. Capacity defaults to 100 active awardees per sales rep and is configurable by a Top100 administrator from 1 to 5,000; it is not a page size or team-wide limit.
+- The administrator chooses a country focus for each shuffle. Nigeria is the default, and the saved focus applies to year-pool loads and automatic assignments.
 - Use a purposeful awardee illustration only for a genuinely empty list. Search and filtered-empty states explain the next step without extra decoration.
 
 ## Algorithm and money contract
 
-1. Team worklists are year-based projections of Top100's canonical `awardees` list. An admin selects a year and loads its unpaid records; the assignment transaction shuffles that year pool and distributes records to the least-loaded active reps, with a hard limit of 100 active assignments per rep.
+1. Team worklists are year-based projections of Top100's canonical `awardees` list. An admin selects a year and country, then loads its unpaid records; the assignment transaction shuffles that matching pool and distributes records to the least-loaded active reps, with a hard limit set by the team's configured capacity.
 2. The cap counts active assignments, including records whose payments are already verified. Historical assignments above 100 remain intact but receive no further assignments until under capacity. No mass reassignment is performed.
 3. Paid, pending, and refunded records are not loaded into a new year worklist or automatically assigned. A payment verified before assignment remains unattributed; the system must not create a reward for an agent who was not responsible at payment time. Admin reconciliation remains available for linked payments and commissions.
 4. Payment state comes only from the linked `award_orders` payment source (matched by public awardee/profile identity). The worklist shows a moss check only when the synced team record is `paid`; pending, failed, and refunded records do not show it.
@@ -55,7 +56,7 @@ The list becomes a paginated, responsive contact worklist. The limit means 100 a
 
 ### Final refinement
 
-The worklist now selects a year from the canonical Top100 awardee directory. It copies only unpaid records into the team projection, keeping the canonical awardee ID and profile link intact; no external spreadsheet or new awardee record is created. A payment verified before assignment remains uncommissioned, because reward attribution checks the assignment active at the payment timestamp. Payment truth and reward attribution stay separate but linked: status comes from the synced order projection; amount and owner come from the ledger. Refunds create reversals. The cap prevents new assignments above 100 while preserving existing records. The table shows separate contact columns and verified payment status; rewards remain auditable on Earnings.
+The worklist now selects a year and country from the canonical Top100 awardee directory. Nigeria is the default country. It copies only unpaid records into the team projection, keeping the canonical awardee ID and profile link intact; no external spreadsheet or new awardee record is created. A payment verified before assignment remains uncommissioned, because reward attribution checks the assignment active at the payment timestamp. Payment truth and reward attribution stay separate but linked: status comes from the synced order projection; amount and owner come from the ledger. Refunds create reversals. The configurable per-rep cap prevents new assignments above the chosen limit while preserving existing records. The table shows separate contact columns and verified payment status; rewards remain auditable on Earnings.
 
 ### Implementation review
 
@@ -68,9 +69,9 @@ The worklist now selects a year from the canonical Top100 awardee directory. It 
 
 ### Central Admin Panel workflow
 
-1. Open **People → Team Awardee Worklist** in the Top100 Admin Panel, choose the team, and select an award year.
+1. Open **People → Team Awardee Worklist** in the Top100 Admin Panel, choose the team, year, country focus, and active awardee limit per rep.
 2. Review the unpaid count, then select **Shuffle unpaid from [year]**. The transaction syncs eligible records from the existing directory and assigns them to active reps in that year pool.
-3. The database enforces 100 active assignments per sales rep. Awardees already paid, pending, or refunded are skipped.
+3. The database enforces the configured active assignment limit on year shuffles, automatic assignment, and manual reassignment. Awardees already paid, pending, or refunded are skipped.
 4. When a linked award order is verified as paid, the worklist displays the payment status and the commission ledger records the applicable reward. Refunds create reversals.
 
 ## Acceptance checks
@@ -83,6 +84,6 @@ The worklist now selects a year from the canonical Top100 awardee directory. It 
 - The year shuffle selects only unpaid records, preserves exact awardee identity, and can be repeated safely without duplicate team records or active assignments.
 - Each qualifying paid order creates at most one ₦2,000 NGN commission under the current seed rules; refund creates at most one corresponding reversal.
 - A late identity link cannot create a commission for an assignment made after payment.
-- Automatic assignment and manual reassignment never create active assignment 101 for an agent, including concurrent admin requests.
+- Year shuffle, automatic assignment, and manual reassignment never exceed the configured active limit, including concurrent admin requests.
 - Agents already above capacity retain their records and are excluded from new assignment until they have room.
 - Desktop table, mobile list, empty state, search, filters, and pagination remain usable.

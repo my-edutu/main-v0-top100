@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { ApiError, apiMember, audit, jsonError } from '@/lib/api'
 import { sendEmail } from '@/lib/email'
+import { brandedEmailHtml } from '@/lib/email-html'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { emailSendSchema } from '@/lib/validation'
 
@@ -117,7 +118,7 @@ export async function POST(request: Request) {
 
     const { data: settings } = await admin
       .from('team_settings')
-      .select('sender_name, sender_email')
+      .select('sender_name')
       .eq('team_id', member.membership.team_id)
       .maybeSingle()
 
@@ -125,9 +126,9 @@ export async function POST(request: Request) {
       to: awardee.email,
       subject: payload.subject,
       text: payload.body,
+      html: brandedEmailHtml({ body: payload.body, senderName: settings?.sender_name ?? undefined }),
       replyTo: member.user.email,
       fromName: settings?.sender_name ?? undefined,
-      fromEmail: settings?.sender_email || undefined,
     })
 
     const attemptedAt = new Date().toISOString()

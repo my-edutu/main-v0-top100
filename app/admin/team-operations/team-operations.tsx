@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { BriefcaseBusiness, Check, Clock3, Loader2, RefreshCw, UserPlus, Users, X } from 'lucide-react'
+import { BriefcaseBusiness, Check, Clock3, Loader2, Mail, RefreshCw, UserPlus, Users, X } from 'lucide-react'
 import { toast } from 'sonner'
+import { AccessCodePanel } from './access-code-panel'
 
 type Membership = {
   id: string
@@ -108,6 +109,7 @@ export default function TeamOperations() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href="/admin/team-operations/worklist" className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-3 py-2 text-sm font-semibold text-white hover:bg-zinc-800"><Users className="h-4 w-4" /> Awardee worklist</Link>
+          <Link href="/admin/team-operations/templates" className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-medium hover:bg-zinc-50"><Mail className="h-4 w-4" /> Email templates</Link>
           <button onClick={() => void load()} className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-medium hover:bg-zinc-50" disabled={loading}>
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
           </button>
@@ -168,6 +170,8 @@ export default function TeamOperations() {
           {!teamId ? <p className="text-xs text-amber-700">Create or activate a team before inviting members.</p> : null}
         </form>
       </div>
+
+      {teamId ? <AccessCodePanel key={teamId} teamId={teamId} /> : null}
     </div>
   )
 }

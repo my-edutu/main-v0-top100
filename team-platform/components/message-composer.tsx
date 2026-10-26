@@ -111,7 +111,7 @@ export function EmailComposer({
       <Field label="Subject">
         <input className="input !h-10" value={subject} onChange={(event) => setSubject(event.target.value)} maxLength={200} required />
       </Field>
-      <Field label="Message" hint="Sent as plain text. Unknown {{tokens}} are left untouched.">
+      <Field label="Message" hint="Sent in Top100’s branded email layout. Edit the message before sending; unknown {{tokens}} are left untouched.">
         <textarea
           className="textarea min-h-[190px]"
           value={body}

@@ -67,7 +67,7 @@ export default async function LoginPage({
           <p className="label mb-3">Team sign in</p>
           <h2 className="display text-4xl leading-[1.05]">Welcome back.</h2>
           <p className="mt-3 text-sm leading-6 text-muted">
-            Use the work email your administrator invited to the platform.
+            Sign in with the work email and password on your team account.
           </p>
 
           {missingEnv ? (
@@ -94,12 +94,15 @@ export default async function LoginPage({
             </span>
           </div>
 
-          <div className="mt-12 rounded-2xl border border-ink/[0.08] bg-cream p-4 text-[11px] leading-5 text-muted">
+          <div className="mt-8 rounded-2xl border border-ink/[0.08] bg-cream p-4 text-[11px] leading-5 text-muted">
             <div className="mb-1.5 flex items-center gap-1.5 font-semibold text-ink">
               <Mail className="h-3.5 w-3.5 text-ember" />
-              New to the team?
+              New sales rep?
             </div>
-            Access is invitation-only. Contact your team administrator to receive a secure invite.
+            Create an account with a one-time code from your administrator. Workspace access begins after admin approval.
+            <Link href="/signup" className="mt-3 inline-flex items-center gap-1 font-semibold text-ember-dark underline decoration-ember/40 underline-offset-4">
+              Create account <ArrowUpRight className="h-3 w-3" />
+            </Link>
           </div>
 
           <p className="mt-8 text-[10px] leading-4 text-muted/70">

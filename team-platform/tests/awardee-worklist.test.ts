@@ -32,6 +32,18 @@ describe('awardee assignment capacity', () => {
       { awardeeId: 'new-2', agentId: 'b' },
     ])
   })
+
+  it('uses a larger administrator-configured cap when planning a batch', () => {
+    const assignments = planFairAssignment(
+      Array.from({ length: 4 }, (_, index) => ({ id: `new-${index}` })),
+      [{ id: 'rep', assignedCount: 100 }],
+      'least_loaded',
+      125,
+    )
+
+    expect(assignments).toHaveLength(4)
+    expect(assignments.every((assignment) => assignment.agentId === 'rep')).toBe(true)
+  })
 })
 
 describe('payment identity import', () => {

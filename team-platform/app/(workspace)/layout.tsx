@@ -30,8 +30,8 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
           </div>
           <h1 className="display text-2xl">Workspace access pending</h1>
           <p className="mt-2 text-sm leading-6 text-muted">
-            Your account is signed in, but it is not attached to an active team membership. Ask an
-            administrator to activate your invite, or sign in with the email that was invited.
+            Your account is signed in, but team access is still waiting for administrator approval.
+            Confirm your email if you have not already, then ask your Top100 administrator to activate your membership.
           </p>
           <div className="mt-6 flex justify-center gap-2">
             <Link href="/login" className="btn btn-ghost">

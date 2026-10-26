@@ -30,6 +30,7 @@ export type SendEmailInput = {
   to: string
   subject: string
   text: string
+  html?: string
   replyTo?: string
   fromName?: string
   fromEmail?: string
@@ -65,6 +66,7 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
       to: input.to,
       subject: input.subject,
       text: input.text,
+      html: input.html,
       replyTo: input.replyTo || fromEmail,
       headers: { 'X-Entity-Ref-ID': `team-${Date.now()}` },
     })

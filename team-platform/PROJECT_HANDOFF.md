@@ -4,7 +4,7 @@ Updated: 26 October 2026
 
 ## Current state
 
-`team-platform/` is a local, independently deployable Next.js 16.3.4 app using React 19, TypeScript, Supabase Auth/Postgres, and a single additive SQL migration. The parent repository is on `main`; `git status` reports the entire `team-platform/` directory as untracked, so there is no Git baseline for its source yet. No commit was created.
+`team-platform/` is an independently deployable Next.js 16.3.4 app using React 19, TypeScript, and the shared Supabase Auth/Postgres project. Its source and additive migrations are tracked in the parent repository. The user applied the current additive rep-access-code, country-focus, and configurable-capacity migration; production behavior still needs end-to-end testing.
 
 The platform uses the same Supabase project as the main Top100 app. It references the existing `profiles`, `awardees`, `award_orders`, and `award_payment_attempts` records, while storing team operations, assignments, follow-ups, commissions, and withdrawal workflow in `team_*` tables. The user applied the migration; the shared database was subsequently confirmed to contain the team tables, sales team, and active membership.
 
@@ -17,6 +17,9 @@ The main app owns all administration, authorized from `profiles.role`. Team memb
 - Applied migration links team awardees to existing public awardee/profile/order records and includes team tables, RPCs, RLS policies, indexes, and an initial `sales` team.
 - TypeScript passes for `team-platform` after correcting three pre-existing type failures in the awardee type, password page callback, and Nodemailer type import.
 - Main admin navigation points to its internal `/admin/team-operations` page. That page lists teams and memberships, approves/suspends members, assigns agent/team-leader roles, and sends invitations.
+- Existing rep sign-in works after Supabase invitation and admin approval. Self-registration is now available only with a one-time code generated in the primary Admin Panel; codes are hashed at rest, expire after seven days, and create an invited agent membership that remains pending until an administrator approves it.
+- The central Admin Panel worklist now persists a country focus (Nigeria by default) and a configurable active-awardee cap per rep. The assignment SQL applies the selected country and cap to year shuffles, automatic assignment, and manual reassignment.
+- Top100 Admin Panel now manages shared team email and WhatsApp templates at Team Operations → Email templates. Sales reps can personalize each message in the awardee contact view; email is sent through the branded Top100 SMTP sender and recorded with delivery outcome.
 - Parent `tsconfig.json` excludes `team-platform/` so the main application compiles its own source tree independently.
 
 ## Pending work, prioritized
@@ -36,8 +39,9 @@ The main app owns all administration, authorized from `profiles.role`. Team memb
 
 ### P2 — Deployment and operations
 
-- Document required environment variables without copying secrets, including the shared Supabase project, `NEXT_PUBLIC_TOP100_ADMIN_URL`, `NEXT_PUBLIC_TEAM_PLATFORM_URL`, cron secret, and SMTP settings.
+- Set the team app's SMTP environment variables without copying secrets: `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM_EMAIL`, and optionally `SMTP_FROM_NAME`. `SMTP_FROM_EMAIL` must be an address authorized by the configured SMTP service. Set `NEXT_PUBLIC_TOP100_ADMIN_URL`, `NEXT_PUBLIC_TEAM_PLATFORM_URL`, and cron settings as well.
 - Configure and verify `teams.top100afl.com`, production build, cron scheduling, SMTP delivery, and security headers.
+- Verify self-registration, country selection, and the configurable per-rep cap on a new test rep account after deployment.
 - Resolve the multiple-lockfile workspace-root warning in the team app build configuration.
 
 ### P3 — Future enhancements
@@ -69,6 +73,11 @@ Finish moving the remaining team administration modules into the primary admin a
 - `app/admin/team-operations/`: add central team access management and invitation UI.
 - `app/api/admin/team-operations/`: add Top100-admin-guarded team membership listing, invitation, approval, role assignment, and suspension APIs.
 - `app/admin/components/nav-config.ts`: point Team Operations to the internal admin route.
+- `app/admin/team-operations/access-code-panel.tsx` and `app/api/admin/team-operations/codes/route.ts`: generate, list, and revoke one-time rep codes from the primary admin panel.
+- `team-platform/app/signup/page.tsx`, `components/signup-form.tsx`, and `app/api/auth/signup/route.ts`: create a sales-agent account with an admin-generated code; the membership stays invited until admin approval.
+- `team-platform/supabase/migrations/20261026180000_rep_access_and_assignment_controls.sql`: add hashed signup codes, a country-option RPC, configurable per-rep capacity, and assignment enforcement.
+- `team-platform/lib/email-html.ts` and `team-platform/app/api/email/send/route.ts`: send a Top100-branded HTML email plus text fallback through SMTP, with the SMTP sender fixed by deployment configuration and the rep address used as reply-to.
+- `app/admin/team-operations/templates/` and `app/api/admin/team-operations/templates/route.ts`: let primary Top100 admins create and edit shared per-team email and WhatsApp templates; reps can edit a selected copy before sending.
 
 ## Commands and results
 
