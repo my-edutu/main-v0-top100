@@ -22,6 +22,7 @@ import {
   HeartHandshake,
   Share2,
   Bot,
+  BriefcaseBusiness,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -57,6 +58,8 @@ export const navGroups: NavGroup[] = [
     label: 'People',
     items: [
       { label: 'Awardees', href: '/admin/awardees', icon: Star },
+      { label: 'Team Operations', href: '/admin/team-operations', icon: BriefcaseBusiness },
+      { label: 'Team Awardee Worklist', href: '/admin/team-operations/worklist', icon: Users },
       { label: 'Users', href: '/admin/users', icon: Users },
       { label: 'Invites', href: '/admin/invites', icon: UserPlus },
       { label: 'Member Hub', href: '/admin/member-hub', icon: LayoutGrid },

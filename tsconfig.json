@@ -37,6 +37,7 @@
   ],
   "exclude": [
     "node_modules",
+    "team-platform",
     "remotion-advert",
     "tests",
     "scripts",
