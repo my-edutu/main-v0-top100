@@ -216,9 +216,9 @@ function toArchiveSession(event: LiveCalendarEvent): Session {
         : isTechSession ? availableSessions[4].title : event.title,
     summary: available?.summary ?? additionalSessionDescriptions.find(({ topic }) => topic.test(event.title))?.summary,
     date: formatProgrammeDate(event.startAt),
-    coverImage: isOnboarding
-      ? event.cover ?? available?.coverImage
-      : isKnowledgeImpactSession ? '/images/session-from-knowledge-to-impact.jpg' : available?.coverImage,
+    coverImage: isKnowledgeImpactSession
+      ? '/images/session-from-knowledge-to-impact.jpg'
+      : event.cover ?? available?.coverImage,
     presenter: isOnboarding
       ? 'Emmanuella Igboafu'
       : isUmunnaSession

@@ -21,6 +21,41 @@ export type LiveCalendarAttachment = {
 const calendarId = 'c_49723456ee568795051f3fc2ced0b8ae4972bc67f5b4f73b578072979e23e298@group.calendar.google.com'
 export const AFL_2026_ICS_URL = `https://calendar.google.com/calendar/ical/${encodeURIComponent(calendarId)}/public/basic.ics`
 
+const EVENT_POSTERS = [
+  {
+    match: /^the collaboration advantage:/i,
+    title: 'The Collaboration Advantage: How to Build Strategic Relationships, Partnerships and Cross-Border Collaborations That Create Opportunities',
+    cover: '/images/session-collaboration-advantage.jpg',
+  },
+  {
+    match: /^from problem to product to market:/i,
+    title: 'From Problem to Product to Market: How to Build Solutions People Actually Need and Pay For',
+    cover: '/images/session-from-problem-to-product.jpg',
+  },
+  {
+    match: /^(?:the opportunity builder:|from recognition to leadership:)/i,
+    title: 'From Recognition to Leadership: Practical steps to Becoming A Leader of Impact in Life and Workplace',
+    cover: '/images/session-from-recognition-to-leadership.jpg',
+  },
+  {
+    match: /^the global opportunity playbook:/i,
+    title: 'The Global Opportunity Playbook: How to Position Your Experience, Build Global Credibility and Access International Opportunities',
+    cover: '/images/session-global-opportunity-playbook.jpg',
+  },
+] as const
+
+const additionalEvents: LiveCalendarEvent[] = [
+  {
+    id: 'afl-2026-global-opportunity-playbook',
+    title: 'The Global Opportunity Playbook: How to Position Your Experience, Build Global Credibility and Access International Opportunities',
+    startAt: '2026-10-31T18:00:00.000Z', // 7:00 PM WAT
+    endAt: '2026-10-31T19:00:00.000Z', // 8:00 PM WAT
+    meetUrl: AFL_2026_MEET_URL,
+    cover: '/images/session-global-opportunity-playbook.jpg',
+    attachments: [],
+  },
+]
+
 export async function loadAflCalendarEvents(): Promise<LiveCalendarEvent[]> {
   const response = await fetch(AFL_2026_ICS_URL, {
     next: { revalidate: 300 },
@@ -65,7 +100,11 @@ export function parseAflCalendar(ics: string): LiveCalendarEvent[] {
     if (!id || !startAt || !endAt || !fields.get('SUMMARY')) continue
     const description = unescapeIcs(fields.get('DESCRIPTION') ?? '')
     const sessionTitle = /<strong>Session:<\/strong>\s*<br\s*\/?>(?:\s*<strong>)?([^<]+)/i.exec(description)?.[1]
-    const title = sessionTitle ? decodeHtml(sessionTitle) : unescapeIcs(fields.get('SUMMARY') ?? '')
+    const sourceTitle = sessionTitle ? decodeHtml(sessionTitle) : unescapeIcs(fields.get('SUMMARY') ?? '')
+    // This event was removed from the programme; suppress stale calendar copies.
+    if (/^the employability advantage:/i.test(sourceTitle)) continue
+    const poster = EVENT_POSTERS.find(({ match }) => match.test(sourceTitle))
+    const title = poster?.title ?? sourceTitle
     const meetUrl = AFL_2026_MEET_URL
     const titleKey = title.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
     const archiveCover = /bloom|world class opportunities/.test(titleKey)
@@ -99,11 +138,17 @@ export function parseAflCalendar(ics: string): LiveCalendarEvent[] {
       startAt,
       endAt,
       meetUrl,
-      cover: /onboarding/i.test(`${title} ${fields.get('SUMMARY') ?? ''}`)
+      cover: poster?.cover ?? (/onboarding/i.test(`${title} ${fields.get('SUMMARY') ?? ''}`)
         ? AFL_2026_CALENDAR.artwork
-        : archiveCover ?? (programmeArtwork ? PROGRAMME_ARTWORK[programmeArtwork.sessionNumber]?.src ?? null : null),
+        : archiveCover ?? (programmeArtwork ? PROGRAMME_ARTWORK[programmeArtwork.sessionNumber]?.src ?? null : null)),
       attachments,
     })
   }
-  return events.sort((left, right) => left.startAt.localeCompare(right.startAt))
+  const normalizedEvents = [...events]
+  for (const event of additionalEvents) {
+    if (!normalizedEvents.some(({ title }) => /^the global opportunity playbook:/i.test(title))) {
+      normalizedEvents.push(event)
+    }
+  }
+  return normalizedEvents.sort((left, right) => left.startAt.localeCompare(right.startAt))
 }

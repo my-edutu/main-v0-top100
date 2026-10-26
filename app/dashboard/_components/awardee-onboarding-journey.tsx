@@ -362,7 +362,7 @@ export function AwardeeOnboardingJourney({ name }: Props) {
               </li>
             })}
           </ol> : null}
-          <div className="mt-2 divide-y divide-[#EEE7DF] border-b border-[#EEE7DF]">
+          <div className="mt-2 divide-y divide-[#EEE7DF]">
             {!homeScreenComplete && !dismissed.includes('home-screen') ? (
               <div className="flex min-h-14 items-center gap-2 py-2">
                 <button type="button" onClick={() => triggerHomeScreenAction()} className="group flex min-h-12 min-w-0 flex-1 items-center gap-2 text-left transition-colors hover:bg-[#FFFCF9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-inset">
