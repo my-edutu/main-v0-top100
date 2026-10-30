@@ -7,6 +7,7 @@ import type {
   Membership,
   SessionMember,
 } from '@/lib/types'
+import { workdayDate } from '@/lib/workday'
 import { isStaff } from '@/lib/auth'
 
 export type AwardeeDirectoryRow = {
@@ -124,9 +125,9 @@ export async function listAwardees(
     if (filters.paymentStatus?.length) query = query.in('payment_status', filters.paymentStatus)
     if (filters.contactStatus) query = query.eq('contact_status', filters.contactStatus)
     if (filters.country) query = query.eq('country', filters.country)
-    if (filters.followUp === 'due') query = query.lte('next_followup_at', new Date().toISOString().slice(0, 10))
-    if (filters.followUp === 'overdue') query = query.lt('next_followup_at', new Date().toISOString().slice(0, 10))
-    if (filters.followUp === 'scheduled') query = query.gt('next_followup_at', new Date().toISOString().slice(0, 10))
+    if (filters.followUp === 'due') query = query.eq('next_followup_at', workdayDate())
+    if (filters.followUp === 'overdue') query = query.lt('next_followup_at', workdayDate())
+    if (filters.followUp === 'scheduled') query = query.gt('next_followup_at', workdayDate())
 
     const search = sanitizeSearch(filters.search ?? '')
     if (search) {
@@ -181,7 +182,7 @@ export async function listAwardees(
       query = query.order('name', { ascending: true })
   }
 
-  const { data, error, count } = await query.range(from, to)
+  const { data, error, count } = await query.order('id', { ascending: true }).range(from, to)
   raise(error, 'Could not load awardees')
   return {
     rows: (data ?? []) as AwardeeDirectoryRow[],
@@ -224,7 +225,10 @@ export async function getRandomAwardees(member: SessionMember, sampleSize = 5) {
   return rows.filter((row): row is AwardeeDirectoryRow => row !== null)
 }
 
-export async function getAwardeeDetail(member: SessionMember, awardeeId: string) {
+export async function getAwardeeDetail(
+  member: SessionMember,
+  awardeeId: string,
+) {
   const admin = createAdminClient()
   const { data, error } = await admin
     .from('team_awardee_directory')
@@ -235,39 +239,65 @@ export async function getAwardeeDetail(member: SessionMember, awardeeId: string)
   raise(error, 'Could not load awardee')
   if (!data) return null
   const awardee = data as AwardeeDirectoryRow
-  if (member.membership.role === 'agent' && awardee.agent_id !== member.membership.id) return null
+  if (
+    member.membership.role === 'agent' &&
+    awardee.agent_id !== member.membership.id
+  )
+    return null
 
-  const [followups, emails, assignments, commissions, templates, agents] = await Promise.all([
-    admin
-      .from('team_followups')
-      .select('*, team_memberships(full_name)')
-      .eq('awardee_id', awardeeId)
-      .order('contacted_at', { ascending: false })
-      .limit(100),
-    admin
-      .from('team_email_logs')
-      .select('id, to_email, subject, status, error, attempted_at, sent_at, provider_message_id')
-      .eq('awardee_id', awardeeId)
-      .order('attempted_at', { ascending: false })
-      .limit(30),
-    admin
-      .from('team_assignments')
-      .select('id, status, assigned_at, ended_at, end_reason, assignment_strategy, team_memberships(full_name,email)')
-      .eq('awardee_id', awardeeId)
-      .order('assigned_at', { ascending: false }),
-    admin
-      .from('team_commission_entries')
-      .select('id, agent_id, entry_type, amount_minor, currency, status, earned_at, available_at, reason')
-      .eq('awardee_id', awardeeId)
-      .order('created_at', { ascending: false }),
-    admin
-      .from('team_templates')
-      .select('*')
+  // The active owner can review prior conversations on archived projections of
+  // the exact same canonical person. Financial records retain original owners.
+  let historyIds = [awardeeId]
+  if (awardee.public_awardee_id) {
+    const { data: related, error: relatedError } = await admin
+      .from('team_awardees')
+      .select('id')
       .eq('team_id', member.membership.team_id)
-      .eq('is_active', true)
-      .order('channel'),
-    isStaff(member.membership.role) ? getAgentOptions(member) : Promise.resolve([]),
-  ])
+      .eq('public_awardee_id', awardee.public_awardee_id)
+    raise(relatedError, 'Could not load awardee history')
+    historyIds = (related ?? []).map((row) => row.id)
+  }
+
+  const [followups, emails, assignments, commissions, templates, agents] =
+    await Promise.all([
+      admin
+        .from('team_followups')
+        .select('*, team_memberships(full_name)')
+        .in('awardee_id', historyIds)
+        .order('contacted_at', { ascending: false })
+        .limit(100),
+      admin
+        .from('team_email_logs')
+        .select(
+          'id, to_email, subject, status, error, attempted_at, sent_at, provider_message_id',
+        )
+        .in('awardee_id', historyIds)
+        .order('attempted_at', { ascending: false })
+        .limit(30),
+      admin
+        .from('team_assignments')
+        .select(
+          'id, status, assigned_at, ended_at, end_reason, assignment_strategy, team_memberships(full_name,email)',
+        )
+        .in('awardee_id', historyIds)
+        .order('assigned_at', { ascending: false }),
+      admin
+        .from('team_commission_entries')
+        .select(
+          'id, agent_id, entry_type, amount_minor, currency, status, earned_at, available_at, reason',
+        )
+        .in('awardee_id', historyIds)
+        .order('created_at', { ascending: false }),
+      admin
+        .from('team_templates')
+        .select('*')
+        .eq('team_id', member.membership.team_id)
+        .eq('is_active', true)
+        .order('channel'),
+      isStaff(member.membership.role)
+        ? getAgentOptions(member)
+        : Promise.resolve([]),
+    ])
 
   return {
     awardee,
@@ -303,14 +333,16 @@ export async function listFollowups(
 
 export async function getFollowupQueue(member: SessionMember) {
   const admin = createAdminClient()
-  const today = new Date().toISOString().slice(0, 10)
+  const today = workdayDate()
   let query = admin
     .from('team_awardee_directory')
     .select('*')
     .eq('team_id', member.membership.team_id)
     .eq('is_active', true)
     .lte('next_followup_at', today)
+    .in('payment_status', ['unpaid', 'pending'])
     .order('next_followup_at', { ascending: true })
+    .order('id', { ascending: true })
     .limit(150)
   query = agentScope(query, member)
   const { data, error } = await query

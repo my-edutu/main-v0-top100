@@ -6,8 +6,8 @@ const config: Config = {
     extend: {
       colors: {
         ink: '#14120F',
-        paper: '#F6F2EA',
-        cream: '#FBF8F2',
+        paper: '#F5F5F3',
+        cream: '#FFFFFF',
         ember: { DEFAULT: '#DE4B1F', dark: '#B93A13', soft: '#FBEAE2' },
         moss: { DEFAULT: '#1F6B4A', soft: '#E4F1E9' },
         sand: '#E7DFD2',

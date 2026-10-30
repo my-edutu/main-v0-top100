@@ -10,6 +10,7 @@ import {
 } from '@/components/ui'
 import { requireMember, isStaff } from '@/lib/auth'
 import { getAgentOptions, getFollowupQueue, listFollowups } from '@/lib/data'
+import { workdayDate } from '@/lib/workday'
 import { CHANNEL_LABELS, formatDate, formatDateTime, OUTCOME_LABELS } from '@/lib/format'
 
 export const metadata = { title: 'Follow-ups' }
@@ -44,7 +45,7 @@ export default async function FollowUpsPage({
     staff ? getAgentOptions(member) : Promise.resolve([]),
   ])
 
-  const today = new Date().toISOString().slice(0, 10)
+  const today = workdayDate()
 
   return (
     <div>

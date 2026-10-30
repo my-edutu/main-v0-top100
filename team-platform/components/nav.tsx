@@ -25,7 +25,6 @@ import {
   Wallet,
 } from 'lucide-react'
 import { cn } from '@/lib/cn'
-import type { Role } from '@/lib/types'
 
 const icons = {
   overview: LayoutDashboard,
@@ -97,7 +96,7 @@ export function SidebarNav({
 
 export function MobileTabBar({ items }: { items: NavItem[] }) {
   const pathname = usePathname()
-  const mobileItems = items.filter((item) => item.icon !== 'followups')
+  const mobileItems = items
   const primary = mobileItems.filter((item) => item.icon !== 'notifications' && item.icon !== 'profile' && item.icon !== 'earnings' && item.icon !== 'withdrawals')
   const secondaryActive = pathname === '/menu' || pathname === '/settings' ||
     mobileItems.some((item) => ['notifications', 'profile', 'earnings', 'withdrawals'].includes(item.icon) && pathname.startsWith(item.href))
@@ -124,7 +123,7 @@ export function MobileTabBar({ items }: { items: NavItem[] }) {
               )}
             >
               <Icon className="h-5 w-5" strokeWidth={active ? 2.2 : 1.7} />
-              <span className="truncate">{item.label.split(' ')[0]}</span>
+              <span className="truncate">{item.icon === 'awardees' ? 'Awardees' : item.label.split(' ')[0]}</span>
             </Link>
           )
         })}

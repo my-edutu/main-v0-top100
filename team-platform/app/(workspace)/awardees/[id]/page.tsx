@@ -25,9 +25,9 @@ import {
   StatusChip,
 } from '@/components/ui'
 import { ContactPanel } from '@/components/contact-panel'
-import { ReassignPanel } from '@/components/reassign-panel'
 import { requireMember, isStaff } from '@/lib/auth'
 import { getAwardeeDetail } from '@/lib/data'
+import { workdayDate } from '@/lib/workday'
 import { env, smtpConfigured } from '@/lib/env'
 import {
   CHANNEL_LABELS,
@@ -77,9 +77,9 @@ export default async function AwardeeDetailPage({
     ? data.commissions
     : data.commissions.filter((entry: any) => entry.agent_id === member.membership.id)
   const followupState = awardee.next_followup_at
-    ? awardee.next_followup_at < new Date().toISOString().slice(0, 10)
+    ? awardee.next_followup_at < workdayDate()
       ? 'overdue'
-      : awardee.next_followup_at === new Date().toISOString().slice(0, 10)
+      : awardee.next_followup_at === workdayDate()
         ? 'due'
         : 'scheduled'
     : 'none'
@@ -362,17 +362,11 @@ export default async function AwardeeDetailPage({
               </Card>
             ) : null}
 
-            {admin && data.agents.length ? (
+            {platformAdmin ? (
               <Card className="p-4">
-                <div className="mb-3 flex items-center gap-2">
-                  <CircleDollarSign className="h-4 w-4 text-ember" />
-                  <h2 className="display text-lg">Reassign</h2>
-                </div>
-                <ReassignPanel
-                  awardeeId={awardee.id}
-                  currentAgentId={awardee.agent_id}
-                  agents={data.agents as any}
-                />
+                <h2 className="text-base font-medium">Assignment management</h2>
+                <p className="mt-2 text-sm leading-6 text-muted">Change ownership and review rep capacity in the central Admin Panel.</p>
+                <LinkButton href={`${process.env.NEXT_PUBLIC_TOP100_ADMIN_URL || 'https://top100afl.com'}/admin/team-operations/awardees`} className="mt-3">Open team worklist</LinkButton>
               </Card>
             ) : null}
 

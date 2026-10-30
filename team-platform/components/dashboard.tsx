@@ -2,16 +2,11 @@ import Link from 'next/link'
 import {
   AlertTriangle,
   ArrowUpRight,
-  Banknote,
   CalendarClock,
-  CheckCircle2,
   ChevronRight,
-  CircleDollarSign,
-  Clock3,
   Mail,
   MessageCircle,
   Phone,
-  Target,
   TrendingUp,
   UserPlus,
   Users,
@@ -22,115 +17,107 @@ import {
   Banner,
   EmptyState,
   LinkButton,
-  Money,
   PageHeader,
   Progress,
   Stat,
   StatusChip,
 } from '@/components/ui'
-import { ActivityChart, CountryBars, FunnelStep, Ring } from '@/components/charts'
-import { formatDate, formatMinor, OUTCOME_LABELS, relativeTime, titleCase } from '@/lib/format'
+import {
+  ActivityChart,
+  CountryBars,
+  FunnelStep,
+  Ring,
+} from '@/components/charts'
+import {
+  formatDate,
+  formatMinor,
+  OUTCOME_LABELS,
+  relativeTime,
+  titleCase,
+} from '@/lib/format'
+import { normalizePhone } from '@/lib/phone'
+import { workdayDate } from '@/lib/workday'
+import { WorkspaceRefresh } from '@/components/workspace-refresh'
 import type { AwardeeDirectoryRow } from '@/lib/data'
-import type { AdminDashboard, AgentDashboard, Balance, SessionMember } from '@/lib/types'
+import type { AdminDashboard, AgentDashboard, SessionMember } from '@/lib/types'
 
 function greeting() {
-  const hour = new Date().getHours()
+  const hour = Number(
+    new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Africa/Lagos',
+      hour: 'numeric',
+      hourCycle: 'h23',
+    }).format(new Date()),
+  )
   if (hour < 12) return 'Good morning'
   if (hour < 17) return 'Good afternoon'
   return 'Good evening'
 }
 
-function whatsappHref(phone: string | null) {
-  if (!phone) return null
-  return `https://wa.me/${phone.replace(/\D/g, '')}`
-}
-
-function QueueRow({ awardee }: { awardee: AwardeeDirectoryRow }) {
-  const overdue = awardee.next_followup_at
-    ? new Date(`${awardee.next_followup_at}T23:59:59`) < new Date()
-    : false
+function QueueRow({
+  awardee,
+  firstContact = false,
+}: {
+  awardee: AwardeeDirectoryRow
+  firstContact?: boolean
+}) {
+  const overdue = Boolean(
+    awardee.next_followup_at && awardee.next_followup_at < workdayDate(),
+  )
+  const phone = normalizePhone(awardee.phone, awardee.country || 'Nigeria')
   return (
-    <div className="flex items-center gap-3 border-t border-ink/[0.07] px-4 py-3 first:border-t-0">
-      <Avatar name={awardee.name} className="h-8 w-8 bg-sand text-ink" />
-      <div className="min-w-0 flex-1">
-        <Link href={`/awardees/${awardee.id}`} className="block truncate text-[13px] font-semibold hover:text-ember">
+    <div className="flex flex-wrap items-center gap-3 border-t border-ink/[0.07] px-4 py-4 first:border-t-0 sm:px-5">
+      <Avatar
+        name={awardee.name}
+        className="h-10 w-10 shrink-0 bg-sand text-ink"
+      />
+      <div className="min-w-0 flex-1 basis-36">
+        <Link
+          href={`/awardees/${awardee.id}`}
+          className="block text-sm font-medium hover:text-ember"
+        >
           {awardee.name}
         </Link>
-        <p className="mt-0.5 truncate text-[11px] text-muted">
-          {awardee.phone ?? awardee.email ?? 'No contact details'}
-          {awardee.next_followup_at ? ` · due ${formatDate(awardee.next_followup_at)}` : ''}
+        <p className="mt-1 break-all text-xs text-muted">
+          {awardee.country || 'Country unavailable'} ·{' '}
+          {awardee.phone || awardee.email || 'No contact details'}
         </p>
+        {!firstContact && awardee.next_followup_at ? (
+          <p
+            className={`mt-1 text-xs ${overdue ? 'text-red-700' : 'text-muted'}`}
+          >
+            {overdue ? 'Overdue' : 'Due today'} ·{' '}
+            {formatDate(awardee.next_followup_at)}
+          </p>
+        ) : null}
       </div>
-      <StatusChip status={overdue ? 'overdue' : 'due'} label={overdue ? 'Overdue' : 'Due'} />
       <div className="flex items-center gap-1">
-        {awardee.phone ? (
-          <a
-            href={`tel:${awardee.phone}`}
-            className="rounded-lg p-2 text-muted transition hover:bg-ink/5 hover:text-ink"
-            aria-label={`Call ${awardee.name}`}
-          >
-            <Phone className="h-3.5 w-3.5" />
-          </a>
+        {phone.ok ? (
+          <>
+            <a
+              href={`tel:${phone.e164}`}
+              className="flex h-11 w-11 items-center justify-center rounded-xl border border-ink/10 text-muted hover:bg-paper"
+              aria-label={`Call ${awardee.name}`}
+            >
+              <Phone className="h-4 w-4" />
+            </a>
+            <a
+              href={`https://wa.me/${phone.whatsapp}`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex h-11 w-11 items-center justify-center rounded-xl border border-ink/10 text-moss hover:bg-moss-soft"
+              aria-label={`WhatsApp ${awardee.name}`}
+            >
+              <MessageCircle className="h-4 w-4" />
+            </a>
+          </>
         ) : null}
-        {whatsappHref(awardee.phone) ? (
-          <a
-            href={whatsappHref(awardee.phone)!}
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-lg p-2 text-muted transition hover:bg-moss-soft hover:text-moss"
-            aria-label={`WhatsApp ${awardee.name}`}
-          >
-            <MessageCircle className="h-3.5 w-3.5" />
-          </a>
-        ) : null}
-      </div>
-    </div>
-  )
-}
-
-function BalanceHero({ balance, name }: { balance: Balance; name: string }) {
-  return (
-    <div className="relative overflow-hidden rounded-2xl bg-ink p-5 text-cream md:p-7">
-      <div className="absolute -right-24 -top-28 h-64 w-64 rounded-full bg-ember/20 blur-[80px]" />
-      <div className="relative">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cream/40">
-              Available commission
-            </p>
-            <p className="num mt-2 text-4xl font-semibold tracking-[-0.04em] md:text-5xl">
-              {formatMinor(balance.withdrawable_minor, balance.currency)}
-            </p>
-            <p className="mt-2 text-[11px] text-cream/45">
-              {name.split(' ')[0]}, this is cleared and ready to request.
-            </p>
-          </div>
-          <Link
-            href="/withdrawals"
-            className="hidden rounded-full bg-cream px-4 py-2 text-[11px] font-semibold text-ink transition hover:bg-ember hover:text-white sm:inline-flex"
-          >
-            Request withdrawal
-          </Link>
-        </div>
-        <div className="mt-6 grid grid-cols-3 gap-3 border-t border-white/10 pt-4 text-[11px]">
-          <div>
-            <p className="text-cream/35">Pending</p>
-            <p className="num mt-1 font-semibold">{formatMinor(balance.pending_commission_minor, balance.currency)}</p>
-          </div>
-          <div>
-            <p className="text-cream/35">Withdrawn</p>
-            <p className="num mt-1 font-semibold">{formatMinor(balance.withdrawn_minor, balance.currency)}</p>
-          </div>
-          <div>
-            <p className="text-cream/35">Total earned</p>
-            <p className="num mt-1 font-semibold">{formatMinor(balance.total_earned_minor, balance.currency)}</p>
-          </div>
-        </div>
         <Link
-          href="/withdrawals"
-          className="mt-5 inline-flex w-full items-center justify-center rounded-full bg-cream py-2.5 text-[11px] font-semibold text-ink sm:hidden"
+          href={`/awardees/${awardee.id}`}
+          className="flex h-11 w-11 items-center justify-center rounded-xl text-ember hover:bg-ember/5"
+          aria-label={`Open follow-up for ${awardee.name}`}
         >
-          Request withdrawal
+          <ChevronRight className="h-4 w-4" />
         </Link>
       </div>
     </div>
@@ -148,231 +135,260 @@ export function AgentDashboardView({
   queue: AwardeeDirectoryRow[]
   uncontacted: AwardeeDirectoryRow[]
 }) {
-  const conversion = dashboard.conversion_rate
-  const queueRows = queue.slice(0, 5)
+  const due = dashboard.due_today + dashboard.overdue
+  const metrics = [
+    {
+      label: 'My awardees',
+      value: dashboard.assigned,
+      hint: 'Active assignments',
+      href: '/awardees',
+    },
+    {
+      label: 'First contact',
+      value: dashboard.not_contacted,
+      hint: 'Ready to reach out',
+      href: '/awardees?contact=not_contacted&payment=unpaid',
+    },
+    {
+      label: 'Follow-ups today',
+      value: due,
+      hint: `${dashboard.overdue} overdue`,
+      href: '/follow-ups',
+      urgent: dashboard.overdue > 0,
+    },
+    {
+      label: 'Verified paid',
+      value: dashboard.paid,
+      hint: `${dashboard.conversion_rate}% conversion`,
+      href: '/awardees?payment=paid',
+    },
+  ]
   return (
-    <div className="dashboard-page stagger space-y-6">
-      <PageHeader
-        eyebrow={`${greeting()}, ${member.membership.full_name.split(' ')[0]}`}
-        title="Your follow-up desk."
-        description={
-          <>
-            {dashboard.due_today + dashboard.overdue > 0 ? (
-              <span className="font-medium text-ink">
-                {dashboard.due_today + dashboard.overdue} follow-up
-                {dashboard.due_today + dashboard.overdue === 1 ? '' : 's'} need attention today.
-              </span>
-            ) : (
-              'You are up to date on scheduled follow-ups.'
-            )}{' '}
-            Work your queue, record the outcome, keep the ledger clean.
-          </>
-        }
-        actions={
-          <>
-            <LinkButton href="/awardees?contact=not_contacted" variant="ghost">
-              <Users className="h-4 w-4" /> Not contacted
-            </LinkButton>
-            <LinkButton href="/awardees" variant="ember">
-              My awardees <ArrowUpRight className="h-4 w-4" />
-            </LinkButton>
-          </>
-        }
-      />
-
-      <div className="grid gap-4 lg:grid-cols-[1.35fr_0.65fr]">
-        <BalanceHero balance={dashboard.balance} name={member.membership.full_name} />
-        <div className="card flex items-center gap-5 p-5 md:p-6">
-          <Ring value={conversion} label="Conversion" sublabel="paid / assigned" tone="ember" size={124} />
-          <div className="min-w-0 flex-1 space-y-3">
-            <div>
-              <p className="label">Conversion</p>
-              <p className="mt-1 text-xs leading-5 text-muted">
-                {dashboard.paid} verified payment{dashboard.paid === 1 ? '' : 's'} from {dashboard.assigned} assigned awardees.
-              </p>
-            </div>
-            <Progress value={conversion} />
-            <div className="flex items-center gap-2 text-[11px] text-muted">
-              <Target className="h-3.5 w-3.5 text-ember" />
-              Quality beats volume. No payment, no commission.
-            </div>
-          </div>
+    <div className="dashboard-page space-y-6">
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="mb-2 text-xs font-medium text-muted">
+            {greeting()}, {member.membership.full_name.split(' ')[0]}
+          </p>
+          <h1 className="text-3xl font-semibold tracking-tight">
+            Your sales desk
+          </h1>
+          <p className="mt-2 max-w-xl text-sm leading-6 text-muted">
+            {due
+              ? `${due} follow-ups need your attention. Start with overdue awardees.`
+              : 'Your scheduled follow-ups are clear. Make your next first contact.'}
+          </p>
         </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Stat label="Assigned" value={dashboard.assigned} hint={`${dashboard.contacted} contacted`} />
-        <Stat label="Not contacted" value={dashboard.not_contacted} hint="Ready for first touch" accent="ember" />
-        <Stat label="Paid & verified" value={dashboard.paid} hint={`${dashboard.unpaid} still unpaid`} accent="moss" />
-        <Stat
-          label="Due / overdue"
-          value={`${dashboard.due_today} / ${dashboard.overdue}`}
-          hint={`${dashboard.pending_verification} pending verification`}
-        />
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-12">
-        <section className="card overflow-hidden lg:col-span-7">
-          <div className="flex items-center justify-between gap-3 px-4 py-3.5">
-            <div>
-              <h2 className="display text-lg">Follow-up queue</h2>
-              <p className="mt-0.5 text-[11px] text-muted">Overdue and due today, oldest first.</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <WorkspaceRefresh />
+          <LinkButton href="/awardees" variant="ember">
+            My awardees <ArrowUpRight className="h-4 w-4" />
+          </LinkButton>
+        </div>
+      </header>
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-ink/10 bg-ink/10 lg:grid-cols-4">
+        {metrics.map((metric) => (
+          <Link
+            key={metric.label}
+            href={metric.href}
+            className="group bg-white p-4 transition hover:bg-cream sm:p-5"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs text-muted">{metric.label}</p>
+              <ArrowUpRight className="h-3.5 w-3.5 text-muted/60 group-hover:text-ember" />
             </div>
-            <Link href="/follow-ups" className="text-[11px] font-semibold text-ember hover:underline">
-              View all
-            </Link>
-          </div>
-          {queueRows.length ? (
-            <div>
-              {queueRows.map((awardee) => (
-                <QueueRow key={awardee.id} awardee={awardee} />
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              title="Queue is clear"
-              description="Nothing needs a follow-up today. Choose an awardee to contact next."
-              action={<LinkButton href="/awardees?contact=not_contacted" size="sm">Find someone to call</LinkButton>}
-              illustration="/illustrations/empty-follow-ups.svg"
-            />
-          )}
-        </section>
-
-        <section className="card p-4 lg:col-span-5">
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <h2 className="display text-lg">Recent activity</h2>
-              <p className="mt-0.5 text-[11px] text-muted">Your last recorded outcomes.</p>
-            </div>
-            <Link href="/follow-ups" className="text-[11px] font-semibold text-ember hover:underline">
-              History
-            </Link>
-          </div>
-          {dashboard.recent_activity.length ? (
-            <div className="space-y-3">
-              {dashboard.recent_activity.slice(0, 5).map((activity) => (
-                <div key={activity.id} className="flex gap-3">
-                  <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ink/[0.05] text-muted">
-                    {activity.channel === 'call' ? (
-                      <Phone className="h-3 w-3" />
-                    ) : activity.channel === 'whatsapp' ? (
-                      <MessageCircle className="h-3 w-3" />
-                    ) : (
-                      <Mail className="h-3 w-3" />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-medium">
-                      {activity.awardee_name}
-                      <span className="ml-1.5 font-normal text-muted">
-                        · {OUTCOME_LABELS[activity.outcome] ?? titleCase(activity.outcome)}
-                      </span>
-                    </p>
-                    <p className="mt-0.5 line-clamp-1 text-[11px] text-muted">
-                      {activity.notes || `${titleCase(activity.channel)} recorded`}
-                    </p>
-                  </div>
-                  <span className="shrink-0 text-[10px] text-muted">{relativeTime(activity.contacted_at)}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <EmptyState title="No activity yet" description="Your contact notes will appear here." illustration="/illustrations/empty-activity.svg" />
-          )}
-        </section>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-12">
-        <section className="card overflow-hidden lg:col-span-5">
-          <div className="flex items-center justify-between px-4 py-3.5">
-            <h2 className="display text-lg">Commission ledger</h2>
-            <Link href="/earnings" className="text-[11px] font-semibold text-ember hover:underline">
-              Earnings
-            </Link>
-          </div>
-          {dashboard.recent_commissions.length ? (
-            <div>
-              {dashboard.recent_commissions.map((entry) => (
-                <div key={entry.id} className="flex items-center gap-3 border-t border-ink/[0.07] px-4 py-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-moss-soft text-moss">
-                    <CircleDollarSign className="h-4 w-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-semibold">{entry.awardee_name}</p>
-                    <p className="text-[10px] text-muted">
-                      {entry.entry_type === 'reversal' ? 'Reversal' : 'Verified payment'} · {formatDate(entry.earned_at)}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className={`num text-xs font-semibold ${entry.amount_minor < 0 ? 'text-red-700' : 'text-moss'}`}>
-                      {entry.amount_minor < 0 ? '−' : '+'}
-                      {formatMinor(Math.abs(entry.amount_minor), entry.currency)}
-                    </p>
-                    <StatusChip status={entry.status} className="mt-1" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <EmptyState title="No rewards yet" description="Commission appears here after an award payment is verified." illustration="/illustrations/empty-rewards.svg" />
-          )}
-        </section>
-
-        <section className="card p-4 lg:col-span-4">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="display text-lg">Withdrawals</h2>
-            <Link href="/withdrawals" className="text-[11px] font-semibold text-ember hover:underline">
-              Manage
-            </Link>
-          </div>
-          {dashboard.recent_withdrawals.length ? (
-            <div className="space-y-3">
-              {dashboard.recent_withdrawals.map((withdrawal) => (
-                <div key={withdrawal.id} className="flex items-center justify-between gap-2">
-                  <div>
-                    <p className="num text-xs font-semibold">
-                      {formatMinor(withdrawal.amount_minor, withdrawal.currency)}
-                    </p>
-                    <p className="text-[10px] text-muted">{formatDate(withdrawal.created_at)}</p>
-                  </div>
-                  <StatusChip status={withdrawal.status} />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <EmptyState title="No withdrawals yet" description="Your withdrawal requests will appear here." illustration="/illustrations/empty-wallet.svg" />
-          )}
-        </section>
-
-        <section className="card p-4 lg:col-span-3">
-          <h2 className="display text-lg">Start here</h2>
-          <p className="mt-1 text-[11px] leading-5 text-muted">First contact makes the difference.</p>
-          {uncontacted.length ? (
-            <div className="mt-4 space-y-3">
-              {uncontacted.slice(0, 4).map((awardee) => (
-                <div key={awardee.id} className="flex items-center gap-2">
-                  <Avatar name={awardee.name} className="h-7 w-7 bg-sand text-ink" />
-                  <div className="min-w-0 flex-1">
-                    <Link href={`/awardees/${awardee.id}`} className="block truncate text-[11px] font-medium hover:text-ember">
-                      {awardee.name}
-                    </Link>
-                    <p className="truncate text-[10px] text-muted">{awardee.country ?? 'No country'}</p>
-                  </div>
-                  {awardee.phone ? (
-                    <a href={`tel:${awardee.phone}`} className="rounded-lg p-1.5 text-muted hover:bg-ink/5" aria-label={`Call ${awardee.name}`}>
-                      <Phone className="h-3.5 w-3.5" />
-                    </a>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="mt-4 text-[11px] text-muted">Everyone has been contacted. Keep follow-ups warm.</p>
-          )}
-          <Link href="/awardees" className="mt-4 inline-flex items-center gap-1 text-[11px] font-semibold text-ember">
-            Open my awardees <ChevronRight className="h-3 w-3" />
+            <p
+              className={`num mt-3 text-3xl font-medium tracking-tight ${metric.urgent ? 'text-red-700' : 'text-ink'}`}
+            >
+              {metric.value.toLocaleString()}
+            </p>
+            <p className="mt-2 text-xs text-muted">{metric.hint}</p>
           </Link>
-        </section>
+        ))}
+      </div>
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="min-w-0 space-y-5">
+          <section className="card overflow-hidden">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/[0.07] px-4 py-4 sm:px-5">
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50 text-ember">
+                  <CalendarClock className="h-5 w-5" />
+                </span>
+                <div>
+                  <h2 className="text-base font-medium">Needs attention</h2>
+                  <p className="mt-1 text-xs text-muted">
+                    Due and overdue · earliest follow-up first
+                  </p>
+                </div>
+              </div>
+              <Link
+                href="/awardees?followup=due&sort=followup"
+                className="inline-flex min-h-11 items-center text-sm font-medium text-ember"
+              >
+                View due today <ChevronRight className="ml-1 h-4 w-4" />
+              </Link>
+            </div>
+            {queue.length ? (
+              queue
+                .slice(0, 6)
+                .map((awardee) => (
+                  <QueueRow key={awardee.id} awardee={awardee} />
+                ))
+            ) : (
+              <EmptyState
+                title="You're up to date"
+                description="No unpaid awardees need a scheduled follow-up today."
+                action={
+                  <LinkButton
+                    href="/awardees?contact=not_contacted&payment=unpaid"
+                    size="sm"
+                  >
+                    Make a first contact
+                  </LinkButton>
+                }
+              />
+            )}
+          </section>
+          <section className="card overflow-hidden">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-ink/[0.07] px-4 py-4 sm:px-5">
+              <div>
+                <h2 className="text-base font-medium">
+                  Ready for first contact
+                </h2>
+                <p className="mt-1 text-xs text-muted">
+                  Unpaid awardees you haven&apos;t contacted yet
+                </p>
+              </div>
+              <Link
+                href="/awardees?contact=not_contacted&payment=unpaid"
+                className="inline-flex min-h-11 items-center text-sm font-medium text-ember"
+              >
+                View all <ChevronRight className="ml-1 h-4 w-4" />
+              </Link>
+            </div>
+            {uncontacted.length ? (
+              uncontacted
+                .slice(0, 5)
+                .map((awardee) => (
+                  <QueueRow key={awardee.id} awardee={awardee} firstContact />
+                ))
+            ) : (
+              <EmptyState
+                title={
+                  dashboard.assigned
+                    ? 'First contacts complete'
+                    : 'Your worklist is ready for assignments'
+                }
+                description={
+                  dashboard.assigned
+                    ? 'Review scheduled follow-ups to keep conversations moving.'
+                    : 'Your administrator can assign awardees from Team Operations.'
+                }
+              />
+            )}
+          </section>
+        </div>
+        <aside className="min-w-0 space-y-5">
+          <section className="rounded-2xl border border-ink/10 bg-ink p-5 text-cream">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-cream/75">Available commission</p>
+              <Wallet className="h-5 w-5 text-cream/60" />
+            </div>
+            <p className="num mt-4 text-3xl font-medium tracking-tight">
+              {formatMinor(
+                dashboard.balance.withdrawable_minor,
+                dashboard.balance.currency,
+              )}
+            </p>
+            <p className="mt-2 text-xs leading-5 text-cream/65">
+              Cleared commission available to withdraw.
+            </p>
+            <div className="mt-5 grid grid-cols-2 gap-3 border-t border-white/15 pt-4">
+              <div>
+                <p className="text-xs text-cream/60">Pending</p>
+                <p className="num mt-1 text-sm">
+                  {formatMinor(
+                    dashboard.balance.pending_commission_minor,
+                    dashboard.balance.currency,
+                  )}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-cream/60">Total earned</p>
+                <p className="num mt-1 text-sm">
+                  {formatMinor(
+                    dashboard.balance.total_earned_minor,
+                    dashboard.balance.currency,
+                  )}
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/withdrawals"
+              className="mt-5 flex min-h-11 items-center justify-center gap-2 rounded-xl bg-white px-4 text-sm font-medium text-ink hover:bg-orange-50"
+            >
+              Request withdrawal <ArrowUpRight className="h-4 w-4" />
+            </Link>
+            <Link
+              href="/earnings"
+              className="mt-2 flex min-h-11 items-center justify-center text-sm text-cream/80 hover:text-white"
+            >
+              View earnings history
+            </Link>
+          </section>
+          <section className="card p-5">
+            <div className="mb-5 flex items-center justify-between">
+              <h2 className="text-base font-medium">Recent activity</h2>
+              <Link
+                href="/follow-ups"
+                className="inline-flex min-h-11 items-center text-xs font-medium text-ember"
+              >
+                View history
+              </Link>
+            </div>
+            {dashboard.recent_activity.length ? (
+              <div className="space-y-5">
+                {dashboard.recent_activity.slice(0, 5).map((activity) => (
+                  <div key={activity.id} className="flex gap-3">
+                    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-paper text-muted">
+                      {activity.channel === 'call' ? (
+                        <Phone className="h-3.5 w-3.5" />
+                      ) : activity.channel === 'whatsapp' ? (
+                        <MessageCircle className="h-3.5 w-3.5" />
+                      ) : (
+                        <Mail className="h-3.5 w-3.5" />
+                      )}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium">
+                        {activity.awardee_name}
+                      </p>
+                      <p className="mt-1 text-xs leading-5 text-muted">
+                        {OUTCOME_LABELS[activity.outcome] ??
+                          titleCase(activity.outcome)}
+                      </p>
+                      <p className="mt-1 text-xs text-muted">
+                        {relativeTime(activity.contacted_at)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm leading-6 text-muted">
+                Record a call, email or WhatsApp outcome to start your activity
+                history.
+              </p>
+            )}
+          </section>
+          <section className="rounded-2xl border border-orange-200/70 bg-orange-50/70 p-5">
+            <h2 className="text-sm font-medium">Keep the next step clear</h2>
+            <p className="mt-2 text-sm leading-6 text-muted">
+              Open an awardee after reaching out. Record the outcome and set a
+              follow-up date so the next conversation is easy to pick up.
+            </p>
+          </section>
+        </aside>
       </div>
     </div>
   )

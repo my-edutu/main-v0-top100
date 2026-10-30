@@ -19,7 +19,7 @@ export default async function DashboardPage() {
   const [dashboard, queue, uncontacted] = await Promise.all([
     getAgentDashboard(member),
     getFollowupQueue(member),
-    listAwardees(member, { contactStatus: 'not_contacted', pageSize: 6, sort: 'followup' }),
+    listAwardees(member, { contactStatus: 'not_contacted', paymentStatus: ['unpaid'], pageSize: 6, sort: 'followup' }),
   ])
 
   return (

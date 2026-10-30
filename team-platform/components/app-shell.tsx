@@ -49,6 +49,7 @@ export function AppShell({
         ? 'Team leader'
         : 'Sales agent'
   const today = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Africa/Lagos',
     weekday: 'short',
     day: '2-digit',
     month: 'short',
@@ -121,7 +122,7 @@ export function AppShell({
 
         <footer className="no-print mx-auto hidden w-full max-w-[1440px] items-center justify-between px-7 pb-6 text-[10px] text-muted/70 lg:flex">
           <span>Top100 Africa Future Leaders · Team platform</span>
-          <span>Financial records are append-only and audited.</span>
+          <span>Your awardees, conversations and rewards, in one place.</span>
         </footer>
       </div>
 

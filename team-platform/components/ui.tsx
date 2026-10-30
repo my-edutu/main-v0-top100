@@ -30,6 +30,12 @@ export function PageHeader({
   )
 }
 
+// Full class names keep every button variant visible to Tailwind's scanner.
+const buttonVariants = {
+  primary: 'btn-primary', ember: 'btn-ember', ghost: 'btn-ghost',
+  soft: 'btn-soft', danger: 'btn-danger',
+} as const
+
 export function Button({
   children,
   className,
@@ -46,7 +52,7 @@ export function Button({
       type={type}
       className={cn(
         'btn',
-        `btn-${variant}`,
+        buttonVariants[variant],
         size === 'sm' && 'min-h-8 px-3 py-1.5 text-xs',
         className,
       )}
@@ -76,7 +82,7 @@ export function LinkButton({
     <Link
       href={href}
       target={target}
-      className={cn('btn', `btn-${variant}`, size === 'sm' && 'min-h-8 px-3 py-1.5 text-xs', className)}
+      className={cn('btn', buttonVariants[variant], size === 'sm' && 'min-h-8 px-3 py-1.5 text-xs', className)}
     >
       {children}
     </Link>
