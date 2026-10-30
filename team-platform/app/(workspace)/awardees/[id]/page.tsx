@@ -366,7 +366,7 @@ export default async function AwardeeDetailPage({
               <Card className="p-4">
                 <h2 className="text-base font-medium">Assignment management</h2>
                 <p className="mt-2 text-sm leading-6 text-muted">Change ownership and review rep capacity in the central Admin Panel.</p>
-                <LinkButton href={`${process.env.NEXT_PUBLIC_TOP100_ADMIN_URL || 'https://top100afl.com'}/admin/team-operations/awardees`} className="mt-3">Open team worklist</LinkButton>
+                <LinkButton href={`${process.env.NEXT_PUBLIC_TOP100_ADMIN_URL || 'https://top100afl.com'}/admin/team-operations/worklist`} className="mt-3">Open team worklist</LinkButton>
               </Card>
             ) : null}
 
