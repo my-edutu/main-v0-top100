@@ -350,7 +350,7 @@ export default function TeamAwardeeWorklist() {
         {row.phone ? (
           <a
             href={`tel:${row.phone}`}
-            className={button}
+            className={`relative ${button}`}
             aria-label={`Call ${row.name}`}
           >
             <Phone className="h-4 w-4" />
@@ -360,7 +360,7 @@ export default function TeamAwardeeWorklist() {
         {row.email ? (
           <a
             href={`mailto:${row.email}`}
-            className={button}
+            className={`relative ${button}`}
             aria-label={`Email ${row.name}`}
           >
             <Mail className="h-4 w-4" />
