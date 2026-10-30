@@ -173,10 +173,11 @@ function depsFor(state: DbState, notify = vi.fn()): BachsWebhookDeps {
 describe('handleBachsEvent', () => {
   beforeEach(() => vi.restoreAllMocks())
 
-  it.each(['collection.succeeded', 'checkout.completed'])('verifies converted payments for %s using the original checkout price', async type => {
+  it.each(['collection.succeeded', 'checkout.completed', 'overpaid'])('verifies converted payments for %s using the original checkout price', async type => {
     const state: DbState = { attempt: attemptFor('NGN'), updates: [], rpcCalls: [] }
     const event = eventFor('NGN', '250.79')
-    event.type = type
+    event.type = type === 'overpaid' ? 'collection.succeeded' : type
+    if (type === 'overpaid') event.data.status = 'OVERPAID'
     event.data.currency = type === 'checkout.completed' ? 'USD' : 'GHS'
     event.data.charge_id = 'pay-1'
     const deps = depsFor(state)

@@ -10,8 +10,26 @@ function checkout() {
 }
 const fetchFor = (body: unknown) => vi.fn().mockResolvedValue(Response.json(body))
 describe('authenticated Bachs checkout reconciliation', () => {
+  it('separates customer processing cost from additional merchant card fees', async () => {
+    const body = { ...checkout(), currency: 'USD', amount: '20.00', charge: {
+      ...checkout().charge, currency: 'USD', amount_paid: '21.40', merchant_bears_cost: false,
+      fees: { currency: 'USD', amount: '1.72', breakdown: [
+        { type: 'processing', amount: '1.40' }, { type: 'international_card', amount: '0.32' },
+      ] },
+    } }
+    const usd = { ...evidence, currency: 'USD' as const, requestedMinor: 2000 }
+    expect(await verifyBachsAwardCheckout(usd, config, fetchFor(body))).toMatchObject({ status: 'paid', amountMinor: 2000 })
+    body.charge.amount_paid = '21.50'
+    expect(await verifyBachsAwardCheckout(usd, config, fetchFor(body))).toBeNull()
+  })
   it('confirms the original NGN price when a successful charge is in GHS', async () => {
     expect(await verifyBachsAwardCheckout(evidence, config, fetchFor(checkout()))).toMatchObject({ status: 'paid', amountMinor: 2_500_000, currency: 'NGN', chargeId: 'pay-1' })
+  })
+  it('accepts a provider accepted charge only on a completed successful checkout', async () => {
+    const body = checkout(); body.charge.status = 'accepted'
+    expect(await verifyBachsAwardCheckout(evidence, config, fetchFor(body))).toMatchObject({ status: 'paid' })
+    body.payment_status = 'processing'
+    expect(await verifyBachsAwardCheckout(evidence, config, fetchFor(body))).toBeNull()
   })
   it('accepts an explained NGN processing fee', async () => {
     const body = checkout(); body.charge = { ...body.charge, currency: 'NGN', amount_paid: '25375.00', fees: { currency: 'NGN', amount: '375.00' } }

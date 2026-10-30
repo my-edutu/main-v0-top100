@@ -199,7 +199,7 @@ function bachsAttemptNeedsReconciliation(order: AwardOrder): AwardPaymentAttempt
   if (order.awardPaymentVerified) return null
   return (order.paymentAttempts ?? []).find((attempt) =>
     attempt.provider === 'bachs' && Boolean(attempt.id && attempt.providerCheckoutId) &&
-    ['creating', 'open', 'processing', 'overpaid'].includes(attempt.status),
+    ['creating', 'open', 'processing', 'overpaid', 'failed', 'expired', 'exception'].includes(attempt.status),
   ) ?? null
 }
 

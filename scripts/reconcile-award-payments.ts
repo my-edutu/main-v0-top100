@@ -2,7 +2,7 @@ import { config as loadEnv } from 'dotenv'
 import { createClient } from '@supabase/supabase-js'
 import { bachsConfig, PRODUCTION_URL } from '../lib/payments/bachs/config'
 import { verifyBachsAwardCheckout } from '../lib/payments/bachs/settlement'
-import { reconcileAwardAttempt } from '../lib/awards/payment-reconciliation'
+import { reconcileAwardAttempt, RECONCILABLE_AWARD_STATUSES } from '../lib/awards/payment-reconciliation'
 
 const apply = process.argv.includes('--apply')
 const limitArg = process.argv.find((arg) => arg.startsWith('--limit='))?.slice('--limit='.length)
@@ -19,7 +19,7 @@ async function main() {
   const db = createClient(url, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } })
   const { data: attempts, error } = await db.from('award_payment_attempts').select('*')
     .eq('provider', 'bachs').eq('charge_scope', 'award_fee')
-    .in('status', ['creating', 'open', 'processing', 'overpaid'])
+    .in('status', RECONCILABLE_AWARD_STATUSES)
     .order('created_at', { ascending: true }).limit(limit)
   if (error) throw new Error('Could not load pending award payments.')
 

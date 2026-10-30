@@ -10,6 +10,8 @@ type ReconciliationAttempt = {
   currency: string; requested_amount_minor: number; provider_checkout_id: string | null; provider_reference: string
 }
 
+export const RECONCILABLE_AWARD_STATUSES = ['creating', 'open', 'processing', 'overpaid', 'failed', 'expired', 'exception'] as const
+
 async function recoverCreatingAttempt(db: any, attempt: any): Promise<string> {
   const request = attempt.provider_response?.checkout_request
   if (attempt.status !== 'creating' || attempt.provider_checkout_id || !request?.body) return 'review_required'
@@ -32,13 +34,16 @@ export async function reconcileAwardAttempt(
 ): Promise<{ outcome: string; notificationNeeded: boolean }> {
   if (attempt.provider !== 'bachs' || attempt.charge_scope !== 'award_fee' || !attempt.provider_checkout_id ||
       (attempt.currency !== 'NGN' && attempt.currency !== 'USD') ||
-      !['creating', 'open', 'processing', 'overpaid'].includes(attempt.status)) return { outcome: 'review_required', notificationNeeded: false }
+      !(RECONCILABLE_AWARD_STATUSES as readonly string[]).includes(attempt.status)) return { outcome: 'review_required', notificationNeeded: false }
   const verified = await verifyBachsAwardCheckout({
     checkoutId: attempt.provider_checkout_id, reference: attempt.provider_reference,
     orderId: attempt.order_id, attemptId: attempt.id, currency: attempt.currency,
     requestedMinor: Number(attempt.requested_amount_minor),
   }, options.config ?? bachsConfig(), options.fetchProvider)
   if (!verified) return { outcome: 'review_required', notificationNeeded: false }
+  if (['failed', 'expired', 'exception', 'overpaid'].includes(attempt.status) && verified.status !== 'paid') {
+    return { outcome: 'review_required', notificationNeeded: false }
+  }
   const { data, error } = await db.rpc('reconcile_bachs_award_checkout', {
     p_attempt_id: attempt.id,
     p_checkout: {
@@ -72,11 +77,12 @@ export async function reconcileMemberAwardPayment(db: any, userId: string): Prom
   if (!order || ['paid', 'refunded'].includes(order.award_payment_status)) return
   const { data, error: attemptError } = await db.from('award_payment_attempts').select('*')
     .eq('order_id', order.id).eq('provider', 'bachs').eq('charge_scope', 'award_fee')
-    .order('created_at', { ascending: false }).limit(1).maybeSingle()
+    .in('status', RECONCILABLE_AWARD_STATUSES)
+    .order('created_at', { ascending: false }).limit(20)
   if (attemptError) throw new Error('Could not load payment attempt.')
-  if (data) {
-    if (!data.provider_checkout_id) await recoverCreatingAttempt(db, data)
-    else await reconcileAwardAttempt(db, data)
+  for (const attempt of data ?? []) {
+    if (!attempt.provider_checkout_id) await recoverCreatingAttempt(db, attempt)
+    else if ((await reconcileAwardAttempt(db, attempt)).outcome === 'succeeded') break
   }
 }
 
@@ -84,7 +90,7 @@ export async function reconcileMemberAwardPayment(db: any, userId: string): Prom
 export async function reconcilePendingAwardPayments(db: any, limit = 10) {
   const { data, error } = await db.from('award_payment_attempts').select('*')
     .eq('provider', 'bachs').eq('charge_scope', 'award_fee')
-    .in('status', ['creating', 'open', 'processing', 'overpaid'])
+    .in('status', RECONCILABLE_AWARD_STATUSES)
     .lt('updated_at', new Date(Date.now() - 5 * 60_000).toISOString())
     .order('updated_at', { ascending: true }).limit(Math.min(50, Math.max(1, limit)))
   if (error) throw new Error('Could not load pending payment attempts.')

@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 import { requireAdmin } from '@/lib/api/require-admin'
-import { reconcileAwardAttempt } from '@/lib/awards/payment-reconciliation'
+import { reconcileAwardAttempt, RECONCILABLE_AWARD_STATUSES } from '@/lib/awards/payment-reconciliation'
 import { createAdminClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
 
-const RECONCILABLE_STATUSES = ['creating', 'open', 'processing', 'overpaid'] as const
+const RECONCILABLE_STATUSES = RECONCILABLE_AWARD_STATUSES
 
 export async function POST(request: NextRequest) {
   const adminCheck = await requireAdmin(request)

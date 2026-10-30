@@ -67,6 +67,12 @@ Keep underpaid, overpaid, duplicate and ambiguous attempts for support reconcili
 
 ## Recovering award checkouts
 
+Apply `20261030174333_bachs_award_late_success_recovery.sql` with the matching application release. A signed exact-price success may now recover an earlier failed or expired collection on the same checkout. The service-only reconciliation function can also recover failed, expired, overpaid and exception attempts after fresh provider verification. Refunds and duplicate payment claims remain protected. Recovery checks older attempts on a member's order as well as the latest one.
+
+For USD cards, Bachs `fees.amount` may include an additional merchant international-card fee. Verify the customer processing component in `fees.breakdown` when `merchant_bears_cost=false`; the gross charge minus that component must equal the original checkout price. An authenticated completed checkout with successful payment status may use a charge status of `accepted` or `succeeded`. An `OVERPAID` callback is only a signal to verify the checkout; it never grants payment access by itself.
+
+The five-minute worker includes failed, expired and exception attempts, rotating unresolved cases through its queue. Watch its error count and inspect unresolved successful callbacks in `payment_webhook_events`. A provider verification outage must leave payment history intact for retry.
+
 Apply `20261013215353_bachs_award_checkout_reconciliation.sql` before deploying the checkout recovery routes. In Dokploy, schedule a POST every five minutes to `/api/internal/award-payment-reconciliation`, with `Authorization: Bearer <CRON_SECRET>`; configure the existing `CRON_SECRET` as a protected application environment variable. The worker verifies each saved Bachs checkout by API before recording a payment or expiry. It also retries an interrupted checkout creation only when the original request body, idempotency key, API key fingerprint, and API endpoint are unchanged and the idempotency window is still safe.
 
 For one-off incident repair, run `npx tsx scripts/reconcile-award-payments.ts` to inspect at most 100 pending award attempts. Add `--limit=500` to inspect a larger batch. The script is read-only by default; `--apply` records only provider-verified paid/open/expired outcomes through the atomic reconciliation RPC. It never creates a replacement checkout, refunds a payment, changes delivery, or sends email. Preserve ambiguous attempts for support review.

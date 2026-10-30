@@ -69,7 +69,7 @@ export async function verifyBachsAwardCheckout(
   if (checkout.status === 'open' && checkout.payment_status === 'requires_payment_method' && !checkout.charge) {
     return { ...base, status: 'open' }
   }
-  if (checkout.status !== 'completed' || checkout.payment_status !== 'succeeded' || charge.status !== 'succeeded' ||
+  if (checkout.status !== 'completed' || checkout.payment_status !== 'succeeded' || !['succeeded', 'accepted'].includes(String(charge.status)) ||
       charge.checkout_id !== evidence.checkoutId || charge.reference !== evidence.reference || !base.chargeId ||
       (charge.refunds != null && (!Array.isArray(charge.refunds) || charge.refunds.length > 0))) return null
 
@@ -81,7 +81,15 @@ export async function verifyBachsAwardCheckout(
   // No FX conversion is calculated by the app. Bachs' authenticated paid session
   // binds the local charge to the exact original price. For same-currency charges,
   // also require that the provider fee explains the entire excess.
-  if (base.chargeCurrency === evidence.currency && gross - fee !== BigInt(evidence.requestedMinor)) return null
+  if (base.chargeCurrency === evidence.currency && gross - fee !== BigInt(evidence.requestedMinor)) {
+    // Bachs includes merchant card costs in fees.amount. Only the customer
+    // processing component explains the difference between gross and price.
+    const breakdown = Array.isArray(fees.breakdown) ? fees.breakdown.map(record) : []
+    const processing = breakdown.filter(item => item.type === 'processing')
+    const customerFee = processing.length === 1 ? decimalMinor(processing[0].amount) : null
+    if (charge.merchant_bears_cost !== false || customerFee === null || customerFee < BigInt(0) ||
+        customerFee > fee || gross - customerFee !== BigInt(evidence.requestedMinor)) return null
+  }
   return { ...base, status: 'paid' }
 }
 
@@ -91,33 +99,9 @@ export async function verifiedBachsAwardAmount(
   config: { apiBaseUrl: string; apiKey: string },
   fetcher: typeof fetch = fetch,
 ): Promise<number | null> {
-  const response = await fetcher(`${config.apiBaseUrl}/v1/checkout-sessions/${encodeURIComponent(evidence.checkoutId)}`, {
-    headers: { Authorization: `Bearer ${config.apiKey}`, Accept: 'application/json' },
-    cache: 'no-store', signal: AbortSignal.timeout(12_000),
-  })
-  if (!response.ok) throw new Error(`Bachs settlement verification failed (${response.status}).`)
-  const checkout = record(await response.json())
-  const charge = record(checkout.charge)
-  const fees = record(charge.fees)
-  const metadata = record(checkout.metadata)
-  if (checkout.checkout_id !== evidence.checkoutId || checkout.reference !== evidence.reference ||
-      checkout.status !== 'completed' || checkout.payment_status !== 'succeeded' ||
-      charge.status !== 'succeeded' || charge.checkout_id !== evidence.checkoutId ||
-      charge.reference !== evidence.reference || typeof charge.payment_id !== 'string' ||
-      (evidence.chargeId && charge.payment_id !== evidence.chargeId) ||
-      metadata.order_id !== evidence.orderId || metadata.payment_attempt_id !== evidence.attemptId ||
-      metadata.purpose !== 'afl_award_fee_v1' || checkout.currency !== evidence.currency ||
-      charge.currency !== evidence.currency || fees.currency !== evidence.currency ||
-      (charge.refunds != null && (!Array.isArray(charge.refunds) || charge.refunds.length > 0))) return null
-
-  try {
-    if (typeof checkout.amount !== 'string' || typeof charge.amount_paid !== 'string' || typeof fees.amount !== 'string') return null
-    const principal = parseBachsAmount(checkout.amount, evidence.currency)
-    const gross = parseBachsAmount(charge.amount_paid, evidence.currency)
-    const fee = parseBachsAmount(fees.amount, evidence.currency)
-    return principal === evidence.requestedMinor && gross === evidence.grossMinor && fee > 0 && gross - fee === principal
-      ? principal : null
-  } catch {
-    return null
-  }
+  const verified = await verifyBachsAwardCheckout(evidence, config, fetcher)
+  if (!verified || verified.status !== 'paid' || verified.chargeCurrency !== evidence.currency ||
+      (evidence.chargeId && verified.chargeId !== evidence.chargeId) ||
+      decimalMinor(verified.grossAmount) !== BigInt(evidence.grossMinor)) return null
+  return verified.amountMinor
 }

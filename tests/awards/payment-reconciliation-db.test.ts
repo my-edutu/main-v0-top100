@@ -23,6 +23,7 @@ describe.runIf(Boolean(database))('atomic award reconciliation in PostgreSQL', (
       );`)
     await pool!.query(readFileSync('supabase/migrations/20260908113639_bachs_award_payments.sql', 'utf8'))
     await pool!.query(readFileSync('supabase/migrations/20261013215353_bachs_award_checkout_reconciliation.sql', 'utf8'))
+    await pool!.query(readFileSync('supabase/migrations/20261030174333_bachs_award_late_success_recovery.sql', 'utf8'))
   })
   afterAll(async () => { await pool?.end() })
   async function seed(status = 'open', orderStatus = 'pending') {
@@ -42,6 +43,11 @@ describe.runIf(Boolean(database))('atomic award reconciliation in PostgreSQL', (
     expect(await state(attemptId)).toMatchObject({ status: 'succeeded', captured_amount_minor: '2500000', award_payment_status: 'paid', gig_waybill: 'original-waybill' })
     expect((await pool!.query('select count(*) from payment_webhook_events where payment_attempt_id=$1', [attemptId])).rows[0].count).toBe('1')
   })
+  it.each(['failed', 'expired', 'exception'])('recovers verified %s without a manual status reset', async status => {
+    const { attemptId, evidence } = await seed(status, 'failed')
+    await reconcile(attemptId, evidence)
+    expect(await state(attemptId)).toMatchObject({ status: 'succeeded', award_payment_status: 'paid', gig_waybill: 'original-waybill' })
+  })
   it('recovers only a provider-verified false overpayment, retaining the original event', async () => {
     const { attemptId, evidence } = await seed('overpaid', 'failed')
     await pool!.query("insert into payment_webhook_events(id,event_type,provider,payment_attempt_id,processing_status,payload,error) values ($1,'collection.succeeded','bachs',$2,'exception','{}','captured amount was above the reserved amount')", [`original-${attemptId}`, attemptId])
@@ -58,6 +64,21 @@ describe.runIf(Boolean(database))('atomic award reconciliation in PostgreSQL', (
     const { attemptId, evidence } = await seed('open', 'refunded')
     await reconcile(attemptId, evidence)
     expect(await state(attemptId)).toMatchObject({ status: 'open', award_payment_status: 'refunded' })
+  })
+  it('accepts a late exact success after failure and ignores a later failure callback', async () => {
+    const { attemptId, evidence } = await seed('failed', 'failed')
+    const args = [ 'late-'+attemptId, 'collection.succeeded', null, attemptId, evidence.checkout_id,
+      evidence.reference, 'SUCCEEDED', 2500000, 'NGN', evidence.charge_id, '{}', new Date() ]
+    const call = 'select process_bachs_webhook_event($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb,$12)'
+    await pool!.query(call, args)
+    expect(await state(attemptId)).toMatchObject({ status: 'succeeded', award_payment_status: 'paid' })
+    await pool!.query(call, ['failed-'+attemptId, 'collection.failed', ...args.slice(2,6), 'FAILED', null, ...args.slice(8)])
+    expect(await state(attemptId)).toMatchObject({ status: 'succeeded', award_payment_status: 'paid' })
+  })
+  it('keeps a refunded failed attempt refunded during recovery', async () => {
+    const { attemptId, evidence } = await seed('failed', 'refunded')
+    await reconcile(attemptId, evidence)
+    expect(await state(attemptId)).toMatchObject({ status: 'failed', award_payment_status: 'refunded' })
   })
   it('rejects a different reference or amount without changing payment state', async () => {
     const { attemptId, evidence } = await seed()

@@ -207,6 +207,7 @@ function configValue(config: BachsConfig, key: keyof BachsConfig): unknown {
 function isSuccessEvent(event: BachsWebhookEvent, status: string | null): boolean {
   if (event.type === 'checkout.completed') return true
   if (event.type !== 'collection.succeeded') return false
+  if (status?.toUpperCase() === 'OVERPAID') return true // signal only; authenticate checkout below
   try {
     return isBachsTerminalSuccess(status)
   } catch {
@@ -433,7 +434,7 @@ export async function handleBachsEvent(
   let processingType = event.type
   if (matchedAttemptId && attempt && successEvent && requestedMinor !== null && attempt.provider_checkout_id &&
       attempt.provider_reference && (attempt.currency === 'NGN' || attempt.currency === 'USD') &&
-      (event.type === 'checkout.completed' || currencyRaw !== attempt.currency)) {
+      (event.type === 'checkout.completed' || providerStatus?.toUpperCase() === 'OVERPAID' || currencyRaw !== attempt.currency)) {
     try {
       const verified = await verifyBachsAwardCheckout({
         checkoutId: attempt.provider_checkout_id, reference: attempt.provider_reference,

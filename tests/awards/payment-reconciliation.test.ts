@@ -24,7 +24,12 @@ describe('award payment recovery', () => {
     await reconcileAwardAttempt(client, attempt, { config, fetchProvider: vi.fn().mockResolvedValue(Response.json({ ...checkout, status: 'expired' })) })
     expect(client.rpc).not.toHaveBeenCalled()
   })
-  it.each(['refunded', 'underpaid', 'exception', 'succeeded'])('leaves %s to its existing terminal workflow', async status => {
+  it.each(['failed', 'expired', 'exception'])('recovers %s only after authenticating the original paid checkout', async status => {
+    const client = db()
+    const result = await reconcileAwardAttempt(client, { ...attempt, status }, { config, notify: vi.fn(), fetchProvider: vi.fn().mockResolvedValue(Response.json(checkout)) })
+    expect(result.outcome).toBe('succeeded')
+  })
+  it.each(['refunded', 'underpaid', 'succeeded'])('leaves %s to its existing terminal workflow', async status => {
     const client = db(), fetchProvider = vi.fn()
     await reconcileAwardAttempt(client, { ...attempt, status }, { config, fetchProvider })
     expect(fetchProvider).not.toHaveBeenCalled(); expect(client.rpc).not.toHaveBeenCalled()
