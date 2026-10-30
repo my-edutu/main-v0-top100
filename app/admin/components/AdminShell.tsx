@@ -30,7 +30,7 @@ export default function AdminShell({
 
       <AdminSidebar />
 
-      <SidebarInset className="admin-canvas bg-[#f7f6f2] text-[#181715]">
+      <SidebarInset className="admin-canvas min-w-0 bg-[#f7f6f2] text-[#181715]">
         {/*
           Mobile header. This is sticky *in flow* rather than fixed, so it
           occupies layout space and page content cannot render underneath it.
