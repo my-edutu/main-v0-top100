@@ -449,6 +449,7 @@ export async function AwardeesView({
         </Link>
       </div>
       <FilterBar
+        key={JSON.stringify(params)}
         member={member}
         params={params}
         countries={countries}
