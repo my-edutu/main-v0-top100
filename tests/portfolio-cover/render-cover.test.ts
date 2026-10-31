@@ -17,7 +17,7 @@ describe('deterministic Top100 magazine cover renderer', () => {
     expect(metadata.width).toBe(1080)
     expect(metadata.height).toBe(1350)
     expect(output.toString('utf8')).not.toContain('undefined')
-  }, 15000)
+  }, 30000)
 
   it('places the uploaded portrait inside the template image area and keeps the banner outside it', async () => {
     const portrait = await sharp({ create: { width: 300, height: 300, channels: 3, background: '#d02080' } }).png().toBuffer()
@@ -27,7 +27,7 @@ describe('deterministic Top100 magazine cover renderer', () => {
 
     expect(pixelAt(300, 400)).toEqual([208, 32, 128])
     expect(pixelAt(100, 400)).not.toEqual([208, 32, 128])
-  }, 15000)
+  }, 30000)
 
   it('renders the awardee name in the template nameplate', async () => {
     const portrait = await sharp({ create: { width: 300, height: 300, channels: 3, background: '#d02080' } }).png().toBuffer()
@@ -44,7 +44,7 @@ describe('deterministic Top100 magazine cover renderer', () => {
     }
 
     expect(darkTextPixels).toBeGreaterThan(500)
-  }, 15000)
+  }, 30000)
 
   it('keeps long awardee names inside the nameplate instead of clipping across the cover', async () => {
     const portrait = await sharp({ create: { width: 300, height: 300, channels: 3, background: '#d02080' } }).png().toBuffer()
@@ -71,7 +71,7 @@ describe('deterministic Top100 magazine cover renderer', () => {
     }
 
     expect(changedPixelsOutsideNameplate).toBe(0)
-  }, 15000)
+  }, 30000)
 })
 
 // A fresh process avoids fonts registered by other renderer tests.

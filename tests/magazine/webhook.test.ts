@@ -29,13 +29,14 @@ describe('isolated magazine Bachs webhook', () => {
   it('processes only a fully matching signed magazine attempt through the magazine RPC', async () => {
     const { db, rpc } = setupDb()
     const result = await handleBachsMagazineEvent(event(), new Headers({ 'x-bachs-timestamp': '1', 'x-bachs-signature': 'a'.repeat(64) }), { db, config, nowSeconds: 1, verify: () => true })
-    expect(result).toEqual({ httpStatus: 200, outcome: 'succeeded' })
+    expect(result).toEqual({ httpStatus: 200, outcome: 'succeeded', attemptId: attempt.id })
     expect(rpc).toHaveBeenCalledWith('process_bachs_magazine_webhook_event', expect.objectContaining({ p_attempt_id: attempt.id, p_currency: 'NGN', p_captured_amount_minor: 1_000_000 }))
   })
 
   it('never routes a different payment purpose to a magazine attempt', async () => {
     const { db, rpc } = setupDb()
-    await handleBachsMagazineEvent(event('afl_award_fee_v1'), new Headers(), { db, config, nowSeconds: 1, verify: () => true })
+    const result = await handleBachsMagazineEvent(event('afl_award_fee_v1'), new Headers(), { db, config, nowSeconds: 1, verify: () => true })
+    expect(result.attemptId).toBeNull()
     expect(rpc).toHaveBeenCalledWith('process_bachs_magazine_webhook_event', expect.objectContaining({ p_attempt_id: null }))
   })
 

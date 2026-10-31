@@ -319,13 +319,15 @@ describe('interactive local dashboard demo API', () => {
     expect(JSON.stringify(initial.data)).not.toMatch(/shipping|gig|address/i)
 
     const invalid = await call(store, 'POST', 'award/payment/checkout', {
-      currency: 'NGN',
+      countryCode: 'NG',
+      email: 'billing@example.com',
       amountMinor: 1,
     })
     expect(invalid.response.status).toBe(400)
 
     const checkout = await call(store, 'POST', 'award/payment/checkout', {
-      currency: 'USD',
+      countryCode: 'NG',
+      email: 'billing@example.com',
     })
     expect(checkout.response.status).toBe(200)
     expect(checkout.data.checkoutUrl).toBe('/dashboard/me/award/payment?payment=done&demo=1')
@@ -409,6 +411,7 @@ describe('interactive local dashboard demo API', () => {
     expect(pending.data.payment.currentAttempt).toMatchObject({ currency: 'USD', amountMinor: 1_000 })
   })
 
+  // Allow cold native/font initialization, matching the renderer integration tests.
   it('creates a template cover without changing the original member avatar', async () => {
     const portrait = await sharp({ create: { width: 160, height: 240, channels: 3, background: '#c9a56a' } }).jpeg().toBuffer()
     const form = new FormData()
@@ -423,7 +426,7 @@ describe('interactive local dashboard demo API', () => {
     expect(createdData.coverUrl).toMatch(/^data:image\/png;base64,/)
     expect(store.profile.portfolioCoverUrl).toBe(createdData.coverUrl)
     expect(store.profile.avatarInitials).toBe('AO')
-  })
+  }, 30_000)
 
   it('downloads the saved demo cover as an attachment', async () => {
     store.profile.portfolioCoverUrl = `data:image/png;base64,${Buffer.from('cover-image').toString('base64')}`
@@ -450,7 +453,7 @@ describe('interactive local dashboard demo API', () => {
 
     expect(response.status).toBe(200)
     expect(data.coverUrl).toMatch(/^data:image\/png;base64,/)
-  })
+  }, 30_000)
 
   it('makes unsupported demo operations visible', async () => {
     const { response, data } = await call(store, 'GET', 'does-not-exist')

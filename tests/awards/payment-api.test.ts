@@ -12,6 +12,7 @@ import { POST } from '@/app/api/member/award/payment/checkout/route'
 import { GET } from '@/app/api/member/award/payment/route'
 
 function request(body: unknown) { return new NextRequest('https://top100afl.com/api/member/award/payment/checkout', {method:'POST', body:JSON.stringify(body), headers:{'Content-Type':'application/json'}}) }
+const billing = { countryCode: 'NG', email: 'billing@example.com' }
 beforeEach(() => {
   mocks.user.mockResolvedValue({id:'member-1',email:'member@example.com'})
   mocks.enabled.mockReturnValue(true)
@@ -21,29 +22,38 @@ afterEach(() => vi.resetAllMocks())
 describe('Bachs member routes', () => {
   it('requires authentication before checkout', async () => {
     mocks.user.mockResolvedValue(null)
-    expect((await POST(request({currency:'NGN'}))).status).toBe(401)
+    expect((await POST(request(billing))).status).toBe(401)
     expect(mocks.checkout).not.toHaveBeenCalled()
   })
   it('fails closed when Bachs is not configured', async () => {
     mocks.enabled.mockReturnValue(false)
-    expect((await POST(request({currency:'NGN'}))).status).toBe(503)
+    expect((await POST(request(billing))).status).toBe(503)
     expect(mocks.checkout).not.toHaveBeenCalled()
   })
   it('rejects client amount injection', async () => {
-    expect((await POST(request({currency:'NGN',amount:1}))).status).toBe(400)
+    expect((await POST(request({...billing,amount:1}))).status).toBe(400)
     expect(mocks.checkout).not.toHaveBeenCalled()
   })
-  it('passes verified member and currency to the server service', async () => {
+  it('passes the verified member and normalized billing details with the server-owned currency', async () => {
     mocks.checkout.mockResolvedValue({checkoutUrl:'https://checkout.bachs.io/c/a',attemptId:'a'})
-    const response = await POST(request({currency:'NGN'}))
+    const response = await POST(request({countryCode:'ng',email:' BILLING@EXAMPLE.COM '}))
     expect(response.status).toBe(200)
-    expect(mocks.checkout).toHaveBeenCalledWith({id:'member-1',email:'member@example.com'}, 'NGN')
+    expect(mocks.checkout).toHaveBeenCalledWith({id:'member-1',email:'member@example.com'}, 'USD', 'billing@example.com', 'NG')
   })
   it('does not expose provider errors or secrets', async () => {
     mocks.checkout.mockRejectedValue(new Error('Authorization sk_live_secret invalid'))
-    const response = await POST(request({currency:'USD'}))
+    const response = await POST(request(billing))
     expect(response.status).toBe(502)
     expect(await response.text()).not.toContain('sk_live')
+  })
+  it.each([
+    { ...billing, countryCode: 'XX' },
+    { ...billing, email: 'invalid' },
+    { ...billing, currency: 'NGN' },
+    { currency: 'USD' },
+  ])('rejects invalid billing or client-controlled pricing: %j', async body => {
+    expect((await POST(request(body))).status).toBe(400)
+    expect(mocks.checkout).not.toHaveBeenCalled()
   })
   it('reads only the signed in member payment view', async () => {
     mocks.view.mockResolvedValue({status:'unpaid'})

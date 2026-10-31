@@ -72,7 +72,7 @@ describe('POST /api/member/whatsapp-group', () => {
     expect(mocks.resolveAssignment).toHaveBeenCalledWith({}, 'profile-1', expect.any(Number))
   })
 
-  it('returns a retryable setup response when the assignment table is missing', async () => {
+  it('keeps the same member-specific group available when the assignment table is missing', async () => {
     mocks.resolveAssignment.mockRejectedValue(Object.assign(
       new Error('relation public.whatsapp_group_assignments does not exist'),
       { code: '42P01' },
@@ -80,8 +80,11 @@ describe('POST /api/member/whatsapp-group', () => {
 
     const response = await POST(request())
 
-    expect(response.status).toBe(503)
-    expect(await response.json()).toMatchObject({ setupRequired: true })
+    expect(response.status).toBe(200)
+    const expected = { group: { key: 'group-1', label: 'Group 1', inviteUrl: 'https://chat.whatsapp.com/CBxGOfyMbCP3YzceNrHLkm?mode=gi_t' }, created: true }
+    expect(await response.json()).toEqual(expected)
+    expect(await (await POST(request({ profileId: 'someone-else', groupKey: 'group-3' }))).json()).toEqual(expected)
+    expect(response.headers.get('Cache-Control')).toBe('private, no-store')
   })
 
   it('blocks a cross-origin cookie mutation before creating an assignment', async () => {

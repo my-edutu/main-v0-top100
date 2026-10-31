@@ -38,19 +38,20 @@ describe('award payment copy', () => {
     expect(markup).toContain('What does the physical award fee cover?')
   })
 
-  it('labels the physical award fee and starts checkout for the selected currency', () => {
-    const markup = renderToStaticMarkup(<AwardPaymentCard view={paymentView} />)
+  it('collects billing country and email before handing currency and final amount selection to checkout', () => {
+    const markup = renderToStaticMarkup(<AwardPaymentCard view={paymentView} memberEmail="billing@example.com" />)
 
     expect(markup).toContain('Complete your physical award fee')
     expect(markup).toContain('physical award only')
     expect(markup).toContain('/illustrations/physical-award-emblem.svg')
     expect(markup).not.toContain('lucide-lock-keyhole')
-    expect(markup).toContain('name="award-payment-currency"')
-    expect(markup).toContain('value="NGN"')
-    expect(markup).toContain('value="USD"')
+    expect(markup).toContain('Your billing details')
+    expect(markup).toContain('value="NG"')
+    expect(markup).toContain('type="email"')
+    expect(markup).toContain('value="billing@example.com"')
     expect(markup).not.toContain('href="https://checkout.bachs.io/pay/pl_f912ab207c61"')
     expect(markup).toContain('Proceed')
-    expect(markup).toContain('review any applicable charges')
+    expect(markup).toContain('Bachs will show available currencies and the final amount on the next screen.')
   })
 
   it('disables checkout when the provider is unavailable', () => {

@@ -1,8 +1,9 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({ requireAdmin: vi.fn(), loadPublicAwardee: vi.fn(), generate: vi.fn() }))
 vi.mock('@/lib/api/require-admin', () => ({ requireAdmin: mocks.requireAdmin }))
 vi.mock('@/lib/admin-social/server', () => ({ loadPublicAwardee: mocks.loadPublicAwardee }))
+vi.mock('@/lib/site', () => ({ SITE_URL: 'https://top100afl.com' }))
 vi.mock('@/lib/admin-social/openai-caption', () => ({
   SocialCaptionProviderError: class SocialCaptionProviderError extends Error {},
   createOpenAICaptionGenerator: () => ({ generate: mocks.generate }),
@@ -18,11 +19,13 @@ function request(body: unknown) {
 
 describe('/api/admin/social/generate', () => {
   beforeEach(() => {
+    vi.stubEnv('NODE_ENV', 'production')
     vi.clearAllMocks()
     mocks.requireAdmin.mockResolvedValue({ user: { id: 'admin-1' } })
     mocks.loadPublicAwardee.mockResolvedValue({ awardeeId: 'awardee-1', name: 'Amara', bio: 'Public bio', isPublic: true })
     mocks.generate.mockResolvedValue('A generated draft.')
   })
+  afterEach(() => vi.unstubAllEnvs())
 
   it('does not generate copy for non-admins', async () => {
     mocks.requireAdmin.mockResolvedValue({ error: Response.json({ message: 'Admin access required.' }, { status: 403 }) })
@@ -35,7 +38,7 @@ describe('/api/admin/social/generate', () => {
     const id = '24c4f56b-f3d8-4f8a-81d8-a09509e04511'
     const response = await POST(request({ awardeeId: id, platform: 'linkedin' }))
     expect(response.status).toBe(200)
-    expect(mocks.loadPublicAwardee).toHaveBeenCalledWith(id, 'https://www.top100afl.com')
+    expect(mocks.loadPublicAwardee).toHaveBeenCalledWith(id, 'https://top100afl.com')
     expect(mocks.generate).toHaveBeenCalledWith(expect.objectContaining({ bio: 'Public bio' }), 'linkedin')
     await expect(response.json()).resolves.toMatchObject({ caption: 'A generated draft.', platform: 'linkedin' })
   })
