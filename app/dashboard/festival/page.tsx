@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
-import { CheckCircle2 } from 'lucide-react'
+import Link from 'next/link'
+import Image from '@/components/safe-image'
+import { CheckCircle2, LockKeyhole, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,7 +13,7 @@ import { FestivalInterestSummary } from '../_components/festival-interest-summar
 import { useDashboardMember } from '../_providers/dashboard-member'
 import { reconcileAwardPayment } from '@/lib/awards/payment'
 import { festivalRequest } from '@/lib/festival/client'
-import { FESTIVAL_PAYMENT_PATH } from '@/lib/festival/config'
+import { canAttendFestival, FESTIVAL_IMAGE, FESTIVAL_PAYMENT_PATH } from '@/lib/festival/config'
 import {
   festivalInterestSchema,
   pickupPaymentState,
@@ -35,6 +37,7 @@ const paymentHelp: Record<FestivalPaymentState, string> = {
 
 export default function FestivalInterestPage() {
   const { member } = useDashboardMember()
+  const eligible = canAttendFestival(member.status)
   const router = useRouter()
   const [view, setView] = useState<FestivalInterestView | null>(null)
   const [fullName, setFullName] = useState(member.name)
@@ -59,6 +62,7 @@ export default function FestivalInterestPage() {
   const validationFocus = useRef<FormField | null>(null)
 
   useEffect(() => {
+    if (!eligible) return
     const controller = new AbortController()
     festivalRequest<FestivalInterestView>(endpoint, {
       signal: controller.signal,
@@ -83,7 +87,7 @@ export default function FestivalInterestPage() {
         if (!controller.signal.aborted) setLoading(false)
       })
     return () => controller.abort()
-  }, [member.id, member.name, retry])
+  }, [eligible, member.id, member.name, retry])
 
   useEffect(() => {
     if (saved && !editing) summaryRef.current?.focus()
@@ -192,12 +196,30 @@ export default function FestivalInterestPage() {
   }
 
   const payment = view?.payment ?? 'unavailable'
+  if (!eligible) return (
+    <RouteSection title="Festival attendance" className="festival-page">
+      <div className="festival-access">
+        <LockKeyhole size={24} aria-hidden="true" />
+        <h2>For Top100 awardees</h2>
+        <p>Festival registration is available once your awardee membership is approved.</p>
+        <Button asChild variant="outline" className="festival-secondary">
+          <Link href="/dashboard"><ArrowLeft size={16} aria-hidden="true" />Back to dashboard</Link>
+        </Button>
+      </div>
+    </RouteSection>
+  )
   return (
-    <RouteSection
-      title="Festival attendance"
-      description="Africa Future Leaders Festival · 2026"
-      className="festival-page"
-    >
+    <section className="festival-page" aria-labelledby="festival-page-title">
+      <header className="festival-intro">
+        <div className="festival-intro__image">
+          <Image src={FESTIVAL_IMAGE} alt="Africa Future Leaders Festival 2026 stage" fill sizes="(min-width: 800px) 720px, 100vw" priority />
+          <span className="festival-intro__year">2026 · Awardee gathering</span>
+        </div>
+        <div className="festival-intro__copy">
+          <h1 id="festival-page-title">Africa Future Leaders Festival</h1>
+          <p>Come together with fellow awardees. Let us know you’d like to attend and arrange your award pickup.</p>
+        </div>
+      </header>
       {loading ? (
         <div className="festival-loading" role="status">
           Loading your interest…
@@ -240,6 +262,10 @@ export default function FestivalInterestPage() {
           noValidate
           aria-label="Festival attendance interest"
         >
+          <div className="festival-form__heading">
+            <h2>{view?.interest ? 'Update your details' : 'Join the interest list'}</h2>
+            <p className="festival-help">We’ll use these details to contact you about attendance.</p>
+          </div>
           <div className="festival-field">
             <label htmlFor="festival-name">Full name</label>
             <Input
@@ -419,6 +445,6 @@ export default function FestivalInterestPage() {
           </p>
         </form>
       )}
-    </RouteSection>
+    </section>
   )
 }

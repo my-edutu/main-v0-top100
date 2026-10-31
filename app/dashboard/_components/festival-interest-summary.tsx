@@ -46,9 +46,13 @@ export function FestivalInterestSummary({
       tabIndex={-1}
       ref={summaryRef}
     >
-      <h2 id="festival-saved-title">
-        <CheckCircle2 size={18} aria-hidden="true" /> Interest registered
-      </h2>
+      <div className="festival-summary__heading">
+        <span className="festival-summary__check"><CheckCircle2 size={22} aria-hidden="true" /></span>
+        <div>
+          <h2 id="festival-saved-title">Interest registered</h2>
+          <p className="festival-help">You’re on the list. We’ll be in touch with the next steps.</p>
+        </div>
+      </div>
       <dl className="festival-details">
         <div>
           <dt>Name</dt>
@@ -125,16 +129,17 @@ export function FestivalInterestSummary({
         )}
         <Button
           type="button"
-          variant="outline"
-          className="festival-secondary"
+          variant={needsPayment || canCheck ? 'outline' : 'default'}
+          className={needsPayment || canCheck ? 'festival-secondary' : 'festival-primary'}
           onClick={onEdit}
           disabled={checking}
         >
           Edit details
         </Button>
       </div>
-      <p className="festival-help">
-        The team will confirm attendance and pickup arrangements.
+      <p className="festival-help festival-summary__note">
+        This registers your interest. The team will confirm attendance
+        {interest.pickupRequested ? ' and award pickup arrangements' : ' details'} separately.
       </p>
     </section>
   )

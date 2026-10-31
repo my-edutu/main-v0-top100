@@ -1,6 +1,7 @@
 # GIG Logistics integration
 
-The app uses GIG's documented third-party API for Nigerian award delivery. The
+The app uses GIG's documented third-party API for Nigerian award delivery and
+read-only international delivery estimates. The
 current quote path is **Price V3**:
 
 - `POST /login` with `{ email, password }`
@@ -15,6 +16,65 @@ current quote path is **Price V3**:
 The production base URL is `https://thirdpartynode.theagilitysystems.com`.
 The test base URL is `https://dev-thirdpartynode.theagilitysystems.com`.
 See the [official API index](https://gig-logistics.readme.io/).
+
+## Dashboard delivery cost checker
+
+Members can open **Delivery cost** from their dashboard shortcuts or account
+navigation at `/dashboard/me/delivery`. The shared checker also powers the award
+address page. Members choose a destination country first. Nigerian destinations
+support home delivery and collection from a verified GIG centre; overseas
+destinations use international home-delivery pricing. The displayed price clears
+whenever the destination changes.
+
+`POST /api/member/award/delivery-quote` is an authenticated, rate-limited,
+read-only price preview. It does not require an award order or award payment,
+save an address, create an order, collect payment, or book a shipment. Home
+delivery requires a full Nigerian street address; centre collection requires
+state, city and a verified centre id, without a home street address. Live
+pricing still requires GIG and server-side geocoding configuration. The quote
+is for shipping the configured physical award, separate from its award fee,
+and can change before delivery is arranged. The local demo has separate,
+explicitly labelled sample quotes and a sample centre, with no carrier calls,
+saved addresses, orders, payments or bookings.
+
+This preview endpoint is separate from the legacy combined-order quote flow
+described below. Checking a price does not reserve or persist it for checkout.
+
+### Outbound international estimate
+
+The checker uses the documented [country directory](https://gig-logistics.readme.io/reference/get_country-get)
+and [outbound pricing endpoint](https://gig-logistics.readme.io/reference/post_intlshipment-price):
+
+- `GET /country/get` resolves the ISO destination to GIG's current country id.
+  Only one matching active international-shipping destination is accepted.
+- `POST /intlShipment/price` receives the destination address, country, city,
+  optional postal/province codes, and the server-configured award package.
+- The response's `data.data` array contains service prices. The checker displays
+  the lowest positive `GrandTotal` explicitly denominated in `NGN` or `₦`,
+  converted to integer kobo, as a **From** estimate. Failed responses, foreign
+  currencies, missing amounts and unsupported destinations never become prices.
+
+Top100 supplied 1 kg, A3 (42 × 29.7 cm), and a ₦10,000 declared replacement
+value. These defaults can be overridden with `GIG_INTL_PACKAGE_WEIGHT_KG`,
+`GIG_INTL_PACKAGE_LENGTH_CM`, `GIG_INTL_PACKAGE_WIDTH_CM` and
+`GIG_INTL_DECLARED_VALUE_NAIRA`. Thickness was not supplied: no height is
+invented. Set `GIG_INTL_PACKAGE_HEIGHT_CM` once the outer package is measured;
+when set, the request also includes the complete `ShipmentPackages` dimensions.
+`ShipmentItems[].IsVolumetric` is always explicit: false for the weight-based
+estimate without a measured thickness, true when full dimensions are supplied.
+If the carrier requires additional packaging details, the estimate remains
+unavailable until those details are configured. Final packed measurements can
+change the rate.
+
+International booking is not part of this price checker. The existing domestic
+booking/geocoding adapter remains Nigerian-only. The new outbound requests are
+covered with fixtures based on the vendor's OpenAPI examples. On 2026-10-31, a
+read-only call using the configured live GIG account verified authentication,
+country lookup and an outbound quote to GIG's published London centre. The
+lowest NGN total returned was ₦72,762.50 (7,276,250 kobo) for the weight-based
+1 kg A3/₦10,000 configuration. That verifies one destination at that time, not
+all country coverage or final packed pricing. No shipment was booked and no
+payment was taken during implementation.
 
 The retired `getaddressdetails` endpoint is **not called** anywhere. GIG never
 documented it as part of this integration and its behaviour could not be
@@ -177,9 +237,9 @@ Before enabling paid member checkout on a live account:
 
 ## Remaining unverified items
 
-The wire format above matches GIG's current published OpenAPI definition
-(Price V3, service centres, capture preshipment). The adapter logic is covered
-by stubbed tests, but no live GIG account is available in this environment.
+The domestic wire format above matches GIG's current published OpenAPI definition
+(Price V3, service centres, capture preshipment). Those domestic booking checks
+remain separate from the read-only international smoke check recorded above.
 Still verify against the production account:
 
 - which amount field your account populates and whether it is naira;

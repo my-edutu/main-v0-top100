@@ -15,6 +15,7 @@ const meDescriptions: Record<string, string> = {
   'Portfolio cover': 'Create a shareable Top100 magazine profile',
   'Project100 Scholarship': 'Apply and save your scholarship application',
   'My award': 'Complete your award and see its confirmation',
+  'Delivery cost': 'Check GIG pricing before an order or payment',
   Posts: 'Write and manage your stories',
   'Get featured': 'Pitch your work to the AFL team',
   Settings: 'Choose alerts, privacy and security',

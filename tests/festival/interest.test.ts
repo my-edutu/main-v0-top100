@@ -52,7 +52,12 @@ beforeEach(() => {
   )
   chain.maybeSingle = vi.fn().mockResolvedValue({ data: row, error: null })
   chain.single = vi.fn().mockResolvedValue({ data: row, error: null })
-  mocks.db.mockReturnValue({ from: vi.fn().mockReturnValue(chain) })
+  const profileChain = {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    maybeSingle: vi.fn().mockResolvedValue({ data: { membership_status: 'approved' }, error: null }),
+  }
+  mocks.db.mockReturnValue({ from: vi.fn((table: string) => table === 'profiles' ? profileChain : chain) })
 })
 const request = (body: unknown) =>
   new NextRequest('https://top100afl.com/api/member/festival-interest', {

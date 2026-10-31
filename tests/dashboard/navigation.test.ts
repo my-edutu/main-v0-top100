@@ -41,7 +41,7 @@ describe('dashboard navigation', () => {
       'Members', 'Groups', 'Opportunities', 'Saved', 'Events', 'Magazine',
     ])
     expect(meNav.map(({ label }) => label)).toEqual([
-      'Profile', 'Schedule an interview', 'Portfolio cover', 'Project100 Scholarship', 'My award', 'Posts', 'Get featured', 'Settings',
+      'Profile', 'Schedule an interview', 'Portfolio cover', 'Project100 Scholarship', 'My award', 'Delivery cost', 'Posts', 'Get featured', 'Settings',
     ])
     const hrefs = [...primaryDashboardNav, ...discoverNav, ...meNav].map(({ href }) => href)
     // Awardees is intentionally promoted to a primary destination while
@@ -72,6 +72,7 @@ describe('dashboard navigation', () => {
   it('resolves nested titles and every legacy section', () => {
     expect(resolveDashboardTitle('/dashboard/festival')).toBe('Festival')
     expect(resolveDashboardTitle('/dashboard/me/award')).toBe('My award')
+    expect(resolveDashboardTitle('/dashboard/me/delivery')).toBe('Delivery cost')
     expect(resolveDashboardTitle('/dashboard/discover/opportunities/saved')).toBe('Saved opportunities')
     expect(legacySectionDestination('directory')).toBe('/dashboard/discover/members')
     expect(legacySectionDestination('awards')).toBe('/dashboard/me/award')

@@ -8,6 +8,29 @@ import { createDemoDashboardStore } from '@/lib/dev-dashboard/store'
 import { handleDemoMemberRequest } from '@/lib/dev-dashboard/handler'
 
 describe('local festival preview', () => {
+  it('blocks attendance details for a pending preview member', async () => {
+    const store = createDemoDashboardStore()
+    store.profile.status = 'pending'
+    const response = await handleDemoMemberRequest(new NextRequest('http://localhost:3025/api/member/festival-interest', {
+      headers: { host: 'localhost:3025', cookie: `${DEV_DASHBOARD_COOKIE}=${DEV_DASHBOARD_COOKIE_VALUE}` },
+    }), ['festival-interest'], store, 'development')
+    expect(response.status).toBe(403)
+  })
+  it('loads the Project100 preview without a missing-route error or live checkout', async () => {
+    const store = createDemoDashboardStore()
+    const call = (method = 'GET', body?: unknown) => handleDemoMemberRequest(new NextRequest('http://localhost:3025/api/member/project100/impact', {
+      method,
+      headers: { host: 'localhost:3025', cookie: `${DEV_DASHBOARD_COOKIE}=${DEV_DASHBOARD_COOKIE_VALUE}`, 'Content-Type': 'application/json' },
+      body: body ? JSON.stringify(body) : undefined,
+    }), ['project100', 'impact'], store, 'development')
+    const response = await call()
+    expect(response.status).toBe(200)
+    const view = await response.json()
+    expect(view.groups).toHaveLength(43)
+    expect(view.totals.raised).toEqual({ NGN: 0, USD: 0 })
+    expect(view.checkoutEnabled).toBe(false)
+    expect((await call('POST', { action: 'checkout', input: {} })).status).toBe(503)
+  })
   it('checks the sample payment without manufacturing a successful payment', async () => {
     const store = createDemoDashboardStore()
     const check = () => handleDemoMemberRequest(new NextRequest('http://localhost:3025/api/member/award/payment/reconcile?payment=done', {

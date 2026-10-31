@@ -1,6 +1,10 @@
 import type { NextRequest } from 'next/server'
 import { randomInt } from 'node:crypto'
 import { festivalInterestSchema, pickupPaymentState } from '@/lib/festival/interest'
+import { canAttendFestival } from '@/lib/festival/config'
+import { nigeriaStates } from '@/lib/awards/locations'
+import { IMPACT_COUNTRIES, type ImpactView } from '@/lib/project100/impact/types'
+import { deliveryPreviewSchema } from '@/lib/awards/delivery-preview'
 
 import { hasValidDemoSession } from '@/lib/dev-dashboard/auth'
 import {
@@ -519,6 +523,27 @@ async function routeContributions(request: NextRequest, path: string[], store: D
 }
 
 async function routeAward(request: NextRequest, path: string[], store: DemoDashboardStore) {
+  if (path[1] === 'delivery-quote' && path.length === 2 && request.method === 'POST') {
+    const parsed = deliveryPreviewSchema.safeParse(await readBody(request))
+    if (!parsed.success) return json({ message: parsed.error.issues[0]?.message ?? 'Check your delivery details.' }, 400)
+    const details = parsed.data
+    if (details.deliveryMode === 'service_centre' && details.serviceCentreId !== 9001)
+      return json({ message: 'Choose the sample GIG centre for this preview.' }, 400)
+    // Deterministic, explicitly labelled demo data. No provider or order mutation.
+    return json({ quote: {
+      amountMinor: details.countryCode !== 'NG' ? 9_000_000 : details.deliveryMode === 'home' ? 750_000 : 500_000,
+      currency: 'NGN', deliveryMode: details.deliveryMode, sample: true,
+      ...(details.countryCode !== 'NG' ? { international: true } : {}),
+      destination: [details.addressLine1, details.city, details.state, details.country].filter(Boolean).join(', '),
+    } })
+  }
+  if (path[1] === 'service-centres' && path.length === 2 && request.method === 'GET') {
+    const params = requestUrl(request).searchParams
+    const state = nigeriaStates.find(state => state.name.toLowerCase() === params.get('state')?.toLowerCase())
+    const city = params.get('city')?.trim() ?? ''
+    if (!state || city.length < 2 || city.length > 100) return json({ message: 'Choose a Nigerian state and enter a city.' }, 400)
+    return json({ serviceCentres: [{ id: 9001, name: 'Sample GIG collection centre', address: `${city}, ${state.name} · Local preview only` }] })
+  }
   const paymentRead = path[1] === 'payment' && path.length === 2 && request.method === 'GET'
   const paymentReconcile = path[1] === 'payment' && path[2] === 'reconcile' && path.length === 3 && request.method === 'POST'
   if (paymentRead || paymentReconcile) {
@@ -779,7 +804,32 @@ export async function handleDemoMemberRequest(
 
   let response: Response | null = null
   switch (path[0]) {
+    case 'project100': {
+      if (path.length !== 2 || path[1] !== 'impact') break
+      if (request.method === 'POST')
+        return json({ message: 'Project100 is coming soon. Payments are unavailable in local preview.' }, 503)
+      if (request.method !== 'GET') break
+      const locations = [
+        ...nigeriaStates.map(state => ({ country: 'Nigeria', state: state.name, name: state.name })),
+        ...IMPACT_COUNTRIES.map(country => ({ country, state: null, name: country })),
+      ]
+      const view: ImpactView = {
+        groups: locations.map((location, index) => ({
+          ...location,
+          id: `00000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
+          slug: location.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+          active: true, raised: { NGN: 0, USD: 0 }, spent: { NGN: 0, USD: 0 }, members: 0,
+        })),
+        membership: null, projects: [], supporters: [], updates: [], spending: [], contributions: [],
+        totals: { raised: { NGN: 0, USD: 0 }, spent: { NGN: 0, USD: 0 } },
+        checkoutEnabled: false, canSupportAnyGroup: false,
+      }
+      response = json(view)
+      break
+    }
     case 'festival-interest': {
+      if (!canAttendFestival(store.profile.status))
+        return json({ message: 'Festival registration is available to approved Top100 awardees.' }, 403)
       if (request.method === 'POST') {
         const parsed = festivalInterestSchema.safeParse(await readBody(request))
         if (!parsed.success) return json({ message: parsed.error.issues[0]?.message ?? 'Check your details.' }, 400)

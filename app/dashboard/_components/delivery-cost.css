@@ -1,0 +1,33 @@
+.awardee-dashboard .delivery-cost-checker :is(input:not([type=radio]), select) {
+  min-height: 48px;
+  border: 1px solid #d4d4d4;
+  border-radius: 10px;
+  background: #fff;
+  color: #171717;
+  font-size: 16px;
+}
+.awardee-dashboard .delivery-cost-checker label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #292521;
+}
+.awardee-dashboard .delivery-cost-checker label:has(input[type=radio]) {
+  display: flex;
+  border-radius: 10px;
+}
+.delivery-cost-international {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #fffbeb;
+  color: #765300;
+}
+.delivery-cost-international svg { flex: none; margin-top: 2px; }
+.delivery-cost-international p { font-size: 14px; font-weight: 500; color: #171717; }
+.delivery-cost-international span { display: block; margin-top: 4px; font-size: 13px; line-height: 1.5; }
+.awardee-dashboard .delivery-cost-checker button { border-radius: 10px; }
+.delivery-cost-result { scroll-margin-block: 90px 110px; }
+.delivery-cost-result:focus-visible { outline: 2px solid #23603e; outline-offset: 4px; }

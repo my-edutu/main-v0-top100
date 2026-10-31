@@ -12,6 +12,8 @@ import {
   MessageCircle,
   Video,
   UserRound,
+  Truck,
+  LockKeyhole,
 } from 'lucide-react'
 
 import {
@@ -32,6 +34,7 @@ import { DashboardCelebration } from './dashboard-celebration'
 import { AflCalendarAnnouncement } from './afl-calendar-announcement'
 import MagazinePopup from '@/app/components/MagazinePopup'
 import { FestivalCard } from './festival-card'
+import { canAttendFestival } from '@/lib/festival/config'
 
 const INTERVIEW_FORM_URL = '/dashboard/me/interview'
 const PARTNERSHIP_FORM_URL = 'https://docs.google.com/forms/d/1pabeSUOwN15Sr-VcAWIhl5k5_xwnKljFuzm90PCoEqQ/edit'
@@ -53,6 +56,7 @@ const shortcutDescriptions: Record<string, string> = {
   'Schedule an interview': 'Request an interview time',
   'Contact Top100': 'Chat with the Top100 team on WhatsApp',
   'Partner with us': 'Explore working together',
+  'Delivery cost': 'Check GIG pricing before paying',
 }
 
 function formatShortDate(value: string | null | undefined) {
@@ -123,6 +127,7 @@ export function DashboardHome() {
   }, [])
 
   const shortcuts = [meNav[2],
+    { label:'Delivery cost', href:'/dashboard/me/delivery', icon:Truck, color:'charcoal' as const },
     { label:'Past sessions', href:'/dashboard/discover/event-videos', icon:Video, color:'charcoal' as const },
     { label:'Apply for magazine', href:'/magazine/feature', icon:Mail, color:'burgundy' as const },
     { label:'Schedule an interview', href:INTERVIEW_FORM_URL, icon:Mail, color:'ember' as const },
@@ -245,7 +250,7 @@ export function DashboardHome() {
         </DialogContent>
       </Dialog> : null}
       <AflCalendarAnnouncement memberId={member.id} dashboardLoginCount={member.dashboardLoginCount ?? 0} />
-      <FestivalCard />
+      {canAttendFestival(member.status) && <FestivalCard />}
       <AwardeeOnboardingJourney name={member.name} />
       {loadError && <p role="status" className="hub-status rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-sm leading-5 text-neutral-700">Some events couldn’t load. We’ll retry automatically; you can also open Events directly.</p>}
 
@@ -322,6 +327,24 @@ export function DashboardHome() {
         </div>
         <div className="flex snap-x gap-4 overflow-x-auto pb-2 pr-2" role="region" aria-label="Featured member actions">
           {launchBanners.map((banner) => (
+            banner.title === 'Project100 Scholarship' ? (
+              <div
+                key={banner.title}
+                className="hub-launch-locked relative isolate flex min-h-[176px] min-w-[min(82vw,320px)] snap-start overflow-hidden rounded-[20px] border border-black/10 bg-black p-4 text-white"
+                role="link"
+                aria-disabled="true"
+                aria-label="Project100 Scholarship — Coming soon"
+              >
+                {/* Dashboard asset paths require the browser's session cookie. */}
+                <Image src={banner.image} alt="" fill unoptimized sizes="(min-width: 640px) 320px, 82vw" className="-z-10 object-cover" />
+                <span className="absolute inset-0 -z-10 bg-gradient-to-t from-[#111827]/90 via-[#111827]/30 to-transparent" />
+                <span className="hub-launch-locked__label"><LockKeyhole size={14} aria-hidden="true" />Coming soon</span>
+                <span className="mt-auto max-w-[290px]">
+                  <span style={{ color: '#fff' }} className="block text-lg font-semibold leading-tight">{banner.title}</span>
+                  <span style={{ color: 'rgba(255,255,255,.9)' }} className="mt-1 block text-sm">{banner.description}</span>
+                </span>
+              </div>
+            ) : (
             <Link
               key={banner.title}
               href={banner.href}
@@ -337,6 +360,7 @@ export function DashboardHome() {
               </span>
               <ArrowUpRight className="absolute right-4 top-4 h-5 w-5 text-white/80 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true" />
             </Link>
+            )
           ))}
         </div>
       </section>
