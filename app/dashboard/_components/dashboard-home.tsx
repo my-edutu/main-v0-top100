@@ -39,9 +39,9 @@ const INTERVIEW_FORM_URL = '/dashboard/me/interview'
 const PARTNERSHIP_FORM_URL = 'https://docs.google.com/forms/d/1pabeSUOwN15Sr-VcAWIhl5k5_xwnKljFuzm90PCoEqQ/edit'
 
 const launchBanners = [
-  { title: 'Project100 Scholarship', description: 'Join your group. Keep a child in school.', href: '/dashboard/me/project100-scholarship', image: '/dashboard/banners/project100-scholarship-roadside.png' },
-  { title: 'Impact Series Interviews', description: 'Share the work behind your impact.', href: INTERVIEW_FORM_URL, image: '/dashboard/banners/impact-series-v2.png' },
-  { title: 'Let your organization partner with Africa Future Leaders', description: 'Create more impact together.', href: PARTNERSHIP_FORM_URL, image: '/dashboard/banners/impact-series-v2.png', external: true },
+  { title: 'Project100 Scholarship', description: 'Join your group. Keep a child in school.', comingSoon: true, image: '/dashboard/banners/project100-scholarship-roadside.png' },
+  { title: 'Impact Africa 2027', description: 'Conversations. Connections. Community impact.', comingSoon: true, image: '/dashboard/banners/impact-africa-2027.webp' },
+  { title: 'Let your organization partner with Africa Future Leaders', description: 'Create more impact together.', href: PARTNERSHIP_FORM_URL, image: '/dashboard/banners/organization-partnership-2027.webp', external: true },
 ] as const
 
 const shortcutDescriptions: Record<string, string> = {
@@ -325,13 +325,13 @@ export function DashboardHome() {
         </div>
         <div className="flex snap-x gap-4 overflow-x-auto pb-2 pr-2" role="region" aria-label="Featured member actions">
           {launchBanners.map((banner) => (
-            banner.title === 'Project100 Scholarship' ? (
+            'comingSoon' in banner ? (
               <div
                 key={banner.title}
                 className="hub-launch-locked relative isolate flex min-h-[176px] min-w-[min(82vw,320px)] snap-start overflow-hidden rounded-[20px] border border-black/10 bg-black p-4 text-white"
                 role="link"
                 aria-disabled="true"
-                aria-label="Project100 Scholarship — Coming soon"
+                aria-label={`${banner.title} — Coming soon`}
               >
                 {/* Dashboard asset paths require the browser's session cookie. */}
                 <Image src={banner.image} alt="" fill unoptimized sizes="(min-width: 640px) 320px, 82vw" className="-z-10 object-cover" />

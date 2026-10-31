@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { fetchWithTimeout } from '@/lib/http/fetch-with-timeout'
 import { ArrowLeft, ArrowRight, Check, LoaderCircle } from 'lucide-react'
 import type { MemberProfile } from '@/lib/member-hub'
 import { MAX_INTERESTS, MIN_INTERESTS, onboardingFields, validateOnboarding } from '@/lib/dashboard/onboarding'
@@ -39,7 +40,15 @@ export function Onboarding({
     bio: member.bio,
   })
   const [busy, setBusy] = useState(false)
+  const saving = useRef(false)
+  const titleRef = useRef<HTMLHeadingElement>(null)
+  const previousStep = useRef(step)
   const [error, setError] = useState('')
+  useEffect(() => {
+    if (previousStep.current === step) return
+    previousStep.current = step
+    titleRef.current?.focus()
+  }, [step])
   function handleWelcomeOpenChange(open: boolean) {
     setWelcomeOpen(open)
     if (open || member.onboardingWelcomeSeenAt) return
@@ -68,7 +77,7 @@ export function Onboarding({
   const field = onboardingFields[step]
   async function save(event: React.FormEvent) {
     event.preventDefault()
-    if (busy) return
+    if (saving.current) return
     setError('')
     if (field) {
       if (field.key === 'field' && interests.length < MIN_INTERESTS) { setError('Add at least one interest before continuing.'); return }
@@ -78,9 +87,10 @@ export function Onboarding({
         setError(`Please enter ${field.min}–${field.max} characters.`)
         return
       }
+      saving.current = true
       setBusy(true)
       try {
-        const response = await fetch('/api/member/onboarding', {
+        const response = await fetchWithTimeout('/api/member/onboarding', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ [field.key]: answer, step: step + 1 }),
@@ -91,6 +101,7 @@ export function Onboarding({
         setError(cause instanceof Error ? cause.message : 'Please try again.')
         return
       } finally {
+        saving.current = false
         setBusy(false)
       }
       setStep(step + 1)
@@ -103,9 +114,10 @@ export function Onboarding({
       setError(validationError)
       return
     }
+    saving.current = true
     setBusy(true)
     try {
-      const response = await fetch('/api/member/onboarding', {
+      const response = await fetchWithTimeout('/api/member/onboarding', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -121,6 +133,7 @@ export function Onboarding({
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Please try again.')
     } finally {
+      saving.current = false
       setBusy(false)
     }
   }
@@ -139,7 +152,7 @@ export function Onboarding({
         <p className="mb-3 text-sm text-orange-700">
           Your awardee profile · {step + 1} of 5
         </p>
-        <div className="mb-10 flex gap-2" aria-label={`Step ${step + 1} of 5`}>
+        <div className="mb-8 flex gap-2" role="progressbar" aria-label="Profile setup" aria-valuemin={1} aria-valuemax={5} aria-valuenow={step + 1} aria-valuetext={`Step ${step + 1} of 5`}>
           {Array.from({ length: 5 }, (_, index) => (
             <span
               key={index}
@@ -153,14 +166,15 @@ export function Onboarding({
             />
           ))}
         </div>
-        <form onSubmit={save}>
-          <h1 className="text-3xl font-medium tracking-tight sm:text-4xl">
+        <form onSubmit={save} aria-busy={busy} aria-describedby={error ? 'onboarding-error' : undefined}>
+          <h1 ref={titleRef} tabIndex={-1} className="text-3xl font-medium tracking-tight focus:outline-none sm:text-4xl">
             {field?.title ?? 'Ready to meet your community?'}
           </h1>
           <p className="mb-8 mt-3 text-base leading-7 text-neutral-600">
             {field?.hint ??
               'Check your introduction before opening your dashboard. You can update your profile later.'}
           </p>
+          <fieldset disabled={busy} className="min-w-0">
           {field ? (
             <div>
               <label className="sr-only" htmlFor="onboarding-field">
@@ -174,7 +188,7 @@ export function Onboarding({
               ) : field.key === 'field' ? (
                 <div>
                   <div className="mb-3 flex flex-wrap gap-1.5" aria-label="Selected interests">
-                    {interests.map(tag => <button key={tag} type="button" aria-label={`Remove ${tag}`} onClick={() => setValues({ ...values, field:interests.filter(value => value !== tag).join(', ') })} className="min-h-8 rounded-full border border-orange-300 bg-orange-50 px-2.5 text-xs leading-5">{tag} <span aria-hidden="true" className="ml-1">×</span></button>)}
+                    {interests.map(tag => <button key={tag} type="button" aria-label={`Remove ${tag}`} onClick={() => setValues({ ...values, field:interests.filter(value => value !== tag).join(', ') })} className="min-h-11 rounded-full border border-orange-300 bg-orange-50 px-3 text-sm leading-5">{tag} <span aria-hidden="true" className="ml-1">×</span></button>)}
                   </div>
                   <div className="flex gap-2">
                     <input id="onboarding-field" value={interestInput} disabled={interests.length >= MAX_INTERESTS} onChange={event => setInterestInput(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && !event.nativeEvent.isComposing) { event.preventDefault(); addInterest() } }} placeholder="e.g. Technology" maxLength={28} className="h-14 min-w-0 flex-1 rounded-xl border border-neutral-300 px-4 text-base" />
@@ -268,7 +282,7 @@ export function Onboarding({
             </dl>
           )}
           {error && (
-            <p role="alert" className="mt-4 text-sm text-red-700">
+            <p id="onboarding-error" role="alert" className="mt-4 text-sm text-red-700">
               {error}
             </p>
           )}
@@ -308,6 +322,7 @@ export function Onboarding({
                 ? 'Review your details and complete setup to open your awardee dashboard. You can update your Bio later.'
                 : 'Your answer is saved when you continue.'}
           </p>
+          </fieldset>
         </form>
       </main>
     </div>

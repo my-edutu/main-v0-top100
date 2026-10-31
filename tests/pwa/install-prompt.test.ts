@@ -24,7 +24,7 @@ describe('home screen installation guidance', () => {
   it('registers the worker without requesting notification permission', async () => {
     const register = vi.fn().mockResolvedValue({})
     await registerInstallServiceWorker({ serviceWorker: { register } } as unknown as Navigator, true)
-    expect(register).toHaveBeenCalledWith('/sw.js', { scope: '/' })
+    expect(register).toHaveBeenCalledWith('/sw.js', { scope: '/', updateViaCache: 'none' })
     register.mockClear()
     await registerInstallServiceWorker({ serviceWorker: { register } } as unknown as Navigator, false)
     expect(register).not.toHaveBeenCalled()

@@ -135,8 +135,8 @@ export function parseAflCalendar(ics: string): LiveCalendarEvent[] {
     events.push({
       id,
       title,
-      startAt,
-      endAt,
+      startAt: /^from problem to product to market:/i.test(title) ? '2026-11-02T18:00:00.000Z' : startAt,
+      endAt: /^from problem to product to market:/i.test(title) ? '2026-11-02T19:00:00.000Z' : endAt,
       meetUrl,
       cover: poster?.cover ?? (/onboarding/i.test(`${title} ${fields.get('SUMMARY') ?? ''}`)
         ? AFL_2026_CALENDAR.artwork

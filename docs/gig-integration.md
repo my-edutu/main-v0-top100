@@ -51,6 +51,38 @@ unresolved address returns a correction message instead of an invented price.
 This preview endpoint is separate from the legacy combined-order quote flow
 described below. Checking a price does not reserve or persist it for checkout.
 
+### Destination choices and automatic-pricing coverage
+
+`GET /api/member/award/delivery-options?countryCode=CA` returns country-specific
+regions from `country-region-data` (server-side only) and the current account’s
+automatic-pricing country codes. Region selection fills its ISO province code;
+changing country clears the previous destination. Nigerian states continue to use
+the existing `ng-geo-data` directory. These are location choices, not promises of
+carrier service.
+
+`GET /api/member/award/delivery-cities?countryCode=CA&region=Ontario&query=Tor`
+offers city names from Geoapify, restricted to the chosen country and checked
+against the selected region. Requests are debounced and cancelled when the search
+changes. Members can still type an unlisted city. No city coordinate is reused as
+a street address or shipment destination. The API key stays on the server.
+
+Both routes require member authentication and rate limits; the development demo
+uses its existing session guard. Real carrier/city lookups in the demo require
+`DEV_DASHBOARD_LIVE_DELIVERY_QUOTES=true`. Country availability is cached in memory
+for five minutes; failed lookups are reported as unknown rather than unsupported.
+
+Live account verification on 31 October 2026 returned seven active country rows.
+Nigeria, United Kingdom, United States, Canada and China had international pricing
+enabled. Ghana and India had it disabled; Benin was absent. This is account-specific
+automatic quote availability, not a claim that the carrier cannot arrange delivery
+to other countries. The UI shows unavailable destinations before submission and
+offers a link to request a manual quote. The price endpoint rechecks the account
+directory before requesting an international rate.
+
+References: [GIG country directory](https://gig-logistics.readme.io/reference/get_country-get),
+[Geoapify city autocomplete](https://apidocs.geoapify.com/docs/geocoding/address-autocomplete/),
+[country-region-data](https://github.com/country-regions/country-region-data).
+
 ### Outbound international estimate
 
 The checker uses the documented [country directory](https://gig-logistics.readme.io/reference/get_country-get)

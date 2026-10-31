@@ -12,10 +12,12 @@ export default function AppUpdateNotice() {
     if (!current) return
     let stopped = false
     let checking = false
-    const controller = new AbortController()
+    let controller: AbortController | undefined
     async function check() {
       if (checking || document.visibilityState !== 'visible') return
       checking = true
+      controller = new AbortController()
+      const timeout = setTimeout(() => controller?.abort(), 15_000)
       try {
         const response = await fetch('/api/app-version', { cache: 'no-store', signal: controller.signal })
         if (!response.ok) return
@@ -27,7 +29,7 @@ export default function AppUpdateNotice() {
           if (registration) void registration.update().catch(() => {})
         }
       } catch { /* Offline and transient failures shouldn't interrupt the app. */ }
-      finally { checking = false }
+      finally { clearTimeout(timeout); checking = false }
     }
     const markEdited = () => { edited.current = true }
     document.addEventListener('input', markEdited)
@@ -38,7 +40,7 @@ export default function AppUpdateNotice() {
     void check()
     return () => {
       stopped = true
-      controller.abort()
+      controller?.abort()
       window.clearInterval(interval)
       document.removeEventListener('input', markEdited)
       document.removeEventListener('change', markEdited)

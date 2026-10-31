@@ -1,5 +1,6 @@
 import type { DeliveryPreviewInput, DeliveryPreviewQuote } from '@/lib/awards/delivery-preview'
 import { env, envFlag, gigAuthedRequest, pickFirstNumber, pickValue } from './http'
+import { getGigQuoteCountries } from './gig-destinations'
 
 type Result = { ok: true; quote: DeliveryPreviewQuote } | { ok: false; status: number; code: string; message: string }
 const unavailable = (): Result => ({ ok: false, status: 502, code: 'carrier_error', message: 'International delivery pricing is temporarily unavailable. Please try again shortly or contact Top100.' })
@@ -23,21 +24,15 @@ export async function quoteGigInternationalDelivery(input: DeliveryPreviewInput)
   if (![weight, length, width, value, ...(height === undefined ? [] : [height])].every(value => Number.isFinite(value) && value > 0))
     return { ok: false, status: 503, code: 'configuration', message: 'International delivery pricing is being prepared. Contact Top100 for a delivery quote.' }
   try {
-    const directory = await gigAuthedRequest('country/get', { method: 'GET', retries: 1 })
-    if (!directory.ok || pickValue(directory.data, 'success') === false) return unavailable()
-    const matches = rows(directory.data).filter(country =>
-      String(country.CountryShortCode ?? country.CountryCode).toUpperCase() === input.countryCode &&
-      country.IsActive === true && country.IsDeleted !== true && country.IsInternationalShippingCountry === true,
-    )
-    const country = matches.length === 1 ? matches[0] : null
-    if (!country || !Number.isSafeInteger(Number(country.CountryId)) || Number(country.CountryId) <= 0 || typeof country.CountryName !== 'string')
-      return { ok: false, status: 422, code: 'destination_unavailable', message: 'Automatic delivery pricing is unavailable for this country. Contact Top100 for a delivery quote.' }
+    const country = (await getGigQuoteCountries()).find(country => country.code === input.countryCode)
+    if (!country)
+      return { ok: false, status: 422, code: 'destination_unavailable', message: `GIG automatic pricing is not enabled for ${input.country} on our account. Contact Top100 for a delivery quote.` }
     const dimensions = { Weight: weight, Length: length, Width: width, ...(height === undefined ? {} : { Height: height }) }
     const response = await gigAuthedRequest('intlShipment/price', {
       method: 'POST', retries: 1,
       body: {
-        DestinationCountryId: Number(country.CountryId),
-        ReceiverCountry: country.CountryName, ReceiverCountryCode: input.countryCode,
+        DestinationCountryId: country.id,
+        ReceiverCountry: country.name, ReceiverCountryCode: input.countryCode,
         ReceiverAddress: [input.addressLine1, input.addressLine2].filter(Boolean).join(', '),
         ReceiverCity: input.city, ReceiverPostalCode: input.postalCode,
         ...(input.provinceCode ? { ReceiverStateOrProvinceCode: input.provinceCode } : {}),

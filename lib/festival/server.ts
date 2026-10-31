@@ -28,9 +28,7 @@ async function view(
   memberId: string,
   interest: FestivalInterest | null,
 ): Promise<FestivalInterestView> {
-  // Also supply payment state before the initial pickup choice, without blocking attendance if verification fails.
-  if (interest && !interest.pickupRequested)
-    return { interest, payment: 'not_requested' }
+  // Award payment is relevant to both festival collection and later delivery.
   try {
     return {
       interest,

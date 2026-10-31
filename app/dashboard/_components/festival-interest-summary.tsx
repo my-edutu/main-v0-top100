@@ -34,11 +34,9 @@ export function FestivalInterestSummary({
   summaryRef?: Ref<HTMLElement>
 }) {
   const needsPayment =
-    interest.pickupRequested &&
-    (payment === 'required' || payment === 'pending')
+    payment === 'required' || payment === 'pending' || payment === 'not_requested'
   const canCheck =
-    interest.pickupRequested &&
-    (payment === 'unavailable' || payment === 'not_requested')
+    payment === 'unavailable'
   return (
     <section
       className="festival-summary"
@@ -83,12 +81,12 @@ export function FestivalInterestSummary({
           </div>
         )}
       </dl>
-      {interest.pickupRequested && payment === 'unavailable' && (
+      {payment === 'unavailable' && (
         <p className="festival-help">
           We couldn’t verify your award payment. Check again before paying.
         </p>
       )}
-      {interest.pickupRequested && payment === 'pending' && (
+      {payment === 'pending' && (
         <div className="festival-help">
           <p>Check your existing payment before making another payment.</p>
           <button
@@ -112,7 +110,7 @@ export function FestivalInterestSummary({
             <Link href={FESTIVAL_PAYMENT_PATH}>
               {payment === 'pending'
                 ? 'Review payment'
-                : 'Complete award payment'}
+                : interest.pickupRequested ? 'Complete award payment' : 'Get your award'}
             </Link>
           </Button>
         )}

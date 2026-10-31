@@ -6,6 +6,8 @@ import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { isDashboardNavActive, primaryDashboardNav, type DashboardColor } from '../_lib/navigation'
 import { top100DashboardTheme } from '@/lib/dashboard/theme'
+import { NavigationPending } from './navigation-pending'
+import { useMobileKeyboard } from './use-mobile-keyboard'
 
 const activeColorClasses: Record<DashboardColor, string> = {
   ember: 'bg-gradient-to-r from-orange-500 to-amber-500 text-white',
@@ -18,6 +20,8 @@ const activeColorClasses: Record<DashboardColor, string> = {
 
 export function DashboardBottomNav() {
   const pathname = usePathname()
+  const keyboardOpen = useMobileKeyboard()
+  if (keyboardOpen) return null
   if (pathname === '/dashboard/me/award' || pathname.startsWith('/dashboard/me/award/') || pathname === '/dashboard/me/profile' || pathname.startsWith('/dashboard/messages/')) return null
 
   return (
@@ -51,6 +55,7 @@ export function DashboardBottomNav() {
                 ) : null}
               </span>
               <span className="truncate">{item.label}</span>
+              <NavigationPending />
             </Link>
           )
         })}

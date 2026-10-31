@@ -4,10 +4,12 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { ArrowLeft, LoaderCircle, MapPin, Truck } from 'lucide-react'
 import Link from 'next/link'
 
-import { locationSuggestions, nigeriaStates } from '@/lib/awards/locations'
+import { nigeriaStates } from '@/lib/awards/locations'
 import type { DeliveryMode } from '@/lib/courier/types'
 import { deliveryCountry, type DeliveryPreviewQuote } from '@/lib/awards/delivery-preview'
 import { DeliveryCountry } from './delivery-country'
+import { DeliveryCityInput } from './delivery-city-input'
+import type { DeliveryLocationOptions } from '@/lib/awards/delivery-locations'
 import './delivery-cost.css'
 
 type ServiceCentre = { id: number; name: string; address: string }
@@ -39,9 +41,27 @@ export function DeliveryCostChecker({
   const [quote, setQuote] = useState<DeliveryPreviewQuote | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [locationData, setLocationData] = useState<{ countryCode: string; options: DeliveryLocationOptions } | null>(null)
+  const [locationError, setLocationError] = useState<{ countryCode: string; message: string } | null>(null)
   const busy = useRef(false)
   const quoteRef = useRef<HTMLDivElement>(null)
-  const domestic = deliveryCountry(country)?.code === 'NG'
+  const countryCode = deliveryCountry(country)?.code ?? 'NG'
+  const domestic = countryCode === 'NG'
+  const options = locationData?.countryCode === countryCode ? locationData.options : null
+  const locationMessage = locationError?.countryCode === countryCode ? locationError.message : ''
+  const locationsLoading = !options && !locationMessage
+  const regions = domestic ? nigeriaStates.map(item => ({ name: item.name, code: item.code })) : options?.regions ?? []
+  const selectedRegion = regions.find(region => region.name === state)
+  const quoteUnavailable = !domestic && !!options?.quoteCountries && !options.quoteCountries.includes(countryCode)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    fetch(`/api/member/award/delivery-options?${new URLSearchParams({ countryCode })}`, { signal: controller.signal, cache: 'no-store' })
+      .then(async response => { const body = await response.json(); if (!response.ok || !Array.isArray(body.regions)) throw new Error('Unavailable'); return body as DeliveryLocationOptions })
+      .then(data => { if (!controller.signal.aborted) { setLocationData({ countryCode, options: data }); setLocationError(null) } })
+      .catch(() => { if (!controller.signal.aborted) setLocationError({ countryCode, message: 'Location choices could not be loaded. You can enter your region and city manually.' }) })
+    return () => controller.abort()
+  }, [countryCode])
 
   useEffect(() => {
     if (!quote) return
@@ -84,6 +104,7 @@ export function DeliveryCostChecker({
 
   async function requestQuote(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (quoteUnavailable) return
     if (busy.current) return
     busy.current = true
     setLoading(true)
@@ -115,6 +136,7 @@ export function DeliveryCostChecker({
 
   const fieldClass = 'min-h-12 w-full min-w-0 rounded-xl border border-stone-300 bg-white px-3 text-base text-[#171412] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500'
   const selectedCentre = centres.find((centre) => String(centre.id) === serviceCentreId)
+  const actionClass = 'inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#ffdf45] px-5 text-sm font-medium text-[#171412] transition hover:bg-[#ffd62b] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto'
 
   return (
     <section className="delivery-cost-checker min-w-0 max-w-2xl space-y-6">
@@ -130,8 +152,8 @@ export function DeliveryCostChecker({
           <div className="min-w-0">
             <p className="text-xs font-medium uppercase tracking-[0.16em] text-orange-700">Award delivery</p>
             <h1 className="mt-2 text-2xl font-semibold tracking-tight text-[#171412] sm:text-3xl">Check delivery cost</h1>
-            <p className="mt-3 text-sm leading-6 text-[#625B52]">
-              Check the cost of sending your physical award to Nigeria or another country. Delivery is separate from your award fee.
+            <p className="delivery-cost-description">
+              Delivery within Nigeria or abroad, priced separately from your award fee.
             </p>
           </div>
         </div>
@@ -140,8 +162,13 @@ export function DeliveryCostChecker({
           <fieldset disabled={loading || centresLoading} className="min-w-0 space-y-5 disabled:opacity-70">
             <legend className="sr-only">Delivery destination and method</legend>
             <DeliveryCountry value={country} onChange={(value) => {
-              setCountry(value); setState(''); setProvinceCode(''); setCity(''); setDeliveryMode('home'); resetCentres()
+              setCountry(value); setLocationError(null); setState(''); setProvinceCode(''); setCity(''); setAddressLine1(''); setAddressLine2(''); setPostalCode(''); setDeliveryMode('home'); resetCentres()
             }} />
+            {options?.quoteCountries && <div className="delivery-coverage">
+              {quoteUnavailable && <p role="status">GIG automatic pricing is not enabled for {country} on our account. <a href={`mailto:nigeriatop100@gmail.com?subject=${encodeURIComponent(`Award delivery quote to ${country}`)}`}>Contact Top100 for a delivery quote.</a></p>}
+              <details><summary>Countries with automatic pricing</summary><p>{options.quoteCountries.map(code => deliveryCountry(code)?.name ?? code).join(', ')}. Rates depend on your exact destination.</p></details>
+            </div>}
+            {options && options.quoteCountries === null && <p className="text-xs leading-5 text-stone-600">Automatic-pricing availability has not been confirmed. You can still try a delivery quote.</p>}
             {domestic ? <fieldset className="min-w-0 space-y-3">
             <legend className="text-sm font-medium text-[#292521]">How would you receive your award?</legend>
             <div className="grid gap-2 sm:grid-cols-2">
@@ -177,23 +204,24 @@ export function DeliveryCostChecker({
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="min-w-0 space-y-2">
                 <label htmlFor="delivery-state" className="text-sm font-medium text-[#292521]">{domestic ? 'State' : 'State or region (optional)'}</label>
-                {domestic ?
-                <select id="delivery-state" autoComplete="address-level1" required value={state} onChange={(event) => { setState(event.target.value); setCity(''); resetCentres() }} className={fieldClass}>
-                  <option value="">Select your state</option>
-                  {nigeriaStates.map((item) => <option key={item.code} value={item.name}>{item.name}</option>)}
-                </select> : <input id="delivery-state" autoComplete="address-level1" maxLength={100} value={state} onChange={event => setState(event.target.value)} className={fieldClass} />}
+                {regions.length > 0 || locationsLoading ?
+                <select id="delivery-state" autoComplete="address-level1" required={domestic} disabled={!domestic && locationsLoading} value={state} onChange={(event) => { const region = regions.find(item => item.name === event.target.value); setState(event.target.value); setProvinceCode(domestic ? '' : region?.code ?? ''); setCity(''); resetCentres() }} className={fieldClass}>
+                  <option value="">{locationsLoading && !domestic ? 'Loading regions…' : domestic ? 'Select your state' : 'Select your state or region'}</option>
+                  {regions.map((item) => <option key={item.code || item.name} value={item.name}>{item.name}</option>)}
+                </select> : <input id="delivery-state" autoComplete="address-level1" maxLength={100} value={state} onChange={event => { setState(event.target.value); setProvinceCode(''); setCity(''); resetCentres() }} className={fieldClass} />}
+                {locationMessage && <p role="status" className="text-xs leading-5 text-stone-600">{locationMessage}</p>}
+                {!domestic && selectedRegion?.code && <p className="text-xs leading-5 text-stone-600">Province code: {selectedRegion.code}</p>}
               </div>
               <div className="min-w-0 space-y-2">
                 <label htmlFor="delivery-city" className="text-sm font-medium text-[#292521]">City or town</label>
-                <input id="delivery-city" autoComplete="address-level2" list="delivery-city-options" required minLength={2} maxLength={100} value={city} onChange={(event) => { setCity(event.target.value); resetCentres() }} className={fieldClass} />
-                <datalist id="delivery-city-options">{(domestic ? locationSuggestions(state) : []).map((name) => <option key={name} value={name} />)}</datalist>
+                <DeliveryCityInput key={`${countryCode}:${state}`} countryCode={countryCode} region={state} value={city} onChange={value => { setCity(value); setQuote(null); setError(''); resetCentres() }} className={fieldClass} />
               </div>
             </div>
 
-            {!domestic && <div className="space-y-2">
+            {!domestic && !locationsLoading && !selectedRegion?.code && (regions.length === 0 || !!state) && <div className="space-y-2">
               <label htmlFor="delivery-province-code" className="text-sm font-medium text-[#292521]">State / province code <span className="font-normal text-stone-500">(optional)</span></label>
               <input id="delivery-province-code" maxLength={10} value={provinceCode} onChange={event => setProvinceCode(event.target.value.toUpperCase())} aria-describedby="delivery-province-help" className={fieldClass} />
-              <p id="delivery-province-help" className="text-xs leading-5 text-stone-600">For example, ON for Ontario or CA for California.</p>
+              <p id="delivery-province-help" className="text-xs leading-5 text-stone-600">Use your address’s state or province code, if required. Choosing a listed region fills this automatically.</p>
             </div>}
 
             {deliveryMode === 'home' ? <div className="space-y-2">
@@ -219,10 +247,10 @@ export function DeliveryCostChecker({
 
             {error ? <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm leading-6 text-rose-800">{error}</p> : null}
 
-            <button type="submit" disabled={deliveryMode === 'service_centre' && !selectedCentre} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#ffdf45] px-5 text-sm font-medium text-[#171412] transition hover:bg-[#ffd62b] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto">
+            {quoteUnavailable ? <a className={`${actionClass} delivery-manual-quote`} href={`mailto:nigeriatop100@gmail.com?subject=${encodeURIComponent(`Award delivery quote to ${country}`)}`}>Request a delivery quote</a> : <button type="submit" disabled={deliveryMode === 'service_centre' && !selectedCentre} className={actionClass}>
               {loading ? <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" /> : <MapPin className="h-4 w-4" aria-hidden="true" />}
               {loading ? 'Checking delivery cost…' : 'Check delivery cost'}
-            </button>
+            </button>}
           </fieldset>
           <p className="mt-4 text-xs leading-5 text-stone-600">This check does not save your address, take payment or book delivery. Prices can change before delivery is arranged.</p>
         </form>

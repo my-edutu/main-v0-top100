@@ -6,12 +6,17 @@ import Link from 'next/link'
 import Image from '@/components/safe-image'
 import { CheckCircle2, LockKeyhole, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
+import { getCountries, getCountryCallingCode, parsePhoneNumberFromString, type CountryCode } from 'libphonenumber-js/min'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { RouteSection } from '../_components/route-section'
 import { FestivalInterestSummary } from '../_components/festival-interest-summary'
+import { FestivalPaymentDialog } from '../_components/festival-payment-dialog'
+import { flagFromCountryCode } from '@/lib/avatars'
 import { useDashboardMember } from '../_providers/dashboard-member'
 import { reconcileAwardPayment } from '@/lib/awards/payment'
+import { internationalDeliveryPhone } from '@/lib/awards/phone'
 import { festivalRequest } from '@/lib/festival/client'
 import { canAttendFestival, FESTIVAL_IMAGE, FESTIVAL_PAYMENT_PATH } from '@/lib/festival/config'
 import {
@@ -23,11 +28,13 @@ import {
 import '../_components/festival.css'
 
 const endpoint = '/api/member/festival-interest'
+const countryNames = new Intl.DisplayNames(['en'], { type: 'region' })
+const phoneCountries = getCountries().sort((a, b) => (countryNames.of(a) ?? a).localeCompare(countryNames.of(b) ?? b))
 type FormField = 'fullName' | 'phone' | 'pickupRequested'
 const paymentHelp: Record<FestivalPaymentState, string> = {
   confirmed: 'Award payment confirmed.',
   required:
-    'Your physical award needs to be paid for before pickup. Continue to payment after saving.',
+    'Complete your physical award payment to arrange collection or delivery.',
   pending:
     'Your award payment is being verified. Review its status before paying again.',
   unavailable:
@@ -54,7 +61,11 @@ export default function FestivalInterestPage() {
   const [editing, setEditing] = useState(false)
   const [saved, setSaved] = useState(false)
   const [retry, setRetry] = useState(0)
+  const [phoneCountry, setPhoneCountry] = useState<CountryCode>('NG')
+  const [paymentCheckOpen, setPaymentCheckOpen] = useState(false)
+  const [paymentCheckError, setPaymentCheckError] = useState('')
   const busy = useRef(false)
+  const paymentCheckTrigger = useRef<HTMLElement | null>(null)
   const summaryRef = useRef<HTMLElement>(null)
   const nameRef = useRef<HTMLInputElement>(null)
   const phoneRef = useRef<HTMLInputElement>(null)
@@ -71,7 +82,9 @@ export default function FestivalInterestPage() {
         if (controller.signal.aborted) return
         setView(data)
         setFullName(data.interest?.fullName ?? member.name)
-        setPhone(data.interest?.phone ?? '')
+        const storedPhone = parsePhoneNumberFromString(data.interest?.phone ?? '')
+        setPhoneCountry(storedPhone?.country ?? 'NG')
+        setPhone(storedPhone?.country ? String(storedPhone.nationalNumber) : data.interest?.phone ?? '')
         setPickup(data.interest?.pickupRequested ?? null)
         setEditing(false)
       })
@@ -111,15 +124,15 @@ export default function FestivalInterestPage() {
     setFieldErrors({})
     const parsed = festivalInterestSchema.safeParse({
       fullName,
-      phone,
+      phone: internationalDeliveryPhone(phone, phoneCountry),
       pickupRequested: pickup,
     })
     if (!parsed.success) {
       const errors: Partial<Record<FormField, string>> = {}
       for (const issue of parsed.error.issues) {
         const field = issue.path[0]
-        if (field === 'fullName' || field === 'phone')
-          errors[field] ??= issue.message
+        if (field === 'fullName') errors.fullName ??= issue.message
+        if (field === 'phone') errors.phone ??= 'Choose your phone country and enter a valid phone number.'
         if (field === 'pickupRequested')
           errors.pickupRequested = 'Choose Yes or No.'
       }
@@ -145,8 +158,8 @@ export default function FestivalInterestPage() {
       setSaved(true)
       toast.success('Your festival interest is saved.')
       if (
-        parsed.data.pickupRequested &&
-        (data.payment === 'required' || data.payment === 'pending')
+        !parsed.data.pickupRequested &&
+        (data.payment === 'required' || data.payment === 'pending' || data.payment === 'not_requested')
       )
         router.push(FESTIVAL_PAYMENT_PATH)
     } catch (cause) {
@@ -163,14 +176,18 @@ export default function FestivalInterestPage() {
 
   async function checkPayment() {
     if (busy.current) return
+    if (!paymentCheckOpen && document.activeElement instanceof HTMLElement)
+      paymentCheckTrigger.current = document.activeElement
     busy.current = true
+    setPaymentCheckOpen(true)
     setChecking(true)
+    setPaymentCheckError('')
     setError('')
     try {
       const payment = pickupPaymentState(await reconcileAwardPayment())
       setView((current) => (current ? { ...current, payment } : current))
     } catch (cause) {
-      setError(
+      setPaymentCheckError(
         cause instanceof Error
           ? cause.message
           : 'Payment could not be verified. Please try again.',
@@ -184,7 +201,9 @@ export default function FestivalInterestPage() {
   function restoreDetails() {
     if (!view?.interest) return
     setFullName(view.interest.fullName)
-    setPhone(view.interest.phone)
+    const storedPhone = parsePhoneNumberFromString(view.interest.phone)
+    setPhoneCountry(storedPhone?.country ?? 'NG')
+    setPhone(storedPhone?.country ? String(storedPhone.nationalNumber) : view.interest.phone)
     setPickup(view.interest.pickupRequested)
     setSaved(false)
     setError('')
@@ -196,6 +215,8 @@ export default function FestivalInterestPage() {
   }
 
   const payment = view?.payment ?? 'unavailable'
+  const continueToPayment = pickup !== true &&
+    (payment === 'required' || payment === 'pending' || payment === 'not_requested')
   if (!eligible) return (
     <RouteSection title="Festival attendance" className="festival-page">
       <div className="festival-access">
@@ -263,8 +284,8 @@ export default function FestivalInterestPage() {
           aria-label="Festival attendance interest"
         >
           <div className="festival-form__heading">
-            <h2>{view?.interest ? 'Update your details' : 'Join the interest list'}</h2>
-            <p className="festival-help">We’ll use these details to contact you about attendance.</p>
+            <h2>{view?.interest ? 'Update your details' : 'Celebrate your impact'}</h2>
+            <p className="festival-help">Your work deserves to be celebrated. Get your physical award and join fellow leaders at the festival.</p>
           </div>
           <div className="festival-field">
             <label htmlFor="festival-name">Full name</label>
@@ -294,31 +315,59 @@ export default function FestivalInterestPage() {
           </div>
           <div className="festival-field">
             <label htmlFor="festival-phone">Phone number</label>
-            <Input
-              ref={phoneRef}
-              id="festival-phone"
-              name="phone"
-              type="tel"
-              autoComplete="tel"
-              inputMode="tel"
-              placeholder="+234 803 123 4567"
-              required
-              maxLength={40}
-              value={phone}
-              aria-invalid={Boolean(fieldErrors.phone)}
-              aria-describedby={
-                fieldErrors.phone
-                  ? 'festival-phone-help festival-phone-error'
-                  : 'festival-phone-help'
-              }
-              disabled={saving || checking}
-              onChange={(event) => {
-                setPhone(event.target.value)
-                clearFieldError('phone')
-              }}
-            />
+            <div className="festival-phone">
+              <Select
+                value={phoneCountry}
+                disabled={saving || checking}
+                onValueChange={(country) => {
+                  const pasted = phone.trim().startsWith('+') ? parsePhoneNumberFromString(phone) : undefined
+                  if (pasted) setPhone(String(pasted.nationalNumber))
+                  setPhoneCountry(country as CountryCode)
+                  clearFieldError('phone')
+                }}
+              >
+                <SelectTrigger className="festival-phone-country" aria-label={`Phone country / code: ${countryNames.of(phoneCountry)} (+${getCountryCallingCode(phoneCountry)})`} aria-describedby="festival-phone-help">
+                  <SelectValue><span aria-hidden="true">{flagFromCountryCode(phoneCountry)}</span></SelectValue>
+                </SelectTrigger>
+                <SelectContent className="festival-phone-countries">
+                  {phoneCountries.map(country => (
+                    <SelectItem key={country} value={country} textValue={`${countryNames.of(country)} +${getCountryCallingCode(country)}`}>
+                      <span aria-hidden="true">{flagFromCountryCode(country)} </span>{countryNames.of(country)} (+{getCountryCallingCode(country)})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Input
+                ref={phoneRef}
+                id="festival-phone"
+                name="phone"
+                type="tel"
+                autoComplete="tel-national"
+                inputMode="tel"
+                placeholder="Phone number"
+                required
+                maxLength={40}
+                value={phone}
+                aria-invalid={Boolean(fieldErrors.phone)}
+                aria-describedby={
+                  fieldErrors.phone
+                    ? 'festival-phone-help festival-phone-error'
+                    : 'festival-phone-help'
+                }
+                disabled={saving || checking}
+                onChange={(event) => {
+                  const value = event.target.value
+                  const pasted = value.trim().startsWith('+') ? parsePhoneNumberFromString(value.trim()) : undefined
+                  if (pasted?.country) {
+                    setPhoneCountry(pasted.country)
+                    setPhone(String(pasted.nationalNumber))
+                  } else setPhone(value)
+                  clearFieldError('phone')
+                }}
+              />
+            </div>
             <p id="festival-phone-help" className="festival-help">
-              Include your country code.
+              We’ll add +{getCountryCallingCode(phoneCountry)} for {countryNames.of(phoneCountry)}.
             </p>
             {fieldErrors.phone && (
               <p id="festival-phone-error" className="festival-error">
@@ -380,7 +429,7 @@ export default function FestivalInterestPage() {
               </p>
             )}
           </fieldset>
-          {pickup && (
+          {(pickup || payment !== 'confirmed') && (
             <div className="festival-payment-status" role="status">
               <p
                 className={
@@ -390,7 +439,9 @@ export default function FestivalInterestPage() {
                 {payment === 'confirmed' && (
                   <CheckCircle2 size={16} aria-hidden="true" />
                 )}
-                {paymentHelp[payment]}
+                {pickup === true && payment === 'required'
+                  ? 'Register your interest now. Your award payment must be confirmed before collection.'
+                  : paymentHelp[payment]}
               </p>
               {payment !== 'confirmed' && (
                 <button
@@ -419,8 +470,8 @@ export default function FestivalInterestPage() {
             >
               {saving
                 ? 'Saving…'
-                : pickup && (payment === 'required' || payment === 'pending')
-                  ? 'Save & continue to payment'
+                : continueToPayment
+                  ? payment === 'pending' ? 'Review award payment' : 'Get your award'
                   : view?.interest
                     ? 'Save changes'
                     : 'Register interest'}
@@ -441,10 +492,13 @@ export default function FestivalInterestPage() {
             )}
           </div>
           <p className="festival-help">
-            The team will confirm attendance and pickup arrangements.
+            {continueToPayment
+              ? 'Your interest will be saved, then you’ll continue to award payment. The team will confirm attendance and pickup arrangements.'
+              : 'The team will confirm attendance and pickup arrangements.'}
           </p>
         </form>
       )}
+      <FestivalPaymentDialog open={paymentCheckOpen} onOpenChange={setPaymentCheckOpen} payment={payment} checking={checking} error={paymentCheckError} onRetry={() => void checkPayment()} returnFocusRef={paymentCheckTrigger} fallbackFocusRef={view?.interest && !editing ? summaryRef : nameRef} />
     </section>
   )
 }

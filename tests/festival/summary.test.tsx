@@ -48,10 +48,17 @@ describe('registered festival interest', () => {
     expect(html).not.toContain('href="/dashboard/me/award/payment"')
     expect(html).not.toContain('Payment confirmed')
   })
-  it('leaves payment out when award pickup was not requested', () => {
+  it('offers the award payment destination even when festival pickup was not requested', () => {
     const html = render('not_requested', false)
     expect(html).toContain('Not requested')
     expect(html).not.toContain('Award payment')
-    expect(html).not.toContain('Check payment status')
+    expect(html).toContain('Get your award')
+    expect(html).toContain('href="/dashboard/me/award/payment"')
+  })
+  it('offers unpaid members their award regardless of collection preference', () => {
+    const html = render('required', false)
+    expect(html).toContain('Get your award')
+    expect(html).toContain('href="/dashboard/me/award/payment"')
+    expect(render('confirmed', false)).not.toContain('Get your award')
   })
 })

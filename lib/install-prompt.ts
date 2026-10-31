@@ -18,7 +18,7 @@ export async function registerInstallServiceWorker(
   secureContext: boolean,
 ) {
   if (!secureContext || !('serviceWorker' in browser)) return
-  return browser.serviceWorker.register('/sw.js', { scope: '/' })
+  return browser.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' })
 }
 
 

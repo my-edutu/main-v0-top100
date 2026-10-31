@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { LoaderCircle, RotateCcw } from 'lucide-react'
+import { RotateCcw } from 'lucide-react'
 import { usePathname, useRouter } from 'next/navigation'
 
 import { Button } from '@/components/ui/button'
@@ -100,9 +100,7 @@ export function DashboardMemberProvider({ children }: { children: ReactNode }) {
 
   if (loading && !member) {
     return (
-      <div className="grid min-h-[100dvh] place-items-center bg-white" role="status" aria-label="Loading your member dashboard">
-        <LoaderCircle className="h-8 w-8 animate-spin text-orange-600 motion-reduce:animate-none" aria-hidden="true" />
-      </div>
+      <DashboardLoading fullScreen label="Loading your member dashboard" />
     )
   }
 
@@ -156,15 +154,15 @@ export function DashboardMemberProvider({ children }: { children: ReactNode }) {
   return (
     <DashboardMemberContext.Provider value={{ member, notifications, loadedAt, replaceNotifications: setNotifications, refreshMember, replaceMember, dashboardVisitReady: recordedVisitMemberId === member.id }}>
       {isLocalPreview && <div className={`award-preview-banner px-4 py-2 text-center text-xs text-orange-900 ${awardDark ? 'award-preview-dark' : 'bg-orange-50'}`}>Local preview · sample account and activity {member.onboardingCompletedAt && <button type="button" className="ml-2 underline disabled:opacity-60" onClick={() => void replayWelcome()} disabled={replayingWelcome}>{replayingWelcome ? 'Reopening welcome…' : 'Replay welcome'}</button>}{welcomeReplayError && <span role="alert" className="ml-2">{welcomeReplayError}</span>}</div>}
-      {showDashboardOnboarding ? (
+      {!member.onboardingCompletedAt ? (
+        <Onboarding member={member} onComplete={completeOnboarding} />
+      ) : showDashboardOnboarding ? (
         <Top100MomentGate
           member={member}
           welcomeFlowEnabled={member.status === 'approved' && Boolean(member.onboardingCompletedAt)}
         >
-          {!member.onboardingCompletedAt ? <Onboarding member={member} onComplete={completeOnboarding} /> : children}
+          {children}
         </Top100MomentGate>
-      ) : !member.onboardingCompletedAt ? (
-        <Onboarding member={member} onComplete={completeOnboarding} />
       ) : children}
     </DashboardMemberContext.Provider>
   )

@@ -58,3 +58,17 @@ it('returns the deployed version with CDN and browser caching disabled', async (
   expect(response.headers.get('Cache-Control')).toContain('no-store')
   expect(response.headers.get('Cloudflare-CDN-Cache-Control')).toBe('no-store')
 })
+it('recovers from a stalled check and retries when back online', async () => {
+  const { fetcher, cleanup } = await setup('old')
+  await vi.advanceTimersByTimeAsync(0)
+  fetcher.mockImplementationOnce((_url, options) => new Promise((_resolve, reject) => {
+    options.signal.addEventListener('abort', () => reject(new Error('aborted')))
+  }))
+  window.dispatchEvent(new Event('online'))
+  await vi.advanceTimersByTimeAsync(15_000)
+  window.dispatchEvent(new Event('online'))
+  await vi.advanceTimersByTimeAsync(0)
+  expect(fetcher).toHaveBeenCalledTimes(3)
+  cleanup?.()
+  expect(vi.getTimerCount()).toBe(0)
+})

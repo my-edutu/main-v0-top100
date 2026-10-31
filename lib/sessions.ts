@@ -143,6 +143,24 @@ const availableSessions: Session[] = [
     ],
   },
   {
+    slug: '2026-from-knowledge-to-impact',
+    year: 2026,
+    title: 'From Knowledge to Impact: How to Think Clearly, Communicate Ideas and Create Remarkable Impact',
+    presenter: 'Elisha Joseph',
+    coverImage: '/images/session-from-knowledge-to-impact.jpg',
+    summary: additionalSessionDescriptions.find(({ topic }) => topic.test('From Knowledge to Impact:'))?.summary,
+    resources: [],
+  },
+  {
+    slug: '2026-collaboration-advantage',
+    year: 2026,
+    title: 'The Collaboration Advantage: How to Build Strategic Relationships, Partnerships and Cross-Border Collaborations That Create Opportunities',
+    presenter: 'Samuel Ogunsola, PhD',
+    coverImage: '/images/session-collaboration-advantage.jpg',
+    summary: additionalSessionDescriptions.find(({ topic }) => topic.test('The Collaboration Advantage:'))?.summary,
+    resources: [],
+  },
+  {
     slug: '2026-tech-driven-society',
     year: 2026,
     title: 'Succeeding in a tech driven society; How Young Leaders Can position themselves in Making Better Decisions and Building Competitive Advantage',
@@ -200,7 +218,8 @@ function toArchiveSession(event: LiveCalendarEvent): Session {
         ? availableSessions[2]
         : isBloomSession
           ? availableSessions[3]
-          : isTechSession ? availableSessions[4] : undefined
+          : isTechSession ? availableSessions.find(session => session.slug === '2026-tech-driven-society')
+            : availableSessions.find(session => session.title === event.title)
 
   return {
     ...(available ?? {
@@ -213,7 +232,7 @@ function toArchiveSession(event: LiveCalendarEvent): Session {
       ? 'Africa Future Leaders 2026: Cohort Onboarding'
       : isBloomSession
         ? availableSessions[3].title
-        : isTechSession ? availableSessions[4].title : event.title,
+        : isTechSession ? availableSessions.find(session => session.slug === '2026-tech-driven-society')!.title : event.title,
     summary: available?.summary ?? additionalSessionDescriptions.find(({ topic }) => topic.test(event.title))?.summary,
     date: formatProgrammeDate(event.startAt),
     coverImage: isKnowledgeImpactSession
@@ -225,7 +244,7 @@ function toArchiveSession(event: LiveCalendarEvent): Session {
         ? (umunna?.name ?? 'Odinakachi Umunna')
         : isIdeaToScale
           ? 'Nwosu Paul Light'
-          : isBloomSession ? 'Cynthia Ohaeri' : isTechSession ? 'Emmanuel Chukwu' : undefined,
+          : isBloomSession ? 'Cynthia Ohaeri' : isTechSession ? 'Emmanuel Chukwu' : available?.presenter,
     resources: [...(available?.resources ?? []), ...(event.attachments ?? []).map(getAttachmentResource).filter((resource): resource is SessionResource => Boolean(resource))]
       .filter((resource, index, all) => all.findIndex((candidate) => candidate.url === resource.url) === index),
     locked: !available || isSessionLocked(available),

@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { isDashboardNavActive, primaryDashboardNav, type DashboardColor } from '../_lib/navigation'
 import { top100DashboardTheme } from '@/lib/dashboard/theme'
+import { NavigationPending } from './navigation-pending'
 
 const activeColorClasses: Record<DashboardColor, string> = {
   ember: 'bg-gradient-to-r from-orange-500 to-amber-500 text-white',
@@ -48,6 +49,7 @@ export function DashboardDesktopNav() {
                 ) : null}
               </span>
               <span className="hidden truncate text-sm font-semibold xl:block">{item.label}</span>
+              <NavigationPending />
             </Link>
           )
         })}

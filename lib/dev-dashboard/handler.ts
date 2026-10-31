@@ -7,6 +7,8 @@ import { IMPACT_COUNTRIES, type ImpactView } from '@/lib/project100/impact/types
 import { deliveryPreviewSchema } from '@/lib/awards/delivery-preview'
 import { getLiveDeliveryPreview, getLiveDeliveryCentres } from '@/lib/awards/delivery-preview-server'
 import { checkRateLimit, createRateLimitResponse, RATE_LIMITS } from '@/lib/rate-limit'
+import { deliveryLocationQuery } from '@/lib/awards/delivery-locations'
+import { getDeliveryLocationOptions, suggestDeliveryCities } from '@/lib/awards/delivery-locations-server'
 
 import { hasValidDemoSession } from '@/lib/dev-dashboard/auth'
 import {
@@ -525,6 +527,20 @@ async function routeContributions(request: NextRequest, path: string[], store: D
 }
 
 async function routeAward(request: NextRequest, path: string[], store: DemoDashboardStore) {
+  if (request.method === 'GET' && path.length === 2 && ['delivery-options', 'delivery-cities'].includes(path[1])) {
+    const params = new URL(request.url).searchParams
+    const parsed = deliveryLocationQuery.safeParse(Object.fromEntries(params))
+    if (!parsed.success || (path[1] === 'delivery-cities' && !parsed.data.query)) return json({ message: 'Choose a country and enter a valid location search.' }, 400)
+    const rate = await checkRateLimit({ ...RATE_LIMITS.QUERY, identifier: 'dev-dashboard:delivery-locations' })
+    if (!rate.success) return createRateLimitResponse(rate, 'Too many requests. Please wait a moment.')
+    const live = process.env.DEV_DASHBOARD_LIVE_DELIVERY_QUOTES === 'true'
+    if (path[1] === 'delivery-options') return json(await getDeliveryLocationOptions(parsed.data.countryCode, live))
+    try {
+      return json({ suggestions: live ? await suggestDeliveryCities({ ...parsed.data, query: parsed.data.query! }) : [] })
+    } catch {
+      return json({ message: 'City suggestions are unavailable. Enter your city manually.' }, 503)
+    }
+  }
   if (path[1] === 'delivery-quote' && path.length === 2 && request.method === 'POST') {
     const parsed = deliveryPreviewSchema.safeParse(await readBody(request))
     if (!parsed.success) return json({ message: parsed.error.issues[0]?.message ?? 'Check your delivery details.' }, 400)
@@ -854,7 +870,7 @@ export async function handleDemoMemberRequest(
       } else if (request.method !== 'GET') break
       response = json({
         interest: store.festivalInterest ?? null,
-        payment: store.festivalInterest && !store.festivalInterest.pickupRequested ? 'not_requested' : pickupPaymentState(store.awardPayment),
+        payment: pickupPaymentState(store.awardPayment),
       })
       break
     }

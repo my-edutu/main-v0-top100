@@ -150,14 +150,18 @@ describe('member festival endpoint', () => {
       payment: 'unavailable',
     })
   })
-  it('does not require a payment lookup for attendance without pickup', async () => {
+  it.each([
+    { status: 'unpaid', confirmedPayment: null, expected: 'required' },
+    { status: 'paid', confirmedPayment: { currency: 'NGN', amountMinor: 2500000, paidAt: 'now' }, expected: 'confirmed' },
+  ])('returns current award payment even without festival pickup: $expected', async ({ status, confirmedPayment, expected }) => {
+    mocks.payment.mockResolvedValue({ status, confirmedPayment })
     chain.single.mockResolvedValue({
       data: { ...row, pickup_requested: false },
       error: null,
     })
     const response = await POST(request({ ...input, pickupRequested: false }))
-    expect(await response.json()).toMatchObject({ payment: 'not_requested' })
-    expect(mocks.payment).not.toHaveBeenCalled()
+    expect(await response.json()).toMatchObject({ payment: expected })
+    expect(mocks.payment).toHaveBeenCalledWith('member-1')
   })
   it('rejects forged payment flags before saving', async () => {
     expect((await POST(request({ ...input, paid: true }))).status).toBe(400)
