@@ -25,7 +25,6 @@ import type { LiveCalendarEvent } from '@/lib/events/live-calendar'
 import { AFL_2026_CALENDAR } from '@/lib/events/afl-2026-calendar'
 import { DashboardLoading } from './dashboard-loading'
 import { DashboardCard } from './dashboard-card'
-import { meNav } from '../_lib/navigation'
 import { selectUpcomingInvitations } from '../_lib/home-priority'
 import { useDashboardMember } from '../_providers/dashboard-member'
 import { dashboardCelebrationStorageKey } from '@/lib/dashboard/celebration'
@@ -49,7 +48,6 @@ const shortcutDescriptions: Record<string, string> = {
   Members: 'Meet fellow awardees',
   Profile: 'Keep your BIO current',
   'Past sessions': 'Revisit recordings, workshops, and previous courses',
-  'Portfolio cover': 'Create your magazine profile',
   Posts: 'Write in your own words',
   'Get featured': 'Share your work with the team',
   'Apply for magazine': 'Share the story behind your leadership',
@@ -126,7 +124,7 @@ export function DashboardHome() {
     }
   }, [])
 
-  const shortcuts = [meNav[2],
+  const shortcuts = [
     { label:'Delivery cost', href:'/dashboard/me/delivery', icon:Truck, color:'charcoal' as const },
     { label:'Past sessions', href:'/dashboard/discover/event-videos', icon:Video, color:'charcoal' as const },
     { label:'Apply for magazine', href:'/magazine/feature', icon:Mail, color:'burgundy' as const },

@@ -37,6 +37,17 @@ and can change before delivery is arranged. The local demo has separate,
 explicitly labelled sample quotes and a sample centre, with no carrier calls,
 saved addresses, orders, payments or bookings.
 
+For local testing against the configured GIG account, set
+`DEV_DASHBOARD_LIVE_DELIVERY_QUOTES=true` in `.env.local`. The demo delivery
+quote and centre routes then use the same live pricing service as the member
+flow, with rate limits, real centre ids and no sample-price fallback. Other
+demo features remain simulated. This requires a valid local development demo
+session; production always rejects that session even if the flag is set.
+Restart or let Next reload the environment, then request a fresh quote. A price
+already displayed in the browser retains its sample label until replaced by a
+fresh result. Live quotes require a consistent street, city and state; an
+unresolved address returns a correction message instead of an invented price.
+
 This preview endpoint is separate from the legacy combined-order quote flow
 described below. Checking a price does not reserve or persist it for checkout.
 

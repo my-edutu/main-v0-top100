@@ -5,6 +5,8 @@ import { canAttendFestival } from '@/lib/festival/config'
 import { nigeriaStates } from '@/lib/awards/locations'
 import { IMPACT_COUNTRIES, type ImpactView } from '@/lib/project100/impact/types'
 import { deliveryPreviewSchema } from '@/lib/awards/delivery-preview'
+import { getLiveDeliveryPreview, getLiveDeliveryCentres } from '@/lib/awards/delivery-preview-server'
+import { checkRateLimit, createRateLimitResponse, RATE_LIMITS } from '@/lib/rate-limit'
 
 import { hasValidDemoSession } from '@/lib/dev-dashboard/auth'
 import {
@@ -527,6 +529,12 @@ async function routeAward(request: NextRequest, path: string[], store: DemoDashb
     const parsed = deliveryPreviewSchema.safeParse(await readBody(request))
     if (!parsed.success) return json({ message: parsed.error.issues[0]?.message ?? 'Check your delivery details.' }, 400)
     const details = parsed.data
+    if (process.env.DEV_DASHBOARD_LIVE_DELIVERY_QUOTES === 'true') {
+      const rate = await checkRateLimit({ ...RATE_LIMITS.QUERY, identifier: 'dev-dashboard:live-delivery' })
+      if (!rate.success) return createRateLimitResponse(rate, 'Too many quote requests. Please wait a moment.')
+      const result = await getLiveDeliveryPreview(details)
+      return result.ok ? json({ quote: result.quote }) : json({ message: result.message, code: result.code }, result.status)
+    }
     if (details.deliveryMode === 'service_centre' && details.serviceCentreId !== 9001)
       return json({ message: 'Choose the sample GIG centre for this preview.' }, 400)
     // Deterministic, explicitly labelled demo data. No provider or order mutation.
@@ -542,6 +550,15 @@ async function routeAward(request: NextRequest, path: string[], store: DemoDashb
     const state = nigeriaStates.find(state => state.name.toLowerCase() === params.get('state')?.toLowerCase())
     const city = params.get('city')?.trim() ?? ''
     if (!state || city.length < 2 || city.length > 100) return json({ message: 'Choose a Nigerian state and enter a city.' }, 400)
+    if (process.env.DEV_DASHBOARD_LIVE_DELIVERY_QUOTES === 'true') {
+      const rate = await checkRateLimit({ ...RATE_LIMITS.QUERY, identifier: 'dev-dashboard:live-delivery' })
+      if (!rate.success) return createRateLimitResponse(rate, 'Too many requests. Please wait a moment.')
+      try {
+        return json({ serviceCentres: await getLiveDeliveryCentres(state.name, city) })
+      } catch {
+        return json({ message: 'GIG service centres are temporarily unavailable. Please try again or use home delivery.' }, 503)
+      }
+    }
     return json({ serviceCentres: [{ id: 9001, name: 'Sample GIG collection centre', address: `${city}, ${state.name} · Local preview only` }] })
   }
   const paymentRead = path[1] === 'payment' && path.length === 2 && request.method === 'GET'
