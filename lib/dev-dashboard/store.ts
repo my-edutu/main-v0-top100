@@ -1,4 +1,5 @@
 import type { AwardOrder } from '@/lib/awards'
+import type { FestivalInterest } from '@/lib/festival/interest'
 import type {
   AwardPaymentCurrency,
   AwardPaymentView,
@@ -64,6 +65,7 @@ export type DemoInboxMessage = {
 }
 
 export type DemoDashboardStore = {
+  festivalInterest?: FestivalInterest | null
   profile: MemberProfile
   notifications: MemberNotification[]
   featureSubmissions: MemberFeatureSubmission[]

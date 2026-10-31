@@ -117,7 +117,10 @@ export function buildCheckoutRequest(input: CreateCheckoutInput): BachsCheckoutR
   if (input.customer.phoneNumber?.trim()) customer.phone_number = input.customer.phoneNumber.trim()
 
   return {
-    pricing: {
+    pricing: purpose === 'afl_project100_support_v1' ? {
+      currency: input.currency,
+      amount: amountString(input.supportAmountMinor ?? 0),
+    } : {
       currency: 'USD',
       amount: amountString(prices.USD),
       currency_options: { NGN: amountString(prices.NGN) },

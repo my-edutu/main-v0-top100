@@ -1,5 +1,6 @@
 import type { NextRequest } from 'next/server'
 import { randomInt } from 'node:crypto'
+import { festivalInterestSchema, pickupPaymentState } from '@/lib/festival/interest'
 
 import { hasValidDemoSession } from '@/lib/dev-dashboard/auth'
 import {
@@ -518,8 +519,10 @@ async function routeContributions(request: NextRequest, path: string[], store: D
 }
 
 async function routeAward(request: NextRequest, path: string[], store: DemoDashboardStore) {
-  if (path[1] === 'payment' && path.length === 2 && request.method === 'GET') {
-    const callback = requestUrl(request).searchParams.get('payment') === 'done'
+  const paymentRead = path[1] === 'payment' && path.length === 2 && request.method === 'GET'
+  const paymentReconcile = path[1] === 'payment' && path[2] === 'reconcile' && path.length === 3 && request.method === 'POST'
+  if (paymentRead || paymentReconcile) {
+    const callback = paymentRead && requestUrl(request).searchParams.get('payment') === 'done'
     const payment = store.awardPayment
 
     // The local checkout is intentionally deterministic: only the explicit
@@ -776,6 +779,18 @@ export async function handleDemoMemberRequest(
 
   let response: Response | null = null
   switch (path[0]) {
+    case 'festival-interest': {
+      if (request.method === 'POST') {
+        const parsed = festivalInterestSchema.safeParse(await readBody(request))
+        if (!parsed.success) return json({ message: parsed.error.issues[0]?.message ?? 'Check your details.' }, 400)
+        store.festivalInterest = { ...parsed.data, updatedAt: new Date().toISOString() }
+      } else if (request.method !== 'GET') break
+      response = json({
+        interest: store.festivalInterest ?? null,
+        payment: store.festivalInterest && !store.festivalInterest.pickupRequested ? 'not_requested' : pickupPaymentState(store.awardPayment),
+      })
+      break
+    }
     case 'onboarding-journey':
       response = await routeAwardeeJourney(request, store)
       break

@@ -1,0 +1,324 @@
+.festival-card {
+  position: relative;
+  display: block;
+  grid-column: 1 / -1;
+  isolation: isolate;
+  min-height: 248px;
+  overflow: hidden;
+  border-radius: 20px;
+  background: #23180e;
+  color: #fff;
+}
+.festival-card > img {
+  object-fit: cover;
+  object-position: 50% 46%;
+}
+.festival-card:focus-visible {
+  outline: 2px solid #9a3412;
+  outline-offset: 4px;
+}
+.festival-card__shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 15%,
+    rgba(0, 0, 0, 0.1) 35%,
+    rgba(0, 0, 0, 0.88) 100%
+  );
+}
+.festival-card__content {
+  position: absolute;
+  inset: auto 20px 18px;
+  display: grid;
+  gap: 6px;
+}
+.festival-card__title {
+  max-width: 460px;
+  color: #fff;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+.festival-card__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 400;
+}
+.festival-page {
+  max-width: 620px;
+  margin-inline: auto;
+}
+.awardee-dashboard .festival-page .hub-route-heading h1 {
+  font-size: 28px;
+  line-height: 1.2;
+  font-weight: 600;
+}
+.festival-page .hub-route-heading p {
+  margin-top: 8px;
+  font-size: 14px;
+  font-weight: 400;
+  color: #626262;
+}
+.festival-form,
+.festival-summary {
+  min-width: 0;
+  display: grid;
+  gap: 24px;
+  padding: 24px;
+  border: 1px solid #e5e5e5;
+  border-radius: 16px;
+  background: #fff;
+}
+.festival-field {
+  display: grid;
+  gap: 8px;
+}
+.festival-field label,
+.festival-pickup legend {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.festival-field input {
+  min-height: 46px;
+  border: 1px solid #d4d4d4;
+  border-radius: 10px;
+  background: #fff;
+  color: #171717;
+  box-shadow: none;
+  font-size: 16px;
+  font-weight: 400;
+}
+.festival-help {
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.6;
+  color: #626262;
+}
+.festival-pickup {
+  min-width: 0;
+}
+.festival-pickup legend {
+  margin-bottom: 12px;
+}
+.festival-choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.festival-choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 12px;
+  border: 1px solid #d4d4d4;
+  border-radius: 10px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.festival-choice:has(input:checked) {
+  border-color: #a67712;
+  background: #fffbeb;
+}
+.festival-choice input {
+  width: 17px;
+  height: 17px;
+  accent-color: #8a5a00;
+  flex-shrink: 0;
+}
+.festival-payment-status {
+  border-top: 1px solid #e5e5e5;
+  padding-top: 16px;
+  color: #626262;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.festival-payment-status > p {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.festival-payment-status svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.festival-confirmed {
+  color: #23603e;
+}
+.festival-text-action {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding-block: 8px;
+  font-size: 13px;
+  color: #171717;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.festival-text-action:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.festival-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+.festival-page .festival-primary,
+.festival-page .festival-secondary,
+.festival-page .festival-cancel {
+  min-height: 46px;
+  height: auto;
+  border-radius: 10px;
+  box-shadow: none;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0;
+  white-space: normal;
+}
+.festival-page .festival-primary {
+  flex: 1;
+  background: #ffdf45;
+  color: #171717;
+}
+.festival-page .festival-primary:hover {
+  background: #f5d233;
+  box-shadow: none;
+}
+.festival-page .festival-secondary {
+  border: 1px solid #d4d4d4;
+  background: #fff;
+  color: #171717;
+}
+.festival-page .festival-secondary:hover,
+.festival-page .festival-cancel:hover {
+  background: #fafafa;
+  color: #171717;
+}
+.festival-summary h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #171717;
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.festival-summary h2 svg {
+  color: #23603e;
+  flex-shrink: 0;
+}
+.festival-details {
+  display: grid;
+  gap: 18px;
+}
+.festival-details > div {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 16px;
+  align-items: baseline;
+}
+.festival-details dt {
+  font-size: 13px;
+  color: #626262;
+}
+.festival-details dd {
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.festival-error {
+  color: #9a302b;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.festival-loading,
+.festival-load-error {
+  padding-block: 24px;
+  color: #626262;
+  font-size: 14px;
+}
+.festival-load-error {
+  display: grid;
+  gap: 16px;
+  justify-items: start;
+}
+.festival-payment-return {
+  padding-block: 4px;
+  font-size: 13px;
+  color: #626262;
+}
+.festival-payment-return a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.festival-payment-return svg {
+  flex-shrink: 0;
+}
+.festival-page :is(button, input, a, section[tabindex]):focus-visible,
+.festival-payment-return a:focus-visible {
+  outline: 2px solid #9a3412;
+  outline-offset: 3px;
+  box-shadow: none;
+}
+.hub-award-dark .festival-payment-return {
+  color: #d4d4d4;
+}
+.hub-award-dark .festival-payment-return a:focus-visible {
+  outline-color: #ffdf45;
+}
+.festival-payment-return--receipt {
+  padding: 12px 20px 0;
+}
+@media (min-width: 800px) {
+  .festival-card {
+    min-height: 280px;
+  }
+  .festival-card__content {
+    inset-inline: 28px;
+    bottom: 22px;
+  }
+  .festival-card__title {
+    font-size: 28px;
+  }
+}
+@media (max-width: 420px) {
+  .festival-form,
+  .festival-summary {
+    padding: 20px;
+  }
+  .festival-details > div {
+    grid-template-columns: 92px minmax(0, 1fr);
+    gap: 12px;
+  }
+}
+@media (max-width: 639px) {
+  .awardee-dashboard section.festival-page > header.hub-route-heading {
+    display: block;
+    padding: 0;
+  }
+  .awardee-dashboard .festival-page > .hub-route-heading > div:first-child {
+    display: block;
+  }
+  .festival-page .hub-route-heading h1 {
+    display: none;
+  }
+  .festival-page .hub-route-heading p {
+    margin: 0;
+    font-size: 13px;
+  }
+}

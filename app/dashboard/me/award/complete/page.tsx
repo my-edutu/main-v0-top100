@@ -10,6 +10,7 @@ import { claimAwardPaymentSuccess } from '@/lib/awards/payment-success-visit'
 import type { AwardPaymentView } from '@/lib/awards/payment'
 import { trackConfirmedAwardPayment } from '@/lib/awards/funnel'
 import { useDashboardMember } from '../../../_providers/dashboard-member'
+import { FestivalPaymentReturn } from '../../../_components/festival-payment-return'
 
 export default function AwardCompletePage() {
   const { member } = useDashboardMember()
@@ -83,5 +84,10 @@ export default function AwardCompletePage() {
     return <AwardRouteLoading label="Verifying your award payment" />
   }
 
-  return <AwardPaymentSuccess payment={view.confirmedPayment} />
+  return (
+    <div className="space-y-5">
+      <FestivalPaymentReturn receipt />
+      <AwardPaymentSuccess payment={view.confirmedPayment} />
+    </div>
+  )
 }

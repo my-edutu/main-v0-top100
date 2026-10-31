@@ -25,9 +25,9 @@ export type BachsConfig = {
 }
 
 export type BachsCheckoutPricing = {
-  currency: 'USD'
+  currency: 'USD' | 'NGN'
   amount: string
-  currency_options: { NGN: string }
+  currency_options?: { NGN: string }
 }
 
 export type BachsCheckoutCustomer = {
@@ -45,7 +45,7 @@ export type BachsCheckoutRequest = {
   metadata: {
     order_id: string
     payment_attempt_id: string
-    purpose: 'afl_award_fee_v1' | 'afl_magazine_feature_v1'
+    purpose: 'afl_award_fee_v1' | 'afl_magazine_feature_v1' | 'afl_project100_support_v1'
   }
   success_url: string
   cancel_url: string
@@ -65,7 +65,9 @@ export type CreateCheckoutInput = {
   /** Leave unset on USD award pricing so Bachs can offer adaptive local currencies. */
   adaptivePricing?: boolean
   /** Only set by the server-side magazine feature checkout service. */
-  purpose?: 'afl_award_fee_v1' | 'afl_magazine_feature_v1'
+  purpose?: 'afl_award_fee_v1' | 'afl_magazine_feature_v1' | 'afl_project100_support_v1'
+  /** Exact, reserved contribution amount; only used for the Project100 purpose. */
+  supportAmountMinor?: number
   priceMinorByCurrency?: { NGN: number; USD: number }
   successPath?: string
   cancelPath?: string

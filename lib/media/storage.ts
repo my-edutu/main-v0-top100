@@ -22,6 +22,7 @@ export function physicalR2BucketName(
   env: Record<string, string | undefined> = process.env,
 ) {
   const privateLogicalBuckets = new Set([
+    'project100-images',
     env.PORTFOLIO_SOURCE_BUCKET?.trim() || 'portfolio-sources',
     env.PORTFOLIO_OPTION_BUCKET?.trim() || 'portfolio-options',
   ])
@@ -71,6 +72,12 @@ export async function downloadMedia(bucket: string, path: string) {
   const { data, error } = await supabase.storage.from(bucket).download(path)
   if (error) throw error
   return Buffer.from(await data.arrayBuffer())
+}
+export async function deleteMedia(bucket: string, path: string) {
+  const config=getMediaStorageConfig()
+  if(config.provider==='r2') { await r2StoreFor(config,bucket).remove(r2Key(bucket,path)); return }
+  const {error}=await createAdminClient().storage.from(bucket).remove([path])
+  if(error)throw error
 }
 
 export async function signedMediaUrl(bucket: string, path: string, expiresIn = 900) {

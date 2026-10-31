@@ -81,6 +81,7 @@ export function isDashboardNavActive(pathname: string, href: string) {
 }
 
 export function resolveDashboardTitle(pathname: string) {
+  if (pathname === '/dashboard/festival') return 'Festival'
   if (pathname === '/dashboard/me/interview') return 'Request an interview'
   if (pathname.startsWith('/dashboard/discover/event-videos')) return 'Past sessions'
   const matchingItem = allDashboardNav

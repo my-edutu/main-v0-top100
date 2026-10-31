@@ -7,6 +7,7 @@ import AwardsSection, { AwardRouteLoading } from '../../../awards-section'
 import { useDashboardBadges } from '../../../_providers/dashboard-badges'
 import { useDashboardMember } from '../../../_providers/dashboard-member'
 import type { AwardPaymentReturnState } from '../../../award-payment-view'
+import { FestivalPaymentReturn } from '../../../_components/festival-payment-return'
 
 function AwardPaymentContent() {
   const searchParams = useSearchParams()
@@ -19,6 +20,7 @@ function AwardPaymentContent() {
 
   return (
     <div className="space-y-5">
+      <FestivalPaymentReturn />
       <AwardsSection
         member={member}
         paymentReturn={paymentReturn}

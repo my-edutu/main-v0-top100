@@ -70,6 +70,7 @@ describe('dashboard navigation', () => {
   })
 
   it('resolves nested titles and every legacy section', () => {
+    expect(resolveDashboardTitle('/dashboard/festival')).toBe('Festival')
     expect(resolveDashboardTitle('/dashboard/me/award')).toBe('My award')
     expect(resolveDashboardTitle('/dashboard/discover/opportunities/saved')).toBe('Saved opportunities')
     expect(legacySectionDestination('directory')).toBe('/dashboard/discover/members')

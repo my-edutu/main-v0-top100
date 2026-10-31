@@ -31,14 +31,13 @@ import { AwardeeOnboardingJourney } from './awardee-onboarding-journey'
 import { DashboardCelebration } from './dashboard-celebration'
 import { AflCalendarAnnouncement } from './afl-calendar-announcement'
 import MagazinePopup from '@/app/components/MagazinePopup'
-import { useDashboardBadges } from '../_providers/dashboard-badges'
-import { DashboardPromoCarousel } from './dashboard-promo-carousel'
+import { FestivalCard } from './festival-card'
 
 const INTERVIEW_FORM_URL = '/dashboard/me/interview'
 const PARTNERSHIP_FORM_URL = 'https://docs.google.com/forms/d/1pabeSUOwN15Sr-VcAWIhl5k5_xwnKljFuzm90PCoEqQ/edit'
 
 const launchBanners = [
-  { title: 'Project100 Scholarship', description: 'Put your next chapter in motion.', href: '/dashboard/me/project100-scholarship', image: '/dashboard/banners/project100-scholarship-roadside.png' },
+  { title: 'Project100 Scholarship', description: 'Join your group. Keep a child in school.', href: '/dashboard/me/project100-scholarship', image: '/dashboard/banners/project100-scholarship-roadside.png' },
   { title: 'Impact Series Interviews', description: 'Share the work behind your impact.', href: INTERVIEW_FORM_URL, image: '/dashboard/banners/impact-series-v2.png' },
   { title: 'Let your organization partner with Africa Future Leaders', description: 'Create more impact together.', href: PARTNERSHIP_FORM_URL, image: '/dashboard/banners/impact-series-v2.png', external: true },
 ] as const
@@ -71,7 +70,6 @@ function formatShortDate(value: string | null | undefined) {
 
 export function DashboardHome() {
   const { member, dashboardVisitReady } = useDashboardMember()
-  const { awardPayment } = useDashboardBadges()
   const [invitations, setInvitations] = useState<EventInvitation[]>([])
   const [programmeEvents, setProgrammeEvents] = useState<LiveCalendarEvent[]>([])
   const [loading, setLoading] = useState(true)
@@ -247,7 +245,7 @@ export function DashboardHome() {
         </DialogContent>
       </Dialog> : null}
       <AflCalendarAnnouncement memberId={member.id} dashboardLoginCount={member.dashboardLoginCount ?? 0} />
-      <DashboardPromoCarousel payment={awardPayment} showCommunity={member.status === 'approved'} showLearningLibrary />
+      <FestivalCard />
       <AwardeeOnboardingJourney name={member.name} />
       {loadError && <p role="status" className="hub-status rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-sm leading-5 text-neutral-700">Some events couldn’t load. We’ll retry automatically; you can also open Events directly.</p>}
 
