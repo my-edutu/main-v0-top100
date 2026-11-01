@@ -16,6 +16,9 @@ export type SendInput = {
   text?: string
   /** Stable key for provider-side deduplication of retried transactional messages. */
   idempotencyKey?: string
+  /** In-memory attachments only; callers cannot fetch files or arbitrary URLs. */
+  attachments?: Array<{ filename: string; content: Buffer; contentType: string }>
+  requireBrevoSmtp?: boolean
 }
 
 /**
@@ -25,6 +28,8 @@ export type SendInput = {
 export async function sendTransactionalEmail(input: SendInput): Promise<{ ok: boolean; reason?: string }> {
   const smtpLogin = process.env.BREVO_SMTP_LOGIN?.trim()
   const smtpKey = process.env.BREVO_SMTP_KEY
+  if (input.requireBrevoSmtp && (!smtpLogin || !smtpKey))
+    return { ok: false, reason: 'Brevo SMTP is not configured.' }
   if (smtpLogin && smtpKey) {
     const port = Number(process.env.BREVO_SMTP_PORT || '587')
     if (!Number.isInteger(port) || port < 1 || port > 65535) return { ok: false, reason: 'BREVO_SMTP_PORT is invalid.' }
@@ -47,6 +52,7 @@ export async function sendTransactionalEmail(input: SendInput): Promise<{ ok: bo
         to: { name: input.toName, address: input.to },
         subject: input.subject,
         html: input.html,
+        ...(input.attachments ? { attachments: input.attachments } : {}),
         ...(input.text ? { text: input.text } : {}),
         ...(input.idempotencyKey ? {
           messageId: `<${createHash('sha256').update(input.idempotencyKey).digest('hex')}@top100afl.com>`,
@@ -99,6 +105,7 @@ export async function sendTransactionalEmail(input: SendInput): Promise<{ ok: bo
           to: [input.to],
           subject: input.subject,
           html: input.html,
+          ...(input.attachments ? { attachments: input.attachments.map(file => ({ filename: file.filename, content: file.content.toString('base64'), content_type: file.contentType })) } : {}),
           ...(input.text ? { text: input.text } : {}),
         }),
         signal: AbortSignal.timeout(10_000),
@@ -134,6 +141,7 @@ export async function sendTransactionalEmail(input: SendInput): Promise<{ ok: bo
         to: [{ email: input.to, ...(input.toName ? { name: input.toName } : {}) }],
         subject: input.subject,
         htmlContent: input.html,
+        ...(input.attachments ? { attachment: input.attachments.map(file => ({ name: file.filename, content: file.content.toString('base64') })) } : {}),
         ...(input.text ? { textContent: input.text } : {}),
       }),
       signal: AbortSignal.timeout(10_000),

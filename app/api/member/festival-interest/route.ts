@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth-server'
-import { createAdminClient } from '@/lib/supabase/server'
-import { canAttendFestival } from '@/lib/festival/config'
+import { checkFestivalAwardeeAccess } from '@/lib/festival/access'
+import { sendFestivalTicketEmail } from '@/lib/festival/ticket-email'
 import {
   checkRateLimit,
   createRateLimitResponse,
@@ -11,32 +11,13 @@ import { festivalInterestSchema } from '@/lib/festival/interest'
 import {
   readFestivalInterest,
   saveFestivalInterest,
+  FestivalRegistrationError,
 } from '@/lib/festival/server'
 
 export const runtime = 'nodejs'
+export const maxDuration = 60
 const headers = { 'Cache-Control': 'private, no-store' }
 
-async function checkAwardeeAccess(memberId: string) {
-  try {
-    const { data, error } = await createAdminClient()
-      .from('profiles')
-      .select('membership_status')
-      .eq('id', memberId)
-      .maybeSingle()
-    if (error) throw error
-    if (!data || !canAttendFestival(data.membership_status))
-      return NextResponse.json(
-        { message: 'Festival registration is available to approved Top100 awardees.' },
-        { status: 403, headers },
-      )
-    return null
-  } catch {
-    return NextResponse.json(
-      { message: 'We couldn’t check your awardee status. Please try again shortly.' },
-      { status: 503, headers },
-    )
-  }
-}
 
 export async function GET() {
   const user = await getCurrentUser()
@@ -45,7 +26,7 @@ export async function GET() {
       { message: 'Authentication required.' },
       { status: 401, headers },
     )
-  const blocked = await checkAwardeeAccess(user.id)
+  const blocked = await checkFestivalAwardeeAccess(user.id)
   if (blocked) return blocked
   try {
     return NextResponse.json(await readFestivalInterest(user.id), { headers })
@@ -76,7 +57,7 @@ export async function POST(request: Request) {
       rate,
       'Please wait a moment before saving again.',
     )
-  const blocked = await checkAwardeeAccess(user.id)
+  const blocked = await checkFestivalAwardeeAccess(user.id)
   if (blocked) return blocked
   const parsed = festivalInterestSchema.safeParse(
     await request.json().catch(() => null),
@@ -87,10 +68,15 @@ export async function POST(request: Request) {
       { status: 400, headers },
     )
   try {
-    return NextResponse.json(await saveFestivalInterest(user.id, parsed.data), {
-      headers,
-    })
-  } catch {
+    const view = await saveFestivalInterest(user.id, parsed.data)
+    if (view.ticket && user.email) {
+      try { view.ticket.emailStatus = await sendFestivalTicketEmail(user.id, user.email) }
+      catch { view.ticket.emailStatus = 'failed' }
+    } else if (view.ticket) view.ticket.emailStatus = 'failed'
+    return NextResponse.json(view, { headers })
+  } catch (error) {
+    if (error instanceof FestivalRegistrationError)
+      return NextResponse.json({ message: error.message, payment: error.payment }, { status: error.status, headers })
     return NextResponse.json(
       {
         message: 'Your interest could not be saved. Please try again shortly.',

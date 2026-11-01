@@ -84,6 +84,13 @@
 .festival-intro__copy {
   padding-top: 20px;
 }
+.festival-intro__copy .festival-event-details {
+  color: #171717;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.festival-event-details span { color: #626262; font-size: 13px; }
+.festival-ticket-reference { overflow-wrap: anywhere; font-size: 12px; }
 .festival-intro__copy h1 {
   max-width: 480px;
   color: #171717;

@@ -18,7 +18,7 @@ import { useDashboardMember } from '../_providers/dashboard-member'
 import { reconcileAwardPayment } from '@/lib/awards/payment'
 import { internationalDeliveryPhone } from '@/lib/awards/phone'
 import { festivalRequest } from '@/lib/festival/client'
-import { canAttendFestival, FESTIVAL_IMAGE, FESTIVAL_PAYMENT_PATH } from '@/lib/festival/config'
+import { canAttendFestival, FESTIVAL_DATE, FESTIVAL_IMAGE, FESTIVAL_PAYMENT_PATH, FESTIVAL_TIME, FESTIVAL_VENUE } from '@/lib/festival/config'
 import {
   festivalInterestSchema,
   pickupPaymentState,
@@ -34,12 +34,12 @@ type FormField = 'fullName' | 'phone' | 'pickupRequested'
 const paymentHelp: Record<FestivalPaymentState, string> = {
   confirmed: 'Award payment confirmed.',
   required:
-    'Complete your physical award payment to arrange collection or delivery.',
+    'Get your physical award to attend. Your award payment must be confirmed before you can register.',
   pending:
     'Your award payment is being verified. Review its status before paying again.',
   unavailable:
-    'You can save your interest, but we can’t verify your payment right now.',
-  not_requested: 'We’ll check your award payment when you save.',
+    'We can’t verify your award payment right now. Check again before registering or paying.',
+  not_requested: 'Confirm your award payment before registering.',
 }
 
 export default function FestivalInterestPage() {
@@ -120,6 +120,11 @@ export default function FestivalInterestPage() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (busy.current) return
+    if (view?.payment !== 'confirmed') {
+      if (view?.payment === 'required' || view?.payment === 'not_requested') router.push(FESTIVAL_PAYMENT_PATH)
+      else await checkPayment()
+      return
+    }
     setError('')
     setFieldErrors({})
     const parsed = festivalInterestSchema.safeParse({
@@ -156,13 +161,10 @@ export default function FestivalInterestPage() {
       setView(data)
       setEditing(false)
       setSaved(true)
-      toast.success('Your festival interest is saved.')
-      if (
-        !parsed.data.pickupRequested &&
-        (data.payment === 'required' || data.payment === 'pending' || data.payment === 'not_requested')
-      )
-        router.push(FESTIVAL_PAYMENT_PATH)
+      toast.success(data.ticket ? 'Your festival registration is confirmed.' : 'Your details are saved.')
     } catch (cause) {
+      // A payment may have changed since the page loaded. Fail closed until checked again.
+      setView(current => current ? { ...current, payment: 'unavailable', ticket: null } : current)
       setError(
         cause instanceof Error
           ? cause.message
@@ -174,12 +176,12 @@ export default function FestivalInterestPage() {
     }
   }
 
-  async function checkPayment() {
+  async function checkPayment(showDialog = true) {
     if (busy.current) return
-    if (!paymentCheckOpen && document.activeElement instanceof HTMLElement)
+    if (showDialog && !paymentCheckOpen && document.activeElement instanceof HTMLElement)
       paymentCheckTrigger.current = document.activeElement
     busy.current = true
-    setPaymentCheckOpen(true)
+    if (showDialog) setPaymentCheckOpen(true)
     setChecking(true)
     setPaymentCheckError('')
     setError('')
@@ -187,6 +189,7 @@ export default function FestivalInterestPage() {
       const payment = pickupPaymentState(await reconcileAwardPayment())
       setView((current) => (current ? { ...current, payment } : current))
     } catch (cause) {
+      setView(current => current ? { ...current, payment: 'unavailable', ticket: null } : current)
       setPaymentCheckError(
         cause instanceof Error
           ? cause.message
@@ -195,6 +198,23 @@ export default function FestivalInterestPage() {
     } finally {
       busy.current = false
       setChecking(false)
+    }
+  }
+
+  async function retryTicketEmail() {
+    if (busy.current) return
+    busy.current = true
+    setSaving(true)
+    setError('')
+    try {
+      const data = await festivalRequest<FestivalInterestView>(`${endpoint}/ticket-email`, { method: 'POST' })
+      setView(data)
+      if (data.ticket?.emailStatus === 'sent') toast.success('Your ticket has been sent to your account email.')
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Ticket email could not be sent. You can still download your ticket.')
+    } finally {
+      busy.current = false
+      setSaving(false)
     }
   }
 
@@ -215,8 +235,7 @@ export default function FestivalInterestPage() {
   }
 
   const payment = view?.payment ?? 'unavailable'
-  const continueToPayment = pickup !== true &&
-    (payment === 'required' || payment === 'pending' || payment === 'not_requested')
+  const continueToPayment = payment === 'required' || payment === 'not_requested'
   if (!eligible) return (
     <RouteSection title="Festival attendance" className="festival-page">
       <div className="festival-access">
@@ -238,7 +257,8 @@ export default function FestivalInterestPage() {
         </div>
         <div className="festival-intro__copy">
           <h1 id="festival-page-title">Africa Future Leaders Festival</h1>
-          <p>Come together with fellow awardees. Let us know you’d like to attend and arrange your award pickup.</p>
+          <p>Celebrate your impact with fellow awardees. Confirm your award payment, then register for your ticket.</p>
+          <p className="festival-event-details">{FESTIVAL_DATE} · {FESTIVAL_VENUE}<br /><span>{FESTIVAL_TIME}</span></p>
         </div>
       </header>
       {loading ? (
@@ -263,11 +283,13 @@ export default function FestivalInterestPage() {
             Try again
           </Button>
         </div>
-      ) : view?.interest && !editing ? (
+      ) : view?.interest && view.ticket && payment === 'confirmed' && !editing ? (
         <FestivalInterestSummary
           interest={view.interest}
           payment={payment}
-          checking={checking}
+          ticket={view.ticket}
+          checking={checking || saving}
+          onRetryEmail={() => void retryTicketEmail()}
           error={error}
           summaryRef={summaryRef}
           onEdit={() => {
@@ -281,10 +303,10 @@ export default function FestivalInterestPage() {
           className="festival-form"
           onSubmit={submit}
           noValidate
-          aria-label="Festival attendance interest"
+          aria-label="Festival registration"
         >
           <div className="festival-form__heading">
-            <h2>{view?.interest ? 'Update your details' : 'Celebrate your impact'}</h2>
+            <h2>{view?.ticket ? 'Update your details' : 'Celebrate your impact'}</h2>
             <p className="festival-help">Your work deserves to be celebrated. Get your physical award and join fellow leaders at the festival.</p>
           </div>
           <div className="festival-field">
@@ -400,6 +422,7 @@ export default function FestivalInterestPage() {
                   onChange={() => {
                     setPickup(true)
                     clearFieldError('pickupRequested')
+                    void checkPayment(false)
                   }}
                 />{' '}
                 Yes
@@ -439,9 +462,7 @@ export default function FestivalInterestPage() {
                 {payment === 'confirmed' && (
                   <CheckCircle2 size={16} aria-hidden="true" />
                 )}
-                {pickup === true && payment === 'required'
-                  ? 'Register your interest now. Your award payment must be confirmed before collection.'
-                  : paymentHelp[payment]}
+                {checking ? 'Checking your award payment…' : paymentHelp[payment]}
               </p>
               {payment !== 'confirmed' && (
                 <button
@@ -470,13 +491,14 @@ export default function FestivalInterestPage() {
             >
               {saving
                 ? 'Saving…'
-                : continueToPayment
-                  ? payment === 'pending' ? 'Review award payment' : 'Get your award'
-                  : view?.interest
+                : checking ? 'Checking payment…'
+                : continueToPayment ? 'Get your award'
+                  : payment !== 'confirmed' ? 'Check payment status'
+                  : view?.ticket
                     ? 'Save changes'
-                    : 'Register interest'}
+                    : 'Register'}
             </Button>
-            {view?.interest && (
+            {view?.ticket && (
               <Button
                 type="button"
                 variant="ghost"
@@ -492,9 +514,10 @@ export default function FestivalInterestPage() {
             )}
           </div>
           <p className="festival-help">
-            {continueToPayment
-              ? 'Your interest will be saved, then you’ll continue to award payment. The team will confirm attendance and pickup arrangements.'
-              : 'The team will confirm attendance and pickup arrangements.'}
+            {pickup === true
+              ? 'Your physical award and certificate will be prepared for festival collection. The team will confirm pickup arrangements.'
+              : 'Your physical award and certificate will be dispatched once your delivery address and delivery arrangements are confirmed. Delivery charges are separate.'}
+            {' '}Only awardees with confirmed award payment can register and attend.
           </p>
         </form>
       )}

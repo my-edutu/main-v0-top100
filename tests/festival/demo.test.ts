@@ -74,24 +74,24 @@ describe('local festival preview', () => {
       phone: '+2348031234567',
       pickupRequested: true,
     }
-    expect(await (await call(input)).json()).toMatchObject({
-      interest: input,
-      payment: 'required',
-    })
+    expect((await call(input)).status).toBe(409)
+    expect(store.festivalInterest).toBeUndefined()
     store.awardPayment.status = 'paid'
     store.awardPayment.confirmedPayment = {
       currency: 'NGN',
       amountMinor: 2500000,
       paidAt: new Date().toISOString(),
     }
-    expect(await (await call()).json()).toMatchObject({
+    expect(await (await call(input)).json()).toMatchObject({
       interest: input,
       payment: 'confirmed',
+      ticket: { emailStatus: 'preview' },
     })
     store.awardPayment.status = 'refunded'
     expect(await (await call()).json()).toMatchObject({
       interest: input,
       payment: 'required',
+      ticket: null,
     })
     expect((await call({ ...input, paid: true })).status).toBe(400)
   })

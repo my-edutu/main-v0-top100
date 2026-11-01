@@ -45,8 +45,8 @@ export default function FestivalAdminPage() {
     <div className="space-y-6">
       <PageHeader
         eyebrow="Africa Future Leaders Festival 2026"
-        title="Festival interest"
-        description="Attendance interest and physical award pickup requests from members."
+        title="Festival registrations"
+        description="Paid awardee registrations, ticket references, and earlier expressions of interest."
         actions={
           <button
             type="button"
@@ -122,8 +122,9 @@ export default function FestivalAdminPage() {
                       <p className="mt-1 text-sm">
                         {interest.pickupRequested
                           ? 'Requested at festival'
-                          : 'Not requested'}
+                          : 'Dispatch after delivery is arranged'}
                       </p>
+                      <p className="mt-2 break-all text-xs text-neutral-500">{interest.ticketId ? `Ticket: ${interest.ticketId}` : 'Earlier interest only · registration required'}</p>
                     </div>
                     <div>
                       <p className="text-xs text-neutral-500">Last updated</p>

@@ -1,11 +1,12 @@
 import type { Ref } from 'react'
 import Link from 'next/link'
-import { CheckCircle2 } from 'lucide-react'
+import { CheckCircle2, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { FESTIVAL_PAYMENT_PATH } from '@/lib/festival/config'
+import { FESTIVAL_DATE, FESTIVAL_PAYMENT_PATH, FESTIVAL_TICKET_PATH, FESTIVAL_VENUE } from '@/lib/festival/config'
 import type {
   FestivalInterest,
   FestivalPaymentState,
+  FestivalTicket,
 } from '@/lib/festival/interest'
 
 const paymentLabels: Record<FestivalPaymentState, string> = {
@@ -24,6 +25,8 @@ export function FestivalInterestSummary({
   checking,
   error,
   summaryRef,
+  ticket,
+  onRetryEmail,
 }: {
   interest: FestivalInterest
   payment: FestivalPaymentState
@@ -32,11 +35,14 @@ export function FestivalInterestSummary({
   checking: boolean
   error: string
   summaryRef?: Ref<HTMLElement>
+  ticket?: FestivalTicket | null
+  onRetryEmail?: () => void
 }) {
   const needsPayment =
     payment === 'required' || payment === 'pending' || payment === 'not_requested'
   const canCheck =
     payment === 'unavailable'
+  const registered = payment === 'confirmed' && !!ticket
   return (
     <section
       className="festival-summary"
@@ -47,8 +53,8 @@ export function FestivalInterestSummary({
       <div className="festival-summary__heading">
         <span className="festival-summary__check"><CheckCircle2 size={22} aria-hidden="true" /></span>
         <div>
-          <h2 id="festival-saved-title">Interest registered</h2>
-          <p className="festival-help">You’re on the list. We’ll be in touch with the next steps.</p>
+          <h2 id="festival-saved-title">{registered ? 'You’re registered' : 'Complete your registration'}</h2>
+          <p className="festival-help">{registered ? `${FESTIVAL_DATE} · ${FESTIVAL_VENUE}` : 'Confirmed award payment is required to register and attend.'}</p>
         </div>
       </div>
       <dl className="festival-details">
@@ -65,10 +71,10 @@ export function FestivalInterestSummary({
           <dd>
             {interest.pickupRequested
               ? 'Requested at festival'
-              : 'Not requested'}
+              : 'Dispatch after delivery is arranged'}
           </dd>
         </div>
-        {interest.pickupRequested && (
+        {(
           <div>
             <dt>Award payment</dt>
             <dd
@@ -80,6 +86,7 @@ export function FestivalInterestSummary({
             </dd>
           </div>
         )}
+        {registered && <div><dt>Ticket reference</dt><dd className="festival-ticket-reference">{ticket.id}</dd></div>}
       </dl>
       {payment === 'unavailable' && (
         <p className="festival-help">
@@ -105,12 +112,17 @@ export function FestivalInterestSummary({
         </p>
       )}
       <div className="festival-actions">
+        {registered && (
+          <Button asChild className="festival-primary">
+            <a href={FESTIVAL_TICKET_PATH} download><Download size={16} aria-hidden="true" />Download ticket</a>
+          </Button>
+        )}
         {needsPayment && (
           <Button asChild className="festival-primary">
             <Link href={FESTIVAL_PAYMENT_PATH}>
               {payment === 'pending'
                 ? 'Review payment'
-                : interest.pickupRequested ? 'Complete award payment' : 'Get your award'}
+                : 'Get your award'}
             </Link>
           </Button>
         )}
@@ -127,17 +139,25 @@ export function FestivalInterestSummary({
         )}
         <Button
           type="button"
-          variant={needsPayment || canCheck ? 'outline' : 'default'}
-          className={needsPayment || canCheck ? 'festival-secondary' : 'festival-primary'}
+          variant="outline"
+          className="festival-secondary"
           onClick={onEdit}
           disabled={checking}
         >
           Edit details
         </Button>
       </div>
+      {registered && <div className="festival-help" role="status">
+        <p>{ticket.emailStatus === 'sent' ? 'Your ticket has been sent to your account email.'
+          : ticket.emailStatus === 'preview' ? 'Local preview ticket. No email has been sent.'
+          : ticket.emailStatus === 'failed' ? 'Your registration is confirmed, but the ticket email could not be sent. Download it now or retry the email.'
+          : 'Your ticket email is pending. Download it now or check again.'}</p>
+        {['failed', 'pending'].includes(ticket.emailStatus) && onRetryEmail && <button type="button" className="festival-text-action" onClick={onRetryEmail} disabled={checking}>{checking ? 'Sending ticket…' : 'Retry ticket email'}</button>}
+      </div>}
       <p className="festival-help festival-summary__note">
-        This registers your interest. The team will confirm attendance
-        {interest.pickupRequested ? ' and award pickup arrangements' : ' details'} separately.
+        {interest.pickupRequested ? 'Your award and certificate will be prepared for festival collection. The team will confirm pickup arrangements.'
+          : 'Your award and certificate will be dispatched once your delivery address and delivery arrangements are confirmed. Delivery charges are separate.'}
+        {' '}Bring your ticket and photo ID. Admission requires your award payment to remain confirmed.
       </p>
     </section>
   )

@@ -7,7 +7,7 @@ export async function festivalRequest<T>(
   const response = await fetchWithTimeout(endpoint, {
     ...init,
     cache: 'no-store',
-  })
+  }, init?.method === 'POST' ? 60_000 : 12_000)
   const body = await response.json().catch(() => null)
   if (!response.ok || !body)
     throw new Error(

@@ -38,9 +38,15 @@ export type FestivalPaymentState =
 export type FestivalInterestView = {
   interest: FestivalInterest | null
   payment: FestivalPaymentState
+  ticket?: FestivalTicket | null
+}
+export type FestivalTicket = {
+  id: string
+  registeredAt: string
+  emailStatus: 'pending' | 'sent' | 'failed' | 'preview'
 }
 export type FestivalInterestList = {
-  interests: (FestivalInterest & { memberId: string })[]
+  interests: (FestivalInterest & { memberId: string; registeredAt?: string | null; ticketId?: string | null })[]
   total: number
   page: number
   pageSize: number

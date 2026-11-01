@@ -17,6 +17,7 @@ function render(
     <FestivalInterestSummary
       interest={{ ...interest, pickupRequested }}
       payment={payment}
+      ticket={{ id: 'e078c178-077d-43c4-9f31-1140beab9cc3', registeredAt: '2026-10-31T00:00:00Z', emailStatus: 'sent' }}
       onEdit={vi.fn()}
       onCheckPayment={vi.fn()}
       checking={false}
@@ -32,6 +33,8 @@ describe('registered festival interest', () => {
     expect(html).toContain('+2348031234567')
     expect(html).toContain('Requested at festival')
     expect(html).toContain('Edit details')
+    expect(html).toContain('href="/api/member/festival-interest/ticket"')
+    expect(html).toContain('e078c178-077d-43c4-9f31-1140beab9cc3')
     expect(html).not.toContain('<input')
     expect(html).not.toContain('<form')
   })
@@ -50,8 +53,8 @@ describe('registered festival interest', () => {
   })
   it('offers the award payment destination even when festival pickup was not requested', () => {
     const html = render('not_requested', false)
-    expect(html).toContain('Not requested')
-    expect(html).not.toContain('Award payment')
+    expect(html).toContain('Dispatch after delivery is arranged')
+    expect(html).not.toContain('Download ticket')
     expect(html).toContain('Get your award')
     expect(html).toContain('href="/dashboard/me/award/payment"')
   })

@@ -7,12 +7,14 @@ const mocks = vi.hoisted(() => ({
   db: vi.fn(),
   rate: vi.fn(),
   admin: vi.fn(),
+  email: vi.fn(),
 }))
 vi.mock('@/lib/auth-server', () => ({ getCurrentUser: mocks.user }))
 vi.mock('@/lib/awards/payment-server', () => ({
   getAwardPaymentView: mocks.payment,
 }))
 vi.mock('@/lib/supabase/server', () => ({ createAdminClient: mocks.db }))
+vi.mock('@/lib/festival/ticket-email', () => ({ sendFestivalTicketEmail: mocks.email }))
 vi.mock('@/lib/api/require-admin', () => ({ requireAdmin: mocks.admin }))
 vi.mock('@/lib/rate-limit', () => ({
   checkRateLimit: mocks.rate,
@@ -37,11 +39,16 @@ const row = {
   phone: input.phone,
   pickup_requested: true,
   updated_at: '2026-10-31T00:00:00Z',
+  registered_at: '2026-10-31T00:00:00Z',
+  ticket_id: 'e078c178-077d-43c4-9f31-1140beab9cc3',
+  ticket_email_sent_at: null,
+  ticket_email_failed_at: null,
 }
 let chain: Record<string, ReturnType<typeof vi.fn>>
 beforeEach(() => {
   vi.resetAllMocks()
-  mocks.user.mockResolvedValue({ id: 'member-1' })
+  mocks.user.mockResolvedValue({ id: 'member-1', email: 'member@example.com' })
+  mocks.email.mockResolvedValue('sent')
   mocks.rate.mockResolvedValue({ success: true })
   mocks.payment.mockResolvedValue({ status: 'unpaid', confirmedPayment: null })
   chain = Object.fromEntries(
@@ -123,7 +130,8 @@ describe('member festival endpoint', () => {
       payment: 'required',
     })
   })
-  it('saves pickup intent before returning the payment requirement, upserting only its own member', async () => {
+  it('registers a paid awardee using only their own member ID and authenticated email', async () => {
+    mocks.payment.mockResolvedValue({ status: 'paid', confirmedPayment: { currency: 'NGN', amountMinor: 2500000, paidAt: 'now' } })
     const response = await POST(request(input))
     expect(response.status).toBe(200)
     expect(chain.upsert).toHaveBeenCalledWith(
@@ -138,30 +146,47 @@ describe('member festival endpoint', () => {
     )
     expect(await response.json()).toMatchObject({
       interest: input,
-      payment: 'required',
+      payment: 'confirmed',
+      ticket: { id: row.ticket_id, emailStatus: 'sent' },
     })
+    expect(mocks.email).toHaveBeenCalledWith('member-1', 'member@example.com')
   })
-  it('saves attendance when payment verification is unavailable without telling a member to pay again', async () => {
+  it('blocks registration without saving when verification is unavailable', async () => {
     mocks.payment.mockRejectedValue(new Error('private provider error'))
     const response = await POST(request(input))
-    expect(response.status).toBe(200)
-    expect(await response.json()).toMatchObject({
-      interest: input,
-      payment: 'unavailable',
-    })
+    expect(response.status).toBe(503)
+    expect(chain.upsert).not.toHaveBeenCalled()
+    expect(mocks.email).not.toHaveBeenCalled()
   })
   it.each([
-    { status: 'unpaid', confirmedPayment: null, expected: 'required' },
-    { status: 'paid', confirmedPayment: { currency: 'NGN', amountMinor: 2500000, paidAt: 'now' }, expected: 'confirmed' },
-  ])('returns current award payment even without festival pickup: $expected', async ({ status, confirmedPayment, expected }) => {
-    mocks.payment.mockResolvedValue({ status, confirmedPayment })
-    chain.single.mockResolvedValue({
-      data: { ...row, pickup_requested: false },
-      error: null,
-    })
-    const response = await POST(request({ ...input, pickupRequested: false }))
-    expect(await response.json()).toMatchObject({ payment: expected })
-    expect(mocks.payment).toHaveBeenCalledWith('member-1')
+    { status: 'unpaid', confirmedPayment: null },
+    { status: 'pending', confirmedPayment: null },
+    { status: 'refunded', confirmedPayment: null },
+    { status: 'paid', confirmedPayment: null },
+  ])('blocks $status without verified payment for either collection choice', async payment => {
+    mocks.payment.mockResolvedValue(payment)
+    for (const pickupRequested of [true, false]) {
+      expect((await POST(request({ ...input, pickupRequested }))).status).toBe(payment.status === 'paid' ? 503 : 409)
+    }
+    expect(chain.upsert).not.toHaveBeenCalled()
+    expect(mocks.email).not.toHaveBeenCalled()
+  })
+  it('hides a previously issued ticket after a refund', async () => {
+    mocks.payment.mockResolvedValue({ status: 'refunded', confirmedPayment: null })
+    expect(await (await GET()).json()).toMatchObject({ payment: 'required', ticket: null })
+  })
+  it('does not turn old interest into a ticket just because the member has paid', async () => {
+    mocks.payment.mockResolvedValue({ status: 'paid', confirmedPayment: { currency: 'NGN', amountMinor: 2500000, paidAt: 'now' } })
+    chain.maybeSingle.mockResolvedValue({ data: { ...row, registered_at: null }, error: null })
+    expect(await (await GET()).json()).toMatchObject({ interest: input, payment: 'confirmed', ticket: null })
+    expect(mocks.email).not.toHaveBeenCalled()
+  })
+  it('keeps registration and download available when the email attempt fails', async () => {
+    mocks.payment.mockResolvedValue({ status: 'paid', confirmedPayment: { currency: 'NGN', amountMinor: 2500000, paidAt: 'now' } })
+    mocks.email.mockResolvedValue('failed')
+    const response = await POST(request(input))
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({ ticket: { id: row.ticket_id, emailStatus: 'failed' } })
   })
   it('rejects forged payment flags before saving', async () => {
     expect((await POST(request({ ...input, paid: true }))).status).toBe(400)
@@ -177,6 +202,7 @@ describe('member festival endpoint', () => {
     expect(await response.text()).not.toContain('service_role')
   })
   it('does not say saved if persistence fails', async () => {
+    mocks.payment.mockResolvedValue({ status: 'paid', confirmedPayment: { currency: 'NGN', amountMinor: 2500000, paidAt: 'now' } })
     chain.single.mockResolvedValue({
       data: null,
       error: { message: 'constraint' },

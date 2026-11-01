@@ -1,5 +1,5 @@
 import type { NextRequest } from 'next/server'
-import { randomInt } from 'node:crypto'
+import { randomInt, randomUUID } from 'node:crypto'
 import { festivalInterestSchema, pickupPaymentState } from '@/lib/festival/interest'
 import { canAttendFestival } from '@/lib/festival/config'
 import { nigeriaStates } from '@/lib/awards/locations'
@@ -863,14 +863,31 @@ export async function handleDemoMemberRequest(
     case 'festival-interest': {
       if (!canAttendFestival(store.profile.status))
         return json({ message: 'Festival registration is available to approved Top100 awardees.' }, 403)
+      const payment = pickupPaymentState(store.awardPayment)
+      if (path[1] === 'ticket' && request.method === 'GET') {
+        if (payment !== 'confirmed') return json({ message: 'Confirmed award payment is required to download your ticket.' }, payment === 'unavailable' ? 503 : 403)
+        if (!store.festivalTicket || !store.festivalInterest) return json({ message: 'Register for the festival to get your ticket.' }, 404)
+        const { renderFestivalTicket } = await import('@/lib/festival/ticket')
+        return new Response(new Uint8Array(await renderFestivalTicket({ ...store.festivalInterest, id: `PREVIEW-${store.festivalTicket.id}` })), { headers: {
+          'Content-Type': 'image/png', 'Content-Disposition': 'attachment; filename="festival-preview-ticket.png"', 'Cache-Control': 'private, no-store',
+        } })
+      }
+      if (path[1] === 'ticket-email' && request.method === 'POST') {
+        if (!store.festivalTicket || payment !== 'confirmed') return json({ message: 'Register with confirmed award payment before requesting a ticket.' }, 409)
+        return json({ interest: store.festivalInterest, payment, ticket: store.festivalTicket })
+      }
+      if (path.length > 1) break
       if (request.method === 'POST') {
         const parsed = festivalInterestSchema.safeParse(await readBody(request))
         if (!parsed.success) return json({ message: parsed.error.issues[0]?.message ?? 'Check your details.' }, 400)
+        if (payment !== 'confirmed') return json({ message: 'Confirmed award payment is required before festival registration.', payment }, payment === 'unavailable' ? 503 : 409)
         store.festivalInterest = { ...parsed.data, updatedAt: new Date().toISOString() }
+        store.festivalTicket ??= { id: randomUUID(), registeredAt: new Date().toISOString(), emailStatus: 'preview' }
       } else if (request.method !== 'GET') break
       response = json({
         interest: store.festivalInterest ?? null,
-        payment: pickupPaymentState(store.awardPayment),
+        payment,
+        ticket: payment === 'confirmed' ? store.festivalTicket ?? null : null,
       })
       break
     }
