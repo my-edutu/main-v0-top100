@@ -3,6 +3,7 @@ const guidance: Record<string, string> = {
   users: 'Check the account and its current role before changing access. Permissions affect what a person can see and manage.',
   invites: 'Use invitations to help awardees claim their profiles. Check the recipient and cohort before sharing a claim code.',
   awards: 'Prioritise verified paid orders with delivery exceptions. Review addresses and shipping quotes before dispatching.',
+  'award-deliveries': 'Review paid and needs-review delivery rows here. Do not retry payment or booking from the queue; include the delivery reference when escalating.',
   events: 'Review the date, location and audience before publishing or pushing invitations. Sending an invitation contacts members.',
   blog: 'Save your work as a draft while preparing it. Check the preview and publishing status before making a story public.',
   messages: 'Review the sender and request before responding. Cash pledges express intent; they are not confirmed payments.',

@@ -106,6 +106,7 @@ export function buildCheckoutRequest(input: CreateCheckoutInput): BachsCheckoutR
   if (!email.includes('@')) throw new Error('customer email must be valid.')
   const siteUrl = trustedSiteUrl(input)
   const purpose = input.purpose ?? 'afl_award_fee_v1'
+  if (purpose === 'afl_award_delivery_v1' && input.currency !== 'NGN') throw new Error('Delivery checkout must reserve an NGN price.')
   const prices = input.priceMinorByCurrency ?? {
     NGN: awardFee('NGN').amountMinor,
     USD: awardFee('USD').amountMinor,
@@ -117,7 +118,10 @@ export function buildCheckoutRequest(input: CreateCheckoutInput): BachsCheckoutR
   if (input.customer.phoneNumber?.trim()) customer.phone_number = input.customer.phoneNumber.trim()
 
   return {
-    pricing: purpose === 'afl_project100_support_v1' ? {
+    pricing: purpose === 'afl_award_delivery_v1' ? {
+      currency: 'NGN',
+      amount: amountString(input.deliveryAmountMinor ?? 0),
+    } : purpose === 'afl_project100_support_v1' ? {
       currency: input.currency,
       amount: amountString(input.supportAmountMinor ?? 0),
     } : {

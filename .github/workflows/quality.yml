@@ -89,6 +89,14 @@ jobs:
             exit 1
           fi
 
+      - name: Verify separate delivery payment and dispatch invariants
+        id: delivery_migration
+        continue-on-error: true
+        run: |
+          psql -h localhost -U postgres -d postgres -X -v ON_ERROR_STOP=1 \
+            -v migration_path="$PWD/supabase/migrations/20261101112414_award_delivery_orders.sql" \
+            -f supabase/tests/award_delivery_orders.sql
+
       - name: Run tests
         id: tests
         continue-on-error: true
@@ -197,6 +205,10 @@ jobs:
           fi
           if [[ "${{ steps.tests.outcome }}" != "success" ]]; then
             echo "Test gate outcome: ${{ steps.tests.outcome }}" >&2
+            failed=1
+          fi
+          if [[ "${{ steps.delivery_migration.outcome }}" != "success" ]]; then
+            echo "Separate delivery migration gate outcome: ${{ steps.delivery_migration.outcome }}" >&2
             failed=1
           fi
           if [[ "${{ steps.lint_baseline.outcome }}" != "success" ]]; then

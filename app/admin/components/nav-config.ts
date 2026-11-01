@@ -26,6 +26,7 @@ import {
   Bot,
   BriefcaseBusiness,
   ClipboardList,
+  Truck,
   MailOpen,
   type LucideIcon,
 } from 'lucide-react'
@@ -75,6 +76,7 @@ export const navGroups: NavGroup[] = [
     label: 'Africa Future Leaders',
     items: [
       { label: 'Awards', href: '/admin/awards', icon: Trophy },
+      { label: 'Award deliveries', href: '/admin/award-deliveries', icon: Truck },
       { label: 'Project100 Scholarship', href: '/admin/project100-scholarship', icon: GraduationCap },
       { label: 'Events & invitations', href: '/admin/events', icon: Calendar },
       { label: 'Festival interest', href: '/admin/festival', icon: Ticket },

@@ -72,9 +72,11 @@ describe('award payment copy', () => {
 
     expect(success).toContain('/illustrations/award-payment-confirmed.svg')
     expect(success).toContain('View my award')
+    expect(success).toContain('href="/dashboard/me/award/delivery"')
     expect(success).toContain('href="/dashboard/me/award/payment"')
     expect(success).toContain('min-h-[100dvh]')
     expect(options).toContain('bg-[#211C24]')
     expect(options).toContain('text-white')
+    expect(options).toContain('href="/dashboard/me/award/delivery"')
   })
 })

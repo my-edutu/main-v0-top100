@@ -63,7 +63,7 @@ export function AwardPaymentSuccess({ payment }: AwardPaymentSuccessProps) {
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Link
-            href="/dashboard/me/award/address"
+            href="/dashboard/me/award/delivery"
             className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#35C98A] px-6 text-sm font-bold text-[#10251B] transition hover:bg-[#62DDA8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#17151B]"
           >
             Get delivery price

@@ -5,6 +5,7 @@ import { notifyAwardPaymentConfirmed } from '@/lib/awards/payment-notify'
 import { processAwardPaymentReminders } from '@/lib/awards/payment-reminders'
 import { bachsConfig } from '@/lib/payments/bachs/config'
 import { createAdminClient } from '@/lib/supabase/server'
+import { handleDeliveryWebhook } from '@/lib/awards/delivery/webhook'
 
 export const runtime = 'nodejs'
 
@@ -29,6 +30,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const config = bachsConfig()
     const db = createAdminClient()
+    const deliveryStatus = await handleDeliveryWebhook(rawBody, request.headers, db, config)
+    if (deliveryStatus !== null) return NextResponse.json({ received: deliveryStatus === 200 }, { status: deliveryStatus })
     const result = await handleBachsEvent(rawBody, request.headers, {
       db,
       config,

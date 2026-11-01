@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { ArrowLeft, LoaderCircle, MapPin, Truck } from 'lucide-react'
 import Link from 'next/link'
 
@@ -14,6 +14,29 @@ import './delivery-cost.css'
 
 type ServiceCentre = { id: number; name: string; address: string }
 
+/**
+ * The destination fields currently shown by the checker. Keeping this shape
+ * public lets a workflow that owns the quote endpoint add its own required
+ * fields (for example, a recipient and phone number) without re-implementing
+ * the address and service-centre UI.
+ */
+export type DeliveryQuoteDraft = {
+  deliveryMode: DeliveryMode
+  country: string
+  countryCode: string
+  provinceCode: string
+  addressLine1: string
+  addressLine2: string
+  city: string
+  state: string
+  postalCode: string
+  serviceCentreId?: number
+}
+
+type DeliveryQuoteFields =
+  | Record<string, unknown>
+  | ((draft: DeliveryQuoteDraft) => Record<string, unknown>)
+
 function money(amountMinor: number, currency: string) {
   return new Intl.NumberFormat(currency === 'NGN' ? 'en-NG' : 'en', {
     style: 'currency', currency, minimumFractionDigits: 2,
@@ -24,18 +47,48 @@ export function DeliveryCostChecker({
   recipientName,
   backHref,
   backLabel = 'Back to dashboard',
-}: { recipientName?: string; backHref?: string; backLabel?: string }) {
-  const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>('home')
-  const [country, setCountry] = useState('Nigeria')
-  const [provinceCode, setProvinceCode] = useState('')
-  const [addressLine1, setAddressLine1] = useState('')
-  const [addressLine2, setAddressLine2] = useState('')
-  const [city, setCity] = useState('')
-  const [state, setState] = useState('')
-  const [postalCode, setPostalCode] = useState('')
-  const [centres, setCentres] = useState<ServiceCentre[]>([])
-  const [serviceCentreId, setServiceCentreId] = useState('')
-  const [centresLoaded, setCentresLoaded] = useState(false)
+  quoteEndpoint = '/api/member/award/delivery-quote',
+  quoteFields,
+  onQuoted,
+  additionalFields,
+  nigeriaOnly = false,
+  quoteDisclaimer,
+  eyebrow = 'Award delivery',
+  title = 'Check delivery cost',
+  description = 'Delivery within Nigeria or abroad, priced separately from your award fee.',
+  initialDraft,
+}: {
+  recipientName?: string
+  backHref?: string
+  backLabel?: string
+  /** Override the price-only preview endpoint for a workflow that persists a quote. */
+  quoteEndpoint?: string
+  /** Add workflow-specific fields to the checker request without duplicating its form. */
+  quoteFields?: DeliveryQuoteFields
+  /** Receives the server response after a valid quote is returned. */
+  onQuoted?: (quote: DeliveryPreviewQuote, body: Record<string, unknown>) => void
+  /** Optional fields rendered inside the same form, before destination fields. */
+  additionalFields?: ReactNode
+  /** Lock the checker to Nigeria while retaining the existing all-country checker elsewhere. */
+  nigeriaOnly?: boolean
+  quoteDisclaimer?: ReactNode
+  eyebrow?: string
+  title?: string
+  description?: string
+  /** Restore a previously saved destination when the member edits a quote. */
+  initialDraft?: Partial<DeliveryQuoteDraft> & { serviceCentre?: ServiceCentre }
+}) {
+  const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>(initialDraft?.deliveryMode ?? 'home')
+  const [country, setCountry] = useState(initialDraft?.country ?? 'Nigeria')
+  const [provinceCode, setProvinceCode] = useState(initialDraft?.provinceCode ?? '')
+  const [addressLine1, setAddressLine1] = useState(initialDraft?.addressLine1 ?? '')
+  const [addressLine2, setAddressLine2] = useState(initialDraft?.addressLine2 ?? '')
+  const [city, setCity] = useState(initialDraft?.city ?? '')
+  const [state, setState] = useState(initialDraft?.state ?? '')
+  const [postalCode, setPostalCode] = useState(initialDraft?.postalCode ?? '')
+  const [centres, setCentres] = useState<ServiceCentre[]>(initialDraft?.serviceCentre ? [initialDraft.serviceCentre] : [])
+  const [serviceCentreId, setServiceCentreId] = useState(initialDraft?.serviceCentreId ? String(initialDraft.serviceCentreId) : '')
+  const [centresLoaded, setCentresLoaded] = useState(Boolean(initialDraft?.serviceCentre))
   const [centresLoading, setCentresLoading] = useState(false)
   const [centreError, setCentreError] = useState('')
   const [quote, setQuote] = useState<DeliveryPreviewQuote | null>(null)
@@ -45,7 +98,8 @@ export function DeliveryCostChecker({
   const [locationError, setLocationError] = useState<{ countryCode: string; message: string } | null>(null)
   const busy = useRef(false)
   const quoteRef = useRef<HTMLDivElement>(null)
-  const countryCode = deliveryCountry(country)?.code ?? 'NG'
+  const selectedCountry = nigeriaOnly ? 'Nigeria' : country
+  const countryCode = deliveryCountry(selectedCountry)?.code ?? 'NG'
   const domestic = countryCode === 'NG'
   const options = locationData?.countryCode === countryCode ? locationData.options : null
   const locationMessage = locationError?.countryCode === countryCode ? locationError.message : ''
@@ -111,13 +165,27 @@ export function DeliveryCostChecker({
     setError('')
     setQuote(null)
     try {
-      const response = await fetch('/api/member/award/delivery-quote', {
+      const draft: DeliveryQuoteDraft = {
+        deliveryMode,
+        country: selectedCountry,
+        countryCode,
+        provinceCode,
+        addressLine1,
+        addressLine2,
+        city,
+        state,
+        postalCode,
+        ...(deliveryMode === 'service_centre' ? { serviceCentreId: Number(serviceCentreId) } : {}),
+      }
+      const extraFields = typeof quoteFields === 'function' ? quoteFields(draft) : quoteFields ?? {}
+      const response = await fetch(quoteEndpoint, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, cache: 'no-store',
         body: JSON.stringify({
-          deliveryMode, city, state, country, provinceCode,
+          deliveryMode, city, state, country: selectedCountry, countryCode, provinceCode,
           ...(deliveryMode === 'home'
             ? { addressLine1, addressLine2, postalCode }
             : { serviceCentreId: Number(serviceCentreId) }),
+          ...extraFields,
         }),
       })
       const body = await response.json().catch(() => ({}))
@@ -125,7 +193,9 @@ export function DeliveryCostChecker({
       if (!body.quote || !Number.isSafeInteger(body.quote.amountMinor) || body.quote.amountMinor <= 0 || body.quote.currency !== 'NGN') {
         throw new Error('GIG did not return a usable delivery price. Please try again.')
       }
-      setQuote(body.quote as DeliveryPreviewQuote)
+      const nextQuote = body.quote as DeliveryPreviewQuote
+      setQuote(nextQuote)
+      onQuoted?.(nextQuote, body as Record<string, unknown>)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'We could not calculate delivery. Please try again.')
     } finally {
@@ -150,10 +220,10 @@ export function DeliveryCostChecker({
             <Truck className="h-6 w-6" aria-hidden="true" />
           </span>
           <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-[0.16em] text-orange-700">Award delivery</p>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-[#171412] sm:text-3xl">Check delivery cost</h1>
+            <p className="text-xs font-medium uppercase tracking-[0.16em] text-orange-700">{eyebrow}</p>
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[#171412] sm:text-3xl">{title}</h2>
             <p className="delivery-cost-description">
-              Delivery within Nigeria or abroad, priced separately from your award fee.
+              {description}
             </p>
           </div>
         </div>
@@ -161,9 +231,13 @@ export function DeliveryCostChecker({
         <form onSubmit={requestQuote} onChange={() => { setQuote(null); setError('') }} className="mt-7">
           <fieldset disabled={loading || centresLoading} className="min-w-0 space-y-5 disabled:opacity-70">
             <legend className="sr-only">Delivery destination and method</legend>
-            <DeliveryCountry value={country} onChange={(value) => {
+            {!nigeriaOnly ? <DeliveryCountry value={country} onChange={(value) => {
               setCountry(value); setLocationError(null); setState(''); setProvinceCode(''); setCity(''); setAddressLine1(''); setAddressLine2(''); setPostalCode(''); setDeliveryMode('home'); resetCentres()
-            }} />
+            }} /> : <div className="space-y-2">
+              <span className="block text-sm font-medium text-[#292521]">Country</span>
+              <div className="flex min-h-12 items-center rounded-xl border border-stone-300 bg-stone-50 px-3 text-base text-[#171412]">Nigeria</div>
+              <p className="text-xs leading-5 text-stone-600">Online award delivery checkout is currently available within Nigeria.</p>
+            </div>}
             {options?.quoteCountries && <div className="delivery-coverage">
               {quoteUnavailable && <p role="status">GIG automatic pricing is not enabled for {country} on our account. <a href={`mailto:nigeriatop100@gmail.com?subject=${encodeURIComponent(`Award delivery quote to ${country}`)}`}>Contact Top100 for a delivery quote.</a></p>}
               <details><summary>Countries with automatic pricing</summary><p>{options.quoteCountries.map(code => deliveryCountry(code)?.name ?? code).join(', ')}. Rates depend on your exact destination.</p></details>
@@ -188,6 +262,8 @@ export function DeliveryCostChecker({
               <label htmlFor="delivery-recipient" className="text-sm font-medium text-[#292521]">Recipient</label>
               <input id="delivery-recipient" value={recipientName} readOnly className={`${fieldClass} bg-stone-50`} />
             </div> : null}
+
+            {additionalFields}
 
             {deliveryMode === 'home' ? <>
               <div className="space-y-2">
@@ -252,7 +328,7 @@ export function DeliveryCostChecker({
               {loading ? 'Checking delivery cost…' : 'Check delivery cost'}
             </button>}
           </fieldset>
-          <p className="mt-4 text-xs leading-5 text-stone-600">This check does not save your address, take payment or book delivery. Prices can change before delivery is arranged.</p>
+          <p className="mt-4 text-xs leading-5 text-stone-600">{quoteDisclaimer ?? (quoteEndpoint === '/api/member/award/delivery-quote' ? 'This check does not save your address, take payment or book delivery. Prices can change before delivery is arranged.' : 'Your destination is saved with this quote. No payment is taken and delivery is not booked until you confirm payment.')}</p>
         </form>
       </div>
 

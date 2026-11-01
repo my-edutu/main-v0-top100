@@ -42,7 +42,7 @@ export function AwardOptions() {
             </div>
           </div>
           <Link
-            href="/dashboard/me/award/address"
+            href="/dashboard/me/award/delivery"
             className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#FFDF45] px-5 text-sm font-semibold text-[#171412] transition hover:bg-[#FFE66C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[#211C24]"
           >
             Get delivery price

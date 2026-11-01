@@ -9,6 +9,7 @@ type AwardEvidence = {
   currency: 'NGN' | 'USD'
   requestedMinor: number
   grossMinor: number
+  purpose?: 'afl_award_fee_v1' | 'afl_award_delivery_v1'
 }
 
 function record(value: unknown): Record<string, unknown> {
@@ -47,7 +48,7 @@ export async function verifyBachsAwardCheckout(
   const metadata = record(checkout.metadata)
   if (checkout.checkout_id !== evidence.checkoutId || checkout.reference !== evidence.reference ||
       metadata.order_id !== evidence.orderId || metadata.payment_attempt_id !== evidence.attemptId ||
-      metadata.purpose !== 'afl_award_fee_v1' || checkout.currency !== evidence.currency) return null
+      metadata.purpose !== (evidence.purpose ?? 'afl_award_fee_v1') || checkout.currency !== evidence.currency) return null
   try {
     if (typeof checkout.amount !== 'string' || parseBachsAmount(checkout.amount, evidence.currency) !== evidence.requestedMinor) return null
   } catch { return null }

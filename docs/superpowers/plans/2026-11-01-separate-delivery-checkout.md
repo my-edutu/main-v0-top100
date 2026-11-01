@@ -1,0 +1,15 @@
+# Separate delivery checkout and GIG dispatch
+
+User decision: members pay delivery separately from their confirmed award fee.
+
+Use immutable domestic GIG quotes, a dedicated private `award_delivery_orders` table, and purpose `afl_award_delivery_v1`. One row is one immutable delivery price/destination and checkout contract; expired attempts remain in history. Do not reuse award-fee amounts, states, attempts, or legacy combined totals. Online booking supports Nigeria (the existing domestic GIG booking adapter); international estimates remain on the existing price-checker until an international booking contract exists.
+
+Member API: `GET /api/member/award/delivery` returns `{delivery: DeliveryOrderView|null}`. POST saves a fresh server-priced quote with recipient name/phone, existing preview fields and authenticated email. `POST .../delivery/checkout` accepts only `{deliveryId}`; `POST .../delivery/reconcile` verifies the current provider checkout and resumes a confirmed paid booking. Existing signed `/api/webhooks/bachs` routes delivery-purpose events through the separate handler using its existing webhook secret. Every success requires authenticated Bachs checkout evidence matching the exact delivery purpose, checkout, reference, row ID, currency and principal.
+
+Database mutations lock the parent award order. Save/reserve require confirmed award fee and no existing dispatch or active delivery charge. Reservation and checkout recovery reuse the same row/reference/body/idempotency key. Expired provider state must be authenticated before another attempt. Late/conflicting payments go to review rather than overwrite another delivery or dispatch twice. Settlement never marks the award fee paid.
+
+Claim dispatch atomically before invoking GIG. A booking timeout/network failure/uncertain response stays `needs_review`; never automatically book another parcel. Booking uses the exact persisted resolved delivery. A returned waybill is persisted on the delivery row; the legacy combined-payment order totals/status remain unchanged. Notification retries never create bookings.
+
+Shared view: see `lib/awards/delivery/types.ts`. Reuse Top100's existing form and styles. Show paid award fee separately, quoted delivery fee, address, expiry, pending verification and confirmed shipment/waybill. Disable quote edits while a charge is active. Provide a visible error/retry path, retaining form values. Keep the price-only checker available independently.
+
+Tasks: database/RPC migration + SQL invariants; backend quote/checkout/reconciliation/webhook/booking with behavior tests; member UI integration + behavior/browser checks; final review/full tests/typecheck/build; apply additive production migration before release. Use subagent-driven development for the independent database and UI tasks with a fixed shared contract. No real payment, email or shipment is generated during verification.
