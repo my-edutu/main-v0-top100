@@ -305,6 +305,23 @@ describe('gigCourier.quote', () => {
     expect(result.ok && result.shippingKobo).toBe(425_050)
   })
 
+  it.each(['Abuja (FCT)', 'Federal Capital Territory', 'FCT Abuja'])('matches the FCT station for %s', async state => {
+    delete process.env.GIG_RECEIVER_STATION_ID
+    stubFetch(quoteStub({ '/localstations/get': { data: [{ StationId: 3, StationName: 'ABUJA', StationCode: 'ABV', StateName: 'FCT' }] } }))
+    const result = await gigCourier.quote({ ...ADDRESS, state, city: 'Maitama' })
+    expect(result.ok).toBe(true)
+    expect(JSON.parse(String(callsTo('/price/v3')[0].init.body)).ReceiverStationId).toBe(3)
+  })
+
+  it('reports carrier authentication failure without blaming a valid destination', async () => {
+    delete process.env.GIG_RECEIVER_STATION_ID
+    stubFetch(quoteStub({ '/login': json({ message: 'Unauthorized' }, 401) }))
+    const result = await gigCourier.quote(ADDRESS)
+    expect(result).toMatchObject({ ok: false, code: 'carrier_error' })
+    expect(!result.ok && result.reason).not.toContain('match this destination')
+    expect(callsTo('/price/v3')).toHaveLength(0)
+  })
+
   it('falls back to DeliveryPrice when GrandTotal is absent', async () => {
     stubFetch(quoteStub({ '/price/v3': { Object: { DeliveryPrice: 1200 } } }))
 

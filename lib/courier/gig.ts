@@ -220,6 +220,11 @@ function normalizedLocation(value: string): string {
     .trim()
 }
 
+function normalizedState(value: string): string {
+  const state = normalizedLocation(value)
+  return ['abuja', 'abuja fct', 'fct abuja', 'f c t', 'federal capital territory', 'federal capital territory abuja'].includes(state) ? 'fct' : state
+}
+
 function stationFromPayload(value: unknown): GigStation | null {
   if (!value || typeof value !== 'object') return null
   const record = value as Record<string, unknown>
@@ -350,15 +355,20 @@ async function receiverStationId(input: Pick<QuoteInput, 'state' | 'city'>): Pro
   // resolved below.
   const explicit = process.env.GIG_RECEIVER_STATION_ID?.trim()
   if (explicit && /^\d+$/.test(explicit)) return Number(explicit)
-  const state = normalizedLocation(input.state)
+  const state = normalizedState(input.state)
   const city = normalizedLocation(input.city)
   const overrides = envJsonObject('GIG_RECEIVER_STATION_MAP_JSON')
   const override = overrides[`${state}:${city}`] ?? overrides[city]
   if (typeof override === 'number' && Number.isSafeInteger(override) && override > 0) return override
   if (typeof override === 'string' && /^\d+$/.test(override.trim())) return Number(override)
 
-  const stations = await loadStations()
-  const inState = stations.filter((station) => normalizedLocation(station.state) === state)
+  let stations: GigStation[]
+  try { stations = await loadStations() }
+  catch {
+    // A failed carrier login/directory request says nothing about the address.
+    throw new QuoteError('carrier_error', MEMBER_SAFE_CONFIGURATION_FAILURE)
+  }
+  const inState = stations.filter((station) => normalizedState(station.state) === state)
   const exact = inState.filter((station) => {
     const names = [station.name, station.code].map(normalizedLocation).filter(Boolean)
     return names.includes(city)
@@ -488,6 +498,7 @@ async function resolveDelivery(input: DeliveryInput): Promise<ResolvedDelivery> 
   try {
     station = await receiverStationId(input)
   } catch (error) {
+    if (error instanceof QuoteError) throw error
     console.error('[gig] destination station could not be resolved:', (error as Error)?.message ?? error)
     throw new QuoteError('destination_unavailable', MEMBER_SAFE_DESTINATION_FAILURE)
   }
