@@ -1,5 +1,5 @@
 import type { AwardPaymentView } from '@/lib/awards/payment'
-import type { DeliveryOrderView } from './types'
+import type { DeliveryOrderView, IncludedDeliveryView } from './types'
 
 export function deliveryQuoteExpired(delivery: Pick<DeliveryOrderView, 'expiresAt'>, now = Date.now()) {
   const expiresAt = new Date(delivery.expiresAt).getTime()
@@ -18,6 +18,34 @@ export function canPayDelivery(delivery: Pick<DeliveryOrderView, 'status' | 'exp
 /** An open hosted checkout can be resumed; the server re-verifies its status. */
 export function canResumeDelivery(delivery: Pick<DeliveryOrderView, 'status'> | null) {
   return delivery?.status === 'open'
+}
+
+function nullableText(value: unknown, maxLength: number) {
+  if (typeof value !== 'string') return null
+  const result = value.replace(/[\u0000-\u001f\u007f-\u009f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, maxLength)
+  return result || null
+}
+
+/** Parse the additive legacy-delivery response without trusting URL schemes from the browser. */
+export function parseIncludedDelivery(value: unknown): IncludedDeliveryView | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const record = value as Record<string, unknown>
+  const waybill = nullableText(record.waybill, 160)
+  let trackingUrl: string | null = null
+  const rawTrackingUrl = nullableText(record.trackingUrl, 2_048)
+  if (rawTrackingUrl) {
+    try {
+      const url = new URL(rawTrackingUrl)
+      if (url.protocol === 'https:' && !url.username && !url.password) trackingUrl = url.href
+    } catch {
+      trackingUrl = null
+    }
+  }
+  return { waybill, trackingUrl }
+}
+
+export function shouldShowIncludedDelivery(includedDelivery: IncludedDeliveryView | null, delivery: DeliveryOrderView | null) {
+  return Boolean(includedDelivery && !delivery)
 }
 
 export function deliveryCheckoutBody(deliveryId: string) {

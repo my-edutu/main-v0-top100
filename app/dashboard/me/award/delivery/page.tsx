@@ -22,7 +22,7 @@ import { DeliveryCostChecker } from '../../../_components/delivery-cost-checker'
 import { DeliveryPhone } from '../../../_components/delivery-phone'
 import type { AwardPaymentView } from '@/lib/awards/payment'
 import type { DeliveryPreviewQuote } from '@/lib/awards/delivery-preview'
-import type { DeliveryOrderStatus, DeliveryOrderView } from '@/lib/awards/delivery/types'
+import type { DeliveryOrderStatus, DeliveryOrderView, IncludedDeliveryView } from '@/lib/awards/delivery/types'
 import {
   awardDeliveryBill,
   canEditDelivery,
@@ -34,10 +34,12 @@ import {
   deliveryQuoteExpired,
   formatDeliveryAmount,
   isHostedCheckoutUrl,
+  parseIncludedDelivery,
   shouldReconcileDeliveryReturn,
+  shouldShowIncludedDelivery,
 } from '@/lib/awards/delivery/member-ui'
 
-type DeliveryResponse = { delivery: DeliveryOrderView | null }
+type DeliveryResponse = { delivery: DeliveryOrderView | null; includedDelivery?: IncludedDeliveryView | null }
 
 const LOCKED_STATUSES: DeliveryOrderStatus[] = ['creating', 'open', 'paid', 'booking', 'dispatched', 'needs_review']
 
@@ -74,7 +76,7 @@ function statusClasses(status: DeliveryOrderStatus, expired: boolean) {
   return 'border-stone-200 bg-stone-50 text-stone-800'
 }
 
-function DeliveryFeeSummary({ payment, delivery }: { payment: AwardPaymentView; delivery: DeliveryOrderView | null }) {
+function DeliveryFeeSummary({ payment, delivery, deliveryAlreadyIncluded = false }: { payment: AwardPaymentView; delivery: DeliveryOrderView | null; deliveryAlreadyIncluded?: boolean }) {
   const bill = awardDeliveryBill(payment.confirmedPayment, delivery)
   if (!bill.award) return null
   return (
@@ -96,7 +98,28 @@ function DeliveryFeeSummary({ payment, delivery }: { payment: AwardPaymentView; 
           <dd className="font-medium tabular-nums text-[#171412]">{formatDeliveryAmount(bill.delivery.amountMinor, bill.delivery.currency)}</dd>
         </div> : null}
       </dl>
-      <p className="mt-4 text-xs leading-5 text-stone-500">Delivery is a separate charge. Your confirmed award fee is not charged again.</p>
+      <p className="mt-4 text-xs leading-5 text-stone-500">{deliveryAlreadyIncluded ? 'Delivery was included in your previous award payment. No separate delivery charge is due.' : 'Delivery is a separate charge. Your confirmed award fee is not charged again.'}</p>
+    </section>
+  )
+}
+
+function IncludedDeliveryPanel({ delivery }: { delivery: IncludedDeliveryView }) {
+  const hasRecoveryDetails = Boolean(delivery.waybill || delivery.trackingUrl)
+  return (
+    <section aria-labelledby="included-delivery-title" className="rounded-[18px] border border-emerald-200 bg-emerald-50 p-5 sm:p-6">
+      <div className="flex items-start gap-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/80 text-emerald-700">
+          <PackageCheck className="h-5 w-5" aria-hidden="true" />
+        </span>
+        <div className="min-w-0">
+          <p className="text-xs font-medium uppercase tracking-[0.14em] text-emerald-800">Delivery included</p>
+          <h2 id="included-delivery-title" className="mt-1 text-xl font-semibold tracking-tight text-emerald-950">Delivery is already included</h2>
+          <p className="mt-2 text-sm leading-6 text-emerald-950">Your previous award payment covered delivery, so there is no separate delivery charge to pay.</p>
+        </div>
+      </div>
+      {delivery.waybill ? <p className="mt-5 border-t border-emerald-200 pt-4 text-sm leading-6 text-emerald-950"><span className="font-medium">Waybill:</span> <span className="break-all">{delivery.waybill}</span></p> : null}
+      {delivery.trackingUrl ? <a href={delivery.trackingUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex min-h-10 items-center gap-2 text-sm font-medium text-emerald-950 underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700">Track delivery <ExternalLink className="h-4 w-4" aria-hidden="true" /></a> : null}
+      {!hasRecoveryDetails ? <p className="mt-5 border-t border-emerald-200 pt-4 text-sm leading-6 text-emerald-950">Our team will confirm the delivery arrangements for this award. <a href="mailto:info@top100afl.com?subject=Award%20delivery%20arrangements" className="font-medium underline underline-offset-4">Contact the delivery team</a>.</p> : null}
     </section>
   )
 }
@@ -205,6 +228,7 @@ export default function AwardDeliveryPage() {
   const searchParams = useSearchParams()
   const [payment, setPayment] = useState<AwardPaymentView | null>(null)
   const [delivery, setDelivery] = useState<DeliveryOrderView | null>(null)
+  const [includedDelivery, setIncludedDelivery] = useState<IncludedDeliveryView | null>(null)
   const [recipientName, setRecipientName] = useState(member.name)
   const [phone, setPhone] = useState('')
   const [loading, setLoading] = useState(true)
@@ -223,6 +247,7 @@ export default function AwardDeliveryPage() {
     if (!response.ok) throw new Error(readMessage(body, 'Could not load your delivery order.'))
     const nextDelivery = (body as DeliveryResponse).delivery ?? null
     setDelivery(nextDelivery)
+    setIncludedDelivery(parseIncludedDelivery((body as DeliveryResponse).includedDelivery))
     if (nextDelivery) {
       setRecipientName(nextDelivery.recipientName)
       setPhone(nextDelivery.phone)
@@ -351,7 +376,8 @@ export default function AwardDeliveryPage() {
 
   if (!payment || !paymentIsConfirmed(payment)) return <AwardRouteLoading label="Verifying your award payment" />
 
-  const showForm = !delivery || Boolean(delivery && canEditDelivery(delivery, now) && (formOpen || delivery.status === 'expired' || (delivery.status === 'quoted' && deliveryExpired)))
+  const showIncludedDelivery = shouldShowIncludedDelivery(includedDelivery, delivery)
+  const showForm = !showIncludedDelivery && (!delivery || Boolean(delivery && canEditDelivery(delivery, now) && (formOpen || delivery.status === 'expired' || (delivery.status === 'quoted' && deliveryExpired))))
 
   return (
     <section className="min-w-0 max-w-3xl space-y-5 pb-8">
@@ -366,9 +392,11 @@ export default function AwardDeliveryPage() {
 
       {error ? <div role="alert" className="flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm leading-6 text-rose-900"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" /><p>{error}</p></div> : null}
 
-      <DeliveryFeeSummary payment={payment} delivery={delivery} />
+      <DeliveryFeeSummary payment={payment} delivery={delivery} deliveryAlreadyIncluded={showIncludedDelivery} />
 
       {delivery ? <DeliveryStatusPanel delivery={delivery} now={now} checking={checking || checkoutBusy} onPay={() => void startCheckout()} onCheck={() => void reconcileDelivery()} onEdit={() => setFormOpen(true)} /> : null}
+
+      {showIncludedDelivery && includedDelivery ? <IncludedDeliveryPanel delivery={includedDelivery} /> : null}
 
       {showForm ? <DeliveryCostChecker
         quoteEndpoint="/api/member/award/delivery"

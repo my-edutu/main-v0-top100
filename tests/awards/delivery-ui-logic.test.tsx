@@ -11,10 +11,13 @@ import {
   deliveryReconcileRequest,
   formatDeliveryAmount,
   isHostedCheckoutUrl,
+  parseIncludedDelivery,
   shouldReconcileDeliveryReturn,
+  shouldShowIncludedDelivery,
 } from '@/lib/awards/delivery/member-ui'
 import { deliveryRecoveryWaybill, deliveryReviewReason } from '@/lib/awards/delivery/admin-ui'
 import { DeliveryCostChecker } from '@/app/dashboard/_components/delivery-cost-checker'
+import type { DeliveryOrderView } from '@/lib/awards/delivery/types'
 
 const now = Date.parse('2026-11-01T12:00:00.000Z')
 
@@ -127,5 +130,13 @@ describe('separate award delivery UI rules', () => {
     expect(deliveryRecoveryWaybill({ recoveryWaybill: ' WB-42\t' })).toBe('WB-42')
     expect(deliveryRecoveryWaybill({ recoveryWaybill: null })).toBeNull()
     expect(deliveryReviewReason({ reviewReason: 'x'.repeat(1_100) })).toHaveLength(1_000)
+  })
+
+  it('keeps legacy combined delivery separate from the new payment flow', () => {
+    const included = parseIncludedDelivery({ waybill: ' WB-legacy-1 ', trackingUrl: 'https://track.example.test/WB-legacy-1' })
+    expect(included).toEqual({ waybill: 'WB-legacy-1', trackingUrl: 'https://track.example.test/WB-legacy-1' })
+    expect(parseIncludedDelivery({ waybill: null, trackingUrl: 'javascript:alert(1)' })).toEqual({ waybill: null, trackingUrl: null })
+    expect(shouldShowIncludedDelivery(included, null)).toBe(true)
+    expect(shouldShowIncludedDelivery(included, { status: 'quoted' } as DeliveryOrderView)).toBe(false)
   })
 })

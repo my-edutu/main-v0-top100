@@ -23,6 +23,12 @@ export type DeliveryOrderView = {
   paidAt: string | null
 }
 
+/** Legacy combined-payment delivery details returned when no separate order exists. */
+export type IncludedDeliveryView = {
+  waybill: string | null
+  trackingUrl: string | null
+}
+
 /** Private staff queue projection; review metadata is never part of the member view. */
 export type AdminDeliveryOrderView = DeliveryOrderView & {
   memberId: string

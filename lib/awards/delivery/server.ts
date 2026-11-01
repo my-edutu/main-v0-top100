@@ -50,7 +50,11 @@ async function memberRow(memberId: string, db: DeliveryDB): Promise<DeliveryRow 
 }
 export async function readDelivery(memberId: string, db: DeliveryDB = createAdminClient()) {
   const row = await memberRow(memberId, db)
-  return { delivery: row ? deliveryView(row) : null }
+  if (row) return { delivery: deliveryView(row), includedDelivery: null }
+  const { data: order, error } = await db.from('award_orders').select('status,award_payment_status,paid_at,paystack_reference,paystack_status,gig_waybill,gig_tracking_url').eq('profile_id', memberId).order('created_at', { ascending: false }).order('id', { ascending: false }).limit(1).maybeSingle()
+  databaseError(error)
+  const included = order && order.status !== 'cancelled' && order.award_payment_status !== 'refunded' && order.paid_at && order.paystack_reference && ['paid', 'success', 'successful', 'succeeded', 'complete', 'completed', 'accepted'].includes(String(order.paystack_status ?? '').toLowerCase())
+  return { delivery: null, includedDelivery: included ? { waybill: order.gig_waybill || null, trackingUrl: safeUrl(order.gig_tracking_url) } : null }
 }
 async function requirePaidAward(memberId: string) {
   const payment = await getAwardPaymentView(memberId)

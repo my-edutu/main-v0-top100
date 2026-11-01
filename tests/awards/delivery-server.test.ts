@@ -4,7 +4,7 @@ vi.mock('@/lib/awards/payment-server', () => ({ getAwardPaymentView: state.payme
 vi.mock('@/lib/courier', () => ({ getCourier: () => ({ name: 'gig', quote: state.quote, book: state.book }) }))
 vi.mock('@/lib/payments/bachs/settlement', () => ({ verifyBachsAwardCheckout: state.provider }))
 vi.mock('@/lib/payments/bachs/checkout', async original => ({ ...await original<typeof import('@/lib/payments/bachs/checkout')>(), createCheckoutSession: state.create }))
-import { dispatchPaidDelivery, reconcileDeliveryRow, saveDeliveryQuote, startDeliveryCheckout, type DeliveryRow } from '@/lib/awards/delivery/server'
+import { dispatchPaidDelivery, readDelivery, reconcileDeliveryRow, saveDeliveryQuote, startDeliveryCheckout, type DeliveryRow } from '@/lib/awards/delivery/server'
 const id = '3b1ab34c-af79-42de-857c-b56e2aa1aa01'
 const row: DeliveryRow = { id, order_id: 'order-1', member_id: 'member-1', status: 'paid', amount_minor: 513550, currency: 'NGN', expires_at: '2099-01-01T00:00:00Z', reference: 'delivery-reference', checkout_id: 'chk-1', checkout_url: 'https://checkout.bachs.io/c/1', checkout_request: null, checkout_expires_at: '2099-01-01T00:00:00Z', charge_id: 'charge-1', paid_at: '2026-11-01T00:00:00Z', waybill: null, tracking_url: null, quote_input: { recipientName: 'Amara Okafor', phone: '+2348031234567', email: 'member@example.com', deliveryMode: 'home', countryCode: 'NG', country: 'Nigeria', provinceCode: '', addressLine1: '12 Adeola Odeku Street', addressLine2: '', city: 'Victoria Island', state: 'Lagos', postalCode: '' }, resolved_delivery: { mode: 'home', stationId: 4, latitude: 6.4281, longitude: 3.4219, formattedAddress: '12 Adeola Odeku Street, Lagos' } }
 function database(current: DeliveryRow | null = row) {
@@ -21,6 +21,12 @@ beforeEach(() => {
 import { afterEach } from 'vitest'
 afterEach(() => vi.unstubAllEnvs())
 describe('separately paid delivery', () => {
+  it('shows delivery already included for a previously paid combined order', async () => {
+    const db = database(null)
+    db.chain.maybeSingle.mockResolvedValueOnce({ data: null, error: null }).mockResolvedValueOnce({ data: { status: 'paid', paid_at: '2026-01-01T00:00:00Z', paystack_reference: 'legacy-ref', paystack_status: 'success', gig_waybill: 'OLD-WB', gig_tracking_url: 'javascript:bad' }, error: null })
+    expect(await readDelivery('member-1', db)).toEqual({ delivery: null, includedDelivery: { waybill: 'OLD-WB', trackingUrl: null } })
+    expect(state.create).not.toHaveBeenCalled(); expect(state.quote).not.toHaveBeenCalled()
+  })
   it.each(['quoted', 'creating', 'open', 'expired', 'needs_review', 'booking', 'dispatched'] as const)('does not book a %s row', async status => {
     const db = database()
     expect((await dispatchPaidDelivery({ ...row, status }, db)).status).toBe(status)

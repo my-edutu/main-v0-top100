@@ -3,6 +3,7 @@
 --
 --   psql -X -v ON_ERROR_STOP=1 \
 --     -v migration_path="$PWD/supabase/migrations/20261101112414_award_delivery_orders.sql" \
+--     -v followup_migration_path="$PWD/supabase/migrations/20261101121711_reject_legacy_combined_delivery_payment.sql" \
 --     -f supabase/tests/award_delivery_orders.sql
 --
 -- Everything, including the minimal fixture schema and roles, is rolled back.
@@ -73,6 +74,7 @@ grant select, update on public.award_orders to service_role;
 grant select on public.award_payment_attempts to service_role;
 
 \i :migration_path
+\i :followup_migration_path
 
 -- Service-role RPCs need only the minimal fixture privileges.  The migration
 -- deliberately grants no table/function access to anon or authenticated.
@@ -85,18 +87,20 @@ insert into public.profiles(id, email) values
   ('00000000-0000-0000-0000-000000000002', 'member.two@example.test'),
   ('00000000-0000-0000-0000-000000000003', 'member.three@example.test'),
   ('00000000-0000-0000-0000-000000000004', 'member.four@example.test'),
-  ('00000000-0000-0000-0000-000000000005', 'member.five@example.test');
+  ('00000000-0000-0000-0000-000000000005', 'member.five@example.test'),
+  ('00000000-0000-0000-0000-000000000006', 'member.six@example.test');
 
 insert into public.award_orders(
   id, profile_id, status, award_payment_status, award_paid_at,
   award_amount_kobo, total_amount_kobo, currency, gig_waybill,
   paystack_reference, paid_at
 ) values
-  ('10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', 'paid', 'paid', now(), 2500000, 3000000, 'NGN', null, 'legacy-ref-1', now()),
-  ('10000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000002', 'paid', 'paid', now(), 2500000, 2500000, 'NGN', null, 'legacy-ref-2', now()),
+  ('10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', 'paid', 'paid', now(), 2500000, 3000000, 'NGN', null, null, null),
+  ('10000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000002', 'paid', 'paid', now(), 2500000, 2500000, 'NGN', null, null, null),
   ('10000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000003', 'paid', 'paid', now(), 2500000, 2500000, 'NGN', null, null, null),
-  ('10000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000004', 'paid', 'paid', now(), 2500000, 2500000, 'NGN', null, 'legacy-ref-4', now()),
-  ('10000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000005', 'paid', 'paid', now(), 2500000, 2500000, 'NGN', null, 'legacy-ref-5', now());
+  ('10000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000004', 'paid', 'paid', now(), 2500000, 2500000, 'NGN', null, null, null),
+  ('10000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000005', 'paid', 'paid', now(), 2500000, 2500000, 'NGN', null, null, null),
+  ('10000000-0000-0000-0000-000000000006', '00000000-0000-0000-0000-000000000006', 'paid', 'paid', now(), 2500000, 3000000, 'NGN', null, 'legacy-ref-6', now());
 
 insert into public.award_payment_attempts(
   id, order_id, provider, charge_scope, status,
@@ -104,17 +108,21 @@ insert into public.award_payment_attempts(
 ) values
   ('30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'bachs', 'award_fee', 'succeeded', 2500000, 2500000, 'NGN', now()),
   ('30000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000002', 'bachs', 'award_fee', 'succeeded', 2500000, 2500000, 'NGN', now()),
-  ('30000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000004', 'bachs', 'award_fee', 'succeeded', 2500000, 2500000, 'NGN', now());
+  ('30000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000004', 'bachs', 'award_fee', 'succeeded', 2500000, 2500000, 'NGN', now()),
+  ('30000000-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000005', 'bachs', 'award_fee', 'succeeded', 2500000, 2500000, 'NGN', now()),
+  ('30000000-0000-0000-0000-000000000006', '10000000-0000-0000-0000-000000000006', 'bachs', 'award_fee', 'succeeded', 2500000, 2500000, 'NGN', now());
 
 update public.award_orders
 set paystack_status = 'success'
-where id = '10000000-0000-0000-0000-000000000005';
+where id = '10000000-0000-0000-0000-000000000006';
 
 update public.award_orders
 set award_paid_attempt_id = case id
   when '10000000-0000-0000-0000-000000000001' then '30000000-0000-0000-0000-000000000001'::uuid
   when '10000000-0000-0000-0000-000000000002' then '30000000-0000-0000-0000-000000000002'::uuid
   when '10000000-0000-0000-0000-000000000004' then '30000000-0000-0000-0000-000000000004'::uuid
+  when '10000000-0000-0000-0000-000000000005' then '30000000-0000-0000-0000-000000000005'::uuid
+  when '10000000-0000-0000-0000-000000000006' then '30000000-0000-0000-0000-000000000006'::uuid
   else null
 end;
 
@@ -190,14 +198,17 @@ begin
   perform assert_true((v_quote->'quote_input'->>'email') = 'member@one.example', 'quote email comes from the profile, not input');
   perform assert_true(((v_quote->>'expires_at')::timestamptz > now() + interval '14 minutes'), 'quote expiry defaults to fifteen minutes');
 
-  v_row := public.save_award_delivery_quote(
-    '00000000-0000-0000-0000-000000000005',
-    '{"recipientName":"Legacy Member","phone":"08000000005"}'::jsonb,
-    '{"recipientName":"Legacy Member","phone":"08000000005","addressLine1":"8 Example Street","city":"Lagos","state":"Lagos","country":"Nigeria"}'::jsonb,
-    1000,
-    '{"provider":"legacy-test"}'::jsonb
+  -- Legacy Paystack charged award plus delivery together.  Even with a stray
+  -- canonical Bachs award_fee attempt attached later, it must not become a
+  -- separately chargeable delivery parent before a waybill exists.
+  perform assert_true(
+    not public.award_delivery_order_is_paid((select o from public.award_orders o where o.id = '10000000-0000-0000-0000-000000000006')),
+    'paid legacy combined order is not eligible for a separate delivery charge'
   );
-  perform assert_true(v_row->>'status' = 'quoted', 'legacy signed Paystack evidence remains a valid paid guard');
+  perform assert_raises(
+    $q$select public.save_award_delivery_quote('00000000-0000-0000-0000-000000000006','{"recipientName":"Legacy Member","phone":"08000000006"}'::jsonb,'{"recipientName":"Legacy Member","phone":"08000000006","addressLine1":"8 Example Street","city":"Lagos","state":"Lagos","country":"Nigeria"}'::jsonb,1000,'{"provider":"legacy-test"}'::jsonb)$q$,
+    'confirmed'
+  );
 
   perform assert_raises(
     format('select public.reserve_award_delivery_checkout(%L::uuid,%L::uuid)', '00000000-0000-0000-0000-000000000002', v_quote_id),
@@ -516,7 +527,7 @@ begin
     1000, now() + interval '10 minutes', 'paid'
   );
   v_row := public.claim_award_delivery_dispatch(v_finish_conflict_id);
-  perform assert_true(v_row->>'status' = 'booking', 'legacy-paid delivery can be claimed before refund');
+  perform assert_true(v_row->>'status' = 'booking', 'canonical-paid delivery can be claimed before refund');
   update public.award_orders
   set award_payment_status = 'refunded'
   where id = '10000000-0000-0000-0000-000000000005';

@@ -95,6 +95,7 @@ jobs:
         run: |
           psql -h localhost -U postgres -d postgres -X -v ON_ERROR_STOP=1 \
             -v migration_path="$PWD/supabase/migrations/20261101112414_award_delivery_orders.sql" \
+            -v followup_migration_path="$PWD/supabase/migrations/20261101121711_reject_legacy_combined_delivery_payment.sql" \
             -f supabase/tests/award_delivery_orders.sql
 
       - name: Run tests
