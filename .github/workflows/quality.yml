@@ -187,6 +187,8 @@ jobs:
       - name: Build
         id: build
         continue-on-error: true
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://supabase.top100afl.com
         run: npm run build
 
       - name: Enforce quality gates
