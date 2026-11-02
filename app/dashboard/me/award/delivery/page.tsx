@@ -23,6 +23,7 @@ import { DeliveryPhone } from '../../../_components/delivery-phone'
 import type { AwardPaymentView } from '@/lib/awards/payment'
 import type { DeliveryPreviewQuote } from '@/lib/awards/delivery-preview'
 import type { DeliveryOrderStatus, DeliveryOrderView, IncludedDeliveryView } from '@/lib/awards/delivery/types'
+import { BACHS_DELIVERY_PAYMENT_LINK } from '@/lib/payments/bachs/payment-links'
 import {
   awardDeliveryBill,
   canEditDelivery,
@@ -30,6 +31,7 @@ import {
   canResumeDelivery,
   deliveryCheckoutBody,
   deliveryDestinationLabel,
+  deliveryPaymentWarning,
   deliveryReconcileRequest,
   deliveryQuoteExpired,
   formatDeliveryAmount,
@@ -186,7 +188,7 @@ function DeliveryStatusPanel({
           </span>
           <div className="min-w-0">
             <p className="text-xs font-medium uppercase tracking-[0.14em] text-stone-500">Delivery order</p>
-            <h2 id="delivery-status-title" className="mt-1 break-words text-xl font-semibold tracking-tight text-[#171412]">{status === 'dispatched' ? 'Your award is on its way' : status === 'needs_review' ? 'We are reviewing this delivery' : status === 'paid' || status === 'booking' ? 'Delivery payment received' : 'Your delivery quote'}</h2>
+            <h2 id="delivery-status-title" className="mt-1 break-words text-xl font-semibold tracking-tight text-[#171412]">{status === 'dispatched' ? 'Your award is on its way' : status === 'needs_review' ? 'We are reviewing this delivery' : status === 'paid' || status === 'booking' ? 'Delivery payment received' : status === 'open' ? 'Delivery payment link ready' : 'Your delivery quote'}</h2>
           </div>
         </div>
         <span className={`inline-flex min-h-8 items-center rounded-full border px-3 text-xs font-medium ${statusClasses(status, expired)}`}>{statusLabel(status, expired)}</span>
@@ -206,7 +208,8 @@ function DeliveryStatusPanel({
 
       {status === 'quoted' && !expired ? <p className="mt-4 rounded-xl bg-stone-50 px-4 py-3 text-sm leading-6 text-stone-700">Review the saved destination below, then pay the delivery fee when you are ready.</p> : null}
       {status === 'expired' || (status === 'quoted' && quoteExpired) ? <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950">This quote is kept for your records but cannot be paid. Requesting a new quote will create a fresh delivery price.</p> : null}
-      {(status === 'creating' || status === 'open') ? <div className="mt-5 rounded-xl border border-sky-200 bg-sky-50 px-4 py-4 text-sm leading-6 text-sky-950"><p className="font-medium">Your delivery payment is still being verified.</p><p className="mt-1">We will only continue once the payment provider confirms this exact delivery order. You can check again below.</p></div> : null}
+      {(status === 'creating' || status === 'open') && delivery.paymentMode === 'external_link' ? <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm leading-6 text-amber-950"><p className="font-medium">Delivery payment is not confirmed automatically.</p><p className="mt-1">After paying the exact quoted amount, contact <a href="mailto:info@top100afl.com?subject=Delivery%20payment%20verification" className="font-medium underline underline-offset-4">Top100 support</a> with your Bachs transaction reference and delivery ID <span className="font-medium">{delivery.id}</span>. We will verify the payment before booking.</p></div> : null}
+      {(status === 'creating' || status === 'open') && delivery.paymentMode !== 'external_link' ? <div className="mt-5 rounded-xl border border-sky-200 bg-sky-50 px-4 py-4 text-sm leading-6 text-sky-950"><p className="font-medium">Your delivery payment is still being verified.</p><p className="mt-1">We will only continue once the payment provider confirms this exact delivery order. You can check again below.</p></div> : null}
       {(status === 'paid' || status === 'booking') ? <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm leading-6 text-emerald-950"><p className="font-medium">Payment received — your shipment is being prepared.</p><p className="mt-1">No further payment is needed. We will show the waybill here once the courier booking is confirmed.</p></div> : null}
       {status === 'dispatched' ? <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm leading-6 text-emerald-950"><p className="font-medium">Your award has been dispatched.</p>{delivery.waybill ? <p className="mt-2 break-words">Waybill: <span className="font-medium">{delivery.waybill}</span></p> : <p className="mt-2">Waybill details are being updated.</p>}{delivery.trackingUrl ? <a href={delivery.trackingUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex min-h-10 items-center gap-2 font-medium underline underline-offset-4">Track delivery <ExternalLink className="h-4 w-4" aria-hidden="true" /></a> : null}</div> : null}
       {status === 'needs_review' ? <div className="mt-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-4 text-sm leading-6 text-rose-950"><p className="font-medium">Our delivery team needs to review this payment or booking.</p><p className="mt-1">Please do not pay again. Contact <a href="mailto:info@top100afl.com?subject=Award%20delivery%20review" className="font-medium underline underline-offset-4">Top100 support</a> and include reference <span className="font-medium">{delivery.id}</span>.</p></div> : null}
@@ -341,6 +344,11 @@ export default function AwardDeliveryPage() {
       if (!response.ok) throw new Error(readMessage(body, 'Could not open delivery payment. Please try again.'))
       if (typeof body.checkoutUrl === 'string' && body.checkoutUrl) {
         if (!isHostedCheckoutUrl(body.checkoutUrl)) throw new Error('The secure payment link was not valid. Please refresh and try again.')
+        if (body.checkoutMode === 'external_link' || body.checkoutUrl === BACHS_DELIVERY_PAYMENT_LINK) {
+          const serverAmountMinor = typeof body.amountMinor === 'number' && Number.isSafeInteger(body.amountMinor) && body.amountMinor > 0 ? body.amountMinor : delivery.amountMinor
+          const accepted = window.confirm(deliveryPaymentWarning({ amountMinor: serverAmountMinor, email: member.email, deliveryId: delivery.id }))
+          if (!accepted) return
+        }
         window.location.assign(body.checkoutUrl)
         return
       }

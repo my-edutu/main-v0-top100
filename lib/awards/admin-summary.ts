@@ -72,6 +72,13 @@ export function hasPaymentException(order: AdminAwardSummaryOrder): boolean {
     ))
 }
 
+/** Current recovery queue; historical failures remain visible inside the order. */
+export function hasUnresolvedPaymentException(order: AdminAwardSummaryOrder): boolean {
+  if (order.awardPaymentVerified ?? hasVerifiedAwardPayment(order)) return false
+  const current = order.payment ?? order.paymentAttempts?.[0]
+  return current ? hasPaymentException({ payment: current }) : false
+}
+
 export function buildAdminAwardSummary(orders: AdminAwardSummaryOrder[], paymentDataAvailable = true): AdminAwardSummary {
   if (!paymentDataAvailable) {
     return {
@@ -90,7 +97,7 @@ export function buildAdminAwardSummary(orders: AdminAwardSummaryOrder[], payment
     summary.totalOrders += 1
     if (paymentVerified) summary.confirmedPayments = (summary.confirmedPayments ?? 0) + 1
     if (paymentVerified && order.status === 'paid' && !order.waybill) summary.dispatchNeeded = (summary.dispatchNeeded ?? 0) + 1
-    if (hasPaymentException(order)) summary.paymentExceptions = (summary.paymentExceptions ?? 0) + 1
+    if (hasUnresolvedPaymentException(order)) summary.paymentExceptions = (summary.paymentExceptions ?? 0) + 1
     if (order.status === 'quote_failed') summary.quoteFailures += 1
     if (['dispatched', 'in_transit', 'delivered'].includes(order.status ?? '')) summary.inDelivery += 1
     return summary

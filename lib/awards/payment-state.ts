@@ -12,14 +12,19 @@ type PaymentOrder = {
 }
 export type PaymentAttemptRow = {
   id: string
+  provider?: string | null
+  charge_scope?: string | null
   status: string
   currency?: string
-  requested_amount_minor?: number
-  captured_amount_minor?: number | null
+  requested_amount_minor?: number | string
+  captured_amount_minor?: number | string | null
   checkout_expires_at?: string | null
   confirmed_at?: string | null
 }
 const LEGACY_PAID = ['paid', 'dispatched', 'in_transit', 'delivered']
+const PAYSTACK_SUCCESS_STATUSES = new Set([
+  'paid', 'success', 'successful', 'succeeded', 'complete', 'completed', 'accepted',
+])
 const LEGACY_TERMINAL_FAILURES = new Set([
   'failed',
   'expired',
@@ -37,49 +42,68 @@ export function parseCheckoutCurrency(body: unknown): AwardPaymentCurrency {
   return record.currency as AwardPaymentCurrency
 }
 
+function validTimestamp(value: string | null | undefined): string | null {
+  if (typeof value !== 'string' || !value.trim() || !Number.isFinite(Date.parse(value))) return null
+  return value
+}
+
+function validExactAmount(attempt: PaymentAttemptRow): boolean {
+  const requested = Number(attempt.requested_amount_minor)
+  const captured = Number(attempt.captured_amount_minor)
+  return Number.isSafeInteger(requested) && requested > 0 && Number.isSafeInteger(captured) && captured === requested
+}
+
+function isCanonicalAwardSuccess(order: PaymentOrder | null, attempts: PaymentAttemptRow[]) {
+  const attemptId = order?.award_paid_attempt_id
+  if (!attemptId) return null
+  const attempt = attempts.find(candidate => candidate.id === attemptId)
+  if (!attempt || attempt.provider?.trim().toLowerCase() !== 'bachs' || attempt.charge_scope?.trim().toLowerCase() !== 'award_fee' || attempt.status.trim().toLowerCase() !== 'succeeded' || !validTimestamp(attempt.confirmed_at) || !validExactAmount(attempt)) return null
+  if (attempt.currency !== 'NGN' && attempt.currency !== 'USD') return null
+  return attempt
+}
+
 export function mapPaymentView(
   order: PaymentOrder | null,
   attempts: PaymentAttemptRow[],
   priceOptions: AwardPaymentView['priceOptions'],
 ): AwardPaymentView {
   const summaryStatus = order?.award_payment_status
-  const legacyPaid = LEGACY_PAID.includes(order?.status ?? '')
+  const canonicalPaid = isCanonicalAwardSuccess(order, attempts)
+  const legacyReference = order?.paystack_reference?.trim() ?? ''
   const legacyProviderStatus = order?.paystack_status?.trim().toLowerCase() ?? ''
+  const legacyPaid = Boolean(
+    legacyReference &&
+      order?.status !== 'cancelled' &&
+      validTimestamp(order?.paid_at) &&
+      PAYSTACK_SUCCESS_STATUSES.has(legacyProviderStatus),
+  )
   const legacyFailed = Boolean(
-    order?.paystack_reference && LEGACY_TERMINAL_FAILURES.has(legacyProviderStatus),
+    legacyReference && LEGACY_TERMINAL_FAILURES.has(legacyProviderStatus),
   )
   const legacyPending = Boolean(
-    order?.paystack_reference &&
-      order.status !== 'cancelled' &&
+    legacyReference &&
+      order?.status !== 'cancelled' &&
       !legacyPaid &&
-      !legacyFailed &&
-      (!summaryStatus || summaryStatus === 'unpaid'),
+      !legacyFailed,
   )
+  const suspiciousPaidFlag = LEGACY_PAID.includes(order?.status ?? '') || summaryStatus === 'paid'
   const status = summaryStatus === 'refunded'
     ? 'refunded'
-    : summaryStatus === 'paid'
+    : canonicalPaid || legacyPaid
       ? 'paid'
-      : summaryStatus === 'pending'
-        ? 'pending'
-        : summaryStatus === 'failed'
-          ? 'failed'
-          : legacyPaid
-            ? 'paid'
-            : legacyFailed
-              ? 'failed'
-              : legacyPending
-                ? 'pending'
-                : summaryStatus ?? 'unpaid'
-  const paid = attempts.find(a => a.id === order?.award_paid_attempt_id)
-    ?? attempts.find(a => a.status === 'succeeded')
+      : summaryStatus === 'failed' || legacyFailed
+        ? 'failed'
+        : summaryStatus === 'pending' || legacyPending || suspiciousPaidFlag
+          ? 'pending'
+          : summaryStatus ?? 'unpaid'
   const latest = attempts[0]
-  const confirmedPayment: AwardPaymentView['confirmedPayment'] = status !== 'paid' ? null : paid ? {
-    currency: paid.currency as AwardPaymentCurrency,
-    amountMinor: Number(paid.captured_amount_minor ?? paid.requested_amount_minor),
-    paidAt: paid.confirmed_at ?? order?.award_paid_at ?? order?.paid_at ?? '',
+  const confirmedPayment: AwardPaymentView['confirmedPayment'] = status !== 'paid' ? null : canonicalPaid ? {
+    currency: canonicalPaid.currency as AwardPaymentCurrency,
+    amountMinor: Number(canonicalPaid.captured_amount_minor),
+    paidAt: validTimestamp(canonicalPaid.confirmed_at) ?? '',
   } : legacyPaid ? {
     currency: 'NGN', amountMinor: order?.award_amount_kobo ?? 0,
-    paidAt: order?.award_paid_at ?? order?.paid_at ?? '',
+    paidAt: validTimestamp(order?.paid_at) ?? validTimestamp(order?.award_paid_at) ?? '',
   } : null
   return {
     status, priceOptions, confirmedPayment, needsPayment: status !== 'paid',

@@ -8,6 +8,7 @@ import {
   canResumeDelivery,
   deliveryCheckoutBody,
   deliveryDestinationLabel,
+  deliveryPaymentWarning,
   deliveryReconcileRequest,
   formatDeliveryAmount,
   isHostedCheckoutUrl,
@@ -84,6 +85,16 @@ describe('separate award delivery UI rules', () => {
     expect(isHostedCheckoutUrl('http://checkout.example.test/session/123')).toBe(false)
     expect(isHostedCheckoutUrl('javascript:alert(1)')).toBe(false)
     expect(isHostedCheckoutUrl(null)).toBe(false)
+  })
+
+  it('spells out the exact decimal and kobo amount before a static-link redirect', () => {
+    const warning = deliveryPaymentWarning({ amountMinor: 513550, email: 'member@example.com', deliveryId: 'delivery-123' })
+    expect(warning).toContain('5135.50 NGN')
+    expect(warning).toContain('₦5,135.50')
+    expect(warning).toContain('513,550 kobo')
+    expect(warning).toContain('member@example.com')
+    expect(warning).toContain('delivery-123')
+    expect(warning.toLowerCase()).toContain('transaction reference')
   })
 
   it('preserves kobo in displayed GIG delivery quotes', () => {

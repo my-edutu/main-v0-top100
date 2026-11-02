@@ -25,6 +25,12 @@ it('fails without falling back to another provider when Brevo SMTP is required b
 it('reports recipient rejection without claiming a successful send or trying another provider', async () => {
   smtp.send.mockResolvedValue({ accepted: [], rejected: ['member@example.com'] })
   const fetcher = vi.fn(); vi.stubGlobal('fetch', fetcher)
-  expect((await sendTransactionalEmail(input)).ok).toBe(false)
+  expect(await sendTransactionalEmail(input)).toMatchObject({ ok: false, delivery: 'not_sent' })
   expect(fetcher).not.toHaveBeenCalled()
+})
+it('distinguishes a definite SMTP rejection from an uncertain transport timeout', async () => {
+  smtp.send.mockRejectedValueOnce({ code: 'EENVELOPE', responseCode: 550 })
+  expect(await sendTransactionalEmail(input)).toMatchObject({ ok: false, delivery: 'not_sent' })
+  smtp.send.mockRejectedValueOnce({ code: 'ETIMEDOUT' })
+  expect(await sendTransactionalEmail(input)).toMatchObject({ ok: false, delivery: 'unknown' })
 })

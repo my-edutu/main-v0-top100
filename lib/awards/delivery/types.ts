@@ -21,6 +21,7 @@ export type DeliveryOrderView = {
   waybill: string | null
   trackingUrl: string | null
   paidAt: string | null
+  paymentMode?: 'provider' | 'external_link'
 }
 
 /** Legacy combined-payment delivery details returned when no separate order exists. */

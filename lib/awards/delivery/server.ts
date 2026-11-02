@@ -5,6 +5,7 @@ import { isNigerianCoordinate } from '@/lib/geocoding/geoapify'
 import { bachsConfig } from '@/lib/payments/bachs/config'
 import { buildCheckoutRequest, createCheckoutSession, isDefinitiveNoSessionError } from '@/lib/payments/bachs/checkout'
 import { verifyBachsAwardCheckout } from '@/lib/payments/bachs/settlement'
+import { BACHS_DELIVERY_PAYMENT_LINK } from '@/lib/payments/bachs/payment-links'
 import type { CreateCheckoutInput } from '@/lib/payments/bachs/types'
 import type { ResolvedDelivery } from '@/lib/courier/types'
 import { parseDeliveryQuoteInput, type DeliveryQuoteInput } from './schema'
@@ -18,7 +19,20 @@ export type DeliveryRow = {
   resolved_delivery: ResolvedDelivery; amount_minor: number; currency: 'NGN'; expires_at: string
   status: DeliveryOrderStatus; reference: string; checkout_id: string | null; checkout_url: string | null
   checkout_expires_at: string | null; checkout_request: string | null; charge_id: string | null
+  payment_evidence?: Record<string, unknown> | null
   paid_at: string | null; waybill: string | null; tracking_url: string | null
+}
+export const EXTERNAL_DELIVERY_CHECKOUT_KIND = 'external_payment_link' as const
+// The public Bachs link accepts whole-naira amounts from ₦1 to ₦1,000,000.
+// Delivery quotes are stored in kobo, so keep the guard in the same unit.
+const EXTERNAL_DELIVERY_MIN_MINOR = 100
+const EXTERNAL_DELIVERY_MAX_MINOR = 100_000_000
+type ExternalDeliveryCheckoutMarker = {
+  kind: typeof EXTERNAL_DELIVERY_CHECKOUT_KIND
+  version: 1
+  provider: 'bachs'
+  checkout_url: typeof BACHS_DELIVERY_PAYMENT_LINK
+  purpose: typeof DELIVERY_PURPOSE
 }
 export class DeliveryError extends Error {
   constructor(public status: number, message: string) { super(message) }
@@ -26,15 +40,52 @@ export class DeliveryError extends Error {
 function safeUrl(value: string | null): string | null {
   try { const url = new URL(value ?? ''); return url.protocol === 'https:' && !url.username && !url.password ? url.href : null } catch { return null }
 }
+export function buildExternalDeliveryCheckoutRequest(): string {
+  const marker: ExternalDeliveryCheckoutMarker = {
+    kind: EXTERNAL_DELIVERY_CHECKOUT_KIND,
+    version: 1,
+    provider: 'bachs',
+    checkout_url: BACHS_DELIVERY_PAYMENT_LINK,
+    purpose: DELIVERY_PURPOSE,
+  }
+  return JSON.stringify(marker)
+}
+export function isExternalDeliveryCheckout(row: Pick<DeliveryRow, 'checkout_url' | 'checkout_request'>): boolean {
+  if (row.checkout_url !== BACHS_DELIVERY_PAYMENT_LINK || typeof row.checkout_request !== 'string') return false
+  try {
+    const marker = JSON.parse(row.checkout_request) as Partial<ExternalDeliveryCheckoutMarker>
+    return marker.kind === EXTERNAL_DELIVERY_CHECKOUT_KIND && marker.version === 1 && marker.provider === 'bachs' && marker.checkout_url === BACHS_DELIVERY_PAYMENT_LINK && marker.purpose === DELIVERY_PURPOSE
+  } catch {
+    return false
+  }
+}
+export function hasDeliveryPaymentEvidence(row: Pick<DeliveryRow, 'amount_minor' | 'checkout_id' | 'reference' | 'charge_id' | 'paid_at' | 'payment_evidence'>): boolean {
+  const evidence = row.payment_evidence
+  if (!row.checkout_id || !row.charge_id || !row.paid_at || !Number.isFinite(Date.parse(row.paid_at)) || !evidence || typeof evidence !== 'object' || Array.isArray(evidence)) return false
+  return evidence.status === 'paid' && evidence.purpose === DELIVERY_PURPOSE && evidence.checkout_id === row.checkout_id && evidence.reference === row.reference && evidence.charge_id === row.charge_id && Number(evidence.amount_minor) === Number(row.amount_minor)
+}
+function validateExternalDeliveryAmount(row: Pick<DeliveryRow, 'amount_minor'>) {
+  const amountMinor = Number(row.amount_minor)
+  if (!Number.isSafeInteger(amountMinor) || amountMinor < EXTERNAL_DELIVERY_MIN_MINOR || amountMinor > EXTERNAL_DELIVERY_MAX_MINOR)
+    throw new DeliveryError(422, 'This delivery quote is outside the public payment link range of ₦1 to ₦1,000,000. Please request a new quote.')
+}
 export function deliveryView(row: DeliveryRow): DeliveryOrderView {
   const input = row.quote_input
+  const externalCheckout = isExternalDeliveryCheckout(row)
+  const deliveryPaymentEvidence = hasDeliveryPaymentEvidence(row)
+  const status: DeliveryOrderStatus = row.status === 'creating' && externalCheckout
+    ? 'open'
+    : ['paid', 'booking', 'dispatched'].includes(row.status) && !deliveryPaymentEvidence
+      ? 'needs_review'
+      : row.status
   return {
-    id: row.id, status: row.status, amountMinor: Number(row.amount_minor), currency: row.currency, expiresAt: row.expires_at,
+    id: row.id, status, amountMinor: Number(row.amount_minor), currency: row.currency, expiresAt: row.expires_at,
     recipientName: input.recipientName, phone: input.phone, addressLine1: input.addressLine1, addressLine2: input.addressLine2 ?? '',
     city: input.city, state: input.state, country: input.country, postalCode: input.postalCode ?? '',
     deliveryMode: row.resolved_delivery.mode, serviceCentreId: row.resolved_delivery.serviceCentreId,
     destination: row.resolved_delivery.formattedAddress || [input.addressLine1, input.city, input.state, input.country].filter(Boolean).join(', '),
-    waybill: row.waybill, trackingUrl: safeUrl(row.tracking_url), paidAt: row.paid_at,
+    waybill: row.waybill, trackingUrl: safeUrl(row.tracking_url), paidAt: deliveryPaymentEvidence ? row.paid_at : null,
+    paymentMode: externalCheckout ? 'external_link' : row.checkout_id ? 'provider' : undefined,
   }
 }
 function databaseError(error: { code?: string } | null) {
@@ -96,22 +147,59 @@ function verifiedCheckoutUrl(row: DeliveryRow) {
   if (!url || !bachsConfig().checkoutHosts.has(new URL(url).hostname)) throw new DeliveryError(503, 'The delivery payment link is unavailable. Check payment status before trying again.')
   return url
 }
+async function persistExternalDeliveryCheckout(row: DeliveryRow, db: DeliveryDB): Promise<DeliveryRow> {
+  const marker = buildExternalDeliveryCheckoutRequest()
+  const saved = await db.from('award_delivery_orders')
+    .update({ checkout_request: marker, checkout_url: BACHS_DELIVERY_PAYMENT_LINK })
+    .eq('id', row.id)
+    .eq('status', 'creating')
+    .is('checkout_request', null)
+    .is('checkout_url', null)
+    .select('*')
+    .maybeSingle()
+  databaseError(saved.error)
+  if (saved.data && isExternalDeliveryCheckout(saved.data)) return saved.data as DeliveryRow
+
+  // Another request may have won the first-write race. Preserve whichever
+  // immutable checkout it recorded; never replace an uncertain API request.
+  const again = await db.from('award_delivery_orders').select('*').eq('id', row.id).eq('member_id', row.member_id).maybeSingle()
+  databaseError(again.error)
+  if (again.data && (isExternalDeliveryCheckout(again.data) || again.data.checkout_request)) return again.data as DeliveryRow
+  throw new DeliveryError(503, 'Delivery checkout is being prepared. Check again shortly.')
+}
 export async function startDeliveryCheckout(memberId: string, deliveryId: string, db: DeliveryDB = createAdminClient()) {
   if (process.env.AWARD_DELIVERY_CHECKOUT_ENABLED !== 'true') throw new DeliveryError(503, 'Delivery payment is temporarily unavailable. Please try again shortly.')
-  const config = bachsConfig()
-  if (!config.awardWebhookSecret || !config.organizationId) throw new DeliveryError(503, 'Delivery payment confirmation is not configured.')
   if (getCourier().name !== 'gig' || !process.env.GIG_SENDER_NAME?.trim() || !process.env.GIG_SENDER_PHONE?.trim() || !process.env.GIG_SENDER_ADDRESS?.trim())
     throw new DeliveryError(503, 'Courier pickup is temporarily unavailable. Please try again before paying.')
   await requirePaidAward(memberId)
   const reserved = await rpc(db, 'reserve_award_delivery_checkout', { p_member: memberId, p_delivery_id: deliveryId })
   if (!reserved || reserved.member_id !== memberId) throw new DeliveryError(404, 'Delivery quote not found.')
   let row: DeliveryRow = reserved
-  if (row.status === 'open' && row.checkout_id) {
+  if (row.checkout_id) {
+    const config = bachsConfig()
+    if (!config.awardWebhookSecret || !config.organizationId) throw new DeliveryError(503, 'Delivery payment confirmation is not configured.')
     row = await reconcileDeliveryRow(row, db)
     if (row.status !== 'open') return { status: row.status }
     return { checkoutUrl: verifiedCheckoutUrl(row), status: row.status }
   }
   if (row.status !== 'creating') throw new DeliveryError(409, 'This delivery is already paid or being processed. Refresh this page.')
+
+  // Fresh delivery rows use the public Bachs link. It has no order/reference
+  // fields, so its marker remains creating in the ledger and is shown as open
+  // only in the member projection until support verifies a payment reference.
+  if (isExternalDeliveryCheckout(row)) {
+    validateExternalDeliveryAmount(row)
+    return { checkoutUrl: BACHS_DELIVERY_PAYMENT_LINK, status: 'open' as const, checkoutMode: 'external_link' as const, amountMinor: Number(row.amount_minor) }
+  }
+  if (!row.checkout_request && !row.checkout_id) {
+    validateExternalDeliveryAmount(row)
+    row = await persistExternalDeliveryCheckout(row, db)
+    if (isExternalDeliveryCheckout(row)) {
+      return { checkoutUrl: BACHS_DELIVERY_PAYMENT_LINK, status: 'open' as const, checkoutMode: 'external_link' as const, amountMinor: Number(row.amount_minor) }
+    }
+  }
+  const config = bachsConfig()
+  if (!config.awardWebhookSecret || !config.organizationId) throw new DeliveryError(503, 'Delivery payment confirmation is not configured.')
   const input = checkoutInput(row)
   const proposed = JSON.stringify(buildCheckoutRequest({ ...input, config }))
   if (!row.checkout_request) {
@@ -147,6 +235,17 @@ export async function startDeliveryCheckout(memberId: string, deliveryId: string
 
 export async function dispatchPaidDelivery(row: DeliveryRow, db: DeliveryDB): Promise<DeliveryRow> {
   if (row.status !== 'paid') return row
+  if (!hasDeliveryPaymentEvidence(row)) {
+    const result = await db.from('award_delivery_orders')
+      .update({ status: 'needs_review', booking_response: { reason: 'Delivery payment evidence is not confirmed. No booking was attempted.' } })
+      .eq('id', row.id)
+      .eq('status', 'paid')
+      .select('*')
+      .maybeSingle()
+    databaseError(result.error)
+    const updated = result.data as DeliveryRow | null
+    return updated?.status === 'needs_review' ? updated : { ...row, status: 'needs_review' }
+  }
   // Claim is durable and cannot expire into another automatic booking. Once a
   // request may have reached GIG, only staff can resolve an uncertain outcome.
   const claimed = await rpc(db, 'claim_award_delivery_dispatch', { p_id: row.id })

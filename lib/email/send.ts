@@ -25,14 +25,14 @@ export type SendInput = {
  * Never throws. Callers are notification paths where an email failure must not
  * fail the underlying action, so the result is returned rather than raised.
  */
-export async function sendTransactionalEmail(input: SendInput): Promise<{ ok: boolean; reason?: string }> {
+export async function sendTransactionalEmail(input: SendInput): Promise<{ ok: boolean; reason?: string; delivery?: 'not_sent' | 'unknown' }> {
   const smtpLogin = process.env.BREVO_SMTP_LOGIN?.trim()
   const smtpKey = process.env.BREVO_SMTP_KEY
   if (input.requireBrevoSmtp && (!smtpLogin || !smtpKey))
-    return { ok: false, reason: 'Brevo SMTP is not configured.' }
+    return { ok: false, reason: 'Brevo SMTP is not configured.', delivery: 'not_sent' }
   if (smtpLogin && smtpKey) {
     const port = Number(process.env.BREVO_SMTP_PORT || '587')
-    if (!Number.isInteger(port) || port < 1 || port > 65535) return { ok: false, reason: 'BREVO_SMTP_PORT is invalid.' }
+    if (!Number.isInteger(port) || port < 1 || port > 65535) return { ok: false, reason: 'BREVO_SMTP_PORT is invalid.', delivery: 'not_sent' }
     const senderEmail = process.env.BREVO_SENDER_EMAIL?.trim() || 'paul@top100afl.com'
     const senderName = process.env.BREVO_SENDER_NAME ?? 'Top100 Africa Future Leaders'
     try {
@@ -67,6 +67,7 @@ export async function sendTransactionalEmail(input: SendInput): Promise<{ ok: bo
       if (!accepted) {
         return {
           ok: false,
+          delivery: sendResult.rejected.length ? 'not_sent' : 'unknown',
           reason: sendResult.rejected.length
             ? 'Brevo SMTP rejected the recipient.'
             : 'Brevo SMTP did not confirm acceptance of the recipient.',
@@ -82,6 +83,7 @@ export async function sendTransactionalEmail(input: SendInput): Promise<{ ok: bo
       const details = [code, responseCode].filter((value) => value !== undefined).join(' ')
       return {
         ok: false,
+        delivery: responseCode && responseCode >= 400 && responseCode <= 599 ? 'not_sent' : 'unknown',
         reason: `Brevo SMTP could not deliver the message${details ? ` (${details})` : ''}.`,
       }
     }

@@ -36,7 +36,7 @@ export async function getAwardPaymentView(userId: string): Promise<AwardPaymentV
   // Select only payment-view fields; provider payloads remain admin-only.
   const { data: attempts, error: attemptsError } = await db
     .from('award_payment_attempts')
-    .select('id,status,currency,requested_amount_minor,captured_amount_minor,checkout_expires_at,confirmed_at,provider_response')
+    .select('id,provider,charge_scope,status,currency,requested_amount_minor,captured_amount_minor,checkout_expires_at,confirmed_at,provider_response')
     .eq('order_id', order.id)
     .order('created_at', { ascending: false })
   if (attemptsError) paymentDatabaseError(attemptsError)

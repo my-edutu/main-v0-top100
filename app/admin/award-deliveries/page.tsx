@@ -13,8 +13,8 @@ type AdminDelivery = AdminDeliveryOrderView
 function statusLabel(status: DeliveryOrderStatus) {
   return {
     quoted: 'Quoted',
-    creating: 'Preparing payment',
-    open: 'Payment open',
+    creating: 'Preparing payment · Not confirmed',
+    open: 'Payment open · Not confirmed',
     paid: 'Paid · booking pending',
     booking: 'Booking',
     dispatched: 'Dispatched',
@@ -38,6 +38,12 @@ function formatDate(value: string | null) {
 
 function destination(delivery: DeliveryOrderView) {
   return deliveryDestinationLabel(delivery) || 'Destination not recorded'
+}
+
+function deliveryPaymentStatus(delivery: DeliveryOrderView) {
+  return delivery.paidAt && ['paid', 'booking', 'dispatched'].includes(delivery.status)
+    ? formatDate(delivery.paidAt)
+    : 'Not confirmed'
 }
 
 export default function AdminAwardDeliveriesPage() {
@@ -91,7 +97,7 @@ export default function AdminAwardDeliveriesPage() {
             </div>
             <div className="mt-4 grid min-w-0 gap-4 border-t border-stone-100 pt-4 sm:grid-cols-[minmax(0,1fr)_auto]">
               <div className="min-w-0"><p className="text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">Destination</p><p className="mt-1 break-words text-sm leading-6 text-zinc-800">{destination(delivery)}</p><p className="mt-1 text-xs text-zinc-500">{delivery.deliveryMode === 'service_centre' ? 'GIG centre collection' : 'Home delivery'} · {delivery.phone}</p></div>
-              <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:min-w-[220px] sm:grid-cols-1"><div className="flex justify-between gap-5 sm:justify-start sm:gap-3"><dt className="text-zinc-500">Delivery fee</dt><dd className="font-medium tabular-nums text-zinc-900">{formatDeliveryAmount(delivery.amountMinor, delivery.currency)}</dd></div><div className="flex justify-between gap-5 sm:justify-start sm:gap-3"><dt className="text-zinc-500">Paid</dt><dd className="text-zinc-800">{formatDate(delivery.paidAt)}</dd></div><div className="flex justify-between gap-5 sm:justify-start sm:gap-3"><dt className="text-zinc-500">Waybill</dt><dd className="break-all text-right text-zinc-800 sm:text-left">{delivery.waybill || 'Pending'}</dd></div></dl>
+              <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:min-w-[220px] sm:grid-cols-1"><div className="flex justify-between gap-5 sm:justify-start sm:gap-3"><dt className="text-zinc-500">Delivery fee</dt><dd className="font-medium tabular-nums text-zinc-900">{formatDeliveryAmount(delivery.amountMinor, delivery.currency)}</dd></div><div className="flex justify-between gap-5 sm:justify-start sm:gap-3"><dt className="text-zinc-500">Delivery payment</dt><dd className="text-zinc-800">{deliveryPaymentStatus(delivery)}</dd></div><div className="flex justify-between gap-5 sm:justify-start sm:gap-3"><dt className="text-zinc-500">Waybill</dt><dd className="break-all text-right text-zinc-800 sm:text-left">{delivery.waybill || 'Pending'}</dd></div></dl>
             </div>
             {delivery.status === 'needs_review' ? <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm leading-6 text-rose-950">
               <p className="text-xs font-medium uppercase tracking-[0.12em] text-rose-800">Reconciliation details</p>

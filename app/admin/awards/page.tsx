@@ -43,6 +43,7 @@ import {
   Truck,
 } from 'lucide-react'
 import PageHeader from '../components/PageHeader'
+import { AwardOutreachMetrics, AwardOutreachWorkspace, useAwardOutreach } from './award-outreach'
 
 // `lib/awards/money.ts` and `lib/awards/status.ts` are plain, dependency-free
 // logic — safe to import client-side. `lib/awards/server.ts` is explicitly
@@ -51,7 +52,7 @@ import PageHeader from '../components/PageHeader'
 // route actually returns.
 import { formatNaira, totalKobo } from '@/lib/awards/money'
 import { canTransition, type AwardStatus } from '@/lib/awards/status'
-import { buildAdminAwardSummary, hasPaymentException, type AdminAwardSummary } from '@/lib/awards/admin-summary'
+import { buildAdminAwardSummary, hasUnresolvedPaymentException, type AdminAwardSummary } from '@/lib/awards/admin-summary'
 
 type AwardOrder = {
   id: string
@@ -260,6 +261,7 @@ function formatDate(iso: string): string {
 }
 
 export default function AdminAwardsPage() {
+  const outreach = useAwardOutreach()
   const [orders, setOrders] = useState<AwardOrder[]>([])
   const [loading, setLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -309,7 +311,8 @@ export default function AdminAwardsPage() {
   }, [])
 
   useEffect(() => {
-    fetchOrders()
+    const timer = window.setTimeout(() => { void fetchOrders() }, 0)
+    return () => window.clearTimeout(timer)
   }, [fetchOrders])
 
   const stats = summary ?? buildAdminAwardSummary(orders)
@@ -318,7 +321,7 @@ export default function AdminAwardsPage() {
     if (statusFilter === 'all') return orders
     if (statusFilter === 'paid_no_waybill') return paidWithoutWaybill
     if (statusFilter === 'payment_confirmed') return orders.filter((order) => order.awardPaymentVerified)
-    if (statusFilter === 'payment_exceptions') return orders.filter(hasPaymentException)
+    if (statusFilter === 'payment_exceptions') return orders.filter(hasUnresolvedPaymentException)
     if (statusFilter === 'in_delivery') return orders.filter((order) =>
       (['dispatched', 'in_transit', 'delivered'] as AwardStatus[]).includes(order.status),
     )
@@ -640,11 +643,12 @@ export default function AdminAwardsPage() {
             <span><AlertTriangle aria-hidden="true" /></span><div><strong>{stats.dispatchNeeded ?? '—'}</strong><p>Needs dispatch</p><small>Confirmed and awaiting waybill</small></div>
           </button>
           <button type="button" disabled={!stats.paymentDataAvailable} aria-pressed={statusFilter === 'payment_exceptions'} className={`award-metric ${stats.paymentExceptions != null && stats.paymentExceptions > 0 ? 'award-metric-urgent' : ''}`} onClick={() => setStatusFilter('payment_exceptions')}>
-            <span><CircleDollarSign aria-hidden="true" /></span><div><strong>{stats.paymentExceptions ?? '—'}</strong><p>Payment review</p><small>Underpaid, duplicate, or exception</small></div>
+            <span><CircleDollarSign aria-hidden="true" /></span><div><strong>{stats.paymentExceptions ?? '—'}</strong><p>Payment review</p><small>Unresolved current attempt · excludes confirmed payers</small></div>
           </button>
           <button type="button" aria-pressed={statusFilter === 'in_delivery'} className="award-metric" onClick={() => setStatusFilter('in_delivery')}>
             <span><Truck aria-hidden="true" /></span><div><strong>{stats.inDelivery}</strong><p>In delivery</p><small>Dispatched through delivered</small></div>
           </button>
+          <AwardOutreachMetrics controller={outreach} />
         </div>
       </section>
 
@@ -684,6 +688,8 @@ export default function AdminAwardsPage() {
           ) : null}
         </div>
       </section>
+
+      <AwardOutreachWorkspace controller={outreach} />
 
       {/* Filters */}
       <section className="admin-panel award-toolbar" aria-label="Order filters">

@@ -7,13 +7,13 @@ describe('award payment view', () => {
     expect(mapPaymentView(null, [], prices)).toMatchObject({ status: 'unpaid', needsPayment: true, confirmedPayment: null, priceOptions: prices })
   })
   it('honours historical paid orders and displays the award fee without shipping', () => {
-    expect(mapPaymentView({ status: 'dispatched', award_amount_kobo: 2_000_000, paid_at: '2026-08-01T00:00:00Z' }, [], prices)).toMatchObject({ status: 'paid', needsPayment: false, confirmedPayment: { currency: 'NGN', amountMinor: 2_000_000 } })
+    expect(mapPaymentView({ status: 'dispatched', award_amount_kobo: 2_000_000, paid_at: '2026-08-01T00:00:00Z', paystack_reference: 'legacy-ref', paystack_status: 'success' }, [], prices)).toMatchObject({ status: 'paid', needsPayment: false, confirmedPayment: { currency: 'NGN', amountMinor: 2_000_000 } })
   })
   it('blocks a second payment while a historical checkout is unresolved', () => {
     expect(mapPaymentView({status:'awaiting_payment',paystack_reference:'old-reference'}, [], prices).status).toBe('pending')
   })
   it('uses the captured successful attempt even when another attempt is newer', () => {
-    const paid = { id: 'paid', status: 'succeeded', currency: 'USD', requested_amount_minor: 2000, captured_amount_minor: 2000, confirmed_at: '2026-09-08T00:00:00Z' }
+    const paid = { id: 'paid', provider: 'bachs', charge_scope: 'award_fee', status: 'succeeded', currency: 'USD', requested_amount_minor: 2000, captured_amount_minor: 2000, confirmed_at: '2026-09-08T00:00:00Z' }
     expect(mapPaymentView({ status: 'draft', award_payment_status: 'paid', award_paid_attempt_id: 'paid', award_paid_at: paid.confirmed_at }, [{ id: 'later', status: 'duplicate_succeeded' }, paid], prices)).toMatchObject({ status: 'paid', needsPayment: false, currentAttempt: null, confirmedPayment: { currency: 'USD', amountMinor: 2000 } })
   })
   it('does not offer a new payment when a checkout creation result is uncertain', () => {
@@ -36,9 +36,10 @@ describe('award payment view', () => {
   })
   it('lets a newer Bachs summary keep precedence over old legacy evidence', () => {
     const order = { status: 'awaiting_payment', paystack_reference: 'legacy-ref', paystack_status: 'failed' }
-    expect(mapPaymentView({ ...order, award_payment_status: 'paid' }, [], prices).status).toBe('paid')
+    const canonical = { id: 'bachs-paid', provider: 'bachs', charge_scope: 'award_fee', status: 'succeeded', currency: 'NGN', requested_amount_minor: 2_500_000, captured_amount_minor: 2_500_000, confirmed_at: '2026-09-08T00:00:00Z' }
+    expect(mapPaymentView({ ...order, award_payment_status: 'paid', award_paid_attempt_id: canonical.id }, [canonical], prices).status).toBe('paid')
     expect(mapPaymentView({ ...order, award_payment_status: 'refunded' }, [], prices).status).toBe('refunded')
-    expect(mapPaymentView({ ...order, award_payment_status: 'pending' }, [], prices).status).toBe('pending')
+    expect(mapPaymentView({ status: 'awaiting_payment', award_payment_status: 'pending' }, [], prices).status).toBe('pending')
   })
   it('does not infer a pending payment from a cancelled legacy order or override a canonical failure', () => {
     expect(mapPaymentView({ status: 'cancelled', paystack_reference: 'legacy-ref' }, [], prices).status).not.toBe('pending')

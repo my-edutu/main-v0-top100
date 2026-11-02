@@ -3,6 +3,10 @@ import { describe, expect, it } from 'vitest'
 import { buildAdminAwardSummary, hasVerifiedAwardPayment } from '../../lib/awards/admin-summary'
 
 describe('admin award payment summary', () => {
+  it('does not count historical failures on subsequently confirmed orders as unresolved review', () => {
+    expect(buildAdminAwardSummary([{ status: 'paid', awardPaymentVerified: true, paymentAttempts: [{ status: 'failed', failureReason: 'Old decline' }] }]).paymentExceptions).toBe(0)
+    expect(buildAdminAwardSummary([{ payment: { status: 'open' }, paymentAttempts: [{ status: 'open' }, { status: 'failed', failureReason: 'Old decline' }] }]).paymentExceptions).toBe(0)
+  })
   it('counts a Bachs payment only when the canonical paid attempt succeeded', () => {
     const orders = [
       {
