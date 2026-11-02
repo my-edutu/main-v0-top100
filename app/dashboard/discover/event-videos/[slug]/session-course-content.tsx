@@ -4,10 +4,10 @@ import { useRef, useState } from 'react'
 import { ArrowUpRight, BookOpen, ClipboardList, FileText, Presentation, UserRound } from 'lucide-react'
 
 import type { Session, SessionResource, SessionResourceType } from '@/lib/sessions'
+import { SessionQuiz } from './session-quiz'
+import { SessionStudyPlan } from './session-study-plan'
 
-type CourseTab = 'description' | 'resources'
-
-const tabs: CourseTab[] = ['description', 'resources']
+type CourseTab = 'description' | 'resources' | 'quiz'
 
 const resourceIcons: Record<SessionResourceType, typeof BookOpen> = {
   video: BookOpen,
@@ -32,7 +32,9 @@ function SessionResourceLink({ resource }: { resource: SessionResource }) {
 }
 
 export function SessionCourseContent({ session, resources }: { session: Session; resources: SessionResource[] }) {
-  const [activeTab, setActiveTab] = useState<CourseTab>(resources.length ? 'resources' : 'description')
+  const resourceCount = resources.length + (session.studyPlan ? 1 : 0)
+  const tabs: CourseTab[] = session.quiz ? ['description', 'resources', 'quiz'] : ['description', 'resources']
+  const [activeTab, setActiveTab] = useState<CourseTab>(resourceCount ? 'resources' : 'description')
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([])
 
   function selectTab(index: number) {
@@ -71,8 +73,8 @@ export function SessionCourseContent({ session, resources }: { session: Session;
               if (event.key === 'End') { event.preventDefault(); selectTab(tabs.length - 1) }
             }}
           >
-            {tab === 'description' ? 'Description' : 'Resources'}
-            {tab === 'resources' ? <span className="event-course-tabs__count">{resources.length}</span> : null}
+            {tab === 'description' ? 'Description' : tab === 'resources' ? 'Resources' : 'Quiz'}
+            {tab === 'resources' ? <span className="event-course-tabs__count">{resourceCount}</span> : null}
           </button>
         ))}
       </div>
@@ -89,9 +91,10 @@ export function SessionCourseContent({ session, resources }: { session: Session;
             <h2>About this session</h2>
             <p>{session.summary ?? 'Session details will be added here.'}</p>
           </div>
-        ) : (
-          resources.length ? (
+        ) : activeTab === 'resources' ? (
+          resourceCount ? (
             <div className="event-course-resource-list">
+              {session.studyPlan ? <SessionStudyPlan plan={session.studyPlan} /> : null}
               {resources.map((resource) => <SessionResourceLink key={`${resource.title}-${resource.url}`} resource={resource} />)}
             </div>
           ) : (
@@ -103,7 +106,12 @@ export function SessionCourseContent({ session, resources }: { session: Session;
               </div>
             </div>
           )
-        )}
+        ) : null}
+        {session.quiz ? (
+          <div hidden={activeTab !== 'quiz'}>
+            <SessionQuiz quiz={session.quiz} />
+          </div>
+        ) : null}
       </div>
     </section>
   )

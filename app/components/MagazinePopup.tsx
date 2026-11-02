@@ -18,7 +18,6 @@ export default function MagazinePopup({ member }: { member: Pick<MemberProfile, 
   const [visit, setVisit] = useState<AwardPopupVisit | null>(null)
   const [statusOpen, setStatusOpen] = useState(false)
   const previousFocus = useRef<HTMLElement | null>(null)
-  const shownForLogin = useRef<number | null>(null)
   const eligible = awardNeedsAttention && canOfferPhysicalAward(awardPayment)
   const confirmed = !!awardPayment?.confirmedPayment || awardPayment?.status === 'paid'
   const pending = !confirmed && awardPayment?.status === 'pending'
@@ -27,33 +26,6 @@ export default function MagazinePopup({ member }: { member: Pick<MemberProfile, 
   useEffect(() => { void refreshBadges() }, [refreshBadges])
 
   const login = member.dashboardLoginCount ?? 0
-
-  useEffect(() => {
-    if (!dashboardVisitReady || !eligible || shownForLogin.current === login) return
-    let candidate: AwardPopupVisit | null = null
-    const key = awardPopupStorageKey(member.id)
-    try {
-      candidate = nextAwardPopupVisit(readAwardPopupVisit(localStorage.getItem(key)), login, awardPopupDay(), Math.floor(Math.random() * AWARD_POPUP_VARIANTS.length))
-    } catch {
-      // Storage restrictions do not stop this visit's invitation.
-      candidate = nextAwardPopupVisit(null, login, awardPopupDay())
-    }
-    if (!candidate) return
-    const nextVisit = candidate
-    const timer = window.setTimeout(() => {
-      if (shownForLogin.current === login) return
-      // Another tab may already have shown this login's offer.
-      try {
-        const previous = readAwardPopupVisit(localStorage.getItem(key))
-        if (previous?.login === nextVisit.login) return
-        localStorage.setItem(key, JSON.stringify(nextVisit))
-      } catch { /* Keep the dialog usable without browser storage. */ }
-      shownForLogin.current = login
-      setVisit(nextVisit)
-      trackAwardFunnel(member.id, 'popup_viewed', AWARD_POPUP_VARIANTS[nextVisit.variant].id)
-    }, 2000)
-    return () => window.clearTimeout(timer)
-  }, [dashboardVisitReady, eligible, login, member.id])
 
   const handleClose = () => { setVisit(null); setStatusOpen(false) }
   const handleGiftClick = () => {
@@ -72,7 +44,6 @@ export default function MagazinePopup({ member }: { member: Pick<MemberProfile, 
       nextVisit = nextAwardPopupVisit(null, login, awardPopupDay())
     }
     if (!nextVisit) return
-    shownForLogin.current = login
     setVisit(nextVisit)
     trackAwardFunnel(member.id, 'popup_viewed', AWARD_POPUP_VARIANTS[nextVisit.variant].id)
   }

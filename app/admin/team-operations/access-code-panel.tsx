@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Check, Clipboard, KeyRound, Loader2, RefreshCw, X } from 'lucide-react'
 import { toast } from 'sonner'
+import styles from './team-operations.module.css'
 
 type AccessCode = {
   id: string
@@ -17,24 +18,31 @@ export function AccessCodePanel({ teamId }: { teamId: string }) {
   const [codes, setCodes] = useState<AccessCode[]>([])
   const [newCode, setNewCode] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [filter, setFilter] = useState('all')
+  const [error, setError] = useState('')
   const [working, setWorking] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     if (!teamId) return
     setLoading(true)
+    setError('')
     try {
       const response = await fetch(`/api/admin/team-operations/codes?teamId=${encodeURIComponent(teamId)}`, { cache: 'no-store' })
       const payload = await response.json()
       if (!response.ok) throw new Error(payload.message || 'Could not load rep codes.')
       setCodes(payload.codes ?? [])
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Could not load rep codes.')
+      const message = error instanceof Error ? error.message : 'Could not load rep codes.'
+      setError(message)
+      toast.error(message)
     } finally {
       setLoading(false)
     }
   }, [teamId])
 
-  useEffect(() => { setNewCode(null); void load() }, [load])
+  // The parent keys this panel by team, so generated codes reset on team changes.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { void load() }, [load])
 
   async function createCode() {
     if (!teamId) return
@@ -78,35 +86,39 @@ export function AccessCodePanel({ teamId }: { teamId: string }) {
     }
   }
 
+  function stateOf(code: AccessCode) {
+    return code.revoked_at ? 'Revoked' : code.redeemed_at ? 'Used' : new Date(code.expires_at) <= new Date() ? 'Expired' : 'Ready'
+  }
+  const visible = codes.filter(code => filter === 'all' || stateOf(code) === filter)
+  const date = (value: string) => new Intl.DateTimeFormat('en-NG', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Africa/Lagos' }).format(new Date(value))
+
   return (
-    <section className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">Rep onboarding</p>
-          <h2 className="mt-1 text-xl font-semibold">One-time access codes</h2>
-          <p className="mt-1 max-w-2xl text-sm leading-5 text-zinc-600">Generate a random code for a sales rep to create an account. Codes expire after seven days and work once. New accounts still need admin approval.</p>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={() => void load()} disabled={loading || !teamId} className="inline-flex h-10 items-center gap-2 rounded-xl border border-zinc-200 px-3 text-sm font-medium disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />Refresh</button>
-          <button onClick={() => void createCode()} disabled={!teamId || working !== null} className="inline-flex h-10 items-center gap-2 rounded-xl bg-zinc-900 px-3 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-50">{working === 'create' ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}Generate rep code</button>
-        </div>
+    <section className={styles.codePanel} aria-label="Rep access codes">
+      <div className={styles.codeToolbar}>
+        <select aria-label="Filter access codes" value={filter} onChange={event => setFilter(event.target.value)}>
+          <option value="all">Recent codes ({codes.length})</option>
+          {['Ready', 'Used', 'Expired', 'Revoked'].map(state => <option key={state} value={state}>{state} ({codes.filter(code => stateOf(code) === state).length})</option>)}
+        </select>
+        <button onClick={() => void load()} disabled={loading || !teamId} className={styles.button}><RefreshCw size={15} className={loading ? 'animate-spin' : ''} aria-hidden="true" />Refresh codes</button>
+        <button onClick={() => void createCode()} disabled={!teamId || working !== null} className={`${styles.button} ${styles.primary}`}>{working === 'create' ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <KeyRound size={15} aria-hidden="true" />}Generate rep code</button>
       </div>
-
-      {newCode ? <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-        <div><p className="text-xs font-medium text-emerald-900">Copy this code now. It is stored as a hash and will not be shown again.</p><code className="mt-2 block select-all font-mono text-lg font-semibold tracking-[0.14em] text-emerald-950">{newCode}</code></div>
-        <button onClick={() => void copyCode()} className="inline-flex h-10 items-center gap-2 rounded-lg border border-emerald-300 bg-white px-3 text-sm font-medium text-emerald-900"><Clipboard className="h-4 w-4" />Copy code</button>
+      {error ? <p className={styles.notice} role="alert">{error}</p> : null}
+      {newCode ? <div className={styles.newCode}>
+        <p>Copy this code now. It will not be shown again after you close this window.</p>
+        <code className="select-all">{newCode}</code>
+        <button onClick={() => void copyCode()} className={styles.button}><Clipboard size={15} aria-hidden="true" />Copy code</button>
       </div> : null}
-
-      <div className="divide-y divide-zinc-100 border-y border-zinc-100">
-        {loading && !codes.length ? <p className="py-5 text-sm text-zinc-500">Loading codes…</p> : codes.length ? codes.map((code) => {
-          const state = code.revoked_at ? 'Revoked' : code.redeemed_at ? `Used by ${code.redeemed_email ?? 'a rep'}` : new Date(code.expires_at) <= new Date() ? 'Expired' : 'Ready'
-          const canRevoke = state === 'Ready'
-          return <div key={code.id} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
-            <div><span className="font-medium text-zinc-800">{state}</span><span className="ml-2 text-xs text-zinc-500">Created {new Date(code.created_at).toLocaleDateString()} · expires {new Date(code.expires_at).toLocaleDateString()}</span></div>
-            {canRevoke ? <button onClick={() => void revoke(code.id)} disabled={working !== null} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-zinc-200 px-2.5 text-xs font-medium text-zinc-700 disabled:opacity-50">{working === code.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}Revoke</button> : code.redeemed_at ? <Check className="h-4 w-4 text-emerald-700" /> : null}
-          </div>
-        }) : <p className="py-5 text-sm text-zinc-500">No access codes created yet.</p>}
-      </div>
+      {loading && !codes.length ? <p className={styles.help} role="status">Loading codes…</p> : visible.length ? <div className={styles.codeGrid}>
+        {visible.map(code => {
+          const state = stateOf(code)
+          return <article key={code.id} className={styles.codeCard}>
+            <div><strong>{state}</strong>{state === 'Used' ? <Check size={15} className="text-emerald-700" aria-hidden="true" /> : null}</div>
+            {code.redeemed_email ? <p>{code.redeemed_email}</p> : null}
+            <p>Created {date(code.created_at)}<br />Expires {date(code.expires_at)}</p>
+            {state === 'Ready' ? <button onClick={() => void revoke(code.id)} disabled={working !== null} className={styles.button}>{working === code.id ? <Loader2 size={14} className="animate-spin" aria-hidden="true" /> : <X size={14} aria-hidden="true" />}Revoke<span className="sr-only"> code created {date(code.created_at)}</span></button> : null}
+          </article>
+        })}
+      </div> : <p className={styles.help}>{error && !codes.length ? 'Code history could not be loaded.' : codes.length ? 'No codes match this status.' : 'No access codes created yet.'}</p>}
     </section>
   )
 }

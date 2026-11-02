@@ -2,6 +2,8 @@ import { PROGRAMME_ARTWORK } from '@/lib/events/programme-artwork'
 import { formatProgrammeDate } from '@/lib/events/programme'
 import type { LiveCalendarEvent } from '@/lib/events/live-calendar'
 import { getSpeaker } from '@/lib/speakers'
+import { recognitionToLeadershipStudyPlan, type SessionStudyPlan } from '@/lib/session-study-plans'
+import { knowledgeToImpactQuiz, recognitionToLeadershipQuiz, type SessionQuiz } from '@/lib/session-quiz'
 
 export type SessionResourceType = 'video' | 'presentation' | 'workshop' | 'writeup'
 
@@ -26,6 +28,8 @@ export interface Session {
   summary?: string
   featured?: boolean
   resources: SessionResource[]
+  quiz?: SessionQuiz
+  studyPlan?: SessionStudyPlan
 }
 
 export const archiveYears = [2024, 2025, 2026] as const
@@ -149,7 +153,19 @@ const availableSessions: Session[] = [
     presenter: 'Elisha Joseph',
     coverImage: '/images/session-from-knowledge-to-impact.jpg',
     summary: additionalSessionDescriptions.find(({ topic }) => topic.test('From Knowledge to Impact:'))?.summary,
-    resources: [],
+    quiz: knowledgeToImpactQuiz,
+    resources: [
+      {
+        title: 'From Knowledge to Impact session recording',
+        type: 'video',
+        url: 'https://drive.google.com/file/d/16tUESdQlG6TihoMpAu4h3sEDEaiNDS3U/view?usp=sharing',
+      },
+      {
+        title: 'From Knowledge to Impact session resources',
+        type: 'writeup',
+        url: 'https://docs.google.com/document/d/1fynQ6k2HTHmmdN2OuTn-HZStr18wEpVMF-Jc6mkxIjo/edit?usp=sharing',
+      },
+    ],
   },
   {
     slug: '2026-collaboration-advantage',
@@ -158,7 +174,18 @@ const availableSessions: Session[] = [
     presenter: 'Samuel Ogunsola, PhD',
     coverImage: '/images/session-collaboration-advantage.jpg',
     summary: additionalSessionDescriptions.find(({ topic }) => topic.test('The Collaboration Advantage:'))?.summary,
-    resources: [],
+    resources: [
+      {
+        title: 'The Collaboration Advantage session recording',
+        type: 'video',
+        url: 'https://drive.google.com/file/d/1oqc1UonTEuT92qMMIfbK0LEHOumT7WiT/view?usp=sharing',
+      },
+      {
+        title: 'The Collaboration Advantage session resources',
+        type: 'writeup',
+        url: 'https://docs.google.com/document/d/14uE-wL5UpSYhO070rGZrKZSgIrMwoEu4_Vry6ipSSEk/edit?usp=sharing',
+      },
+    ],
   },
   {
     slug: '2026-tech-driven-society',
@@ -175,6 +202,23 @@ const availableSessions: Session[] = [
         title: 'Succeeding in a tech driven society session recording',
         type: 'video',
         url: 'https://drive.google.com/file/d/1iyzOszSw4YhIKOBKc69_a6gbbYgsFe4j/view?usp=sharing',
+      },
+    ],
+  },
+  {
+    slug: '2026-from-recognition-to-leadership',
+    year: 2026,
+    title: 'From Recognition to Leadership: Practical steps to Becoming A Leader of Impact in Life and Workplace',
+    presenter: 'Amos Ologunleko',
+    coverImage: '/images/session-from-recognition-to-leadership.jpg',
+    summary: 'Recognition celebrates a moment; leadership is built through personal responsibility, capability, and sustained impact. Join Amos Ologunleko to explore the three dimensions of leadership development—influence, inspiration, and impact—and the role of self-awareness, feedback, and continuous growth. Use the Leadership Fire Triangle Model to examine how passion, ability, and connection work together, then consider how to apply these ideas in your workplace, community initiatives, and personal leadership journey.',
+    quiz: recognitionToLeadershipQuiz,
+    studyPlan: recognitionToLeadershipStudyPlan,
+    resources: [
+      {
+        title: 'From Recognition to Leadership session recording',
+        type: 'video',
+        url: 'https://drive.google.com/file/d/1hwYyh3RLpWGUPm2CWEeQUmGMTEjeOoZm/view?usp=sharing',
       },
     ],
   },
@@ -209,6 +253,7 @@ function toArchiveSession(event: LiveCalendarEvent): Session {
   const isIdeaToScale = /^from idea to scale:/i.test(event.title)
   const isBloomSession = /^(?:the opportunity builder:|bloom\s*[-–—])/i.test(event.title)
   const isTechSession = /^(?:succeeding in the ai era:|succeeding in a tech driven society[;:])/i.test(event.title)
+  const isRecognitionSession = /^from recognition to leadership:/i.test(event.title)
   const isKnowledgeImpactSession = /^from knowledge to impact:/i.test(event.title)
   const available = isOnboarding
     ? availableSessions[0]
@@ -219,7 +264,8 @@ function toArchiveSession(event: LiveCalendarEvent): Session {
         : isBloomSession
           ? availableSessions[3]
           : isTechSession ? availableSessions.find(session => session.slug === '2026-tech-driven-society')
-            : availableSessions.find(session => session.title === event.title)
+            : isRecognitionSession ? availableSessions.find(session => session.slug === '2026-from-recognition-to-leadership')
+              : availableSessions.find(session => session.title === event.title)
 
   return {
     ...(available ?? {

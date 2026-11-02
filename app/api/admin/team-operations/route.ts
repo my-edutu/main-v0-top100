@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireAdmin } from '@/lib/api/require-admin'
 import { createAdminClient } from '@/lib/supabase/server'
+import { loadTeamPerformance } from '@/lib/team-operations/performance-server'
+import type { PerformanceResult } from '@/lib/team-operations/performance'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,7 +34,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ message: 'Could not load team operations.' }, { status: 500 })
   }
 
+  let performance: PerformanceResult
+  try {
+    performance = await loadTeamPerformance(admin, memberships ?? [])
+  } catch (error) {
+    console.error('[team-operations] Performance unavailable', error instanceof Error ? error.message : 'Unknown error')
+    performance = { available: false, message: 'Performance could not be loaded. Refresh to try again. Team access is still available.' }
+  }
+
   return NextResponse.json({
+    performance,
     teams: (teams ?? []).map((team) => ({
       ...team,
       memberships: (memberships ?? []).filter((membership) => membership.team_id === team.id),
