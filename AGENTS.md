@@ -7,3 +7,11 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+## Production hosting
+
+Top100 runs on our own Dokploy hosting at https://console.edutu.org, not Vercel.
+The production database is self-hosted Supabase at https://supabase.top100afl.com;
+the former hosted Supabase project is retired. Apply migrations and configure
+worker schedules on the active Dokploy server. Do not use Vercel or the retired
+hosted database for production changes.

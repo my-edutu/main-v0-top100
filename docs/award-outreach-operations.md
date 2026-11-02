@@ -4,9 +4,9 @@ The awards console now has a separate **Member outreach** workspace. Order total
 
 ## Before first use
 
-1. Deploy `supabase/migrations/20261102113950_award_outreach_workspace.sql` with the application. No production migration or campaign is run by the implementation tests.
+1. Apply `supabase/migrations/20261102113950_award_outreach_workspace.sql` to the self-hosted production Supabase database. Production hosting is Dokploy at https://console.edutu.org; the former hosted Supabase project and Vercel are not production targets. No production migration or campaign is run by implementation tests.
 2. Configure the existing `BREVO_SMTP_LOGIN`, `BREVO_SMTP_KEY`, verified sender settings, and the canonical public site URL. The outreach worker requires SMTP explicitly.
-3. Configure `AWARD_OUTREACH_WORKER_SECRET`, or reuse `EMAIL_OUTBOX_WORKER_SECRET`. Schedule a server-side POST to `/api/internal/award-outreach/process`, with `Authorization: Bearer <secret>`, every minute. Keep the secret server-side; never include it in a browser URL. Each invocation processes at most three recipients and supports overlapping invocations safely.
+3. Configure `AWARD_OUTREACH_WORKER_SECRET`, or reuse `EMAIL_OUTBOX_WORKER_SECRET`. On the Dokploy host, install `scripts/operations/run-award-outreach-worker.sh` as `/usr/local/sbin/top100-award-outreach-worker` (0755), and install the adjacent service/timer files into `/etc/systemd/system/` (0644). Run `systemctl daemon-reload`, then `systemctl enable --now top100-award-outreach.timer`. This schedules an authenticated server-side POST to `/api/internal/award-outreach/process` every minute. It resolves the current `top100-frontend-hymlzt` Swarm container each time and reads its secret inside the container, without exposing credentials in URLs, host command arguments or logs. Each invocation processes at most three recipients and supports overlapping invocations safely. Persist the secret in Dokploy's application environment so rebuilds retain it.
 4. Confirm support ownership, real fulfillment arrangements and recipient permission before approving a batch. The initial templates deliberately do not promise a delivery date, discount or deadline.
 
 ## Audiences and payment truth
@@ -43,6 +43,35 @@ Queuing snapshots the reviewed template and server-derived recipients. Workers r
 No new discounts, sponsored awards or split-payment contracts are introduced. Recorded affordability/timing reasons help staff decide whether a separately approved offer change is needed.
 
 ## Verification record
+
+### Production activation — 2 November 2026
+
+The migration was applied in one transaction to the active self-hosted database
+(`top100-supabase-nhbjgd-db-1`). Its SHA-256 is
+`99df88cb066fa2c40ce231c76105abad4e718225c500c0c7f935abfcba18339e`.
+A schema backup and protected pre-change application configuration were saved
+under `/root/top100-repair-backups/award-outreach-20261102/` on the host.
+All four tables have RLS enabled; `anon` and `authenticated` have no read access;
+the service role can access the tables and claim jobs. The live queue was empty.
+
+The worker secret is persisted in Dokploy and the active frontend service.
+Brevo SMTP authentication passed using `transporter.verify()` without sending a
+message. A live authenticated worker invocation returned zero claimed, sent,
+skipped, uncertain or failed recipients. The one-minute systemd timer is enabled
+on the Dokploy host; it is independent of `vercel.json`.
+The first automatic timer invocation also completed successfully with zero
+recipients and no failures. All four tables were reachable through the live
+service-role REST client, the homepage returned 200, and the unauthenticated
+admin outreach API returned 401.
+
+Inspect with `systemctl status top100-award-outreach.timer` and
+`journalctl -u top100-award-outreach.service --since '10 minutes ago'`.
+Pause processing with `systemctl disable --now top100-award-outreach.timer`;
+an invocation already running may finish. Do not run an additional Dokploy or
+Vercel schedule for this worker. No campaign was created or email sent during
+activation; batches still require an explicit reviewed queue action in admin.
+
+### Implementation verification before activation
 
 The new audience/guard/worker/template/SMTP tests and isolated PostgreSQL queue tests pass. An actual read-only source load succeeds against the connected directory; production schema and email data were not modified. Component layout and the notes dialog were checked using synthetic fixtures at phone and desktop widths. The Next.js development bundler failed during local verification, so the same components were bundled independently for visual inspection; this does not verify live SMTP delivery.
 

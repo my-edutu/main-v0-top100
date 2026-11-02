@@ -1,0 +1,10 @@
+[Unit]
+Description=Top100 reviewed award outreach queue
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/top100-award-outreach-worker
+TimeoutStartSec=75
+UMask=0077

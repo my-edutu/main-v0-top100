@@ -1,0 +1,11 @@
+[Unit]
+Description=Process reviewed Top100 award outreach every minute
+
+[Timer]
+OnCalendar=*-*-* *:*:00
+AccuracySec=1s
+Persistent=false
+Unit=top100-award-outreach.service
+
+[Install]
+WantedBy=timers.target
