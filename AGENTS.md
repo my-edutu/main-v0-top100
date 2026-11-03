@@ -10,7 +10,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Production hosting
 
-Top100 runs on our own Dokploy hosting at https://console.edutu.org, not Vercel.
+Top100 runs on our own Dokploy hosting at https://console.top100afl.com, not Vercel.
 The production database is self-hosted Supabase at https://supabase.top100afl.com;
 the former hosted Supabase project is retired. Apply migrations and configure
 worker schedules on the active Dokploy server. Do not use Vercel or the retired
