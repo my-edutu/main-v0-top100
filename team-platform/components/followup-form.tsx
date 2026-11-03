@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2, PhoneCall, Save } from 'lucide-react'
 import { Banner, Button, Field } from '@/components/ui'
-import { CHANNELS, OUTCOMES } from '@/lib/validation'
+import { CHANNELS, OUTCOMES, QUALIFYING_CONTACT_OUTCOMES } from '@/lib/validation'
 import { CHANNEL_LABELS, OUTCOME_LABELS } from '@/lib/format'
 
 export function FollowUpForm({
@@ -18,7 +18,7 @@ export function FollowUpForm({
 }) {
   const router = useRouter()
   const [channel, setChannel] = useState(
-    (CHANNELS as readonly string[]).includes(defaultChannel) ? defaultChannel : 'call',
+    defaultChannel === 'whatsapp' ? 'whatsapp' : 'call',
   )
   const [outcome, setOutcome] = useState('no_answer')
   const [notes, setNotes] = useState('')
@@ -34,7 +34,16 @@ export function FollowUpForm({
   const [success, setSuccess] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  const outcomes = useMemo(() => OUTCOMES, [])
+  const channels = useMemo(() => CHANNELS.filter((item) => item !== 'email'), [])
+  const outcomes = useMemo(
+    () => OUTCOMES.filter((item) => item !== 'email_sent' && item !== 'email_failed'),
+    [],
+  )
+  const requiresUsefulNotes =
+    channel !== 'email' &&
+    QUALIFYING_CONTACT_OUTCOMES.includes(
+      outcome as (typeof QUALIFYING_CONTACT_OUTCOMES)[number],
+    )
 
   async function submit(event: React.FormEvent) {
     event.preventDefault()
@@ -75,7 +84,7 @@ export function FollowUpForm({
       {error ? <Banner tone="error">{error}</Banner> : null}
       {success ? <Banner tone="success">{success}</Banner> : null}
       <div className="grid grid-cols-3 gap-1.5">
-        {CHANNELS.map((item) => (
+        {channels.map((item) => (
           <button
             key={item}
             type="button"
@@ -100,10 +109,18 @@ export function FollowUpForm({
           ))}
         </select>
       </Field>
-      <Field label="Notes" hint="What was discussed? Keep it factual and useful for the next call.">
+      <Field
+        label="Notes"
+        hint={
+          requiresUsefulNotes
+            ? 'Useful notes (10+ characters) are required for commission credit. Calls and WhatsApp records are staff-entered audit evidence, not provider verification.'
+            : 'What happened? Keep it factual and useful for the next follow-up.'
+        }
+      >
         <textarea
           className="textarea min-h-[82px]"
           maxLength={4000}
+          minLength={requiresUsefulNotes ? 10 : undefined}
           value={notes}
           onChange={(event) => setNotes(event.target.value)}
           placeholder="e.g. Asked for the payment link to be resent on WhatsApp. Will confirm by Friday."
@@ -154,7 +171,7 @@ export function FollowUpForm({
       </Button>
       <p className="flex items-start gap-1.5 text-[10px] leading-4 text-muted">
         <PhoneCall className="mt-0.5 h-3 w-3 shrink-0" />
-        Opening a dialler or WhatsApp does not count as contact. Record the real outcome here.
+        Opening a dialler or WhatsApp does not count as contact. Record the real outcome here; send email through the Email tab so provider delivery is traceable.
       </p>
     </form>
   )

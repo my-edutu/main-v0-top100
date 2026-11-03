@@ -9,7 +9,7 @@ type Rule = {
   id: string
   name: string
   payment_currency: 'NGN' | 'USD'
-  commission_currency: 'NGN' | 'USD'
+  commission_currency: 'NGN'
   commission_amount_minor: number
   country_scope: string | null
   priority: number
@@ -20,7 +20,7 @@ export function CommissionRuleForm({ rule }: { rule?: Rule }) {
   const router = useRouter()
   const [name, setName] = useState(rule?.name ?? '')
   const [paymentCurrency, setPaymentCurrency] = useState(rule?.payment_currency ?? 'NGN')
-  const [commissionCurrency, setCommissionCurrency] = useState(rule?.commission_currency ?? 'NGN')
+  const commissionCurrency = 'NGN' as const
   const [amount, setAmount] = useState(rule ? (rule.commission_amount_minor / 100).toFixed(2) : '2000.00')
   const [countryScope, setCountryScope] = useState(rule?.country_scope ?? '')
   const [priority, setPriority] = useState(String(rule?.priority ?? 0))
@@ -78,11 +78,8 @@ export function CommissionRuleForm({ rule }: { rule?: Rule }) {
             <option value="USD">USD</option>
           </select>
         </Field>
-        <Field label="Commission currency">
-          <select className="select !h-10" value={commissionCurrency} onChange={(event) => setCommissionCurrency(event.target.value as 'NGN' | 'USD')}>
-            <option value="NGN">NGN</option>
-            <option value="USD">USD</option>
-          </select>
+        <Field label="Commission currency" hint="Commission payouts remain in NGN; payment currency may still be NGN or USD.">
+          <div className="input !h-10 flex items-center bg-ink/[0.05] text-muted">NGN</div>
         </Field>
       </div>
       <div className="grid grid-cols-2 gap-2">

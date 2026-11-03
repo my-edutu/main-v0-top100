@@ -27,13 +27,15 @@ export async function POST(request: Request) {
     if (awardeeError) throw new ApiError('Could not verify awardee', 500)
     if (!awardee) throw new ApiError('Awardee not found', 404)
 
+    const { data: assignment, error: assignmentError } = await admin
+      .from('team_assignments')
+      .select('id, agent_id')
+      .eq('awardee_id', awardee.id)
+      .eq('status', 'active')
+      .maybeSingle()
+    if (assignmentError) throw new ApiError('Could not verify assignment', 500)
+
     if (member.membership.role === 'agent') {
-      const { data: assignment } = await admin
-        .from('team_assignments')
-        .select('id, agent_id')
-        .eq('awardee_id', awardee.id)
-        .eq('status', 'active')
-        .maybeSingle()
       if (!assignment || assignment.agent_id !== member.membership.id) {
         throw new ApiError('This awardee is not assigned to you', 403)
       }
@@ -157,6 +159,7 @@ export async function POST(request: Request) {
     // as a failure — never as a successful contact.
     await admin.from('team_followups').insert({
       team_id: member.membership.team_id,
+      assignment_id: assignment?.id ?? null,
       awardee_id: awardee.id,
       agent_id: member.membership.id,
       channel: 'email',

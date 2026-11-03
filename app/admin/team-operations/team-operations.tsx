@@ -70,9 +70,8 @@ export default function TeamOperations() {
     const query = search.trim().toLowerCase()
     return members.filter(member => (status === 'all' || member.status === status) && (!query || `${member.full_name} ${member.email}`.toLowerCase().includes(query)))
       .sort((a, b) => {
-        if (sort !== 'name' && available) {
-          const code = sort === 'usd' ? 'USD' : 'NGN'
-          const difference = (available.members[b.id]?.revenue[code] ?? 0) - (available.members[a.id]?.revenue[code] ?? 0)
+        if (sort === 'ngn' && available) {
+          const difference = (available.members[b.id]?.revenue.NGN ?? 0) - (available.members[a.id]?.revenue.NGN ?? 0)
           if (difference) return difference
         }
         return a.full_name.localeCompare(b.full_name)
@@ -110,7 +109,7 @@ export default function TeamOperations() {
   return (
     <div className={styles.page}>
       <header className={styles.heading}>
-        <div><p className={styles.eyebrow}>People · Operations</p><h1>Team Operations</h1><p>See what each person brings in and manage their team access.</p></div>
+        <div><p className={styles.eyebrow}>People · Operations</p><h1>Team Operations</h1><p>Review award value and manage team access.</p></div>
         <nav className={styles.actions} aria-label="Team operations">
           <Link className={styles.button} href="/admin/team-operations/worklist"><Users size={16} aria-hidden="true" />Awardee worklist</Link>
           <Link className={styles.button} href="/admin/team-operations/templates"><Mail size={16} aria-hidden="true" />Email templates</Link>
@@ -144,18 +143,20 @@ export default function TeamOperations() {
       </div>
 
       <section className={styles.performance} aria-labelledby="team-performance-heading">
-        <div className={styles.sectionHeading}><div><h2 id="team-performance-heading">{team?.name ?? 'Team performance'}</h2><p>All time · Verified award fees, excluding delivery</p></div><div className={styles.statusCounts}>{loading && !members.length ? <span>Loading members…</span> : error && !members.length ? <span>Team access unavailable</span> : <><span>{members.filter(member => member.status === 'active').length} active</span><span>{members.filter(member => member.status === 'invited').length} awaiting approval</span><span>{members.filter(member => member.status === 'suspended').length} suspended</span></>}</div></div>
+        <div className={styles.sectionHeading}><div><h2 id="team-performance-heading">{team?.name ?? 'Team performance'}</h2><p>All time · Credited award value in NGN, excluding delivery</p></div><div className={styles.statusCounts}>{loading && !members.length ? <span>Loading members…</span> : error && !members.length ? <span>Team access unavailable</span> : <><span>{members.filter(member => member.status === 'active').length} active</span><span>{members.filter(member => member.status === 'invited').length} awaiting approval</span><span>{members.filter(member => member.status === 'suspended').length} suspended</span></>}</div></div>
         {!loading && performance && !performance.available ? <p role="status" className={styles.notice}>{performance.message}</p> : null}
         <div className={styles.metrics}>
           <Summary label="Assigned now" value={loading ? '—' : totals?.assignedCount ?? (available && !members.length ? 0 : '—')} />
           <Summary label="Payments credited" value={loading ? '—' : totals?.paidCount ?? (available && !members.length ? 0 : '—')} />
-          <Summary label="Award revenue" value={<Money totals={loading ? undefined : totals?.revenue} />} />
-          <Summary label="Confirmed commission" value={<Money totals={loading ? undefined : totals?.confirmedCommission} />} />
+          <Summary label="Award value (NGN)" value={<Money totals={loading ? undefined : totals?.revenue} />} />
+          <Summary label="Confirmed commission (NGN)" value={<Money totals={loading ? undefined : totals?.confirmedCommission} />} />
         </div>
+        {!loading && available && available.unattributedPayments[teamId] > 0 ? <p className={styles.help}>{available.unattributedPayments[teamId]} confirmed payments are excluded from rep totals because no qualifying outreach was recorded before payment. The awardees remain paid.</p> : null}
         <details className={styles.explanation}>
-          <summary>How totals work{available && available.unattributedPayments[teamId] > 0 ? ` · ${available.unattributedPayments[teamId]} payments without a clear owner` : ''}</summary>
-          <p className={styles.help}>Payments are credited to the person assigned when payment was made. Revenue and commission are separate; naira and US dollars are never combined.</p>
-          {available && available.unattributedPayments[teamId] > 0 ? <p className={styles.help}>Verified payments without a clear owner at payment time are excluded from rep totals.</p> : null}
+          <summary>How totals work{available && available.unattributedPayments[teamId] > 0 ? ` · ${available.unattributedPayments[teamId]} payments without qualifying rep outreach` : ''}</summary>
+          <p className={styles.help}>Standard award value is ₦25,000 per award; it is not an FX conversion.</p>
+          <p className={styles.help}>Only verified payments with a recorded qualifying outreach by the assigned rep before payment earn credit. Independent payments are excluded from rep totals and released. A manual WhatsApp click alone is not evidence of qualifying outreach.</p>
+          {available && available.unattributedPayments[teamId] > 0 ? <p className={styles.help}>These payments remain confirmed for the awardee. They earn no rep commission and are removed from rep assignments.</p> : null}
         </details>
       </section>
 
@@ -163,7 +164,7 @@ export default function TeamOperations() {
         <div className={styles.toolbar}>
           <label className={styles.search}><Search size={16} aria-hidden="true" /><input type="search" aria-label="Search team members" placeholder="Search name or email" value={search} onChange={event => setSearch(event.target.value)} /></label>
           <select aria-label="Filter members by status" value={status} onChange={event => setStatus(event.target.value)}><option value="all">All statuses</option><option value="active">Active</option><option value="invited">Awaiting approval</option><option value="suspended">Suspended</option></select>
-          <select aria-label="Sort team members" value={sort} onChange={event => setSort(event.target.value)}><option value="name">Name A–Z</option><option value="ngn" disabled={!available}>Revenue · NGN</option><option value="usd" disabled={!available}>Revenue · USD</option></select>
+          <select aria-label="Sort team members" value={sort} onChange={event => setSort(event.target.value)}><option value="name">Name A–Z</option><option value="ngn" disabled={!available}>Award value · NGN</option></select>
         </div>
         {loading && !members.length ? <div className={styles.empty} role="status"><Loader2 className="animate-spin" size={20} aria-hidden="true" />Loading team performance…</div> : visible.length ? <>
           <p className={styles.resultCount}>{visible.length} of {members.length} members</p>
@@ -178,12 +179,12 @@ function MemberCard({ member, performance, busy, updateMember }: { member: Membe
   const fixedAdmin = member.role === 'super_admin'
   return <article className={styles.member} aria-label={`${member.full_name} performance`}>
     <header className={styles.memberHeader}><span className={styles.avatar} aria-hidden="true">{member.full_name.trim().split(/\s+/).slice(0, 2).map(part => part[0]).join('')}</span><div><h3>{member.full_name}</h3><p>{member.email}</p></div></header>
-    <div className={styles.memberMeta}><span>{roleLabel(member.role)}</span><span className={`${styles.badge} ${member.status === 'active' ? styles.active : ''}`}>{member.status === 'invited' ? 'Awaiting approval' : member.status}</span></div>
-    <div className={styles.memberRevenue}><p>Award revenue</p><Money totals={performance?.revenue} /></div>
+    <div className={styles.memberMeta}><span>{roleLabel(member.role)}</span><span className={`${styles.badge} ${member.status === 'active' ? styles.active : member.status === 'invited' ? styles.invited : styles.suspended}`}>{member.status === 'invited' ? 'Awaiting approval' : member.status}</span></div>
+    <div className={styles.memberValue}><div><p className={styles.memberValueLabel}>Award value</p><Money totals={performance?.revenue} /></div><span className={styles.currencyTag}>NGN</span></div>
     <dl className={styles.memberStats}><div><dt>Assigned now</dt><dd>{performance?.assignedCount ?? '—'}</dd></div><div><dt>Payments credited</dt><dd>{performance?.paidCount ?? '—'}</dd></div></dl>
-    <dl className={styles.commissions}><div><dt>Confirmed commission</dt><dd><Money totals={performance?.confirmedCommission} /></dd></div><div><dt>Pending commission</dt><dd><Money totals={performance?.pendingCommission} /></dd></div></dl>
+    <dl className={styles.commissions}><div><dt>Confirmed commission (NGN)</dt><dd><Money totals={performance?.confirmedCommission} /></dd></div><div><dt>Pending commission (NGN)</dt><dd><Money totals={performance?.pendingCommission} /></dd></div></dl>
     <Dialog>
-      <DialogTrigger asChild><button className={styles.manage}><Settings2 size={15} aria-hidden="true" />Manage access<span className="sr-only"> for {member.full_name}</span><ArrowUpRight size={15} aria-hidden="true" /></button></DialogTrigger>
+      <DialogTrigger asChild><button className={styles.manage} aria-label={`Manage access for ${member.full_name}`}><Settings2 size={15} aria-hidden="true" />Manage access<span className="sr-only"> for {member.full_name}</span><ArrowUpRight size={15} aria-hidden="true" /></button></DialogTrigger>
       <DialogContent className={styles.dialog}>
         <DialogHeader><DialogTitle>Manage team access</DialogTitle><DialogDescription>{member.full_name} · {member.email}</DialogDescription></DialogHeader>
         <p className={styles.help}>Current status: {member.status === 'invited' ? 'awaiting approval' : member.status}.</p>
@@ -197,9 +198,8 @@ function MemberCard({ member, performance, busy, updateMember }: { member: Membe
 }
 
 function Money({ totals }: { totals?: MoneyTotals }) {
-  if (!totals) return <span>—</span>
-  const codes = (['NGN', 'USD'] as const).filter(code => totals[code] !== 0)
-  return <span className={styles.money}>{(codes.length ? codes : ['NGN'] as const).map(code => <span key={code}>{formatTeamMoney(totals[code], code)}</span>)}</span>
+  if (!totals) return <span className={styles.money}>—</span>
+  return <span className={styles.money}><span>{formatTeamMoney(totals.NGN, 'NGN')}</span></span>
 }
 function Summary({ label, value }: { label: string; value: React.ReactNode }) { return <div className={styles.metric}><p>{label}</p><div>{value}</div></div> }
 function Field({ label, children }: { label: string; children: React.ReactNode }) { return <label className={styles.field}>{label}{children}</label> }

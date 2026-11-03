@@ -16,20 +16,48 @@ export const OUTCOMES = [
   'other',
 ] as const
 
-export const followupSchema = z.object({
-  awardeeId: z.string().uuid(),
-  channel: z.enum(CHANNELS),
-  outcome: z.enum(OUTCOMES),
-  notes: z.string().trim().max(4000).optional().default(''),
-  responded: z.boolean().default(false),
-  paymentExpected: z.boolean().default(false),
-  contactedAt: z.string().datetime().optional(),
-  nextFollowupAt: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Use a YYYY-MM-DD date')
-    .nullable()
-    .optional(),
-})
+export const QUALIFYING_CONTACT_OUTCOMES = [
+  'message_sent',
+  'awaiting_response',
+  'interested',
+  'payment_reported',
+  'payment_verified',
+  'not_interested',
+  'followup_scheduled',
+  'other',
+] as const
+
+export const followupSchema = z
+  .object({
+    awardeeId: z.string().uuid(),
+    channel: z.enum(CHANNELS),
+    outcome: z.enum(OUTCOMES),
+    notes: z.string().trim().max(4000).optional().default(''),
+    responded: z.boolean().default(false),
+    paymentExpected: z.boolean().default(false),
+    contactedAt: z.string().datetime().optional(),
+    nextFollowupAt: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, 'Use a YYYY-MM-DD date')
+      .nullable()
+      .optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (
+      value.channel !== 'email' &&
+      QUALIFYING_CONTACT_OUTCOMES.includes(value.outcome as (typeof QUALIFYING_CONTACT_OUTCOMES)[number]) &&
+      value.notes.trim().length < 10
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.too_small,
+        minimum: 10,
+        type: 'string',
+        inclusive: true,
+        path: ['notes'],
+        message: 'Add at least 10 characters of useful notes for a qualifying contact outcome.',
+      })
+    }
+  })
 
 export const emailSendSchema = z.object({
   awardeeId: z.string().uuid(),
@@ -87,7 +115,7 @@ export const settingsSchema = z.object({
 export const commissionRuleSchema = z.object({
   name: z.string().trim().min(2).max(120),
   paymentCurrency: z.enum(['NGN', 'USD']),
-  commissionCurrency: z.enum(['NGN', 'USD']).default('NGN'),
+  commissionCurrency: z.literal('NGN').default('NGN'),
   commissionAmountMinor: z.number().int().positive(),
   countryScope: z.string().trim().max(80).nullable().optional(),
   priority: z.number().int().min(0).max(1000).default(0),

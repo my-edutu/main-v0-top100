@@ -12,6 +12,9 @@ export async function POST(request: Request) {
       throw new ApiError('Team leaders have read-only access to follow-up records', 403)
     }
     const payload = followupSchema.parse(await request.json())
+    if (payload.channel === 'email' && payload.outcome === 'email_sent') {
+      throw new ApiError('Use the Send email action so successful email contacts retain provider evidence', 422)
+    }
     const admin = createAdminClient()
 
     const { data: awardee, error: awardeeError } = await admin
