@@ -4,6 +4,8 @@ import { Filter, MessageCircle, Phone, Search, Shuffle } from 'lucide-react'
 import { Avatar, EmptyState, PageHeader, Pagination, StatusChip } from '@/components/ui'
 import { AwardeeEmailDialog } from '@/components/awardee-email-dialog'
 import { TrackedContactButton } from '@/components/tracked-contact-button'
+import { WhatsAppContact } from '@/components/whatsapp-contact'
+import { whatsappUnavailableReport } from '@/lib/whatsapp-availability'
 import {
   toAwardeeFilters,
   type AwardeeSearchParams,
@@ -49,7 +51,7 @@ function Actions({
     : `No phone number for ${row.name}`
   const unavailableTitle = !canContact ? 'Read-only team view' : 'No phone number on file'
   return (
-    <div className="flex items-center justify-end gap-2">
+    <div className="flex flex-wrap items-start justify-end gap-2">
       {canContact && normalized.ok ? (
         <TrackedContactButton
           awardeeId={row.id}
@@ -70,12 +72,13 @@ function Actions({
         </span>
       )}
       {canContact && normalized.ok ? (
-        <TrackedContactButton
+        <WhatsAppContact
           awardeeId={row.id}
           awardeeName={row.name}
-          channel="whatsapp"
+          phone={row.phone}
+          country={row.country}
+          report={whatsappUnavailableReport(row)}
           iconOnly
-          hasPhone={normalized.ok}
           message={`Hello ${row.name}, this is the Top100 Africa Future Leaders team following up on your award.`}
           className="bg-green-50 text-green-700 ring-1 ring-green-200 hover:bg-green-100 hover:shadow focus-visible:ring-green-500"
         />
@@ -348,6 +351,7 @@ function AwardeeCard({
             <p className="mt-1 text-xs text-muted">
               {row.country || 'Country unavailable'}
             </p>
+            {!canContact && whatsappUnavailableReport(row) ? <p className="mt-1 text-xs text-amber-800">Not on WhatsApp — rep reported</p> : null}
           </div>
         </div>
         <RecordProgress row={row} />
@@ -498,6 +502,7 @@ export async function AwardeesView({
                         <p className="mt-1 break-all text-xs text-muted">
                           {row.phone || row.email || 'No contact details'}
                         </p>
+                        {!canContact && whatsappUnavailableReport(row) ? <p className="mt-1 text-xs text-amber-800">Not on WhatsApp — rep reported</p> : null}
                       </div>
                     </div>
                   </td>

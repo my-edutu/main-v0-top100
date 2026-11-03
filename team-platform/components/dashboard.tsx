@@ -39,6 +39,8 @@ import { normalizePhone } from '@/lib/phone'
 import { workdayDate } from '@/lib/workday'
 import { WorkspaceRefresh } from '@/components/workspace-refresh'
 import { TrackedContactButton } from '@/components/tracked-contact-button'
+import { WhatsAppContact } from '@/components/whatsapp-contact'
+import { whatsappUnavailableReport } from '@/lib/whatsapp-availability'
 import type { AwardeeDirectoryRow } from '@/lib/data'
 import type { AdminDashboard, AgentDashboard, SessionMember } from '@/lib/types'
 
@@ -66,6 +68,8 @@ function QueueRow({
     awardee.next_followup_at && awardee.next_followup_at < workdayDate(),
   )
   const phone = normalizePhone(awardee.phone, awardee.country || 'Nigeria')
+  const whatsappReport = whatsappUnavailableReport(awardee)
+  const emailInstead = !!whatsappReport && !!awardee.email
   return (
     <div className="flex flex-wrap items-center gap-3 border-t border-ink/[0.07] px-4 py-4 first:border-t-0 sm:px-5">
       <Avatar
@@ -92,7 +96,7 @@ function QueueRow({
           </p>
         ) : null}
       </div>
-      <div className="flex items-center gap-1">
+      <div className="flex flex-wrap items-start gap-1">
         {phone.ok ? (
           <>
             <TrackedContactButton
@@ -102,22 +106,23 @@ function QueueRow({
               iconOnly
               hasPhone={phone.ok}
             />
-            <TrackedContactButton
+            <WhatsAppContact
               awardeeId={awardee.id}
               awardeeName={awardee.name}
-              channel="whatsapp"
+              phone={awardee.phone}
+              country={awardee.country}
+              report={whatsappReport}
               iconOnly
-              hasPhone={phone.ok}
               message={`Hello ${awardee.name}, this is the Top100 Africa Future Leaders team following up on your award.`}
             />
           </>
         ) : null}
         <Link
-          href={`/awardees/${awardee.id}`}
+          href={`/awardees/${awardee.id}${emailInstead ? '?compose=email' : ''}`}
           className="flex h-11 w-11 items-center justify-center rounded-xl text-ember hover:bg-ember/5"
-          aria-label={`Open follow-up for ${awardee.name}`}
+          aria-label={emailInstead ? `Email ${awardee.name}` : `Open follow-up for ${awardee.name}`}
         >
-          <ChevronRight className="h-4 w-4" />
+          {emailInstead ? <Mail className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
         </Link>
       </div>
     </div>

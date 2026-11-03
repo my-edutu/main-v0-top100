@@ -26,6 +26,8 @@ import {
 } from '@/components/ui'
 import { ContactPanel } from '@/components/contact-panel'
 import { TrackedContactButton } from '@/components/tracked-contact-button'
+import { WhatsAppContact } from '@/components/whatsapp-contact'
+import { whatsappUnavailableReport } from '@/lib/whatsapp-availability'
 import { requireMember, isStaff } from '@/lib/auth'
 import { getAwardeeDetail } from '@/lib/data'
 import { workdayDate } from '@/lib/workday'
@@ -122,10 +124,12 @@ export default async function AwardeeDetailPage({
               />
             ) : null}
             {canAct && awardee.phone ? (
-              <TrackedContactButton
+              <WhatsAppContact
                 awardeeId={awardee.id}
                 awardeeName={awardee.name}
-                channel="whatsapp"
+                phone={awardee.phone}
+                country={awardee.country}
+                report={whatsappUnavailableReport(awardee)}
                 message={`Hello ${awardee.name}, this is the Top100 Africa Future Leaders team following up on your award.`}
                 className="btn btn-ghost"
               />
@@ -138,6 +142,8 @@ export default async function AwardeeDetailPage({
           </>
         }
       />
+
+      {!canAct && whatsappUnavailableReport(awardee) ? <Banner tone="warning" className="mb-4">Not on WhatsApp — rep reported. Use Call or Email instead. This report is not contact proof.</Banner> : null}
 
       <div className="grid gap-4 lg:grid-cols-12">
         <div className="space-y-4 lg:col-span-8">
@@ -298,6 +304,8 @@ export default async function AwardeeDetailPage({
               awardeeName={awardee.name}
               email={awardee.email}
               phone={awardee.phone}
+              country={awardee.country}
+              whatsappReport={whatsappUnavailableReport(awardee)}
               agentName={member.membership.full_name}
               templates={data.templates as any}
               smtpReady={smtpConfigured()}

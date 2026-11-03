@@ -11,6 +11,7 @@ import { workdayDate } from '@/lib/workday'
 import { isStaff } from '@/lib/auth'
 
 export type AwardeeDirectoryRow = {
+  metadata?: unknown
   id: string
   team_id: string
   external_key: string | null

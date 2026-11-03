@@ -5,6 +5,7 @@ import { Mail, MessageCircle, PhoneCall } from 'lucide-react'
 import { FollowUpForm } from '@/components/followup-form'
 import { EmailComposer, WhatsAppComposer } from '@/components/message-composer'
 import { cn } from '@/lib/cn'
+import type { WhatsAppUnavailableReport } from '@/lib/whatsapp-availability'
 
 type Template = {
   id: string
@@ -21,6 +22,8 @@ export function ContactPanel({
   awardeeName,
   email,
   phone,
+  country,
+  whatsappReport = null,
   agentName,
   templates,
   smtpReady,
@@ -31,6 +34,8 @@ export function ContactPanel({
   awardeeName: string
   email: string | null
   phone: string | null
+  country?: string | null
+  whatsappReport?: WhatsAppUnavailableReport | null
   agentName: string
   templates: Template[]
   smtpReady: boolean
@@ -90,6 +95,8 @@ export function ContactPanel({
           <WhatsAppComposer
             awardeeId={awardeeId}
             phone={phone}
+            country={country}
+            whatsappReport={whatsappReport}
             awardeeName={awardeeName}
             agentName={agentName}
             templates={templates}

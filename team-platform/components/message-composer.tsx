@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation'
 import { Check, Copy, Loader2, Mail, Send, TriangleAlert } from 'lucide-react'
 import { Banner, Button, Field } from '@/components/ui'
 import { renderTemplate, firstName } from '@/lib/templates'
-import { TrackedContactButton } from '@/components/tracked-contact-button'
+import { WhatsAppContact } from '@/components/whatsapp-contact'
+import type { WhatsAppUnavailableReport } from '@/lib/whatsapp-availability'
 
 type Template = {
   id: string
@@ -149,12 +150,16 @@ export function EmailComposer({
 export function WhatsAppComposer({
   awardeeId,
   phone,
+  country,
+  whatsappReport = null,
   awardeeName,
   agentName,
   templates,
 }: {
   awardeeId: string
   phone: string | null
+  country?: string | null
+  whatsappReport?: WhatsAppUnavailableReport | null
   awardeeName: string
   agentName: string
   templates: Template[]
@@ -210,10 +215,12 @@ export function WhatsAppComposer({
         />
       </Field>
       <div className="grid grid-cols-2 gap-2">
-        <TrackedContactButton
+        <WhatsAppContact
           awardeeId={awardeeId}
           awardeeName={awardeeName}
-          channel="whatsapp"
+          phone={phone}
+          country={country}
+          report={whatsappReport}
           message={body}
           className="w-full"
         />
