@@ -186,6 +186,7 @@ export function AgentDashboardView({
           </LinkButton>
         </div>
       </header>
+      <Banner tone="info">Legacy grace preserves specifically approved historical credits and assignments pending review. Missing contact records alone do not disprove a rep’s effort. New payments still require qualifying outreach before payment.</Banner>
       <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-ink/10 bg-ink/10 lg:grid-cols-4">
         {metrics.map((metric) => (
           <Link

@@ -4,6 +4,7 @@ export type MoneyTotals = { NGN: number; USD: number }
 export type MemberPerformance = {
   assignedCount: number
   paidCount: number
+  legacyGraceCount: number
   revenue: MoneyTotals
   confirmedCommission: MoneyTotals
   pendingCommission: MoneyTotals
@@ -37,7 +38,7 @@ export type PerformanceAssignment = {
   assigned_at: string
   ended_at: string | null
 }
-/** Canonical SQL view: assignment owner with qualifying contact before payment. */
+/** Canonical SQL policy: qualifying contact or an explicit historical grace grant. */
 export type PerformanceAttribution = {
   id: string
   team_id: string
@@ -45,6 +46,7 @@ export type PerformanceAttribution = {
   agent_id: string
   assignment_id: string
   payment_id: string
+  contact_kind?: string
 }
 export type PerformanceCommission = {
   id: string
@@ -56,7 +58,7 @@ export type PerformanceCommission = {
 }
 
 function emptyPerformance(): MemberPerformance {
-  return { assignedCount: 0, paidCount: 0, revenue: { NGN: 0, USD: 0 }, confirmedCommission: { NGN: 0, USD: 0 }, pendingCommission: { NGN: 0, USD: 0 } }
+  return { assignedCount: 0, paidCount: 0, legacyGraceCount: 0, revenue: { NGN: 0, USD: 0 }, confirmedCommission: { NGN: 0, USD: 0 }, pendingCommission: { NGN: 0, USD: 0 } }
 }
 function currency(value: string | null): keyof MoneyTotals {
   if (value !== 'NGN' && value !== 'USD') throw new Error('Unknown performance currency')
@@ -74,8 +76,8 @@ function addMoney(totals: MoneyTotals, code: keyof MoneyTotals, amount: number) 
   totals[code] = next
 }
 
-/** The SQL attribution view enforces contact evidence. Assignment alone never
- * earns credit. Award value uses the standard NGN price, not an FX conversion.
+/** The SQL attribution view enforces contact evidence or explicit legacy grace.
+ * Assignment alone never earns new credit. Award value uses the standard NGN price, not an FX conversion.
  * Source currency and amount are validated but remain unchanged in the ledger.
  */
 export function buildTeamPerformance(
@@ -129,6 +131,7 @@ export function buildTeamPerformance(
   for (const rows of payments.values()) {
     const teamId = rows[0].team_id
     const qualifiedOwners = new Set<string>()
+    const legacyOwners = new Set<string>()
     const paidAt = Date.parse(rows[0].paid_at ?? '')
     if (!Number.isFinite(paidAt) || rows.some(row => Date.parse(row.paid_at ?? '') !== paidAt)) {
       unattributedPayments[teamId]++; continue
@@ -141,6 +144,7 @@ export function buildTeamPerformance(
         memberTeams.get(evidence.agent_id) === teamId && Date.parse(assignment.assigned_at) <= paidAt &&
         (assignment.ended_at === null || Date.parse(assignment.ended_at) > paidAt)) {
         qualifiedOwners.add(evidence.agent_id)
+        if (evidence.contact_kind === 'legacy_grace') legacyOwners.add(evidence.agent_id)
       }
     }
     // Only the canonical evidence winner receives credit, including when an
@@ -153,6 +157,7 @@ export function buildTeamPerformance(
     const owner = [...qualifiedOwners][0]
     for (const total of [members[owner], teams[teamId]]) {
       total.paidCount++
+      if (legacyOwners.has(owner)) total.legacyGraceCount++
       addMoney(total.revenue, 'NGN', DEFAULT_AWARD_FEE_NGN_MINOR)
     }
   }

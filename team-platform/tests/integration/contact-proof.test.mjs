@@ -231,6 +231,8 @@ if (!url) {
     // The policy migration must repair this old manual-proof earning in the
     // same transaction that installs the new canonical helper.
     await query(migration(proofMigrationFile))
+    // Historical grace must leave all new-payment proof requirements intact.
+    await query(migration('20261103120002_team_legacy_contact_grace.sql'))
   })
 
   after(async () => {

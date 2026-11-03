@@ -15,6 +15,17 @@ const attributed = (id: string, agent = 'rep-a', extra: Partial<PerformanceAttri
 })
 
 describe('team performance attribution', () => {
+  it('retains an explicitly grandfathered payment without labelling its outreach verified', () => {
+    const result = buildTeamPerformance(members, [paid('legacy')], [assigned('legacy')], [
+      { id: 'earning', team_id: 'team', agent_id: 'rep-a', amount_minor: 200000, currency: 'NGN', status: 'confirmed' },
+      { id: 'reversal', team_id: 'team', agent_id: 'rep-a', amount_minor: -200000, currency: 'NGN', status: 'confirmed' },
+      { id: 'grace-restoration', team_id: 'team', agent_id: 'rep-a', amount_minor: 200000, currency: 'NGN', status: 'confirmed' },
+    ], [attributed('legacy', 'rep-a', { contact_kind: 'legacy_grace' })])
+    expect(result.members['rep-a']).toMatchObject({ assignedCount: 1, paidCount: 1, legacyGraceCount: 1, confirmedCommission: { NGN: 200000, USD: 0 } })
+    expect(result.teams.team.legacyGraceCount).toBe(1)
+    expect(result.unattributedPayments.team).toBe(0)
+  })
+
   it('keeps historical revenue with the owner at payment time while counting current workloads', () => {
     const result = buildTeamPerformance(members, [paid('one')], [
       assigned('one', 'rep-a', { status: 'reassigned', ended_at: '2026-10-20T00:00:00Z' }),

@@ -4,7 +4,7 @@ Production is self-hosted Top100 through https://console.top100afl.com.
 
 ## Eligibility
 
-Assignment alone earns nothing. A payment must be verified, and its rep must
+For new credit, assignment alone earns nothing. A payment must be verified, and its rep must
 have qualifying contact during the assignment interval, before payment. The
 record must also have been saved before payment: backdating a note after a
 member pays cannot earn credit. New evidence uses a database-controlled
@@ -43,14 +43,32 @@ provide the shared eligibility result. Payment application stores the evidence
 reference in the earning snapshot. The admin card read model consumes that
 same result and fails visibly if attribution cannot be read.
 
+## Historical grace correction
+
+The owner's instruction on 3 November 2026 preserves the specific 15 historical
+credits (₦30,000) removed by the earlier repair. Missing contact records do not
+establish that the reps made no effort. These credits and original assignments
+remain under legacy grace pending review, with no automatic expiry or clawback
+merely because records are missing. This is an exact allowlist, not a blanket
+exception for new or other payments.
+
+Grace is labelled `legacy_grace` in canonical attribution and separately counted
+in admin totals. It is an owner-authorized historical policy, not verified
+contact evidence. The strict contact-proof helper stays unchanged. Positive
+ledger adjustments restore the prior credits without editing or deleting any
+historical earning or reversal. Valid refunds still neutralize restored grace
+exactly once. Reconciliation must retain grace and must not recreate a refunded
+grant. No payout or external notification is part of restoration.
+
 ## Independent payments and corrections
 
-Payments without qualifying outreach remain paid for the member, appear to
+Payments without qualifying outreach or an explicit historical grace grant remain paid for the member, appear to
 administrators for reconciliation, and are removed from rep assignments.
 Historical earnings are retained. Incorrect earnings receive linked negative
 reversals; corrections never delete genuine payments or rewrite settled
 withdrawals. Reconciliation must remain idempotent and must not resend agent
-notifications. A later note cannot restore a reversed unearned credit.
+notifications. A later note cannot establish new contact proof; legacy grace is
+an explicit owner-authorized exception.
 Approval, processing and payout recording must recheck the current ledger;
 an existing withdrawal request does not preserve access to reversed earnings.
 
@@ -125,3 +143,27 @@ form was inspected at 390px and 1280px using synthetic recipient data, including
 code request and decline. No real confirmation email, call, WhatsApp message or
 payout was sent as a test. Production SMTP and signing-key configuration were
 checked without exposing their values.
+
+## Owner-directed historical grace restoration — 3 November 2026
+
+The owner clarified that missing records are not sufficient evidence that reps
+made no effort. Applied `20261103120002_team_legacy_contact_grace.sql`, SHA-256
+`19e2020f21930755f66d06e91c1ceda0af6445c3e62e59c84c32825e9abe4a5f`,
+using the scoped fifteen-row runner and the protected backups in
+`/root/top100-repair-backups/legacy-credit-grace-20261103/`.
+The final dry run rolled back in 0.94 seconds; application took 0.83 seconds.
+
+Fifteen linked positive adjustments restored ₦30,000 and fifteen original
+assignments, with no ownership conflicts. Source payments, withdrawals,
+historical ledger rows and unrelated payment projections were verified
+unchanged. No notifications or payouts were issued. Scoped repeat application
+preserved grace without duplicating or removing credits. The live dashboard
+showed 15 credited payments and ₦30,000 confirmed commission after restoration.
+
+Grace is an exact historical exception pending affirmative review, with no
+automatic expiry. It is separately labelled and is not contact proof. New
+payment attribution remains strict. Verified nine grace PostgreSQL cases
+(including assignment concurrency and trigger-driven refunds), eleven contact
+proof cases with grace installed, twenty prior worklist/accounting cases,
+sixteen team unit tests, 1,849 main tests and both typechecks. Independent review
+approved the exact migration SHA and scoped release checks before application.

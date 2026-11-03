@@ -25,7 +25,7 @@ export async function loadTeamPerformance(admin: SupabaseClient, memberships: Pe
     readTeamRows<PerformanceAwardee>(admin, 'team_awardees', 'id,team_id,is_active,payment_status,payment_currency,payment_amount_minor,paid_at,payment_verified_at,payment_source_type,payment_source_id', teamIds),
     readTeamRows<PerformanceAssignment>(admin, 'team_assignments', 'id,team_id,awardee_id,agent_id,status,assigned_at,ended_at', teamIds),
     readTeamRows<PerformanceCommission>(admin, 'team_commission_entries', 'id,team_id,agent_id,amount_minor,currency,status', teamIds),
-    readTeamRows<PerformanceAttribution>(admin, 'team_payment_attributions', 'id,team_id,awardee_id,agent_id,assignment_id,payment_id', teamIds),
+    readTeamRows<PerformanceAttribution>(admin, 'team_payment_attributions', 'id,team_id,awardee_id,agent_id,assignment_id,payment_id,contact_kind', teamIds),
   ])
   return buildTeamPerformance(memberships, awardees, assignments, commissions, attributions)
 }

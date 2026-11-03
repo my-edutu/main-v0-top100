@@ -151,12 +151,13 @@ export default function TeamOperations() {
           <Summary label="Award value (NGN)" value={<Money totals={loading ? undefined : totals?.revenue} />} />
           <Summary label="Confirmed commission (NGN)" value={<Money totals={loading ? undefined : totals?.confirmedCommission} />} />
         </div>
-        {!loading && available && available.unattributedPayments[teamId] > 0 ? <p className={styles.help}>{available.unattributedPayments[teamId]} confirmed payments are excluded from rep totals because no qualifying outreach was recorded before payment. The awardees remain paid.</p> : null}
+        {!loading && totals && totals.legacyGraceCount > 0 ? <p role="status" className={styles.notice}>{totals.legacyGraceCount} historical credits are preserved under legacy grace pending review. Missing records alone do not prove that a rep made no effort. These credits will not expire automatically.</p> : null}
+        {!loading && available && available.unattributedPayments[teamId] > 0 ? <p className={styles.help}>{available.unattributedPayments[teamId]} confirmed payments have neither qualifying outreach nor a legacy grace grant and are excluded from rep totals. The awardees remain paid.</p> : null}
         <details className={styles.explanation}>
           <summary>How totals work{available && available.unattributedPayments[teamId] > 0 ? ` · ${available.unattributedPayments[teamId]} payments without qualifying rep outreach` : ''}</summary>
           <p className={styles.help}>Standard award value is ₦25,000 per award; it is not an FX conversion.</p>
-          <p className={styles.help}>Credit requires a verified payment and qualifying outreach before payment. Calls and WhatsApp require a tracked action plus the awardee’s confirmation using an email code. Notes or clicks alone earn nothing. Successful provider-backed email records can qualify. Payments without qualifying outreach are excluded from rep totals and released.</p>
-          {available && available.unattributedPayments[teamId] > 0 ? <p className={styles.help}>These payments remain confirmed for the awardee. They earn no rep commission and are removed from rep assignments.</p> : null}
+          <p className={styles.help}>New credit requires a verified payment and qualifying outreach before payment. Calls and WhatsApp require a tracked action plus the awardee’s confirmation using an email code. Notes or clicks alone earn no new credit. Successful provider-backed email records can qualify. Specifically preserved historical credits remain under legacy grace until review; grace does not claim verified outreach.</p>
+          {available && available.unattributedPayments[teamId] > 0 ? <p className={styles.help}>Payments outside qualifying outreach and legacy grace remain confirmed for the awardee. They earn no rep commission and are removed from rep assignments.</p> : null}
         </details>
       </section>
 
@@ -182,6 +183,7 @@ function MemberCard({ member, performance, busy, updateMember }: { member: Membe
     <div className={styles.memberMeta}><span>{roleLabel(member.role)}</span><span className={`${styles.badge} ${member.status === 'active' ? styles.active : member.status === 'invited' ? styles.invited : styles.suspended}`}>{member.status === 'invited' ? 'Awaiting approval' : member.status}</span></div>
     <div className={styles.memberValue}><div><p className={styles.memberValueLabel}>Award value</p><Money totals={performance?.revenue} /></div><span className={styles.currencyTag}>NGN</span></div>
     <dl className={styles.memberStats}><div><dt>Assigned now</dt><dd>{performance?.assignedCount ?? '—'}</dd></div><div><dt>Payments credited</dt><dd>{performance?.paidCount ?? '—'}</dd></div></dl>
+    {performance && performance.legacyGraceCount > 0 ? <p className={styles.help}>{performance.legacyGraceCount} historical {performance.legacyGraceCount === 1 ? 'credit' : 'credits'} preserved under legacy grace · pending review</p> : null}
     <dl className={styles.commissions}><div><dt>Confirmed commission (NGN)</dt><dd><Money totals={performance?.confirmedCommission} /></dd></div><div><dt>Pending commission (NGN)</dt><dd><Money totals={performance?.pendingCommission} /></dd></div></dl>
     <Dialog>
       <DialogTrigger asChild><button className={styles.manage} aria-label={`Manage access for ${member.full_name}`}><Settings2 size={15} aria-hidden="true" />Manage access<span className="sr-only"> for {member.full_name}</span><ArrowUpRight size={15} aria-hidden="true" /></button></DialogTrigger>
