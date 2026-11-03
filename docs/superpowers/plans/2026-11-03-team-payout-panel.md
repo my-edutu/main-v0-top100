@@ -30,3 +30,22 @@ mark a real payout during verification. Publish through the Top100 Dokploy host.
 - Production was inspected read-only: two requested NGN payouts, both with
   complete bank details. No real request was approved, rejected or paid.
 - This feature reuses existing database tables and RPCs; no migration is needed.
+
+## Rep dashboard follow-up
+
+A submitted request already reserves its amount. Confirming payment moves it
+from pending withdrawals to paid withdrawals, keeping the amount deducted from
+available commission without deducting it twice. The existing SQL functions
+serialize concurrent requests and confirmations. No database change is needed.
+
+Show recent payout requests, Paid status, payment date/reference, pending
+withdrawals and total paid on the agent overview. Reuse the existing refresh
+control on Earnings and Withdrawals so those pages also refresh on focus and
+every minute while visible. Preserve form input during route refreshes.
+
+Financial verification uses an explicitly named local disposable database:
+`TEAM_PAYOUT_TEST_DATABASE_URL=postgresql://localhost/top100_team_payout_test_20261103 node --test team-platform/tests/integration/payout-settlement.test.mjs`.
+The test resets that database's schemas. Its six integration cases cover
+reservation, settlement/dashboard/notification, reuse prevention, concurrent
+requests, concurrent confirmations, partial settlements and connection URL safety. The four tested SQL function definitions
+match the active self-hosted production database. No real payout is changed.

@@ -302,11 +302,11 @@ export function AgentDashboardView({
               )}
             </p>
             <p className="mt-2 text-xs leading-5 text-cream/65">
-              Cleared commission available to withdraw.
+              Requested and paid withdrawals are already deducted.
             </p>
             <div className="mt-5 grid grid-cols-2 gap-3 border-t border-white/15 pt-4">
               <div>
-                <p className="text-xs text-cream/60">Pending</p>
+                <p className="text-xs text-cream/60">Pending commission</p>
                 <p className="num mt-1 text-sm">
                   {formatMinor(
                     dashboard.balance.pending_commission_minor,
@@ -323,6 +323,14 @@ export function AgentDashboardView({
                   )}
                 </p>
               </div>
+              <div>
+                <p className="text-xs text-cream/60">Awaiting payout</p>
+                <p className="num mt-1 text-sm">{formatMinor(dashboard.balance.pending_withdrawal_minor, dashboard.balance.currency)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-cream/60">Paid to you</p>
+                <p className="num mt-1 text-sm">{formatMinor(dashboard.balance.withdrawn_minor, dashboard.balance.currency)}</p>
+              </div>
             </div>
             <Link
               href="/withdrawals"
@@ -336,6 +344,22 @@ export function AgentDashboardView({
             >
               View earnings history
             </Link>
+          </section>
+          <section className="card p-5" aria-labelledby="recent-payouts-heading">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 id="recent-payouts-heading" className="text-base font-medium">Your payout requests</h2>
+              <Link href="/withdrawals" className="inline-flex min-h-11 items-center text-xs font-medium text-ember">View all</Link>
+            </div>
+            {dashboard.recent_withdrawals.length ? <ul>
+              {dashboard.recent_withdrawals.map(request => <li key={request.id} className="border-t border-ink/[0.07] py-3 first:border-t-0">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="num text-sm font-medium">{formatMinor(request.status === 'paid' ? request.settled_amount_minor ?? request.amount_minor : request.amount_minor, request.currency)}</p>
+                  <StatusChip status={request.status} />
+                </div>
+                <p className="mt-1 text-xs leading-5 text-muted">{request.status === 'paid' && request.paid_at ? `Paid ${formatDate(request.paid_at)}` : `Requested ${formatDate(request.created_at)}`}</p>
+                {request.status === 'paid' && request.transaction_reference ? <p className="mt-1 break-all text-xs leading-5 text-muted">Transfer reference: {request.transaction_reference}</p> : null}
+              </li>)}
+            </ul> : <p className="text-sm leading-6 text-muted">Your withdrawal requests and payment confirmations will appear here.</p>}
           </section>
           <section className="card p-5">
             <div className="mb-5 flex items-center justify-between">

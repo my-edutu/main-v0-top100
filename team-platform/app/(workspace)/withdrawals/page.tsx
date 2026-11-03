@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { ArrowUpRight, Banknote, Wallet } from 'lucide-react'
 import { Card, EmptyState, PageHeader, StatusChip } from '@/components/ui'
 import { WithdrawalRequestForm } from '@/components/withdrawal-request-form'
+import { payoutReference } from '@/lib/payouts'
+import { WorkspaceRefresh } from '@/components/workspace-refresh'
 import { requireMember } from '@/lib/auth'
 import { getBalance, listWithdrawals } from '@/lib/data'
 import { formatDate, formatMinor } from '@/lib/format'
@@ -23,7 +25,7 @@ export default async function WithdrawalsPage() {
   const isAdmin = member.membership.role === 'super_admin'
   return (
     <div className="mx-auto max-w-4xl">
-      <PageHeader eyebrow={isAdmin ? 'Platform finance' : 'Commission payout'} title="Withdrawals" description={isAdmin ? 'Review team payout requests and use the withdrawal form for your own available commission balance.' : 'Request an available commission payout to your bank account and track its review.'} />
+      <PageHeader actions={<WorkspaceRefresh />} eyebrow={isAdmin ? 'Platform finance' : 'Commission payout'} title="Withdrawals" description={isAdmin ? 'Review team payout requests and use the withdrawal form for your own available commission balance.' : 'Request an available commission payout to your bank account and track its review.'} />
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
         <Card className="p-4 md:p-5">
           <div className="mb-4 flex items-center gap-2">
@@ -42,9 +44,11 @@ export default async function WithdrawalsPage() {
               {requests.rows.map((row: any) => (
                 <li key={row.id} className="border-t border-ink/[0.07] px-4 py-3.5">
                   <div className="flex items-start justify-between gap-3">
-                    <div><p className="num text-sm font-semibold">{formatMinor(row.amount_minor, row.currency)}</p><p className="mt-1 text-xs text-muted">{isAdmin && row.team_memberships?.full_name ? `${row.team_memberships.full_name} · ` : ''}Requested {formatDate(row.created_at)}</p></div>
+                    <div><p className="num text-sm font-semibold">{formatMinor(row.status === 'paid' ? row.settled_amount_minor ?? row.amount_minor : row.amount_minor, row.currency)}</p><p className="mt-1 text-xs text-muted">{isAdmin && row.team_memberships?.full_name ? `${row.team_memberships.full_name} · ` : ''}Requested {formatDate(row.created_at)}</p></div>
                     <StatusChip status={row.status} />
                   </div>
+                  {row.status === 'paid' && row.paid_at ? <p className="mt-2 text-xs text-muted">Paid {formatDate(row.paid_at)}</p> : null}
+                  {row.status === 'paid' && payoutReference(row.team_withdrawal_payouts) ? <p className="mt-1 break-all text-xs text-muted">Transfer reference: {payoutReference(row.team_withdrawal_payouts)}</p> : null}
                   {row.admin_note ? <p className="mt-2 text-xs text-muted">{row.admin_note}</p> : null}
                 </li>
               ))}

@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { ArrowLeft, ArrowRight, ArrowUpRight, BadgeCent, Banknote, ChevronDown, Clock3, Wallet } from 'lucide-react'
 import { Card, EmptyState, PageHeader, StatusChip } from '@/components/ui'
+import { payoutReference } from '@/lib/payouts'
+import { WorkspaceRefresh } from '@/components/workspace-refresh'
 import { requireMember, isStaff } from '@/lib/auth'
 import { getBalance, getCommissionEntries, getEarnings, listWithdrawals } from '@/lib/data'
 import { formatDate, formatDateTime, formatMinor, titleCase } from '@/lib/format'
@@ -37,6 +39,7 @@ export default async function EarningsPage({
     <div>
       <PageHeader
         title="Earnings"
+        actions={<WorkspaceRefresh />}
       />
 
       <Card className="mb-4 flex flex-wrap items-center justify-between gap-4 bg-moss-soft/55 p-5">
@@ -45,7 +48,7 @@ export default async function EarningsPage({
           <p className="num mt-2 text-3xl font-semibold tracking-[-0.03em] text-moss md:text-4xl">
             {formatMinor(balance?.withdrawable_minor ?? 0, 'NGN')}
           </p>
-          <p className="mt-1 text-xs text-muted">Confirmed rewards, less amounts reserved by open requests.</p>
+          <p className="mt-1 text-xs text-muted">Confirmed rewards, less pending and paid withdrawals.</p>
           {usd?.withdrawable_minor ? <p className="mt-1 text-xs font-medium text-moss">{formatMinor(usd.withdrawable_minor, 'USD')} also available in USD</p> : null}
         </div>
         <Link href="/withdrawals" className="btn btn-ember">
@@ -128,13 +131,13 @@ export default async function EarningsPage({
                 {requestRows.slice(0, 8).map((request: any) => (
                   <div key={request.id} className="border-t border-ink/[0.07] px-4 py-3">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="num text-xs font-semibold">{formatMinor(request.amount_minor, request.currency)}</p>
+                      <p className="num text-xs font-semibold">{formatMinor(request.status === 'paid' ? request.settled_amount_minor ?? request.amount_minor : request.amount_minor, request.currency)}</p>
                       <StatusChip status={request.status} />
                     </div>
                     <p className="mt-1 text-[10px] text-muted">
                       {staff && request.team_memberships?.full_name ? `${request.team_memberships.full_name} · ` : ''}
                       {formatDateTime(request.created_at)}
-                      {request.team_withdrawal_payouts?.[0]?.transaction_reference ? ` · ${request.team_withdrawal_payouts[0].transaction_reference}` : ''}
+                      {payoutReference(request.team_withdrawal_payouts) ? ` · ${payoutReference(request.team_withdrawal_payouts)}` : ''}
                     </p>
                   </div>
                 ))}
