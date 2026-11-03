@@ -13,9 +13,30 @@ recording timestamp, and its contact details remain immutable.
 - Email requires the matching successful provider message/recipient and a
   matching email timeline record. Failed sends and manual claims of sending an
   email do not count. Use the application's Send email action.
-- Calls and WhatsApp require a substantive logged outcome and useful notes.
-  These are staff-recorded audit evidence, not independent provider proof.
-  Opening WhatsApp, unavailable numbers and non-action records earn nothing.
+- Calls and WhatsApp require an application-tracked action and independent
+  awardee confirmation, both before payment. The awardee signs into the matching
+  account and enters a fresh code sent to the database-owned recipient email.
+  Opening the dialer or WhatsApp, manual notes and claimed outcomes earn nothing
+  alone. The app cannot inspect personal WhatsApp or ordinary phone call history.
+  This is recipient acknowledgement, not a provider-certified call/message log.
+- Codes expire in ten minutes, allow five guesses, and are limited to three sends
+  per recipient per hour with a sixty-second cooldown. Failed or ambiguous sends
+  cannot activate a challenge. Reps cannot self-confirm; decisions and evidence
+  timestamps are database-controlled and immutable. Declining contact and
+  continuing to the award are always available.
+
+Rep workflow: use **Call** or **WhatsApp** in the assigned worklist. WhatsApp
+opens a draft containing the optional confirmation link; the rep sends it
+through their existing app. After a phone conversation, copy and share the
+confirmation link shown by the call action. The awardee opens the link, signs
+in, requests their private email code and chooses Yes or No. Reps must never
+request or enter that code for the awardee. Contact confirmation does not gate
+award checkout. Notes remain useful for handover, but cannot establish credit.
+
+The main API uses `CONTACT_CONFIRMATION_SECRET` when configured, otherwise the
+existing server-only `SUPABASE_SERVICE_ROLE_KEY`. A dedicated key needs at least
+32 characters; changing the signing key invalidates outstanding codes. The
+team app always points confirmation links at the main Top100 site.
 
 `team_qualifying_contacts` and the service-only `team_payment_attributions` view
 provide the shared eligibility result. Payment application stores the evidence
@@ -44,8 +65,10 @@ policy and cannot simply be relabelled as naira.
 ## Release and verification
 
 Apply `team-platform/supabase/migrations/20261103120000_team_commission_attribution.sql`
-to the active self-hosted database before the updated card read model is
-released. Keep a protected schema and team-data backup on the Top100 host.
+followed by `team-platform/supabase/migrations/20261103120001_team_contact_confirmation_proof.sql`
+to the active self-hosted database. The second migration removes manual-note
+eligibility and reconciles existing paid attributions using the stricter rule.
+Keep a protected schema and team-data backup on the Top100 host.
 First exercise the migration in a transaction ending in rollback against the
 live schema, inspect correction counts, then apply the reviewed file.
 
@@ -80,3 +103,25 @@ lint passed. The broader main suite passed 1,826 tests before the final targeted
 checks. Independent review covered refunds, replay, immutable recording times,
 pending reversal release, source identity, NGN constraints and withdrawal
 solvency. Cards were inspected with synthetic data at 390px and 1280px.
+
+## Recipient confirmation release — 3 November 2026
+
+Applied `20261103120001_team_contact_confirmation_proof.sql` on the active
+self-hosted database. SHA-256:
+`b77e9c77a066d191641d11a7385e4792980fe4308ad05fc0281be7e659ce2cba`.
+Protected schema/team-data backups and transaction logs are in
+`/root/top100-repair-backups/recipient-contact-proof-20261103/`.
+The final dry run rolled back in 0.61 seconds; application took 0.63 seconds.
+The reconciler examined 23 team-linked paid orders and needed no additional
+reversal entries. Payment rows, withdrawals and historical ledger rows were
+verified unchanged. The 15 earlier reversals remain intact; net naira commission
+remains zero for these independent payments.
+
+Verification: 11 recipient-proof PostgreSQL cases, 20 prior accounting/worklist
+cases, 16 team unit tests and 1,848 main tests passed (24 unrelated database
+tests require their separate fixtures and were skipped). Both typechecks passed;
+independent final review found no remaining release blockers. The confirmation
+form was inspected at 390px and 1280px using synthetic recipient data, including
+code request and decline. No real confirmation email, call, WhatsApp message or
+payout was sent as a test. Production SMTP and signing-key configuration were
+checked without exposing their values.

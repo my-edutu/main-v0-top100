@@ -24,4 +24,12 @@ describe('dashboard redirect sanitization', () => {
   it('lets the normal sign-in flow retain its role-based fallback', () => {
     expect(sanitizeDashboardRedirect('/\\evil.example', '')).toBe('')
   })
+
+  it('retains only an exact internal contact confirmation link after sign-in', () => {
+    const path = '/contact-confirmation/11111111-1111-4111-8111-111111111111'
+    expect(sanitizeDashboardRedirect(path)).toBe(path)
+    expect(sanitizeDashboardRedirect('/contact-confirmation/not-a-token')).toBe('/dashboard')
+    expect(sanitizeDashboardRedirect(`${path}/extra`)).toBe('/dashboard')
+    expect(sanitizeDashboardRedirect(`${path}?redirect=https://evil.test`)).toBe('/dashboard')
+  })
 })

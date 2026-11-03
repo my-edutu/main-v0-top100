@@ -38,6 +38,7 @@ import {
 import { normalizePhone } from '@/lib/phone'
 import { workdayDate } from '@/lib/workday'
 import { WorkspaceRefresh } from '@/components/workspace-refresh'
+import { TrackedContactButton } from '@/components/tracked-contact-button'
 import type { AwardeeDirectoryRow } from '@/lib/data'
 import type { AdminDashboard, AgentDashboard, SessionMember } from '@/lib/types'
 
@@ -94,22 +95,21 @@ function QueueRow({
       <div className="flex items-center gap-1">
         {phone.ok ? (
           <>
-            <a
-              href={`tel:${phone.e164}`}
-              className="flex h-11 w-11 items-center justify-center rounded-xl border border-ink/10 text-muted hover:bg-paper"
-              aria-label={`Call ${awardee.name}`}
-            >
-              <Phone className="h-4 w-4" />
-            </a>
-            <a
-              href={`https://wa.me/${phone.whatsapp}`}
-              target="_blank"
-              rel="noreferrer"
-              className="flex h-11 w-11 items-center justify-center rounded-xl border border-ink/10 text-moss hover:bg-moss-soft"
-              aria-label={`WhatsApp ${awardee.name}`}
-            >
-              <MessageCircle className="h-4 w-4" />
-            </a>
+            <TrackedContactButton
+              awardeeId={awardee.id}
+              awardeeName={awardee.name}
+              channel="call"
+              iconOnly
+              hasPhone={phone.ok}
+            />
+            <TrackedContactButton
+              awardeeId={awardee.id}
+              awardeeName={awardee.name}
+              channel="whatsapp"
+              iconOnly
+              hasPhone={phone.ok}
+              message={`Hello ${awardee.name}, this is the Top100 Africa Future Leaders team following up on your award.`}
+            />
           </>
         ) : null}
         <Link

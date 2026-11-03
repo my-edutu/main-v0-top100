@@ -16,7 +16,10 @@ export const OUTCOMES = [
   'other',
 ] as const
 
-export const QUALIFYING_CONTACT_OUTCOMES = [
+// These outcomes benefit from a short factual note so the next rep can pick
+// up the conversation. Notes are useful context only; they are not proof of
+// contact, payment, or commission eligibility.
+export const USEFUL_NOTE_OUTCOMES = [
   'message_sent',
   'awaiting_response',
   'interested',
@@ -26,6 +29,14 @@ export const QUALIFYING_CONTACT_OUTCOMES = [
   'followup_scheduled',
   'other',
 ] as const
+
+export const contactAttemptSchema = z
+  .object({
+    awardeeId: z.string().uuid(),
+    channel: z.enum(['call', 'whatsapp']),
+    requestId: z.string().uuid(),
+  })
+  .strict()
 
 export const followupSchema = z
   .object({
@@ -45,7 +56,7 @@ export const followupSchema = z
   .superRefine((value, ctx) => {
     if (
       value.channel !== 'email' &&
-      QUALIFYING_CONTACT_OUTCOMES.includes(value.outcome as (typeof QUALIFYING_CONTACT_OUTCOMES)[number]) &&
+      USEFUL_NOTE_OUTCOMES.includes(value.outcome as (typeof USEFUL_NOTE_OUTCOMES)[number]) &&
       value.notes.trim().length < 10
     ) {
       ctx.addIssue({
@@ -54,7 +65,7 @@ export const followupSchema = z
         type: 'string',
         inclusive: true,
         path: ['notes'],
-        message: 'Add at least 10 characters of useful notes for a qualifying contact outcome.',
+        message: 'Add at least 10 characters of useful notes for this outcome.',
       })
     }
   })

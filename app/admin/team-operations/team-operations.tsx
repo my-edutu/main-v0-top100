@@ -155,7 +155,7 @@ export default function TeamOperations() {
         <details className={styles.explanation}>
           <summary>How totals work{available && available.unattributedPayments[teamId] > 0 ? ` · ${available.unattributedPayments[teamId]} payments without qualifying rep outreach` : ''}</summary>
           <p className={styles.help}>Standard award value is ₦25,000 per award; it is not an FX conversion.</p>
-          <p className={styles.help}>Only verified payments with a recorded qualifying outreach by the assigned rep before payment earn credit. Independent payments are excluded from rep totals and released. A manual WhatsApp click alone is not evidence of qualifying outreach.</p>
+          <p className={styles.help}>Credit requires a verified payment and qualifying outreach before payment. Calls and WhatsApp require a tracked action plus the awardee’s confirmation using an email code. Notes or clicks alone earn nothing. Successful provider-backed email records can qualify. Payments without qualifying outreach are excluded from rep totals and released.</p>
           {available && available.unattributedPayments[teamId] > 0 ? <p className={styles.help}>These payments remain confirmed for the awardee. They earn no rep commission and are removed from rep assignments.</p> : null}
         </details>
       </section>

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Check, Copy, Loader2, Mail, Send, TriangleAlert } from 'lucide-react'
 import { Banner, Button, Field } from '@/components/ui'
 import { renderTemplate, firstName } from '@/lib/templates'
+import { TrackedContactButton } from '@/components/tracked-contact-button'
 
 type Template = {
   id: string
@@ -146,11 +147,13 @@ export function EmailComposer({
 }
 
 export function WhatsAppComposer({
+  awardeeId,
   phone,
   awardeeName,
   agentName,
   templates,
 }: {
+  awardeeId: string
   phone: string | null
   awardeeName: string
   agentName: string
@@ -178,8 +181,6 @@ export function WhatsAppComposer({
     return <p className="text-xs leading-5 text-muted">No valid phone number on file. Add one before using WhatsApp.</p>
   }
 
-  const href = `https://wa.me/${phone.replace(/\D/g, '')}${body ? `?text=${encodeURIComponent(body)}` : ''}`
-
   return (
     <div className="space-y-3.5" id="whatsapp">
       <Field label="Approved template">
@@ -200,7 +201,7 @@ export function WhatsAppComposer({
           ))}
         </select>
       </Field>
-      <Field label="Message preview">
+      <Field label="Message preview" hint="The secure awardee confirmation link is appended after the server records this attempt.">
         <textarea
           className="textarea min-h-[150px]"
           value={body}
@@ -209,15 +210,13 @@ export function WhatsAppComposer({
         />
       </Field>
       <div className="grid grid-cols-2 gap-2">
-        <a
-          href={href}
-          target="_blank"
-          rel="noreferrer"
-          className="btn btn-primary w-full"
-          onClick={() => setCopied(false)}
-        >
-          Open WhatsApp
-        </a>
+        <TrackedContactButton
+          awardeeId={awardeeId}
+          awardeeName={awardeeName}
+          channel="whatsapp"
+          message={body}
+          className="w-full"
+        />
         <Button
           type="button"
           variant="ghost"
@@ -231,8 +230,8 @@ export function WhatsAppComposer({
         </Button>
       </div>
       <p className="rounded-xl bg-amber-50 px-3 py-2 text-[10px] leading-4 text-amber-900">
-        Opening WhatsApp is not proof of delivery. After the conversation, record the real outcome in the follow-up
-        form. Automated WhatsApp sending is not enabled in this phase.
+        Opening WhatsApp prepares a draft and is not proof of delivery or contact. The tracked action adds a secure
+        awardee confirmation link; share it after the conversation. Automated WhatsApp sending is not enabled in this phase.
       </p>
     </div>
   )

@@ -25,6 +25,7 @@ import {
   StatusChip,
 } from '@/components/ui'
 import { ContactPanel } from '@/components/contact-panel'
+import { TrackedContactButton } from '@/components/tracked-contact-button'
 import { requireMember, isStaff } from '@/lib/auth'
 import { getAwardeeDetail } from '@/lib/data'
 import { workdayDate } from '@/lib/workday'
@@ -112,22 +113,24 @@ export default async function AwardeeDetailPage({
         }
         actions={
           <>
-            {awardee.phone ? (
-              <a href={`tel:${awardee.phone}`} className="btn btn-ghost">
-                <Phone className="h-4 w-4" /> Call
-              </a>
-            ) : null}
-            {awardee.phone ? (
-              <a
-                href={`https://wa.me/${awardee.phone.replace(/\D/g, '')}`}
-                target="_blank"
-                rel="noreferrer"
+            {canAct && awardee.phone ? (
+              <TrackedContactButton
+                awardeeId={awardee.id}
+                awardeeName={awardee.name}
+                channel="call"
                 className="btn btn-ghost"
-              >
-                <MessageCircle className="h-4 w-4" /> WhatsApp
-              </a>
+              />
             ) : null}
-            {awardee.email ? (
+            {canAct && awardee.phone ? (
+              <TrackedContactButton
+                awardeeId={awardee.id}
+                awardeeName={awardee.name}
+                channel="whatsapp"
+                message={`Hello ${awardee.name}, this is the Top100 Africa Future Leaders team following up on your award.`}
+                className="btn btn-ghost"
+              />
+            ) : null}
+            {canAct && awardee.email ? (
               <a href={`/awardees/${awardee.id}?compose=email`} className="btn btn-ember">
                 <Mail className="h-4 w-4" /> Email
               </a>

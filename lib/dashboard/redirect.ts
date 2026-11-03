@@ -30,12 +30,15 @@ export function sanitizeDashboardRedirect(
     const url = new URL(requestedPath, DASHBOARD_ORIGIN)
     const isDashboardPath =
       url.pathname === '/dashboard' || url.pathname.startsWith('/dashboard/')
+    const isContactConfirmationPath =
+      /^\/contact-confirmation\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(url.pathname) &&
+      !url.search && !url.hash
 
     if (
       url.origin !== DASHBOARD_ORIGIN ||
       url.username ||
       url.password ||
-      !isDashboardPath
+      (!isDashboardPath && !isContactConfirmationPath)
     ) {
       return fallback
     }

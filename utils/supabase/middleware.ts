@@ -169,7 +169,10 @@ export async function updateSession(request: NextRequest) {
 
   if (user && (pathname.startsWith('/dashboard') || pathname.startsWith('/api/member/'))) {
     const allowed = ['/api/member/me', '/api/member/onboarding', '/api/member/uploads', '/api/member/avatar']
-    if (!allowed.includes(pathname)) {
+    // Contact acknowledgement is independent of award onboarding. The handler
+    // still verifies the signed-in recipient and fresh email proof itself.
+    const isContactConfirmation = /^\/api\/member\/contact-confirmation\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pathname)
+    if (!allowed.includes(pathname) && !isContactConfirmation) {
       // Match /api/member/me: read only this authenticated user's preferences
       // authoritatively, independent of profile RLS visibility.
       let profile: { notification_prefs?: Record<string, unknown> } | undefined

@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { Filter, MessageCircle, Phone, Search, Shuffle } from 'lucide-react'
 import { Avatar, EmptyState, PageHeader, Pagination, StatusChip } from '@/components/ui'
 import { AwardeeEmailDialog } from '@/components/awardee-email-dialog'
+import { TrackedContactButton } from '@/components/tracked-contact-button'
 import {
   toAwardeeFilters,
   type AwardeeSearchParams,
@@ -27,6 +28,7 @@ function Actions({
   smtpReady,
   canSendEmail,
   agentName,
+  canContact,
 }: {
   row: AwardeeDirectoryRow
   emailTemplates: Array<{
@@ -39,47 +41,49 @@ function Actions({
   smtpReady: boolean
   canSendEmail: boolean
   agentName: string
+  canContact: boolean
 }) {
   const normalized = normalizePhone(row.phone, row.country || 'Nigeria')
-  const phone = normalized.ok ? normalized.whatsapp : null
-  const whatsapp = phone ? `https://wa.me/${phone}` : null
+  const unavailableLabel = !canContact
+    ? `Contact actions are read-only for ${row.name}`
+    : `No phone number for ${row.name}`
+  const unavailableTitle = !canContact ? 'Read-only team view' : 'No phone number on file'
   return (
     <div className="flex items-center justify-end gap-2">
-      {phone ? (
-        <a
-          href={`tel:+${phone}`}
-          className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-50 text-amber-700 shadow-sm ring-1 ring-amber-200 transition hover:bg-amber-100 hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
-          aria-label={`Call ${row.name}`}
-          title="Call"
-        >
-          <Phone className="h-5 w-5" strokeWidth={2.4} />
-        </a>
+      {canContact && normalized.ok ? (
+        <TrackedContactButton
+          awardeeId={row.id}
+          awardeeName={row.name}
+          channel="call"
+          iconOnly
+          hasPhone={normalized.ok}
+          className="bg-amber-50 text-amber-700 ring-1 ring-amber-200 hover:bg-amber-100 hover:shadow focus-visible:ring-amber-500"
+        />
       ) : (
         <span
           role="img"
-          aria-label={`No phone number for ${row.name}`}
-          title="No phone number on file"
+          aria-label={unavailableLabel}
+          title={unavailableTitle}
           className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-50 text-slate-300 ring-1 ring-slate-200"
         >
           <Phone className="h-5 w-5" />
         </span>
       )}
-      {whatsapp ? (
-        <a
-          href={whatsapp}
-          target="_blank"
-          rel="noreferrer"
-          className="flex h-11 w-11 items-center justify-center rounded-xl bg-green-50 text-green-700 shadow-sm ring-1 ring-green-200 transition hover:bg-green-100 hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
-          aria-label={`WhatsApp ${row.name}`}
-          title="WhatsApp"
-        >
-          <MessageCircle className="h-5 w-5" strokeWidth={2.4} />
-        </a>
+      {canContact && normalized.ok ? (
+        <TrackedContactButton
+          awardeeId={row.id}
+          awardeeName={row.name}
+          channel="whatsapp"
+          iconOnly
+          hasPhone={normalized.ok}
+          message={`Hello ${row.name}, this is the Top100 Africa Future Leaders team following up on your award.`}
+          className="bg-green-50 text-green-700 ring-1 ring-green-200 hover:bg-green-100 hover:shadow focus-visible:ring-green-500"
+        />
       ) : (
         <span
           role="img"
-          aria-label={`No phone number for ${row.name}`}
-          title="No phone number on file"
+          aria-label={unavailableLabel}
+          title={unavailableTitle}
           className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-50 text-slate-300 ring-1 ring-slate-200"
         >
           <MessageCircle className="h-5 w-5" />
@@ -311,6 +315,7 @@ function AwardeeCard({
   smtpReady,
   canSendEmail,
   agentName,
+  canContact,
 }: {
   row: AwardeeDirectoryRow
   emailTemplates: Array<{
@@ -323,6 +328,7 @@ function AwardeeCard({
   smtpReady: boolean
   canSendEmail: boolean
   agentName: string
+  canContact: boolean
 }) {
   return (
     <article className="space-y-4 border-t border-ink/[0.07] p-4 first:border-t-0">
@@ -363,6 +369,7 @@ function AwardeeCard({
           smtpReady={smtpReady}
           canSendEmail={canSendEmail}
           agentName={agentName}
+          canContact={canContact}
         />
       </div>
     </article>
@@ -400,6 +407,7 @@ export async function AwardeesView({
     }))
   const smtpReady = smtpConfigured()
   const canSendEmail = member.membership.role !== 'team_leader'
+  const canContact = member.membership.role === 'agent'
 
   const query = (page: number) => {
     const values = new URLSearchParams()
@@ -510,6 +518,7 @@ export async function AwardeesView({
                       smtpReady={smtpReady}
                       canSendEmail={canSendEmail}
                       agentName={member.membership.full_name}
+                      canContact={canContact}
                     />
                   </td>
                 </tr>
@@ -527,6 +536,7 @@ export async function AwardeesView({
               smtpReady={smtpReady}
               canSendEmail={canSendEmail}
               agentName={member.membership.full_name}
+              canContact={canContact}
             />
           ))}
         </div>

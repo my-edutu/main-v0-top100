@@ -88,6 +88,7 @@ export function ContactPanel({
         ) : null}
         {tab === 'whatsapp' ? (
           <WhatsAppComposer
+            awardeeId={awardeeId}
             phone={phone}
             awardeeName={awardeeName}
             agentName={agentName}

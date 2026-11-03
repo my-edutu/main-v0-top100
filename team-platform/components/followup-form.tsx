@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2, PhoneCall, Save } from 'lucide-react'
 import { Banner, Button, Field } from '@/components/ui'
-import { CHANNELS, OUTCOMES, QUALIFYING_CONTACT_OUTCOMES } from '@/lib/validation'
+import { CHANNELS, OUTCOMES, USEFUL_NOTE_OUTCOMES } from '@/lib/validation'
 import { CHANNEL_LABELS, OUTCOME_LABELS } from '@/lib/format'
 
 export function FollowUpForm({
@@ -41,8 +41,8 @@ export function FollowUpForm({
   )
   const requiresUsefulNotes =
     channel !== 'email' &&
-    QUALIFYING_CONTACT_OUTCOMES.includes(
-      outcome as (typeof QUALIFYING_CONTACT_OUTCOMES)[number],
+    USEFUL_NOTE_OUTCOMES.includes(
+      outcome as (typeof USEFUL_NOTE_OUTCOMES)[number],
     )
 
   async function submit(event: React.FormEvent) {
@@ -113,7 +113,7 @@ export function FollowUpForm({
         label="Notes"
         hint={
           requiresUsefulNotes
-            ? 'Useful notes (10+ characters) are required for commission credit. Calls and WhatsApp records are staff-entered audit evidence, not provider verification.'
+            ? 'Add at least 10 characters so the next rep has useful context. Notes are staff-entered context, not provider verification or awardee confirmation.'
             : 'What happened? Keep it factual and useful for the next follow-up.'
         }
       >
@@ -171,7 +171,8 @@ export function FollowUpForm({
       </Button>
       <p className="flex items-start gap-1.5 text-[10px] leading-4 text-muted">
         <PhoneCall className="mt-0.5 h-3 w-3 shrink-0" />
-        Opening a dialler or WhatsApp does not count as contact. Record the real outcome here; send email through the Email tab so provider delivery is traceable.
+        These notes document the conversation only. Payment and commission require the tracked contact attempt plus
+        the awardee&apos;s own confirmation; opening a dialler or WhatsApp never verifies either one.
       </p>
     </form>
   )

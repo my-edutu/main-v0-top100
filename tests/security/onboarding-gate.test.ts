@@ -68,6 +68,15 @@ it('does not force incomplete members back into the middleware onboarding redire
   expect(page).not.toContain('window.location.replace')
   expect(page).toContain('Continue to dashboard')
 })
+it('allows only a precise contact confirmation route before onboarding', async () => {
+  const base = 'https://www.top100afl.com/api/member/contact-confirmation/'
+  const token = '11111111-1111-4111-8111-111111111111'
+  expect((await updateSession(new NextRequest(base + token))).status).toBe(200)
+  expect(fetch).not.toHaveBeenCalled()
+  for (const suffix of ['', 'invalid-token', token + '/other-action']) {
+    expect((await updateSession(new NextRequest(base + suffix))).status).toBe(403)
+  }
+})
 it('allows completed members and fails closed on a database error', async () => {
   state.prefs = { onboardingCompletedAt: '2026-09-06T00:00:00Z' }
   expect(
