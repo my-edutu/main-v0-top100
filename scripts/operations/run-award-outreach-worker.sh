@@ -9,7 +9,7 @@ if [ -z "$container" ]; then
 fi
 docker exec "$container" node -e '
 async function run() {
-  const secret = process.env.AWARD_OUTREACH_WORKER_SECRET || process.env.EMAIL_OUTBOX_WORKER_SECRET;
+  const secret = process.env.AWARD_OUTREACH_WORKER_SECRET || process.env.EMAIL_OUTBOX_WORKER_SECRET || process.env.CRON_SECRET;
   if (!secret) throw new Error("Outreach worker secret missing.");
   const response = await fetch("http://127.0.0.1:3000/api/internal/award-outreach/process", {
     method: "POST",
