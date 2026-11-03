@@ -4,6 +4,7 @@ import { useRef, useState } from 'react'
 import { Check, Copy, ExternalLink, Loader2, MessageCircle, Phone, TriangleAlert } from 'lucide-react'
 import { Banner, Button } from '@/components/ui'
 import { cn } from '@/lib/cn'
+import { closeContactPopup, createContactRequestId, launchWhatsApp, prepareContactPopup, safeWhatsAppDestination, type ContactPopup } from '@/lib/contact-launch'
 
 type ContactChannel = 'call' | 'whatsapp'
 
@@ -33,18 +34,6 @@ function safeCallDestination(destination: unknown) {
     throw new Error('The phone destination was not available from the server.')
   }
   return destination
-}
-
-function safeWhatsAppDestination(destination: unknown) {
-  if (typeof destination !== 'string') {
-    throw new Error('The WhatsApp destination was not available from the server.')
-  }
-  const url = new URL(destination)
-  if (url.protocol !== 'https:' || url.hostname.toLowerCase() !== 'wa.me' || !/^\d{8,15}$/.test(url.pathname.slice(1))) {
-    throw new Error('The WhatsApp destination was not available from the server.')
-  }
-  url.search = ''
-  return url
 }
 
 function whatsappUrl(destination: unknown, message: string, confirmationUrl: string) {
@@ -96,6 +85,7 @@ export function TrackedContactButton({
   disabled?: boolean
 }) {
   const requestIdRef = useRef<string | null>(null)
+  const inFlight = useRef(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<{
@@ -112,7 +102,8 @@ export function TrackedContactButton({
   const openLabel = channel === 'call' ? `Call ${awardeeName}` : `Open WhatsApp for ${awardeeName}`
 
   async function startAttempt() {
-    if (loading || disabled || !hasPhone) return
+    if (inFlight.current || disabled || !hasPhone) return
+    inFlight.current = true
 
     setError(null)
     setCopyError(null)
@@ -122,21 +113,13 @@ export function TrackedContactButton({
     // A blank tab is opened synchronously from the user gesture so the
     // eventual prefilled compose URL is not lost to popup blocking while the
     // server records the attempt.
-    let popup: Window | null = null
-    if (channel === 'whatsapp') {
-      try {
-        popup = window.open('about:blank', '_blank')
-        if (popup) popup.opener = null
-        if (!popup) setPopupBlocked(true)
-      } catch {
-        setPopupBlocked(true)
-      }
-    }
-
-    if (!requestIdRef.current) requestIdRef.current = crypto.randomUUID()
+    let popup: ContactPopup | null = null
+    let attemptRecorded = false
     setLoading(true)
 
     try {
+      if (channel === 'whatsapp') popup = prepareContactPopup(window)
+      if (!requestIdRef.current) requestIdRef.current = createContactRequestId(crypto)
       const response = await fetch('/api/contact-attempts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
@@ -166,24 +149,23 @@ export function TrackedContactButton({
         : 'initiated'
 
       setResult({ confirmationUrl, destination, status })
+      attemptRecorded = true
       requestIdRef.current = null
 
       if (channel === 'whatsapp') {
         const composeUrl = whatsappUrl(destination, message, confirmationUrl)
-        if (popup && !popup.closed) {
-          popup.location.href = composeUrl
-        } else {
-          setPopupBlocked(true)
-        }
+        launchWhatsApp(composeUrl, popup, window)
       } else {
         // Let the confirmation panel commit first so it remains visible when
         // a desktop browser declines to handle the tel: URI.
         window.setTimeout(() => window.location.assign(destination), 0)
       }
     } catch (caught) {
-      if (popup && !popup.closed) popup.close()
-      setError(caught instanceof Error ? caught.message : `Could not start ${label.toLowerCase()}`)
+      closeContactPopup(popup)
+      if (channel === 'whatsapp' && attemptRecorded) setPopupBlocked(true)
+      else setError(caught instanceof Error ? caught.message : `Could not start ${label.toLowerCase()}`)
     } finally {
+      inFlight.current = false
       setLoading(false)
     }
   }
@@ -261,9 +243,10 @@ export function TrackedContactButton({
           {copyError ? <p className="mt-1 text-[10px] text-red-700">{copyError}</p> : null}
           {popupBlocked ? (
             <Banner tone="warning" className="mt-2 px-3 py-2 text-[11px] leading-4">
-              Your browser blocked the new WhatsApp tab. Use the link below to continue; no message was sent automatically.
+              Your browser could not open WhatsApp. Use the link below to continue; no message was sent automatically.
             </Banner>
           ) : null}
+          {channel === 'whatsapp' ? <p className="mt-2 text-[11px] leading-4 text-muted">If WhatsApp says this number is not registered, use Call or Email instead.</p> : null}
           {retryHref ? (
             <a
               href={retryHref}
