@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { formatTeamMoney, type MemberPerformance, type MoneyTotals, type PerformanceResult } from '@/lib/team-operations/performance'
 import { AccessCodePanel } from './access-code-panel'
+import { PayoutRequests } from './payout-requests'
 import styles from './team-operations.module.css'
 
 type Membership = {
@@ -160,6 +161,8 @@ export default function TeamOperations() {
           {available && available.unattributedPayments[teamId] > 0 ? <p className={styles.help}>Payments outside qualifying outreach and legacy grace remain confirmed for the awardee. They earn no rep commission and are removed from rep assignments.</p> : null}
         </details>
       </section>
+
+      {teamId ? <PayoutRequests key={teamId} teamId={teamId} onUpdated={load} /> : null}
 
       <section aria-label="Team members" className={styles.members}>
         <div className={styles.toolbar}>
