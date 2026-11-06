@@ -1,4 +1,14 @@
-# Editorial features and direct publishing
+# Editorial features and device sharing
+
+**Current workflow:** Generate four editable third-person previews, then use
+**Share from device** for the selected caption. No social account tokens or Meta
+developer app are needed. The device chooses the destination; publishing is
+completed externally and cannot be verified by the app. Copy caption and download
+image remain available when native sharing is unsupported. AI generation still
+requires a valid server-side OpenAI key.
+
+The direct-publishing implementation described below is retained for future use;
+it is not exposed by the current feature composer.
 
 Admin → Social Sharing → select a public awardee → **Generate feature** → edit
 four third-person captions → review the Instagram image →

@@ -13,7 +13,7 @@ export default async function AdminSocialSharingPage() {
       <PageHeader
         title="Social Sharing"
         eyebrow="Awardee spotlights"
-        description="Create a third-person feature, preview and edit each platform’s caption, then publish to LinkedIn, Facebook, Instagram and X."
+        description="Create a third-person feature, preview and edit each platform’s caption, then share to LinkedIn, Facebook, Instagram or X from your device."
       />
       <SocialSharingWorkspace />
     </div>
