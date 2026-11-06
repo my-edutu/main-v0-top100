@@ -1,5 +1,9 @@
 # Admin awardee social sharing
 
+For the new four-platform editorial feature and direct publishing workflow, see
+[Editorial features and direct publishing](admin-social-publishing.md). The
+sections below describe the retained manual single-platform composer.
+
 The admin Awardee directory share button opens a review popup. It loads the latest public profile, generates editable platform style copy with OpenAI, and shows the awardee image before any sharing action. OpenAI caption generation runs on the server with `OPENAI_API_KEY`; the key is never sent to the browser. Only public profile details are supplied, and the Responses API request sets `store: false`.
 
 The composer uses the latest public name, bio, headline, country, field of study, cohort/year, listed achievements, and public impact counts. In the Social Sharing workspace it can save a timestamped source snapshot with each draft, refresh the profile, and mark a saved draft stale if the public profile changed since that snapshot.

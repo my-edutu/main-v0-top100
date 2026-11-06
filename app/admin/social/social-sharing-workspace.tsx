@@ -1,5 +1,6 @@
 'use client'
 
+import SpotlightComposer from './spotlight-composer'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Check,
@@ -278,6 +279,7 @@ export default function SocialSharingWorkspace() {
         </div>
 
         {selected && <>
+          <SpotlightComposer key={selected.awardeeId} profile={selected} />
       <div className="grid min-w-0 gap-4 md:grid-cols-[minmax(180px,0.8fr)_minmax(0,1.2fr)]">
             <section className="overflow-hidden rounded-2xl border border-[#e7e3dc] bg-white" aria-label="Profile preview">
               <div className="relative aspect-[4/3] bg-[#f5f3ef]">
