@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import { getPublishedPosts } from '@/lib/posts/server'
 import { getPublishedSlugs } from '@/lib/interviews/queries'
 import { SITE_URL } from '@/lib/site'
+import { publicProfileSitemap } from '@/lib/seo/profile-sitemap'
 
 export const dynamic = 'force-static'
 export const revalidate = 3600 // Revalidate every hour
@@ -156,19 +157,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ]
 
-  // Fetch all public awardees
-  const { data: awardees } = await supabase
+  // Use stable pages to avoid PostgREST's per-response row limit.
+  const awardeeRoutes = await publicProfileSitemap((from, to) => supabase
     .from('awardee_directory')
     .select('slug, updated_at')
     .eq('is_public', true)
-    .order('updated_at', { ascending: false })
-
-  const awardeeRoutes: MetadataRoute.Sitemap = (awardees || []).map((awardee) => ({
-    url: `${baseUrl}/awardees/${awardee.slug}`,
-    lastModified: awardee.updated_at ? new Date(awardee.updated_at) : new Date(),
-    changeFrequency: 'weekly' as const,
-    priority: 0.8,
-  }))
+    .order('slug', { ascending: true })
+    .order('awardee_id', { ascending: true })
+    .range(from, to))
 
   // getPublishedPosts merges Supabase posts with the static seed posts in
   // content/data — querying Supabase directly here used to leave the static

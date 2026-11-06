@@ -10,6 +10,8 @@ import { getAwardees } from '@/lib/awardees'
 import { normalizeAwardeeEntry } from '@/lib/awardees-shared'
 import { fetchAwardeeBySlug } from '@/lib/dashboard/profile-service'
 import { ogMetadata } from '@/lib/og'
+import { SITE_URL } from '@/lib/site'
+import { profileDescription, profileStructuredData } from '@/lib/seo/profile'
 import type { Achievement, GalleryItem, SocialLinks } from '@/types/profile'
 import LinkedInPostCard from './LinkedInPostCard'
 import AwardeePostsList from './AwardeePostsList'
@@ -29,6 +31,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     return {
       title: 'Awardee Not Found',
       description: 'This awardee profile is not available.',
+      robots: { index: false, follow: false },
     }
   }
 
@@ -38,8 +41,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const cohortLabel = awardee.cohort && awardee.cohort.trim().length > 0 ? awardee.cohort : `Top100 Africa Future Leader ${showcaseYear}`
 
   const title = `${awardee.name} - ${awardee.headline || cohortLabel}`
-  const description = awardee.bio?.substring(0, 160) ||
-    `Meet ${awardee.name}, ${cohortLabel}${awardee.country ? ` from ${awardee.country}` : ''}. ${awardee.tagline || awardee.headline || 'Celebrating excellence in African youth leadership.'}`
+  const description = profileDescription(awardee.bio,
+    `Meet ${awardee.name}, ${cohortLabel}${awardee.country ? ` from ${awardee.country}` : ''}. ${awardee.tagline || awardee.headline || 'Celebrating excellence in African youth leadership.'}`)
 
   const keywords = [
     awardee.name,
@@ -66,6 +69,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     title,
     description,
     keywords,
+    alternates: { canonical: `${SITE_URL}/awardees/${encodeURIComponent(awardee.slug)}` },
     ...ogMetadata(card, {
       url: `/awardees/${awardee.slug}`,
       type: 'profile',
@@ -110,14 +114,7 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
   const raw = await fetchAwardeeBySlug(slug)
 
   if (!raw || raw.is_public === false) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center p-4">
-        <div className="text-center space-y-4">
-          <p className="text-gray-500">Awardee not found.</p>
-          <Link href="/awardees" className="text-red-600 hover:underline text-sm font-medium">Back to awardees</Link>
-        </div>
-      </div>
-    )
+    notFound()
   }
 
   const awardee = normalizeAwardeeEntry(raw)
@@ -133,15 +130,17 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
   }
 
   const contactDb = createAdminClient()
-  const { data: linkedAwardee } = await contactDb.from('awardees').select('profile_id').eq('slug', slug).maybeSingle()
-  const { data: contactProfile } = linkedAwardee?.profile_id
+  const { data: linkedAwardee, error: linkedAwardeeError } = await contactDb.from('awardees').select('profile_id').eq('slug', slug).maybeSingle()
+  if (linkedAwardeeError) throw new Error('Could not verify profile contact consent', { cause: linkedAwardeeError })
+  const { data: contactProfile, error: contactProfileError } = linkedAwardee?.profile_id
     ? await contactDb.from('profiles').select('email,notification_prefs').eq('id', linkedAwardee.profile_id).maybeSingle()
-    : { data: null }
+    : { data: null, error: null }
+  if (contactProfileError) throw new Error('Could not verify profile contact consent', { cause: contactProfileError })
   const contactPrefs = contactProfile?.notification_prefs ?? {}
   const memberLinks = contactPrefs.socialLinksConsent === true && !validateSocialLinks(contactPrefs.socialLinks)
     ? Object.fromEntries((contactPrefs.socialLinks as SocialLink[]).map(link => [link.platform, link.url])) : {}
   const contactEmail = contactPrefs.emailVisible === true && contactPrefs.contactEmailConsent === true ? contactProfile?.email : null
-  const socialEntries = Object.entries(contactProfile ? memberLinks : (awardee.social_links ?? {}))
+  const socialEntries = Object.entries(linkedAwardee?.profile_id ? memberLinks : (awardee.social_links ?? {}))
     .filter(([, value]) => Boolean(value)) as Array<[keyof SocialLinks, string]>
 
   const achievements = (awardee.achievements ?? []) as Achievement[]
@@ -163,24 +162,7 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
     ? currentSchool
     : null
 
-  // Person Schema for SEO
-  const personSchema = {
-    "@context": "https://schema.org",
-    "@type": "Person",
-    "name": awardee.name,
-    "image": awardee.avatar_url || awardee.cover_image_url,
-    "jobTitle": awardee.headline,
-    "description": awardee.bio,
-    ...(awardee.current_school && { "alumniOf": awardee.current_school }),
-    ...(awardee.country && { "nationality": awardee.country }),
-    ...(achievements.length > 0 && { "award": achievements.map(a => a.title) }),
-    ...(socialEntries.length > 0 && { "sameAs": socialEntries.map(([, url]) => url) }),
-    "memberOf": {
-      "@type": "Organization",
-      "name": "Top100 Africa Future Leaders"
-    },
-    ...(awardee.interests && awardee.interests.length > 0 && { "knowsAbout": awardee.interests })
-  }
+  const personSchema = profileStructuredData(awardee, socialEntries.map(([, url]) => url))
 
   return (
     <div className="min-h-screen bg-white">

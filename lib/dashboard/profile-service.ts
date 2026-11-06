@@ -1,6 +1,5 @@
 import { unstable_cache } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/server'
-import { getAwardees } from '@/lib/awardees'
 import {
     DEMO_PUBLIC_SLUG,
     demoAwardeeDirectoryEntry,
@@ -12,32 +11,21 @@ import {
  */
 const fetchPersistedAwardeeBySlug = unstable_cache(
     async (slug: string) => {
-        try {
-            const supabase = createAdminClient()
+        const supabase = createAdminClient()
+        const { data, error } = await supabase
+            .from('awardee_directory')
+            .select('*')
+            .eq('slug', slug)
+            .maybeSingle()
 
-            const { data, error } = await supabase
-                .from('awardee_directory')
-                .select('*')
-                .eq('slug', slug)
-                .maybeSingle()
-
-            if (!error && data) {
-                return data
-            }
-
-            if (error) {
-                console.warn('Error fetching awardee by slug from Supabase, using workbook fallback:', error)
-            }
-        } catch (error) {
-            console.warn('Awardee profile service falling back to workbook data:', error)
-        }
-
-        const awardees = await getAwardees()
-        return awardees.find((awardee) => awardee.slug === slug) ?? null
+        // Availability failures must not republish workbook records or become
+        // cached 404s. Throw so Next preserves a previously successful ISR page.
+        if (error) throw new Error('Public profile lookup failed', { cause: error })
+        return data ?? null
     },
     // Version the cache key so a previously cached not-found response cannot
     // hide a newly added public directory record after it is inserted.
-    ['awardee-profile-by-slug-v3'],
+    ['awardee-profile-by-slug-v5'],
     { revalidate: 600, tags: ['awardees'] },
 )
 
