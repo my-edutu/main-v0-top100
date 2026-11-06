@@ -1,5 +1,6 @@
 import { clampText } from '@/lib/og'
 import { SITE_URL } from '@/lib/site'
+import { buildProfileContent } from './profile-content'
 import type { AwardeeDirectoryEntry } from '@/types/profile'
 
 export function profileDescription(bio: string | null | undefined, fallback: string): string {
@@ -30,7 +31,7 @@ export function profileStructuredData(profile: AwardeeDirectoryEntry, socialUrls
       url,
       name: profile.name,
       image: webUrl(profile.avatar_url, true) || webUrl(profile.cover_image_url, true),
-      description: profile.bio || undefined,
+      description: buildProfileContent(profile).biography || undefined,
       // Country and current school do not establish nationality or alumni status.
       award: profile.achievements?.map(item => item.title).filter(Boolean),
       sameAs: [...new Set(socialUrls.map(value => webUrl(value)).filter((value): value is string => Boolean(value)))],

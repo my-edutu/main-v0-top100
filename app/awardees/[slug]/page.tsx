@@ -3,7 +3,7 @@ import { validateSocialLinks, type SocialLink } from '@/lib/profile-contact'
 import Image from '@/components/safe-image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ChevronDown, ExternalLink, Globe, Instagram, Linkedin, Mail, PenSquare, Twitter, Users2, Youtube } from 'lucide-react'
+import { ExternalLink, Globe, Instagram, Linkedin, Mail, PenSquare, Twitter, Users2, Youtube } from 'lucide-react'
 import type { Metadata } from 'next'
 
 import { getAwardees } from '@/lib/awardees'
@@ -11,6 +11,8 @@ import { normalizeAwardeeEntry } from '@/lib/awardees-shared'
 import { fetchAwardeeBySlug } from '@/lib/dashboard/profile-service'
 import { ogMetadata } from '@/lib/og'
 import { SITE_URL } from '@/lib/site'
+import { buildProfileContent } from '@/lib/seo/profile-content'
+import ProfileBiography from './ProfileBiography'
 import { profileDescription, profileStructuredData } from '@/lib/seo/profile'
 import type { Achievement, GalleryItem, SocialLinks } from '@/types/profile'
 import LinkedInPostCard from './LinkedInPostCard'
@@ -36,13 +38,11 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
 
   const awardee = normalizeAwardeeEntry(raw)
+  const content = buildProfileContent(awardee)
   const portfolioCoverUrl = typeof raw.portfolio_cover_url === 'string' ? raw.portfolio_cover_url : null
-  const showcaseYear = typeof awardee.year === 'number' && Number.isFinite(awardee.year) ? awardee.year : 2025
-  const cohortLabel = awardee.cohort && awardee.cohort.trim().length > 0 ? awardee.cohort : `Top100 Africa Future Leader ${showcaseYear}`
-
-  const title = `${awardee.name} - ${awardee.headline || cohortLabel}`
-  const description = profileDescription(awardee.bio,
-    `Meet ${awardee.name}, ${cohortLabel}${awardee.country ? ` from ${awardee.country}` : ''}. ${awardee.tagline || awardee.headline || 'Celebrating excellence in African youth leadership.'}`)
+  const cohortLabel = content.recognition
+  const title = content.title
+  const description = profileDescription(content.description, content.introduction)
 
   const keywords = [
     awardee.name,
@@ -58,7 +58,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   // headshot cropped to 1.91:1 loses the face, which is the whole subject.
   const card = {
     title: awardee.name,
-    eyebrow: `Top100 AFL ${showcaseYear}`,
+    eyebrow: content.year ? `Top100 AFL ${content.year}` : 'Top100 AFL',
     subtitle: awardee.headline || awardee.tagline || cohortLabel,
     meta: [awardee.country, cohortLabel].filter(Boolean).join(' · '),
     hero: portfolioCoverUrl || awardee.avatar_url || awardee.cover_image_url || null,
@@ -118,6 +118,7 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
   }
 
   const awardee = normalizeAwardeeEntry(raw)
+  const content = buildProfileContent(awardee)
   const portfolioCoverUrl = typeof raw.portfolio_cover_url === 'string' ? raw.portfolio_cover_url : null
 
   const relatedAwardees = (await getAwardees())
@@ -145,22 +146,8 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
 
   const achievements = (awardee.achievements ?? []) as Achievement[]
   const gallery = (awardee.gallery ?? []) as GalleryItem[]
-  const showcaseYear =
-    typeof awardee.year === 'number' && Number.isFinite(awardee.year)
-      ? awardee.year
-      : 2025
-  const cohortName = awardee.cohort?.trim()
-  const spotlightLabel = cohortName && cohortName !== String(showcaseYear) && cohortName.toLowerCase() !== `class of ${showcaseYear}`
-    ? cohortName
-    : 'Top100 Africa Future Leaders'
-  const heroSubtitle =
-    awardee.tagline && awardee.tagline.trim().length > 0
-      ? awardee.tagline
-      : awardee.headline ?? null
-  const currentSchool = awardee.current_school?.trim() || null
-  const backgroundDetail = currentSchool && currentSchool.toLowerCase() !== heroSubtitle?.trim().toLowerCase()
-    ? currentSchool
-    : null
+  const spotlightLabel = content.recognition
+  const heroSubtitle = content.headline || awardee.tagline?.trim() || null
 
   const personSchema = profileStructuredData(awardee, socialEntries.map(([, url]) => url))
 
@@ -170,7 +157,7 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
 
       <article className="mx-auto max-w-5xl px-5 sm:px-8 lg:px-10">
         <nav className="py-4 sm:py-6">
-          <BackToLeaders year={awardee.year} />
+          <BackToLeaders year={content.year ? Number(content.year) : undefined} />
         </nav>
 
         <header className="border-b border-stone-200 pb-8 pt-2 sm:pb-10 sm:pt-4">
@@ -189,8 +176,8 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
               )}
               <div className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm text-stone-600 sm:justify-start">
                 {awardee.country ? <span>{awardee.country}</span> : null}
-                {awardee.country && awardee.year ? <span aria-hidden="true" className="text-stone-400">·</span> : null}
-                {awardee.year ? <span>Class of {awardee.year}</span> : null}
+                {awardee.country && content.year ? <span aria-hidden="true" className="text-stone-400">·</span> : null}
+                {content.year ? <span>Class of {content.year}</span> : null}
               </div>
             </div>
           </div>
@@ -211,36 +198,22 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
           )}
         </header>
 
-        {(backgroundDetail || awardee.cgpa || awardee.location) && (
-          <details className="group border-b border-stone-200">
-            <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 text-sm font-medium text-[#25211D] marker:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A94412] focus-visible:ring-inset [&::-webkit-details-marker]:hidden">
-              Background and highlights
-              <ChevronDown className="h-4 w-4 shrink-0 text-stone-500 transition-transform group-open:rotate-180" aria-hidden="true" />
-            </summary>
-            <div className="grid gap-5 pb-6 sm:grid-cols-2 sm:gap-8">
-              {backgroundDetail && <div><h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">Background</h2><p className="mt-2 break-words text-sm leading-6 text-[#25211D] sm:text-base">{backgroundDetail}</p></div>}
-              {awardee.cgpa && <div><h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">Academic record</h2><p className="mt-2 break-words text-sm leading-6 text-[#25211D] sm:text-base">{awardee.cgpa}</p></div>}
-              {awardee.location && <div><h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">Location</h2><p className="mt-2 break-words text-sm leading-6 text-[#25211D] sm:text-base">{awardee.location}</p></div>}
-            </div>
-          </details>
+        {content.details.length > 0 && (
+          <section className="border-b border-stone-200 py-6" aria-labelledby="profile-background">
+            <h2 id="profile-background" className="text-lg font-semibold text-[#25211D]">Background and profile details</h2>
+            <dl className="mt-4 grid gap-5 sm:grid-cols-2 sm:gap-8">
+              {content.details.map(detail => (
+                <div key={detail.source}>
+                  <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">{detail.label}</dt>
+                  <dd className="mt-2 break-words text-sm leading-6 text-[#25211D] sm:text-base">{detail.value}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
         )}
 
         <div className="max-w-3xl py-8 sm:py-12">
-          {awardee.bio && (
-            <section className="mb-10">
-              <h2 className="text-xl font-semibold tracking-tight text-[#171412]">About {awardee.name.split(/\s+/)[0]}</h2>
-              <div className="mt-4 space-y-4">
-                {awardee.bio.split(/\n\n+/).map((paragraph, index) => (
-                  <p
-                    key={index}
-                    className="text-base leading-7 text-stone-700"
-                  >
-                    {paragraph.trim()}
-                  </p>
-                ))}
-              </div>
-            </section>
-          )}
+          <ProfileBiography name={awardee.name} content={content} />
 
           {/* Featured LinkedIn Post */}
           {awardee.linkedin_post_url && (

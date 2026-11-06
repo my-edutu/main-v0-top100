@@ -24,6 +24,7 @@ describe('public profile route', () => {
     fetchProfile.mockResolvedValue({ slug: 'amina-ali', name: 'Amina Ali', is_public: true, bio: 'Leads education projects', year: 2026 })
     const metadata = await generateMetadata({ params })
     expect(metadata.alternates?.canonical).toBe('https://top100afl.com/awardees/amina-ali')
-    expect(metadata.description).toBe('Leads education projects')
+    expect(metadata.description).toContain('Amina Ali')
+    expect(metadata.description).toContain('Leads education projects')
   })
 })
