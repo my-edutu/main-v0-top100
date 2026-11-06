@@ -1,3 +1,4 @@
+import { getAwardeeOnboardingStatus } from '@/lib/admin/awardee-onboarding';
 // app/api/awardees/route.ts
 import { NextRequest } from 'next/server';
 import { revalidatePath, revalidateTag } from 'next/cache';
@@ -114,6 +115,22 @@ export async function GET(request: NextRequest) {
     }
 
     console.log(`[GET /api/awardees] Fetched ${allAwardees.length} awardees (including hidden)`);
+
+    if (includeAllForAdmin) {
+      const profiles = new Map<string, Record<string, unknown>>();
+      for (let offset = 0; ; offset += 500) {
+        const { data, error } = await supabase.from('profiles').select('*')
+          .order('id').range(offset, offset + 499);
+        if (error) return Response.json({ message: 'Could not load profile activation status.' }, { status: 500 });
+        for (const profile of data ?? []) profiles.set(profile.id, profile);
+        if ((data ?? []).length < 500) break;
+      }
+      return Response.json(allAwardees.map((value) => {
+        const awardee = value as Record<string, unknown>;
+        const profile = profiles.get(String(awardee.profile_id ?? ''));
+        return { ...awardee, onboarding_status: getAwardeeOnboardingStatus(profile) };
+      }));
+    }
 
     return Response.json(allAwardees);
   } catch (error) {

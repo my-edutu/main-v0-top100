@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase/client';
+import MemberContactDialog from './member-contact-dialog';
 import AwardeeShareReviewDialog from './awardee-share-review-dialog';
 import {
   Plus,
@@ -42,6 +43,7 @@ import {
   Eye,
   Star,
   Share2,
+  Mail,
 } from 'lucide-react';
 
 interface Awardee {
@@ -63,6 +65,7 @@ interface Awardee {
   achievements?: any[];
   interests?: string[];
   featured?: boolean;
+  onboarding_status?: 'not-activated' | 'empty' | 'has-details';
 }
 
 interface Stats {
@@ -76,7 +79,7 @@ interface Stats {
   hiddenAwardees: number;
 }
 
-type FilterType = 'all' | 'featured' | 'visible' | 'hidden';
+type FilterType = 'all' | 'featured' | 'visible' | 'hidden' | 'not-activated' | 'empty' | 'has-details';
 
 export default function AwardeesManagement() {
   const router = useRouter();
@@ -94,6 +97,7 @@ export default function AwardeesManagement() {
   // Which delete confirmation is open: an awardee id, 'bulk', or null
   const [deleteTarget, setDeleteTarget] = useState<string | 'bulk' | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [contactRecipients, setContactRecipients] = useState<Awardee[] | null>(null);
 
   // Helper function to handle auth errors
   const handleAuthError = (error: any, toastId: string) => {
@@ -125,6 +129,10 @@ export default function AwardeesManagement() {
       filtered = filtered.filter(a => a.is_public === false);
     }
 
+    if (['not-activated', 'empty', 'has-details'].includes(filterType)) {
+      filtered = filtered.filter(a => a.onboarding_status === filterType);
+    }
+
     // Apply search term
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
@@ -136,6 +144,7 @@ export default function AwardeesManagement() {
       );
     }
 
+    setSelectedAwardees(previous => new Set([...previous].filter(id => filtered.some(a => a.id === id))));
     setFilteredAwardees(filtered);
     setCurrentPage(1); // Reset to first page when filters change
   }, [searchTerm, awardees, filterType]);
@@ -436,7 +445,7 @@ export default function AwardeesManagement() {
   };
 
   const handleSelectAll = () => {
-    if (selectedAwardees.size === filteredAwardees.length) {
+    if (filteredAwardees.length > 0 && filteredAwardees.every(a => selectedAwardees.has(a.id))) {
       setSelectedAwardees(new Set());
     } else {
       setSelectedAwardees(new Set(filteredAwardees.map(a => a.id)));
@@ -570,7 +579,7 @@ export default function AwardeesManagement() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const allSelected = selectedAwardees.size === filteredAwardees.length && filteredAwardees.length > 0;
+  const allSelected = filteredAwardees.length > 0 && filteredAwardees.every(a => selectedAwardees.has(a.id));
   const hasNoResults = paginatedAwardees.length === 0;
 
   return (
@@ -689,7 +698,17 @@ export default function AwardeesManagement() {
                   icon={EyeOff}
                   color="rose"
                 />
+                {([
+                  ['not-activated', 'Not activated'],
+                  ['empty', 'Activated, no profile details'],
+                  ['has-details', 'Activated, has details'],
+                ] as const).map(([value, label]) => (
+                  <FilterButton key={value} active={filterType === value}
+                    onClick={() => setFilterType(value)}
+                    label={`${label} (${awardees.filter(a => a.onboarding_status === value).length})`} />
+                ))}
               </div>
+              <p className="text-xs text-zinc-500">Activation means a linked signup account. Profile details reflect current content, including imported details; they do not prove a member has edited their profile.</p>
             </div>
 
             {/* Right: Import/Export Actions */}
@@ -720,6 +739,11 @@ export default function AwardeesManagement() {
                 {selectedAwardees.size} items selected
               </span>
               <div className="flex flex-wrap gap-1 sm:gap-2">
+                <Button size="sm" variant="ghost" onClick={() => {
+                  const selected = filteredAwardees.filter(a => selectedAwardees.has(a.id));
+                  if (selected.length > 500) { toast.error('Select up to 500 people per batch.'); return; }
+                  setContactRecipients(selected);
+                }}><Mail className="mr-2 h-4 w-4" />Contact selected</Button>
                 <Button size="sm" variant="ghost" onClick={() => handleBulkFeature(true)} className="text-amber-600 hover:text-amber-700 hover:bg-amber-100/60">Feature</Button>
                 <Button size="sm" variant="ghost" onClick={() => handleBulkVisibility(true)} className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-100/60">Show</Button>
                 <Button size="sm" variant="ghost" onClick={() => handleBulkVisibility(false)} className="text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100">Hide</Button>
@@ -867,6 +891,7 @@ export default function AwardeesManagement() {
                       >
                         <Share2 className="h-4 w-4" />
                       </Button>
+                      <Button variant="ghost" size="icon" onClick={() => setContactRecipients([awardee])} aria-label={`Contact ${awardee.name}`} title="Send welcome or profile reminder"><Mail className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="icon" onClick={() => handleEdit(awardee.id)} aria-label={`Edit ${awardee.name}`} className="h-8 w-8 text-zinc-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg">
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -950,7 +975,8 @@ export default function AwardeesManagement() {
                         >
                           {loadingStates[awardee.id] === 'visibility' ? <Loader2 className="h-4 w-4 animate-spin" /> : (awardee.is_public !== false ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />)}
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleEdit(awardee.id)} aria-label={`Edit ${awardee.name}`} className="h-11 w-11 rounded-full bg-zinc-50 text-zinc-500 hover:text-orange-600 hover:bg-orange-50">
+                        <Button variant="ghost" size="icon" onClick={() => setContactRecipients([awardee])} aria-label={`Contact ${awardee.name}`} title="Send welcome or profile reminder"><Mail className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleEdit(awardee.id)} aria-label={`Edit ${awardee.name}`} className="h-11 w-11 rounded-full bg-zinc-50 text-zinc-500 hover:text-orange-600 hover:bg-orange-50">
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(awardee.id)} aria-label={`Delete ${awardee.name}`} className="h-11 w-11 rounded-full bg-rose-50 text-rose-600 hover:bg-rose-100">
@@ -980,6 +1006,7 @@ export default function AwardeesManagement() {
       </Card>
 
       {/* Delete confirmation */}
+      {contactRecipients && <MemberContactDialog recipients={contactRecipients} onClose={() => setContactRecipients(null)} />}
       {shareReviewAwardeeId && <AwardeeShareReviewDialog key={shareReviewAwardeeId} awardeeId={shareReviewAwardeeId} onClose={() => setShareReviewAwardeeId(null)} />}
       <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
         <AlertDialogContent className="bg-white border-orange-100 rounded-2xl">
