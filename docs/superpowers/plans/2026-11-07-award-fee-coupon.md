@@ -104,3 +104,5 @@ returning id, enabled, expires_at;
 ```
 
 To change the expiry, update `expires_at` on that campaign. To remove someone's access, delete their specific `(coupon_id, profile_id)` row. Set `enabled = false` on the campaign to stop new coupon checkouts.
+
+For a campaign open to all signed-in awardees, set `allow_all_awardees = true` on that campaign and skip the account grant steps. Awardees still need the code, an unpaid award, and an active campaign window. The same sales exclusion applies to payments made with the coupon.
