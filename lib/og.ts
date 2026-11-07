@@ -80,8 +80,13 @@ export function clampText(value: string | null | undefined, max: number): string
 export function isAllowedHero(hero: string): boolean {
   if (!hero) return false
 
-  // Same-origin path. "//host" is protocol-relative and would leave the origin.
-  if (hero.startsWith("/")) return !hero.startsWith("//")
+  if (hero.startsWith("/")) {
+    try {
+      return !hero.startsWith("//") && new URL(hero, SITE_URL).origin === SITE_URL
+    } catch {
+      return false
+    }
+  }
 
   let parsed: URL
   try {
@@ -93,6 +98,11 @@ export function isAllowedHero(hero: string): boolean {
   if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return false
 
   const host = parsed.hostname.toLowerCase()
+  if (parsed.username || parsed.password) return false
+  if (host === "supabase.top100afl.com") {
+    return parsed.protocol === "https:" && !parsed.port && !parsed.search &&
+      parsed.pathname.startsWith("/storage/v1/object/public/")
+  }
   if (SITE_HOSTNAMES.has(host)) return true
   if (ALLOWED_HERO_HOSTS.has(host)) return true
   return ALLOWED_HERO_HOST_SUFFIXES.some((suffix) => host.endsWith(suffix))

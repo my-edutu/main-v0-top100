@@ -83,12 +83,12 @@ async function resolveHeroSrc(hero: string | null): Promise<string | null> {
   const absolute = hero.startsWith("/") ? new URL(hero, SITE_URL).toString() : hero
 
   try {
-    let response = await fetch(absolute, { method: "HEAD" })
+    let response = await fetch(absolute, { method: "HEAD", redirect: "error", signal: AbortSignal.timeout(5000) })
 
     // Not every origin implements HEAD. Retry those with a GET and throw the
     // body away rather than letting it stream to completion.
     if (response.status === 405 || response.status === 501) {
-      response = await fetch(absolute)
+      response = await fetch(absolute, { redirect: "error", signal: AbortSignal.timeout(5000) })
       await response.body?.cancel().catch(() => {})
     }
 
@@ -326,7 +326,7 @@ function ProfileCard({ card, heroSrc }: { card: OgCard; heroSrc: string | null }
           justifyContent: "center",
           flex: 1,
           height: "100%",
-          padding: 64,
+          padding: 48,
         }}
       >
         {card.eyebrow ? <Eyebrow text={card.eyebrow} /> : null}
@@ -334,7 +334,7 @@ function ProfileCard({ card, heroSrc }: { card: OgCard; heroSrc: string | null }
         <div
           style={{
             display: "flex",
-            fontSize: card.title.length <= 24 ? 64 : 48,
+            fontSize: card.title.length <= 24 ? 64 : card.title.length <= 60 ? 48 : 36,
             fontWeight: 800,
             color: TITLE,
             lineHeight: 1.1,
@@ -345,7 +345,7 @@ function ProfileCard({ card, heroSrc }: { card: OgCard; heroSrc: string | null }
         </div>
 
         {card.subtitle ? (
-          <div style={{ display: "flex", fontSize: 28, color: MUTED, lineHeight: 1.35, marginTop: 18 }}>
+          <div style={{ display: "flex", fontSize: 26, color: MUTED, lineHeight: 1.35, marginTop: 18 }}>
             {card.subtitle}
           </div>
         ) : null}
@@ -385,7 +385,9 @@ export async function GET(request: Request): Promise<Response> {
       headers: {
         // The query string fully determines the pixels, so the URL is the
         // cache key and a card can be cached indefinitely.
-        "Cache-Control": "public, max-age=0, s-maxage=31536000, immutable",
+        "Cache-Control": card.hero && !heroSrc
+          ? "public, max-age=0, s-maxage=300"
+          : "public, max-age=0, s-maxage=31536000, immutable",
       },
     },
   )

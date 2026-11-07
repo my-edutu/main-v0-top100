@@ -1,3 +1,5 @@
+import { linkedProfileSlugs } from '@/lib/seo/profile-article-links'
+import { createAdminClient } from '@/lib/supabase/server'
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -66,6 +68,24 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   };
 }
 
+async function getRelatedProfiles(authorId: string | null, slugs: string[]) {
+  if (!authorId && !slugs.length) return []
+  try {
+    const db = createAdminClient()
+    const publicProfiles = () => db.from('awardee_directory').select('slug, name').eq('is_public', true)
+    const [author, linked] = await Promise.all([
+      authorId ? publicProfiles().eq('profile_id', authorId) : null,
+      slugs.length ? publicProfiles().in('slug', slugs) : null,
+    ])
+    return [...new Map([...(author?.data ?? []), ...(linked?.data ?? [])]
+      .filter(person => person.slug)
+      .map(person => [person.slug, person])).values()]
+  } catch (error) {
+    console.warn('[blog] Public profile links unavailable', error)
+    return []
+  }
+}
+
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const post = await getPostBySlug(slug);
@@ -74,7 +94,10 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     notFound();
   }
 
-  const relatedPosts = await getRelatedPosts(slug, 2);
+  const [relatedPosts, relatedProfiles] = await Promise.all([
+    getRelatedPosts(slug, 2),
+    getRelatedProfiles(post.authorId, linkedProfileSlugs(post.contentHtml)),
+  ])
 
   const plainText = post.contentHtml?.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim() ?? "";
   const coverUrl = shareImage(post.coverImage);
@@ -169,6 +192,16 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             />
           </div>
         </article>
+
+        <nav aria-label="Explore Top100" className="mt-8 flex flex-wrap gap-4 text-sm font-medium text-orange-800">
+          {relatedProfiles.map(person => (
+            <Link key={person.slug} href={`/awardees/${encodeURIComponent(person.slug)}`} className="underline">
+              {person.name}’s profile
+            </Link>
+          ))}
+          <Link href="/awardees?year=all" className="underline">Awardee directory</Link>
+          <Link href="/interviews" className="underline">Impact interviews</Link>
+        </nav>
 
         {relatedPosts.length > 0 && (
           <section className="mt-16 space-y-6">

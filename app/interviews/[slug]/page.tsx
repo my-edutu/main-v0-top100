@@ -143,14 +143,19 @@ export default async function InterviewDetailPage({ params }: PageProps) {
               {interview.awardee_name} is a Top100 Africa Future Leaders awardee.
             </p>
             <Link
-              href={`/awardees/${view.awardeeSlug}`}
+              href={`/awardees/${encodeURIComponent(view.awardeeSlug)}`}
               className="mt-4 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-3 text-sm font-semibold text-white transition hover:opacity-95"
             >
-              View their profile
+              View {interview.awardee_name}’s profile
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
           </div>
         ) : null}
+
+        <nav aria-label="Explore Top100" className="mx-auto mt-8 flex max-w-3xl flex-wrap gap-4 text-sm font-medium text-orange-800">
+          <Link href="/awardees?year=all" className="underline">Awardee directory</Link>
+          <Link href="/blog" className="underline">Articles and stories</Link>
+        </nav>
 
         {others.length > 0 ? (
           <section className="mt-20">

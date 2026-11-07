@@ -9,27 +9,41 @@ export const INTERVIEW_SELECT = `
   awardee:awardees ( slug )
 `
 
+async function attachPublicProfileLinks(rows: InterviewRow[]): Promise<InterviewRow[]> {
+  const ids = [...new Set(rows.flatMap(row => row.awardee_id ? [row.awardee_id] : []))]
+  const slugs = new Map<string, string>()
+  if (ids.length) {
+    const { data, error } = await createAdminClient().from('awardee_directory')
+      .select('awardee_id, slug').eq('is_public', true).in('awardee_id', ids)
+    if (!error) for (const row of data ?? []) slugs.set(row.awardee_id, row.slug)
+  }
+  return rows.map(row => ({ ...row, awardee: row.awardee_id ? { slug: slugs.get(row.awardee_id) ?? null } : null }))
+}
+
 /**
  * Reads never throw. A missing table (environment without the migration) or an
  * unreachable Supabase must degrade to "no interviews yet" so the apply funnel
  * on /interviews keeps working. Same defensive posture as app/api/youtube/route.ts.
  */
-export async function getPublishedInterviews(): Promise<InterviewRow[]> {
+export async function getPublishedInterviews(awardeeId?: string): Promise<InterviewRow[]> {
   try {
     const supabase = createAdminClient()
-    const { data, error } = await supabase
+    let query = supabase
       .from('interviews')
       .select(INTERVIEW_SELECT)
       .eq('status', 'published')
       .order('sort_order', { ascending: true })
       .order('published_at', { ascending: false })
+    if (awardeeId) query = query.eq('awardee_id', awardeeId)
+    const { data, error } = await query
 
     if (error) {
       console.error('[interviews] getPublishedInterviews failed:', error.message)
       return []
     }
 
-    return (data ?? []) as unknown as InterviewRow[]
+    const rows = (data ?? []) as unknown as InterviewRow[]
+    return awardeeId ? rows : await attachPublicProfileLinks(rows)
   } catch (error) {
     console.error('[interviews] getPublishedInterviews threw:', error)
     return []
@@ -51,7 +65,7 @@ export async function getInterviewBySlug(slug: string): Promise<InterviewRow | n
       return null
     }
 
-    return (data as unknown as InterviewRow) ?? null
+    return data ? (await attachPublicProfileLinks([data as unknown as InterviewRow]))[0] : null
   } catch (error) {
     console.error('[interviews] getInterviewBySlug threw:', error)
     return null

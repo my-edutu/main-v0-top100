@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
 
 import type { Awardee } from '@/lib/awardees-shared'
 import { normalizeAwardeeEntry } from '@/lib/awardees-shared'
-import { countryKey, getDiscoverySummary, shufflePeople } from '@/lib/awardee-discovery'
+import { countryKey, getDiscoverySummary } from '@/lib/awardee-discovery'
 import { resolveSupabasePortrait } from '@/lib/media/remote-image-source'
 import './awardees.css'
 import { supabase } from '@/lib/supabase/client'
@@ -17,10 +17,6 @@ import type { AwardeeDirectoryEntry } from '@/types/profile'
 
 const itemsPerPage = 18
 const hasProfilePhoto = (person: Awardee) => Boolean(resolveSupabasePortrait(person.avatar_url))
-const DIRECTORY_ORDER_KEY = 'afl-directory-order-v1'
-const saveDirectoryOrder = (people: Awardee[]) => {
-  try { sessionStorage.setItem(DIRECTORY_ORDER_KEY, JSON.stringify(people.map(person => person.slug))) } catch { /* Storage may be disabled. */ }
-}
 const hasLiveSupabaseKey =
   Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL) &&
   Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.startsWith('eyJ'))
@@ -52,23 +48,6 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
 
   const [failedPhotos, setFailedPhotos] = useState<Set<string>>(() => new Set())
 
-  // Keep the same shuffled cards when returning from a profile.
-  useEffect(() => {
-    const frame = requestAnimationFrame(() => {
-      let ordered = shufflePeople(initialPeople)
-      try {
-        const saved: unknown = JSON.parse(sessionStorage.getItem(DIRECTORY_ORDER_KEY) || 'null')
-        if (Array.isArray(saved) && saved.every(slug => typeof slug === 'string')) {
-          const positions = new Map(saved.map((slug, index) => [slug, index]))
-          ordered = [...initialPeople].sort((a, b) => (positions.get(a.slug) ?? Infinity) - (positions.get(b.slug) ?? Infinity))
-        }
-      } catch { /* A fresh shuffle is safe when saved state is unavailable. */ }
-      saveDirectoryOrder(ordered)
-      setPeople(ordered)
-    })
-    return () => cancelAnimationFrame(frame)
-  }, [])
-
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -83,7 +62,7 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
     setSearchTerm(searchValue)
   }, [searchValue])
 
-  const updatePage = useCallback(
+  const pageHref = useCallback(
     (newPage: number) => {
       const params = new URLSearchParams(Array.from(searchParams.entries()))
       if (newPage <= 1) {
@@ -92,9 +71,9 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
         params.set('page', newPage.toString())
       }
       const query = params.toString()
-      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false })
+      return query ? `${pathname}?${query}` : pathname
     },
-    [pathname, router, searchParams],
+    [pathname, searchParams],
   )
 
   const createQueryParams = useCallback(() => {
@@ -151,10 +130,10 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
   }
 
   const filteredPeople = useMemo(() => {
-    // Stable partition retains the shuffled order inside each group while
-    // keeping uploaded portraits ahead of missing or failed images.
-    const hasPortrait = (person: Awardee) => hasProfilePhoto(person) && !failedPhotos.has(person.slug)
-    let result = [...cohortPeople].sort((a, b) => Number(hasPortrait(b)) - Number(hasPortrait(a)))
+    let result = [...cohortPeople].sort((a, b) =>
+      Number(hasProfilePhoto(b)) - Number(hasProfilePhoto(a)) ||
+      a.name.localeCompare(b.name, 'en') || a.slug.localeCompare(b.slug, 'en'),
+    )
     if (selectedCountry) result = result.filter(person => countryKey(person.country) === selectedCountry)
 
     if (!searchTerm) return result
@@ -177,7 +156,7 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
         .toLowerCase()
       return haystack.includes(term)
     })
-  }, [cohortPeople, searchTerm, selectedCountry, failedPhotos])
+  }, [cohortPeople, searchTerm, selectedCountry])
 
   const totalItems = filteredPeople.length
   const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage))
@@ -307,7 +286,7 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
               <div className="spotlight-heading"><span>Leaders to discover</span></div>
               <div className="spotlight-portraits">
                 {highlights.map((person) => (
-                  <Link href={`/awardees/${person.slug}`} key={person.slug} className="spotlight-person">
+                  <Link href={`/awardees/${encodeURIComponent(person.slug)}`} key={person.slug} className="spotlight-person">
                     <Image src={person.avatar_url!.trim()} alt={person.name} fill loading="eager" sizes="(max-width: 767px) 30vw, 200px" className="spotlight-image" onError={() => setFailedPhotos(previous => new Set([...previous, person.slug]))} />
                     <div className="spotlight-caption"><span>{person.country?.trim() || 'Africa Future Leader'}</span><h2>{person.name}</h2><ArrowUpRight size={20} /></div>
                   </Link>
@@ -352,7 +331,7 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
                 const tagline = person.tagline?.trim() || person.headline?.trim() || person.field_of_study || person.course
                 const photo = hasProfilePhoto(person) && !failedPhotos.has(person.slug)
                 return (
-                  <Link key={person.slug} href={`/awardees/${person.slug}`} className={cn('leader-card', !photo && 'leader-card-no-photo')}>
+                  <Link key={person.slug} href={`/awardees/${encodeURIComponent(person.slug)}`} className={cn('leader-card', !photo && 'leader-card-no-photo')}>
                     <div className="leader-card-portrait">
                       {photo ? <Image src={person.avatar_url!.trim()} alt={person.name} fill sizes="(max-width: 639px) 45vw, (max-width: 1023px) 30vw, 280px" className="leader-photo" onError={() => setFailedPhotos(previous => new Set([...previous, person.slug]))} /> : <div className="leader-initials"><span aria-hidden="true">{person.name.split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join('').toUpperCase()}</span></div>}
                       <span className="leader-year">{person.year || 'AFL'}</span>
@@ -363,7 +342,21 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
               })}
             </div>
           )}
-          {totalPages > 1 && <nav className="directory-pagination" aria-label="Directory pagination"><button onClick={() => updatePage(currentPage - 1)} disabled={currentPage <= 1}><ArrowRight className="pagination-previous-icon" size={16} />Previous</button><button onClick={() => updatePage(currentPage + 1)} disabled={currentPage >= totalPages}>Next <ArrowRight size={16} /></button></nav>}
+          {totalPages > 1 && (
+            <nav className="directory-pagination" aria-label="Directory pagination">
+              {currentPage > 1 && <Link prefetch={false} href={pageHref(currentPage - 1)}>Previous</Link>}
+              <span>Page {currentPage} of {totalPages}</span>
+              {currentPage < totalPages && <Link prefetch={false} href={pageHref(currentPage + 1)}>Next</Link>}
+            </nav>
+          )}
+          <nav className="directory-pagination" aria-label="Explore Top100">
+            <Link href="/awardees?year=all">All awardee profiles</Link>
+            <Link href="/awardees?year=2024">2024 cohort</Link>
+            <Link href="/awardees">2025 cohort</Link>
+            <Link href="/awardees?year=2026">2026 cohort</Link>
+            <Link href="/interviews">Impact interviews</Link>
+            <Link href="/blog">Articles and stories</Link>
+          </nav>
         </section>
       </div>
     </div>

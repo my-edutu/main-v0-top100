@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import type { Metadata } from 'next'
 
 import { getPublishedInterviews } from '@/lib/interviews/queries'
@@ -39,6 +40,11 @@ export default async function InterviewsPage() {
     <main className="bg-white">
       <div className="container space-y-20 py-10 sm:py-14">
         <InterviewsHero />
+        <nav aria-label="Explore Top100" className="flex flex-wrap gap-4 text-sm font-medium text-orange-800">
+          <Link href="/awardees?year=all" className="underline">Awardee directory</Link>
+          <Link href="/blog" className="underline">Articles and stories</Link>
+        </nav>
+
 
         {featured ? (
           <div className="space-y-12">

@@ -43,6 +43,13 @@ describe("isAllowedHero", () => {
     expect(isAllowedHero(`${SITE_URL}/og-home.png`)).toBe(true)
   })
 
+  it("allows public objects on the active storage host", () => {
+    expect(isAllowedHero("https://supabase.top100afl.com/storage/v1/object/public/awardees/a.png")).toBe(true)
+    expect(isAllowedHero("https://supabase.top100afl.com/rest/v1/profiles")).toBe(false)
+    expect(isAllowedHero("https://supabase.top100afl.com/storage/v1/object/sign/awardees/a.png?token=x")).toBe(false)
+    expect(isAllowedHero("/\t/evil.example.com/x.png")).toBe(false)
+  })
+
   it("rejects arbitrary external hosts and non-http schemes", () => {
     expect(isAllowedHero("https://evil.example.com/x.jpg")).toBe(false)
     expect(isAllowedHero("http://notsupabase.co.evil.com/x.jpg")).toBe(false)

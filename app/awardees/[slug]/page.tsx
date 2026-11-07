@@ -6,10 +6,14 @@ import { notFound } from 'next/navigation'
 import { ExternalLink, Globe, Instagram, Linkedin, Mail, PenSquare, Twitter, Users2, Youtube } from 'lucide-react'
 import type { Metadata } from 'next'
 
+import { getPublishedInterviews } from '@/lib/interviews/queries'
+import { getPublishedPosts } from '@/lib/posts/server'
+import { articleLinksToProfile } from '@/lib/seo/profile-article-links'
 import { getAwardees } from '@/lib/awardees'
 import { normalizeAwardeeEntry } from '@/lib/awardees-shared'
 import { fetchAwardeeBySlug } from '@/lib/dashboard/profile-service'
-import { ogMetadata } from '@/lib/og'
+import { clampText, isAllowedHero, ogMetadata } from '@/lib/og'
+import { resolveRemoteImageSource } from '@/lib/media/remote-image-source'
 import { SITE_URL } from '@/lib/site'
 import { buildProfileContent } from '@/lib/seo/profile-content'
 import ProfileBiography from './ProfileBiography'
@@ -39,7 +43,12 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
   const awardee = normalizeAwardeeEntry(raw)
   const content = buildProfileContent(awardee)
-  const portfolioCoverUrl = typeof raw.portfolio_cover_url === 'string' ? raw.portfolio_cover_url : null
+  const hero = [awardee.avatar_url, awardee.cover_image_url, raw.portfolio_cover_url]
+    .flatMap(source => typeof source === 'string' ? [resolveRemoteImageSource(source.trim())] : [])
+    .find(source => source && isAllowedHero(source))
+  const excerpt = content.sections.find(section => section.heading === 'Leadership journey')?.paragraphs[0]
+    || content.sections.find(section => !section.heading)?.paragraphs[0]
+    || content.introduction
   const cohortLabel = content.recognition
   const title = content.title
   const description = profileDescription(content.description, content.introduction)
@@ -59,9 +68,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const card = {
     title: awardee.name,
     eyebrow: content.year ? `Top100 AFL ${content.year}` : 'Top100 AFL',
-    subtitle: awardee.headline || awardee.tagline || cohortLabel,
+    subtitle: clampText(excerpt, 140) || awardee.headline || awardee.tagline || cohortLabel,
     meta: [awardee.country, cohortLabel].filter(Boolean).join(' · '),
-    hero: portfolioCoverUrl || awardee.avatar_url || awardee.cover_image_url || null,
+    hero,
     variant: 'profile' as const,
   }
 
@@ -71,7 +80,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     keywords,
     alternates: { canonical: `${SITE_URL}/awardees/${encodeURIComponent(awardee.slug)}` },
     ...ogMetadata(card, {
-      url: `/awardees/${awardee.slug}`,
+      url: `/awardees/${encodeURIComponent(awardee.slug)}`,
       type: 'profile',
       description: description.substring(0, 200),
     }),
@@ -122,7 +131,7 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
   const portfolioCoverUrl = typeof raw.portfolio_cover_url === 'string' ? raw.portfolio_cover_url : null
 
   const relatedAwardees = (await getAwardees())
-    .filter((entry) => entry.slug !== slug && entry.is_public !== false)
+    .filter((entry) => entry.slug !== slug && entry.is_public === true)
     .sort((a, b) => relatedLeaderScore(slug, a.slug) - relatedLeaderScore(slug, b.slug) || a.slug.localeCompare(b.slug))
     .slice(0, 4)
 
@@ -148,6 +157,16 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
   const gallery = (awardee.gallery ?? []) as GalleryItem[]
   const spotlightLabel = content.recognition
   const heroSubtitle = content.headline || awardee.tagline?.trim() || null
+
+  const [interviews, articles] = await Promise.all([
+    getPublishedInterviews(awardee.awardee_id),
+    getPublishedPosts(),
+  ])
+  const stories = [
+    ...interviews.map(interview => ({ href: `/interviews/${encodeURIComponent(interview.slug)}`, title: interview.title, label: 'Interview' })),
+    ...articles.filter(post => articleLinksToProfile(post, awardee))
+      .map(post => ({ href: `/blog/${encodeURIComponent(post.slug)}`, title: post.title, label: 'Article' })),
+  ]
 
   const personSchema = profileStructuredData(awardee, socialEntries.map(([, url]) => url))
 
@@ -328,6 +347,26 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
             </section>
           )}
         </div>
+
+        {stories.length > 0 && (
+          <section className="border-t border-stone-200 py-8" aria-labelledby="profile-stories">
+            <h2 id="profile-stories" className="text-xl font-semibold">Interviews and articles</h2>
+            <ul className="mt-4 space-y-3">
+              {stories.map(story => (
+                <li key={story.href}>
+                  <span className="mr-3 text-sm text-stone-600">{story.label}</span>
+                  <Link href={story.href} className="font-medium text-orange-800 underline">{story.title}</Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        <nav aria-label="Explore Top100" className="flex flex-wrap gap-4 border-t border-stone-200 py-6 text-sm font-medium text-orange-800">
+          <Link href="/awardees?year=all" className="underline">Awardee directory</Link>
+          <Link href="/interviews" className="underline">Impact interviews</Link>
+          <Link href="/blog" className="underline">Articles and stories</Link>
+        </nav>
 
         {/* Posts written by this awardee. Renders nothing when they have none. */}
         <AwardeePostsList slug={slug} />

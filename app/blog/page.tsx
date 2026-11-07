@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import type { Metadata } from "next";
 import { Newspaper } from "lucide-react";
 
@@ -114,6 +115,11 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
             </div>
           </section>
         )}
+
+        <nav aria-label="Explore Top100" className="flex flex-wrap gap-4 text-sm font-medium text-orange-800">
+          <Link href="/awardees?year=all" className="underline">Awardee directory</Link>
+          <Link href="/interviews" className="underline">Impact interviews</Link>
+        </nav>
 
         <section id="all-stories" aria-labelledby="all-stories-heading" className="scroll-mt-24">
           <div className="mb-6">

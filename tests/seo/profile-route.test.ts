@@ -20,6 +20,16 @@ describe('public profile route', () => {
       : { data: { profile_id: 'member-1' }, error: null } }) }) }) })
     await expect(Page({ params })).rejects.toThrow('Could not verify profile contact consent')
   })
+  it('uses the awardee portrait and existing biography text in the share image URL', async () => {
+    const portrait = 'https://supabase.top100afl.com/storage/v1/object/public/awardees/amina.jpg'
+    fetchProfile.mockResolvedValue({ slug: 'amina-ali', name: 'Amina Ali', is_public: true, avatar_url: portrait, bio: 'Leadership journey: I built a library.', year: 2026 })
+    const metadata = await generateMetadata({ params })
+    const images = metadata.openGraph?.images as Array<{ url: string }>
+    const image = new URL(images[0].url)
+    expect(image.searchParams.get('hero')).toBe(portrait)
+    expect(image.searchParams.get('subtitle')).toBe('I built a library.')
+    expect(image.searchParams.get('variant')).toBe('profile')
+  })
   it('uses a canonical URL for public profiles', async () => {
     fetchProfile.mockResolvedValue({ slug: 'amina-ali', name: 'Amina Ali', is_public: true, bio: 'Leads education projects', year: 2026 })
     const metadata = await generateMetadata({ params })
