@@ -1,0 +1,3 @@
+#!/bin/sh
+set -eu
+exec /usr/bin/flock -n /run/top100-work-notifications.lock /usr/bin/docker exec -i top100-work-horilla-web-1 python manage.py shell -c 'exec(compile(__import__("sys").stdin.read(), "<top100-notifications>", "exec"), {"__name__": "__main__"})' < /etc/dokploy/compose/top100-work-horilla/files/notifications.py

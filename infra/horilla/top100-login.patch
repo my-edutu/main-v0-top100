@@ -1,0 +1,76 @@
+--- a/horilla_theme/templates/login.html
++++ b/horilla_theme/templates/login.html
+@@ -7,10 +7,7 @@
+         <meta charset="UTF-8">
+         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+         <link href="{% static 'horilla_theme/assets/css/tailwind.css' %}" rel="stylesheet">
+-        <title>
+-            {% blocktrans with company_name=white_label_company_name %}Login - {{ company_name }}
+-                Dashboard{% endblocktrans %}
+-        </title>
++        <title>Sign in | Top100 Workforce</title>
+         <link
+             rel="apple-touch-icon"
+             sizes="180x180"
+@@ -113,21 +110,18 @@
+             {% endfor %}
+         </div>
+ 
+-        <div class="h-screen w-full flex items-center justify-center">
+-            <div class="bg-white p-[50px] rounded-2xl [box-shadow:0px_0px_25px_#a1a1a1] w-[450px]">
++        <div class="min-h-screen w-full flex items-center justify-center px-4 py-8">
++            <div class="bg-white p-6 sm:p-10 rounded-2xl border border-dark-50 shadow-sm w-full max-w-[440px]">
+                 <img
+-                    src="{% if white_label_company.icon %}{{white_label_company.icon.url}}{% else %}{% static 'horilla_theme/assets/img/logo.svg' %}{% endif %}"
+-                    alt=""
+-                    class="m-auto mb-4"
+-                    width="80"
++                    src="/media/base/company/icon/top100-wordmark.png"
++                    alt="Top100 Africa Future Leaders"
++                    class="mx-auto mb-8 h-auto w-full max-w-[260px]"
++                    width="937"
++                    height="216"
+                 >
+-                <h1 class="text-3xl font-bold mb-2 text-center">
+-                    {% trans "Welcome to" %}
+-                    {{ white_label_company_name }}
+-                    {% trans "HR" %}
+-                </h1>
+-                <p class="mb-5 text-center text-sm text-color-600">
+-                    {% trans "Please login to access the dashboard." %}
++                <h1 class="text-2xl font-semibold mb-2 text-center">Sign in to Top100 Workforce</h1>
++                <p class="mb-6 text-center text-sm text-color-600">
++                    Access your tasks, progress updates and HR workspace.
+                 </p>
+                 <form method="post" class="oh-form-group">
+                     {% csrf_token %}
+@@ -137,7 +131,7 @@
+                             type="text"
+                             id="username"
+                             name="username"
+-                            placeholder="{% trans 'e.g. adam.luis@horilla.com' %}"
++                            placeholder="{% trans 'Enter your work email' %}"
+                             class="text-color-600 w-full border border-dark-50 rounded-md p-3 mt-1 focus-visible:outline-0 placeholder:text-[#00000041] placeholder:font-medium text-xs [transition:.3s] {% if theme_obj %} focus:border-[{{theme_obj.primary_700}}] {% else %} focus:border-primary-600 {% endif %}"
+                         >
+                     </div>
+@@ -170,7 +164,7 @@
+                         <div class="flex justify-end">
+                             <a
+                                 href="{% url 'forgot-password' %}"
+-                                class="text-sm text-right font-medium text-[red] mb-3 mt-2 cursor-pointer"
++                                class="text-sm text-right font-medium text-primary-700 mb-3 mt-2 cursor-pointer"
+                             >
+                                 {% trans "Forgot Password ?" %}
+                             </a>
+@@ -178,9 +172,9 @@
+                     {% endif %}
+                     <button
+                         type="submit"
+-                        class="p-3 mt-3 bg-brand-600 hover:bg-brand-800 w-full flex gap-3 justify-center rounded-md text-[white] [transition:.3s]"
++                        class="min-h-[44px] p-3 mt-3 bg-[linear-gradient(90deg,#f97316_0%,#fb923c_52%,#f59e0b_100%)] hover:brightness-105 w-full rounded-md font-semibold text-[#171717] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8b4900]"
+                     >
+-                        <img src='{% static "horilla_theme/assets/icons/sign.svg" %}' alt=""> {% trans "Sign In" %}
++                        {% trans "Sign In" %}
+                     </button>
+                 </form>
+                 {% if initialize_database %}

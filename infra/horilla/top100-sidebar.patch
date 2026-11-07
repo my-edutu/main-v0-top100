@@ -1,0 +1,563 @@
+--- upstream/sidebar.html
++++ top100/sidebar.html
+@@ -13,7 +13,6 @@
+         overflow: hidden !important;
+         transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1) !important;
+     }
+-    #sidebar:hover,
+     #sidebar.sidebar-pinned {
+         width: 13rem !important; /* 208 px — expanded */
+     }
+@@ -26,9 +25,7 @@
+         pointer-events: none !important;
+         transition: opacity 0.12s ease !important;
+     }
+-    #sidebar:hover .oh-sidebar-label,
+     #sidebar.sidebar-pinned .oh-sidebar-label,
+-    #sidebar:hover .sidebar-chevron,
+     #sidebar.sidebar-pinned .sidebar-chevron {
+         opacity: 1 !important;
+         pointer-events: auto !important;
+@@ -46,11 +43,10 @@
+     .sidebar-version__label {
+         display: none;
+     }
+-    #sidebar:hover .sidebar-version__label,
+     #sidebar.sidebar-pinned .sidebar-version__label {
+         display: inline;
+     }
+-    #sidebar:not(:hover):not(.sidebar-pinned) .sidebar-version {
++    #sidebar:not(.sidebar-pinned) .sidebar-version {
+         text-align: center;
+         padding-left: 0.25rem;
+         padding-right: 0.25rem;
+@@ -58,7 +54,7 @@
+ 
+     /* Hide open accordion subnavs when sidebar is collapsed so they
+        don't bleed through the narrow sidebar as clipped text */
+-    #sidebar:not(:hover):not(.sidebar-pinned) .sidebar-subnav:not(.hidden) {
++    #sidebar:not(.sidebar-pinned) .sidebar-subnav:not(.hidden) {
+         display: none !important;
+     }
+ 
+@@ -108,7 +104,6 @@
+         left: 4rem;
+         transition: left 0.22s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s ease, box-shadow 0.3s ease;
+     }
+-    #sidebar:hover ~ #floating-buttons .fab-container,
+     #sidebar.sidebar-pinned ~ #floating-buttons .fab-container {
+         left: 13rem;
+     }
+@@ -142,38 +137,23 @@
+         color: #e5e7eb;
+     }
+ 
+-    /* Pin button highlight when sidebar is pinned */
+-    #sidebar.sidebar-pinned #sidebarPinBtn {
+-        background-color: #f3f4f6;
+-        color: #374151;
++    #sidebarExpandBtn {
++        display: grid;
++        place-items: center;
++        width: 44px;
++        height: 44px;
++        border-radius: 10px;
++        border: 1px solid var(--work-border, #e7ded5);
++        background: var(--work-subtle, #fff7ed);
++        color: var(--work-accent, #9a3412);
+     }
+-
+-    /* Pin button — dark mode */
+-    body.dark #sidebar #sidebarPinBtn {
+-        color: #9ca3af !important;
++    #sidebarExpandBtn:hover, #sidebarExpandBtn:focus-visible {
++        outline: 2px solid #f97316;
++        outline-offset: 1px;
+     }
+-    body.dark #sidebar #sidebarPinBtn:hover {
+-        background-color: rgba(255, 255, 255, 0.06) !important;
+-        color: #e5e7eb !important;
+-    }
+-    body.dark #sidebar.sidebar-pinned #sidebarPinBtn {
+-        background-color: rgba(255, 255, 255, 0.12) !important;
+-        color: #ffffff !important;
+-    }
+-
+-    /* Pin button icon: show the OPEN padlock when unpinned (hover-to-expand mode)
+-       and the CLOSED padlock when pinned (locked open). */
+-    #sidebar #sidebarPinBtn .sidebar-lock-closed {
+-        display: none;
+-    }
+-    #sidebar #sidebarPinBtn .sidebar-lock-open {
+-        display: block;
+-    }
+-    #sidebar.sidebar-pinned #sidebarPinBtn .sidebar-lock-open {
+-        display: none;
+-    }
+-    #sidebar.sidebar-pinned #sidebarPinBtn .sidebar-lock-closed {
+-        display: block;
++    #sidebarExpandBtn[aria-expanded="true"] .sidebar-expand-arrow {
++        transform: rotate(180deg);
++        transform-origin: 16px 12px;
+     }
+ 
+     /* Module button transitions */
+@@ -267,59 +247,43 @@
+     /* Collapsed: minimal horizontal padding → 56 px inner width for icon circles.
+        0.25 rem (4 px) each side gives the 2.5 rem (40 px) circle 8 px breathing
+        room per side, and removes the scrollbar-width problem on Windows. */
+-    #sidebar:not(:hover):not(.sidebar-pinned) > div {
++    #sidebar:not(.sidebar-pinned) > div {
+         padding-right: 0.25rem !important;
+         padding-left: 0.25rem !important;
+     }
+ 
+     /* Collapsed: increase spacing between icon circles from 4 px to 10 px. */
+-    #sidebar:not(:hover):not(.sidebar-pinned) nav > * + * {
++    #sidebar:not(.sidebar-pinned) nav > * + * {
+         margin-top: 0.625rem !important;
+     }
+ 
+     /* Collapsed: hide the scrollbar so it doesn't consume horizontal space
+        and clip the right edge of circles on Windows / Linux. */
+-    #sidebar:not(:hover):not(.sidebar-pinned) nav {
++    #sidebar:not(.sidebar-pinned) nav {
+         scrollbar-width: none;
+         -ms-overflow-style: none;
+     }
+-    #sidebar:not(:hover):not(.sidebar-pinned) nav::-webkit-scrollbar {
++    #sidebar:not(.sidebar-pinned) nav::-webkit-scrollbar {
+         display: none;
+     }
+ 
+     /* Collapsed header: centre the row and collapse the gap so the logo
+        sits alone, centred, with no phantom space from the hidden hamburger. */
+-    #sidebar:not(:hover):not(.sidebar-pinned) > div > div:first-child {
++    #sidebar:not(.sidebar-pinned) > div > div:first-child {
+         justify-content: center !important;
+         gap: 0 !important;
+     }
+-    #sidebar:not(:hover):not(.sidebar-pinned) > div > div:first-child > div {
++    #sidebar:not(.sidebar-pinned) > div > div:first-child > div {
+         flex: 0 0 auto !important;
+         justify-content: center !important;
+         gap: 0 !important;
+     }
+ 
+-    /* Collapsed: hide the hamburger (pin button); user hovers to expand, then
+-       clicks the hamburger that appears in expanded state. */
+-    #sidebar:not(:hover):not(.sidebar-pinned) #sidebarPinBtn {
+-        display: none !important;
+-    }
+-
+-    /* Collapsed: show the brand logo centred at the top of the rail, overriding
+-       the general oh-sidebar-label opacity:0 rule just for this element. */
+-    #sidebar:not(:hover):not(.sidebar-pinned) > div > div:first-child img.oh-sidebar-label {
+-        flex: 0 0 auto !important;
+-        width: 2rem !important;
+-        height: 2rem !important;
+-        overflow: visible !important;
+-        opacity: 1 !important;
+-    }
+-
+     /* Collapsed: circular icon buttons — full-circle, centred within the 48 px
+        inner container with 4 px breathing room each side.
+        The oh.css gray background is preserved (no override here) so buttons
+        look identical to the reference design: gray circles, active = red circle. */
+-    #sidebar:not(:hover):not(.sidebar-pinned) .sideboxmain {
++    #sidebar:not(.sidebar-pinned) .sideboxmain {
+         justify-content: center !important;
+         width: 2.5rem !important;
+         height: 2.5rem !important;
+@@ -332,8 +296,8 @@
+ 
+     /* Collapse label/chevron to zero-width so justify-content:center only sees
+        the icon. The invisible label still occupies flex space without this. */
+-    #sidebar:not(:hover):not(.sidebar-pinned) .oh-sidebar-label,
+-    #sidebar:not(:hover):not(.sidebar-pinned) .sidebar-chevron {
++    #sidebar:not(.sidebar-pinned) .oh-sidebar-label,
++    #sidebar:not(.sidebar-pinned) .sidebar-chevron {
+         flex: 0 0 0 !important;
+         width: 0 !important;
+         overflow: hidden !important;
+@@ -408,199 +372,31 @@
+         }
+     }
+ 
+-    /* Narrow viewports: the "pinned open" (13rem, labels visible) sidebar state
+-       leaves too little room for the main content — headers, tables, and the
+-       employee-profile card overflow the viewport instead of wrapping. Below
+-       tablet width, keep the sidebar in its collapsed icon rail regardless of
+-       pin state; hover/tap still reveals the flyout submenu for navigation. */
++    /* Expand over the workspace on narrow screens so its layout stays put. */
+     @media (max-width: 991.98px) {
+-        /* Every state, :hover included. The base rule is `#sidebar:hover`,
+-           which outranks a bare `#sidebar` here regardless of the media query,
+-           so hovering expanded the rail to 13rem while .oh-main-content kept
+-           its 4rem margin -- 144px of the page vanished underneath it. */
+-        #sidebar,
+-        #sidebar:hover,
+-        #sidebar.sidebar-pinned,
+-        #sidebar.sidebar-pinned:hover {
+-            width: 4rem !important;
+-        }
+-        #sidebar .oh-sidebar-label,
+-        #sidebar.sidebar-pinned .oh-sidebar-label,
+-        #sidebar .sidebar-chevron,
+-        #sidebar.sidebar-pinned .sidebar-chevron {
+-            opacity: 0 !important;
+-            pointer-events: none !important;
+-        }
+-        /* Labels stay hidden even on hover: there is no room in a 4rem rail,
+-           and navigation at this width is the hover flyout, which is what the
+-           breakpoint was written for. Revealing them here was what made the
+-           rail look broken -- text with nowhere to go. */
+-        #sidebar:hover .oh-sidebar-label,
+-        #sidebar:hover .sidebar-chevron {
+-            opacity: 0 !important;
+-            pointer-events: none !important;
+-        }
+-        .oh-main-content,
+-        #sidebar.sidebar-pinned ~ .oh-main-content {
+-            margin-left: 4rem !important;
+-        }
+-        .oh-main-header,
+-        #sidebar.sidebar-pinned ~ .oh-main-content .oh-main-header {
+-            left: 4rem !important;
+-        }
+-        #sidebar ~ #floating-buttons .fab-container,
+-        #sidebar.sidebar-pinned ~ #floating-buttons .fab-container {
+-            left: 4rem !important;
+-        }
+-        #sidebar .sidebar-version__label,
+-        #sidebar:hover .sidebar-version__label,
+-        #sidebar.sidebar-pinned .sidebar-version__label {
+-            display: none;
+-        }
+-        #sidebar .sidebar-version {
+-            text-align: center;
+-            padding-left: 0.25rem;
+-            padding-right: 0.25rem;
+-        }
+-        /* A pinned sidebar is forced to the 4rem rail above, but every
+-           collapsed-rail rule is keyed on :not(.sidebar-pinned), so none of
+-           them applied: the items kept their 13rem layout squeezed into 64px
+-           -- 31px-wide square tiles with the icon jammed against the left edge
+-           instead of 40px centred circles. Below this breakpoint a pinned,
+-           unhovered sidebar has to be styled as the rail it is being rendered
+-           as. Pre-existing; visible only once the viewport crosses 992px with
+-           the sidebar pinned. */
+-        #sidebar > div {
+-            padding-right: 0.25rem !important;
+-            padding-left: 0.25rem !important;
+-        }
+-        #sidebar nav > * + * {
+-            margin-top: 0.625rem !important;
+-        }
+-        #sidebar nav {
+-            scrollbar-width: none;
+-            -ms-overflow-style: none;
+-        }
+-        #sidebar nav::-webkit-scrollbar {
+-            display: none;
+-        }
+-        #sidebar > div > div:first-child {
+-            justify-content: center !important;
+-            gap: 0 !important;
+-        }
+-        #sidebar > div > div:first-child > div {
+-            flex: 0 0 auto !important;
+-            justify-content: center !important;
+-            gap: 0 !important;
+-        }
+-        #sidebar > div > div:first-child img.oh-sidebar-label {
+-            flex: 0 0 auto !important;
+-            width: 2rem !important;
+-            height: 2rem !important;
+-            overflow: visible !important;
+-            opacity: 1 !important;
+-        }
+-        #sidebar .sideboxmain {
+-            justify-content: center !important;
+-            width: 2.5rem !important;
+-            height: 2.5rem !important;
+-            margin: 0 auto !important;
+-            padding: 0 !important;
+-            overflow: hidden !important;
+-            gap: 0 !important;
+-            border-radius: 9999px !important;
+-        }
+-        #sidebar .oh-sidebar-label,
+-        #sidebar .sidebar-chevron {
+-            flex: 0 0 0 !important;
+-            width: 0 !important;
+-            overflow: hidden !important;
+-        }
+-        #sidebar .sidebar-subnav:not(.hidden) {
+-            display: none !important;
+-        }
+-        #sidebar:not(:hover) #sidebarPinBtn {
+-            display: none !important;
++        #sidebar.sidebar-pinned { width: 4rem !important; }
++        #sidebar.sidebar-pinned:has(#sidebarExpandBtn[aria-expanded="true"]) {
++            width: min(13rem, calc(100vw - 44px)) !important;
++            box-shadow: 12px 0 28px #0004;
+         }
++        #sidebar.sidebar-pinned ~ .oh-main-content { margin-left: 4rem !important; }
++        #sidebar.sidebar-pinned ~ .oh-main-content .oh-main-header,
++        #sidebar.sidebar-pinned ~ #floating-buttons .fab-container { left: 4rem !important; }
+     }
+ </style>
+ <div id="sidebar" class="fixed inset-y-0 left-0 bg-white border-r border-r-dark-50 z-50">
+     <div class="p-4">
+-        <!-- Header: hamburger pin toggle + company logo -->
+-        <div class="flex items-center gap-3 mb-6">
+-            <button
+-                id="sidebarPinBtn"
+-                title="{% trans 'Lock sidebar open' %}"
+-                aria-label="{% trans 'Lock sidebar open' %}"
+-                data-pin-label="{% trans 'Lock sidebar open' %}"
+-                data-unpin-label="{% trans 'Unlock sidebar (auto-collapses on hover-out)' %}"
+-                class="flex-shrink-0 p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors duration-150"
+-            >
+-                <!-- Unlocked padlock: shown when the sidebar is NOT pinned (hover-to-expand mode) -->
+-                <svg
+-                    class="sidebar-lock-open w-5 h-5"
+-                    fill="none"
+-                    stroke="currentColor"
+-                    stroke-width="2"
+-                    viewBox="0 0 24 24"
+-                    aria-hidden="true"
+-                >
+-                    <path
+-                        stroke-linecap="round"
+-                        stroke-linejoin="round"
+-                        d="M13.5 10.5V6.75a4.5 4.5 0 1 1 9 0v3.75M3.75 21.75h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H3.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
+-                    />
+-                </svg>
+-                <!-- Locked padlock: shown when the sidebar IS pinned (locked open) -->
+-                <svg
+-                    class="sidebar-lock-closed w-5 h-5"
+-                    fill="none"
+-                    stroke="currentColor"
+-                    stroke-width="2"
+-                    viewBox="0 0 24 24"
+-                    aria-hidden="true"
+-                >
+-                    <path
+-                        stroke-linecap="round"
+-                        stroke-linejoin="round"
+-                        d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
+-                    />
++        <div class="flex items-center mb-6">
++            <button type="button" id="sidebarExpandBtn"
++                    aria-controls="workspaceNavigation" aria-expanded="false"
++                    aria-label="{% trans 'Expand sidebar' %}" title="{% trans 'Expand sidebar' %}">
++                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
++                     stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
++                    <rect x="3" y="4" width="18" height="16" rx="3"/>
++                    <path d="M9 4v16"/>
++                    <path class="sidebar-expand-arrow" d="m14 9 3 3-3 3"/>
+                 </svg>
+             </button>
+-            <div class="flex items-center gap-2 min-w-0 flex-1">
+-                {% if request.session.selected_company_instance %}
+-                    <img
+-                        src="{% if request.session.selected_company_instance.icon and request.session.selected_company_instance.icon != '/404/' %}{{ request.session.selected_company_instance.icon }}{% else %}/static/horilla_theme/assets/img/horilla-logo.png{% endif %}"
+-                        class="oh-sidebar-label w-7 h-7 rounded-full flex-shrink-0"
+-                        title="{{ request.session.selected_company_instance.company }}"
+-                        alt="{{ request.session.selected_company_instance.company }}"
+-                    >
+-                    <div class="oh-sidebar__company-details oh-sidebar-label min-w-0">
+-                        <span
+-                            class="oh-sidebar__company-title truncate"
+-                            style="font-size: 13px"
+-                        >{{ request.session.selected_company_instance.company }}.</span>
+-                        <a href="#" class="oh-sidebar__company-link truncate" style="font-size: 10px">
+-                            {% trans request.session.selected_company_instance.text %}
+-                        </a>
+-                    </div>
+-                {% else %}
+-                    <img
+-                        src="{% if request.user.employee_get.employee_work_info.company_id.icon %}{{ request.user.employee_get.employee_work_info.company_id.icon.url }}{% else %}/static/horilla_theme/assets/img/horilla-logo.png{% endif %}"
+-                        alt="{% trans 'Company logo' %}"
+-                        class="oh-sidebar-label w-7 h-7 rounded-full flex-shrink-0"
+-                    >
+-                    <div class="oh-sidebar__company-details oh-sidebar-label min-w-0">
+-                        <span
+-                            class="oh-sidebar__company-title truncate"
+-                            style="font-size: 13px"
+-                        >{{ request.user.employee_get.employee_work_info.company_id }}.</span>
+-                        <a href="#" class="oh-sidebar__company-link truncate" style="font-size: 10px">
+-                            {% trans "My Company" %}
+-                        </a>
+-                    </div>
+-                {% endif %}
+-            </div>
+         </div>
+ 
+         <script>
+@@ -626,7 +422,7 @@
+             })();
+         </script>
+ 
+-        <nav
++        <nav id="workspaceNavigation"
+             class="space-y-1 overflow-hidden overflow-y-auto h-[calc(100vh_-_140px)] sidebar-scroll"
+             role="navigation"
+             aria-label="{% trans 'Main navigation' %}"
+@@ -841,17 +637,8 @@
+           var sidebarRect = sidebarEl.getBoundingClientRect();
+           var sidebarRight = sidebarRect.right;
+ 
+-          // getBoundingClientRect() fires at mouseenter while the sidebar's
+-          // width transition (64px → 208px, 0.22s) is still mid-flight,
+-          // so `right` can read as 64px even though the sidebar will expand
+-          // to 208px. Clamp to the expanded target width whenever the sidebar
+-          // is in hover/pinned state so the flyout never lands inside it.
+-          if (sidebarEl.matches(':hover') || sidebarEl.classList.contains('sidebar-pinned')) {
+-            var rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+-            var expandedRight = sidebarRect.left + rootFontSize * 13; /* 13rem */
+-            if (expandedRight > sidebarRight) sidebarRight = expandedRight;
+-          }
+-
++          var panelWidth = Math.min(240, window.innerWidth - sidebarRight - 14);
++          flyoutEl.style.maxWidth = panelWidth + "px";
+           var left = sidebarRight + 6;
+           var top = itemRect.top;
+           flyoutEl.style.left = left + "px";
+@@ -867,7 +654,7 @@
+ 
+         function showFlyout(item, btn) {
+           var subnav = item.querySelector(".sidebar-subnav");
+-          if (!subnav) return;
++          if (!subnav || sidebarPinned) return;
+           var liItems = subnav.querySelectorAll("li");
+           if (!liItems.length) return;
+ 
+@@ -953,6 +740,7 @@
+             var isLeftClick = !e.button || e.button === 0;
+             var isModified = e.metaKey || e.ctrlKey || e.shiftKey || e.altKey;
+             if (!isLeftClick || isModified) return;
++            if (narrowSidebar.matches && sidebarPinned) setSidebarExpanded(false);
+             e.preventDefault();
+             e.stopPropagation();
+             var href = link.getAttribute("href") || link.getAttribute("hx-get") || "/";
+@@ -1020,49 +808,49 @@
+ 
+         ohAccordionInit();
+ 
+-        // ── Sidebar pin / collapse toggle ────────────────────────────────────
+-
++        // The saved desktop preference and the temporary narrow-screen overlay are independent.
+         var sidebarEl = document.getElementById("sidebar");
++        var sidebarButton = document.getElementById("sidebarExpandBtn");
++        var narrowSidebar = window.matchMedia("(max-width: 991.98px)");
++        var desktopSidebarExpanded = true;
++        try {
++          var storedSidebar = localStorage.getItem("sidebarPinned");
++          if (storedSidebar !== null) desktopSidebarExpanded = storedSidebar === "true";
++        } catch (_) {}
++        var sidebarPinned = false;
+ 
+-        var sidebarPinned = true; // default: pinned open
+-        try { var _stored = localStorage.getItem("sidebarPinned"); if (_stored !== null) sidebarPinned = _stored === "true"; } catch (_) {}
+-
+-        function applySidebarPin(pinned, animate) {
+-          sidebarPinned = pinned;
++        function setSidebarExpanded(expanded) {
++          sidebarPinned = expanded;
++          sidebarEl.classList.toggle("sidebar-pinned", expanded);
+           var content = document.querySelector(".oh-main-content");
+-
+-          // Suppress transition on initial load to prevent a margin slide on page open
+-          if (!animate && content) content.style.transition = "none";
+-
+-          sidebarEl.classList.toggle("sidebar-pinned", pinned);
+-          if (content) content.style.marginLeft = pinned ? "13rem" : "";
+-
+-          // Keep the lock button's tooltip/aria-label in sync with the state.
+-          // (The open vs closed padlock icon itself is swapped via CSS on .sidebar-pinned.)
+-          var pinBtnEl = document.getElementById("sidebarPinBtn");
+-          if (pinBtnEl) {
+-            var lockLabel = pinned ? pinBtnEl.dataset.unpinLabel : pinBtnEl.dataset.pinLabel;
+-            if (lockLabel) { pinBtnEl.title = lockLabel; pinBtnEl.setAttribute("aria-label", lockLabel); }
+-          }
+-
+-          if (!animate && content) {
+-            requestAnimationFrame(function () {
+-              requestAnimationFrame(function () { content.style.transition = ""; });
+-            });
+-          }
+-          try { localStorage.setItem("sidebarPinned", pinned ? "true" : "false"); } catch (_) {}
++          if (content) content.style.marginLeft = expanded && !narrowSidebar.matches ? "13rem" : "";
++          var label = expanded ? '{% trans "Collapse sidebar"|escapejs %}' : '{% trans "Expand sidebar"|escapejs %}';
++          sidebarButton.title = label;
++          sidebarButton.setAttribute("aria-label", label);
++          sidebarButton.setAttribute("aria-expanded", String(expanded));
++          hideFlyout();
+         }
+ 
+-        // Apply saved state immediately (no animation) to avoid layout flash
+-        applySidebarPin(sidebarPinned, false);
+-
+-        var pinBtn = document.getElementById("sidebarPinBtn");
+-        if (pinBtn) {
+-          pinBtn.addEventListener("click", function (e) {
+-            e.stopPropagation();
+-            applySidebarPin(!sidebarPinned, true);
+-          });
+-        }
++        setSidebarExpanded(!narrowSidebar.matches && desktopSidebarExpanded);
++        sidebarButton.addEventListener("click", function () {
++          setSidebarExpanded(!sidebarPinned);
++          if (!narrowSidebar.matches) {
++            desktopSidebarExpanded = sidebarPinned;
++            try { localStorage.setItem("sidebarPinned", String(sidebarPinned)); } catch (_) {}
++          }
++        });
++        narrowSidebar.addEventListener("change", function () {
++          setSidebarExpanded(!narrowSidebar.matches && desktopSidebarExpanded);
++        });
++        document.addEventListener("click", function (event) {
++          if (narrowSidebar.matches && sidebarPinned && !sidebarEl.contains(event.target)) setSidebarExpanded(false);
++        });
++        document.addEventListener("keydown", function (event) {
++          if (event.key === "Escape" && sidebarPinned && narrowSidebar.matches) {
++            setSidebarExpanded(false);
++            sidebarButton.focus();
++          }
++        });
+ 
+         // When cursor leaves sidebar, close any open flyout
+         if (sidebarEl) {
+@@ -1161,6 +949,7 @@
+               var isTopDashboard = link.matches("a.sideboxmain");
+ 
+               if (isTopDashboard) {
++                if (narrowSidebar.matches && sidebarPinned) setSidebarExpanded(false);
+                 e.preventDefault();
+                 e.stopPropagation();
+                 hideFlyout();
+@@ -1183,10 +972,19 @@
+             if (e.target.closest(".sidebar-subnav")) return;
+             if (e.target.closest("a")) return;
+ 
+-            // Module button click opens flyout via hover; do not mark active without navigation
+-            var btn = e.target.closest(".sideboxmain");
++            var btn = e.target.closest("button.sideboxmain");
+             if (!btn) return;
++            var item = btn.closest(".sidebar-item");
++            var submenu = item && item.querySelector(".sidebar-subnav");
++            if (!submenu) return;
+             e.stopPropagation();
++            if (!sidebarPinned) {
++              showFlyout(item, btn);
++              return;
++            }
++            var shouldOpen = submenu.classList.contains("hidden");
++            submenu.classList.toggle("hidden", !shouldOpen);
++            btn.setAttribute("aria-expanded", String(shouldOpen));
+           });
+         }
+ 

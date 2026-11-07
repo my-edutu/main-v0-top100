@@ -1,0 +1,87 @@
+--- a/templates/dashboard.html
++++ b/templates/dashboard.html
+@@ -1861,21 +1861,35 @@
+                 </div>
+             </div>
+             <div class="md-header__actions">
+-                <div class="md-period-picker">
++                <details class="work-period">
++                    <summary class="work-dashboard-control">
++                        <i class="fa-regular fa-calendar" aria-hidden="true"></i>
++                        <span id="work-period-label">{% trans "Dates" %}</span>
++                        <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
++                    </summary>
++                    <div class="md-period-picker work-period-panel">
++                        <div class="work-date-presets" aria-label="{% trans 'Date presets' %}">
+                     <button class="md-period-preset" data-preset="today">{% trans "Today" %}</button>
+                     <button class="md-period-preset" data-preset="this_week">{% trans "This Week" %}</button>
+                     <button class="md-period-preset" data-preset="last_week">{% trans "Last Week" %}</button>
+                     <button class="md-period-preset" data-preset="this_month">{% trans "This Month" %}</button>
+                     <button class="md-period-preset" data-preset="last_month">{% trans "Last Month" %}</button>
+                     <button class="md-period-preset" data-preset="this_year">{% trans "This Year" %}</button>
+-                    <input type="date" id="md-from-date" title="{% trans 'Custom range start' %}">
+-                    <span class="md-period-picker__sep">→</span>
+-                    <input type="date" id="md-to-date" title="{% trans 'Custom range end' %}">
+-                </div>
++                        </div>
++                        <div class="work-custom-range">
++                            <label for="md-from-date">{% trans "From" %}
++                                <input type="date" id="md-from-date">
++                            </label>
++                            <label for="md-to-date">{% trans "To" %}
++                                <input type="date" id="md-to-date">
++                            </label>
++                        </div>
++                    </div>
++                </details>
+                 {% if request.user.employee_get %}
+                     <a
+                         href="{% url 'ess-dashboard' %}"
+-                        class="oh-btn oh-btn--secondary"
++                        class="oh-btn oh-btn--secondary work-dashboard-control"
+                         title="{% trans 'Switch to My Dashboard' %}"
+                         style="display: flex; align-items: center; gap: 5px; font-size: 13px"
+                     >
+@@ -1892,11 +1906,11 @@
+                             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                             <circle cx="12" cy="7" r="4" />
+                         </svg>
+-                        {% trans "My Dashboard" %}
++                        {% trans "Dashboard" %}
+                     </a>
+                 {% endif %}
+                 <button
+-                    class="oh-btn oh-btn--secondary"
++                    class="oh-btn oh-btn--secondary work-dashboard-control"
+                     id="md-open-customize"
+                     title="{% trans 'Customize dashboard' %}"
+                     style="display: flex; align-items: center; gap: 5px; font-size: 13px"
+@@ -2467,8 +2481,13 @@
+             }
+ 
+             function highlightPreset(active) {
++                const label = document.getElementById('work-period-label');
++                label.textContent = '{% trans "Dates"|escapejs %}';
+                 document.querySelectorAll('.md-period-preset').forEach(btn => {
+-                    btn.classList.toggle('md-period-preset--active', btn.dataset.preset === active);
++                    const selected = btn.dataset.preset === active;
++                    btn.classList.toggle('md-period-preset--active', selected);
++                    btn.setAttribute('aria-pressed', String(selected));
++                    if (selected) label.textContent = btn.textContent.trim();
+                 });
+             }
+ 
+@@ -2537,7 +2556,12 @@
+ 
+             // Preset buttons
+             document.querySelectorAll('.md-period-preset').forEach(btn => {
+-                btn.addEventListener('click', () => setPreset(btn.dataset.preset));
++                btn.addEventListener('click', () => {
++                    setPreset(btn.dataset.preset);
++                    const picker = btn.closest('details');
++                    picker.open = false;
++                    picker.querySelector('summary').focus();
++                });
+             });
+ 
+             // Date input change

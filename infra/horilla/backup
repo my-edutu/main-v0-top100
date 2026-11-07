@@ -1,0 +1,12 @@
+#!/bin/bash
+set -euo pipefail
+umask 077
+folder=/var/backups/top100-work
+mkdir -p "$folder"
+stamp=$(date -u +%Y%m%dT%H%M%SZ)
+/usr/bin/docker exec top100-work-horilla-db-1 pg_dump -U horilla_user -d horilla_db -Fc > "$folder/db-$stamp.dump.tmp"
+mv "$folder/db-$stamp.dump.tmp" "$folder/db-$stamp.dump"
+media_root=$(/usr/bin/docker volume inspect --format '{{.Mountpoint}}' top100-work-horilla_media)
+tar -czf "$folder/media-$stamp.tar.gz" -C "$media_root" .
+tar -czf "$folder/config-$stamp.tar.gz" -C /etc/dokploy/compose top100-work-horilla
+find "$folder" -maxdepth 1 -type f -mtime +14 -delete

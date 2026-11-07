@@ -1,0 +1,157 @@
+--- upstream/header.html
++++ top100/header.html
+@@ -23,24 +23,33 @@
+         color: #ffffff;
+     }
+ </style>
++<link rel="stylesheet" href="{% static 'top100-work.css' %}?v=20261107-responsive3">
+ 
+ <div id="mainHeader" class="oh-main-header flex justify-between items-center bg-white py-3 px-5 border-b border-b-dark-50 fixed z-40">
+-    <div id="breadcrumbs-container">
++    <div class="work-header-brand">
++        <a class="work-logo" href="{% url 'dashboard' %}" aria-label="{% trans 'Top100 Workforce dashboard' %}">
++            <img src="/media/base/company/icon/top100-wordmark.png" alt="Top100 Africa Future Leaders" width="937" height="216">
++        </a>
++        <div id="breadcrumbs-container">
+         {% if breadcrumbs %}
+             {% include "base/navbar_components/breadcrumbs_view.html" %}
+         {% endif %}
++        </div>
+     </div>
+-
+-    <div class="flex items-center gap-8">
+-        <!-- Action Icons -->
+-        <div class="flex items-center gap-2">
++    <div class="work-header-actions">
++        <details class="work-tools">
++            <summary class="work-icon-button" aria-label="{% trans 'Workspace tools' %}" title="{% trans 'Workspace tools' %}">
++                <i class="fa-solid fa-ellipsis" aria-hidden="true"></i>
++            </summary>
++            <div class="work-tools-panel">
++                <p class="work-tools-label">{% trans "Workspace tools" %}</p>
+             {% if "attendance"|app_installed %}
+                 <div id="attendance-activity-container">
+                     {% include "attendance/components/in_out_component.html" %}
+                 </div>
+             {% endif %}
+             <button
+-                id="themeToggleButton"
++                id="themeToggleButton" aria-label="{% trans 'Toggle theme' %}"
+                 class="md:block p-2 group text-primary-600 w-12 h-12 bg-primary-100 hover:bg-primary-600 rounded-full transition duration-300 flex items-center justify-center"
+             >
+                 <a href="#" aria-label="{% trans 'Toggle theme' %}" onclick="return false">
+@@ -52,7 +61,7 @@
+                 </a>
+             </button>
+             {% if show_section %}
+-                <button class="md:block p-2 group text-primary-600 w-12 h-12 bg-primary-100 hover:bg-primary-600 rounded-full transition duration-300 flex items-center justify-center">
++                <button aria-label="{% trans 'Settings' %}" class="md:block p-2 group text-primary-600 w-12 h-12 bg-primary-100 hover:bg-primary-600 rounded-full transition duration-300 flex items-center justify-center">
+                     <a
+                         href="{% url 'system-preferences-view' %}"
+                         hx-get="{% url 'system-preferences-view' %}"
+@@ -82,8 +91,27 @@
+                 </button>
+             </div>
+             {% endif %}
+-            <div class="relative dropdown-wrapper">
+-                <button
++            {% if show_language_switcher %}
++                <div class="relative dropdown-wrapper">
++                    <button aria-label="{% trans 'Language' %}" class="hidden md:block p-2 group text-primary-600 w-12 h-12 bg-primary-100 hover:bg-primary-600 rounded-full transition duration-300">
++                        <i class="fas fa-globe transition duration-300 group-hover:text-white"></i>
++                    </button>
++                    {% include "base/navbar_components/language_settings.html" %}
++                </div>
++            {% endif %}
++
++            {% if show_company_switcher %}
++                <div class="relative dropdown-wrapper">
++                    <button aria-label="{% trans 'Switch company' %}" class="hidden md:block p-2 group text-primary-600 w-12 h-12 bg-primary-100 hover:bg-primary-600 rounded-full transition duration-300">
++                        <i class="fa-solid fa-building transition duration-300 group-hover:text-white"></i>
++                    </button>
++                    {% include "base/navbar_components/company_selection.html" %}
++                </div>
++            {% endif %}
++            </div>
++        </details>
++            <div class="relative dropdown-wrapper work-notification" data-work-menu>
++                <button type="button" aria-label="{% trans 'Notifications' %}"
+                     class="hidden md:block p-2 group text-primary-600 w-12 h-12 bg-primary-100 hover:bg-primary-600 rounded-full transition duration-300 relative"
+                     hx-get="{% url 'notifications' %}"
+                     hx-target="#notificationContainer"
+@@ -135,31 +163,55 @@
+                 {% include "notification/notification.html" %}
+             </div>
+ 
+-            {% if show_language_switcher %}
+-                <div class="relative dropdown-wrapper">
+-                    <button class="hidden md:block p-2 group text-primary-600 w-12 h-12 bg-primary-100 hover:bg-primary-600 rounded-full transition duration-300">
+-                        <i class="fas fa-globe transition duration-300 group-hover:text-white"></i>
+-                    </button>
+-                    {% include "base/navbar_components/language_settings.html" %}
+-                </div>
+-            {% endif %}
+-
+-            {% if show_company_switcher %}
+-                <div class="relative dropdown-wrapper">
+-                    <button class="hidden md:block p-2 group text-primary-600 w-12 h-12 bg-primary-100 hover:bg-primary-600 rounded-full transition duration-300">
+-                        <i class="fa-solid fa-building transition duration-300 group-hover:text-white"></i>
+-                    </button>
+-                    {% include "base/navbar_components/company_selection.html" %}
+-                </div>
+-            {% endif %}
+-        </div>
+-
+-        <div class="relative dropdown-wrapper">
++        <div class="relative dropdown-wrapper work-profile" data-work-menu>
+             {% include "base/navbar_components/profile_section.html" %}
+         </div>
+     </div>
+ </div>
+ 
++<script>
++    if (!window.top100DisclosureWired) {
++        window.top100DisclosureWired = true;
++        const menuSelector = '[data-work-menu]';
++        function setMenu(menu, open) {
++            menu.toggleAttribute('data-open', open);
++            menu.querySelector(':scope > button').setAttribute('aria-expanded', String(open));
++        }
++        document.querySelectorAll(menuSelector).forEach((menu) => {
++            const button = menu.querySelector(':scope > button');
++            if (menu.classList.contains('work-profile')) {
++                button.setAttribute('aria-label', '{% trans "Account menu"|escapejs %}');
++            }
++            setMenu(menu, false);
++        });
++        document.addEventListener('click', (event) => {
++            const trigger = event.target.closest('[data-work-menu] > button');
++            document.querySelectorAll(menuSelector).forEach((menu) => {
++                if (trigger?.parentElement === menu) {
++                    setMenu(menu, !menu.hasAttribute('data-open'));
++                } else if (!menu.contains(event.target)) {
++                    setMenu(menu, false);
++                }
++            });
++            document.querySelectorAll('.work-tools[open], .work-period[open]').forEach((menu) => {
++                if (!menu.contains(event.target)) menu.open = false;
++            });
++        });
++        document.addEventListener('keydown', (event) => {
++            if (event.key !== 'Escape') return;
++            const menu = event.target.closest?.('.work-tools[open], .work-period[open], [data-work-menu][data-open]');
++            if (!menu) return;
++            if (menu.matches(menuSelector)) {
++                setMenu(menu, false);
++                menu.querySelector(':scope > button').focus();
++            } else {
++                menu.open = false;
++                menu.querySelector('summary').focus();
++            }
++        });
++    }
++</script>
++
+ <!-- All Notification -->
+ <div class="sidebarModal overflow-hidden overflow-y-auto" id="sidebarModal3">
+     <!-- <button class="closebtn closeSidemenu absolute top-3 right-3" data-sidebar="sidebarModal3"><i

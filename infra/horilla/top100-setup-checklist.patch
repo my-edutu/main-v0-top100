@@ -1,0 +1,14 @@
+--- a/base/templates/base/setup_checklist_banner.html
++++ b/base/templates/base/setup_checklist_banner.html
+@@ -187,9 +187,9 @@
+                     </svg>
+                 </div>
+                 <div>
+-                    <h3 class="hcl-title">{% trans "Get started with Horilla HR" %}</h3>
++                    <h3 class="hcl-title">{% trans "Set up Top100 Workforce" %}</h3>
+                     <p class="hcl-subtitle">
+-                        {% trans "Finish setup to unlock your full HR system" %}
++                        {% trans "Complete these steps to get your workforce workspace ready." %}
+                     </p>
+                 </div>
+             </div>

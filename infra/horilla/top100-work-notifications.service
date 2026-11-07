@@ -1,0 +1,8 @@
+[Unit]
+Description=Top100 workforce assignment, deadline, progress and HR notices
+After=docker.service
+Requires=docker.service
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/top100-work-notifications
+TimeoutStartSec=240
