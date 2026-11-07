@@ -596,7 +596,10 @@ export default function AwardeesManagement() {
           </p>
         </div>
 
-        <div className="flex w-full items-center gap-2 sm:w-auto sm:shrink-0">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0">
+          <Link href="/admin/awardees/quality" className="inline-flex min-h-11 items-center rounded-xl border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-800 hover:bg-zinc-50">
+            Profile quality
+          </Link>
           <Link href="/admin/awardees/new" className="flex-1 sm:flex-none">
             <Button size="sm" className="min-h-11 w-full rounded-xl bg-zinc-950 px-4 font-medium text-white shadow-none hover:bg-zinc-800">
               <Plus className="h-4 w-4" />
