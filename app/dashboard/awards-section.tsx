@@ -11,6 +11,7 @@ import {
   type AwardPaymentView,
 } from '@/lib/awards/payment'
 import type { MemberProfile } from '@/lib/member-hub'
+import { formatAwardFee } from '@/lib/awards/payment-price'
 import { trackConfirmedAwardPayment } from '@/lib/awards/funnel'
 
 import {
@@ -268,6 +269,9 @@ export default function AwardsSection({
             view?.currentAttempt?.status ?? '',
           )
         }
+        resumeAmount={view?.currentAttempt?.checkoutUrl
+          ? formatAwardFee(view.currentAttempt.amountMinor, view.currentAttempt.currency)
+          : null}
         resumeUrl={
           resolvedReturnState !== 'done'
             ? view?.currentAttempt?.checkoutUrl

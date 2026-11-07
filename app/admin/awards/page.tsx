@@ -97,6 +97,8 @@ type AwardPaymentAttempt = {
   status: string
   priceVersion: string | null
   requestedAmountMinor: number | null
+  couponBaseAmountMinor: number | null
+  couponDiscountAmountMinor: number | null
   selectedAmountMinor: number | null
   capturedAmountMinor: number | null
   currency: string | null
@@ -858,6 +860,13 @@ export default function AdminAwardsPage() {
                         <div>
                           <span className="text-xs uppercase tracking-wide text-muted-foreground/70 block">Selected amount</span>
                           {formatMinorAmount(order.payment.requestedAmountMinor, order.payment.currency)}
+                          {order.payment.couponDiscountAmountMinor ? (
+                            <p className="text-xs text-muted-foreground">
+                              {formatMinorAmount(order.payment.couponBaseAmountMinor, order.payment.currency)} award fee
+                              {' · '}
+                              {formatMinorAmount(order.payment.couponDiscountAmountMinor, order.payment.currency)} coupon discount
+                            </p>
+                          ) : null}
                         </div>
                         <div>
                           <span className="text-xs uppercase tracking-wide text-muted-foreground/70 block">Captured amount</span>

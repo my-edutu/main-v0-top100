@@ -111,7 +111,11 @@ export function buildCheckoutRequest(input: CreateCheckoutInput): BachsCheckoutR
     NGN: awardFee('NGN').amountMinor,
     USD: awardFee('USD').amountMinor,
   }
-  const billingCurrency = input.adaptivePricing ? undefined : input.currency
+  const couponAmount = input.couponAmountMinor
+  if (couponAmount !== undefined && (purpose !== 'afl_award_fee_v1' || input.currency !== 'NGN')) {
+    throw new Error('An award coupon requires NGN award-fee pricing.')
+  }
+  const billingCurrency = input.adaptivePricing || couponAmount !== undefined ? undefined : input.currency
 
   const customer: BachsCheckoutRequest['customer'] = { email }
   if (input.customer.name?.trim()) customer.name = input.customer.name.trim()
@@ -121,6 +125,9 @@ export function buildCheckoutRequest(input: CreateCheckoutInput): BachsCheckoutR
     pricing: purpose === 'afl_award_delivery_v1' ? {
       currency: 'NGN',
       amount: amountString(input.deliveryAmountMinor ?? 0),
+    } : couponAmount !== undefined ? {
+      currency: 'NGN',
+      amount: amountString(couponAmount),
     } : purpose === 'afl_project100_support_v1' ? {
       currency: input.currency,
       amount: amountString(input.supportAmountMinor ?? 0),

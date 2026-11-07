@@ -5,7 +5,8 @@ import { getCountries } from 'libphonenumber-js/min'
 import { ArrowRight, ChevronDown, Loader2 } from 'lucide-react'
 import Image from '@/components/safe-image'
 
-import { startAwardPaymentCheckout, type AwardPaymentView } from '@/lib/awards/payment'
+import { previewAwardCoupon, startAwardPaymentCheckout, type AwardCouponQuote, type AwardPaymentView } from '@/lib/awards/payment'
+import { formatAwardFee } from '@/lib/awards/payment-price'
 import { trackAwardFunnel } from '@/lib/awards/funnel'
 
 type AwardPaymentCardProps = {
@@ -31,16 +32,46 @@ export function AwardPaymentCard({
   const [startingCheckout, setStartingCheckout] = useState(false)
   const [checkoutError, setCheckoutError] = useState('')
 
+  const [showCoupon, setShowCoupon] = useState(false)
+  const [couponCode, setCouponCode] = useState('')
+  const [couponQuote, setCouponQuote] = useState<AwardCouponQuote | null>(null)
+  const [checkingCoupon, setCheckingCoupon] = useState(false)
+  const [couponError, setCouponError] = useState('')
+
   const checkoutUnavailable = view.checkoutEnabled === false
   const validEmail = email.trim().length <= 320 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
 
+  async function applyCoupon() {
+    if (checkingCoupon || !couponCode.trim()) return
+    setCheckingCoupon(true)
+    setCouponError('')
+    try {
+      setCouponQuote(await previewAwardCoupon(couponCode))
+    } catch (error) {
+      setCouponError(error instanceof Error ? error.message : 'Could not check the coupon.')
+    } finally {
+      setCheckingCoupon(false)
+    }
+  }
+
+  function clearCoupon() {
+    setCouponCode('')
+    setCouponQuote(null)
+    setCouponError('')
+    setShowCoupon(false)
+  }
+
+  const couponNeedsApplying = showCoupon && Boolean(couponCode.trim()) && !couponQuote
+
   async function startCheckout(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (startingCheckout || checkoutUnavailable || !countryCode || !validEmail) return
+    if (startingCheckout || checkingCoupon || couponNeedsApplying || checkoutUnavailable || !countryCode || !validEmail) return
     setStartingCheckout(true)
     setCheckoutError('')
     try {
-      const checkout = await startAwardPaymentCheckout({ countryCode, email: email.trim() })
+      const checkout = await startAwardPaymentCheckout({
+        countryCode, email: email.trim(), ...(couponQuote ? { couponCode } : {}),
+      })
       if (memberId) trackAwardFunnel(memberId, 'checkout_started')
       window.location.assign(checkout.checkoutUrl)
     } catch (error) {
@@ -112,13 +143,67 @@ export function AwardPaymentCard({
             <input type="email" required maxLength={320} autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" className="mt-2 min-h-12 w-full rounded-xl border border-[#4B434C] bg-[#211C24] px-3 text-sm text-[#F8F4F8] placeholder:text-[#918A93] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F97316]" />
           </label>
         </fieldset>
+        {!checkoutUnavailable && (
+          <div className="space-y-3 border-t border-[#39323B] pt-4">
+            {!showCoupon ? (
+              <button type="button" disabled={startingCheckout} onClick={() => setShowCoupon(true)} className="min-h-11 text-sm font-medium text-[#FFB77E] underline underline-offset-4">
+                Have a coupon?
+              </button>
+            ) : (
+              <>
+                <fieldset disabled={checkingCoupon || startingCheckout} className="flex flex-wrap items-end gap-2">
+                  <label className="min-w-0 flex-1 basis-40 text-sm font-medium">
+                    Coupon code
+                    <input
+                      value={couponCode}
+                      maxLength={64}
+                      autoComplete="off"
+                      autoCapitalize="characters"
+                      spellCheck={false}
+                      onChange={(event) => {
+                        setCouponCode(event.target.value)
+                        setCouponQuote(null)
+                        setCouponError('')
+                      }}
+                      className="mt-2 min-h-12 w-full rounded-xl border border-[#4B434C] bg-[#211C24] px-3"
+                    />
+                  </label>
+                  {!couponQuote && (
+                    <button type="button" onClick={() => void applyCoupon()} disabled={!couponCode.trim()} className="min-h-12 rounded-xl border border-[#4B434C] px-4 text-sm font-semibold disabled:opacity-60">
+                      {checkingCoupon ? 'Checking…' : 'Apply'}
+                    </button>
+                  )}
+                  <button type="button" onClick={clearCoupon} className="min-h-12 px-2 text-sm text-[#D0C9D0] underline underline-offset-4">
+                    Remove
+                  </button>
+                </fieldset>
+                {couponError && <p role="alert" className="text-sm text-rose-300">{couponError}</p>}
+                {couponQuote && (
+                  <dl aria-live="polite" className="space-y-1 rounded-xl border border-[#39323B] px-4 py-3 text-sm">
+                    <div className="flex justify-between gap-3">
+                      <dt>Award fee</dt><dd>{formatAwardFee(couponQuote.baseAmountMinor, 'NGN')}</dd>
+                    </div>
+                    <div className="flex justify-between gap-3 text-[#FFB77E]">
+                      <dt>Coupon discount</dt><dd>−{formatAwardFee(couponQuote.discountAmountMinor, 'NGN')}</dd>
+                    </div>
+                    <div className="flex justify-between gap-3 font-semibold">
+                      <dt>Discounted award fee</dt><dd>{formatAwardFee(couponQuote.amountMinor, 'NGN')}</dd>
+                    </div>
+                  </dl>
+                )}
+              </>
+            )}
+          </div>
+        )}
         <div className="flex flex-col gap-3 border-t border-[#39323B] pt-5 sm:flex-row sm:items-center sm:justify-between">
           <p className="max-w-md text-xs leading-5 text-[#C8C0CA]">
-            Choose your billing country and the email address for checkout. Bachs will show available currencies and the final amount on the next screen. Delivery is arranged and quoted separately based on your destination.
+            {couponQuote
+              ? 'Your coupon checkout is in naira. Bachs will show any payment charges on the next screen. Delivery is quoted separately.'
+              : 'Choose your billing country and the email address for checkout. Bachs will show available currencies and the final amount on the next screen. Delivery is arranged and quoted separately based on your destination.'}
           </p>
           <button
             type="submit"
-            disabled={startingCheckout || checkoutUnavailable || !countryCode || !validEmail}
+            disabled={startingCheckout || checkingCoupon || couponNeedsApplying || checkoutUnavailable || !countryCode || !validEmail}
             className="inline-flex min-h-12 shrink-0 items-center justify-center rounded-xl bg-[linear-gradient(110deg,#f97316,#fb923c,#f59e0b)] px-5 font-semibold text-[#171412] shadow-sm transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F36C21] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
           >
             {checkoutUnavailable ? 'Payments are not open yet' : startingCheckout ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />Opening secure checkout</> : <>Proceed <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" /></>}

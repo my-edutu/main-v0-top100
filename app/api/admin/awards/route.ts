@@ -37,6 +37,8 @@ const ADMIN_PAYMENT_ATTEMPT_COLUMNS = [
   'status',
   'price_version',
   'requested_amount_minor',
+  'coupon_base_amount_minor',
+  'coupon_discount_amount_minor',
   'captured_amount_minor',
   'currency',
   'provider_reference',

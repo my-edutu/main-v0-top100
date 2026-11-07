@@ -1320,3 +1320,98 @@ test('rerunning the migration performs an all-history idempotent bootstrap repai
     0,
   )
 })
+
+test('excludes a settled coupon from attribution, the ledger, and sales reports', async () => {
+  // The main payment migration owns this column. This suite uses a minimal
+  // payment fixture and exercises the real production sales migration.
+  await db.query('alter table award_payment_attempts add column award_coupon_id uuid')
+  await db.query(sql('20261103120002_team_legacy_contact_grace.sql'))
+  await db.query(sql('20261107120001_team_exclude_award_coupon_payments.sql'))
+
+  const { rows: [person] } = await db.query(
+    "insert into awardees(name,country,year) values ('Coupon customer','Nigeria','2026') returning id",
+  )
+  const { rows: [projection] } = await db.query(
+    "insert into team_awardees(team_id,public_awardee_id,name,country,source_year) values ($1,$2,'Coupon customer','Nigeria',2026) returning id",
+    [team, person.id],
+  )
+  const { rows: [assignment] } = await db.query(
+    "insert into team_assignments(team_id,awardee_id,agent_id,status,assigned_at) values ($1,$2,$3,'active',now()-interval '2 days') returning id",
+    [team, projection.id, firstAgent],
+  )
+  await db.query(
+    "insert into team_followups(team_id,assignment_id,awardee_id,agent_id,channel,outcome,notes,contacted_at,created_at) values ($1,$2,$3,$4,'call','interested','Discussed payment timing and confirmed the secure checkout link',now()-interval '1 day',now()-interval '1 day')",
+    [team, assignment.id, projection.id, firstAgent],
+  )
+  const { rows: [order] } = await db.query(
+    "insert into award_orders(awardee_id,award_payment_status,award_amount_kobo) values ($1,'pending',2500000) returning id",
+    [person.id],
+  )
+  const { rows: [attempt] } = await db.query(
+    "insert into award_payment_attempts(order_id,provider,charge_scope,status,currency,requested_amount_minor,captured_amount_minor,confirmed_at,award_coupon_id) values ($1,'bachs','award_fee','succeeded','NGN',2000000,2000000,now(),gen_random_uuid()) returning id",
+    [order.id],
+  )
+  const { rows: [eligible] } = await db.query('select kind from team_qualifying_contacts($1,now())', [assignment.id])
+  assert.ok(eligible, 'the rep has contact evidence that would otherwise qualify')
+  await db.query("update award_orders set award_payment_status='paid', award_paid_at=now() where id=$1", [order.id])
+  const assertExcluded = async () => {
+    const { rows: [actual] } = await db.query(
+      `select
+        (select count(*)::int from team_commission_entries where payment_id=$1) as earnings,
+        (select count(*)::int from team_payment_attributions where payment_id=$1) as attributions,
+        (select count(*)::int from team_payment_reconciliation where award_order_id=$1) as sales,
+        (select count(*)::int from team_awardee_directory where public_awardee_id=$2 and payment_status='paid') as report_paid,
+        (select count(*)::int from team_awardees where public_awardee_id=$2 and (is_active or payment_source_id is not null or payment_amount_minor is not null)) as active_or_recorded`,
+      [order.id, person.id],
+    )
+    assert.deepEqual(actual, { earnings: 0, attributions: 0, sales: 0, report_paid: 0, active_or_recorded: 0 })
+  }
+  await assertExcluded()
+  await db.query('update award_orders set award_paid_attempt_id=$2 where id=$1', [order.id, attempt.id])
+  await assertExcluded()
+  assert.equal((await db.query('select status from team_assignments where id=$1', [assignment.id])).rows[0].status, 'removed')
+  const { rows: [replay] } = await db.query(
+    "select team_apply_verified_payment($1,$2,'award_order',$3,'NGN',2000000,null,$4) as result",
+    [team, projection.id, order.id, actor],
+  )
+  assert.equal(replay.result.outcome, 'coupon_excluded')
+  await db.query('select team_reconcile_payments($1,$2,0)', [team, actor])
+
+  // A projection linked after settlement should close without copying payment evidence.
+  await db.query("insert into team_awardees(team_id,public_awardee_id,name) values ($1,$2,'Coupon customer linked later')", [team, person.id])
+  await db.query("update award_orders set award_payment_status='refunded' where id=$1", [order.id])
+  await assertExcluded()
+})
+
+test('still credits the full-price settlement when an earlier coupon attempt was abandoned', async () => {
+  const { rows: [person] } = await db.query(
+    "insert into awardees(name,country,year) values ('Full-price customer','Nigeria','2026') returning id",
+  )
+  const { rows: [projection] } = await db.query(
+    "insert into team_awardees(team_id,public_awardee_id,name,country,source_year) values ($1,$2,'Full-price customer','Nigeria',2026) returning id",
+    [team, person.id],
+  )
+  const { rows: [assignment] } = await db.query(
+    "insert into team_assignments(team_id,awardee_id,agent_id,status,assigned_at) values ($1,$2,$3,'active',now()-interval '2 days') returning id",
+    [team, projection.id, firstAgent],
+  )
+  await db.query(
+    "insert into team_followups(team_id,assignment_id,awardee_id,agent_id,channel,outcome,notes,contacted_at,created_at) values ($1,$2,$3,$4,'call','interested','Discussed payment timing and confirmed the secure checkout link',now()-interval '1 day',now()-interval '1 day')",
+    [team, assignment.id, projection.id, firstAgent],
+  )
+  const { rows: [order] } = await db.query(
+    "insert into award_orders(awardee_id,award_payment_status,award_amount_kobo) values ($1,'pending',2500000) returning id",
+    [person.id],
+  )
+  await db.query(
+    "insert into award_payment_attempts(order_id,provider,charge_scope,status,currency,requested_amount_minor,award_coupon_id) values ($1,'bachs','award_fee','expired','NGN',2000000,gen_random_uuid())",
+    [order.id],
+  )
+  const { rows: [attempt] } = await db.query(
+    "insert into award_payment_attempts(order_id,provider,charge_scope,status,currency,requested_amount_minor,captured_amount_minor,confirmed_at) values ($1,'bachs','award_fee','succeeded','NGN',2500000,2500000,now()) returning id",
+    [order.id],
+  )
+  await db.query("update award_orders set award_payment_status='paid', award_paid_at=now(), award_paid_attempt_id=$2 where id=$1", [order.id, attempt.id])
+  assert.equal((await db.query("select count(*)::int as count from team_commission_entries where payment_id=$1 and entry_type='earning'", [order.id])).rows[0].count, 1)
+  assert.equal((await db.query("select reconciliation_state from team_payment_reconciliation where award_order_id=$1", [order.id])).rows[0].reconciliation_state, 'reconciled')
+})

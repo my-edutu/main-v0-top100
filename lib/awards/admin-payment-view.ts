@@ -10,6 +10,8 @@ export type AdminPaymentAttemptView = {
   status: string
   priceVersion: string | null
   requestedAmountMinor: number | null
+  couponBaseAmountMinor: number | null
+  couponDiscountAmountMinor: number | null
   selectedAmountMinor: number | null
   capturedAmountMinor: number | null
   currency: string | null
@@ -60,6 +62,8 @@ export function mapAdminPaymentAttempt(row: any): AdminPaymentAttemptView {
     status,
     priceVersion: nullableString(row?.price_version),
     requestedAmountMinor,
+    couponBaseAmountMinor: minorUnits(row?.coupon_base_amount_minor),
+    couponDiscountAmountMinor: minorUnits(row?.coupon_discount_amount_minor),
     selectedAmountMinor: requestedAmountMinor,
     capturedAmountMinor: minorUnits(row?.captured_amount_minor),
     currency: nullableString(row?.currency)?.toUpperCase() ?? null,
@@ -91,6 +95,8 @@ export function mapLegacyPaystackPayment(order: any): AdminPaymentAttemptView | 
     status,
     priceVersion: null,
     requestedAmountMinor,
+    couponBaseAmountMinor: null,
+    couponDiscountAmountMinor: null,
     selectedAmountMinor: requestedAmountMinor,
     capturedAmountMinor: order?.paid_at ? requestedAmountMinor : null,
     currency: nullableString(order?.currency)?.toUpperCase() ?? 'NGN',

@@ -1,3 +1,4 @@
+import { AWARD_COUPON_TOTAL_MINOR } from './payment-price'
 import { bachsConfig } from '@/lib/payments/bachs/config'
 import { parseBachsAmount } from '@/lib/payments/bachs/money'
 import { verifiedBachsAwardAmount, verifyBachsAwardCheckout } from '@/lib/payments/bachs/settlement'
@@ -41,6 +42,7 @@ type AttemptRow = {
   provider?: string | null
   charge_scope?: string | null
   status?: string | null
+  award_coupon_id?: string | null
   requested_amount_minor?: number | string | null
   captured_amount_minor?: number | string | null
   currency?: string | null
@@ -415,7 +417,9 @@ export async function handleBachsEvent(
       providerReference &&
       providerReference === attempt?.provider_reference &&
       (attempt?.currency === 'NGN' || attempt?.currency === 'USD') &&
-      numberMinor(attempt?.requested_amount_minor) === SERVER_AWARD_FEE_MINOR[attempt.currency],
+      (attempt.award_coupon_id
+        ? attempt.currency === 'NGN' && numberMinor(attempt.requested_amount_minor) === AWARD_COUPON_TOTAL_MINOR
+        : numberMinor(attempt.requested_amount_minor) === SERVER_AWARD_FEE_MINOR[attempt.currency]),
   )
   const identifiersMatch = Boolean(
     attempt &&
@@ -443,7 +447,8 @@ export async function handleBachsEvent(
       const chargeMatches = event.type === 'checkout.completed' || Boolean(verified &&
         verified.chargeCurrency === currencyRaw && verified.grossAmount === amountRaw &&
         (!data.charge_id || data.charge_id === verified.chargeId))
-      if (!verified || verified.status !== 'paid' || !chargeMatches) {
+      if (!verified || verified.status !== 'paid' || !chargeMatches ||
+          (attempt.award_coupon_id && verified.chargeCurrency !== 'NGN')) {
         matchedAttemptId = null
       } else {
         amountMinor = verified.amountMinor

@@ -7,6 +7,7 @@ import { loadOrderForUser } from './server'
 
 type ReconciliationAttempt = {
   id: string; order_id: string; provider: string; charge_scope: string; status: string
+  award_coupon_id?: string | null
   currency: string; requested_amount_minor: number; provider_checkout_id: string | null; provider_reference: string
 }
 
@@ -40,7 +41,7 @@ export async function reconcileAwardAttempt(
     orderId: attempt.order_id, attemptId: attempt.id, currency: attempt.currency,
     requestedMinor: Number(attempt.requested_amount_minor),
   }, options.config ?? bachsConfig(), options.fetchProvider)
-  if (!verified) return { outcome: 'review_required', notificationNeeded: false }
+  if (!verified || (attempt.award_coupon_id && verified.status === 'paid' && verified.chargeCurrency !== 'NGN')) return { outcome: 'review_required', notificationNeeded: false }
   if (['failed', 'expired', 'exception', 'overpaid'].includes(attempt.status) && verified.status !== 'paid') {
     return { outcome: 'review_required', notificationNeeded: false }
   }

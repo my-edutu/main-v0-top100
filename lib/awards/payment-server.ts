@@ -12,6 +12,7 @@ import { createAdminClient } from '@/lib/supabase/server'
 import { loadOrderForUser, isMissingAwardTable } from './server'
 import { mapPaymentView } from './payment-state'
 import { awardFee } from './payment-price'
+import { awardCouponDigest, awardCouponUnavailable } from './coupon-server'
 import { AwardPaymentError } from './payment-errors'
 import type { AwardPaymentView } from './payment'
 import { reconcileAwardAttempt } from './payment-reconciliation'
@@ -196,6 +197,7 @@ export async function createAwardPaymentCheckout(
   currency: AwardPaymentCurrency,
   contactEmail?: string,
   countryCode?: string,
+  couponCode?: string,
 ): Promise<{ checkoutUrl: string; attemptId: string }> {
   let checkoutEmail = (contactEmail ?? member.email ?? '').trim().toLowerCase()
   if (!checkoutEmail || checkoutEmail.length > 320 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(checkoutEmail)) {
@@ -205,22 +207,33 @@ export async function createAwardPaymentCheckout(
   const fee = awardFee(currency)
   const attemptId = crypto.randomUUID()
   const db = createAdminClient()
-  const { data: reservation, error } = await db.rpc('reserve_bachs_award_checkout', {
+  const reservationInput = {
     p_profile_id: member.id,
     p_attempt_id: attemptId,
     p_provider_reference: `AFL-AWARD-${member.id}-${attemptId}`,
     p_idempotency_key: `afl-award-${attemptId}`,
-    p_currency: currency,
-    p_requested_amount_minor: fee.amountMinor,
     p_price_version: fee.priceVersion,
-  })
+  }
+  const { data: reservation, error } = couponCode
+    ? await db.rpc('reserve_bachs_award_coupon_checkout', {
+        ...reservationInput, p_code_digest: awardCouponDigest(couponCode),
+      })
+    : await db.rpc('reserve_bachs_award_checkout', {
+        ...reservationInput, p_currency: currency, p_requested_amount_minor: fee.amountMinor,
+      })
   if (error) paymentDatabaseError(error)
+  if (reservation?.outcome === 'coupon_unavailable') throw awardCouponUnavailable()
+  if (reservation?.outcome === 'existing_price') {
+    throw new AwardPaymentError(409, 'You already have a checkout at a different price. Refresh to see your payment options.')
+  }
   if (reservation?.outcome === 'already_paid') {
     throw new AwardPaymentError(409, 'Your award fee has already been paid. Refresh to see your confirmation.')
   }
   if (reservation?.outcome === 'legacy_pending') {
     throw new AwardPaymentError(409, 'An earlier payment needs confirmation. Please contact support before paying again.')
   }
+  let reservedAmountMinor = Number(reservation?.requested_amount_minor ?? fee.amountMinor)
+  let couponAmountMinor = reservation?.award_coupon_id ? reservedAmountMinor : undefined
   let savedRequest: { body: string; apiKeyFingerprint: string; apiBaseUrl: string } | null = null
   let checkoutCountryCode = countryCode ?? ''
   const keyFingerprint = crypto.createHash('sha256').update(config.apiKey).digest('hex')
@@ -255,6 +268,10 @@ export async function createAwardPaymentCheckout(
       throw new AwardPaymentError(409, 'This checkout needs verification. Check payment status on your award page before trying again.')
     }
     currency = existing.currency
+    reservedAmountMinor = Number(existing.requested_amount_minor ?? awardFee(currency).amountMinor)
+    couponAmountMinor = existing.award_coupon_id ? reservedAmountMinor : undefined
+  } else if (reservation?.outcome === 'created' && reservation.currency) {
+    currency = reservation.currency
   }
   if (reservation?.outcome !== 'created' && !savedRequest) {
     throw new AwardPaymentError(409, 'A payment is already being processed or needs review. Refresh your award page before continuing.')
@@ -270,6 +287,7 @@ export async function createAwardPaymentCheckout(
     reference: reservation.provider_reference, idempotencyKey: reservation.idempotency_key,
     currency, customer: { email: checkoutEmail }, config,
     adaptivePricing: Boolean(checkoutCountryCode),
+    ...(couponAmountMinor !== undefined ? { couponAmountMinor } : {}),
   }
   const requestBody = savedRequest?.body ?? JSON.stringify(buildCheckoutRequest(input))
   if (!savedRequest) {
@@ -305,7 +323,7 @@ export async function createAwardPaymentCheckout(
     }
     const emailResult = await sendPaymentLifecycleEmail({
       product: 'award', status: 'checkout', attemptId: reservation.attempt_id,
-      email: checkoutEmail, currency, amountMinor: awardFee(currency).amountMinor, checkoutUrl: session.checkoutUrl,
+      email: checkoutEmail, currency, amountMinor: reservedAmountMinor, checkoutUrl: session.checkoutUrl,
     })
     if (!emailResult.ok) console.error('[award-payment] checkout email could not be sent', { attemptId: reservation.attempt_id, reason: emailResult.reason })
     return { checkoutUrl: session.checkoutUrl, attemptId: reservation.attempt_id }

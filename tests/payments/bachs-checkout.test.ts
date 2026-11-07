@@ -50,6 +50,13 @@ describe('buildCheckoutRequest', () => {
     })
   })
 
+  it('uses a fixed naira price for an award coupon checkout', () => {
+    const request = buildCheckoutRequest({ ...ngnInput, couponAmountMinor: 2_000_000 })
+    expect(request.pricing).toEqual({ currency: 'NGN', amount: '20000.00' })
+    expect(request.billing_currency).toBeUndefined()
+    expect(request.metadata.purpose).toBe('afl_award_fee_v1')
+  })
+
   it('uses the USD billing currency while keeping the same base and override prices', () => {
     const request = buildCheckoutRequest({ ...ngnInput, currency: 'USD' })
     expect(request.billing_currency).toBe('USD')

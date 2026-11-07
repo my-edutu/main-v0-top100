@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
   const supabase = createAdminClient()
   const { data: attempt, error } = await supabase
     .from('award_payment_attempts')
-    .select('id, order_id, provider, charge_scope, status, currency, requested_amount_minor, provider_checkout_id, provider_reference')
+    .select('id, order_id, provider, charge_scope, status, currency, award_coupon_id, requested_amount_minor, provider_checkout_id, provider_reference')
     .eq('id', attemptId)
     .eq('order_id', orderId)
     .maybeSingle()

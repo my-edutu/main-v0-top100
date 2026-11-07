@@ -70,6 +70,8 @@ export type CreateCheckoutInput = {
   supportAmountMinor?: number
   /** Exact server-priced GIG delivery bill, never supplied by the browser. */
   deliveryAmountMinor?: number
+  /** Exact NGN principal of a reserved award coupon. */
+  couponAmountMinor?: number
   priceMinorByCurrency?: { NGN: number; USD: number }
   successPath?: string
   cancelPath?: string

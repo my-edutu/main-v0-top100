@@ -4,6 +4,7 @@ import Link from 'next/link'
 type AwardPaymentConfirmationProps = {
   timedOut?: boolean
   resumeUrl?: string | null
+  resumeAmount?: string | null
   supportRequired?: boolean
   checking?: boolean
   onCheck?: () => void
@@ -12,6 +13,7 @@ type AwardPaymentConfirmationProps = {
 export function AwardPaymentConfirmation({
   timedOut = false,
   resumeUrl = null,
+  resumeAmount = null,
   supportRequired = false,
   checking = false,
   onCheck,
@@ -55,6 +57,9 @@ export function AwardPaymentConfirmation({
                 ? 'A payment checkout is still open. Continue that checkout to finish, or return here once your payment is confirmed.'
                 : "You've returned to Top100. We're waiting for your payment confirmation. Please don't start another checkout."}
           </p>
+          {resumeUrl && resumeAmount ? (
+            <p className="mt-2 text-sm text-[#D0C9D0]">Checkout base fee {resumeAmount}</p>
+          ) : null}
           {resumeUrl ? (
             <Link
               href={resumeUrl}

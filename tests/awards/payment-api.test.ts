@@ -1,13 +1,16 @@
+import { AwardPaymentError } from '@/lib/awards/payment-errors'
 import { NextRequest } from 'next/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
-  user: vi.fn(), enabled: vi.fn(), rate: vi.fn(), checkout: vi.fn(), view: vi.fn(),
+  user: vi.fn(), enabled: vi.fn(), rate: vi.fn(), checkout: vi.fn(), view: vi.fn(), coupon: vi.fn(),
 }))
 vi.mock('@/lib/auth-server', () => ({ getCurrentUser: mocks.user }))
 vi.mock('@/lib/production-readiness', () => ({ isAwardCheckoutEnabled: mocks.enabled }))
 vi.mock('@/lib/rate-limit', () => ({ checkRateLimit: mocks.rate, RATE_LIMITS: { AUTH: {} }, createRateLimitResponse: () => new Response('{}', {status:429}) }))
 vi.mock('@/lib/awards/payment-server', () => ({ createAwardPaymentCheckout: mocks.checkout, getAwardPaymentView: mocks.view }))
+vi.mock('@/lib/supabase/server', () => ({ createAdminClient: () => ({ rpc: mocks.coupon }) }))
+import { POST as previewCoupon } from '@/app/api/member/award/payment/coupon/route'
 import { POST } from '@/app/api/member/award/payment/checkout/route'
 import { GET } from '@/app/api/member/award/payment/route'
 
@@ -40,6 +43,12 @@ describe('Bachs member routes', () => {
     expect(response.status).toBe(200)
     expect(mocks.checkout).toHaveBeenCalledWith({id:'member-1',email:'member@example.com'}, 'USD', 'billing@example.com', 'NG')
   })
+  it('validates a coupon against the signed-in account before charging', async () => {
+    mocks.checkout.mockRejectedValue(new AwardPaymentError(422, 'This coupon is unavailable for your award.'))
+    const response = await POST(request({ ...billing, couponCode: 'award-secret' }))
+    expect(response.status).toBe(422)
+    expect(mocks.checkout).toHaveBeenCalledWith({id:'member-1',email:'member@example.com'}, 'USD', billing.email, 'NG', 'award-secret')
+  })
   it('does not expose provider errors or secrets', async () => {
     mocks.checkout.mockRejectedValue(new Error('Authorization sk_live_secret invalid'))
     const response = await POST(request(billing))
@@ -69,5 +78,23 @@ describe('Bachs member routes', () => {
     mocks.user.mockResolvedValue(null)
     expect((await GET()).status).toBe(401)
     expect(mocks.view).not.toHaveBeenCalled()
+  })
+})
+
+describe('award coupon preview', () => {
+  it('returns a private quote only for the signed-in account with a valid grant', async () => {
+    mocks.coupon.mockResolvedValueOnce({ data: false, error: null }).mockResolvedValueOnce({ data: true, error: null })
+    mocks.view.mockResolvedValue({ status: 'unpaid', needsPayment: true, currentAttempt: null })
+    expect((await previewCoupon(request({ code: 'award-secret' }))).status).toBe(422)
+    expect(mocks.view).not.toHaveBeenCalled()
+    const response = await previewCoupon(request({ code: ' award-secret ' }))
+    expect(response.status).toBe(200)
+    expect(response.headers.get('cache-control')).toBe('private, no-store')
+    expect(await response.json()).toEqual({
+      currency: 'NGN', baseAmountMinor: 2_500_000, discountAmountMinor: 500_000, amountMinor: 2_000_000,
+    })
+    expect(mocks.coupon).toHaveBeenLastCalledWith('preview_award_coupon', {
+      p_profile_id: 'member-1', p_code_digest: expect.stringMatching(/^[a-f0-9]{64}$/),
+    })
   })
 })

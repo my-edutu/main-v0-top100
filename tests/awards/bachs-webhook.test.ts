@@ -14,6 +14,7 @@ type Attempt = {
   provider: 'bachs'
   charge_scope: 'award_fee'
   status: string
+  award_coupon_id?: string
   requested_amount_minor: number
   captured_amount_minor: number | null
   currency: 'NGN' | 'USD'
@@ -228,6 +229,19 @@ describe('handleBachsEvent', () => {
     })
     expect(notify).toHaveBeenCalledTimes(1)
     expect(notify.mock.calls[0][0]).toMatchObject({ currency, amountMinor: minor, orderId: 'order-1' })
+  })
+
+  it('matches the discounted principal to the original coupon attempt', async () => {
+    const state: DbState = {
+      attempt: { ...attemptFor('NGN'), award_coupon_id: 'coupon-1', requested_amount_minor: 2_000_000 },
+      order: { id: 'order-1', award_payment_status: 'paid', award_paid_attempt_id: 'attempt-1' },
+      updates: [], rpcCalls: [],
+    }
+    const notify = vi.fn().mockResolvedValue(undefined)
+    const raw = JSON.stringify(eventFor('NGN', '20000.00'))
+    await handleBachsEvent(raw, signedHeaders(raw), depsFor(state, notify))
+    expect(state.rpcCalls[0].args).toMatchObject({ p_attempt_id: 'attempt-1', p_captured_amount_minor: 2_000_000 })
+    expect(notify).toHaveBeenCalledWith(expect.objectContaining({ currency: 'NGN', amountMinor: 2_000_000 }))
   })
 
   it('rejects a bad signature before touching the event ledger', async () => {

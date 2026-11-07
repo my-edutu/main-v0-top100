@@ -28,6 +28,19 @@ describe('award payment checkout service',()=>{
   expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({orderId:'order',attemptId:'attempt',reference:'ref',idempotencyKey:'key',currency:'NGN',customer:{email:member.email}}))
   expect(update).toHaveBeenCalledWith(expect.objectContaining({provider_checkout_id:'checkout',status:'open'}))
  })
+ it('uses the locked coupon price only for an approved reservation', async () => {
+  mocks.rpc.mockResolvedValueOnce({data:{outcome:'coupon_unavailable'},error:null})
+  await expect(createAwardPaymentCheckout(member,'USD',undefined,'NG','test-code')).rejects.toMatchObject({statusCode:422})
+  expect(mocks.create).not.toHaveBeenCalled()
+
+  mocks.rpc.mockResolvedValueOnce({data:{outcome:'created',order_id:'order',attempt_id:'attempt',
+    provider_reference:'ref',idempotency_key:'key',currency:'NGN',requested_amount_minor:2_000_000,award_coupon_id:'coupon'},error:null})
+  await createAwardPaymentCheckout(member,'USD',undefined,'NG',' test-code ')
+  expect(mocks.rpc).toHaveBeenLastCalledWith('reserve_bachs_award_coupon_checkout',expect.objectContaining({
+    p_profile_id:member.id, p_code_digest:createHash('sha256').update('TEST-CODE').digest('hex'),
+  }))
+  expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({currency:'NGN',couponAmountMinor:2_000_000}))
+ })
  it.each(['already_paid','legacy_pending','existing','blocked'])('does not mint a provider session for %s',async outcome=>{
   mocks.rpc.mockResolvedValue({data:{outcome},error:null})
   await expect(createAwardPaymentCheckout(member,'NGN')).rejects.toMatchObject({statusCode:409})
@@ -93,14 +106,14 @@ describe('award payment checkout service',()=>{
   await expect(createAwardPaymentCheckout({id:member.id},'NGN')).rejects.toMatchObject({statusCode:400})
   expect(mocks.rpc).not.toHaveBeenCalled()
  })
- it('recovers a creating attempt with its original body, email, and idempotency key',async()=>{
+ it.each([null, 'coupon'])('recovers a creating attempt with its original body, email, and idempotency key (coupon %s)',async couponId=>{
   const body=JSON.stringify({customer:{email:'original@example.com'}})
   mocks.rpc.mockResolvedValue({data:{outcome:'existing',order_id:'order',attempt_id:'attempt',provider_reference:'ref',idempotency_key:'original-key'},error:null})
-  const q:any={select:vi.fn(()=>q),eq:vi.fn(()=>q),maybeSingle:vi.fn().mockResolvedValue({data:{status:'creating',currency:'NGN',created_at:new Date().toISOString(),provider_response:{checkout_request:{body,apiKeyFingerprint:createHash('sha256').update('test-key').digest('hex'),apiBaseUrl:'https://api.bachs.io'}}},error:null}),update:vi.fn(()=>q),then:(resolve:any)=>Promise.resolve({data:[{id:'attempt'}],error:null}).then(resolve)}
+  const q:any={select:vi.fn(()=>q),eq:vi.fn(()=>q),maybeSingle:vi.fn().mockResolvedValue({data:{status:'creating',currency:'NGN',award_coupon_id:couponId,requested_amount_minor:couponId ? 2_000_000 : 2_500_000,created_at:new Date().toISOString(),provider_response:{checkout_request:{body,apiKeyFingerprint:createHash('sha256').update('test-key').digest('hex'),apiBaseUrl:'https://api.bachs.io'}}},error:null}),update:vi.fn(()=>q),then:(resolve:any)=>Promise.resolve({data:[{id:'attempt'}],error:null}).then(resolve)}
   mocks.from.mockReturnValue(q)
   mocks.create.mockResolvedValue({checkoutId:'checkout',checkoutUrl:'https://checkout.bachs.io/c/checkout',status:'open',expiresAt:new Date(Date.now()+60000).toISOString(),safeProviderResponse:{}})
   await expect(createAwardPaymentCheckout(member,'USD')).resolves.toMatchObject({attemptId:'attempt'})
-  expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({requestBody:body,idempotencyKey:'original-key',currency:'NGN',recover:true,customer:{email:'original@example.com'}}))
+  expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({requestBody:body,idempotencyKey:'original-key',currency:'NGN',recover:true,customer:{email:'original@example.com'},...(couponId ? {couponAmountMinor:2_000_000} : {})}))
  })
 })
 

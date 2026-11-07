@@ -2,7 +2,13 @@
 import { dashboardRead } from '@/lib/http/dashboard-read'
 
 export type AwardPaymentCurrency = 'NGN' | 'USD'
-export type AwardCheckoutDetails = { countryCode: string; email: string }
+export type AwardCheckoutDetails = { countryCode: string; email: string; couponCode?: string }
+export type AwardCouponQuote = {
+  currency: 'NGN'
+  baseAmountMinor: number
+  discountAmountMinor: number
+  amountMinor: number
+}
 
 export type AwardPaymentView = {
   checkoutEnabled?: boolean
@@ -36,6 +42,14 @@ export async function fetchAwardPayment(): Promise<AwardPaymentView> {
 
 export async function reconcileAwardPayment(): Promise<AwardPaymentView> {
   return readResponse(await fetch('/api/member/award/payment/reconcile', { method: 'POST', cache: 'no-store' }))
+}
+
+export async function previewAwardCoupon(code: string): Promise<AwardCouponQuote> {
+  return readResponse(await fetch('/api/member/award/payment/coupon', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code }),
+  }))
 }
 
 export async function startAwardPaymentCheckout(details: AwardCheckoutDetails): Promise<{

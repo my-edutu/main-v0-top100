@@ -24,6 +24,7 @@ describe.runIf(Boolean(database))('atomic award reconciliation in PostgreSQL', (
     await pool!.query(readFileSync('supabase/migrations/20260908113639_bachs_award_payments.sql', 'utf8'))
     await pool!.query(readFileSync('supabase/migrations/20261013215353_bachs_award_checkout_reconciliation.sql', 'utf8'))
     await pool!.query(readFileSync('supabase/migrations/20261030174333_bachs_award_late_success_recovery.sql', 'utf8'))
+    await pool!.query(readFileSync('supabase/migrations/20261107120000_award_fee_coupon.sql', 'utf8'))
   })
   afterAll(async () => { await pool?.end() })
   async function seed(status = 'open', orderStatus = 'pending') {
@@ -84,6 +85,70 @@ describe.runIf(Boolean(database))('atomic award reconciliation in PostgreSQL', (
     const { attemptId, evidence } = await seed()
     for (const changed of [{ ...evidence, reference: 'other' }, { ...evidence, amount_minor: 2000 }]) await expect(reconcile(attemptId, changed)).rejects.toThrow()
     expect(await state(attemptId)).toMatchObject({ status: 'open', award_payment_status: 'pending' })
+  })
+  it('requires the code and account grant, then settles the reserved discount exactly once', async () => {
+    const profileId = randomUUID(), strangerId = randomUUID()
+    const digest = randomUUID().replaceAll('-', '').repeat(2)
+    await pool!.query('insert into profiles(id) values ($1), ($2)', [profileId, strangerId])
+    const { rows: [coupon] } = await pool!.query(
+      "insert into award_coupons(code_digest,enabled,expires_at) values ($1,true,now()+interval '1 hour') returning id", [digest],
+    )
+    await pool!.query('insert into award_coupon_eligibility values ($1,$2)', [coupon.id, profileId])
+    const { rows: [order] } = await pool!.query('insert into award_orders(profile_id) values ($1) returning id', [profileId])
+    const reserve = async (member: string, codeDigest = digest) => {
+      const id = randomUUID()
+      return (await pool!.query(
+        "select reserve_bachs_award_coupon_checkout($1,$2,$3,$4,'afl-award-2026-v1',$5) as result",
+        [member, id, `ref-${id}`, `key-${id}`, codeDigest],
+      )).rows[0].result
+    }
+    expect(await reserve(profileId)).toEqual({ outcome: 'coupon_unavailable' })
+    // The sales behavior itself is verified in the separate sales DB suite.
+    await pool!.query("create function team_coupon_payment_excluded(award_orders) returns boolean language sql as 'select true'")
+    expect(await reserve(strangerId)).toEqual({ outcome: 'coupon_unavailable' })
+    expect(await reserve(profileId, 'wrong')).toEqual({ outcome: 'coupon_unavailable' })
+    await pool!.query("update award_coupons set enabled=false where id=$1", [coupon.id])
+    expect(await reserve(profileId)).toEqual({ outcome: 'coupon_unavailable' })
+    await pool!.query("update award_coupons set enabled=true where id=$1", [coupon.id])
+    const [first, second] = await Promise.all([reserve(profileId), reserve(profileId)])
+    expect([first.outcome, second.outcome].sort()).toEqual(['created', 'existing'])
+    expect(first.attempt_id).toBe(second.attempt_id)
+    expect(first.requested_amount_minor).toBe(2_000_000)
+    await expect(pool!.query("update award_payment_attempts set award_coupon_id=null, coupon_base_amount_minor=null, coupon_discount_amount_minor=null where id=$1", [first.attempt_id])).rejects.toMatchObject({ code: '22023' })
+    await pool!.query("update award_coupons set enabled=false where id=$1", [coupon.id])
+    expect(await reserve(profileId)).toMatchObject({ outcome: 'existing', attempt_id: first.attempt_id })
+    expect(await reserve(strangerId)).toEqual({ outcome: 'coupon_unavailable' })
+    await pool!.query("update award_payment_attempts set provider_checkout_id='coupon-checkout', status='open' where id=$1", [first.attempt_id])
+    const evidence = {
+      checkout_id: 'coupon-checkout', reference: first.provider_reference, order_id: order.id,
+      attempt_id: first.attempt_id, currency: 'NGN', amount_minor: 2_000_000,
+      status: 'paid', charge_id: 'coupon-charge', charge_currency: 'NGN', gross_amount: '20000.00',
+    }
+    await expect(reconcile(first.attempt_id, { ...evidence, charge_currency: 'USD' })).rejects.toThrow()
+    await Promise.all([reconcile(first.attempt_id, evidence), reconcile(first.attempt_id, evidence)])
+    expect(await state(first.attempt_id)).toMatchObject({ status: 'succeeded', captured_amount_minor: '2000000', award_payment_status: 'paid' })
+    expect((await pool!.query('select award_delivery_order_is_paid(o) as eligible from award_orders o where id=$1', [order.id])).rows[0].eligible).toBe(true)
+    expect((await pool!.query('select count(*) from payment_webhook_events where payment_attempt_id=$1', [first.attempt_id])).rows[0].count).toBe('1')
+  })
+  it('keeps orders with legacy bundled Paystack delivery ineligible for another delivery charge', async () => {
+    const { orderId } = await seed()
+    await pool!.query(
+      "update award_orders set award_payment_status='paid', paid_at=now(), paystack_status='success', paystack_reference=$2 where id=$1",
+      [orderId, `legacy-${orderId}`],
+    )
+    const { rows: [result] } = await pool!.query(
+      'select award_delivery_order_is_paid(o) as eligible from award_orders o where id=$1', [orderId],
+    )
+    expect(result.eligible).toBe(false)
+  })
+  it('keeps campaign data and coupon reservations private', async () => {
+    const privileges = await pool!.query(`
+      select has_table_privilege('authenticated', 'award_coupons', 'select') as campaign,
+             has_table_privilege('anon', 'award_coupon_eligibility', 'select') as eligibility,
+             has_function_privilege('authenticated',
+               'reserve_bachs_award_coupon_checkout(uuid,uuid,text,text,text,text)', 'execute') as reserve
+    `)
+    expect(privileges.rows[0]).toEqual({ campaign: false, eligibility: false, reserve: false })
   })
   it('denies direct reconciliation to authenticated members', async () => {
     const { attemptId, evidence } = await seed()
