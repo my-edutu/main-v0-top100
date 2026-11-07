@@ -134,6 +134,8 @@ export function ogImageUrl(card: OgCard): string {
   if (meta) params.set("meta", meta)
   if (hero) params.set("hero", hero)
   if (card.variant && card.variant !== "banner") params.set("variant", card.variant)
+  // Refresh previously cached profile cards rendered without WebP portraits.
+  if (card.variant === "profile") params.set("v", "2")
 
   return `${SITE_URL}/og?${params.toString()}`
 }

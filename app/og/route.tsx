@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og"
+import sharp from "sharp"
 
 import { OG_HEIGHT, OG_WIDTH, parseOgCard, type OgCard } from "@/lib/og"
 import { SITE_URL } from "@/lib/site"
@@ -67,6 +68,37 @@ async function fetchUrbanist(): Promise<FontSpec[]> {
   return specs
 }
 
+async function compatibleHero(response: Response): Promise<string | null> {
+  const maxBytes = 8 * 1024 * 1024
+  if (!response.ok || !response.body || Number(response.headers.get("content-length")) > maxBytes) {
+    await response.body?.cancel()
+    return null
+  }
+
+  const reader = response.body.getReader()
+  const chunks: Uint8Array[] = []
+  let bytes = 0
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      bytes += value.byteLength
+      if (bytes > maxBytes) return null
+      chunks.push(value)
+    }
+  } finally {
+    await reader.cancel().catch(() => {})
+  }
+
+  const jpeg = await sharp(Buffer.concat(chunks), { limitInputPixels: 40_000_000 })
+    .rotate()
+    .resize(OG_WIDTH, OG_HEIGHT, { fit: "inside", withoutEnlargement: true })
+    .flatten({ background: BASE })
+    .jpeg({ quality: 85 })
+    .toBuffer()
+  return `data:image/jpeg;base64,${jpeg.toString("base64")}`
+}
+
 /**
  * Resolves the hero to a fetchable absolute URL. Validation already happened
  * in parseOgCard; this only turns a same-origin path into an absolute URL and
@@ -85,16 +117,22 @@ async function resolveHeroSrc(hero: string | null): Promise<string | null> {
   try {
     let response = await fetch(absolute, { method: "HEAD", redirect: "error", signal: AbortSignal.timeout(5000) })
 
-    // Not every origin implements HEAD. Retry those with a GET and throw the
-    // body away rather than letting it stream to completion.
     if (response.status === 405 || response.status === 501) {
       response = await fetch(absolute, { redirect: "error", signal: AbortSignal.timeout(5000) })
-      await response.body?.cancel().catch(() => {})
     }
 
-    if (!response.ok) return null
-    const type = response.headers.get("content-type") ?? ""
-    if (!type.startsWith("image/")) return null
+    const type = response.headers.get("content-type")?.split(";")[0]
+    if (response.ok && (type === "image/webp" || type === "image/avif")) {
+      // The image renderer cannot decode these formats. Supply compatible bytes.
+      const image = response.body ? response : await fetch(absolute, {
+        redirect: "error",
+        signal: AbortSignal.timeout(5000),
+      })
+      return await compatibleHero(image)
+    }
+
+    await response.body?.cancel().catch(() => {})
+    if (!response.ok || !type?.startsWith("image/")) return null
     return absolute
   } catch {
     return null

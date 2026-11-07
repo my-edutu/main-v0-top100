@@ -1,3 +1,4 @@
+import sharp from "sharp"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { GET } from "@/app/og/route"
@@ -67,6 +68,27 @@ describe("GET /og hero probing", () => {
     expect(response.status).toBe(200)
     expect(methods[0]).toBe("HEAD")
     expect(methods).toContain("GET")
+  }, RENDER_TIMEOUT)
+
+  it("renders public WebP portraits as actual image pixels", async () => {
+    const url = "https://supabase.top100afl.com/storage/v1/object/public/avatars/portrait.webp"
+    const webp = await sharp({
+      create: { width: 50, height: 50, channels: 3, background: "#ec162c" },
+    }).webp().toBuffer()
+    vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input) !== url) return new Response(null, { status: 503 })
+      return new Response(init?.method === "HEAD" ? null : new Uint8Array(webp), {
+        headers: { "content-type": "image/webp" },
+      })
+    })
+    const response = await GET(new Request(
+      `${SITE_URL}/og?title=Portrait&variant=profile&hero=${encodeURIComponent(url)}`,
+    ))
+    const pixel = await sharp(Buffer.from(await response.arrayBuffer()))
+      .extract({ left: 100, top: 100, width: 1, height: 1 })
+      .raw().toBuffer()
+    expect(pixel[0]).toBeGreaterThan(200)
+    expect(pixel[1]).toBeLessThan(60)
   }, RENDER_TIMEOUT)
 
   it("drops a hero whose probe reports a non-image, without rendering it", async () => {
