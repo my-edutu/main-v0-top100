@@ -25,7 +25,7 @@ function setup(options = {}) {
   row = fixture(h).talent
   const route = h.load('app/api/member/talent/route.ts')
   const visibility = { discoveryEnabled: false, introductionsEnabled: false, promotionEnabled: false, outreachEmailOptOut: true, policyVersion: 'talent-discovery-2026-11-v1' }
-  const expectedVisibility = { discovery_enabled: false, introductions_enabled: false, promotion_enabled: false, outreach_email_opt_out: false, consent_version: null }
+  const expectedVisibility = { discovery_enabled: false, introductions_enabled: false, promotion_enabled: false, outreach_email_opt_out: false, consent_version: null, visibility_revision: 0 }
   const request = (body, origin = 'https://top100.test') => route.PATCH(new Request('https://top100.test/api/member/talent', { method: 'PATCH', headers: { 'Content-Type': 'application/json', Origin: origin }, body: JSON.stringify(body) }))
   return { calls, actor, request, visibility, expectedVisibility }
 }

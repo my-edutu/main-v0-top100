@@ -1,8 +1,8 @@
 import type { NextRequest } from 'next/server'
 import { onlyFields, requireTalentMember, readTalentBody, revision, assertSameOrigin, talentError, talentJson, talentRateLimit } from '@/lib/talent/api'
 import { TALENT_POLICY_VERSION, TalentInputError, parseTalentDraft, parseTalentVisibility, profileCompleteness, publicationBlockedReason } from '@/lib/talent/contracts'
-import { initialTalentRecord, mapTalentRecord } from '@/lib/talent/profile-service'
 import { parseVisibilityExpectation } from '@/lib/talent/visibility'
+import { initialTalentRecord, mapTalentRecord } from '@/lib/talent/profile-service'
 import type { TalentRecord } from '@/lib/talent/types'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -24,16 +24,25 @@ export async function PATCH(request: NextRequest) {
     const body = await readTalentBody(request)
     let result
     if (body.action === 'visibility') {
-      onlyFields(body, ['action', 'visibility', 'expectedVisibility'])
-      const v = parseTalentVisibility(body.visibility)
-      const expected = parseVisibilityExpectation(body.expectedVisibility)
-      result = await db.rpc('talent_set_visibility_checked', { p_actor: user.id, p_expected: expected, p_choices: v, p_withdraw: false })
+      if ('expectedVisibility' in body) {
+        onlyFields(body, ['action', 'visibility', 'expectedVisibility'])
+        const expected = parseVisibilityExpectation(body.expectedVisibility)
+        const visibility = parseTalentVisibility(body.visibility)
+        result = await db.rpc('talent_set_visibility_checked', { p_actor: user.id, p_expected: expected, p_choices: visibility, p_withdraw: false })
+      } else {
+        onlyFields(body, ['action', 'visibility', 'expectedVisibilityRevision'])
+        const v = parseTalentVisibility(body.visibility)
+        result = await db.rpc('talent_set_visibility', { p_actor: user.id, p_discovery: v.discoveryEnabled, p_introductions: v.introductionsEnabled, p_promotion: v.promotionEnabled, p_email_opt_out: v.outreachEmailOptOut, p_policy_version: v.policyVersion, p_expected_revision: revision(body.expectedVisibilityRevision) })
+      }
     } else if (body.action === 'withdraw_visibility') {
       onlyFields(body, ['action'])
       result = await db.rpc('talent_set_visibility_checked', { p_actor: user.id, p_expected: null, p_choices: null, p_withdraw: true })
+    } else if (body.action === 'withdraw') {
+      onlyFields(body, ['action'])
+      result = await db.rpc('talent_withdraw_discovery', { p_actor: user.id })
     } else if (body.action === 'save' || body.action === 'submit') {
       onlyFields(body, ['action', 'expectedRevision', 'draft'])
-      const draft = parseTalentDraft(body.draft)
+      const draft = parseTalentDraft(body.draft, body.action === 'save' ? 'draft' : 'publication')
       const blocked = body.action === 'submit' ? publicationBlockedReason(draft) : null
       if (blocked) throw new TalentInputError(blocked)
       result = await db.rpc('talent_save_draft', { p_actor: user.id, p_expected_revision: revision(body.expectedRevision), p_draft: draft, p_submit: body.action === 'submit' })

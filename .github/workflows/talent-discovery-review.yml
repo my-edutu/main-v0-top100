@@ -14,6 +14,7 @@ on:
       - 'app/api/member/talent/**'
       - 'app/api/admin/talent/**'
       - 'app/for-organisations/**'
+      - 'app/awardees/**'
       - '.github/workflows/talent-discovery-review.yml'
 
 permissions:
@@ -78,6 +79,10 @@ jobs:
           psql -h localhost -U postgres -d postgres -X -v ON_ERROR_STOP=1 -c 'CREATE DATABASE talent_network_test'
           psql -h localhost -U postgres -d talent_network_test -X -v ON_ERROR_STOP=1 -f scripts/talent-network/database.test.sql
           psql -h localhost -U postgres -d talent_network_test -X -v ON_ERROR_STOP=1 -f scripts/talent-network/privacy-guard.test.sql
+      - name: Privacy regression invariants on the same synthetic database
+        id: privacy_database
+        continue-on-error: true
+        run: psql -h localhost -U postgres -d talent_network_test -X -v ON_ERROR_STOP=1 -f scripts/talent-network/audit-database.test.sql
       - name: New talent source lint
         id: lint
         continue-on-error: true
@@ -96,6 +101,7 @@ jobs:
           test '${{ steps.member_regressions.outcome }}' = 'success'
           test '${{ steps.tests.outcome }}' = 'success'
           test '${{ steps.database.outcome }}' = 'success'
+          test '${{ steps.privacy_database.outcome }}' = 'success'
           test '${{ steps.lint.outcome }}' = 'success'
           test '${{ steps.build.outcome }}' = 'success'
           test '${{ steps.types.outcome }}' = 'success'

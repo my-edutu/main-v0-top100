@@ -12,6 +12,7 @@ export type TalentDraft = {
 export type TalentRecord = {
   profile_id: string; draft: TalentDraft; published: TalentDraft | null
   revision: number; published_revision: number | null; publication_status: TalentStatus
+  visibility_revision: number
   discovery_enabled: boolean; introductions_enabled: boolean; promotion_enabled: boolean
   outreach_email_opt_out: boolean; consent_version: string | null; review_note: string | null
   created_at: string; updated_at: string

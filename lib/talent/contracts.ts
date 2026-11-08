@@ -46,7 +46,8 @@ function link(value: unknown, field: string) {
 export function emptyTalentDraft(): TalentDraft {
   return { headline: '', summary: '', sector: '', country: '', city: '', skills: [], languages: [], interests: [], workMode: 'Flexible', availability: '', experience: '', projects: [], education: [], portfolioUrl: '', linkedinUrl: '' }
 }
-export function parseTalentDraft(value: unknown): TalentDraft {
+export function parseTalentDraft(value: unknown, mode: 'draft' | 'publication' = 'publication'): TalentDraft {
+  const draftLink = (value: unknown, field: string) => mode === 'draft' ? text(value, field, 500) : link(value, field)
   const v = object(value); strict(v, Object.keys(emptyTalentDraft()))
   const workMode = text(v.workMode, 'Work preference', 30)
   if (!(TALENT_WORK_MODES as readonly string[]).includes(workMode)) throw new TalentInputError('Select a work preference.')
@@ -59,18 +60,18 @@ export function parseTalentDraft(value: unknown): TalentDraft {
     sector: text(v.sector, 'Sector', 100), country: text(v.country, 'Country of residence', 100), city: text(v.city, 'City', 100),
     skills: strings(v.skills, 'Skills', 20), languages: strings(v.languages, 'Languages', 10), interests: interests as TalentInterest[],
     workMode: workMode as TalentDraft['workMode'], availability: text(v.availability, 'Availability', 160),
-    experience: text(v.experience, 'Experience', 2400), portfolioUrl: link(v.portfolioUrl, 'Portfolio'), linkedinUrl: link(v.linkedinUrl, 'LinkedIn'),
+    experience: text(v.experience, 'Experience', 2400), portfolioUrl: draftLink(v.portfolioUrl, 'Portfolio'), linkedinUrl: draftLink(v.linkedinUrl, 'LinkedIn'),
     projects: v.projects.map((item) => {
       const p = object(item); strict(p, ['title', 'role', 'description', 'outcome', 'url'])
-      const result = { title: text(p.title, 'Project title', 120), role: text(p.role, 'Your role', 160), description: text(p.description, 'Project description', 1200), outcome: text(p.outcome, 'Project outcome', 800), url: link(p.url, 'Project evidence link') }
-      if (!result.title) throw new TalentInputError('Give each project a title, or remove the empty project.')
+      const result = { title: text(p.title, 'Project title', 120), role: text(p.role, 'Your role', 160), description: text(p.description, 'Project description', 1200), outcome: text(p.outcome, 'Project outcome', 800), url: draftLink(p.url, 'Project evidence link') }
+      if (mode === 'publication' && !result.title) throw new TalentInputError('Give each project a title, or remove the empty project.')
       return result
     }),
     education: v.education.map(item => {
       const e = object(item); strict(e, ['institution', 'qualification', 'field', 'year'])
       const result = { institution: text(e.institution, 'Institution', 160), qualification: text(e.qualification, 'Qualification', 160), field: text(e.field, 'Field of study', 160), year: text(e.year, 'Graduation year', 4) }
-      if (result.year && !/^(19|20|21)\d{2}$/.test(result.year)) throw new TalentInputError('Use a four-digit graduation year.')
-      if (!result.institution) throw new TalentInputError('Give each education entry an institution, or remove it.')
+      if (mode === 'publication' && result.year && !/^(19|20|21)\d{2}$/.test(result.year)) throw new TalentInputError('Use a four-digit graduation year.')
+      if (mode === 'publication' && !result.institution) throw new TalentInputError('Give each education entry an institution, or remove it.')
       return result
     }),
   }
@@ -83,20 +84,20 @@ export function publicationRequirements(draft: TalentDraft) {
     { label: 'Primary sector', step: 0, field: 'talent-sector', complete: Boolean(draft.sector.trim()), message: 'Add your sector and country of residence.' },
     { label: 'Country of residence', step: 0, field: 'talent-country', complete: Boolean(draft.country.trim()), message: 'Add your sector and country of residence.' },
     { label: 'At least one skill', step: 1, field: 'talent-skills', complete: draft.skills.some(skill => Boolean(skill.trim())), message: 'Add at least one skill and one opportunity interest.' },
-    { label: 'Opportunity interests', step: 3, field: 'talent-workmode', complete: draft.interests.some(interest => TALENT_INTERESTS.includes(interest)), message: 'Add at least one skill and one opportunity interest.' },
+    { label: 'Opportunity interests', step: 3, field: 'talent-interests', complete: draft.interests.some(interest => TALENT_INTERESTS.includes(interest)), message: 'Add at least one skill and one opportunity interest.' },
   ]
 }
 export function publicationBlockedReason(draft: TalentDraft): string | null {
-  return publicationRequirements(draft).find(item => !item.complete)?.message ?? null
+  const missing = publicationRequirements(draft).find(item => !item.complete)
+  if (missing) return missing.message
+  if (draft.projects.some(project => !project.title.trim())) return 'Give each project a title, or remove the empty entry before submitting.'
+  if (draft.education.some(entry => !entry.institution.trim())) return 'Add an institution for each education entry, or remove it before submitting.'
+  if (draft.education.some(entry => entry.year && !/^(19|20|21)\d{2}$/.test(entry.year))) return 'Finish the four-digit graduation year before submitting.'
+  if ([draft.portfolioUrl, draft.linkedinUrl, ...draft.projects.map(project => project.url)].some(url => url.trim() && !isSafePublicUrl(url.trim()))) return 'Finish your public https links before submitting. Incomplete links can remain in a private draft.'
+  return null
 }
 export function profileCompleteness(draft: TalentDraft): number {
-  const checks = [
-    ...publicationRequirements(draft).map(item => item.complete),
-    draft.languages.some(language => Boolean(language.trim())),
-    draft.projects.some(project => Boolean(project.title.trim())) || Boolean(draft.experience.trim()),
-    draft.education.some(education => Boolean(education.institution.trim())),
-    Boolean(draft.availability.trim()),
-  ]
+  const checks = [...publicationRequirements(draft).map(item => item.complete), draft.languages.some(language => language.trim()), draft.projects.some(project => project.title.trim() && project.description.trim()) || Boolean(draft.experience.trim()), draft.education.some(entry => entry.institution.trim()), Boolean(draft.availability.trim())]
   return Math.round(checks.filter(Boolean).length / checks.length * 100)
 }
 export function parseTalentVisibility(value: unknown): TalentVisibilityInput {

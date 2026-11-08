@@ -1,13 +1,14 @@
 # Talent discovery: local review and release gates
 
-Review branch: `feat/talent-discovery-review-20261108`
-Base inspected: `72b56e6430a8f325c5f9877e91a0154a9668b4f6`
+Branch: `feat/talent-discovery-review-20261108` — Draft PR #7  
+Original base: `72b56e6430a8f325c5f9877e91a0154a9668b4f6`  
+Latest continuation incorporates repair `c68237c064f8e2b8418a736dea41fd531139af5c`.
 
-This branch is not a production deployment. No production migration or member campaign has been run. Do not merge until the real build, database and authenticated browser checks below pass.
+This is not a production deployment. No production migration or member campaign has been run. Do not merge until real build, database and authenticated browser checks pass. Production remains Dokploy/self-hosted Supabase, not Vercel or the retired hosted database.
 
-## 1. Open an isolated working copy
+## 1. Isolated checkout
 
-Run from your existing Top100 checkout. These commands leave its current branch and uncommitted changes alone:
+From an existing Top100 checkout, create a separate working copy without switching or discarding its work:
 
 ```bash
 git fetch origin feat/talent-discovery-review-20261108
@@ -16,15 +17,11 @@ cd ../top100-talent-review
 npm ci
 ```
 
-Use Node 22 and the committed lockfile. Read `AGENTS.md` and the installed Next.js guidance before changing framework code. Do not switch production hosting: this project uses Dokploy and self-hosted Supabase.
+Use Node 22 and the lockfile. Read `AGENTS.md` and installed Next.js guidance. For an existing clean review worktree, fetch and fast-forward that review branch rather than creating another. Preserve uncommitted work before updating.
 
-## 2. Configure a local or isolated staging database
+## 2. Isolated services and flags
 
-Use a separate Supabase instance with the existing Top100 schema, Auth configuration and synthetic accounts. Do not point a review workspace at production. Keep real applicant documents and member data out of test fixtures, screenshots and logs.
-
-Configure the existing application variables in a private `.env.local`, using the local instance URL and keys. Add the flags from `docs/talent-network/review.env.example`. Never copy production email, payment or courier credentials to the review workspace.
-
-Required feature flags for review:
+Use a separate Supabase instance with the existing Top100 schema/Auth configuration and synthetic accounts. Do not point this workspace at production or copy real applicant files into fixtures, screenshots or logs. Configure existing application variables in private `.env.local` using that instance, and consult `docs/talent-network/review.env.example`.
 
 ```dotenv
 TALENT_DISCOVERY_ENABLED=true
@@ -32,32 +29,29 @@ TALENT_DISCOVERY_LAUNCHED=false
 TALENT_UPGRADE_EMAIL_ENABLED=false
 ```
 
-The last two flags MUST remain false. The email API also requires production mode, a fresh superadmin role, an approved canonical origin and sender configuration; it cannot release a campaign from localhost.
+The last two flags MUST remain false during review. Do not copy production email, payment or courier credentials. Local email sending must be blocked; reading a preview never sends it.
 
-## 3. Review and apply the additive schema only to that isolated instance
+## 3. Review and apply all four SQL files in order
 
-Prerequisites: existing `profiles`, `awardees`, `opportunities` and `user_notifications`; Postgres with security-invoker views (15+). The code uses the same profile IDs and recognition records, not a second login system.
+Prerequisites: the existing `profiles`, `awardees`, `opportunities` and `user_notifications` tables, and PostgreSQL with security-invoker views (15+). This extends the existing identities; it does not create another login system.
 
-The new SQL is intentionally not installed or given a fake applied migration number. Review all three files, in this order:
-
-1. `supabase/schema/talent-discovery.sql`
-2. `supabase/schema/talent-discovery-constraints.sql`
-3. `supabase/schema/talent-discovery-privacy-guard.sql`
-
-For a disposable local database, apply them using your local database connection. Confirm the connection target yourself before running any SQL:
+These are unapplied source SQL files, not a claim that migrations have run. Confirm the connection target before executing anything:
 
 ```bash
-# LOCAL_DATABASE_URL must refer to the isolated local/staging database, not production.
+# Must be the isolated local/staging database, never production.
 psql "$LOCAL_DATABASE_URL" -X -v ON_ERROR_STOP=1 -f supabase/schema/talent-discovery.sql
 psql "$LOCAL_DATABASE_URL" -X -v ON_ERROR_STOP=1 -f supabase/schema/talent-discovery-constraints.sql
 psql "$LOCAL_DATABASE_URL" -X -v ON_ERROR_STOP=1 -f supabase/schema/talent-discovery-privacy-guard.sql
+psql "$LOCAL_DATABASE_URL" -X -v ON_ERROR_STOP=1 -f supabase/schema/talent-discovery-review-fixes.sql
 ```
 
-Do not apply `scripts/talent-network/database.test.sql` to the app database: that script builds its own synthetic baseline and refuses existing profile tables.
+The fourth file adds independent privacy revisions, strengthens the earlier checked API and permanently withdraws old introduction access after opt-out/unpublication/brief closure. It is mandatory for this candidate. Missing revisions fail closed with setup required. Old tabs must refresh before granting permission.
 
-For the eventual release, use the installed Supabase CLI (`supabase --help`, then `supabase migration new --help`) to generate a real migration filename. Put all three reviewed SQL files into that one release migration in the order above. They contain explicit transaction boundaries, so do not wrap their concatenation in another unexamined transaction. Verify migration history and database grants/RLS before deployment. No hosted Supabase project or Vercel environment should be used for this production project.
+Do NOT apply any `scripts/talent-network/*.test.sql` harness to the application database; they are for a separate disposable synthetic database.
 
-## 4. Run the checks
+For eventual release, inspect the installed CLI with `supabase --help` and `supabase migration new --help`, generate a real migration filename, and include these four reviewed files in order. They contain transaction boundaries: do not wrap the concatenation in another unexamined transaction. Verify migration history, grants, RLS and the active Dokploy target. Do not apply this merely to make a local error disappear on production.
+
+## 4. Run checks
 
 ```bash
 node scripts/talent-network/contract-tests.cjs
@@ -65,90 +59,82 @@ node scripts/talent-network/api-tests.cjs
 node scripts/talent-network/integration-checks.cjs
 node scripts/talent-network/client-regressions.cjs
 node scripts/talent-network/privacy-regressions.cjs
+node --test scripts/talent-network/audit-regressions.cjs
+node scripts/talent-network/audit-api.cjs
 npm test
+npm run lint
 npm run build
 npm run typecheck
 npm run dev
 ```
 
-The first script executes 40 domain assertions. The second executes 19 real route/helper assertions with explicit authentication, database and framework doubles. Those are useful unit checks, not a replacement for real authentication, RLS or provider verification. The structural script checks the added paths and verifies that removing the four talent additions from `app/page.tsx` produces the exact original homepage blob.
+The first two scripts contain the original 40 domain and 19 route/helper assertions. The structural check verifies the original homepage blob after removing the four additive integration lines. The continuation adds 26 domain/navigation and 12 API checks and retains 15 client and 12 privacy checks. Vitest wrappers and the branch workflow run the appropriate suites.
 
-The existing Vitest wrapper runs the original three scripts as part of `npm test`. The two additional regression scripts are explicit blocking steps in the talent review workflow. They execute actual client/controller and route code using declared transport/hook doubles; they are not full browser or database verification.
+Client checks use actual hook/event-handler source but explicit React scheduling/network doubles. API tests double Auth/database transport/Next responses. None substitute for real browser, database, RLS or provider execution. Compare full-suite failures against the baseline rather than silently ignoring them.
 
-The privacy guard is required by the revised member API. A missing guard returns an unavailable response; there is deliberately no unsafe fallback to the old unguarded consent write. Apply and test it before enabling the candidate. A normal settings save must include the confirmed visibility snapshot; emergency withdrawal carries no permission grants and preserves the current saved email preference. See `REVIEW_2026-11-08.md` for observed regressions and validation limits.
+### Disposable database harness
 
-### Disposable SQL harness
-
-Use an empty throwaway PostgreSQL server with permission to create test roles/databases. The harness uses synthetic data only and requires a fresh database named `talent_network_test`:
+Use an empty throwaway PostgreSQL server that permits creating test roles/databases. Never use the production server:
 
 ```bash
 createdb talent_network_test
 psql -d talent_network_test -X -v ON_ERROR_STOP=1 -f scripts/talent-network/database.test.sql
 psql -d talent_network_test -X -v ON_ERROR_STOP=1 -f scripts/talent-network/privacy-guard.test.sql
+psql -d talent_network_test -X -v ON_ERROR_STOP=1 -f scripts/talent-network/audit-database.test.sql
 ```
 
-Never run these commands on the production server. The harness checks real table/RPC privileges, stale writes, snapshot approval, claim scoping, introduction ownership, withdrawal, outcome confirmation and campaign reservations. Its minimal baseline is not the real application schema; run the same review journey against a real isolated Supabase instance afterward.
+The first script refuses existing application profile tables. The last refuses unexpected databases or profiles and checks the patch twice for idempotence. These test real SQL privileges, revisions, approvals, consent, introductions and audit rules against a minimal synthetic baseline, not the full application schema. Repeat the user journeys against isolated real Supabase afterward.
 
-## 5. Review the screens
+## 5. Review the actual screens
 
-| Route | What to inspect |
+| Route | Inspect |
 |---|---|
-| `/` | Existing sections unchanged, plus two new orange/amber talent and organisation sections when enabled. |
-| `/awardees` | Discover Talent and Awardee Archive; filters, empty states, pagination and keyboard access. |
-| `/awardees/[slug]` | Existing recognition page plus an approved, consented talent portfolio. No unreviewed changes should appear. |
-| `/dashboard` | Talent update callout and shortcuts alongside the existing dashboard. |
-| `/dashboard/me/profile` | Five-step talent editor, saved draft, stale-save recovery, existing profile tools retained. |
-| `/dashboard/me/settings` | Discovery, introductions, promotion and email opt-out are separate choices. |
-| `/dashboard/discover/members` | Same discovery service with the existing cohort directory preserved as archive. |
-| `/dashboard/discover/opportunities` | Real opportunity listings plus the original Edutu section preserved verbatim. |
-| `/dashboard/applications` | Member-reported application stages; clicking an external link must not mark an application submitted. |
-| `/dashboard/introductions` | Accept, decline, withdraw, report and record an outcome. |
-| `/for-organisations` | Organisation offer, process and existing partnership link. |
-| `/for-organisations/request` | Two-step brief, clear compensation, duplicate-submit handling and truthful confirmation. |
-| `/opportunities` | Public listings only; member-only rows never appear anonymously. |
-| `/admin/talent` | Profile reviews, claim checks, organisation qualification, introductions, outcomes and email preview. |
+| `/` | Original content/order retained; two added talent/organisation sections. This continuation does not modify the homepage. |
+| `/awardees` | Talent/archive modes, shareable filters, old cohort links, pagination, errors and empty states. |
+| `/awardees/[slug]` | Existing recognition plus approved/consented portfolio; no draft leakage; return link restores filters. |
+| `/dashboard` | Existing dashboard alongside the talent callout/shortcuts. |
+| `/dashboard/me/profile` | Five-step editor, checklist, private preview, unfinished drafts, autosave and explicit conflict choices; existing profile tools remain. |
+| `/dashboard/me/settings` | Discovery, introductions, promotion and email opt-out are distinct, explicitly saved choices. |
+| `/dashboard/discover/members` | Shared discovery service and existing archive. |
+| `/dashboard/discover/opportunities` | Real listings and original Edutu section. |
+| `/dashboard/applications` | Member-reported stages; a link click never counts as application submission. |
+| `/dashboard/introductions` | Accept, decline, withdraw, report and self-reported outcome. |
+| `/for-organisations` and `/for-organisations/request` | Service proposition and brief intake with clear terms, duplicate-submit handling and truthful confirmation. |
+| `/opportunities` | Published public listings only. |
+| `/admin/talent` | Profile/claim review, organisation qualification, introductions, outcomes and blocked email preview/release controls. |
 
-Test 320, 375, 390, 768 and 1366-pixel widths, keyboard-only navigation, high zoom and reduced motion. Check the actual existing site CSS, not only isolated components. Test light/dark inherited styles, error/retry states, empty datasets and long names/text.
+Inspect 320, 375, 390, 768 and 1366 px widths, high zoom, keyboard, reduced motion, long text and image/network failures. Use the actual existing site CSS and authenticated shell, not only isolated components. Check inherited light/dark styles. No fresh full-app browser pass is claimed by the continuation.
 
-## 6. Walk through a complete synthetic journey
+## 6. Synthetic acceptance journeys
 
-Use two ordinary approved, linked members and two administrators. Do not use real people as test fixtures.
+Use two approved linked members and two administrators, never real people as fixtures.
 
-1. Member A saves a talent draft. Discovery remains off despite any old recruiter-visible default.
-2. Member A explicitly enables discovery and introductions. The unreviewed draft still stays private.
-3. Admin B reviews the submitted revision. The reviewed snapshot appears in public discovery.
-4. Member A edits it. The old reviewed snapshot remains public; unreviewed changes do not leak.
-5. Check one academic/project claim with a private source reference and a safe public description. Changing the published revision must not carry the old check forward.
-6. Submit an organisation brief with clear terms. An admin must qualify it before proposing a member introduction.
-7. Member B must not be able to respond to Member A's introduction, even by changing request IDs.
-8. Before Member A accepts, contact access is denied. After accepting, authorised admin access is recorded. Withdraw consent and verify that access is denied again.
-9. Mark an introduction delivered only after it actually occurred. A member outcome starts self-reported; an independent admin confirmation does not automatically publish it.
-10. Preview the member email. Local sending must be blocked. No real email should leave the review workspace.
-11. Disable `TALENT_DISCOVERY_ENABLED`. Existing awards, delivery, events, Edutu and member functions must remain available.
+1. Save a talent draft with discovery off regardless of old default-true preferences. Save an unfinished project, partial year and half-typed URL; submission must still reject incomplete/unsafe public fields.
+2. Enable discovery/introduction permission explicitly. The unreviewed draft stays private. An independent admin approves the submitted revision before it appears publicly.
+3. Edit an approved profile. The previous approved snapshot remains public; new claims are not automatically checked. Check one academic/project claim with a private reference and bounded public description; revision changes cannot inherit the old check.
+4. Delay a save while continuing to type or add work. Keep newer edits and save them next. Do not strip a trailing space from focused typing. Failed saves retain the form and pause automatic retries.
+5. Edit separate fields in two tabs, then the same field. Merge independent edits and require a choice for overlap. A privacy response must not advance the editor's unreconciled draft revision. Test unsaved same-tab links, page exits and browser history separately.
+6. Withdraw discovery in one tab; a stale grant in another must fail with 409. Emergency withdrawal remains restrictive and preserves the latest email opt-out. Saved checkbox state must be distinguished from unsaved choices.
+7. Submit a brief with clear compensation. Admin qualification precedes a proposed introduction. Another member cannot accept it by guessing its ID. Before acceptance contact access is denied; after acceptance authorised access is audited.
+8. Mark an introduction delivered only after it occurred. Then withdraw, unpublish or close the brief. Re-enabling, republishing or reopening must not restore that old introduction's contact access. A genuinely new introduction requires fresh permission.
+9. Outcomes remain self-reported until independently confirmed; confirmation alone does not grant public-story permission or justify inflated counts.
+10. Open `/awardees?year=2024`, share a talent-filter URL, view a profile and return. Keep archive/filter context; reject external return destinations.
+11. Preview the member email; no real sending from local review. Disable the feature and regress sign-in/claim, profiles, awards/checkout, delivery, festival admission, groups and administrative roles.
 
-For the revised editor, also test: type during a deliberately delayed save; change steps with unsaved privacy choices; cause a failed refresh; open two settings tabs, withdraw in one and attempt to save stale grants in the other. The stale write must return 409. Turning off discovery from that stale form must still remove discovery/introduction/promotion permission without undoing the saved email opt-out. Check same-tab link cancellation and browser Back separately: the unsaved-link guard does not claim to intercept every browser-history transition.
+## 7. Member announcement — after a genuine launch only
 
-Also regression-test existing sign-in, account claim, profile updates, award checkout, delivery, festival admission, admin roles and member groups. This change does not certify every legacy route as secure.
+Subject: **Your Top100 profile now supports talent discovery**.
 
-## 7. Member email release — only after a real launch
+The message invites members to update skills, experience, projects and interests, optimise their professional presence and choose visibility. Discovery is not automatically enabled and opportunities are not guaranteed. Settings provides discovery/promotion/introduction controls and a separate talent-email opt-out.
 
-Email subject: **Your Top100 profile now supports talent discovery**.
+Only after reviewed deployment and real signed-in checks on the canonical production site: configure the verified Brevo sender, explicitly enable launch/sending gates, and have a current superadmin review the preview and type the required confirmation. Start with a small batch and reconcile provider receipts. Provider acceptance is not inbox delivery.
 
-The message invites members to update skills, experience, projects and interests, review their visibility choices, and optimise their professional presence. It explicitly says discovery is not automatically enabled and that opportunities are not guaranteed. Settings provides discovery/promotion/introductions controls and a separate talent-email opt-out.
+Eligible recipients are approved linked members with verified Auth email addresses. Respect opt-outs and relevant existing alert preferences. Recipient/address reservations prevent automatic duplicate attempts. Reconcile failed/unknown attempts with provider evidence; do not clear reservation rows simply to retry. No campaign is automatically scheduled and no email has been sent by this review pass.
 
-After reviewed deployment and a real signed-in end-to-end check on the canonical production website:
+## 8. Rollback and deferred work
 
-- Configure the existing verified Brevo sender and server-only API key.
-- Set the two launch/sending gates explicitly, in addition to the feature flag.
-- In Admin → Talent Network → Member email, a current superadmin reviews the preview and types the required confirmation.
-- Send a small batch first. Reconcile provider receipts before continuing. Provider acceptance is not proof of inbox delivery.
-- Only approved, linked members with verified Auth email addresses are eligible. Opt-outs and relevant existing alert preferences are respected.
-- Reserved accounts and recipient address hashes prevent automatic duplicate attempts. Failed/unknown attempts require explicit provider reconciliation; do not clear rows just to retry.
+Disable email sending first, then launched status and talent discovery. Redeploy the previous reviewed image if needed. Preserve additive submissions/consent/audit tables; do not delete them as a rollback shortcut or restore the unversioned privacy setter. Disable any external scheduler deliberately added later. Previously disclosed data and third-party caches cannot be recalled by a flag.
 
-No campaign is scheduled automatically. Viewing the page never sends email.
+The continuation retains the newer branch repair, including authenticated resource validation, shared mutation locking, unsaved-link guarding and existing regression tests. See `CRITIQUE_AND_FIXES.md` for reconciliation and fresh evidence.
 
-## 8. Rollback and later work
-
-First turn `TALENT_UPGRADE_EMAIL_ENABLED=false`, then `TALENT_DISCOVERY_LAUNCHED=false`, then `TALENT_DISCOVERY_ENABLED=false`. Redeploy the prior reviewed code if needed. Preserve additive tables and audit records; do not drop member submissions as a rollback shortcut. Disable any external scheduler if one is deliberately added later. Previously delivered contact information, email and third-party search caches cannot be recalled by a feature flag.
-
-This branch is the managed-discovery release. Organisation self-service accounts, AI matching, bulk CV/document access, curated promotional collections, automated Edutu account linking and public impact reports are not claimed complete here. The existing Edutu content is retained; no undocumented Edutu API or SSO contract has been invented. They remain separate, later reviewable work after the managed pilot.
+Organisation self-service, AI matching, bulk document access, curated collections, Talent Passport exports, deeper Edutu identity integration and public impact reporting are not claimed complete. No undocumented Edutu API/SSO contract was invented. The managed pilot and its release gates come first.

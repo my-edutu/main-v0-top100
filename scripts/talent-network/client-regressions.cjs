@@ -11,12 +11,14 @@ const vm = require('node:vm')
 const ts = require('typescript')
 const root = path.resolve(__dirname, '../..')
 const tests = []
+const harnesses = []
 function test(name, body) { tests.push({ name, body }) }
 function deferred() { let resolve, reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no }); return { promise, resolve, reject } }
 function response(body, status = 200) { return { ok: status >= 200 && status < 300, status, json: async () => body } }
 const clone = value => JSON.parse(JSON.stringify(value))
 function makeHarness(extra = {}) {
   const slots = [], effects = [], cache = new Map()
+  const dispose = () => { if (disposed) return; disposed = true; for (const slot of slots) slot?.cleanup?.() }; harnesses.push(dispose)
   let cursor = 0, dirty = true, disposed = false, component, output, lateWrites = 0
   const same = (a, b) => Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((v, i) => Object.is(v, b[i]))
   const react = {
@@ -64,7 +66,7 @@ function makeHarness(extra = {}) {
       if (name.startsWith('.')) return load(path.resolve(path.dirname(absolute), name))
       throw new Error(`Undeclared dependency: ${name}`)
     }
-    const context = { exports: mod.exports, module: mod, require: requireModule, console, URL, URLSearchParams, Headers, AbortController, DOMException, TextDecoder, setTimeout, clearTimeout, queueMicrotask, process: { env: { NODE_ENV: 'test' } }, fetch: extra.fetch || (() => { throw new Error('Unexpected network call') }), window: extra.window || { addEventListener() {}, removeEventListener() {}, confirm: () => true }, document: { getElementById: () => null, addEventListener() {}, removeEventListener() {} }, ...extra.globals }
+    const context = { exports: mod.exports, module: mod, require: requireModule, console, URL, URLSearchParams, Headers, AbortController, DOMException, TextDecoder, setTimeout, clearTimeout, requestAnimationFrame: callback => callback(), queueMicrotask, process: { env: { NODE_ENV: 'test' } }, fetch: extra.fetch || (() => { throw new Error('Unexpected network call') }), window: extra.window || { addEventListener() {}, removeEventListener() {}, confirm: () => true }, document: { getElementById: () => null, addEventListener() {}, removeEventListener() {} }, ...extra.globals }
     vm.runInNewContext(source, context, { filename: absolute })
     return mod.exports
   }
@@ -73,11 +75,14 @@ function makeHarness(extra = {}) {
     do { dirty = false; cursor = 0; output = component(); while (effects.length) effects.shift()(); if (++passes > 40) throw new Error('Render loop') } while (dirty)
     return output
   }
-  return { load, mount(fn) { component = fn; return render() }, render, async settle() { for (let i = 0; i < 8; i++) { await new Promise(resolve => setImmediate(resolve)); if (dirty) render() } return output }, get output() { return output }, unmount() { disposed = true; for (const slot of slots) slot?.cleanup?.() }, get lateWrites() { return lateWrites } }
+  return { load, mount(fn) { component = fn; return render() }, render, async settle() { for (let i = 0; i < 8; i++) { await new Promise(resolve => setImmediate(resolve)); if (dirty) render() } return output }, get output() { return output }, unmount: dispose, get lateWrites() { return lateWrites } }
 }
 function nodes(node) {
   if (Array.isArray(node)) return node.flatMap(nodes)
   if (!node || typeof node !== 'object') return []
+  // Expand only these stateless production components. Stateful child hooks
+  // are mounted independently (see the comma-input test), not faked as DOM.
+  if (typeof node.type === 'function' && ['TalentProfileFields', 'Field'].includes(node.type.name)) return [node, ...nodes(node.type(node.props))]
   return [node, ...nodes(node.props?.children)]
 }
 function text(node) {
@@ -90,7 +95,7 @@ function byId(h, id) { const found = nodes(h.output).find(n => n.props.id === id
 function button(h, label) { const found = nodes(h.output).find(n => n.type === 'button' && text(n).includes(label)); assert.ok(found, `Button ${label}`); return found }
 function fixture(h) {
   const { emptyTalentDraft } = h.load('lib/talent/contracts.ts')
-  return { name: 'Synthetic Member', slug: 'synthetic-member', completeness: 60, policyVersion: 'talent-discovery-2026-11-v1', talent: { profile_id: '11111111-1111-4111-8111-111111111111', draft: { ...emptyTalentDraft(), headline: 'Graduate engineer', summary: 'I build practical clean energy systems for communities.', sector: 'Engineering', country: 'Nigeria', skills: ['Research'], interests: ['Internship'] }, published: null, revision: 1, published_revision: null, publication_status: 'draft', discovery_enabled: false, introductions_enabled: false, promotion_enabled: false, outreach_email_opt_out: false, consent_version: null, review_note: null, created_at: '2026-11-08T00:00:00Z', updated_at: '2026-11-08T00:00:00Z' } }
+  return { name: 'Synthetic Member', slug: 'synthetic-member', completeness: 60, policyVersion: 'talent-discovery-2026-11-v1', talent: { profile_id: '11111111-1111-4111-8111-111111111111', draft: { ...emptyTalentDraft(), headline: 'Graduate engineer', summary: 'I build practical clean energy systems for communities.', sector: 'Engineering', country: 'Nigeria', skills: ['Research'], interests: ['Internship'] }, published: null, revision: 1, visibility_revision: 0, published_revision: null, publication_status: 'draft', discovery_enabled: false, introductions_enabled: false, promotion_enabled: false, outreach_email_opt_out: false, consent_version: null, review_note: null, created_at: '2026-11-08T00:00:00Z', updated_at: '2026-11-08T00:00:00Z' } }
 }
 function clientFixture() {
   const requests = []
@@ -183,8 +188,11 @@ test('a refresh failure leaves unsaved inputs visible and editable', () => {
   assert.equal(byId(h, 'talent-headline').props.value, 'Retain my work')
 })
 test('comma input does not rewrite the characters while typing skills', () => {
-  const { h } = editorFixture()
-  button(h, 'Skills & experience').props.onClick(); h.render()
+  const h = makeHarness()
+  let values = []
+  const { CommaInput } = h.load('components/talent/comma-input.tsx')
+  h.mount(() => CommaInput({ id: 'talent-skills', value: values, onChange: value => { values = value }, max: 20, placeholder: '' }))
+  byId(h, 'talent-skills').props.onFocus(); h.render()
   byId(h, 'talent-skills').props.onChange({ target: { value: 'Python,' } }); h.render()
   assert.equal(byId(h, 'talent-skills').props.value, 'Python,')
 })
@@ -218,6 +226,7 @@ async function run() {
   for (const { name, body } of tests) {
     try { await body(); console.log(`PASS ${name}`) }
     catch (error) { failures++; console.error(`FAIL ${name}\n  ${error.message}`) }
+    finally { for (const dispose of harnesses.splice(0)) dispose() }
   }
   console.log(`\n${tests.length - failures}/${tests.length} client regression tests passed. Explicit React/network test doubles; no browser or real database claimed.`)
   process.exitCode = failures ? 1 : 0

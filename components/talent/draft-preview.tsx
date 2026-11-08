@@ -1,0 +1,15 @@
+import type { TalentDraft } from '@/lib/talent/types'
+
+export function TalentDraftPreview({ draft, name }: { draft: TalentDraft; name: string }) {
+  return <section aria-label="Private draft preview" className="space-y-6 rounded-2xl border border-orange-200 bg-orange-50/40 p-5 sm:p-7">
+    <p className="text-xs font-semibold uppercase tracking-wider text-orange-900">Private draft preview · not a published profile</p>
+    <header><h3 className="break-words text-2xl font-semibold text-stone-950">{name}</h3><p className="mt-2 text-lg text-stone-800">{draft.headline || 'Your professional headline'}</p><p className="mt-2 text-sm text-stone-600">{[draft.city, draft.country, draft.sector].filter(Boolean).join(' · ')}</p></header>
+    <p className="whitespace-pre-wrap break-words text-sm leading-7 text-stone-700">{draft.summary || 'Your introduction will appear here.'}</p>
+    {draft.skills.length > 0 && <div className="flex flex-wrap gap-2">{draft.skills.filter(Boolean).map(skill => <span key={skill} className="rounded-full border border-orange-200 bg-white px-3 py-1.5 text-sm text-orange-950">{skill}</span>)}</div>}
+    {draft.experience && <section><h4 className="font-semibold text-stone-900">Experience</h4><p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-stone-700">{draft.experience}</p></section>}
+    {draft.projects.length > 0 && <section className="space-y-4"><h4 className="font-semibold text-stone-900">Selected work</h4>{draft.projects.map((project, index) => <article key={index} className="rounded-xl border border-stone-200 bg-white p-4"><h5 className="font-semibold">{project.title || 'Untitled project'}</h5>{project.role && <p className="mt-1 text-sm text-orange-900">{project.role}</p>}<p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{project.description}</p>{project.outcome && <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6"><strong>Result: </strong>{project.outcome}</p>}{project.url && <p className="mt-2 break-all text-xs text-stone-600">Supporting link: {project.url}</p>}</article>)}</section>}
+    {draft.education.length > 0 && <section><h4 className="font-semibold text-stone-900">Education</h4>{draft.education.map((item, index) => <p key={index} className="mt-2 break-words text-sm leading-6">{[item.institution || 'Institution not yet added', item.qualification, item.field, item.year].filter(Boolean).join(' · ')}</p>)}</section>}
+    {draft.interests.length > 0 && <section><h4 className="font-semibold text-stone-900">Looking for</h4><p className="mt-2 text-sm leading-6">{draft.interests.join(' · ')}</p><p className="mt-2 text-sm leading-6">{[draft.workMode, draft.availability].filter(Boolean).join(' · ')}</p></section>}
+    <p className="border-t border-orange-200 pt-4 text-xs leading-5 text-stone-600">This previews your draft only. Your existing recognition and any previously reviewed public version stay separate. Claims are self-reported unless a specific check is shown on the published profile. Draft links are displayed as text, not opened.</p>
+  </section>
+}

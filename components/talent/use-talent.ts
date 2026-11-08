@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type SetStateAction } from 'react'
 import { parseTalentDraft, profileCompleteness } from '@/lib/talent/contracts'
+import { mergeTalentRecords } from '@/lib/talent/editor-state'
 import type { TalentRecord } from '@/lib/talent/types'
 
 export type TalentMemberResponse = {
@@ -41,12 +42,13 @@ export async function talentFetch<T>(url: string, init: RequestInit = {}): Promi
 
 function validateRecord(value: TalentRecord | undefined): TalentRecord {
   if (!value || typeof value.profile_id !== 'string' || !Number.isInteger(value.revision) || value.revision < 0 ||
+    !Number.isSafeInteger(value.visibility_revision) || value.visibility_revision < 0 ||
     !['draft', 'submitted', 'approved', 'changes_requested'].includes(value.publication_status) ||
     [value.discovery_enabled, value.introductions_enabled, value.promotion_enabled, value.outreach_email_opt_out].some(flag => typeof flag !== 'boolean') ||
     (value.consent_version !== null && typeof value.consent_version !== 'string')) {
     throw new TalentRequestError('The saved profile response was incomplete. Reload before retrying.', 502)
   }
-  return { ...value, draft: parseTalentDraft(value.draft) }
+  return { ...value, draft: parseTalentDraft(value.draft, 'draft') }
 }
 
 /** One resource per mounted member workspace. Pass it to embedded controls;
@@ -100,9 +102,10 @@ export function useTalentMember() {
       if (typeof next.name !== 'string' || typeof next.slug !== 'string' || typeof next.policyVersion !== 'string') {
         throw new TalentRequestError('The profile response was incomplete. Please reload.', 502)
       }
-      publish(next)
+      const merged = currentData.current ? { ...next, talent: mergeTalentRecords(currentData.current.talent, next.talent) } : next
+      publish(merged)
       setDisabled(false)
-      return next
+      return merged
     } catch (reason) {
       if (!active()) return null
       const status = (reason as { status?: number }).status
@@ -130,7 +133,8 @@ export function useTalentMember() {
       const talent = validateRecord(result.talent)
       if (talent.profile_id !== member.talent.profile_id) throw new TalentRequestError('The saved profile did not match your account. Please sign in again.', 502)
       if (mounted.current && currentData.current?.talent.profile_id === member.talent.profile_id) {
-        publish({ ...currentData.current, talent, completeness: profileCompleteness(talent.draft) })
+        const merged = mergeTalentRecords(currentData.current.talent, talent)
+        publish({ ...currentData.current, talent: merged, completeness: profileCompleteness(merged.draft) })
         setError('')
       }
       return talent
@@ -157,3 +161,5 @@ export function useTalentMember() {
 }
 
 export type TalentMemberResource = ReturnType<typeof useTalentMember>
+
+export type TalentMemberState = TalentMemberResource
