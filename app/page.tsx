@@ -24,6 +24,8 @@ import RotatingVisionSection from "./components/RotatingVisionSection"
 import TeamRail from "./components/TeamRail"
 import { TEAM_MEMBERS, VISION_IMAGES } from "@/lib/impact-content"
 import { SITE_URL } from "@/lib/site"
+import { TalentDiscoveryHomeSection, TalentOrganisationHomeSection } from "@/components/talent/homepage-sections"
+import { talentDiscoveryEnabled } from "@/lib/talent/features"
 
 const homepageTitle = "Top100 Africa Future Leaders Hub | Awards, Events & Opportunities"
 const homepageDescription =
@@ -113,6 +115,7 @@ export default async function HomePage() {
         </section>
 
         <HomeFeaturedAwardeesSection />
+        {talentDiscoveryEnabled() && <TalentDiscoveryHomeSection />}
 
         <ImpactSection />
 
@@ -195,6 +198,7 @@ export default async function HomePage() {
           </div>
         </section>
 
+        {talentDiscoveryEnabled() && <TalentOrganisationHomeSection />}
         <PartnershipHeroSection />
 
 

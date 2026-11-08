@@ -1,0 +1,31 @@
+import Link from 'next/link'
+import { ArrowUpRight, BriefcaseBusiness, CheckCircle2, Globe2, ShieldCheck } from 'lucide-react'
+import type { TalentPublicProfile } from '@/lib/talent/types'
+import { primaryClass, secondaryClass } from './ui'
+
+export function TalentPortfolio({ profile }: { profile: TalentPublicProfile }) {
+  const d = profile.details
+  const person = { '@context': 'https://schema.org', '@type': 'ProfilePage', mainEntity: { '@type': 'Person', name: profile.name, description: d.summary, knowsAbout: d.skills, sameAs: [d.portfolioUrl,d.linkedinUrl].filter(Boolean) } }
+  const checked = (scope: string, index: number) => profile.checks.find(check => check.scope === scope && check.claimIndex === index)
+  return <section id="talent-portfolio" className="mx-auto max-w-5xl scroll-mt-24 px-5 py-10 sm:px-8 lg:px-10" aria-labelledby="talent-portfolio-title">
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(person).replace(/</g, String.fromCharCode(92) + 'u003c') }} />
+    <div className="overflow-hidden rounded-[28px] border border-orange-200 bg-white">
+      <header className="bg-gradient-to-br from-orange-50 via-white to-amber-50 p-6 sm:p-8"><div className="flex flex-wrap items-center justify-between gap-3"><p className="text-xs font-semibold uppercase tracking-[.18em] text-orange-800">Talent discovery · Top100 Africa Future Leaders</p><span className="inline-flex items-center gap-1 text-xs text-stone-600"><Globe2 className="size-4" aria-hidden="true" />Shared by this member</span></div><h2 id="talent-portfolio-title" className="mt-4 text-2xl font-semibold leading-tight tracking-tight text-stone-950 sm:text-3xl">{d.headline}</h2><p className="mt-3 whitespace-pre-line text-base leading-7 text-stone-700">{d.summary}</p><p className="mt-4 text-sm text-stone-600">{[d.city,d.country,d.sector].filter(Boolean).join(' · ')}</p></header>
+      <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[1fr_260px]">
+        <div className="min-w-0 space-y-8">
+          <section><h3 className="font-semibold text-stone-950">Skills</h3><div className="mt-3 flex flex-wrap gap-2">{d.skills.map(skill => <span className="rounded-full bg-orange-50 px-3 py-1.5 text-sm text-orange-900" key={skill}>{skill}</span>)}</div></section>
+          {d.experience && <section><h3 className="font-semibold text-stone-950">Experience</h3><p className="mt-3 whitespace-pre-line text-sm leading-7 text-stone-600">{d.experience}</p></section>}
+          {d.projects.length > 0 && <section><h3 className="text-lg font-semibold text-stone-950">Selected work & impact</h3><div className="mt-4 space-y-4">{d.projects.map((project,index) => { const check = checked('project',index); return <article key={`${project.title}-${index}`} className="rounded-2xl border border-stone-200 p-4"><h4 className="font-semibold text-stone-900">{project.title}</h4>{project.role && <p className="mt-1 text-sm text-orange-800">{project.role}</p>}{project.description && <p className="mt-3 whitespace-pre-line text-sm leading-6 text-stone-600">{project.description}</p>}{project.outcome && <p className="mt-3 text-sm leading-6 text-stone-700"><strong className="font-medium">Outcome: </strong>{project.outcome}</p>}<p className="mt-3 inline-flex items-center gap-1 text-xs text-stone-500">{check ? <><ShieldCheck className="size-4" />Project evidence reviewed · {new Date(check.checkedAt).toLocaleDateString('en-GB',{timeZone:'UTC'})}</> : 'Project information is self-reported.'}</p>{check && <p className="mt-1 text-xs text-stone-500">Check: {check.method}. This check covers this project, not every claim on this profile.</p>}{project.url && <a className="mt-3 flex min-h-11 items-center gap-1 text-sm font-medium text-orange-800 hover:underline" href={project.url} target="_blank" rel="noopener noreferrer">View shared work <ArrowUpRight className="size-4" aria-hidden="true" /></a>}</article> })}</div></section>}
+          {d.education.length > 0 && <section><h3 className="font-semibold text-stone-950">Education</h3><div className="mt-4 space-y-4">{d.education.map((education,index) => { const check = checked('academic',index); return <div key={`${education.institution}-${index}`} className="border-l-2 border-orange-200 pl-4"><h4 className="font-medium text-stone-800">{education.institution}</h4><p className="mt-1 text-sm text-stone-600">{[education.qualification,education.field,education.year].filter(Boolean).join(' · ')}</p><p className="mt-2 text-xs text-stone-500">{check ? `Academic claim checked: ${check.method}` : 'Self-reported qualification'}</p></div> })}</div></section>}
+          {d.languages.length > 0 && <section><h3 className="font-semibold text-stone-950">Languages</h3><p className="mt-2 text-sm text-stone-600">{d.languages.join(' · ')}</p></section>}
+        </div>
+        <aside className="space-y-5"><div className="rounded-2xl bg-stone-50 p-5"><BriefcaseBusiness className="size-6 text-orange-800" aria-hidden="true" /><h3 className="mt-3 font-semibold text-stone-950">Open to conversations about</h3><ul className="mt-3 space-y-2">{d.interests.map(interest => <li key={interest} className="flex items-center gap-2 text-sm text-stone-700"><CheckCircle2 className="size-4 text-orange-700" aria-hidden="true" />{interest}</li>)}</ul><p className="mt-4 text-sm text-stone-600">Work preference: {d.workMode}</p>{d.availability && <p className="mt-2 text-sm text-stone-600">{d.availability}</p>}</div>
+          {profile.introductionsEnabled && <Link href={`/for-organisations/request?talent=${encodeURIComponent(profile.slug)}`} className={`${primaryClass} w-full`}>Request an introduction</Link>}
+          {d.portfolioUrl && <a href={d.portfolioUrl} className={`${secondaryClass} w-full`} target="_blank" rel="noopener noreferrer">Portfolio <ArrowUpRight className="size-4" aria-hidden="true" /></a>}
+          {d.linkedinUrl && <a href={d.linkedinUrl} className={`${secondaryClass} w-full`} target="_blank" rel="noopener noreferrer">LinkedIn <ArrowUpRight className="size-4" aria-hidden="true" /></a>}
+          <p className="text-xs leading-5 text-stone-500">A published profile is not a blanket verification. Specific checks are labelled. Top100 reviews organisational requests before asking a member to approve an introduction.</p>
+        </aside>
+      </div>
+    </div>
+  </section>
+}
