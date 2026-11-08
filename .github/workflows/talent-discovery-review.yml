@@ -8,6 +8,8 @@ on:
       - 'lib/talent/**'
       - 'components/talent/**'
       - 'tests/talent/**'
+      - 'scripts/talent-network/**'
+      - 'supabase/schema/talent-discovery*.sql'
       - 'app/api/talent/**'
       - 'app/api/member/talent/**'
       - 'app/api/admin/talent/**'
@@ -63,27 +65,29 @@ jobs:
         id: tests
         continue-on-error: true
         run: npm test
-      - name: Talent database invariants
+      - name: Talent database invariants on disposable database
         id: database
         continue-on-error: true
         run: |
-          if [ -f scripts/talent-network/database.test.sql ]; then
-            psql -h localhost -U postgres -d postgres -X -v ON_ERROR_STOP=1 -f scripts/talent-network/database.test.sql
-          else
-            echo 'Baseline: no talent migration or database test added yet.'
-          fi
-      - name: Typecheck
-        id: types
+          psql -h localhost -U postgres -d postgres -X -v ON_ERROR_STOP=1 -c 'CREATE DATABASE talent_network_test'
+          psql -h localhost -U postgres -d talent_network_test -X -v ON_ERROR_STOP=1 -f scripts/talent-network/database.test.sql
+      - name: New talent source lint
+        id: lint
         continue-on-error: true
-        run: npm run typecheck
+        run: npx eslint lib/talent components/talent tests/talent app/api/talent app/api/talent-requests app/api/talent-opportunities app/api/member/talent app/api/member/talent-applications app/api/member/talent-outcomes app/api/member/introductions app/api/admin/talent app/for-organisations app/opportunities app/admin/talent app/dashboard/applications app/dashboard/introductions
       - name: Production compilation (no deployment)
         id: build
         continue-on-error: true
         run: npm run build
+      - name: Typecheck including generated route types
+        id: types
+        continue-on-error: true
+        run: npm run typecheck
       - name: Enforce checks
         if: always()
         run: |
           test '${{ steps.tests.outcome }}' = 'success'
           test '${{ steps.database.outcome }}' = 'success'
-          test '${{ steps.types.outcome }}' = 'success'
+          test '${{ steps.lint.outcome }}' = 'success'
           test '${{ steps.build.outcome }}' = 'success'
+          test '${{ steps.types.outcome }}' = 'success'

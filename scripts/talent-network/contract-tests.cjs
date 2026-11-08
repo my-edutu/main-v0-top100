@@ -1,0 +1,68 @@
+/* Independent executable domain checks; no application credentials or network. */
+const assert = require('node:assert/strict')
+const fs = require('node:fs')
+const path = require('node:path')
+const os = require('node:os')
+const { createRequire } = require('node:module')
+const ts = require('typescript')
+const root = path.resolve(__dirname, '../..')
+const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'top100-talent-tests-'))
+let passed = 0
+function check(name, fn) { fn(); passed++; console.log(`PASS ${name}`) }
+try {
+  for (const file of ['types', 'contracts', 'policy', 'email-template']) {
+    const source = path.join(root, 'lib/talent', `${file}.ts`)
+    assert.ok(fs.existsSync(source), `Missing talent domain implementation: ${file}.ts`)
+    fs.writeFileSync(path.join(dir, `${file}.js`), ts.transpileModule(fs.readFileSync(source, 'utf8'), {
+      compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+    }).outputText)
+  }
+  const requireCompiled = createRequire(path.join(dir, 'runner.cjs'))
+  const c = requireCompiled('./contracts.js')
+  const p = requireCompiled('./policy.js')
+  const mail = requireCompiled('./email-template.js')
+  const good = { ...c.emptyTalentDraft(), headline: 'Graduate engineer', summary: 'I build practical tools for communities.', sector: 'Engineering', country: 'Nigeria', skills: ['Research', 'Python'], interests: ['Internship'] }
+  const profile = { profileId: 'member-a', status: 'approved', discoveryEnabled: true, introductionsEnabled: true, promotionEnabled: false, consentVersion: c.TALENT_POLICY_VERSION, publishedRevision: 3, memberApproved: true, recognitionPublic: true, published: good }
+  check('legacy recruiter defaults never grant new consent', () => assert.equal(p.canDiscoverTalent({ ...profile, consentVersion: null, recruiterVisible: true }), false))
+  check('explicit current consent enables approved discovery', () => assert.equal(p.canDiscoverTalent(profile), true))
+  check('withdrawn discovery immediately hides profile', () => assert.equal(p.canDiscoverTalent({ ...profile, discoveryEnabled: false }), false))
+  check('pending publication is not discoverable', () => assert.equal(p.canDiscoverTalent({ ...profile, publishedRevision: null }), false))
+  check('rejected member cannot be discovered', () => assert.equal(p.canDiscoverTalent({ ...profile, memberApproved: false }), false))
+  check('hidden recognition is not discoverable', () => assert.equal(p.canDiscoverTalent({ ...profile, recognitionPublic: false }), false))
+  check('global shutdown denies introduction', () => assert.equal(p.canIntroduceTalent(profile, false), false))
+  check('introduction requires separate permission', () => assert.equal(p.canIntroduceTalent({ ...profile, introductionsEnabled: false }, true), false))
+  check('promotion requires separate consent', () => assert.equal(p.canPromoteTalent(profile), false))
+  check('valid profile is accepted', () => assert.equal(c.parseTalentDraft(good).headline, good.headline))
+  check('unknown fields cannot set verification', () => assert.throws(() => c.parseTalentDraft({ ...good, verified: true }), /Unexpected/))
+  check('private email cannot enter public draft', () => assert.throws(() => c.parseTalentDraft({ ...good, email: 'private@example.test' }), /Unexpected/))
+  check('unsafe project links rejected', () => assert.throws(() => c.parseTalentDraft({ ...good, projects: [{ title: 'Demo', role: 'Builder', description: 'Something', outcome: '', url: 'javascript:alert(1)' }] }), /https/))
+  check('credentials in links rejected', () => assert.equal(c.isSafePublicUrl('https://alice:secret@example.org/project'), false))
+  check('localhost links rejected', () => assert.equal(c.isSafePublicUrl('https://127.0.0.1/project'), false))
+  check('public https links allowed', () => assert.equal(c.isSafePublicUrl('https://example.org/project'), true))
+  check('oversized skills rejected', () => assert.throws(() => c.parseTalentDraft({ ...good, skills: Array(21).fill('x') }), /20/))
+  check('skills are deduplicated case-insensitively', () => assert.deepEqual(c.parseTalentDraft({ ...good, skills: [' Python ', 'python'] }).skills, ['Python']))
+  check('incomplete draft stays saveable', () => assert.equal(c.parseTalentDraft(c.emptyTalentDraft()).headline, ''))
+  check('publication requires meaningful information', () => assert.ok(c.publicationBlockedReason(c.emptyTalentDraft())))
+  check('ready profile can be submitted', () => assert.equal(c.publicationBlockedReason(good), null))
+  check('page size defaults to 24', () => assert.equal(c.parseTalentFilters(new URLSearchParams()).limit, 24))
+  check('page size cannot exceed 48', () => assert.equal(c.parseTalentFilters(new URLSearchParams('limit=999')).limit, 48))
+  check('future cohorts are valid', () => assert.equal(c.parseTalentFilters(new URLSearchParams('year=2030')).year, 2030))
+  check('all cohorts is default', () => assert.equal(c.parseTalentFilters(new URLSearchParams()).year, null))
+  check('invalid cursor rejected', () => assert.throws(() => c.parseTalentFilters(new URLSearchParams('cursor=broken')), /cursor/i))
+  check('self-review cannot grant verification', () => assert.equal(p.canReviewTalent('member-a', 'member-a'), false))
+  check('different reviewer allowed', () => assert.equal(p.canReviewTalent('admin-b', 'member-a'), true))
+  check('member may accept only own pending request', () => assert.equal(p.canRespondToIntroduction({ profile_id: 'member-a', status: 'awaiting_member' }, 'member-a', 'accepted'), true))
+  check('another member cannot respond', () => assert.equal(p.canRespondToIntroduction({ profile_id: 'member-a', status: 'awaiting_member' }, 'member-b', 'accepted'), false))
+  check('closed request cannot be accepted', () => assert.equal(p.canRespondToIntroduction({ profile_id: 'member-a', status: 'declined' }, 'member-a', 'accepted'), false))
+  check('accepted request can be withdrawn', () => assert.equal(p.canRespondToIntroduction({ profile_id: 'member-a', status: 'accepted' }, 'member-a', 'withdrawn'), true))
+  check('branch preview never permits email launch', () => assert.equal(p.canSendUpgradeEmail({ enabled: true, launched: false, sendingEnabled: true }), false))
+  check('sending gate must be explicit', () => assert.equal(p.canSendUpgradeEmail({ enabled: true, launched: true, sendingEnabled: false }), false))
+  check('all launch gates required', () => assert.equal(p.canSendUpgradeEmail({ enabled: true, launched: true, sendingEnabled: true }), true))
+  check('email escapes untrusted member names', () => assert.ok(!mail.talentUpgradeEmail('<img src=x onerror=alert(1)>', 'https://top100afl.com').html.includes('<img src=x')))
+  check('email includes settings opt-out route', () => assert.ok(mail.talentUpgradeEmail('Member', 'https://top100afl.com').text.includes('/dashboard/me/settings')))
+  check('email promises no guaranteed placements', () => assert.ok(mail.talentUpgradeEmail('Member', 'https://top100afl.com').text.includes('does not guarantee')))
+  const brief = {organisation:'Test organisation',website:'https://example.org',contactName:'Programme lead',email:'lead@example.org',title:'Graduate research internship',kind:'Internship',description:'A supervised paid internship supporting a research project.',skills:['Research'],country:'Nigeria',workMode:'Remote',places:2,compensation:'Paid monthly',deadline:'2028-02-29',talentSlug:'',consent:true}
+  check('valid leap-day deadline accepted', () => assert.equal(c.parseTalentRequest(brief).deadline, '2028-02-29'))
+  check('impossible calendar deadline rejected', () => assert.throws(() => c.parseTalentRequest({...brief,deadline:'2027-02-29'}), /deadline/i))
+  console.log(`${passed} talent domain checks passed`)
+} finally { fs.rmSync(dir, { recursive: true, force: true }) }
