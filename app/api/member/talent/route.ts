@@ -2,6 +2,7 @@ import type { NextRequest } from 'next/server'
 import { onlyFields, requireTalentMember, readTalentBody, revision, assertSameOrigin, talentError, talentJson, talentRateLimit } from '@/lib/talent/api'
 import { TALENT_POLICY_VERSION, TalentInputError, parseTalentDraft, parseTalentVisibility, profileCompleteness, publicationBlockedReason } from '@/lib/talent/contracts'
 import { initialTalentRecord, mapTalentRecord } from '@/lib/talent/profile-service'
+import { parseVisibilityExpectation } from '@/lib/talent/visibility'
 import type { TalentRecord } from '@/lib/talent/types'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -23,9 +24,13 @@ export async function PATCH(request: NextRequest) {
     const body = await readTalentBody(request)
     let result
     if (body.action === 'visibility') {
-      onlyFields(body, ['action', 'visibility'])
+      onlyFields(body, ['action', 'visibility', 'expectedVisibility'])
       const v = parseTalentVisibility(body.visibility)
-      result = await db.rpc('talent_set_visibility', { p_actor: user.id, p_discovery: v.discoveryEnabled, p_introductions: v.introductionsEnabled, p_promotion: v.promotionEnabled, p_email_opt_out: v.outreachEmailOptOut, p_policy_version: v.policyVersion })
+      const expected = parseVisibilityExpectation(body.expectedVisibility)
+      result = await db.rpc('talent_set_visibility_checked', { p_actor: user.id, p_expected: expected, p_choices: v, p_withdraw: false })
+    } else if (body.action === 'withdraw_visibility') {
+      onlyFields(body, ['action'])
+      result = await db.rpc('talent_set_visibility_checked', { p_actor: user.id, p_expected: null, p_choices: null, p_withdraw: true })
     } else if (body.action === 'save' || body.action === 'submit') {
       onlyFields(body, ['action', 'expectedRevision', 'draft'])
       const draft = parseTalentDraft(body.draft)

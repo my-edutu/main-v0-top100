@@ -61,6 +61,12 @@ jobs:
         run: |
           node -p "JSON.stringify({next:require('next/package.json').version,react:require('react/package.json').version,supabase:require('@supabase/supabase-js/package.json').version})"
           find node_modules/next/dist/docs -maxdepth 4 -type f \( -name '*route-handler*' -o -name '*cookies*' -o -name '*revalidate*' \) -print 2>/dev/null | head -20 || true
+      - name: Member editor and consent regressions
+        id: member_regressions
+        continue-on-error: true
+        run: |
+          node scripts/talent-network/client-regressions.cjs
+          node scripts/talent-network/privacy-regressions.cjs
       - name: Full test suite
         id: tests
         continue-on-error: true
@@ -71,6 +77,7 @@ jobs:
         run: |
           psql -h localhost -U postgres -d postgres -X -v ON_ERROR_STOP=1 -c 'CREATE DATABASE talent_network_test'
           psql -h localhost -U postgres -d talent_network_test -X -v ON_ERROR_STOP=1 -f scripts/talent-network/database.test.sql
+          psql -h localhost -U postgres -d talent_network_test -X -v ON_ERROR_STOP=1 -f scripts/talent-network/privacy-guard.test.sql
       - name: New talent source lint
         id: lint
         continue-on-error: true
@@ -86,6 +93,7 @@ jobs:
       - name: Enforce checks
         if: always()
         run: |
+          test '${{ steps.member_regressions.outcome }}' = 'success'
           test '${{ steps.tests.outcome }}' = 'success'
           test '${{ steps.database.outcome }}' = 'success'
           test '${{ steps.lint.outcome }}' = 'success'

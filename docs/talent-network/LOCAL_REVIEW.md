@@ -38,10 +38,11 @@ The last two flags MUST remain false. The email API also requires production mod
 
 Prerequisites: existing `profiles`, `awardees`, `opportunities` and `user_notifications`; Postgres with security-invoker views (15+). The code uses the same profile IDs and recognition records, not a second login system.
 
-The new SQL is intentionally not installed or given a fake applied migration number. Review both files, in this order:
+The new SQL is intentionally not installed or given a fake applied migration number. Review all three files, in this order:
 
 1. `supabase/schema/talent-discovery.sql`
 2. `supabase/schema/talent-discovery-constraints.sql`
+3. `supabase/schema/talent-discovery-privacy-guard.sql`
 
 For a disposable local database, apply them using your local database connection. Confirm the connection target yourself before running any SQL:
 
@@ -49,11 +50,12 @@ For a disposable local database, apply them using your local database connection
 # LOCAL_DATABASE_URL must refer to the isolated local/staging database, not production.
 psql "$LOCAL_DATABASE_URL" -X -v ON_ERROR_STOP=1 -f supabase/schema/talent-discovery.sql
 psql "$LOCAL_DATABASE_URL" -X -v ON_ERROR_STOP=1 -f supabase/schema/talent-discovery-constraints.sql
+psql "$LOCAL_DATABASE_URL" -X -v ON_ERROR_STOP=1 -f supabase/schema/talent-discovery-privacy-guard.sql
 ```
 
 Do not apply `scripts/talent-network/database.test.sql` to the app database: that script builds its own synthetic baseline and refuses existing profile tables.
 
-For the eventual release, use the installed Supabase CLI (`supabase --help`, then `supabase migration new --help`) to generate a real migration filename. Put both reviewed SQL files into that one release migration in the order above. They contain explicit transaction boundaries, so do not wrap their concatenation in another unexamined transaction. Verify migration history and database grants/RLS before deployment. No hosted Supabase project or Vercel environment should be used for this production project.
+For the eventual release, use the installed Supabase CLI (`supabase --help`, then `supabase migration new --help`) to generate a real migration filename. Put all three reviewed SQL files into that one release migration in the order above. They contain explicit transaction boundaries, so do not wrap their concatenation in another unexamined transaction. Verify migration history and database grants/RLS before deployment. No hosted Supabase project or Vercel environment should be used for this production project.
 
 ## 4. Run the checks
 
@@ -61,6 +63,8 @@ For the eventual release, use the installed Supabase CLI (`supabase --help`, the
 node scripts/talent-network/contract-tests.cjs
 node scripts/talent-network/api-tests.cjs
 node scripts/talent-network/integration-checks.cjs
+node scripts/talent-network/client-regressions.cjs
+node scripts/talent-network/privacy-regressions.cjs
 npm test
 npm run build
 npm run typecheck
@@ -69,7 +73,9 @@ npm run dev
 
 The first script executes 40 domain assertions. The second executes 19 real route/helper assertions with explicit authentication, database and framework doubles. Those are useful unit checks, not a replacement for real authentication, RLS or provider verification. The structural script checks the added paths and verifies that removing the four talent additions from `app/page.tsx` produces the exact original homepage blob.
 
-The new Vitest wrapper runs the three scripts as part of `npm test`.
+The existing Vitest wrapper runs the original three scripts as part of `npm test`. The two additional regression scripts are explicit blocking steps in the talent review workflow. They execute actual client/controller and route code using declared transport/hook doubles; they are not full browser or database verification.
+
+The privacy guard is required by the revised member API. A missing guard returns an unavailable response; there is deliberately no unsafe fallback to the old unguarded consent write. Apply and test it before enabling the candidate. A normal settings save must include the confirmed visibility snapshot; emergency withdrawal carries no permission grants and preserves the current saved email preference. See `REVIEW_2026-11-08.md` for observed regressions and validation limits.
 
 ### Disposable SQL harness
 
@@ -78,6 +84,7 @@ Use an empty throwaway PostgreSQL server with permission to create test roles/da
 ```bash
 createdb talent_network_test
 psql -d talent_network_test -X -v ON_ERROR_STOP=1 -f scripts/talent-network/database.test.sql
+psql -d talent_network_test -X -v ON_ERROR_STOP=1 -f scripts/talent-network/privacy-guard.test.sql
 ```
 
 Never run these commands on the production server. The harness checks real table/RPC privileges, stale writes, snapshot approval, claim scoping, introduction ownership, withdrawal, outcome confirmation and campaign reservations. Its minimal baseline is not the real application schema; run the same review journey against a real isolated Supabase instance afterward.
@@ -118,6 +125,8 @@ Use two ordinary approved, linked members and two administrators. Do not use rea
 9. Mark an introduction delivered only after it actually occurred. A member outcome starts self-reported; an independent admin confirmation does not automatically publish it.
 10. Preview the member email. Local sending must be blocked. No real email should leave the review workspace.
 11. Disable `TALENT_DISCOVERY_ENABLED`. Existing awards, delivery, events, Edutu and member functions must remain available.
+
+For the revised editor, also test: type during a deliberately delayed save; change steps with unsaved privacy choices; cause a failed refresh; open two settings tabs, withdraw in one and attempt to save stale grants in the other. The stale write must return 409. Turning off discovery from that stale form must still remove discovery/introduction/promotion permission without undoing the saved email opt-out. Check same-tab link cancellation and browser Back separately: the unsaved-link guard does not claim to intercept every browser-history transition.
 
 Also regression-test existing sign-in, account claim, profile updates, award checkout, delivery, festival admission, admin roles and member groups. This change does not certify every legacy route as secure.
 

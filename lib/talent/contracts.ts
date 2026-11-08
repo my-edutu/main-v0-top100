@@ -75,15 +75,28 @@ export function parseTalentDraft(value: unknown): TalentDraft {
     }),
   }
 }
+/** Required publication fields, not a merit score or a verification decision. */
+export function publicationRequirements(draft: TalentDraft) {
+  return [
+    { label: 'Professional headline', step: 0, field: 'talent-headline', complete: draft.headline.trim().length >= 5, message: 'Add a professional headline of at least 5 characters.' },
+    { label: 'Short introduction', step: 0, field: 'talent-summary', complete: draft.summary.trim().length >= 30, message: 'Add an introduction of at least 30 characters.' },
+    { label: 'Primary sector', step: 0, field: 'talent-sector', complete: Boolean(draft.sector.trim()), message: 'Add your sector and country of residence.' },
+    { label: 'Country of residence', step: 0, field: 'talent-country', complete: Boolean(draft.country.trim()), message: 'Add your sector and country of residence.' },
+    { label: 'At least one skill', step: 1, field: 'talent-skills', complete: draft.skills.some(skill => Boolean(skill.trim())), message: 'Add at least one skill and one opportunity interest.' },
+    { label: 'Opportunity interests', step: 3, field: 'talent-workmode', complete: draft.interests.some(interest => TALENT_INTERESTS.includes(interest)), message: 'Add at least one skill and one opportunity interest.' },
+  ]
+}
 export function publicationBlockedReason(draft: TalentDraft): string | null {
-  if (draft.headline.length < 5) return 'Add a professional headline of at least 5 characters.'
-  if (draft.summary.length < 30) return 'Add an introduction of at least 30 characters.'
-  if (!draft.sector || !draft.country) return 'Add your sector and country of residence.'
-  if (!draft.skills.length || !draft.interests.length) return 'Add at least one skill and one opportunity interest.'
-  return null
+  return publicationRequirements(draft).find(item => !item.complete)?.message ?? null
 }
 export function profileCompleteness(draft: TalentDraft): number {
-  const checks = [draft.headline.length >= 5, draft.summary.length >= 30, Boolean(draft.sector), Boolean(draft.country), draft.skills.length > 0, draft.interests.length > 0, draft.languages.length > 0, draft.projects.length > 0 || draft.experience.length > 0, draft.education.length > 0, Boolean(draft.availability)]
+  const checks = [
+    ...publicationRequirements(draft).map(item => item.complete),
+    draft.languages.some(language => Boolean(language.trim())),
+    draft.projects.some(project => Boolean(project.title.trim())) || Boolean(draft.experience.trim()),
+    draft.education.some(education => Boolean(education.institution.trim())),
+    Boolean(draft.availability.trim()),
+  ]
   return Math.round(checks.filter(Boolean).length / checks.length * 100)
 }
 export function parseTalentVisibility(value: unknown): TalentVisibilityInput {
