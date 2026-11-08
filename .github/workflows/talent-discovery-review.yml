@@ -1,0 +1,89 @@
+name: Talent discovery review
+
+on:
+  push:
+    branches: [feat/talent-discovery-review-20261108]
+  pull_request:
+    paths:
+      - 'lib/talent/**'
+      - 'components/talent/**'
+      - 'tests/talent/**'
+      - 'app/api/talent/**'
+      - 'app/api/member/talent/**'
+      - 'app/api/admin/talent/**'
+      - 'app/for-organisations/**'
+      - '.github/workflows/talent-discovery-review.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: talent-review-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17.6
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://supabase.top100afl.com
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-local-dev-key
+      SUPABASE_SERVICE_ROLE_KEY: placeholder-ci-service-role-key
+      TALENT_DISCOVERY_ENABLED: 'true'
+      TALENT_DISCOVERY_LAUNCHED: 'false'
+      TALENT_UPGRADE_EMAIL_ENABLED: 'false'
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Installed framework references
+        run: |
+          node -p "JSON.stringify({next:require('next/package.json').version,react:require('react/package.json').version,supabase:require('@supabase/supabase-js/package.json').version})"
+          find node_modules/next/dist/docs -maxdepth 4 -type f \( -name '*route-handler*' -o -name '*cookies*' -o -name '*revalidate*' \) -print 2>/dev/null | head -20 || true
+      - name: Full test suite
+        id: tests
+        continue-on-error: true
+        run: npm test
+      - name: Talent database invariants
+        id: database
+        continue-on-error: true
+        run: |
+          if [ -f scripts/talent-network/database.test.sql ]; then
+            psql -h localhost -U postgres -d postgres -X -v ON_ERROR_STOP=1 -f scripts/talent-network/database.test.sql
+          else
+            echo 'Baseline: no talent migration or database test added yet.'
+          fi
+      - name: Typecheck
+        id: types
+        continue-on-error: true
+        run: npm run typecheck
+      - name: Production compilation (no deployment)
+        id: build
+        continue-on-error: true
+        run: npm run build
+      - name: Enforce checks
+        if: always()
+        run: |
+          test '${{ steps.tests.outcome }}' = 'success'
+          test '${{ steps.database.outcome }}' = 'success'
+          test '${{ steps.types.outcome }}' = 'success'
+          test '${{ steps.build.outcome }}' = 'success'
