@@ -3,6 +3,7 @@ import type { createAdminClient } from '@/lib/supabase/server'
 import { filterOutreachAudience, type OutreachFilter } from './outreach'
 import { templateEligible, type OutreachTemplate } from './outreach-templates'
 import { loadOutreachAudience, outreachLinks, renderOutreach } from './outreach-server'
+import { awardCouponDigest } from './coupon-server'
 
 type Db = ReturnType<typeof createAdminClient>
 type Job = { id: string; campaign_id: string; awardee_id: string; email: string; lease_token: string }
@@ -30,6 +31,16 @@ export async function processOutreachJobs(db: Db, deps: { load?: typeof loadOutr
       if (!member || !member.name.trim() || member.name.trim() === 'Awardee' || member.email !== job.email || !contact?.token || recent || !templateEligible(member, campaign.template as OutreachTemplate) ||
         !filterOutreachAudience([member], campaign.audience_filter as OutreachFilter).length) {
         await finish('skipped', recent ? 'Contacted within the last three days.' : 'Payment, contact or audience eligibility changed.'); counts.skipped++; continue
+      }
+      const coupon = campaign.body.match(/\bAFL-[A-F0-9]{16}\b/i)?.[0]
+      if (coupon) {
+        const preview = await db.rpc('preview_award_coupon', { p_profile_id: member.profileId, p_code_digest: awardCouponDigest(coupon) })
+        if (preview.error) throw new Error('Could not verify the award coupon.')
+        if (preview.data !== true) {
+          await finish('skipped', 'The award coupon is no longer available.')
+          counts.skipped++
+          continue
+        }
       }
       const message = renderOutreach({ subject: campaign.subject, body: campaign.body }, member, contact.token)
       const stamp = new Date().toISOString()
