@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { awardPopupDay, awardPopupStorageKey, canOfferPhysicalAward, nextAwardPopupVisit, readAwardPopupVisit } from '@/lib/awards/popup'
+import { awardPopupDay, awardPopupStorageKey, canOfferPhysicalAward, nextAwardPopupVisit, readAwardCouponOffer, readAwardPopupVisit } from '@/lib/awards/popup'
+import { mapNotification } from '@/lib/member-hub-server'
 import type { AwardPaymentView } from '@/lib/awards/payment'
 
 const unpaid: AwardPaymentView = {
@@ -7,6 +8,22 @@ const unpaid: AwardPaymentView = {
   priceOptions: [{ currency: 'NGN', amountMinor: 2_500_000, display: '₦25,000' }],
   currentAttempt: null, confirmedPayment: null,
 }
+
+describe('award coupon announcement', () => {
+  const offer = { code: 'AFL-TEST20', expiresAt: '2026-11-16T22:59:00.000Z' }
+  const notice = { id: 'notice', category: 'admin', metadata: { award_coupon_offer: offer } }
+
+  it('carries the member’s coupon offer through to the popup until it expires', () => {
+    const notification = mapNotification(notice)
+    expect(readAwardCouponOffer(notification.awardCouponOffer, Date.parse(offer.expiresAt) - 1)).toEqual(offer)
+    expect(readAwardCouponOffer(notification.awardCouponOffer, Date.parse(offer.expiresAt))).toBeNull()
+  })
+
+  it('ignores malformed offers and metadata outside admin notices', () => {
+    expect(readAwardCouponOffer({ ...offer, expiresAt: 'tomorrow' }, 0)).toBeNull()
+    expect(mapNotification({ ...notice, category: 'general' }).awardCouponOffer).toBeUndefined()
+  })
+})
 
 describe('separate award popup visits', () => {
   it('shuffles the initial style and remembers it for the login', () => {
