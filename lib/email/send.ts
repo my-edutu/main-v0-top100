@@ -19,6 +19,7 @@ export type SendInput = {
   /** In-memory attachments only; callers cannot fetch files or arbitrary URLs. */
   attachments?: Array<{ filename: string; content: Buffer; contentType: string }>
   requireBrevoSmtp?: boolean
+  awardOutreach?: { unsubscribeUrl: string }
 }
 
 /**
@@ -26,18 +27,20 @@ export type SendInput = {
  * fail the underlying action, so the result is returned rather than raised.
  */
 export async function sendTransactionalEmail(input: SendInput): Promise<{ ok: boolean; reason?: string; delivery?: 'not_sent' | 'unknown' }> {
-  const smtpLogin = process.env.BREVO_SMTP_LOGIN?.trim()
-  const smtpKey = process.env.BREVO_SMTP_KEY
+  const smtpLogin = input.awardOutreach ? process.env.AWARD_OUTREACH_SMTP_USER?.trim() : process.env.BREVO_SMTP_LOGIN?.trim()
+  const smtpKey = input.awardOutreach ? process.env.AWARD_OUTREACH_SMTP_PASSWORD : process.env.BREVO_SMTP_KEY
+  if (input.awardOutreach && (!smtpLogin || !smtpKey || !process.env.AWARD_OUTREACH_SMTP_HOST))
+    return { ok: false, reason: 'Award outreach SMTP is not configured.', delivery: 'not_sent' }
   if (input.requireBrevoSmtp && (!smtpLogin || !smtpKey))
     return { ok: false, reason: 'Brevo SMTP is not configured.', delivery: 'not_sent' }
   if (smtpLogin && smtpKey) {
-    const port = Number(process.env.BREVO_SMTP_PORT || '587')
+    const port = Number(input.awardOutreach ? process.env.AWARD_OUTREACH_SMTP_PORT || '465' : process.env.BREVO_SMTP_PORT || '587')
     if (!Number.isInteger(port) || port < 1 || port > 65535) return { ok: false, reason: 'BREVO_SMTP_PORT is invalid.', delivery: 'not_sent' }
-    const senderEmail = process.env.BREVO_SENDER_EMAIL?.trim() || 'paul@top100afl.com'
-    const senderName = process.env.BREVO_SENDER_NAME ?? 'Top100 Africa Future Leaders'
+    const senderEmail = input.awardOutreach ? smtpLogin : process.env.BREVO_SENDER_EMAIL?.trim() || 'paul@top100afl.com'
+    const senderName = input.awardOutreach ? 'Gabriel from Top100 Africa Future Leaders' : process.env.BREVO_SENDER_NAME ?? 'Top100 Africa Future Leaders'
     try {
       const transporter = nodemailer.createTransport({
-        host: process.env.BREVO_SMTP_HOST || 'smtp-relay.brevo.com',
+        host: input.awardOutreach ? process.env.AWARD_OUTREACH_SMTP_HOST : process.env.BREVO_SMTP_HOST || 'smtp-relay.brevo.com',
         port,
         secure: port === 465,
         auth: { user: smtpLogin, pass: smtpKey },
@@ -49,6 +52,10 @@ export async function sendTransactionalEmail(input: SendInput): Promise<{ ok: bo
       })
       const sendResult = await transporter.sendMail({
         from: { name: senderName, address: senderEmail },
+        ...(input.awardOutreach ? {
+          replyTo: 'nigeriatop100@gmail.com',
+          headers: { 'List-Unsubscribe': `<${input.awardOutreach.unsubscribeUrl}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' },
+        } : {}),
         to: { name: input.toName, address: input.to },
         subject: input.subject,
         html: input.html,

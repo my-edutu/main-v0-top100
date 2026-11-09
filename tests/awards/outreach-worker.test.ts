@@ -19,6 +19,12 @@ it('skips a member who paid after the campaign was queued', async () => {
   expect(await processOutreachJobs(f.db as never, { load: f.load, send: f.send })).toMatchObject({ skipped: 1, sent: 0 })
   expect(f.send).not.toHaveBeenCalled()
 })
+it('does not send an email without a recipient name', async () => {
+  const f = setup()
+  f.load.mockResolvedValue({ setup: true, members: [{ ...member, name: 'Awardee' }], contacts: [{ awardee_id: 'a', token: 'token' }] })
+  expect(await processOutreachJobs(f.db as never, { load: f.load, send: f.send })).toMatchObject({ skipped: 1, sent: 0 })
+  expect(f.send).not.toHaveBeenCalled()
+})
 it('holds an uncertain send rather than retrying it', async () => {
   const f = setup(); f.send.mockRejectedValue(new Error('Socket timed out after DATA'))
   expect(await processOutreachJobs(f.db as never, { load: f.load, send: f.send })).toMatchObject({ deliveryUnknown: 1 })
@@ -31,10 +37,12 @@ it('does not send after losing or expiring the worker lease', async () => {
   expect(f.send).not.toHaveBeenCalled()
 })
 it('uses stable message identity and skips suppressed or recently contacted members', async () => {
+  vi.stubEnv('AWARD_OUTREACH_SMTP_HOST', 'mail.test.top100afl.com')
   const f = setup()
   expect(await processOutreachJobs(f.db as never, { load: f.load, send: f.send })).toMatchObject({ sent: 1 })
-  expect(f.send).toHaveBeenCalledWith(expect.objectContaining({ to: 'amara@example.com', idempotencyKey: 'award-outreach/campaign/job', requireBrevoSmtp: true }))
+  expect(f.send).toHaveBeenCalledWith(expect.objectContaining({ to: 'amara@example.com', idempotencyKey: 'award-outreach/campaign/job', awardOutreach: { unsubscribeUrl: expect.stringContaining('/api/award-outreach/token/stop') } }))
   const g = setup(); g.load.mockResolvedValue({ setup: true, members: [{ ...member, suppressed: true }], contacts: [{ awardee_id: 'a', token: 'token' }] })
   expect(await processOutreachJobs(g.db as never, { load: g.load, send: g.send })).toMatchObject({ skipped: 1 })
   expect(g.send).not.toHaveBeenCalled()
+  vi.unstubAllEnvs()
 })

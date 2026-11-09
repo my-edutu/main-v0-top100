@@ -34,3 +34,28 @@ it('distinguishes a definite SMTP rejection from an uncertain transport timeout'
   smtp.send.mockRejectedValueOnce({ code: 'ETIMEDOUT' })
   expect(await sendTransactionalEmail(input)).toMatchObject({ ok: false, delivery: 'unknown' })
 })
+
+it('uses the dedicated award SMTP account and supplies the unsubscribe headers', async () => {
+  vi.stubEnv('AWARD_OUTREACH_SMTP_HOST', 'mail.test.top100afl.com')
+  vi.stubEnv('AWARD_OUTREACH_SMTP_PORT', '465')
+  vi.stubEnv('AWARD_OUTREACH_SMTP_USER', 'gabriel@top100afl.com')
+  vi.stubEnv('AWARD_OUTREACH_SMTP_PASSWORD', 'test-password')
+  const result = await sendTransactionalEmail({
+    ...input,
+    requireBrevoSmtp: false,
+    awardOutreach: { unsubscribeUrl: 'https://top100afl.com/api/award-outreach/test/stop' },
+  })
+  expect(result).toEqual({ ok: true })
+  expect(smtp.create.mock.calls[0][0]).toMatchObject({ host: 'mail.test.top100afl.com', port: 465, secure: true, auth: { user: 'gabriel@top100afl.com', pass: 'test-password' } })
+  expect(smtp.send.mock.calls[0][0]).toMatchObject({
+    from: { name: 'Gabriel from Top100 Africa Future Leaders', address: 'gabriel@top100afl.com' },
+    replyTo: 'nigeriatop100@gmail.com',
+    headers: { 'List-Unsubscribe': '<https://top100afl.com/api/award-outreach/test/stop>', 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' },
+  })
+})
+
+it('does not fall back to another mail provider when award SMTP is missing', async () => {
+  vi.stubEnv('AWARD_OUTREACH_SMTP_PASSWORD', '')
+  expect(await sendTransactionalEmail({ ...input, requireBrevoSmtp: false, awardOutreach: { unsubscribeUrl: 'https://top100afl.com/api/award-outreach/test/stop' } })).toMatchObject({ ok: false, delivery: 'not_sent' })
+  expect(smtp.send).not.toHaveBeenCalled()
+})

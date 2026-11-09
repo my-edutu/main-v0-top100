@@ -2,7 +2,7 @@ import { sendTransactionalEmail } from '@/lib/email/send'
 import type { createAdminClient } from '@/lib/supabase/server'
 import { filterOutreachAudience, type OutreachFilter } from './outreach'
 import { templateEligible, type OutreachTemplate } from './outreach-templates'
-import { loadOutreachAudience, renderOutreach } from './outreach-server'
+import { loadOutreachAudience, outreachLinks, renderOutreach } from './outreach-server'
 
 type Db = ReturnType<typeof createAdminClient>
 type Job = { id: string; campaign_id: string; awardee_id: string; email: string; lease_token: string }
@@ -27,7 +27,7 @@ export async function processOutreachJobs(db: Db, deps: { load?: typeof loadOutr
       const member = audience.members.find(m => m.awardeeIds.includes(job.awardee_id))
       const contact = audience.contacts.find(c => c.awardee_id === job.awardee_id)
       const recent = member?.lastContactedAt && Date.parse(member.lastContactedAt) > Date.now() - 3 * 86400000
-      if (!member || member.email !== job.email || !contact?.token || recent || !templateEligible(member, campaign.template as OutreachTemplate) ||
+      if (!member || !member.name.trim() || member.name.trim() === 'Awardee' || member.email !== job.email || !contact?.token || recent || !templateEligible(member, campaign.template as OutreachTemplate) ||
         !filterOutreachAudience([member], campaign.audience_filter as OutreachFilter).length) {
         await finish('skipped', recent ? 'Contacted within the last three days.' : 'Payment, contact or audience eligibility changed.'); counts.skipped++; continue
       }
@@ -47,7 +47,10 @@ export async function processOutreachJobs(db: Db, deps: { load?: typeof loadOutr
       if (!lease.data) { counts.skipped++; continue }
       startedSend = true
       const result = await (deps.send ?? sendTransactionalEmail)({ to: job.email, toName: member.name, ...message,
-        idempotencyKey: `award-outreach/${job.campaign_id}/${job.id}`, requireBrevoSmtp: true })
+        idempotencyKey: `award-outreach/${job.campaign_id}/${job.id}`,
+        ...(process.env.AWARD_OUTREACH_SMTP_HOST
+          ? { awardOutreach: { unsubscribeUrl: outreachLinks(member, contact.token).stopUrl.replace('/award-outreach/stop/', '/api/award-outreach/') + '/stop' } }
+          : { requireBrevoSmtp: true }) })
       if (!result.ok) {
         if (result.delivery === 'not_sent') {
           await finish('failed', 'SMTP explicitly rejected the message before acceptance. No automatic retry.'); counts.failed++; continue
