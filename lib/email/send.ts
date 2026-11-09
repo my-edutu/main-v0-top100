@@ -1,6 +1,6 @@
-// Transactional mail prefers Brevo SMTP, then a configured Resend sender, then
-// the Brevo API. A provider failure is returned without trying another
-// provider so an accepted message is not accidentally sent twice.
+// Transactional mail uses the configured Top100 Stalwart transport. Older
+// deployments can still use their existing provider configuration. A send
+// failure never retries through a second provider.
 // `lib/brevo.ts` is a 'use server' module for the newsletter contact API.
 
 import { createHash } from 'node:crypto'
@@ -18,6 +18,7 @@ export type SendInput = {
   idempotencyKey?: string
   /** In-memory attachments only; callers cannot fetch files or arbitrary URLs. */
   attachments?: Array<{ filename: string; content: Buffer; contentType: string }>
+  /** Legacy option name. Requires a configured SMTP transport. */
   requireBrevoSmtp?: boolean
   awardOutreach?: { unsubscribeUrl: string }
 }
@@ -27,22 +28,29 @@ export type SendInput = {
  * fail the underlying action, so the result is returned rather than raised.
  */
 export async function sendTransactionalEmail(input: SendInput): Promise<{ ok: boolean; reason?: string; delivery?: 'not_sent' | 'unknown'; queueId?: string }> {
-  const smtpLogin = input.awardOutreach ? process.env.AWARD_OUTREACH_SMTP_USER?.trim() : process.env.BREVO_SMTP_LOGIN?.trim()
-  const smtpKey = input.awardOutreach ? process.env.AWARD_OUTREACH_SMTP_PASSWORD : process.env.BREVO_SMTP_KEY
-  if (input.awardOutreach && (!smtpLogin || !smtpKey || !process.env.AWARD_OUTREACH_SMTP_HOST))
-    return { ok: false, reason: 'Award outreach SMTP is not configured.', delivery: 'not_sent' }
-  if (input.requireBrevoSmtp && (!smtpLogin || !smtpKey))
-    return { ok: false, reason: 'Brevo SMTP is not configured.', delivery: 'not_sent' }
+  const stalwartHost = process.env.AWARD_OUTREACH_SMTP_HOST?.trim()
+  const useStalwart = Boolean(input.awardOutreach || stalwartHost)
+  const provider = useStalwart ? 'Top100 SMTP' : 'Brevo SMTP'
+  const smtpLogin = useStalwart ? process.env.AWARD_OUTREACH_SMTP_USER?.trim() : process.env.BREVO_SMTP_LOGIN?.trim()
+  const smtpKey = useStalwart ? process.env.AWARD_OUTREACH_SMTP_PASSWORD : process.env.BREVO_SMTP_KEY
+  if ((useStalwart && !stalwartHost) || ((useStalwart || input.requireBrevoSmtp) && (!smtpLogin || !smtpKey))) {
+    return { ok: false, reason: `${provider} is not configured.`, delivery: 'not_sent' }
+  }
   if (smtpLogin && smtpKey) {
-    const port = Number(input.awardOutreach ? process.env.AWARD_OUTREACH_SMTP_PORT || '465' : process.env.BREVO_SMTP_PORT || '587')
-    if (!Number.isInteger(port) || port < 1 || port > 65535) return { ok: false, reason: 'BREVO_SMTP_PORT is invalid.', delivery: 'not_sent' }
-    const senderEmail = input.awardOutreach ? smtpLogin : process.env.BREVO_SENDER_EMAIL?.trim() || 'paul@top100afl.com'
-    const senderName = input.awardOutreach ? 'Gabriel from Top100 Africa Future Leaders' : process.env.BREVO_SENDER_NAME ?? 'Top100 Africa Future Leaders'
+    const port = Number(useStalwart ? process.env.AWARD_OUTREACH_SMTP_PORT || '465' : process.env.BREVO_SMTP_PORT || '587')
+    if (!Number.isInteger(port) || port < 1 || port > 65535) {
+      return { ok: false, reason: `${provider} port is invalid.`, delivery: 'not_sent' }
+    }
+    const senderEmail = useStalwart ? smtpLogin : process.env.BREVO_SENDER_EMAIL?.trim() || 'paul@top100afl.com'
+    const senderName = input.awardOutreach
+      ? 'Gabriel from Top100 Africa Future Leaders'
+      : process.env.BREVO_SENDER_NAME ?? 'Top100 Africa Future Leaders'
     try {
       const transporter = nodemailer.createTransport({
-        host: input.awardOutreach ? process.env.AWARD_OUTREACH_SMTP_HOST : process.env.BREVO_SMTP_HOST || 'smtp-relay.brevo.com',
+        host: useStalwart ? stalwartHost : process.env.BREVO_SMTP_HOST || 'smtp-relay.brevo.com',
         port,
         secure: port === 465,
+        requireTLS: useStalwart && port !== 465,
         auth: { user: smtpLogin, pass: smtpKey },
         connectionTimeout: 10_000,
         greetingTimeout: 10_000,
@@ -76,8 +84,8 @@ export async function sendTransactionalEmail(input: SendInput): Promise<{ ok: bo
           ok: false,
           delivery: sendResult.rejected.length ? 'not_sent' : 'unknown',
           reason: sendResult.rejected.length
-            ? 'Brevo SMTP rejected the recipient.'
-            : 'Brevo SMTP did not confirm acceptance of the recipient.',
+            ? `${provider} rejected the recipient.`
+            : `${provider} did not confirm acceptance of the recipient.`,
         }
       }
       const match = input.awardOutreach && typeof sendResult.response === 'string' ? sendResult.response.match(/Message queued with id ([0-9a-f]+)\.?/i) : null
@@ -93,7 +101,7 @@ export async function sendTransactionalEmail(input: SendInput): Promise<{ ok: bo
       return {
         ok: false,
         delivery: responseCode && responseCode >= 400 && responseCode <= 599 ? 'not_sent' : 'unknown',
-        reason: `Brevo SMTP could not deliver the message${details ? ` (${details})` : ''}.`,
+        reason: `${provider} could not deliver the message${details ? ` (${details})` : ''}.`,
       }
     }
   }

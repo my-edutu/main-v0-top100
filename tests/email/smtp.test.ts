@@ -66,3 +66,19 @@ it('returns the Stalwart queue ID for later delivery correlation', async () => {
   const result = await sendTransactionalEmail({ ...input, requireBrevoSmtp: false, awardOutreach: { unsubscribeUrl: 'https://top100afl.com/api/award-outreach/test/stop' } })
   expect(result).toEqual({ ok: true, queueId: BigInt('0x4b69eda91601400').toString() })
 })
+
+it('uses Stalwart for transactional mail even when legacy SMTP is configured', async () => {
+  vi.stubEnv('AWARD_OUTREACH_SMTP_HOST', 'mail.test.top100afl.com')
+  vi.stubEnv('AWARD_OUTREACH_SMTP_PORT', '465')
+  vi.stubEnv('AWARD_OUTREACH_SMTP_USER', 'gabriel@top100afl.com')
+  vi.stubEnv('AWARD_OUTREACH_SMTP_PASSWORD', 'test-password')
+  vi.stubEnv('BREVO_SENDER_EMAIL', 'other@top100afl.com')
+  expect(await sendTransactionalEmail(input)).toEqual({ ok: true })
+  expect(smtp.create).toHaveBeenCalledWith(expect.objectContaining({
+    host: 'mail.test.top100afl.com', port: 465, secure: true,
+  }))
+  expect(smtp.send).toHaveBeenCalledWith(expect.objectContaining({
+    from: { name: 'Top100 Africa Future Leaders', address: 'gabriel@top100afl.com' },
+  }))
+  expect(smtp.send.mock.calls[0][0]).not.toHaveProperty('headers')
+})
