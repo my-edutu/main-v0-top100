@@ -26,7 +26,7 @@ export type SendInput = {
  * Never throws. Callers are notification paths where an email failure must not
  * fail the underlying action, so the result is returned rather than raised.
  */
-export async function sendTransactionalEmail(input: SendInput): Promise<{ ok: boolean; reason?: string; delivery?: 'not_sent' | 'unknown' }> {
+export async function sendTransactionalEmail(input: SendInput): Promise<{ ok: boolean; reason?: string; delivery?: 'not_sent' | 'unknown'; queueId?: string }> {
   const smtpLogin = input.awardOutreach ? process.env.AWARD_OUTREACH_SMTP_USER?.trim() : process.env.BREVO_SMTP_LOGIN?.trim()
   const smtpKey = input.awardOutreach ? process.env.AWARD_OUTREACH_SMTP_PASSWORD : process.env.BREVO_SMTP_KEY
   if (input.awardOutreach && (!smtpLogin || !smtpKey || !process.env.AWARD_OUTREACH_SMTP_HOST))
@@ -80,7 +80,9 @@ export async function sendTransactionalEmail(input: SendInput): Promise<{ ok: bo
             : 'Brevo SMTP did not confirm acceptance of the recipient.',
         }
       }
-      return { ok: true }
+      const match = input.awardOutreach && typeof sendResult.response === 'string' ? sendResult.response.match(/Message queued with id ([0-9a-f]+)\.?/i) : null
+      const queueId = match ? BigInt(`0x${match[1]}`).toString() : undefined
+      return queueId ? { ok: true, queueId } : { ok: true }
     } catch (error) {
       const smtpError = error && typeof error === 'object'
         ? error as { code?: unknown; responseCode?: unknown }

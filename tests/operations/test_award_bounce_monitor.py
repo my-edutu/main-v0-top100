@@ -36,6 +36,18 @@ class BounceMonitorTests(unittest.TestCase):
                 with self.assertRaises(subprocess.CalledProcessError): monitor.main()
                 self.assertFalse(cursor.exists())
 
+    def test_correlates_recipient_server_acceptance_by_queue_id(self):
+        line = '2026-11-09T10:54:23Z INFO Message delivered (delivery.delivered) queueId = 123, queueName = "remote", from = "gabriel@top100afl.com", to = ["user@example.org"], to = "user@example.org", code = 250'
+        self.assertEqual(monitor.parse_listmonk_event(line), ('delivered', '123', 'user@example.org'))
+        sql = monitor.sql_for_listmonk_event(('delivered', '123', 'user@example.org'))
+        self.assertIn("stalwart_queue_id = '123'", sql)
+        self.assertIn("lower(trim(email)) = 'user@example.org'", sql)
+
+    def test_permanent_failure_is_correlated_to_the_same_queue(self):
+        line = '2026-11-09T10:54:23Z INFO (delivery.dsn-perm-fail) queueId = 456, from = "gabriel@top100afl.com", to = ["user@example.org"], to = "user@example.org", code = 550'
+        self.assertEqual(monitor.parse_listmonk_event(line), ('bounced', '456', 'user@example.org'))
+        self.assertIn("stalwart_queue_id = '456'", monitor.sql_for_listmonk_event(('bounced', '456', 'user@example.org')))
+
     def test_quote_sql_value(self):
         self.assertEqual(monitor.sql_literal("a'b"), "'a''b'")
 

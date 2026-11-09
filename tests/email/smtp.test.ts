@@ -59,3 +59,10 @@ it('does not fall back to another mail provider when award SMTP is missing', asy
   expect(await sendTransactionalEmail({ ...input, requireBrevoSmtp: false, awardOutreach: { unsubscribeUrl: 'https://top100afl.com/api/award-outreach/test/stop' } })).toMatchObject({ ok: false, delivery: 'not_sent' })
   expect(smtp.send).not.toHaveBeenCalled()
 })
+it('returns the Stalwart queue ID for later delivery correlation', async () => {
+  vi.stubEnv('AWARD_OUTREACH_SMTP_HOST', 'mail.test.top100afl.com'); vi.stubEnv('AWARD_OUTREACH_SMTP_PORT', '465')
+  vi.stubEnv('AWARD_OUTREACH_SMTP_USER', 'gabriel@top100afl.com'); vi.stubEnv('AWARD_OUTREACH_SMTP_PASSWORD', 'test-password')
+  smtp.send.mockResolvedValue({ accepted: ['member@example.com'], rejected: [], response: '250 2.0.0 Message queued with id 4b69eda91601400.' })
+  const result = await sendTransactionalEmail({ ...input, requireBrevoSmtp: false, awardOutreach: { unsubscribeUrl: 'https://top100afl.com/api/award-outreach/test/stop' } })
+  expect(result).toEqual({ ok: true, queueId: BigInt('0x4b69eda91601400').toString() })
+})

@@ -19,9 +19,7 @@ CURSOR = Path('/var/lib/top100-award-outreach/bounce-cursor')
 ADDRESS = re.compile(r"^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9.-]+$")
 
 
-def parse_permanent_failure(line):
-    if '(delivery.dsn-perm-fail)' not in line:
-        return None
+def parse_delivery_fields(line):
     stamp = re.match(r'^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)\s', line)
     queue = re.search(r'\bqueueId = (\d+)(?:,|\s|$)', line)
     sender = re.search(r'\bfrom = "([^"\r\n]+)"', line)
@@ -33,6 +31,23 @@ def parse_permanent_failure(line):
     if sender.group(1).lower() != SENDER or recipients.group(1).lower() != address or not ADDRESS.fullmatch(address):
         return None
     return queue.group(1), address, stamp.group(1)
+
+
+def parse_permanent_failure(line):
+    if '(delivery.dsn-perm-fail)' not in line:
+        return None
+    return parse_delivery_fields(line)
+
+
+def parse_listmonk_event(line):
+    if '(delivery.delivered)' in line:
+        kind = 'delivered'
+    elif '(delivery.dsn-perm-fail)' in line:
+        kind = 'bounced'
+    else:
+        return None
+    fields = parse_delivery_fields(line)
+    return (kind, fields[0], fields[1]) if fields else None
 
 
 def sql_literal(value):
@@ -58,6 +73,24 @@ WHERE NOT contact.suppressed AND contact.awardee_id IN (
 );'''.format(note=note, address=sql_literal(address), stamp=sql_literal(timestamp))
 
 
+def sql_for_listmonk_event(event):
+    kind, queue, address = event
+    if kind == 'delivered':
+        return """UPDATE public.top100_email_recipients
+SET status = 'delivered', outcome = 'Recipient mail server accepted the message.', updated_at = now()
+WHERE stalwart_queue_id = {queue} AND lower(trim(email)) = {address} AND status = 'accepted';""".format(queue=sql_literal(queue), address=sql_literal(address))
+    if kind == 'bounced':
+        return """WITH bounced AS (
+  UPDATE public.top100_email_recipients
+  SET status = 'bounced', outcome = 'Stalwart reported a permanent delivery failure.', updated_at = now()
+  WHERE stalwart_queue_id = {queue} AND lower(trim(email)) = {address} AND status IN ('accepted', 'delivered')
+  RETURNING awardee_id
+)
+UPDATE public.award_outreach_contacts AS contact SET suppressed = true, next_follow_up_at = null, updated_at = now()
+WHERE contact.awardee_id IN (SELECT awardee_id FROM bounced) AND NOT contact.suppressed;""".format(queue=sql_literal(queue), address=sql_literal(address))
+    raise ValueError('Unknown delivery event')
+
+
 def main():
     now = dt.datetime.now(dt.timezone.utc)
     try:
@@ -66,18 +99,19 @@ def main():
             raise ValueError('Invalid cursor time')
     except FileNotFoundError:
         start = now - dt.timedelta(days=1)
-    since = (start - dt.timedelta(seconds=10)).isoformat()
+    since = (start - dt.timedelta(minutes=15)).isoformat()
     result = subprocess.run(['docker', 'logs', '--since', since, MAIL_CONTAINER], capture_output=True, text=True, check=True)
     lines = result.stdout.splitlines() + result.stderr.splitlines()
     events = list(dict.fromkeys(event for line in lines if (event := parse_permanent_failure(line))))
-    if events:
-        sql = 'BEGIN;\n' + '\n'.join(sql_for_event(event) for event in events) + '\nCOMMIT;\n'
+    delivery_events = list(dict.fromkeys(event for line in lines if (event := parse_listmonk_event(line))))
+    if events or delivery_events:
+        sql = 'BEGIN;\n' + '\n'.join(sql_for_event(event) for event in events) + '\n' + '\n'.join(sql_for_listmonk_event(event) for event in delivery_events) + '\nCOMMIT;\n'
         subprocess.run(['docker', 'exec', '-i', DB_CONTAINER, 'psql', '-X', '-q', '-v', 'ON_ERROR_STOP=1', '-U', 'postgres', '-d', 'postgres'], input=sql, text=True, check=True)
     CURSOR.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
     tmp = CURSOR.with_suffix('.tmp')
     tmp.write_text(now.isoformat())
     os.replace(tmp, CURSOR)
-    print('Checked permanent-failure events:', len(events))
+    print('Checked permanent-failure events:', len(events), '; correlated delivery events:', len(delivery_events))
 
 
 if __name__ == '__main__':
