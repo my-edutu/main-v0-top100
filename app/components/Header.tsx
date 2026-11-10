@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import Image from "@/components/safe-image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { ChevronDown, Menu } from "lucide-react"
@@ -23,6 +22,7 @@ import {
 } from "@/components/ui/sheet"
 import { PRIMARY_NAV_ITEMS } from "@/lib/site-navigation"
 import { cn } from "@/lib/utils"
+import AfricaFutureLeadersLogo from "./AfricaFutureLeadersLogo"
 
 type NavItem = {
   label: string
@@ -272,17 +272,8 @@ export default function Header() {
       <div className="absolute inset-x-0 top-0 h-[2px] bg-white/20" />
       <div className="container grid h-[4.5rem] grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
         <div className="flex min-w-0 items-center">
-          <Link href="/" className="flex shrink-0 items-center gap-2">
-            <div className="h-12 w-[9.25rem] sm:w-[10.75rem]">
-              <Image
-                src="/Top100 Africa Future leaders Logo .png"
-                alt="Top100 Africa Future Leaders Logo"
-                width={180}
-                height={60}
-                className="h-full w-full object-contain"
-                priority
-              />
-            </div>
+          <Link href="/" aria-label="Africa Future Leaders home" className="flex min-h-12 shrink-0 items-center">
+            <AfricaFutureLeadersLogo />
           </Link>
 
           <nav className="hidden min-w-0 flex-1 items-center justify-center gap-1 lg:flex">
@@ -315,15 +306,7 @@ export default function Header() {
                 </SheetDescription>
                 <div className="flex h-full flex-col">
                   <div className="border-b border-orange-100 bg-gradient-to-r from-orange-50 to-white px-5 py-5">
-                    <div className="h-12 w-44">
-                      <Image
-                        src="/Top100 Africa Future leaders Logo .png"
-                        alt="Top100 Africa Future Leaders Logo"
-                        width={180}
-                        height={60}
-                        className="h-full w-full object-contain"
-                      />
-                    </div>
+                    <AfricaFutureLeadersLogo />
                   </div>
 
                   <div className="flex-1 overflow-y-auto px-3 py-4">

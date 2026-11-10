@@ -17,19 +17,20 @@ export default function PartnershipHeroSection({ showTalentPipelines = false }: 
               : 'Work with us to run a workshop, fund a scholarship or help young African leaders find a mentor.'}
           </p>
           <div className={styles.actions}>
-            {showTalentPipelines && (
+            {showTalentPipelines ? (
               <Link href="/for-organisations#discover" className={styles.action}>
                 Discover pipelines <span><ArrowRight size={16} aria-hidden="true" /></span>
               </Link>
+            ) : (
+              <Link
+                href={partnershipFormUrl || '/partnership'}
+                target={partnershipFormUrl ? '_blank' : undefined}
+                rel={partnershipFormUrl ? 'noreferrer' : undefined}
+                className={styles.action}
+              >
+                Partner with us <ArrowUpRight size={16} aria-hidden="true" />
+              </Link>
             )}
-            <Link
-              href={partnershipFormUrl || '/partnership'}
-              target={partnershipFormUrl ? '_blank' : undefined}
-              rel={partnershipFormUrl ? 'noreferrer' : undefined}
-              className={showTalentPipelines ? styles.textLink : styles.action}
-            >
-              Partner with us <ArrowUpRight size={16} aria-hidden="true" />
-            </Link>
           </div>
         </div>
       </div>

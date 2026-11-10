@@ -99,6 +99,12 @@ export const PAGE_OG: Record<string, OgCard> = {
     subtitle: "Leaders, stories, and moments creating lasting change across Africa.",
     hero: "/IMG_0679.jpg",
   },
+  "/impacts/empowher": {
+    eyebrow: "EmpowHER case study",
+    title: "44 women chosen for EmpowHER",
+    subtitle: "How SWIS Africa and Top100 helped students build skills and share 10 projects in 2026.",
+    hero: "/images/empowher-showcase.jpg",
+  },
   "/impactseries": {
     eyebrow: "Top100 Impact Series",
     title: "Impact Series Interviews with Africa's Future Leaders",

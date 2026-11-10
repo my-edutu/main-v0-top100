@@ -2,10 +2,9 @@ import { createElement } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it } from "vitest"
 
-import ImpactSection from "@/app/components/ImpactSection"
+import ImpactSection, { ImpactMetricCard } from "@/app/components/ImpactSection"
 import RotatingVisionSection from "@/app/components/RotatingVisionSection"
 import Counter from "@/components/Counter"
-import { IMPACT_STATS } from "@/lib/impact-content"
 
 describe("hydration-stable motion", () => {
   it("server-renders the vision words statically without mocking a motion preference", () => {
@@ -35,23 +34,13 @@ describe("hydration-stable motion", () => {
     expect(markup).not.toContain("opacity:0")
   })
 
-  it("mounts the normal-motion card variant with a real entrance state", async () => {
-    const impactModule = await import("@/app/components/ImpactSection")
-    const AnimatedCard = (
-      impactModule as typeof impactModule & {
-        ImpactMetricCard?: React.ComponentType<{
-          stat: (typeof IMPACT_STATS)[number]
-          index: number
-          animated: boolean
-        }>
-      }
-    ).ImpactMetricCard
-
-    expect(AnimatedCard).toBeTypeOf("function")
-    if (!AnimatedCard) return
-
+  it("mounts the normal-motion card variant with a real entrance state", () => {
     const markup = renderToStaticMarkup(
-      createElement(AnimatedCard, { stat: IMPACT_STATS[0], index: 0, animated: true }),
+      createElement(ImpactMetricCard, {
+        stat: { key: "countries", label: "Countries", description: "Across our global network", value: 101, suffix: "" },
+        index: 0,
+        animated: true,
+      }),
     )
 
     expect(markup).toContain("opacity:0")

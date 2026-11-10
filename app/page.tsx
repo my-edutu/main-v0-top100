@@ -1,6 +1,4 @@
 import Link from "next/link"
-import Image from "@/components/safe-image"
-import { ArrowRight } from "lucide-react"
 import type { Metadata } from "next"
 
 import { Button } from "@/components/ui/button"
@@ -9,6 +7,8 @@ import { getHomepageAnnouncements, getHomepageEvents } from "@/lib/homepage-feed
 import { getFeaturedSpeakers } from "@/lib/speakers"
 
 import HomePageHeroSection from "./components/HomePageHeroSection"
+import HomePartnersSection from "./components/HomePartnersSection"
+import HomeProject100Section from "./components/HomeProject100Section"
 import HallOfFamePreview from "./components/HallOfFamePreview"
 import HomeFeaturedAwardeesSection from "./components/HomeFeaturedAwardeesSection"
 import BlogSection from "./components/BlogSection"
@@ -88,18 +88,22 @@ export default async function HomePage() {
     getHomepageEvents(),
     getHomepageAnnouncements(),
   ])
+  const showTalentDiscovery = talentDiscoveryEnabled()
+  const hallOfFame = <HallOfFamePreview speakers={getFeaturedSpeakers()} />
 
   return (
     <div className="bg-background text-foreground">
       <div className="flex flex-col pb-16 [--section-gap:clamp(1.5rem,5vw,2.5rem)] sm:[--section-gap:clamp(1.75rem,4vw,3rem)] lg:[--section-gap:clamp(2rem,3vw,3.5rem)] xl:[--section-gap:clamp(2rem,2vw,4rem)] gap-[var(--section-gap)]">
         <HomePageHeroSection />
 
-        <HallOfFamePreview speakers={getFeaturedSpeakers()} />
+        <HomePartnersSection />
 
-        <section className="py-6">
+        {showTalentDiscovery ? <TalentDiscoveryHomeSection /> : hallOfFame}
+
+        <section id="about-the-movement" aria-labelledby="about-the-movement-title" className="scroll-mt-24 py-6">
           <div className="container space-y-6">
             <div className="max-w-3xl mx-auto text-center space-y-4">
-              <h2 className="text-2xl sm:text-3xl md:text-[2rem] font-semibold font-sans">About the movement</h2>
+              <h2 id="about-the-movement-title" className="text-2xl sm:text-3xl md:text-[2rem] font-semibold font-sans">About the movement</h2>
               <div className="space-y-4 text-lg sm:text-xl text-slate-900 font-sans leading-relaxed tracking-wide">
                 <p>
                   We celebrate Africa's high-achieving youth leaders — from first-class graduates to innovators, changemakers, and student leaders — who are redefining what leadership looks like across the continent. From Lagos to Kigali, our awardees turn bold ideas into movements that uplift communities and create opportunities for their peers.
@@ -115,50 +119,10 @@ export default async function HomePage() {
         </section>
 
         <HomeFeaturedAwardeesSection />
-        {talentDiscoveryEnabled() && <TalentDiscoveryHomeSection />}
+        <HomeProject100Section />
+        {showTalentDiscovery && hallOfFame}
 
         <ImpactSection />
-
-
-        <section className="py-6">
-          <div className="container space-y-6 sm:space-y-8">
-            <div className="text-center">
-              <h2 className="text-2xl sm:text-3xl md:text-[2rem] font-semibold font-sans">Our Partners</h2>
-              <p className="text-sm sm:text-base md:text-lg text-slate-900 mt-2 font-sans leading-relaxed tracking-wide">
-                These partners amplify our mission, unlocking opportunities and resources for Africa's boldest innovators.
-              </p>
-            </div>
-            <div className="grid grid-cols-3 gap-3 sm:gap-6">
-              {[
-                { name: "One Young World West & Central Africa", logo: "/3.png", alt: "One Young World West and Central Africa logo" },
-                { name: "ALX Nigeria", logo: "/7.png", alt: "ALX Nigeria logo" },
-                { name: "Learning Planet Institute", logo: "/6.png", alt: "Learning Planet Institute logo" },
-              ].map((partner, index) => (
-                <div
-                  key={index}
-                  className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-2xl border border-border/60 bg-card shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
-                >
-                  <div className="w-full h-16 sm:h-24 flex items-center justify-center mb-2 sm:mb-3">
-                    <Image
-                      src={partner.logo}
-                      alt={partner.alt}
-                      width={100}
-                      height={40}
-                      className="max-h-full max-w-full object-contain"
-                      priority={index < 2} // Prioritize loading of first two sponsors
-                    />
-                  </div>
-                  <p className={`text-center ${partner.name === "One Young World West & Central Africa" ? "text-xs" : "text-sm"} font-medium font-sans leading-relaxed tracking-wide`}>{partner.name}</p>
-                </div>
-              ))}
-            </div>
-            <div className="flex justify-center pt-2">
-              <Button asChild className="rounded-full bg-slate-950 px-6 text-[#fff] hover:bg-orange-600">
-                <Link href="/partnership">Partner with us <ArrowRight className="ml-2 h-4 w-4" /></Link>
-              </Button>
-            </div>
-          </div>
-        </section>
 
         <RotatingVisionSection images={VISION_IMAGES} />
 

@@ -7,6 +7,7 @@ import { useState } from "react"
 
 type ImpactSeriesSectionProps = {
   stacked?: boolean
+  light?: boolean
   videos?: readonly {
     title: string
     image: string
@@ -40,7 +41,7 @@ const defaultVideos = [
   },
 ] as const
 
-export default function ImpactSeriesSection({ videos = defaultVideos, stacked = false }: ImpactSeriesSectionProps) {
+export default function ImpactSeriesSection({ videos = defaultVideos, stacked = false, light = false }: ImpactSeriesSectionProps) {
   const [activeVideo, setActiveVideo] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(0)
   const pageSize = 3
@@ -55,17 +56,17 @@ export default function ImpactSeriesSection({ videos = defaultVideos, stacked = 
     : pageVideos
 
   return (
-    <section className={stacked ? "relative overflow-hidden bg-white py-14 text-slate-950 sm:py-20" : "impact-series-dark relative overflow-hidden bg-[#10151f] py-16 text-white sm:py-20"}>
-      {!stacked && <>
+    <section className={stacked ? "relative overflow-hidden bg-[#fff] py-12 text-slate-950 sm:py-20" : light ? "relative overflow-hidden bg-[#fff9e8] py-12 text-slate-950 sm:py-20" : "impact-series-dark relative overflow-hidden bg-[#10151f] py-16 text-white sm:py-20"}>
+      {!stacked && !light && <>
         <div aria-hidden="true" className="pointer-events-none absolute -left-32 top-10 h-72 w-72 rounded-full bg-orange-700/20 blur-3xl" />
         <div aria-hidden="true" className="pointer-events-none absolute -right-24 bottom-0 h-80 w-80 rounded-full bg-amber-300/10 blur-3xl" />
       </>}
       <div className="container relative space-y-8">
         {!stacked && <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-2xl space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-orange-300">Impact series</p>
-            <h2 className="text-3xl font-semibold tracking-tight !text-white sm:text-4xl">Interviews with Leaders Making Impact</h2>
-            <p className="max-w-xl text-sm leading-7 text-white/70 sm:text-base">
+            <p className={`text-xs font-semibold uppercase tracking-[0.24em] ${light ? "text-orange-700" : "text-orange-300"}`}>Impact series</p>
+            <h2 className={`text-3xl font-semibold tracking-tight sm:text-4xl ${light ? "text-slate-950" : "!text-white"}`}>Interviews with Leaders Making Impact</h2>
+            <p className={`max-w-xl text-sm leading-7 sm:text-base ${light ? "text-slate-600" : "text-white/70"}`}>
               Meet the people, projects, and conversations shaping a more ambitious future for Africa.
             </p>
           </div>
@@ -74,7 +75,7 @@ export default function ImpactSeriesSection({ videos = defaultVideos, stacked = 
         <div className={stacked ? 'grid grid-cols-1 gap-10 md:gap-14' : '-mx-1 flex snap-x snap-mandatory gap-4 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:grid-cols-3 md:gap-8 md:overflow-visible md:px-0 md:pb-0'}>
           {visibleVideos.map((video, index) => {
             const card = (
-              <article className={stacked ? "group relative aspect-video w-full overflow-hidden rounded-xl bg-slate-100 ring-1 ring-slate-200" : "group relative aspect-[16/10] w-full overflow-hidden rounded-2xl bg-white/5"}>
+              <article className={stacked ? "group relative aspect-video w-full overflow-hidden rounded-xl bg-slate-100 ring-1 ring-slate-200" : `group relative aspect-[16/10] w-full overflow-hidden rounded-2xl ${light ? "bg-slate-100" : "bg-white/5"}`}>
                 {activeVideo === video.href ? (
                   <iframe
                     className="absolute inset-0 h-full w-full"
@@ -89,7 +90,7 @@ export default function ImpactSeriesSection({ videos = defaultVideos, stacked = 
                       src={video.image}
                       alt=""
                       fill
-                      sizes={stacked ? "(max-width: 768px) 100vw, 768px" : "(max-width: 768px) 86vw, 50vw"}
+                      sizes={stacked ? "(max-width: 768px) 100vw, 768px" : "(max-width: 767px) 86vw, 33vw"}
                       priority={index === 0}
                       className="object-cover transition duration-700 group-hover:scale-105"
                     />
@@ -139,20 +140,20 @@ export default function ImpactSeriesSection({ videos = defaultVideos, stacked = 
             }
 
             return (
-              <div key={video.title} className="space-y-3">
+              <div key={video.title} className="w-[86vw] min-w-0 shrink-0 snap-start space-y-3 md:w-auto">
                 {activeVideo === video.href ? <div>{card}</div> : (
                   <button
                     type="button"
-                    className="block w-full min-w-[86vw] snap-start text-left md:min-w-0"
+                    className="block w-full text-left"
                     onClick={() => video.href && setActiveVideo(video.href)}
                     aria-label={`Play ${video.title}`}
                   >
                     {card}
                   </button>
                 )}
-                <div className="px-1 text-white">
-                  <h3 className="line-clamp-2 text-base font-semibold leading-tight text-white sm:text-lg">{video.title}</h3>
-                  {video.author ? <p className="mt-1 text-xs text-white">Interview with {video.author}</p> : null}
+                <div className="px-1">
+                  <h3 className={`line-clamp-2 text-base font-semibold leading-tight sm:text-lg ${light ? "text-slate-950" : "text-white"}`}>{video.title}</h3>
+                  {video.author ? <p className={`mt-1 text-xs ${light ? "text-slate-600" : "text-white"}`}>Interview with {video.author}</p> : null}
                 </div>
               </div>
             )
@@ -177,7 +178,7 @@ export default function ImpactSeriesSection({ videos = defaultVideos, stacked = 
         )}
 
         {!stacked && <div className="-mt-1 flex items-center justify-start gap-4 pt-0">
-          <Link href="/impactseries" className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full bg-white px-5 text-sm font-semibold text-slate-950 transition hover:bg-orange-300">
+          <Link href="/impactseries" className={`inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full px-5 text-sm font-semibold transition ${light ? "bg-orange-700 text-[#fff] hover:bg-orange-800" : "bg-white text-slate-950 hover:bg-orange-300"}`}>
             View more impact
             <ArrowRight className="size-4" aria-hidden="true" />
           </Link>

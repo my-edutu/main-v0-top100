@@ -22,6 +22,60 @@ export interface BlogPost {
 
 export const blogPosts: BlogPost[] = [
   {
+    id: "from-skills-to-paid-work",
+    slug: "from-skills-to-paid-work",
+    title: "From skills to paid work: how Top100 helps young people progress",
+    author: "Top100 Africa Future Leaders",
+    excerpt:
+      "How the Top100 community, mentors and Emerging Talent platform can help young people with fewer opportunities build skills, meet employers and stay in paid work.",
+    content: [
+      {
+        type: "paragraph",
+        text: "A young person can have the skills for a job and still struggle to get an interview. They may have few people to ask for advice, little access to paid work experience or no way to show what they can do. Top100’s programme is designed to help young people who face those barriers find paid work and grow once they’re in it.",
+      },
+      {
+        type: "heading",
+        text: "Build skills and show your work",
+      },
+      {
+        type: "paragraph",
+        text: "The Top100 community gives awardees a place to ask questions, share job leads and get feedback from peers. A graduate might use that feedback to improve a CV, practise an interview or turn a school or community project into a work sample. We’re bringing mentors on board to help awardees set career goals and work through decisions as they move into a new role.",
+      },
+      {
+        type: "heading",
+        text: "Meet employers with real opportunities",
+      },
+      {
+        type: "paragraph",
+        text: "We’re building the Emerging Talent platform so awardees can choose to share their skills, projects and career interests. Employers can use those profiles to see what a person can do and ask for an introduction. We want employers to share clear job details, including pay, what the work involves and how to apply. Paid internships and projects can give people a first step into the workforce.",
+      },
+      {
+        type: "heading",
+        text: "Measure what happens after an introduction",
+      },
+      {
+        type: "paragraph",
+        text: "We plan to follow each step with participants who agree to take part. That means tracking interviews, offers, paid starts and whether people are still in paid work at agreed follow-up points. A job lead or an introduction is recorded separately from a paid start. Over time, these checks can show where people get stuck and where they need more support.",
+      },
+      {
+        type: "paragraph",
+        text: "Progress can also mean gaining more responsibility or moving from short-term work into a steadier role. Our aim is to understand what helps young people keep earning and build a career they can sustain.",
+      },
+      {
+        type: "cta",
+        text: "Partner with Top100",
+        href: "/partnership",
+      },
+    ],
+    tags: ["Impact Africa", "Paid Work", "Emerging Talent", "Mentorship"],
+    coverImage: "/impact-paid-work.webp",
+    createdAt: "2026-11-10T21:44:00+01:00",
+    updatedAt: "2026-11-10T21:44:00+01:00",
+    readTime: 3,
+    isFeatured: false,
+    status: "published",
+  },
+  {
     id: "turning-a-connection-into-a-collaboration",
     title: "Turning a Connection into a Collaboration",
     slug: "turning-a-connection-into-a-collaboration",

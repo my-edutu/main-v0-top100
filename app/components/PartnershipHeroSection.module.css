@@ -79,20 +79,7 @@
 
 .action:hover { background: #4a260a; }
 
-.textLink {
-  display: inline-flex;
-  min-height: 44px;
-  align-items: center;
-  gap: .4rem;
-  color: inherit;
-  font-size: .91rem;
-  font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: .2em;
-}
-
-.textLink:hover { text-decoration-thickness: 2px; }
-.action:focus-visible, .textLink:focus-visible { outline: 2px solid #281406; outline-offset: 4px; }
+.action:focus-visible { outline: 2px solid #281406; outline-offset: 4px; }
 
 @media (max-width: 700px) {
   .card { min-height: 0; padding-block: 2.5rem; }
