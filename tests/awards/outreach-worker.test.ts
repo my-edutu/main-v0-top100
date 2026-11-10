@@ -12,10 +12,25 @@ function setup() {
   }) }
   const load = vi.fn(async () => ({ setup: true, members: [member], contacts: [{ awardee_id: 'a', token: 'token' }] }))
   const send = vi.fn(async () => ({ ok: true }))
-  return { db, load, send, updates, lease }
+  return { db, load, send, updates, lease, campaign }
 }
 it('skips a member who paid after the campaign was queued', async () => {
   const f = setup(); f.load.mockResolvedValue({ setup: true, members: [{ ...member, state: 'paid' } as typeof member], contacts: [{ awardee_id: 'a', token: 'token' }] })
+  expect(await processOutreachJobs(f.db as never, { load: f.load, send: f.send })).toMatchObject({ skipped: 1, sent: 0 })
+  expect(f.send).not.toHaveBeenCalled()
+})
+it('does not send an email without a recipient name', async () => {
+  const f = setup()
+  f.load.mockResolvedValue({ setup: true, members: [{ ...member, name: 'Awardee' }], contacts: [{ awardee_id: 'a', token: 'token' }] })
+  expect(await processOutreachJobs(f.db as never, { load: f.load, send: f.send })).toMatchObject({ skipped: 1, sent: 0 })
+  expect(f.send).not.toHaveBeenCalled()
+})
+it('does not send a coupon announcement after the coupon is unavailable', async () => {
+  const f = setup()
+  f.campaign.body = 'Hi {{first_name}}, use AFL-11DE9B42038AF103.'
+  f.db.rpc.mockImplementation(async (name: string) => name === 'preview_award_coupon'
+    ? { data: false, error: null }
+    : { data: [{ id: 'job', campaign_id: 'campaign', awardee_id: 'a', email: 'amara@example.com', lease_token: 'lease' }] as never, error: null })
   expect(await processOutreachJobs(f.db as never, { load: f.load, send: f.send })).toMatchObject({ skipped: 1, sent: 0 })
   expect(f.send).not.toHaveBeenCalled()
 })
@@ -31,10 +46,12 @@ it('does not send after losing or expiring the worker lease', async () => {
   expect(f.send).not.toHaveBeenCalled()
 })
 it('uses stable message identity and skips suppressed or recently contacted members', async () => {
+  vi.stubEnv('AWARD_OUTREACH_SMTP_HOST', 'mail.test.top100afl.com')
   const f = setup()
   expect(await processOutreachJobs(f.db as never, { load: f.load, send: f.send })).toMatchObject({ sent: 1 })
-  expect(f.send).toHaveBeenCalledWith(expect.objectContaining({ to: 'amara@example.com', idempotencyKey: 'award-outreach/campaign/job', requireBrevoSmtp: true }))
+  expect(f.send).toHaveBeenCalledWith(expect.objectContaining({ to: 'amara@example.com', idempotencyKey: 'award-outreach/campaign/job', awardOutreach: { unsubscribeUrl: expect.stringContaining('/api/award-outreach/token/stop') } }))
   const g = setup(); g.load.mockResolvedValue({ setup: true, members: [{ ...member, suppressed: true }], contacts: [{ awardee_id: 'a', token: 'token' }] })
   expect(await processOutreachJobs(g.db as never, { load: g.load, send: g.send })).toMatchObject({ skipped: 1 })
   expect(g.send).not.toHaveBeenCalled()
+  vi.unstubAllEnvs()
 })

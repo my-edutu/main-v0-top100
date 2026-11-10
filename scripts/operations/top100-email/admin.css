@@ -1,0 +1,1194 @@
+:root {
+  --top100-ink: #171717;
+  --top100-paper: #ffffff;
+  --top100-canvas: #faf9f6;
+  --top100-line: #e9e5dc;
+  --top100-yellow: #ffdf45;
+  --top100-amber: #805009;
+}
+#app .navbar {
+  background: var(--top100-paper);
+  border-bottom: 1px solid var(--top100-line);
+  box-shadow: none;
+}
+#app .navbar-brand .logo {
+  display: flex;
+  align-items: center;
+}
+#app .navbar-brand .logo a {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  min-height: 44px;
+  color: var(--top100-ink);
+}
+#app .navbar-brand .logo img {
+  display: none;
+}
+#app .navbar-brand .logo a::before {
+  content: "";
+  width: clamp(104px, 16vw, 152px);
+  aspect-ratio: 937 / 216;
+  background: url("https://top100afl.com/Top100%20Africa%20Future%20leaders%20Logo%20.png") center / contain no-repeat;
+}
+#app .navbar-brand .logo a::after {
+  content: "Email";
+  padding-left: .65rem;
+  border-left: 1px solid var(--top100-line);
+  font-size: .85rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+#app .wrapper {
+  background: var(--top100-canvas);
+}
+#app .sidebar {
+  background: var(--top100-canvas);
+  border-right: 1px solid var(--top100-line);
+  box-shadow: none;
+}
+#app .main {
+  color: var(--top100-ink);
+  background: var(--top100-paper);
+}
+#app .menu-list .router-link-exact-active,
+#app .menu-list .is-active {
+  background: #fff3c3;
+  border-right-color: #c28a13;
+  color: var(--top100-ink);
+}
+#app .button.is-primary {
+  background: var(--top100-yellow);
+  border-color: transparent;
+  color: var(--top100-ink);
+  font-weight: 600;
+}
+#app .button.is-primary:hover,
+#app .button.is-primary:active {
+  background: #f4ce30;
+  color: var(--top100-ink);
+}
+#app .button.is-primary.is-outlined {
+  background: transparent;
+  border-color: #a16c13;
+  color: var(--top100-amber);
+}
+#app :is(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid #9b6914;
+  outline-offset: 2px;
+}
+@media (max-width: 768px) {
+  #app .navbar-brand { padding-left: 12px; }
+}
+#app .main a:not(.button):not(.pagination-link) {
+  color: var(--top100-amber);
+}
+#app .main a:not(.button):not(.pagination-link):hover {
+  text-decoration: underline;
+}
+#app .pagination-link.is-current {
+  color: var(--top100-ink);
+  background: #fff3c3;
+  border-color: #c28a13;
+}
+#app .select:not(.is-multiple):not(.is-loading)::after {
+  border-color: var(--top100-amber);
+}
+
+/* Top100 staff workspace. Keep Listmonk's native navigation and page controls. */
+#app {
+  --email-canvas: #f7f6f2;
+  --email-surface: #fff;
+  --email-border: #e7e3dc;
+  --email-ink: #181715;
+  --email-muted: #62605b;
+  --email-selected: #fff0dd;
+  --email-selected-ink: #7b3909;
+  --email-sidebar: clamp(192px, 19vw, 236px);
+  --email-header: 56px;
+}
+#app .navbar {
+  min-height: var(--email-header);
+  border-color: var(--email-border);
+}
+#app .navbar-brand {
+  align-items: center;
+}
+#app .navbar-brand .logo a {
+  min-height: var(--email-header);
+}
+#app .wrapper {
+  background: var(--email-canvas);
+  min-height: calc(100dvh - var(--email-header));
+}
+#app .wrapper > .main {
+  flex: 1 1 0%;
+  min-width: 0;
+  margin: 0;
+  padding: clamp(18px, 3vw, 44px);
+  background: var(--email-canvas);
+  color: var(--email-ink);
+}
+#app .main > :not(.global-notices) {
+  min-width: 0;
+  max-width: 1440px;
+  margin-inline: auto;
+}
+#app .main :is(.column, .tile, .control.is-expanded, .settings-tabs, .tab-content) {
+  min-width: 0;
+}
+#app .main :is(.title, .label) {
+  overflow-wrap: anywhere;
+}
+#app .main .page-header {
+  margin-bottom: 12px;
+}
+#app .main .page-header .title {
+  font-size: clamp(1.35rem, 2.4vw, 1.8rem);
+  font-weight: 650;
+  letter-spacing: -.025em;
+}
+#app .main :is(.box, .card, .b-table .table-wrapper, .settings-tabs > .tab-content) {
+  border: 1px solid var(--email-border);
+  border-radius: 12px;
+  background: var(--email-surface);
+  box-shadow: none;
+}
+#app .main .settings-tabs > .tab-content {
+  padding: clamp(14px, 2.4vw, 28px);
+}
+#app .main .b-table .table-wrapper {
+  max-width: 100%;
+  overflow-x: auto;
+}
+#app .main .b-table .table {
+  margin-bottom: 0;
+}
+#app .main :is(.b-table td, .b-table td a, .tags, .help, .notification) {
+  overflow-wrap: anywhere;
+}
+#app .main .table thead th {
+  background: #f8f7f3;
+  color: var(--email-muted);
+}
+#app .main :is(.input, .textarea, .select select) {
+  max-width: 100%;
+  border-color: #dedbd3;
+  border-radius: 8px;
+  background-color: var(--email-surface);
+}
+#app .main .button {
+  border-radius: 9px;
+}
+#app .main .button.is-primary:not(.is-outlined) {
+  background: #ffdf45;
+  color: var(--email-ink);
+}
+#app .main .button.is-primary:not(.is-outlined):hover {
+  background: #f4ce30;
+}
+#app .main .dashboard .counts .notification {
+  border: 1px solid var(--email-border);
+  border-radius: 14px;
+  box-shadow: none;
+  background: #fffdf7;
+}
+#app .main .dashboard .counts [data-cy="campaigns"] {
+  background: #f8faff;
+}
+#app .main .dashboard .counts [data-cy="subscribers"] {
+  background: #f6faf6;
+}
+#app .main .dashboard .counts .charts {
+  background: var(--email-surface);
+}
+#app .main :is(.modal-card, .modal-content) {
+  max-width: calc(100vw - 24px);
+}
+#app .main .modal-card-foot {
+  flex-wrap: wrap;
+}
+#app .main :is(iframe, img, video, canvas) {
+  max-width: 100%;
+}
+#app .main :is(pre, .cm-editor, .CodeMirror) {
+  max-width: 100%;
+  overflow-x: auto;
+}
+#app :is(.sidebar, .navbar-menu) .menu-list a {
+  border: 0;
+  border-radius: 9px;
+  color: var(--email-muted);
+  padding: 10px 11px;
+  min-height: 40px;
+  font-size: .9rem;
+  line-height: 1.25;
+}
+#app :is(.sidebar, .navbar-menu) .menu-list a:hover {
+  background: #f8f5ee;
+  color: var(--email-ink);
+}
+#app :is(.sidebar, .navbar-menu) .menu-list a:is(.is-active, .router-link-exact-active) {
+  background: var(--email-selected);
+  color: var(--email-selected-ink);
+  font-weight: 600;
+}
+#app :is(.sidebar, .navbar-menu) .menu-list ul {
+  border-color: var(--email-border);
+  margin: 4px 0 6px 14px;
+  padding-left: 8px;
+}
+#app :is(.sidebar, .navbar-menu) .menu-list > li {
+  margin-bottom: 4px;
+}
+@media (min-width: 769px) {
+  #app .sidebar {
+    display: block;
+    flex: 0 0 var(--email-sidebar);
+    min-width: 0;
+    background: var(--email-surface);
+    border-right: 1px solid var(--email-border);
+  }
+  #app .sidebar .b-sidebar {
+    top: var(--email-header);
+  }
+  #app .sidebar .sidebar-content {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+    height: calc(100dvh - var(--email-header));
+    overflow: auto;
+    padding: 14px 10px;
+  }
+  #app .navbar-burger {
+    display: none;
+  }
+  #app .navbar {
+    display: flex;
+  }
+  #app .navbar-menu {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0 16px 0 0;
+    box-shadow: none;
+  }
+  #app .navbar-end {
+    display: flex;
+    align-items: center;
+  }
+  #app .navbar-item.user {
+    margin: 0;
+    border: 0;
+  }
+  #app .navbar-item.user .navbar-dropdown {
+    position: absolute;
+    right: 0;
+    left: auto;
+    top: 100%;
+    display: none;
+    background: white;
+    border: 1px solid var(--email-border);
+    border-radius: 10px;
+  }
+  #app .navbar-item.user:is(.is-active, .is-hoverable:hover, :focus-within) .navbar-dropdown {
+    display: block;
+  }
+}
+@media (min-width: 769px) and (max-width: 1023px) {
+  #app .main .page-header {
+    display: block;
+  }
+  #app .main .page-header > .column {
+    width: auto;
+  }
+  #app .main .campaign .wrap > .columns {
+    display: block;
+  }
+  #app .main .campaign .wrap > .columns > .column {
+    width: auto;
+  }
+}
+@media (max-width: 768px) {
+  #app .sidebar {
+    display: none;
+  }
+  #app .navbar-brand {
+    gap: 8px;
+    padding: 0 12px;
+  }
+  #app .navbar-burger {
+    order: -1;
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    margin: 0;
+    border-radius: 9px;
+  }
+  #app .navbar-burger:hover,
+  #app .navbar-burger.is-active {
+    background: var(--email-selected);
+  }
+  #app .navbar:has(.navbar-menu.is-active)::before {
+    content: "";
+    position: fixed;
+    inset: var(--email-header) 0 0;
+    background: rgba(24, 23, 21, .30);
+    pointer-events: none;
+  }
+  #app .navbar-menu.is-active {
+    position: fixed;
+    inset: var(--email-header) auto 0 0;
+    width: min(290px, calc(100vw - 34px));
+    overflow: auto;
+    overscroll-behavior: contain;
+    background: var(--email-surface);
+    border-right: 1px solid var(--email-border);
+    box-shadow: 8px 0 30px rgba(24, 23, 21, .12);
+    padding: 10px;
+  }
+  #app .navbar-menu .menu-list a {
+    min-height: 44px;
+    padding-block: 12px;
+  }
+  #app .wrapper > .main {
+    padding: 16px clamp(12px, 4vw, 24px) 30px;
+  }
+  #app .main .page-header :is(.field.is-grouped, .buttons, .field.has-addons) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+  }
+  #app .main .page-header .buttons .button {
+    width: auto;
+    min-height: 44px;
+    margin: 0;
+  }
+  #app .main .page-header .field.is-grouped > .control {
+    margin: 0;
+  }
+  #app .main .b-table .table tr {
+    border-radius: 10px;
+  }
+  #app .main .b-table .table td {
+    align-items: flex-start;
+    gap: 12px;
+    min-width: 0;
+  }
+  #app .main .b-table .table td::before {
+    flex: 0 1 36%;
+    white-space: normal;
+  }
+  #app .main .b-table .table td > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+  #app .main .b-table .table td .tags {
+    justify-content: flex-end;
+  }
+  #app .main .dashboard .counts .notification {
+    padding: 15px;
+  }
+  #app .main .modal-card {
+    margin-inline: auto;
+  }
+}
+
+/* Shared page headings and table controls. */
+#app .main .page-header.columns {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 14px;
+  margin: 0 0 14px;
+}
+#app .main .page-header.columns > .column {
+  flex: 0 1 auto;
+  width: auto;
+  min-width: 0;
+  padding: 0;
+}
+#app .main .page-header.columns > .column:first-child {
+  flex: 1 1 12rem;
+}
+#app .main .page-header :is(.title, .buttons, .field) {
+  margin-bottom: 0;
+}
+#app .main .page-header .title {
+  line-height: 1.2;
+}
+#app .main .page-header :is(.btn-new, .buttons .button) {
+  width: auto;
+  min-height: 40px;
+  padding-inline: 13px;
+}
+#app .main .page-header .buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+#app .main .page-header .buttons .button {
+  margin: 0;
+}
+#app .main .b-table .level-left .columns {
+  margin: 0;
+}
+#app .main .b-table .level-left .columns > .column {
+  padding: 0;
+}
+#app .main .b-table .level-left form .button,
+#app .main .subscribers-controls button[data-cy="btn-search"],
+#app .main .table-mobile-sort .button {
+  color: #554b3b;
+  border: 1px solid var(--email-border);
+  background: #fff;
+  min-width: 44px;
+}
+#app .main .b-table .level-left form .button:hover,
+#app .main .subscribers-controls button[data-cy="btn-search"]:hover,
+#app .main .table-mobile-sort .button:hover {
+  background: #fff3df;
+}
+#app .main .table-mobile-sort select {
+  min-width: 0;
+}
+#app .main .b-table .actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px 10px;
+}
+#app .main .b-table .actions > .a {
+  margin: 0;
+}
+#app .main .subscribers-controls > .columns {
+  margin: 0;
+}
+#app .main .subscribers-controls .column {
+  position: relative;
+  padding: 0;
+}
+#app .main .subscribers-controls .column:has(.toggle-advanced) form {
+  margin-right: 50px;
+}
+#app .main .subscribers-controls .field {
+  margin-bottom: 0;
+}
+#app .main .subscribers-controls .toggle-advanced {
+  position: absolute;
+  right: 0;
+  top: 0;
+  margin: 0;
+}
+#app .main .subscribers-controls [data-cy="btn-advanced-search"],
+#app .main .subscribers [data-cy="btn-export-subscribers"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--email-border);
+  border-radius: 9px;
+  background: #fff;
+  text-decoration: none;
+}
+#app .main .subscribers-controls [data-cy="btn-advanced-search"] {
+  width: 44px;
+  font-size: 0;
+}
+#app .main .subscribers-controls [data-cy="btn-advanced-search"] .icon i::before {
+  font-size: 18px;
+}
+#app .main .subscribers-controls [data-cy="btn-advanced-search"]:hover,
+#app .main .subscribers [data-cy="btn-export-subscribers"]:hover {
+  background: #fff3df;
+}
+#app .main .subscribers-controls + br {
+  display: none;
+}
+#app .main .subscribers > .b-table {
+  margin-top: 10px;
+}
+#app .main .subscribers table td {
+  vertical-align: middle;
+}
+#app .main .subscribers td:nth-child(2) > a {
+  color: var(--email-ink);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+#app .main .subscribers td:nth-child(2) .tags {
+  margin: 4px 0 0;
+  gap: 3px;
+}
+#app .main .subscribers td:nth-child(2) .tag {
+  margin: 0;
+  padding: 2px 7px;
+  min-height: 19px;
+  height: auto;
+  max-width: 100%;
+  background: #f0f2ee;
+  color: #414b42;
+  white-space: normal;
+  text-align: left;
+}
+#app .main .subscribers td:nth-child(2) .tag.unconfirmed {
+  background: #fff3d9;
+  color: #69470f;
+}
+#app .main .subscribers td:nth-child(2) .tag.unsubscribed {
+  background: #f9e9e9;
+  color: #7f3535;
+}
+
+@media (max-width: 768px) {
+  #app .main .page-header.columns > .column:first-child {
+    flex-basis: 9.5rem;
+  }
+  #app .main .page-header :is(.btn-new, .buttons .button) {
+    min-height: 44px;
+  }
+  #app .main .subscribers-controls :is(.input, [data-cy="btn-search"], [data-cy="btn-advanced-search"]),
+  #app .main .subscribers :is([data-cy="btn-export-subscribers"], .table-mobile-sort select, .table-mobile-sort button) {
+    min-height: 44px;
+  }
+  #app .main .subscribers > .b-table {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    align-items: start;
+  }
+  #app .main .subscribers > .b-table > * {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+  #app .main .subscribers .table-mobile-sort {
+    grid-area: 1 / 1;
+    margin: 0;
+  }
+  #app .main .subscribers .table-mobile-sort .select {
+    position: relative;
+  }
+  #app .main .subscribers .table-mobile-sort .select::before {
+    content: "Sort";
+    position: absolute;
+    z-index: 1;
+    left: 11px;
+    top: 50%;
+    translate: 0 -50%;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--email-muted);
+    pointer-events: none;
+  }
+  #app .main .subscribers .table-mobile-sort select {
+    padding-left: 44px;
+    font-size: 14px;
+  }
+  #app .main .subscribers > .b-table > .top.level:has(.actions) {
+    display: contents;
+  }
+  #app .main .subscribers > .b-table > .top.level:has(.actions) > .level-left {
+    grid-area: 1 / 2;
+    width: auto;
+  }
+  #app .main .subscribers > .b-table > .top.level:has(.actions) > .level-right {
+    display: none;
+  }
+  #app .main .subscribers > .b-table:has([data-cy="btn-manage-lists"]) .table-mobile-sort {
+    grid-column: 1 / -1;
+  }
+  #app .main .subscribers > .b-table:has([data-cy="btn-manage-lists"]) > .top.level:has(.actions) > .level-left {
+    grid-area: 2 / 1 / auto / -1;
+  }
+  #app .main .subscribers .b-table .table-wrapper {
+    background: #fff;
+  }
+  #app .main .subscribers .table tbody tr:has(> td.actions) {
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr) auto;
+    grid-template-areas: "check name actions" "check email actions";
+    align-items: start;
+    column-gap: 4px;
+    padding: 9px 8px;
+    margin: 0;
+    border: 0;
+    border-top: 1px solid #eeeae2;
+    border-radius: 0;
+  }
+  #app .main .subscribers .table tbody tr:has(> td.actions) > td {
+    display: block;
+    border: 0;
+    padding: 1px 0;
+    min-height: 0;
+    text-align: left !important;
+  }
+  #app .main .subscribers .table tbody tr:has(> td.actions) > td::before {
+    display: none;
+  }
+  #app .main .subscribers .table tbody td.checkbox-cell {
+    grid-area: check;
+    align-self: center;
+  }
+  #app .main .subscribers .table tbody tr:has(> td.actions) > td:nth-child(2) {
+    grid-area: email;
+    font-size: 13px;
+  }
+  #app .main .subscribers .table tbody tr:has(> td.actions) > td:nth-child(2) > a {
+    color: #59554e;
+    font-weight: 400;
+  }
+  #app .main .subscribers .table tbody tr:has(> td.actions) > td:nth-child(3) {
+    grid-area: name;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  #app .main .subscribers .table tbody tr:has(> td.actions) > td:nth-child(n+4):not(.actions) {
+    display: none;
+  }
+  #app .main .subscribers .table tbody td.actions {
+    grid-area: actions;
+    align-self: center;
+  }
+  #app .main .subscribers .table tbody td.actions > div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  #app .main .subscribers .table tbody td.actions a {
+    display: grid;
+    place-items: center;
+    min-width: 36px;
+    min-height: 32px;
+    margin: 0;
+  }
+  #app .main .subscribers .table tbody .checkbox-cell .checkbox {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    min-height: 44px;
+    margin: 0;
+  }
+}
+@media (min-width: 481px) and (max-width: 768px) {
+  #app .main .subscribers .table tbody td.actions > div {
+    flex-direction: row;
+  }
+}
+#app .main .subscribers-controls button.button.is-primary[data-cy="btn-search"],
+#app .main .subscribers .table-mobile-sort button.button.is-primary {
+  background: #fff;
+  color: #554b3b;
+  border-color: var(--email-border);
+}
+#app .main .subscribers-controls button.button.is-primary[data-cy="btn-search"]:hover,
+#app .main .subscribers .table-mobile-sort button.button.is-primary:hover {
+  background: #fff3df;
+}
+#app .main .subscribers-controls [data-cy="btn-advanced-search"] > .icon {
+  width: 18px;
+  height: 18px;
+  background: currentColor;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round'%3E%3Cpath d='M4 7h5m4 0h7M4 17h9m4 0h3'/%3E%3Ccircle cx='11' cy='7' r='2'/%3E%3Ccircle cx='15' cy='17' r='2'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+#app .main .subscribers-controls [data-cy="btn-advanced-search"] > .icon i {
+  display: none;
+}
+@media (max-width: 768px) {
+  #app .main .subscribers .table thead th.checkbox-cell {
+    position: relative;
+    min-height: 40px;
+    padding: 6px 12px;
+  }
+  #app .main .subscribers .table thead th.checkbox-cell::before {
+    content: "Select page";
+    position: absolute;
+    inset: 50% auto auto 12px;
+    translate: 0 -50%;
+    color: var(--email-muted);
+    font-size: 12px;
+    font-weight: 600;
+  }
+}
+
+/* Campaign setup and design reuse Listmonk's native form and editors. */
+#app .main .campaign > .b-tabs > .tabs {
+  margin-bottom: 16px;
+}
+#app .main .campaign > .b-tabs > .tabs ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  border: 0;
+}
+#app .main .campaign > .b-tabs > .tabs li a {
+  display: flex;
+  gap: 7px;
+  justify-content: flex-start;
+  padding: 8px 12px;
+  min-height: 40px;
+  border: 1px solid var(--email-border) !important;
+  border-radius: 9px;
+  background: white;
+  color: var(--email-muted);
+  font-size: .87rem;
+}
+#app .main .campaign > .b-tabs > .tabs li.is-active a {
+  background: var(--email-selected);
+  border-color: #dfbd8b !important;
+  color: var(--email-selected-ink);
+  font-weight: 650;
+}
+#app .main .campaign > .b-tabs > .tabs li.is-disabled a {
+  opacity: .65;
+}
+#app .main .campaign > .b-tabs > .tabs .icon {
+  font-size: .86rem;
+}
+#app .main .campaign > .b-tabs > .tab-content {
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+}
+#app #campaign-content > .wrap,
+#app #content-content {
+  max-width: 100%;
+}
+#app #campaign-content > .wrap > .columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(235px, .4fr);
+  gap: 16px;
+  margin: 0;
+  align-items: start;
+}
+#app #campaign-content > .wrap > .columns > .column {
+  width: auto;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+}
+#app #campaign-content > .wrap > .columns > .column > br {
+  display: none;
+}
+#app #campaign-content form,
+#app #campaign-content .box,
+#app #content-content > .editor {
+  padding: clamp(14px, 2.6vw, 25px);
+  background: #fff;
+  border: 1px solid var(--email-border);
+  border-radius: 14px;
+}
+#app #campaign-content form > .field {
+  margin-bottom: 18px;
+}
+#app #campaign-content form > .columns {
+  margin: 0 0 12px;
+}
+#app #campaign-content form > .columns > .column {
+  padding: 6px 0;
+}
+#app #campaign-content form > .columns > .column > br {
+  display: none;
+}
+#app #campaign-content form > .columns:has(select[name="messenger"]) {
+  gap: 12px;
+}
+#app #campaign-content form > .columns:has(select[name="messenger"]) > .column {
+  flex: 1 1 0;
+}
+#app #campaign-content form > .columns .mr-4 {
+  margin-right: 0 !important;
+}
+#app #campaign-content form > hr {
+  display: none;
+}
+#app #campaign-content form .top100-schedule {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: center;
+  border: 1px solid var(--email-border);
+  border-radius: 9px;
+  background: #faf9f6;
+  padding: 8px 12px;
+  margin: 4px 0 16px;
+}
+#app #campaign-content form .top100-schedule > .column {
+  flex: 0 1 auto;
+  width: auto;
+}
+#app #campaign-content form .top100-schedule > .column:not(:has(.field)) {
+  display: none;
+}
+#app #campaign-content form .top100-schedule .field {
+  margin-bottom: 0;
+}
+#app #campaign-content .top100-advanced-toggle {
+  margin: 0 0 12px;
+  background: #fff;
+  border-color: var(--email-border);
+  font-weight: 550;
+}
+#app #campaign-content .top100-advanced-toggle::after {
+  content: "+";
+  margin-left: .55rem;
+  color: #805009;
+}
+#app #campaign-content .top100-advanced-toggle[aria-expanded="true"]::after {
+  content: "−";
+}
+#app #campaign-content form[data-top100-options="closed"] > .top100-advanced-field {
+  display: none;
+}
+#app #campaign-content form > .field:has([data-cy="btn-continue"]) {
+  margin: 8px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--email-border);
+}
+#app #campaign-content .top100-composer-intro {
+  margin: 0 0 24px;
+}
+#app .campaign .top100-composer-title {
+  margin: 0 0 4px;
+  color: var(--email-ink);
+  font-size: 1rem;
+  font-weight: 650;
+}
+#app .campaign .top100-composer-hint {
+  margin: 0;
+  color: var(--email-muted);
+  font-size: .88rem;
+}
+#app #campaign-content .top100-test-hint {
+  display: none;
+}
+#app .campaign:has([data-cy="btn-continue"]) #campaign-content .column > .box > .field {
+  display: none;
+}
+#app .campaign:has([data-cy="btn-continue"]) #campaign-content .top100-test-hint {
+  display: block;
+}
+#app #content-content .editor > .columns {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+#app #content-content .editor > .columns > .column {
+  min-width: 0;
+  width: auto;
+  padding: 0;
+}
+#app #content-content .editor > .columns > .column:first-child {
+  flex: 1 1 360px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+#app #content-content .editor > .columns > .column:last-child {
+  flex: 0 1 auto;
+}
+#app #content-content .editor > .columns .field {
+  margin: 0 !important;
+  min-width: 0;
+}
+#app #content-content .editor .select,
+#app #content-content .editor .select select {
+  max-width: 100%;
+}
+#app #content-content .editor .tox-tinymce {
+  border-radius: 10px;
+  border-color: var(--email-border);
+}
+#app #content-content .editor .tox .tox-toolbar__primary {
+  background-color: #faf9f6;
+}
+#app #content-content > .columns {
+  margin: 8px 0 0;
+}
+#app .modal.top100-device-preview .animation-content {
+  width: min(860px, calc(100vw - 24px)) !important;
+  max-width: none;
+  margin: auto;
+}
+#app .modal.top100-device-preview .modal-card-head {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 12px 16px;
+  background: #fff;
+}
+#app .modal.top100-device-preview .modal-card-head h4 {
+  overflow-wrap: anywhere;
+}
+#app .top100-preview-device-switch {
+  display: flex;
+  gap: 4px;
+  border: 1px solid var(--email-border);
+  border-radius: 9px;
+  padding: 3px;
+  background: #f7f6f2;
+}
+#app .top100-preview-device-switch button {
+  padding: 6px 10px;
+  min-height: 36px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--email-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: .85rem;
+}
+#app .top100-preview-device-switch button[aria-pressed="true"] {
+  background: #fff0dd;
+  color: var(--email-selected-ink);
+  font-weight: 650;
+}
+#app .modal.top100-device-preview .modal-card-body.preview {
+  height: min(62dvh, 620px);
+  min-height: 210px;
+  padding: 12px;
+  overflow: hidden;
+  text-align: center;
+  background: #f3f1eb;
+}
+#app .modal.top100-device-preview .modal-card-body.preview iframe {
+  display: block;
+  position: absolute;
+  left: 50%;
+  top: 12px;
+  width: var(--top100-email-frame-width);
+  height: var(--top100-email-frame-height);
+  min-height: 0;
+  max-height: none;
+  max-width: none;
+  margin: 0;
+  background: white;
+  border: 1px solid var(--email-border);
+  border-radius: 8px;
+  transform: translateX(-50%) scale(var(--top100-email-frame-scale));
+  transform-origin: top center;
+}
+#app .modal.top100-device-preview .modal-card-foot {
+  padding: 9px 16px;
+  background: white;
+}
+@media (max-width: 1050px) {
+  #app #campaign-content > .wrap > .columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 480px) {
+  #app .main .campaign > .b-tabs > .tabs li a {
+    min-height: 44px;
+    padding: 7px 9px;
+  }
+  #app #campaign-content form > .columns:has(select[name="messenger"]) {
+    display: block;
+  }
+  #app #content-content .editor > .columns > .column:first-child > .field {
+    flex: 1 1 128px;
+  }
+  #app .top100-preview-device-switch button {
+    min-height: 44px;
+  }
+}
+
+#app .templates .top100-gallery-tools {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px 16px;
+  margin: 0 0 14px;
+}
+#app .templates .top100-gallery-tools p {
+  margin: 0;
+  color: var(--email-muted);
+  font-size: .88rem;
+}
+#app .templates .top100-gallery-tools label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--email-muted);
+  font-size: .85rem;
+  font-weight: 600;
+}
+#app .templates .top100-gallery-tools select {
+  padding: 8px 10px;
+  min-height: 44px;
+  background: white;
+  color: var(--email-ink);
+  border: 1px solid var(--email-border);
+  border-radius: 9px;
+  font: inherit;
+}
+#app .templates .top100-template-gallery .table-mobile-sort,
+#app .templates .top100-template-gallery thead {
+  display: none;
+}
+#app .templates .top100-template-gallery .table-wrapper {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+}
+#app .templates .top100-template-gallery .table {
+  display: block;
+  width: 100%;
+  background: transparent;
+}
+#app .templates .top100-template-gallery tbody {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 245px), 1fr));
+  align-items: stretch;
+  gap: 14px;
+}
+#app .templates .top100-template-gallery tbody > tr:not(:has(> td.actions)) {
+  grid-column: 1 / -1;
+}
+#app .templates .top100-template-gallery tbody > tr:has(> td.actions) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: 1fr auto auto;
+  gap: 0;
+  overflow: hidden;
+  margin: 0;
+  border: 1px solid var(--email-border);
+  border-radius: 14px;
+  background: white;
+  box-shadow: none;
+}
+#app .templates .top100-template-gallery tbody > tr:has(> td.actions) > td {
+  display: block;
+  min-width: 0;
+  padding: 0 13px 11px;
+  border: 0;
+  text-align: left !important;
+}
+#app .templates .top100-template-gallery tbody > tr:has(> td.actions) > td::before {
+  display: none;
+}
+#app .templates .top100-template-gallery tbody > tr:has(> td.actions) > td:first-child {
+  grid-column: 1 / -1;
+  padding-top: 10px;
+}
+#app .templates .top100-template-gallery tbody > tr > td:first-child > a {
+  display: inline;
+  color: var(--email-ink);
+  font-size: .95rem;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+#app .templates .top100-template-gallery tbody > tr > td:first-child > .tag {
+  margin-left: 5px;
+  background: #fff0ca;
+  color: #6c460d;
+  font-weight: 650;
+}
+#app .templates .top100-template-gallery tbody > tr:has(> td.actions) > td:nth-child(3),
+#app .templates .top100-template-gallery tbody > tr:has(> td.actions) > td:nth-child(4) {
+  display: none;
+}
+#app .templates .top100-template-gallery tbody > tr:has(> td.actions) > td:nth-child(5) {
+  color: var(--email-muted);
+  font-size: .73rem;
+  text-align: right !important;
+  line-height: 1.35;
+}
+#app .templates .top100-template-gallery tbody > tr:has(> td.actions) > td:nth-child(5)::before {
+  display: block;
+  content: "Last updated";
+  font-weight: 600;
+}
+#app .templates .top100-template-gallery tbody > tr:has(> td.actions) > td.actions {
+  grid-column: 1 / -1;
+  padding: 6px 8px;
+  border-top: 1px solid #f0ece4;
+}
+#app .templates .top100-template-gallery td.actions > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+#app .templates .top100-template-gallery td.actions a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 38px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0 6px;
+  border-radius: 8px;
+}
+#app .templates .top100-template-gallery td.actions a:hover {
+  background: #fff4dc;
+  text-decoration: none;
+}
+#app .templates .top100-template-gallery td.actions a[data-cy="btn-edit"]::after {
+  content: "Edit";
+  font-size: .81rem;
+  font-weight: 600;
+}
+#app .templates .top100-template-gallery td.actions span.a {
+  display: none;
+}
+#app .templates .top100-template-cover {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  width: 100%;
+  height: clamp(140px, 24vw, 210px);
+  margin: 0 0 11px;
+  padding: 0;
+  border: 1px solid #ede6d9;
+  border-radius: 9px;
+  background: #f3efe6;
+}
+#app .templates .top100-template-cover iframe {
+  position: absolute;
+  inset: 0 auto auto 50%;
+  width: 620px;
+  height: var(--top100-cover-frame-height, 560px);
+  max-width: none;
+  border: 0;
+  background: white;
+  pointer-events: none;
+  transform: translateX(-50%) scale(var(--top100-cover-scale, .42));
+  transform-origin: top center;
+}
+#app .templates .top100-template-cover-label {
+  position: absolute;
+  z-index: 1;
+  right: 8px;
+  bottom: 8px;
+  padding: 5px 9px;
+  border: 1px solid var(--email-border);
+  border-radius: 7px;
+  background: white;
+  color: var(--email-ink);
+  font-size: .75rem;
+  font-weight: 650;
+}
+
+#app .templates .top100-template-cover-label {
+  min-height: 44px;
+  cursor: pointer;
+}
+#app .templates .top100-template-cover-label:hover {
+  background: #fff4dc;
+}
+
+#app .templates .top100-template-gallery tr:has(.top100-template-cover) [data-cy="btn-preview"] {
+  display: none;
+}
+#app .templates .top100-template-gallery td.actions a {
+  min-width: 44px;
+}

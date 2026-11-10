@@ -81,6 +81,18 @@ describe('award outreach audience', () => {
 })
 
 describe('outreach templates', () => {
+  it('highlights a coupon code in a personalized award announcement without a large title or award image', () => {
+    const message = buildOutreachMessage(
+      { subject: 'Your award', body: 'Hi {{first_name}},\n\nUse code at checkout:\n\nAFL-11DE9B42038AF103\n\nView your award options: {{action_link}}' },
+      { name: 'Amara Example', year: '2026', fee: 'fee', actionUrl: 'https://top100afl.com/action', stopUrl: 'https://top100afl.com/stop', imageUrl: 'https://top100afl.com/image.png' },
+    )
+    expect(message.html).toContain('Hi Amara')
+    expect(message.html).toContain('AFL-11DE9B42038AF103')
+    expect(message.html).toContain('YOUR AWARD COUPON CODE')
+    expect(message.html).toContain('https://top100afl.com/stop')
+    expect(message.html).not.toContain('<h1')
+    expect(message.html).not.toContain('https://top100afl.com/image.png')
+  })
   it('renders personalized escaped HTML and plain text with server supplied links and fees', () => {
     const draft = defaultOutreachDraft('awareness')
     const message = buildOutreachMessage(draft, { name: '<Alice>', year: '2023', fee: '₦25,000 / $20', actionUrl: 'https://www.top100afl.com/signup', stopUrl: 'https://www.top100afl.com/stop', imageUrl: 'https://www.top100afl.com/afl-physical-award.png' })

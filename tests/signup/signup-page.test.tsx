@@ -9,6 +9,16 @@ vi.mock('@/lib/supabase/client', () => ({
 import SignUpPage from '@/app/signup/page'
 
 describe('awardee signup page', () => {
+  it('starts with just the awardee search and keeps code and password fields for later', () => {
+    const html = renderToStaticMarkup(createElement(SignUpPage))
+
+    expect(html).toContain('Find your awardee record')
+    expect(html).toContain('id="winner-search"')
+    expect(html).not.toContain('id="claim-email"')
+    expect(html).not.toContain('id="claim-code"')
+    expect(html).not.toContain('id="claim-password"')
+  })
+
   it('shows existing-account guidance only once', () => {
     const html = renderToStaticMarkup(createElement(SignUpPage))
 

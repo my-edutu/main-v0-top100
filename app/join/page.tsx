@@ -55,7 +55,7 @@ export default function JoinPage() {
               Claim your awardee profile →
             </Link>
             <p className="mt-1 text-xs text-zinc-500">
-              You&apos;ll need an active invite code from the admin team.
+              Get a signup code at the email on your awardee record, or use an active invite from the AFL team.
             </p>
           </div>
         </div>

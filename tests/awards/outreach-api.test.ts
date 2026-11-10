@@ -5,12 +5,26 @@ vi.mock('@/lib/api/require-admin', () => ({ requireAdmin: mocks.requireAdmin }))
 vi.mock('@/lib/supabase/server', () => ({ createAdminClient: mocks.createAdminClient }))
 vi.mock('@/lib/awards/outreach-server', async original => ({ ...await original<typeof import('@/lib/awards/outreach-server')>(), loadOutreachAudience: mocks.loadAudience }))
 import { GET, POST, PATCH } from '@/app/api/admin/awards/outreach/route'
+import { POST as stopOutreach } from '@/app/api/award-outreach/[token]/stop/route'
 beforeEach(() => { vi.clearAllMocks(); mocks.requireAdmin.mockResolvedValue({ user: { id: 'admin' } }) })
 const request = (method: string, body?: unknown, origin = 'https://www.top100afl.com') => new NextRequest('https://www.top100afl.com/api/admin/awards/outreach', { method, headers: { origin, cookie: 'session=test', 'content-type': 'application/json' }, ...(body ? { body: JSON.stringify(body) } : {}) })
 it('denies non-admin contact directory reads', async () => {
   mocks.requireAdmin.mockResolvedValue({ error: Response.json({ message: 'Forbidden' }, { status: 403 }) })
   expect((await GET(request('GET'))).status).toBe(403)
   expect(mocks.createAdminClient).not.toHaveBeenCalled()
+})
+it('accepts one-click unsubscribe requests and suppresses the matching contact', async () => {
+  const updates: unknown[] = []
+  mocks.createAdminClient.mockReturnValue({ from: () => {
+    const query = { update: (value: unknown) => { updates.push(value); return query }, eq: () => query, select: () => query, maybeSingle: async () => ({ data: { awardee_id: 'a' }, error: null }) }
+    return query
+  } })
+  const token = '00000000-0000-4000-8000-000000000001'
+  const req = new NextRequest(`https://top100afl.com/api/award-outreach/${token}/stop`, {
+    method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: 'List-Unsubscribe=One-Click',
+  })
+  expect((await stopOutreach(req, { params: Promise.resolve({ token }) })).status).toBe(200)
+  expect(updates).toContainEqual(expect.objectContaining({ suppressed: true, next_follow_up_at: null }))
 })
 it('rejects cross-origin export and contact mutations', async () => {
   expect((await POST(request('POST', { action: 'export' }, 'https://attacker.test'))).status).toBe(403)

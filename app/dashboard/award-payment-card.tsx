@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, type FormEvent } from 'react'
+import { useState, type CSSProperties, type FormEvent } from 'react'
 import { getCountries } from 'libphonenumber-js/min'
-import { ArrowRight, ChevronDown, Loader2 } from 'lucide-react'
+import { ArrowRight, Check, ChevronDown, Loader2, X } from 'lucide-react'
+import { toast } from 'sonner'
 import Image from '@/components/safe-image'
 
 import { previewAwardCoupon, startAwardPaymentCheckout, type AwardCouponQuote, type AwardPaymentView } from '@/lib/awards/payment'
@@ -20,6 +21,46 @@ const countryDisplayNames = new Intl.DisplayNames(['en'], { type: 'region' })
 const billingCountries = getCountries()
   .map((code) => ({ code, name: countryDisplayNames.of(code) ?? code }))
   .sort((left, right) => left.name.localeCompare(right.name))
+
+const couponToastId = 'award-coupon-applied'
+const couponPercent = new Intl.NumberFormat('en-NG', { style: 'percent', maximumFractionDigits: 1 })
+const confettiColors = ['#FFB77E', '#F97316', '#FFE58A', '#86EFAC']
+const couponConfetti = Array.from({ length: 16 }, (_, index) => ({
+  '--splash-x': `${((index * 73 + 19) % 300) - 150}px`,
+  '--splash-y': `${((index * 29 + 11) % 80) - 40}px`,
+  '--splash-delay': `${(index % 4) * 40}ms`,
+  '--splash-color': confettiColors[index % confettiColors.length],
+} as CSSProperties))
+
+function celebrateCoupon(quote: AwardCouponQuote) {
+  const discount = couponPercent.format(quote.discountAmountMinor / quote.baseAmountMinor)
+  const savings = formatAwardFee(quote.discountAmountMinor, quote.currency)
+
+  toast.custom((id) => (
+    <div className="relative flex w-full items-center gap-3 overflow-hidden rounded-2xl border border-[#885635] bg-[#211C24] p-3 pl-4 text-white shadow-xl">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+        {couponConfetti.map((style, index) => (
+          <span key={index} className={`top100-moment-splash-confetti ${index % 4 === 0 ? 'is-circle' : ''}`} style={style} />
+        ))}
+      </div>
+      <span className="relative grid size-10 shrink-0 place-items-center rounded-full bg-[#F97316] text-[#171412]">
+        <Check aria-hidden="true" className="size-5" />
+      </span>
+      <div className="relative min-w-0 flex-1">
+        <p className="font-semibold">{discount} coupon applied</p>
+        <p className="text-sm text-[#D0C9D0]">You saved {savings} on your award.</p>
+      </div>
+      <button
+        type="button"
+        aria-label="Dismiss coupon confirmation"
+        onClick={() => toast.dismiss(id)}
+        className="relative grid size-11 shrink-0 place-items-center rounded-lg text-[#D0C9D0] hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-[#F97316]"
+      >
+        <X aria-hidden="true" className="size-4" />
+      </button>
+    </div>
+  ), { id: couponToastId, position: 'top-center', duration: 5000 })
+}
 
 export function AwardPaymentCard({
   view,
@@ -46,7 +87,9 @@ export function AwardPaymentCard({
     setCheckingCoupon(true)
     setCouponError('')
     try {
-      setCouponQuote(await previewAwardCoupon(couponCode))
+      const quote = await previewAwardCoupon(couponCode)
+      setCouponQuote(quote)
+      celebrateCoupon(quote)
     } catch (error) {
       setCouponError(error instanceof Error ? error.message : 'Could not check the coupon.')
     } finally {
@@ -55,6 +98,7 @@ export function AwardPaymentCard({
   }
 
   function clearCoupon() {
+    toast.dismiss(couponToastId)
     setCouponCode('')
     setCouponQuote(null)
     setCouponError('')
@@ -161,6 +205,7 @@ export function AwardPaymentCard({
                       autoCapitalize="characters"
                       spellCheck={false}
                       onChange={(event) => {
+                        if (couponQuote) toast.dismiss(couponToastId)
                         setCouponCode(event.target.value)
                         setCouponQuote(null)
                         setCouponError('')

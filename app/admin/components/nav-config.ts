@@ -29,6 +29,7 @@ import {
   ClipboardList,
   Truck,
   MailOpen,
+  Send,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -104,6 +105,7 @@ export const navGroups: NavGroup[] = [
     label: 'System',
     items: [
       { label: 'Messages', href: '/admin/messages', icon: Mail },
+      { label: 'Email campaigns', href: '/admin/email', icon: Send },
       { label: 'Notifications', href: '/admin/notifications', icon: Bell },
       { label: 'Insights', href: '/admin/analytics', icon: BarChart3 },
       { label: 'Settings', href: '/admin/settings', icon: Settings },

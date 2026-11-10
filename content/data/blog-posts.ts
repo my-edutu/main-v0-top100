@@ -22,6 +22,127 @@ export interface BlogPost {
 
 export const blogPosts: BlogPost[] = [
   {
+    id: "impact-beyond-recognition-impact-africa",
+    title: "Impact Beyond Recognition: Our Next Chapter Is Impact Africa",
+    slug: "impact-beyond-recognition-impact-africa",
+    author: "Top100 Africa Future Leaders",
+    excerpt:
+      "With our empowerment sessions complete, our next chapter is Impact Africa: bringing our community's skills and ideas into practical action across Africa.",
+    content: [
+      {
+        type: "paragraph",
+        text: "Our 2026 theme, <strong>Impact Beyond Recognition</strong>, asks us to think about what comes after achievement is celebrated. At Top100 Africa Future Leaders, we recognise outstanding young Africans and bring them together around a shared purpose: contributing to Africa's future.",
+      },
+      {
+        type: "paragraph",
+        text: "With our empowerment sessions now complete, we are looking ahead to <strong>Impact Africa</strong>. This is our next chapter: mobilising our community, connecting its talents and putting shared learning into practice. Our ambition is to use the strength of this community to create maximum impact across Africa.",
+      },
+      {
+        type: "heading",
+        text: "Recognising African excellence",
+      },
+      {
+        type: "paragraph",
+        text: "Excellence takes many forms. Graduates, innovators and changemakers bring different experiences, abilities and perspectives to the challenges around them. Recognition helps make that talent visible and introduces people to others who care about making a useful contribution.",
+      },
+      {
+        type: "paragraph",
+        text: "We want the value of recognition to continue through the relationships members build, the knowledge they share and the responsibilities they choose to take on. Celebrating an achievement can also be the beginning of a conversation about what someone hopes to do next, and who could work alongside them.",
+      },
+      {
+        type: "heading",
+        text: "Learning from experience",
+      },
+      {
+        type: "paragraph",
+        text: "Our empowerment sessions created space to learn, ask questions and think bigger. We are grateful to the speakers who gave their time and shared their experience, and to the participants who made time to engage with the sessions.",
+      },
+      {
+        type: "paragraph",
+        text: "The next task is to decide what to put into practice. Which idea stayed with us? What could we approach differently? What knowledge can we share with someone else? Reflecting on those questions will help members connect what they have learned with a practical contribution they are ready to make.",
+      },
+      {
+        type: "heading",
+        text: "Connecting people and ideas",
+      },
+      {
+        type: "paragraph",
+        text: "Our community brings together different skills and perspectives. Someone may understand a local challenge well but need help organising a response. Another member may bring research, technical knowledge, communication skills or experience of managing a project.",
+      },
+      {
+        type: "paragraph",
+        text: "Impact Africa will focus on putting those connections to useful work. A member with technical skills might help a community initiative organise its information. Someone in education could collaborate on a learning resource. A project manager might help turn a promising local idea into a workable plan. These are possibilities to explore together as we identify where our community can contribute.",
+      },
+      {
+        type: "heading",
+        text: "From learning to action: our approach to Impact Africa",
+      },
+      {
+        type: "paragraph",
+        text: "Creating maximum impact requires thoughtful choices about where we put our time, skills and resources. The approach we want to build starts with people and the needs they identify. We intend to:",
+      },
+      {
+        type: "list",
+        items: [
+          "<strong>Listen to communities.</strong> Ask what already exists, what is working and where support would be useful. People closest to an issue should help define the need and shape the response.",
+          "<strong>Connect complementary skills.</strong> Bring members together around a clear purpose, with an understanding of what each person can contribute.",
+          "<strong>Start with manageable local projects.</strong> Agree a specific goal, realistic responsibilities and the resources required. A useful first step could also mean supporting an existing community effort.",
+          "<strong>Learn while we work.</strong> Seek feedback, address difficulties and adjust the approach when the people involved tell us something needs to change.",
+          "<strong>Share what works.</strong> Help members learn from one another across communities and countries, while respecting differences in local circumstances.",
+        ],
+      },
+      {
+        type: "paragraph",
+        text: "These priorities describe the work ahead. As the next chapter takes shape, the needs we understand, the people who participate and the resources available will guide which projects we pursue. Beginning at a scale we can responsibly support gives us room to learn and build a stronger basis for wider action.",
+      },
+      {
+        type: "heading",
+        text: "Making progress visible",
+      },
+      {
+        type: "paragraph",
+        text: "As community action develops, we want to document both the work and what it achieves. That means recording the need a project addresses, the activities completed, the resources used and the feedback of the people involved. It also means asking what changed and what still needs attention.",
+      },
+      {
+        type: "paragraph",
+        text: "We intend to share honest accounts of progress, including setbacks and lessons. Learning from a project in one community can help another team make better decisions, with the necessary adjustments for its own context.",
+      },
+      {
+        type: "heading",
+        text: "Be part of the next chapter",
+      },
+      {
+        type: "paragraph",
+        text: "We invite our members, fellow changemakers and prospective partners to help shape Impact Africa. Bring your questions, your skills, your understanding of a community need and your willingness to work with others. Organisations can also contribute expertise, resources and practical support as opportunities for collaboration take shape.",
+      },
+      {
+        type: "paragraph",
+        text: "Our empowerment sessions have given us a point from which to move forward. Together, we can carry the purpose of Impact Beyond Recognition into practical community action. <strong>Our next chapter is Impact Africa.</strong>",
+      },
+      {
+        type: "cta",
+        text: "Connect with the Top100 Africa Future Leaders community",
+        href: "/join",
+      },
+      {
+        type: "cta",
+        text: "Explore how your organisation can work with us",
+        href: "/partnership",
+      },
+      {
+        type: "paragraph",
+        text: "<small><em>Cover image: AI-generated illustration created for this editorial series.</em></small>",
+      },
+    ],
+    tags: ["Impact Africa", "Impact Beyond Recognition", "Community", "Youth Leadership"],
+    coverImage: "/blog/impact-beyond-recognition-impact-africa.png",
+    createdAt: "2026-11-10T13:51:40Z",
+    updatedAt: "2026-11-10T13:51:40Z",
+    readTime: 5,
+    isFeatured: true,
+    status: "published",
+  },
+  {
     id: "from-first-class-graduate-to-global-leader",
     title: "From First-Class Graduate to Global Leader: Lessons from Top100 Awardees",
     slug: "from-first-class-graduate-to-global-leader",
