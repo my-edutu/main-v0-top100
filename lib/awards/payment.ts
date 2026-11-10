@@ -2,7 +2,7 @@
 import { dashboardRead } from '@/lib/http/dashboard-read'
 
 export type AwardPaymentCurrency = 'NGN' | 'USD'
-export type AwardCheckoutDetails = { countryCode: string; email: string; couponCode?: string }
+export type AwardCheckoutDetails = { countryCode: string; email: string; couponCode?: string; useDefaultCoupon?: true }
 export type AwardCouponQuote = {
   currency: 'NGN'
   baseAmountMinor: number
@@ -49,6 +49,15 @@ export async function previewAwardCoupon(code: string): Promise<AwardCouponQuote
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ code }),
+  }))
+}
+
+export async function previewDefaultAwardCoupon(signal: AbortSignal): Promise<AwardCouponQuote | null> {
+  return readResponse(await fetch('/api/member/award/payment/coupon', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ useDefaultCoupon: true }),
+    signal,
   }))
 }
 

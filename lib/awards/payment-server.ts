@@ -12,7 +12,7 @@ import { createAdminClient } from '@/lib/supabase/server'
 import { loadOrderForUser, isMissingAwardTable } from './server'
 import { mapPaymentView } from './payment-state'
 import { awardFee } from './payment-price'
-import { awardCouponDigest, awardCouponUnavailable } from './coupon-server'
+import { awardCouponDigest, awardCouponUnavailable, DEFAULT_AWARD_COUPON_DIGEST } from './coupon-server'
 import { AwardPaymentError } from './payment-errors'
 import type { AwardPaymentView } from './payment'
 import { reconcileAwardAttempt } from './payment-reconciliation'
@@ -197,7 +197,7 @@ export async function createAwardPaymentCheckout(
   currency: AwardPaymentCurrency,
   contactEmail?: string,
   countryCode?: string,
-  couponCode?: string,
+  coupon?: string | { useDefaultCoupon: true },
 ): Promise<{ checkoutUrl: string; attemptId: string }> {
   let checkoutEmail = (contactEmail ?? member.email ?? '').trim().toLowerCase()
   if (!checkoutEmail || checkoutEmail.length > 320 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(checkoutEmail)) {
@@ -214,9 +214,10 @@ export async function createAwardPaymentCheckout(
     p_idempotency_key: `afl-award-${attemptId}`,
     p_price_version: fee.priceVersion,
   }
-  const { data: reservation, error } = couponCode
+  const { data: reservation, error } = coupon
     ? await db.rpc('reserve_bachs_award_coupon_checkout', {
-        ...reservationInput, p_code_digest: awardCouponDigest(couponCode),
+        ...reservationInput,
+        p_code_digest: typeof coupon === 'string' ? awardCouponDigest(coupon) : DEFAULT_AWARD_COUPON_DIGEST,
       })
     : await db.rpc('reserve_bachs_award_checkout', {
         ...reservationInput, p_currency: currency, p_requested_amount_minor: fee.amountMinor,

@@ -5,6 +5,12 @@ export type { AwardFee, AwardPaymentCurrency } from '@/lib/payments/bachs/types'
 export const DEFAULT_AWARD_FEE_NGN_MINOR = 2_500_000
 export const AWARD_COUPON_DISCOUNT_MINOR = 500_000
 export const AWARD_COUPON_TOTAL_MINOR = DEFAULT_AWARD_FEE_NGN_MINOR - AWARD_COUPON_DISCOUNT_MINOR
+export const AWARD_COUPON_QUOTE = {
+  currency: 'NGN',
+  baseAmountMinor: DEFAULT_AWARD_FEE_NGN_MINOR,
+  discountAmountMinor: AWARD_COUPON_DISCOUNT_MINOR,
+  amountMinor: AWARD_COUPON_TOTAL_MINOR,
+} as const
 export const DEFAULT_AWARD_FEE_USD_MINOR = 2_000
 export const DEFAULT_AWARD_PRICE_VERSION = 'afl-award-2026-v1'
 

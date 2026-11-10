@@ -7,6 +7,7 @@ vi.mock('@/lib/payments/bachs/checkout', () => ({ createCheckoutSession:mocks.cr
 vi.mock('@/lib/payments/bachs/config', () => ({bachsConfig:mocks.config}))
 vi.mock('@/lib/awards/payment-price', () => ({awardFee:mocks.fee}))
 import { createAwardPaymentCheckout, getAwardPaymentView } from '@/lib/awards/payment-server'
+import { DEFAULT_AWARD_COUPON_DIGEST } from '@/lib/awards/coupon-server'
 const member = {id:'11b7e533-cc9e-4792-a5a8-428a746ae634',email:'member@example.com'}
 let update: ReturnType<typeof vi.fn>
 beforeEach(() => {
@@ -45,6 +46,17 @@ describe('award payment checkout service',()=>{
   mocks.rpc.mockResolvedValue({data:{outcome},error:null})
   await expect(createAwardPaymentCheckout(member,'NGN')).rejects.toMatchObject({statusCode:409})
   expect(mocks.create).not.toHaveBeenCalled()
+ })
+ it('reserves the automatic discount using the server-owned digest and sends the reserved amount to Bachs', async () => {
+  mocks.rpc.mockResolvedValueOnce({ data: {
+    outcome: 'created', order_id: 'order', attempt_id: 'attempt', provider_reference: 'ref',
+    idempotency_key: 'key', currency: 'NGN', requested_amount_minor: 2_000_000, award_coupon_id: 'coupon',
+  }, error: null })
+  await createAwardPaymentCheckout(member, 'USD', undefined, 'NG', { useDefaultCoupon: true })
+  expect(mocks.rpc).toHaveBeenCalledWith('reserve_bachs_award_coupon_checkout', expect.objectContaining({
+    p_code_digest: DEFAULT_AWARD_COUPON_DIGEST,
+  }))
+  expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({ currency: 'NGN', couponAmountMinor: 2_000_000 }))
  })
  it('does not expose checkout when persistence loses a concurrent webhook race',async()=>{
   const query:any={update:vi.fn(()=>query),eq:vi.fn(()=>query),select:vi.fn().mockResolvedValueOnce({data:[{id:'attempt'}],error:null}).mockResolvedValue({data:[],error:null})}

@@ -12,9 +12,10 @@ export const runtime = 'nodejs'
 
 const checkoutDetailsSchema = z.object({
   couponCode: awardCouponCodeSchema.optional(),
+  useDefaultCoupon: z.literal(true).optional(),
   countryCode: z.string().trim().length(2, 'Select a valid country.'),
   email: z.string().trim().email('Enter a valid email address.').max(320, 'Enter a valid email address.'),
-}).strict()
+}).strict().refine((details) => !(details.couponCode && details.useDefaultCoupon), 'Select one coupon.')
 
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser()
@@ -41,8 +42,9 @@ export async function POST(request: NextRequest) {
   }
   try {
     const email = parsed.data.email.trim().toLowerCase()
-    const checkout = parsed.data.couponCode
-      ? await createAwardPaymentCheckout(user, 'USD', email, countryCode, parsed.data.couponCode)
+    const coupon = parsed.data.useDefaultCoupon ? { useDefaultCoupon: true as const } : parsed.data.couponCode
+    const checkout = coupon
+      ? await createAwardPaymentCheckout(user, 'USD', email, countryCode, coupon)
       : await createAwardPaymentCheckout(user, 'USD', email, countryCode)
     return NextResponse.json(checkout)
   } catch (error) {
