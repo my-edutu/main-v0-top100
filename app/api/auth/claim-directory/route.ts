@@ -1,7 +1,7 @@
 // app/api/auth/claim-directory/route.ts
 // Public, rate-limited name search for registration and existing account guidance.
 // Signup starts here: the person picks who they are from this list, then
-// proves it with their email + an admin-issued code.
+// continues with the email on file and a signup code.
 //
 // Deliberately exposes only what the picker needs — no emails (only a masked
 // hint), no bios, no contact data.

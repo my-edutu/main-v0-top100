@@ -34,6 +34,8 @@ export default function SignUpPage() {
   const [captcha, setCaptcha] = useState('')
   const [captchaKey, setCaptchaKey] = useState(0)
   const [busy, setBusy] = useState(false)
+  const [sendingCode, setSendingCode] = useState(false)
+  const [codeSent, setCodeSent] = useState(false)
   const [searchedQuery, setSearchedQuery] = useState('')
   const [suggested, setSuggested] = useState(false)
   const [retry, setRetry] = useState(0)
@@ -45,6 +47,8 @@ export default function SignUpPage() {
   const [signingOut, setSigningOut] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const captchaUnavailable = process.env.NODE_ENV === 'production' && !process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
+  const captchaRequired = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY)
+  const actionDisabled = busy || sendingCode || captchaUnavailable || (captchaRequired && !captcha)
   const searchText = query.trim()
   const waiting = searchText.length >= 2 && (searching || searchedQuery !== searchText)
   const visibleResults = searchedQuery === searchText ? results : []
@@ -83,6 +87,33 @@ export default function SignUpPage() {
     setStep(2)
     setError('')
     setNotice('')
+    setCodeSent(false)
+    setInviteCode('')
+  }
+
+  async function sendCode() {
+    if (!selected || actionDisabled) return
+    setSendingCode(true)
+    setError('')
+    setNotice('')
+    const token = captcha
+    setCaptcha('')
+    try {
+      const response = await createTimedFetch(fetch, 45_000)('/api/auth/claim-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'send-code', awardeeId: selected.id, email, captchaToken: token }),
+      })
+      const body = await response.json().catch(() => ({}))
+      if (!response.ok || !body.sent) throw new Error(body.message || body.error || 'Could not email your signup code.')
+      setCodeSent(true)
+      setNotice(`Code sent to ${email.trim()}. Check your inbox and spam folder. The code expires in one hour.`)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not email your signup code.')
+    } finally {
+      setCaptchaKey(value => value + 1)
+      setSendingCode(false)
+    }
   }
 
   async function submitClaim(accessToken: string) {
@@ -104,9 +135,10 @@ export default function SignUpPage() {
 
   async function requestClaim(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!selected || busy) return
+    if (!selected || actionDisabled) return
     setBusy(true)
     setError('')
+    setNotice('')
     let captchaAttempted = false
     try {
       const normalizedEmail = email.trim().toLowerCase()
@@ -126,7 +158,7 @@ export default function SignUpPage() {
         body: JSON.stringify({ awardeeId: selected.id, email: normalizedEmail, inviteCode, captchaToken: token, password: userData.user ? undefined : password }),
       })
       const body = await response.json().catch(() => ({}))
-      if (!response.ok) throw new Error(body.message || 'Could not verify this record.')
+      if (!response.ok) throw new Error(body.message || body.error || 'Could not verify this record.')
       if (sessionData.session?.access_token && userData.user?.email?.toLowerCase() === normalizedEmail) {
         setHasSession(true)
         await submitClaim(sessionData.session.access_token)
@@ -213,13 +245,24 @@ export default function SignUpPage() {
           {step === 2 && !submitted && selected?.emailHint === null && <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-800"><p className="font-semibold">This winner record has no email on file yet.</p><p className="mt-1">The AFL team needs to add or confirm your email before you can claim this profile. <a className="font-semibold underline" href="mailto:info@top100afl.com?subject=Help%20claiming%20my%20winner%20profile">Contact the team</a> and include your awardee name.</p><Button type="button" variant="ghost" className="mt-2 px-0 text-red-900" onClick={() => setStep(1)}><ArrowLeft className="mr-2 h-4 w-4" />Back to search</Button></div>}
 
           {step === 2 && !submitted && !accountMismatch && selected && selected.emailHint !== null && <form onSubmit={requestClaim} className="space-y-5">
-            <div><Label htmlFor="claim-email">Email on your winner record</Label><Input id="claim-email" className="mt-2 h-12" type="email" required autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" />{selected?.emailHint && <p className="mt-1 text-xs text-stone-500">On file: {selected.emailHint}</p>}</div>
-            <div><Label htmlFor="claim-code">Invite code from the AFL team</Label><Input id="claim-code" className="mt-2 h-12" required value={inviteCode} onChange={(event) => setInviteCode(event.target.value)} placeholder="AFL-XXXXX-XXXXX" /></div>
-            {!hasSession && <div><Label htmlFor="claim-password">Choose a sign-in password</Label><div className="relative mt-2"><Input id="claim-password" className="h-12 pr-12" required minLength={8} type={showPassword ? 'text' : 'password'} autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} /><button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-1 text-stone-500 hover:text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword} aria-controls="claim-password">{showPassword ? <EyeOff aria-hidden="true" className="h-5 w-5" /> : <Eye aria-hidden="true" className="h-5 w-5" />}</button></div></div>}
-            <LegalConsent id="claim-legal-consent" />
+            <div><Label htmlFor="claim-email">Email on your winner record</Label><Input id="claim-email" className="mt-2 h-12" type="email" required autoComplete="email" value={email} disabled={busy || sendingCode} onChange={(event) => {
+              setEmail(event.target.value)
+              setCodeSent(false)
+              setInviteCode('')
+              setNotice('')
+            }} placeholder="you@example.com" />{selected.emailHint && <p className="mt-1 text-xs text-stone-500">On file: {selected.emailHint}</p>}</div>
             <TurnstileCaptcha key={captchaKey} action="signup" onVerify={setCaptcha} onExpire={() => setCaptcha('')} onError={() => setCaptcha('')} />
             {captchaUnavailable && <p role="alert" className="text-sm text-red-800">The security check is unavailable. Please try again shortly.</p>}
-            <div className="flex justify-between gap-3"><Button type="button" variant="ghost" onClick={() => setStep(1)}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button><Button disabled={busy || captchaUnavailable || (Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY) && !captcha)}>{busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Submit for review<ArrowRight className="ml-2 h-4 w-4" /></Button></div>
+            <div>
+              <Button type="button" variant="outline" disabled={actionDisabled || !email.trim()} onClick={() => void sendCode()}>
+                {sendingCode && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {sendingCode ? 'Sending…' : codeSent ? 'Resend code' : 'Email me a signup code'}
+              </Button>
+            </div>
+            <div><Label htmlFor="claim-code">Signup code</Label><Input id="claim-code" className="mt-2 h-12" required autoComplete="one-time-code" aria-describedby="claim-code-help" value={inviteCode} onChange={(event) => setInviteCode(event.target.value)} placeholder="AFL-XXXXX-XXXXX" /><p id="claim-code-help" className="mt-1 text-sm text-stone-600">Enter the code from your email. An active invite code from the AFL team also works here.</p></div>
+            {!hasSession && <div><Label htmlFor="claim-password">Choose a sign-in password</Label><div className="relative mt-2"><Input id="claim-password" className="h-12 pr-12" required minLength={8} type={showPassword ? 'text' : 'password'} autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} /><button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-1 text-stone-500 hover:text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword} aria-controls="claim-password">{showPassword ? <EyeOff aria-hidden="true" className="h-5 w-5" /> : <Eye aria-hidden="true" className="h-5 w-5" />}</button></div></div>}
+            <LegalConsent id="claim-legal-consent" />
+            <div className="flex justify-between gap-3"><Button type="button" variant="ghost" disabled={busy || sendingCode} onClick={() => setStep(1)}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button><Button disabled={actionDisabled}>{busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Submit for review<ArrowRight className="ml-2 h-4 w-4" /></Button></div>
           </form>}
           {submitted && <p className="text-sm text-stone-700">Your requested profile will appear after an admin approves it. <Link className="font-semibold text-orange-800 underline" href="/dashboard">Go to dashboard</Link>.</p>}
           <div className="mt-6 border-t border-stone-100 pt-4">

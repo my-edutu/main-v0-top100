@@ -1,21 +1,59 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
-import { validateCode } from '@/lib/access-codes'
+import { generateCode, revokeCode, validateCode } from '@/lib/access-codes'
 import { verifySignupCaptcha } from '@/lib/auth/signup-turnstile'
+import { sendTransactionalEmail } from '@/lib/email/send'
 import { getClientIdentifier, rateLimitResponse } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 
+async function emailClaimCode(email: string) {
+  const limited = await rateLimitResponse([
+    { maxRequests: 3, windowSeconds: 900, identifier: `claim-code-email:${email}` },
+  ], 'Too many code requests for this email. Wait a few minutes and try again.')
+  if (limited) return limited
+
+  try {
+    const invite = await generateCode({
+      email,
+      mode: 'single_use',
+      durationHours: 1,
+      label: 'Emailed signup code',
+    })
+    const result = await sendTransactionalEmail({
+      to: email,
+      subject: 'Your Top100 signup code',
+      text: `Your Top100 signup code is ${invite.code}. Enter it on the signup page to request your awardee profile. It expires in one hour and can only be used once. If you didn’t request this code, you can ignore this email.`,
+      html: `<div lang="en"><p>Enter this code on the Top100 signup page to request your awardee profile.</p><p style="font:700 26px monospace">${invite.code}</p><p>This code expires in one hour and can only be used once. If you didn’t request it, you can ignore this email.</p></div>`,
+      requireBrevoSmtp: true,
+    })
+    if (result.ok) return NextResponse.json({ sent: true })
+    if (result.delivery === 'not_sent') await revokeCode(invite.id)
+    console.error('[claim-code] SMTP send failed', { delivery: result.delivery })
+    return NextResponse.json({
+      message: result.delivery === 'unknown'
+        ? 'We could not confirm that the email was sent. If a code arrives, you can still use it.'
+        : 'We could not email your code. Please try again shortly.',
+    }, { status: 503 })
+  } catch {
+    console.error('[claim-code] Could not issue or revoke signup code')
+    return NextResponse.json({ message: 'We could not email your code. Please try again shortly.' }, { status: 503 })
+  }
+}
+
 // Checks eligibility before creating a password account and pending claim.
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null) as Record<string, unknown> | null
+  const sendCode = body?.action === 'send-code'
   const awardeeId = String(body?.awardeeId ?? '').trim()
   const email = String(body?.email ?? '').trim().toLowerCase()
   const inviteCode = String(body?.inviteCode ?? '').trim()
   const captchaToken = String(body?.captchaToken ?? '')
   const password = typeof body?.password === 'string' ? body.password : ''
-  if (!/^[0-9a-f-]{36}$/i.test(awardeeId) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !inviteCode) {
-    return NextResponse.json({ message: 'Select your record and enter your email and invite code.' }, { status: 400 })
+  if (!/^[0-9a-f-]{36}$/i.test(awardeeId) || email.length > 254 || !/^[^\s@,<>]+@[^\s@,<>]+\.[^\s@,<>]+$/.test(email) || (!sendCode && !inviteCode)) {
+    return NextResponse.json({ message: sendCode
+      ? 'Select your record and enter the email address on file.'
+      : 'Select your record and enter your email and signup code.' }, { status: 400 })
   }
   const captchaOk = await verifySignupCaptcha(captchaToken, {
     secret: process.env.TURNSTILE_SECRET_KEY,
@@ -27,9 +65,12 @@ export async function POST(request: NextRequest) {
   })
   if (!captchaOk) return NextResponse.json({ message: 'Complete the security check.' }, { status: 400 })
 
-  const limited = await rateLimitResponse([
+  const network = getClientIdentifier(request.headers)
+  const limited = await rateLimitResponse(sendCode ? [
+    { maxRequests: 30, windowSeconds: 300, identifier: `claim-code-network:${network}` },
+  ] : [
     { maxRequests: 5, windowSeconds: 60, identifier: `claim-request-person:${awardeeId}:${email}` },
-    { maxRequests: 1200, windowSeconds: 60, identifier: `claim-request-network:${getClientIdentifier(request.headers)}` },
+    { maxRequests: 1200, windowSeconds: 60, identifier: `claim-request-network:${network}` },
   ], 'Too many attempts. Try again shortly.')
   if (limited) return limited
 
@@ -54,8 +95,10 @@ export async function POST(request: NextRequest) {
   if (awardee.email.trim().toLowerCase() !== email) {
     return NextResponse.json({ message: 'That email does not match the email linked to this winner record. Use the email on file, or contact the AFL team if it has changed.' }, { status: 403 })
   }
+  if (sendCode) return emailClaimCode(email)
+
   const code = await validateCode(inviteCode, email)
-  if (!code.ok) return NextResponse.json({ message: 'The invite code is invalid or unavailable for this email.' }, { status: 403 })
+  if (!code.ok) return NextResponse.json({ message: 'The signup code is invalid or unavailable for this email.' }, { status: 403 })
   if (password) {
     if (password.length < 8 || password.length > 72) {
       return NextResponse.json({ message: 'Choose a password between 8 and 72 characters.' }, { status: 400 })
