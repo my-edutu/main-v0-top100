@@ -69,12 +69,6 @@ export default async function ImpactPage() {
               >
                 Explore leaders <ArrowRight aria-hidden="true" className="h-4 w-4" />
               </Link>
-              <Link
-                href="/partnership"
-                className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-300 bg-[#fff] px-6 py-3 font-semibold text-slate-950 transition hover:border-orange-700 hover:text-orange-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-4"
-              >
-                Partner with us
-              </Link>
             </div>
           </div>
         </div>

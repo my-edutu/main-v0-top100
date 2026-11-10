@@ -1,49 +1,35 @@
-import { ArrowRight } from 'lucide-react'
+import Link from 'next/link'
+import { ArrowRight, ArrowUpRight } from 'lucide-react'
 
-import { Button } from '@/components/ui/button'
+import styles from './PartnershipHeroSection.module.css'
 
-const PARTNERSHIP_GOOGLE_FORM_URL =
-  process.env.NEXT_PUBLIC_PARTNERSHIP_GOOGLE_FORM_URL || 'https://docs.google.com/forms'
+const partnershipFormUrl = process.env.NEXT_PUBLIC_PARTNERSHIP_GOOGLE_FORM_URL?.trim()
 
-const PARTNERSHIP_BACKGROUND_VIDEO_URL =
-  'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260418_115655_b4d9cd77-feed-43cd-a198-af78ebdf1f7a.mp4'
-
-export default function PartnershipHeroSection() {
+export default function PartnershipHeroSection({ showTalentPipelines = false }: { showTalentPipelines?: boolean }) {
   return (
-    <section id="partner-with-us" className="px-0 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
-      <div className="container">
-        <div className="relative mx-auto overflow-hidden rounded-[32px] shadow-[0_24px_80px_-40px_rgba(15,23,42,0.78)]">
-          <video
-            autoPlay
-            muted
-            loop
-            playsInline
-            className="pointer-events-none absolute inset-0 h-full w-full object-cover"
-            aria-hidden="true"
-            preload="metadata"
-          >
-            <source src={PARTNERSHIP_BACKGROUND_VIDEO_URL} type="video/mp4" />
-          </video>
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(15,23,42,0.2),rgba(2,6,23,0.78)_70%)]" />
-
-          <div className="relative z-10 flex min-h-[360px] items-center justify-center px-4 py-12 text-center sm:min-h-[400px] sm:px-6 lg:min-h-[430px]">
-            <div className="flex flex-col items-center gap-8">
-              <div className="space-y-4">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.34em] text-white/75">
-                  Partnerships
-                </p>
-                <h2 className="max-w-4xl text-balance text-4xl font-semibold tracking-tight text-[#fff] drop-shadow-lg sm:text-5xl lg:text-6xl">
-                  Partner with Top100 on a shared mission.
-                </h2>
-              </div>
-
-              <Button asChild className="h-14 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 px-8 text-[#fff] shadow-none hover:opacity-95">
-                <a href={PARTNERSHIP_GOOGLE_FORM_URL} target="_blank" rel="noreferrer">
-                  Start application
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </a>
-              </Button>
-            </div>
+    <section id="partner-with-us" aria-labelledby="home-org-title" className="container scroll-mt-24 py-6 sm:py-9">
+      <div className={styles.card}>
+        <div className={styles.content}>
+          <h2 id="home-org-title" className={styles.title}>Meet standout African talent.</h2>
+          <p className={styles.description}>
+            {showTalentPipelines
+              ? 'Our award winners lead teams, build projects and solve real problems. See their work and find people for your team, wherever you’re based.'
+              : 'Work with us to run a workshop, fund a scholarship or help young African leaders find a mentor.'}
+          </p>
+          <div className={styles.actions}>
+            {showTalentPipelines && (
+              <Link href="/for-organisations#discover" className={styles.action}>
+                Discover pipelines <span><ArrowRight size={16} aria-hidden="true" /></span>
+              </Link>
+            )}
+            <Link
+              href={partnershipFormUrl || '/partnership'}
+              target={partnershipFormUrl ? '_blank' : undefined}
+              rel={partnershipFormUrl ? 'noreferrer' : undefined}
+              className={showTalentPipelines ? styles.textLink : styles.action}
+            >
+              Partner with us <ArrowUpRight size={16} aria-hidden="true" />
+            </Link>
           </div>
         </div>
       </div>

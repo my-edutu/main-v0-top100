@@ -16,20 +16,24 @@ type AwardeesPageProps = {
     search?: string;
     year?: string;
     country?: string;
+    awardeeYear?: string;
+    awardeeCountry?: string;
+    view?: string;
   }>;
 };
 
 export async function generateMetadata({ searchParams }: AwardeesPageProps): Promise<Metadata> {
   const query = await searchParams
   const params = new URLSearchParams()
-  if (query?.year && /^(all|(?:19|20|21)\d{2})$/.test(query.year)) params.set('year', query.year)
+  const year = query?.awardeeYear ?? (query?.view === 'talent' ? undefined : query?.year)
+  if (year && /^(all|(?:19|20|21)\d{2})$/.test(year)) params.set('year', year)
   if (query?.page && /^[1-9]\d*$/.test(query.page) && Number(query.page) > 1) params.set('page', query.page)
   const canonical = params.size ? `/awardees?${params}` : '/awardees'
   return {
     title: pageOg('/awardees').title,
     description: 'Explore the Top100 Africa Future Leaders directory, awardee biographies and leadership stories.',
     alternates: { canonical },
-    ...(query?.search || query?.country ? { robots: { index: false, follow: true } } : {}),
+    ...(query?.search || query?.country || query?.awardeeCountry ? { robots: { index: false, follow: true } } : {}),
     ...ogMetadata(pageOg('/awardees'), { url: canonical }),
   }
 }
@@ -46,6 +50,17 @@ export default async function AwardeesPage({ searchParams }: AwardeesPageProps) 
     current_school: person.current_school, field_of_study: person.field_of_study,
     interests: person.interests,
   }));
-  const archive = <AwardeesPageClient initialPeople={people} initialSearchParams={resolvedSearchParams} />;
-  return talentDiscoveryEnabled() ? <TalentDirectory archive={archive} /> : archive;
+  const discoveryEnabled = talentDiscoveryEnabled();
+  const awardeeDirectory = <AwardeesPageClient initialPeople={people} initialSearchParams={resolvedSearchParams} embedded={discoveryEnabled} />;
+
+  if (!discoveryEnabled) return awardeeDirectory;
+
+  return (
+    <div className="leaders-discovery">
+      <div className="leaders-container">
+        <TalentDirectory />
+        {awardeeDirectory}
+      </div>
+    </div>
+  );
 }

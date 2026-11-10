@@ -22,12 +22,14 @@ import type { Achievement, GalleryItem, SocialLinks } from '@/types/profile'
 import LinkedInPostCard from './LinkedInPostCard'
 import AwardeePostsList from './AwardeePostsList'
 import StructuredData from '@/components/StructuredData'
+import { TalentPortfolio } from '@/components/talent/portfolio'
+import { getPublishedTalentProfile } from '@/lib/talent/public-query'
 import AwardeePortrait from './AwardeePortrait'
 import AwardeeMediaCarousel from './AwardeeMediaCarousel'
 import BackToLeaders from './BackToLeaders'
 
 export const runtime = 'nodejs'
-export const revalidate = 300
+export const dynamic = 'force-dynamic'
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -43,6 +45,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
   const awardee = normalizeAwardeeEntry(raw)
   const content = buildProfileContent(awardee)
+  const talent = await getPublishedTalentProfile(awardee.slug)
   const hero = [awardee.avatar_url, awardee.cover_image_url, raw.portfolio_cover_url]
     .flatMap(source => typeof source === 'string' ? [resolveRemoteImageSource(source.trim())] : [])
     .find(source => source && isAllowedHero(source))
@@ -50,8 +53,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     || content.sections.find(section => !section.heading)?.paragraphs[0]
     || content.introduction
   const cohortLabel = content.recognition
-  const title = content.title
-  const description = profileDescription(content.description, content.introduction)
+  const title = talent?.headline ? `${awardee.name} | ${clampText(talent.headline, 65)}` : content.title
+  const description = profileDescription(talent?.details.summary || content.description, content.introduction)
 
   const keywords = [
     awardee.name,
@@ -68,7 +71,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const card = {
     title: awardee.name,
     eyebrow: content.year ? `Top100 AFL ${content.year}` : 'Top100 AFL',
-    subtitle: clampText(excerpt, 140) || awardee.headline || awardee.tagline || cohortLabel,
+    subtitle: clampText(talent?.headline || excerpt, 140) || awardee.headline || awardee.tagline || cohortLabel,
     meta: [awardee.country, cohortLabel].filter(Boolean).join(' · '),
     hero,
     variant: 'profile' as const,
@@ -156,7 +159,8 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
   const achievements = (awardee.achievements ?? []) as Achievement[]
   const gallery = (awardee.gallery ?? []) as GalleryItem[]
   const spotlightLabel = content.recognition
-  const heroSubtitle = content.headline || awardee.tagline?.trim() || null
+  const talent = await getPublishedTalentProfile(awardee.slug)
+  const heroSubtitle = talent?.details.headline || content.headline || awardee.tagline?.trim() || null
 
   const [interviews, articles] = await Promise.all([
     getPublishedInterviews(awardee.awardee_id),
@@ -168,7 +172,7 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
       .map(post => ({ href: `/blog/${encodeURIComponent(post.slug)}`, title: post.title, label: 'Article' })),
   ]
 
-  const personSchema = profileStructuredData(awardee, socialEntries.map(([, url]) => url))
+  const personSchema = profileStructuredData(awardee, socialEntries.map(([, url]) => url), talent?.details)
 
   return (
     <div className="min-h-screen bg-white">
@@ -177,6 +181,7 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
       <article className="mx-auto max-w-5xl px-5 sm:px-8 lg:px-10">
         <nav className="py-4 sm:py-6">
           <BackToLeaders year={content.year ? Number(content.year) : undefined} />
+          {talent && <a href="#talent-portfolio" className="ml-4 inline-flex min-h-11 items-center text-sm font-semibold text-orange-800 underline underline-offset-4">View skills and selected work</a>}
         </nav>
 
         <header className="border-b border-stone-200 pb-8 pt-2 sm:pb-10 sm:pt-4">
@@ -216,6 +221,8 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
             </div>
           )}
         </header>
+
+        {talent && <TalentPortfolio profile={talent} />}
 
         {content.details.length > 0 && (
           <section className="border-b border-stone-200 py-6" aria-labelledby="profile-background">

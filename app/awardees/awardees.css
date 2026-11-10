@@ -44,15 +44,15 @@
 .directory-toolbar { display: flex; gap: 12px; margin-bottom: 16px; }
 .directory-search { position: relative; flex: 1; min-width: 0; }
 .directory-search > svg { position: absolute; left: 17px; top: 17px; color: #8a8b7f; }
-.directory-search input { height: 54px; border: 1px solid #deded5; background: #fff; border-radius: 12px; width: 100%; padding: 0 64px 0 48px; font-size: 15px; }
-.directory-search input::placeholder { color: #858679; }
+.directory-search > input { height: 54px; border: 1px solid #deded5; background: #fff; border-radius: 12px; width: 100%; padding: 0 64px 0 48px; font-size: 15px; }
+.directory-search > input::placeholder { color: #858679; }
 .directory-filter { position: absolute; top: 5px; right: 6px; z-index: 5; }
 .directory-filter > summary { list-style: none; position: relative; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 9px; color: #45483e; cursor: pointer; }
 .directory-filter > summary::-webkit-details-marker { display: none; }
 .directory-filter[open] > summary, .directory-filter > summary:hover { background: #f3f1e9; }
 .directory-filter > summary > svg { color: inherit; }
 .filter-active-dot { position: absolute; right: 8px; top: 8px; width: 7px; height: 7px; border-radius: 50%; background: #e96a20; box-shadow: 0 0 0 2px #fff; }
-.directory-filter-panel { position: absolute; top: calc(100% + 8px); right: 0; display: grid; gap: 12px; width: min(360px, calc(100vw - 32px)); padding: 16px; border: 1px solid #deded5; border-radius: 14px; background: #fff; box-shadow: 0 18px 46px rgba(30, 31, 25, .16); }
+.directory-filter-panel { position: absolute; top: calc(100% + 8px); right: 0; display: grid; gap: 12px; width: min(360px, calc(100vw - 56px)); padding: 16px; border: 1px solid #deded5; border-radius: 14px; background: #fff; box-shadow: 0 18px 46px rgba(30, 31, 25, .16); }
 .directory-filter-panel .directory-select { min-width: 0; }
 .directory-filter-panel .directory-country-shortcuts { display: block; margin: 0; }
 .directory-filter-panel .directory-country-shortcuts > span { display: block; margin-bottom: 8px; font-size: 11px; color: #717266; }
@@ -107,7 +107,7 @@
   .directory-title-row { align-items: center; gap: 12px; margin-bottom: 14px; }
   .directory-title-row h2 { font-size: 21px; }
   .directory-toolbar { gap: 10px; margin-bottom: 14px; }
-  .directory-search input { font-size: 16px; }
+  .directory-search > input { font-size: 16px; }
   .leaders-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
   .leader-card { border-radius: 12px; }
   .leader-card-content { padding: 12px; }
@@ -123,3 +123,6 @@
 @media (max-width: 767px) {
   .directory-filter-panel { padding: 13px; }
 }
+
+.directory-select input { width: 100%; min-height: 32px; background: transparent; font-size: 16px; }
+.directory-filter > summary:focus-visible { outline: 2px solid #f97316; outline-offset: 2px; }

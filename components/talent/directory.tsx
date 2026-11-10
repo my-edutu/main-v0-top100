@@ -4,11 +4,23 @@ import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from '
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import Image from '@/components/safe-image'
-import { ArrowRight, Search, SlidersHorizontal, Users, X } from 'lucide-react'
+import { ArrowRight, Users, X } from 'lucide-react'
 import { TALENT_INTERESTS, TALENT_SECTORS, TALENT_WORK_MODES } from '@/lib/talent/contracts'
-import { directorySearch, EMPTY_DIRECTORY_FILTERS, readDirectoryState, type DirectoryFilters, type DirectoryView } from '@/lib/talent/directory-state'
+import { directorySearch, EMPTY_DIRECTORY_FILTERS, publicTalentSearch, readDirectoryState, type DirectoryFilters, type DirectoryView } from '@/lib/talent/directory-state'
 import type { TalentCard, TalentPage } from '@/lib/talent/types'
-import { Field, inputClass, primaryClass, secondaryClass, TalentNotice } from './ui'
+import { DirectorySearch } from '@/components/directory-search'
+import { TalentNotice } from './ui'
+
+const actionClass = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#f97316] px-4 text-sm font-semibold text-slate-950 hover:bg-[#fb923c] focus-visible:outline-2 focus-visible:outline-offset-2'
+const filterFields = [
+  { key: 'sector', label: 'Sector', placeholder: 'All sectors', options: TALENT_SECTORS },
+  { key: 'interest', label: 'Open to', placeholder: 'Any opportunity', options: TALENT_INTERESTS },
+  { key: 'country', label: 'Country', placeholder: 'Any country', maxLength: 100 },
+  { key: 'skill', label: 'Skill', placeholder: 'Any skill', maxLength: 80 },
+  { key: 'language', label: 'Language', placeholder: 'Any language', maxLength: 80 },
+  { key: 'workMode', label: 'Work type', placeholder: 'Any work type', options: TALENT_WORK_MODES },
+  { key: 'year', label: 'Award year', placeholder: 'All years', maxLength: 4 },
+] as const
 
 type DirectoryProps = { archive?: ReactNode; compact?: boolean }
 export function TalentDirectory(props: DirectoryProps) {
@@ -16,16 +28,22 @@ export function TalentDirectory(props: DirectoryProps) {
 }
 function DirectoryContent({ archive, compact = false }: DirectoryProps) {
   const hasArchive = Boolean(archive)
+  const publicDirectory = !compact
   const Heading = compact ? 'h2' : 'h1'
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const urlSearch = searchParams.toString()
-  const routeState = useMemo(() => readDirectoryState(new URLSearchParams(urlSearch), hasArchive), [urlSearch, hasArchive])
+  const routeState = useMemo(() => {
+    const state = readDirectoryState(new URLSearchParams(urlSearch), publicDirectory || hasArchive)
+    return publicDirectory && state.view === 'archive'
+      ? { view: 'talent' as const, filters: EMPTY_DIRECTORY_FILTERS }
+      : state
+  }, [urlSearch, hasArchive, publicDirectory])
   const [view, setView] = useState<DirectoryView>(routeState.view)
   const [filters, setFilters] = useState<DirectoryFilters>(routeState.filters)
   const [applied, setApplied] = useState<DirectoryFilters>(routeState.filters)
-  const [more, setMore] = useState(false)
+  const filtersRef = useRef<HTMLDetailsElement>(null)
   const [page, setPage] = useState<TalentPage>({ people: [], nextCursor: null, total: 0 })
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -44,7 +62,9 @@ function DirectoryContent({ archive, compact = false }: DirectoryProps) {
     ++generation.current; moreRequest.current?.abort(); moreRequest.current = null
     setView(nextView); setFilters(nextFilters); setApplied(nextFilters); setLoadingMore(false)
     if (nextView === 'talent') setReload(value => value + 1)
-    router.push(`${pathname}?${directorySearch(new URLSearchParams(urlSearch), nextView, nextFilters)}`, { scroll: false })
+    const current = new URLSearchParams(urlSearch)
+    const next = publicDirectory ? publicTalentSearch(current, nextFilters) : directorySearch(current, nextView, nextFilters)
+    router.push(`${pathname}?${next}`, { scroll: false })
   }
   useEffect(() => {
     const current = ++generation.current
@@ -82,48 +102,118 @@ function DirectoryContent({ archive, compact = false }: DirectoryProps) {
     }
   }
   const change = (key: keyof DirectoryFilters, value: string) => setFilters(previous => ({ ...previous, [key]: value }))
-  const activeFilters = Object.values(applied).filter(Boolean).length
+  const activeFilters = filterFields.filter(field => applied[field.key])
+  const clearFilters = () => navigate('talent', EMPTY_DIRECTORY_FILTERS)
   if (disabled && archive) return <>{archive}</>
-  return <section className={compact ? 'space-y-6' : 'mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8'} aria-label="Top100 talent network">
+  return <section className={compact ? 'space-y-6' : 'pb-6 sm:pb-10'} aria-label="Top100 talent network">
     {archive && <div className="mb-6 flex w-fit max-w-full gap-1 rounded-2xl border border-orange-200 bg-orange-50 p-1" aria-label="Directory view">
-      {(['talent', 'archive'] as const).map(mode => <button key={mode} type="button" onClick={() => navigate(mode, mode === 'talent' ? filters : EMPTY_DIRECTORY_FILTERS)} aria-pressed={view === mode} className={`min-h-11 rounded-xl px-4 text-sm font-semibold focus-visible:outline-orange-700 ${view === mode ? 'bg-gradient-to-r from-orange-700 to-amber-700 text-white' : 'text-stone-700'}`}>{mode === 'talent' ? 'Discover talent' : 'Awardee archive'}</button>)}
+      {(['talent', 'archive'] as const).map(mode => <button key={mode} type="button" onClick={() => navigate(mode, mode === 'talent' ? filters : EMPTY_DIRECTORY_FILTERS)} aria-pressed={view === mode} className={`min-h-11 rounded-xl px-4 text-sm font-semibold focus-visible:outline-orange-700 ${view === mode ? 'bg-[#f97316] text-slate-950' : 'text-stone-700'}`}>{mode === 'talent' ? 'Discover talent' : 'Awardee archive'}</button>)}
     </div>}
     {view === 'archive' ? archive : <>
-      <header className="mb-6 grid gap-5 rounded-[28px] border border-orange-100 bg-gradient-to-br from-orange-50 via-white to-amber-50 p-6 sm:p-8 lg:grid-cols-[1fr_auto] lg:items-end">
-        <div className="max-w-2xl"><p className="text-xs font-semibold uppercase tracking-[.18em] text-orange-800">Impact Beyond Recognition</p><Heading className="mt-3 text-3xl font-semibold tracking-tight text-stone-950 sm:text-4xl">Discover African talent.</Heading><p className="mt-3 max-w-xl text-sm leading-7 text-stone-600 sm:text-base">Explore the skills, work and ambitions members have chosen to share. Find a relevant profile, then tell us about your opportunity.</p></div>
-        <Link href="/for-organisations/request" className={`${primaryClass} w-fit`}>Tell us who you need <ArrowRight className="size-4" aria-hidden="true" /></Link>
-      </header>
-      <form className="space-y-4 rounded-2xl border border-stone-200 bg-white p-4 sm:p-5" onSubmit={event => { event.preventDefault(); navigate('talent', { ...filters }) }}>
-        <div className="flex flex-col gap-3 sm:flex-row"><div className="min-w-0 flex-1"><label htmlFor="talent-search" className="sr-only">Search talent by name, skills or work</label><div className="relative"><Search className="absolute left-3 top-3 size-5 text-stone-400" aria-hidden="true" /><input id="talent-search" value={filters.q} maxLength={100} onChange={event => change('q', event.target.value)} placeholder="Name, skills, projects or interests" className={`${inputClass} pl-11`} /></div></div><button className={primaryClass} type="submit">Search talent</button></div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Field label="Sector" htmlFor="talent-sector"><select id="talent-sector" className={inputClass} value={filters.sector} onChange={event => change('sector', event.target.value)}><option value="">All sectors</option>{TALENT_SECTORS.map(item => <option key={item}>{item}</option>)}</select></Field>
-          <Field label="Skill" htmlFor="talent-skill"><input id="talent-skill" className={inputClass} value={filters.skill} maxLength={80} onChange={event => change('skill', event.target.value)} placeholder="e.g. Python" /></Field>
-          <Field label="Country of residence" htmlFor="talent-country"><input id="talent-country" className={inputClass} value={filters.country} maxLength={100} onChange={event => change('country', event.target.value)} placeholder="Any country" /></Field>
-          <Field label="Interested in" htmlFor="talent-interest"><select id="talent-interest" className={inputClass} value={filters.interest} onChange={event => change('interest', event.target.value)}><option value="">Any opportunity</option>{TALENT_INTERESTS.map(item => <option key={item}>{item}</option>)}</select></Field>
+      <header className="mb-6 flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
+        <div>
+          <Heading className="text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">Discover African talent</Heading>
+          <p className="mt-2 max-w-xl text-base leading-relaxed text-slate-600">Find people by name, skill or field. See what they’ve built and what they’d like to do next.</p>
         </div>
-        <div className="flex flex-wrap items-center gap-3"><button type="button" className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-stone-700" onClick={() => setMore(!more)} aria-expanded={more} aria-controls="talent-extra-filters"><SlidersHorizontal className="size-4" aria-hidden="true" />{more ? 'Fewer filters' : 'More filters'}</button>{activeFilters > 0 && <button type="button" className="inline-flex min-h-11 items-center gap-1 text-sm text-orange-800" onClick={() => navigate('talent', EMPTY_DIRECTORY_FILTERS)}><X className="size-4" aria-hidden="true" />Clear filters ({activeFilters})</button>}<span className="text-xs text-stone-500">Apply filters with Search talent. The address can then be shared.</span></div>
-        {more && <div id="talent-extra-filters" className="grid gap-3 border-t border-stone-100 pt-4 sm:grid-cols-3">
-          <Field label="Language" htmlFor="talent-language"><input id="talent-language" className={inputClass} value={filters.language} maxLength={80} onChange={event => change('language', event.target.value)} placeholder="Any language" /></Field>
-          <Field label="Work preference" htmlFor="talent-work"><select id="talent-work" className={inputClass} value={filters.workMode} onChange={event => change('workMode', event.target.value)}><option value="">Any preference</option>{TALENT_WORK_MODES.map(item => <option key={item}>{item}</option>)}</select></Field>
-          <Field label="Recognition year" htmlFor="talent-year" hint="Leave empty to include every cohort."><input id="talent-year" inputMode="numeric" pattern="[0-9]{4}" maxLength={4} className={inputClass} value={filters.year} onChange={event => change('year', event.target.value)} placeholder="All years" /></Field>
-        </div>}
+        <nav aria-label="Directory links" className="flex flex-wrap items-center gap-x-5 gap-y-1">
+          {publicDirectory && <Link href="#leader-directory" className="inline-flex min-h-11 items-center text-sm font-semibold text-slate-700 underline underline-offset-4">Browse awardees</Link>}
+          <Link href="/for-organisations/request" className={actionClass}>Share a job <ArrowRight className="size-4" aria-hidden="true" /></Link>
+        </nav>
+      </header>
+      <form
+        className="directory-toolbar flex-col sm:flex-row"
+        onSubmit={event => {
+          event.preventDefault()
+          navigate('talent')
+          if (filtersRef.current?.open) {
+            filtersRef.current.open = false
+            filtersRef.current.querySelector('summary')?.focus()
+          }
+        }}
+      >
+        <DirectorySearch
+          id="talent-search"
+          label="Search talent by name, skill or field"
+          placeholder="Find a name, skill or field…"
+          value={filters.q}
+          onChange={value => change('q', value.slice(0, 100))}
+          filterLabel="Filter talent"
+          hasFilters={activeFilters.length > 0}
+          filtersRef={filtersRef}
+        >
+          <div className="grid grid-cols-2 gap-2">
+            {filterFields.map(field => {
+              const id = `talent-${field.key}`
+              return (
+                <div className="directory-select" key={field.key}>
+                  <label htmlFor={id}>{field.label}</label>
+                  {'options' in field ? (
+                    <select id={id} value={filters[field.key]} onChange={event => change(field.key, event.target.value)}>
+                      <option value="">{field.placeholder}</option>
+                      {field.options.map(item => <option key={item}>{item}</option>)}
+                    </select>
+                  ) : (
+                    <input id={id} value={filters[field.key]} maxLength={field.maxLength}
+                      inputMode={field.key === 'year' ? 'numeric' : undefined}
+                      pattern={field.key === 'year' ? '[0-9]{4}' : undefined}
+                      placeholder={field.placeholder} onChange={event => change(field.key, event.target.value)} />
+                  )}
+                </div>
+              )
+            })}
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <button type="submit" className={actionClass}>Apply filters</button>
+            <button type="button" className="directory-clear-filters" onClick={clearFilters}>Clear filters</button>
+          </div>
+        </DirectorySearch>
+        <button type="submit" className={`${actionClass} self-start sm:self-stretch`}>Search talent</button>
       </form>
-      <div className="my-5 flex flex-wrap items-center justify-between gap-2"><p aria-live="polite" className="text-sm text-stone-600">{loading ? 'Finding profiles…' : error && !page.people.length ? 'Directory unavailable — please retry.' : `${page.total} matching ${page.total === 1 ? 'profile' : 'profiles'}`}</p><p className="text-xs text-stone-500">Claims are self-reported unless a specific check is shown.</p></div>
+      {activeFilters.length > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-2" aria-label="Applied talent filters">
+          {activeFilters.map(({ key, label }) => (
+            <button key={key} type="button"
+              className="inline-flex min-h-11 max-w-full items-center gap-2 rounded-full border border-stone-300 bg-[#fff] px-3 text-sm text-slate-700 hover:border-orange-500"
+              aria-label={`Remove ${label} filter`}
+              onClick={() => navigate('talent', { ...applied, [key]: '' })}
+            >
+              <span className="truncate">{label}: {applied[key]}</span>
+              <X className="size-4 shrink-0" aria-hidden="true" />
+            </button>
+          ))}
+        </div>
+      )}
+      <p aria-live="polite" className="mb-4 text-sm text-slate-600">
+        {loading ? 'Finding profiles…' : error && !page.people.length ? 'Talent search is unavailable.' : `${page.total} matching ${page.total === 1 ? 'profile' : 'profiles'}`}
+      </p>
       {error && <div className="mb-5"><TalentNotice error>{error} <button type="button" className="min-h-11 underline" onClick={() => setReload(value => value + 1)}>Retry</button></TalentNotice></div>}
-      {loading ? <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="Loading talent profiles" aria-busy="true">{[0, 1, 2, 3, 4, 5].map(item => <div key={item} className="h-64 animate-pulse rounded-2xl border border-stone-100 bg-stone-50 motion-reduce:animate-none" />)}</div>
+      {loading ? <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="Loading talent profiles" aria-busy="true">{[0, 1, 2].map(item => <div key={item} className="h-32 animate-pulse rounded-2xl border border-stone-100 bg-stone-50 motion-reduce:animate-none" />)}</div>
         : page.people.length ? <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{page.people.map(person => <TalentCardView key={person.id} person={person} returnTo={`${pathname}${urlSearch ? `?${urlSearch}` : ''}`} />)}</div>
-          : !error && <div className="rounded-2xl border border-dashed border-orange-200 bg-orange-50/40 px-6 py-10 text-center"><Users className="mx-auto size-9 text-orange-700" aria-hidden="true" /><h2 className="mt-4 text-xl font-semibold text-stone-950">{activeFilters ? 'No profiles match yet.' : 'The talent network starts with its members.'}</h2><p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-stone-600">{activeFilters ? 'Try fewer filters, or send us a specific brief. We will review it without promising a match.' : 'Members can complete their details and choose to join discovery. The awardee archive remains available.'}</p><Link className={`${secondaryClass} mt-5`} href={activeFilters ? '/for-organisations/request' : '/dashboard/me/profile'}>{activeFilters ? 'Submit your brief' : 'Complete your talent profile'}</Link></div>}
-      {page.nextCursor && !loading && <div className="mt-8 text-center"><button type="button" disabled={loadingMore} className={secondaryClass} onClick={() => void loadMore()}>{loadingMore ? 'Loading…' : 'Show more talent'}</button></div>}
+          : !error && (
+            <div className="directory-empty">
+              <Users size={28} aria-hidden="true" />
+              <h3>{activeFilters.length || applied.q ? 'No profiles match your search' : 'No talent profiles to show yet'}</h3>
+              <p>{activeFilters.length || applied.q ? 'Try a different search or remove a filter.' : 'Profiles appear here when members choose to share them.'}</p>
+              {(activeFilters.length > 0 || applied.q) && <button type="button" onClick={clearFilters}>Clear search</button>}
+            </div>
+          )}
+      {page.nextCursor && !loading && (
+        <div className="mt-6">
+          <button type="button" disabled={loadingMore} className={actionClass} onClick={() => void loadMore()}>
+            {loadingMore ? 'Loading…' : 'Show more profiles'}
+          </button>
+        </div>
+      )}
     </>}
   </section>
 }
 function TalentCardView({ person, returnTo }: { person: TalentCard; returnTo: string }) {
   const href = `/awardees/${encodeURIComponent(person.slug)}?returnTo=${encodeURIComponent(returnTo)}#talent-portfolio`
-  return <article className="flex flex-col rounded-[24px] border border-stone-200 bg-white p-5 transition-colors hover:border-orange-300">
-    <div className="flex items-start gap-3"><div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-orange-100 text-lg font-semibold text-orange-900">{person.avatarUrl ? <Image src={person.avatarUrl} alt="" width={56} height={56} className="size-14 object-cover" /> : person.name.split(' ').filter(Boolean).slice(0, 2).map(word => word[0]).join('')}</div><div className="min-w-0"><h2 className="break-words font-semibold text-stone-950"><Link className="hover:underline focus-visible:outline-orange-700" href={href}>{person.name}</Link></h2><p className="mt-1 text-xs text-stone-500">{[person.country, person.year ? `Top100 ${person.year}` : ''].filter(Boolean).join(' · ')}</p></div></div>
-    <p className="mt-4 break-words text-base font-medium leading-6 text-stone-800">{person.headline}</p><p className="mt-1 text-sm text-orange-800">{person.sector}</p>
+  return <article className="flex flex-col leader-card p-5 transition-colors hover:border-orange-300">
+    <div className="flex items-start gap-3"><div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-amber-100 text-lg font-semibold text-slate-900">{person.avatarUrl ? <Image src={person.avatarUrl} alt="" width={56} height={56} className="size-14 object-cover" /> : person.name.split(' ').filter(Boolean).slice(0, 2).map(word => word[0]).join('')}</div><div className="min-w-0"><h2 className="break-words font-semibold text-stone-950"><Link className="hover:underline focus-visible:outline-orange-700" href={href}>{person.name}</Link></h2><p className="mt-1 text-xs text-stone-500">{[person.country, person.year ? `Top100 ${person.year}` : ''].filter(Boolean).join(' · ')}</p></div></div>
+    <p className="mt-4 break-words text-base font-medium leading-6 text-stone-800">{person.headline}</p><p className="mt-1 text-sm text-slate-700">{person.sector}</p>
     <div className="mt-4 flex flex-wrap gap-2">{person.skills.slice(0, 3).map(skill => <span key={skill} className="max-w-full break-words rounded-full bg-stone-100 px-3 py-1 text-xs text-stone-700">{skill}</span>)}</div>
     <div className="mt-5 border-t border-stone-100 pt-4"><p className="text-xs text-stone-500">Interested in</p><p className="mt-1 text-sm text-stone-700">{person.interests.slice(0, 3).join(' · ')}</p></div>
-    <Link href={href} className="mt-auto flex min-h-12 items-center justify-between gap-3 pt-4 text-sm font-semibold text-orange-800">View talent profile <ArrowRight className="size-4" aria-hidden="true" /></Link>
+    <Link href={href} className="mt-auto flex min-h-12 items-center justify-between gap-3 pt-4 text-sm font-semibold text-slate-700">View talent profile <ArrowRight className="size-4" aria-hidden="true" /></Link>
   </article>
 }

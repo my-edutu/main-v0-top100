@@ -129,6 +129,21 @@ test('talent URLs round-trip selected filters without copying archive pagination
   assert.equal(params.get('page'), null); assert.equal(params.get('search'), null); assert.equal(params.get('utm_source'), 'partner')
   assert.equal(directoryFunction('readDirectoryState')(params, true).filters.q, 'AI & research')
 })
+test('public talent search keeps the awardee section on its own filters and page', () => {
+  const current = new URLSearchParams('year=2024&country=Kenya&search=Grace&page=2')
+  const search = directory.publicTalentSearch(current, { ...directory.EMPTY_DIRECTORY_FILTERS, country: 'Nigeria', year: '2026' })
+  const params = new URLSearchParams(search)
+  assert.deepEqual(directory.readAwardeeFilters(params), { year: '2024', country: 'Kenya' })
+  assert.equal(params.get('search'), 'Grace')
+  assert.equal(params.get('page'), '2')
+  const talent = directory.readDirectoryState(params, true).filters
+  assert.equal(talent.country, 'Nigeria')
+  assert.equal(talent.year, '2026')
+
+  const cleared = new URLSearchParams(directory.publicTalentSearch(params, directory.EMPTY_DIRECTORY_FILTERS))
+  assert.deepEqual(directory.readAwardeeFilters(cleared), { year: '2024', country: 'Kenya' })
+  assert.equal(cleared.get('country'), null)
+})
 test('switching to archive removes talent-only filter parameters', () => {
   const params = new URLSearchParams(directoryFunction('directorySearch')(new URLSearchParams('view=talent&q=AI&skill=Python&year=2027'), 'archive', directory.EMPTY_DIRECTORY_FILTERS))
   assert.equal(params.get('view'), 'archive'); assert.equal(params.get('q'), null); assert.equal(params.get('skill'), null)
@@ -141,7 +156,7 @@ test('profile return links accept only the two internal directory routes', () =>
   assert.equal(back('/awardees?view=talent&skill=Python', 2026), '/awardees?view=talent&skill=Python')
   assert.equal(back('/dashboard/discover/members?view=talent', 2026), '/dashboard/discover/members?view=talent')
   for (const value of ['https://other.example', '//other.example', '/admin', '/awardees/other', '/awardees\\\\other', '/awardees\n']) {
-    assert.equal(back(value, 2026), '/awardees?view=archive&year=2026')
+    assert.equal(back(value, 2026), '/awardees?view=archive&year=2026#leader-directory')
   }
 })
 test('draft dirty checks ignore save normalisation without rewriting the focused text', () => {

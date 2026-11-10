@@ -32,5 +32,26 @@ export function directoryReturnHref(value: string | null, year?: number | string
   }
   const params = new URLSearchParams({ view: 'archive' })
   if (year && /^(19|20|21)\d{2}$/.test(String(year))) params.set('year', String(year))
-  return `/awardees?${params}`
+  return `/awardees?${params}#leader-directory`
+}
+
+/** Older cohort links share year and country keys with talent search. */
+export function readAwardeeFilters(params: Pick<URLSearchParams, 'get'>) {
+  const legacy = params.get('view') !== 'talent'
+  return {
+    year: params.get('awardeeYear') ?? (legacy ? params.get('year') : null),
+    country: params.get('awardeeCountry') ?? (legacy ? params.get('country') : null),
+  }
+}
+
+export function publicTalentSearch(current: URLSearchParams, filters: DirectoryFilters) {
+  const awardees = readAwardeeFilters(current)
+  const next = new URLSearchParams(directorySearch(current, 'talent', filters))
+  if (awardees.year) next.set('awardeeYear', awardees.year)
+  if (awardees.country) next.set('awardeeCountry', awardees.country)
+  for (const key of ['search', 'page']) {
+    const value = current.get(key)
+    if (value) next.set(key, value)
+  }
+  return next.toString()
 }

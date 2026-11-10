@@ -25,6 +25,7 @@ import {
   Share2,
   Bot,
   BriefcaseBusiness,
+  Network,
   ClipboardList,
   Truck,
   MailOpen,
@@ -63,7 +64,7 @@ export const navGroups: NavGroup[] = [
     label: 'People',
     items: [
       { label: 'Awardees', href: '/admin/awardees', icon: Star },
-      { label: 'Talent Network', href: '/admin/talent', icon: BriefcaseBusiness },
+      { label: 'Talent Network', href: '/admin/talent', icon: Network },
       { label: 'Team Operations', href: '/admin/team-operations', icon: BriefcaseBusiness },
       { label: 'Team Awardee Worklist', href: '/admin/team-operations/worklist', icon: ClipboardList },
       { label: 'Team Email Templates', href: '/admin/team-operations/templates', icon: MailOpen },

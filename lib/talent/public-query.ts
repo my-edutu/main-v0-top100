@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { createAdminClient } from '@/lib/supabase/server'
 import { parseTalentDraft, emptyTalentDraft } from './contracts'
 import { talentDiscoveryEnabled } from './features'
@@ -34,14 +35,31 @@ export async function getTalentPage(filters: TalentFilters): Promise<TalentPage>
   const visible = rows.slice(0, filters.limit)
   return { people: visible.map(toTalentCard), nextCursor: hasMore ? visible[visible.length - 1].profile_id : null, total: count.count ?? 0 }
 }
-export async function getPublishedTalentProfile(slug: string): Promise<TalentPublicProfile | null> {
-  if (!talentDiscoveryEnabled()) return null
-  const db = createAdminClient()
-  const result = await db.from('talent_public_directory').select(COLUMNS).eq('slug', slug).maybeSingle()
-  if (result.error) throw result.error
-  if (!result.data) return null
-  const row = result.data as unknown as PublicRow
-  const checks = await db.from('talent_verifications').select('scope,claim_index,method,checked_at').eq('profile_id', row.profile_id).eq('published_revision', row.published_revision).is('revoked_at', null).order('checked_at', { ascending: false }).limit(30)
-  if (checks.error) throw checks.error
-  return { ...toTalentCard(row), details: parseTalentDraft({ ...emptyTalentDraft(), ...row.published }), introductionsEnabled: row.introductions_enabled, publishedRevision: row.published_revision, checks: (checks.data ?? []).map(v => ({ scope: String(v.scope), claimIndex: v.claim_index, method: String(v.method), checkedAt: String(v.checked_at) })) }
+export async function getPromotedTalent(): Promise<TalentCard[]> {
+  if (!talentDiscoveryEnabled()) return []
+  const { data, error } = await createAdminClient()
+    .from('talent_public_directory')
+    .select(COLUMNS)
+    .eq('promotion_enabled', true)
+    .order('updated_at', { ascending: false })
+    .order('profile_id')
+    .limit(3)
+  if (error) throw error
+  return ((data ?? []) as unknown as PublicRow[]).map(toTalentCard)
 }
+
+export const getPublishedTalentProfile = cache(async function (slug: string): Promise<TalentPublicProfile | null> {
+  if (!talentDiscoveryEnabled()) return null
+  try {
+    const db = createAdminClient()
+    const result = await db.from('talent_public_directory').select(COLUMNS).eq('slug', slug).maybeSingle()
+    if (result.error || !result.data) return null
+    const row = result.data as unknown as PublicRow
+    const checks = await db.from('talent_verifications').select('scope,claim_index,method,checked_at').eq('profile_id', row.profile_id).eq('published_revision', row.published_revision).is('revoked_at', null).order('checked_at', { ascending: false }).limit(30)
+    if (checks.error) return null
+    return { ...toTalentCard(row), details: parseTalentDraft({ ...emptyTalentDraft(), ...row.published }), introductionsEnabled: row.introductions_enabled, publishedRevision: row.published_revision, checks: (checks.data ?? []).map(v => ({ scope: String(v.scope), claimIndex: v.claim_index, method: String(v.method), checkedAt: String(v.checked_at) })) }
+  } catch {
+    // Keep recognition profiles available when the talent service is unavailable.
+    return null
+  }
+})

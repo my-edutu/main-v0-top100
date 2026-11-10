@@ -42,3 +42,8 @@ export function parseVisibilityExpectation(value: unknown): TalentVisibilitySnap
   if (!Number.isSafeInteger(record.visibility_revision) || Number(record.visibility_revision) < 0) throw new TalentInputError(message)
   return visibilitySnapshot(record as TalentVisibilitySnapshot)
 }
+
+export function talentVisibilityStatus(profile: Pick<TalentRecord, 'discovery_enabled' | 'published'>) {
+  if (!profile.discovery_enabled) return 'Hidden from Talent Discovery'
+  return profile.published ? 'Public in Talent Discovery' : 'Hidden until approved'
+}

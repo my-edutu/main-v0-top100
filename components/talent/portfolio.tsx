@@ -1,16 +1,21 @@
 import Link from 'next/link'
 import { ArrowUpRight, BriefcaseBusiness, CheckCircle2, Globe2, ShieldCheck } from 'lucide-react'
 import type { TalentPublicProfile } from '@/lib/talent/types'
-import { primaryClass, secondaryClass } from './ui'
+import { secondaryClass } from './ui'
 
 export function TalentPortfolio({ profile }: { profile: TalentPublicProfile }) {
   const d = profile.details
-  const person = { '@context': 'https://schema.org', '@type': 'ProfilePage', mainEntity: { '@type': 'Person', name: profile.name, description: d.summary, knowsAbout: d.skills, sameAs: [d.portfolioUrl,d.linkedinUrl].filter(Boolean) } }
   const checked = (scope: string, index: number) => profile.checks.find(check => check.scope === scope && check.claimIndex === index)
-  return <section id="talent-portfolio" className="mx-auto max-w-5xl scroll-mt-24 px-5 py-10 sm:px-8 lg:px-10" aria-labelledby="talent-portfolio-title">
-    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(person).replace(/</g, String.fromCharCode(92) + 'u003c') }} />
-    <div className="overflow-hidden rounded-[28px] border border-orange-200 bg-white">
-      <header className="bg-gradient-to-br from-orange-50 via-white to-amber-50 p-6 sm:p-8"><div className="flex flex-wrap items-center justify-between gap-3"><p className="text-xs font-semibold uppercase tracking-[.18em] text-orange-800">Talent discovery · Top100 Africa Future Leaders</p><span className="inline-flex items-center gap-1 text-xs text-stone-600"><Globe2 className="size-4" aria-hidden="true" />Shared by this member</span></div><h2 id="talent-portfolio-title" className="mt-4 text-2xl font-semibold leading-tight tracking-tight text-stone-950 sm:text-3xl">{d.headline}</h2><p className="mt-3 whitespace-pre-line text-base leading-7 text-stone-700">{d.summary}</p><p className="mt-4 text-sm text-stone-600">{[d.city,d.country,d.sector].filter(Boolean).join(' · ')}</p></header>
+  return <section id="talent-portfolio" className="scroll-mt-24 py-6 sm:py-8" aria-labelledby="talent-portfolio-title">
+    <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white">
+      <header className="border-b border-stone-200 bg-stone-50 p-6 sm:p-8"><div className="flex flex-wrap items-center justify-between gap-3"><p className="text-xs font-semibold uppercase tracking-[.18em] text-orange-800">Work profile</p><span className="inline-flex items-center gap-1 text-xs text-stone-600"><Globe2 className="size-4" aria-hidden="true" />Shared by this member</span></div><h2 id="talent-portfolio-title" className="mt-4 text-2xl font-semibold leading-tight tracking-tight text-stone-950 sm:text-3xl">Work and skills</h2><p className="mt-3 whitespace-pre-line text-base leading-7 text-stone-700">{d.summary}</p><p className="mt-4 text-sm text-stone-600">{[d.city,d.country,d.sector].filter(Boolean).join(' · ')}</p>
+        {profile.introductionsEnabled && (
+          <Link href={`/for-organisations/request?talent=${encodeURIComponent(profile.slug)}`}
+            className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#ff9d00] px-4 text-sm font-semibold text-[#171412] hover:bg-[#ffb329]">
+            Request an introduction <ArrowUpRight size={16} aria-hidden="true" />
+          </Link>
+        )}
+      </header>
       <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[1fr_260px]">
         <div className="min-w-0 space-y-8">
           <section><h3 className="font-semibold text-stone-950">Skills</h3><div className="mt-3 flex flex-wrap gap-2">{d.skills.map(skill => <span className="rounded-full bg-orange-50 px-3 py-1.5 text-sm text-orange-900" key={skill}>{skill}</span>)}</div></section>
@@ -20,7 +25,6 @@ export function TalentPortfolio({ profile }: { profile: TalentPublicProfile }) {
           {d.languages.length > 0 && <section><h3 className="font-semibold text-stone-950">Languages</h3><p className="mt-2 text-sm text-stone-600">{d.languages.join(' · ')}</p></section>}
         </div>
         <aside className="space-y-5"><div className="rounded-2xl bg-stone-50 p-5"><BriefcaseBusiness className="size-6 text-orange-800" aria-hidden="true" /><h3 className="mt-3 font-semibold text-stone-950">Open to conversations about</h3><ul className="mt-3 space-y-2">{d.interests.map(interest => <li key={interest} className="flex items-center gap-2 text-sm text-stone-700"><CheckCircle2 className="size-4 text-orange-700" aria-hidden="true" />{interest}</li>)}</ul><p className="mt-4 text-sm text-stone-600">Work preference: {d.workMode}</p>{d.availability && <p className="mt-2 text-sm text-stone-600">{d.availability}</p>}</div>
-          {profile.introductionsEnabled && <Link href={`/for-organisations/request?talent=${encodeURIComponent(profile.slug)}`} className={`${primaryClass} w-full`}>Request an introduction</Link>}
           {d.portfolioUrl && <a href={d.portfolioUrl} className={`${secondaryClass} w-full`} target="_blank" rel="noopener noreferrer">Portfolio <ArrowUpRight className="size-4" aria-hidden="true" /></a>}
           {d.linkedinUrl && <a href={d.linkedinUrl} className={`${secondaryClass} w-full`} target="_blank" rel="noopener noreferrer">LinkedIn <ArrowUpRight className="size-4" aria-hidden="true" /></a>}
           <p className="text-xs leading-5 text-stone-500">A published profile is not a blanket verification. Specific checks are labelled. Top100 reviews organisational requests before asking a member to approve an introduction.</p>

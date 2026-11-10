@@ -59,6 +59,22 @@ export const PAGE_OG: Record<string, OgCard> = {
     subtitle: "Where the Top100 network meets.",
     hero: "/IMG_0672.jpg",
   },
+  "/for-organisations": {
+    eyebrow: "Talent Discovery",
+    title: "Find and Hire African Talent",
+    subtitle: "Meet Top100 award winners, share a job or partner with us.",
+    hero: "/african-students-celebrating-achievement-at-gradua.jpg",
+  },
+  "/for-organisations/request": {
+    eyebrow: "Talent Discovery",
+    title: "Share an Opportunity with Top100",
+    subtitle: "Tell us about your role, programme or collaboration.",
+  },
+  "/opportunities": {
+    eyebrow: "Talent Discovery",
+    title: "Opportunities from the Top100 Network",
+    subtitle: "Explore public roles, programmes and funding opportunities.",
+  },
   "/get-started": {
     eyebrow: "Apply",
     title: "Apply for Top100 Africa Future Leaders 2026",

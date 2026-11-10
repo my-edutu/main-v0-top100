@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ShieldCheck, EyeOff } from 'lucide-react'
 import { TALENT_POLICY_VERSION } from '@/lib/talent/contracts'
+import { talentVisibilityStatus } from '@/lib/talent/visibility'
 import type { TalentRecord, TalentVisibilityInput } from '@/lib/talent/types'
 import { useTalentMember, type TalentMemberState } from './use-talent'
 import { useUnsavedChanges } from './use-unsaved-changes'
@@ -11,10 +12,10 @@ function choicesFor(profile: TalentRecord): TalentVisibilityInput {
   return { discoveryEnabled: profile.discovery_enabled, introductionsEnabled: profile.introductions_enabled, promotionEnabled: profile.promotion_enabled, outreachEmailOptOut: profile.outreach_email_opt_out, policyVersion: TALENT_POLICY_VERSION }
 }
 const options = [
-  { key: 'discoveryEnabled', title: 'Appear in Talent Discovery', description: 'Make your reviewed talent profile public, including to search engines. This does not expose private documents or contact details.' },
-  { key: 'introductionsEnabled', title: 'Receive organisation introductions', description: 'Let Top100 propose relevant introductions. You approve each organisation and opportunity before contact sharing.' },
-  { key: 'promotionEnabled', title: 'Allow Top100 to feature my talent profile', description: 'Let the team consider your approved public information for collections and stories. A feature is not guaranteed.' },
-  { key: 'outreachEmailOptOut', title: 'Opt out of talent-update emails', description: 'Stop talent-discovery update emails. Account and security messages remain separate.' },
+  { key: 'discoveryEnabled', title: 'Let employers find my work profile', description: 'Show your approved work profile in Talent Discovery and allow search engines to find it. Your account email stays private unless you agree to share it.' },
+  { key: 'introductionsEnabled', title: 'Send me introduction requests', description: 'Top100 can tell you about a job or project that fits. You decide whether to accept each request.' },
+  { key: 'promotionEnabled', title: 'Let Top100 feature my work', description: 'Top100 may include your approved public work in a story or collection.' },
+  { key: 'outreachEmailOptOut', title: 'Stop talent update emails', description: 'You’ll still get account and security emails.' },
 ] as const
 
 export function TalentVisibilitySettings() {
@@ -83,13 +84,13 @@ export function TalentVisibilityControls({ resource, embedded = false, onDirtyCh
       setSaveError(isConflict ? 'Your privacy choices changed in another tab. This page has not overwritten them. Load the latest choices, or turn everything off now.' : e instanceof Error ? e.message : 'Your choices were not saved.')
     } finally { inFlight.current = false; if (active.current) setSaving(false) }
   }
-  return <section aria-labelledby="talent-privacy-title" id="talent-privacy" className="rounded-[24px] border border-orange-200 bg-white p-5 sm:p-7">
-    <div className="mb-4 flex gap-3"><ShieldCheck className="mt-1 size-6 shrink-0 text-orange-700" aria-hidden="true" /><div><h2 id="talent-privacy-title" className="text-xl font-semibold text-stone-900">Talent discovery & privacy</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-stone-600">These choices are separate from your existing awardee recognition. Profile submission does not switch them on.</p></div></div>
-    <div className="mb-3 rounded-xl bg-stone-50 px-4 py-3 text-sm text-stone-700"><strong>Saved discovery setting: </strong>{data.talent.discovery_enabled ? (data.talent.published ? 'On — reviewed profile can be discovered' : 'On — waiting for a reviewed profile') : 'Off — not listed in Talent Discovery'}</div>
+  return <section aria-labelledby="talent-privacy-title" id="talent-privacy" className="rounded-[24px] border border-stone-200 bg-white p-5 sm:p-7">
+    <div className="mb-4 flex gap-3"><ShieldCheck className="mt-1 size-6 shrink-0 text-orange-700" aria-hidden="true" /><div><h2 id="talent-privacy-title" className="text-xl font-semibold text-stone-900">Talent discovery & privacy</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-stone-600">Choose how employers and Top100 can use your work profile. These settings do not change your awardee page.</p></div></div>
+    <div className="mb-3 rounded-xl bg-stone-50 px-4 py-3 text-sm text-stone-700"><strong>Visibility now: </strong>{talentVisibilityStatus(data.talent)}</div>
     <fieldset disabled={saving || serverSaving || conflict} className="min-w-0 divide-y divide-stone-100"><legend className="sr-only">Choose how your talent profile may be used</legend>{options.map(option => <label key={option.key} className="flex cursor-pointer items-start gap-3 py-4"><input id={`talent-consent-${option.key}`} aria-describedby={`talent-consent-${option.key}-hint`} type="checkbox" checked={choices[option.key]} onChange={event => { setFeedback(''); setChoices({ ...choices, [option.key]: event.target.checked }) }} className="mt-1 size-5 shrink-0 accent-orange-700 focus-visible:outline-orange-700" /><span><span className="block text-sm font-semibold text-stone-900">{option.title}</span><span id={`talent-consent-${option.key}-hint`} className="mt-1 block text-sm leading-6 text-stone-600">{option.description}</span></span></label>)}</fieldset>
-    <p className="my-4 text-xs leading-5 text-stone-600">Withdrawal stops new access and closes active introductions, including previously completed ones. Already delivered contacts, emails and third-party search caches cannot be recalled.</p>
+    <p className="my-4 text-xs leading-5 text-stone-600">Turning discovery off hides your work profile and closes active introductions, even ones marked complete. People may still have copies of details you already shared.</p>
     {dirty && !conflict && <p role="status" className="mb-3 text-sm font-medium text-orange-900">You have unsaved privacy choices.</p>}
     {feedback && <TalentNotice>{feedback}</TalentNotice>}{saveError && <TalentNotice error>{saveError}</TalentNotice>}
-    <div className="mt-5 flex flex-wrap gap-3"><button type="button" disabled={saving || serverSaving || conflict || !dirty} className={primaryClass} onClick={() => void save()}>{saving ? 'Saving…' : 'Save privacy choices'}</button>{conflict && <button type="button" disabled={saving || serverSaving} className={secondaryClass} onClick={() => void reviewLatest()}>Load latest choices</button>}<button type="button" disabled={saving || serverSaving} className={secondaryClass} onClick={() => void save(true)}><EyeOff className="size-4" aria-hidden="true" />Turn off talent discovery</button></div>
+    <div className="mt-5 flex flex-wrap gap-3"><button type="button" disabled={saving || serverSaving || conflict || !dirty} className={primaryClass} onClick={() => void save()}>{saving ? 'Saving…' : 'Save privacy choices'}</button>{conflict && <button type="button" disabled={saving || serverSaving} className={secondaryClass} onClick={() => void reviewLatest()}>Load latest choices</button>}<button type="button" disabled={saving || serverSaving} className={secondaryClass} onClick={() => void save(true)}><EyeOff className="size-4" aria-hidden="true" />Hide my work profile</button></div>
   </section>
 }

@@ -1,9 +1,56 @@
+'use client'
+
 import Link from 'next/link'
-import { ArrowUpRight, CheckCircle2, Globe2, Handshake, Search } from 'lucide-react'
-import { primaryClass, secondaryClass } from './ui'
+import { motion, useReducedMotion } from 'framer-motion'
+import { ArrowUpRight, Search } from 'lucide-react'
+import Image from '@/components/safe-image'
+
 export function TalentDiscoveryHomeSection() {
-  return <section aria-labelledby="home-talent-title" className="container py-4 sm:py-8"><div className="relative overflow-hidden rounded-[28px] border border-orange-200 bg-gradient-to-br from-[#fff7ed] via-[#fffbeb] to-white p-6 sm:p-10 lg:p-12"><div className="grid items-center gap-10 lg:grid-cols-[1.1fr_0.9fr]"><div><p className="text-xs font-semibold uppercase tracking-[0.2em] text-orange-800">Impact Beyond Recognition</p><h2 id="home-talent-title" className="mt-4 max-w-xl text-3xl font-semibold leading-tight tracking-[-0.035em] text-stone-950 sm:text-4xl lg:text-5xl">Recognition opens a door.<br /><span className="text-orange-800">Opportunity is what comes next.</span></h2><p className="mt-5 max-w-xl text-base leading-7 text-stone-700">We are connecting exceptional emerging talent with organisations that can help them grow. Explore skills, discover meaningful work and start a conversation about what comes next.</p><div className="mt-7 flex flex-wrap gap-3"><Link href="/awardees" className={primaryClass}>Discover talent <Search size={17} /></Link><Link href="/for-organisations" className={secondaryClass}>Work with our network <ArrowUpRight size={17} /></Link></div></div><div className="rounded-[24px] bg-[#171412] p-6 text-white sm:p-8"><Globe2 className="size-8 text-orange-300" aria-hidden="true" /><h3 className="mt-5 text-2xl font-semibold !text-white">A profile with purpose.</h3><div className="mt-6 space-y-6">{[{ title: 'Show what you can contribute', text: 'Skills, projects, experience and the ambitions behind them.' }, { title: 'Make the evidence clear', text: 'Self-reported details and specific reviewed claims are clearly distinguished.' }, { title: 'Stay in control', text: 'Members choose discovery settings and approve individual introductions.' }].map((item, i) => <div key={item.title} className="flex gap-4"><span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-orange-300/40 text-xs text-orange-200">{i + 1}</span><div><p className="font-semibold !text-white">{item.title}</p><p className="mt-1 text-sm leading-6 text-stone-300">{item.text}</p></div></div>)}</div><Link href="/dashboard/me/profile" className="mt-7 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-orange-200 underline-offset-4 hover:underline">Already an awardee? Update your profile <ArrowUpRight size={16} /></Link></div></div></div></section>
-}
-export function TalentOrganisationHomeSection() {
-  return <section aria-labelledby="home-org-title" className="container py-4 sm:py-8"><div className="grid gap-8 rounded-[28px] border border-stone-200 bg-white p-6 sm:p-10 lg:grid-cols-[1fr_1fr]"><div><Handshake className="size-8 text-orange-700" aria-hidden="true" /><p className="mt-4 text-xs font-semibold uppercase tracking-[0.18em] text-orange-800">For employers, institutions & partners</p><h2 id="home-org-title" className="mt-3 text-3xl font-semibold tracking-tight text-stone-950">Tell us what you are looking for.</h2><p className="mt-4 max-w-xl text-base leading-7 text-stone-600">Recruit for a role, support a research project, offer a scholarship or create a programme. Share a clear brief and Top100 can review suitable, consenting members for an introduction.</p><Link href="/for-organisations/request" className={`${primaryClass} mt-6`}>Share an opportunity brief <ArrowUpRight size={17} /></Link></div><div className="self-center space-y-5 rounded-2xl bg-orange-50/70 p-5 sm:p-7">{['A specific need, not an unrestricted contact list.', 'Clear expectations, eligibility and compensation.', 'Member-approved introductions with follow-up.'].map(text => <div key={text} className="flex gap-3"><CheckCircle2 className="mt-0.5 size-5 shrink-0 text-orange-800" aria-hidden="true" /><p className="text-sm leading-6 text-stone-800">{text}</p></div>)}<p className="border-t border-orange-200 pt-4 text-xs leading-5 text-stone-600">Our awards, events and community continue. Talent discovery adds a year-round route from recognition to opportunity.</p></div></div></section>
+  const reduceMotion = useReducedMotion()
+
+  return (
+    <section aria-labelledby="home-talent-title" className="scroll-mt-24">
+      <div className="relative isolate overflow-hidden bg-[#17120f] text-white">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+          <motion.div
+            className="absolute inset-0"
+            whileInView={reduceMotion === false ? { scale: [1, 1.08], x: [0, -6] } : undefined}
+            viewport={{ once: true, amount: 0.35 }}
+            transition={{ duration: 4, ease: 'easeOut' }}
+          >
+            <Image
+              src="/IMG_0684.jpg"
+              alt=""
+              fill
+              sizes="100vw"
+              className="object-cover object-[center_40%] sm:object-[center_35%]"
+            />
+          </motion.div>
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,#17120f18_0%,#17120fa3_35%,#17120fec_100%)] md:bg-[linear-gradient(90deg,#17120ff0_0%,#17120fd9_38%,#17120f45_100%)]" />
+        </div>
+
+        <div className="container relative pb-10 pt-36 sm:pb-14 sm:pt-40 md:py-24">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-200">Impact Beyond Recognition</p>
+          <h2 id="home-talent-title" className="mt-4 max-w-xl scroll-mt-[18rem] text-3xl font-semibold leading-tight tracking-tight text-[#fff] sm:scroll-mt-44 sm:text-4xl lg:text-5xl">
+            Recognition opens a door.<br />
+            <span className="text-orange-200">Opportunity is what comes next.</span>
+          </h2>
+          <p className="mt-4 max-w-md text-base leading-relaxed text-stone-100">
+            Meet young African leaders, see what they’ve built, and find people whose skills fit your team.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link href="/awardees" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-orange-300 px-5 py-2.5 text-sm font-bold text-stone-950 hover:bg-orange-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-200">
+              Discover talent <Search size={17} aria-hidden="true" />
+            </Link>
+            <Link
+              href="/for-organisations"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-white/65 bg-stone-950/70 px-4 py-2.5 text-sm font-semibold text-[#fff] hover:bg-stone-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-200"
+            >
+              Work with our network <ArrowUpRight size={17} aria-hidden="true" />
+            </Link>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
 }

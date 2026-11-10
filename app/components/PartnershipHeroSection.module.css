@@ -1,0 +1,116 @@
+.card {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: grid;
+  align-items: center;
+  min-height: clamp(22rem, 36vw, 29rem);
+  padding: clamp(1.5rem, 7vw, 6.25rem);
+  border: clamp(.25rem, .65vw, .5rem) solid #ffebd6;
+  border-radius: clamp(1.5rem, 3.3vw, 2.75rem);
+  background: #ff850a;
+  color: #251405;
+}
+
+.card::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0 0 0 auto;
+  width: 51%;
+  background: radial-gradient(circle clamp(18rem, 36vw, 34rem) at 103% 50%,
+    #fff8ee 0 15%, #ffe5cc 15% 29%, #ffcf9e 29% 44%,
+    #ffb772 44% 59%, #ffa54c 59% 74%, #ff982d 74% 89%, transparent 89%);
+  content: '';
+}
+
+.content { max-width: 36rem; }
+
+.title {
+  max-width: 18ch;
+  color: inherit;
+  font-size: clamp(2.2rem, 5vw, 4.35rem);
+  font-weight: 600;
+  letter-spacing: -.055em;
+  line-height: .98;
+  text-wrap: balance;
+}
+
+.description {
+  max-width: 36ch;
+  margin-top: 1rem;
+  font-size: clamp(.96rem, 1.35vw, 1.11rem);
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: .25rem;
+  margin-top: clamp(1.4rem, 3vw, 2.3rem);
+}
+
+.action {
+  display: inline-flex;
+  min-height: 3rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: .85rem;
+  border-radius: 999px;
+  padding: .45rem .5rem .45rem 1rem;
+  background: #17120d;
+  color: #fff8ee;
+  font-size: .91rem;
+  font-weight: 650;
+  transition: background-color .18s ease;
+}
+
+.action span {
+  display: grid;
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border-radius: 50%;
+  background: #ffe3c2;
+  color: #241405;
+}
+
+.action:hover { background: #4a260a; }
+
+.textLink {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: .4rem;
+  color: inherit;
+  font-size: .91rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: .2em;
+}
+
+.textLink:hover { text-decoration-thickness: 2px; }
+.action:focus-visible, .textLink:focus-visible { outline: 2px solid #281406; outline-offset: 4px; }
+
+@media (max-width: 700px) {
+  .card { min-height: 0; padding-block: 2.5rem; }
+  .card::before {
+    width: 64%;
+    opacity: .5;
+    background-position: center;
+    mask-image: linear-gradient(105deg, transparent 8%, #000 70%);
+  }
+}
+
+@media (max-width: 460px) {
+  .card::before {
+    opacity: .42;
+    mask-image: linear-gradient(150deg, transparent 5%, #000 35%, transparent 83%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .action { transition: none; }
+}
