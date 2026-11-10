@@ -34,11 +34,13 @@ export function sanitizeDashboardRedirect(
       /^\/contact-confirmation\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(url.pathname) &&
       !url.search && !url.hash
 
+    const isMentorPortal = url.pathname === '/impact-africa/mentors' && !url.search && !url.hash
+
     if (
       url.origin !== DASHBOARD_ORIGIN ||
       url.username ||
       url.password ||
-      (!isDashboardPath && !isContactConfirmationPath)
+      (!isDashboardPath && !isContactConfirmationPath && !isMentorPortal)
     ) {
       return fallback
     }
