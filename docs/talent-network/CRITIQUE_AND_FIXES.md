@@ -1,8 +1,8 @@
 # Talent Discovery: critique and repair pass
 
-Date: 8 November 2026  
-Branch: `feat/talent-discovery-review-20261108` — Draft PR #7  
-Original inspection: `79d2f33747f81b7e2746d059c6049366970c563f`  
+Date: 8 November 2026\
+Branch: `feat/talent-discovery-review-20261108` — Draft PR #7\
+Original inspection: `79d2f33747f81b7e2746d059c6049366970c563f`\
 Reconciled parent: `c68237c064f8e2b8418a736dea41fd531139af5c`
 
 ## Verdict

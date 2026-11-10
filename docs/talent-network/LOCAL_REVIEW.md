@@ -1,7 +1,7 @@
 # Talent discovery: local review and release gates
 
-Branch: `feat/talent-discovery-review-20261108` — Draft PR #7  
-Original base: `72b56e6430a8f325c5f9877e91a0154a9668b4f6`  
+Branch: `feat/talent-discovery-review-20261108` — Draft PR #7\
+Original base: `72b56e6430a8f325c5f9877e91a0154a9668b4f6`\
 Latest continuation incorporates repair `c68237c064f8e2b8418a736dea41fd531139af5c`.
 
 This is not a production deployment. No production migration or member campaign has been run. Do not merge until real build, database and authenticated browser checks pass. Production remains Dokploy/self-hosted Supabase, not Vercel or the retired hosted database.
