@@ -153,6 +153,7 @@ export function useTalentMember() {
 
   useEffect(() => {
     mounted.current = true
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Start the member request with the hook's shared loading and cancellation state.
     void load()
     return () => { mounted.current = false; cancelRead() }
   }, [load, cancelRead])

@@ -40,10 +40,12 @@ export function TalentVisibilityControls({ resource, embedded = false, onDirtyCh
   const inFlight = useRef(false)
   const active = useRef(true)
   const currentOwner = useRef(data?.talent.profile_id)
-  currentOwner.current = data?.talent.profile_id
+  const profileId = data?.talent.profile_id
+  useEffect(() => { currentOwner.current = profileId }, [profileId])
   useEffect(() => { active.current = true; return () => { active.current = false } }, [])
   useEffect(() => {
     if (data && (choices === null || owner !== data.talent.profile_id)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Seed the editable form only when the authenticated profile changes.
       setChoices(choicesFor(data.talent)); setBaseRevision(data.talent.visibility_revision); setOwner(data.talent.profile_id); setConflict(false); setFeedback(''); setSaveError('')
     }
   }, [data, choices, owner])
@@ -51,8 +53,8 @@ export function TalentVisibilityControls({ resource, embedded = false, onDirtyCh
   useEffect(() => { onDirtyChange?.(dirty); return () => onDirtyChange?.(false) }, [dirty, onDirtyChange])
   useUnsavedChanges(!embedded && dirty)
   if (disabled) return null
-  if (!data || !choices) {
-    if (loading || (data && !choices)) return <p role="status" className="p-5 text-sm text-stone-600">Loading talent visibility choices…</p>
+  if (!data || !choices || owner !== profileId) {
+    if (loading || data) return <p role="status" className="p-5 text-sm text-stone-600">Loading talent visibility choices…</p>
     return <div className="space-y-3"><TalentNotice error>{error || 'Could not load privacy choices.'}</TalentNotice><button type="button" className={secondaryClass} onClick={() => void reload()}>Try again</button></div>
   }
   async function reviewLatest() {

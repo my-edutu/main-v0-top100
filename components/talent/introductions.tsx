@@ -44,6 +44,7 @@ export function MemberIntroductions() {
     }
   }, [])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- Start the inbox request and expose its loading state.
   useEffect(() => { void load() }, [load])
 
   const pending = rows.filter(row => needsReply(row, now)).sort((a, b) => Date.parse(a.expires_at) - Date.parse(b.expires_at))
@@ -76,13 +77,13 @@ export function MemberIntroductions() {
       {pending.length > 0 && (
         <section aria-labelledby="intro-needs-reply" className="space-y-3">
           <h2 id="intro-needs-reply" className="text-lg font-semibold text-stone-950">Needs your reply</h2>
-          {pending.map(row => <IntroductionCard key={row.id} row={row} onChange={() => void load()} />)}
+          {pending.map(row => <IntroductionCard key={row.id} row={row} now={now} onChange={() => void load()} />)}
         </section>
       )}
       {history.length > 0 && (
         <section aria-labelledby="intro-history" className="space-y-3">
           <h2 id="intro-history" className="text-lg font-semibold text-stone-950">Earlier introductions</h2>
-          {history.map(row => <IntroductionCard key={row.id} row={row} onChange={() => void load()} />)}
+          {history.map(row => <IntroductionCard key={row.id} row={row} now={now} onChange={() => void load()} />)}
         </section>
       )}
       {cursor && <button className={secondaryClass} type="button" disabled={loading} onClick={() => void load(cursor)}>Load more introductions</button>}
@@ -96,13 +97,13 @@ const decisionActions = {
   reported: 'Send report',
 }
 
-function IntroductionCard({ row, onChange }: { row: TalentIntroduction; onChange: () => void }) {
+function IntroductionCard({ row, now, onChange }: { row: TalentIntroduction; now: number; onChange: () => void }) {
   const [decision, setDecision] = useState<keyof typeof decisionActions | ''>('')
   const [note, setNote] = useState('')
   const [agree, setAgree] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const expired = Date.parse(row.expires_at) <= Date.now()
+  const expired = Date.parse(row.expires_at) <= now
   const awaitingReply = row.status === 'awaiting_member' && !expired
   const canWithdraw = ['accepted', 'introduced', 'awaiting_member'].includes(row.status)
   const canReport = !['closed', 'expired', 'reported'].includes(row.status)

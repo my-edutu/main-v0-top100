@@ -52,6 +52,7 @@ function DirectoryContent({ archive, compact = false }: DirectoryProps) {
   const [reload, setReload] = useState(0)
   const generation = useRef(0)
   const moreRequest = useRef<AbortController | null>(null)
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- Browser navigation can replace the local search form and applied filters.
   useEffect(() => { setView(routeState.view); setFilters(routeState.filters); setApplied(routeState.filters) }, [routeState])
   const query = useMemo(() => {
     const params = new URLSearchParams()
@@ -71,6 +72,7 @@ function DirectoryContent({ archive, compact = false }: DirectoryProps) {
     moreRequest.current?.abort(); moreRequest.current = null
     if (view !== 'talent') return
     const controller = new AbortController()
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Clear the previous query's results before its replacement arrives.
     setLoading(true); setLoadingMore(false); setError(''); setPage({ people: [], nextCursor: null, total: 0 })
     fetch(`/api/talent?${query}`, { cache: 'no-store', signal: controller.signal }).then(async response => {
       if (response.status === 404 && hasArchive) {

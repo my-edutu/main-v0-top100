@@ -24,6 +24,11 @@ export function TalentProfileEditor() {
   const [draft, setDraft] = useState<TalentDraft>(emptyTalentDraft)
   const draftRef = useRef(draft)
   const baseDraft = useRef<TalentDraft>(draft)
+  const [savedDraft, setSavedDraft] = useState(draft)
+  const updateBaseDraft = useCallback((next: TalentDraft) => {
+    baseDraft.current = next
+    setSavedDraft(next)
+  }, [])
   const baseRevision = useRef(0)
   const loadedOwner = useRef('')
   const active = useRef(true)
@@ -42,20 +47,20 @@ export function TalentProfileEditor() {
   useEffect(() => { active.current = true; return () => { active.current = false } }, [])
   useEffect(() => {
     if (data && loadedOwner.current !== data.talent.profile_id) {
-      loadedOwner.current = data.talent.profile_id; baseDraft.current = data.talent.draft; baseRevision.current = data.talent.revision
+      loadedOwner.current = data.talent.profile_id; updateBaseDraft(data.talent.draft); baseRevision.current = data.talent.revision
       replaceDraft(data.talent.draft); setConflict(null); setAutoPaused(false); setInitialised(true)
     }
-  }, [data, replaceDraft])
-  const dirty = Boolean(initialised && data && !draftsEquivalent(draft, baseDraft.current))
+  }, [data, replaceDraft, updateBaseDraft])
+  const dirty = Boolean(initialised && data && !draftsEquivalent(draft, savedDraft))
   useEffect(() => {
     // A privacy response may include a newer draft saved in another tab. Do not
     // silently grant that revision to a locally edited form.
     if (!data || !initialised || inFlight.current || recovering || conflict || dirty) return
     if (data.talent.revision > baseRevision.current) {
-      baseDraft.current = data.talent.draft; baseRevision.current = data.talent.revision
+      updateBaseDraft(data.talent.draft); baseRevision.current = data.talent.revision
       replaceDraft(data.talent.draft)
     }
-  }, [data, initialised, recovering, conflict, dirty, replaceDraft])
+  }, [data, initialised, recovering, conflict, dirty, replaceDraft, updateBaseDraft])
   useUnsavedChanges(dirty || privacyDirty || saving || serverSaving)
 
   const save = useCallback(async (submit = false, automatic = false) => {
@@ -76,7 +81,7 @@ export function TalentProfileEditor() {
       const result = { talent: await mutate({ action: submit ? 'submit' : 'save', expectedRevision: baseRevision.current, draft: input }) }
       if (!active.current || loadedOwner.current !== owner) return
       const next = automatic ? draftRef.current : reconcileSavedDraft(draftRef.current, sent, result.talent.draft)
-      baseDraft.current = result.talent.draft; baseRevision.current = result.talent.revision; replaceDraft(next); setAutoPaused(false)
+      updateBaseDraft(result.talent.draft); baseRevision.current = result.talent.revision; replaceDraft(next); setAutoPaused(false)
       const editedWhileSaving = !draftsEquivalent(next, result.talent.draft)
       setNotice(submit ? (editedWhileSaving ? 'The submitted snapshot is awaiting review. Your newer edits remain a private draft.' : 'Submitted for review. This does not enable discovery or verify every claim.') : (editedWhileSaving ? 'Earlier changes saved. Saving your newer edits next…' : 'Draft saved privately.'))
     } catch (e) {
@@ -89,7 +94,7 @@ export function TalentProfileEditor() {
         if (latest) {
           const plan = planDraftMerge(originalBase, draftRef.current, latest.talent.draft)
           if (plan.conflicts.length) setConflict({ merged: plan.merged, remote: latest.talent.draft, remoteRevision: latest.talent.revision, fields: plan.conflicts, choices: {} })
-          else { baseDraft.current = latest.talent.draft; baseRevision.current = latest.talent.revision; replaceDraft(plan.merged); setNotice('A newer saved draft was found. Your edits and independent changes have been combined. Review them and select Save draft.') }
+          else { updateBaseDraft(latest.talent.draft); baseRevision.current = latest.talent.revision; replaceDraft(plan.merged); setNotice('A newer saved draft was found. Your edits and independent changes have been combined. Review them and select Save draft.') }
           setProblem(plan.conflicts.length ? 'Another tab changed some of the same details. Choose which version to keep below. Nothing has been overwritten.' : '')
         } else setProblem('Your form is still here, but the latest saved version could not be loaded. Reconnect and select Save draft to try again.')
       } else setProblem(e instanceof Error ? e.message : 'Saving failed. Your form is still here; try Save draft again.')
@@ -97,7 +102,7 @@ export function TalentProfileEditor() {
       inFlight.current = false
       if (active.current) { setSaving(false); setRecovering(false) }
     }
-  }, [data, initialised, conflict, recovering, autoPaused, mutate, serverSaving, replaceDraft, reload])
+  }, [data, initialised, conflict, recovering, autoPaused, mutate, serverSaving, replaceDraft, reload, updateBaseDraft])
 
   useEffect(() => {
     if (!dirty || saving || serverSaving || recovering || conflict || autoPaused || !initialised) return
@@ -116,7 +121,7 @@ export function TalentProfileEditor() {
     if (!conflict || conflict.fields.some(field => !conflict.choices[field])) return
     const resolved = { ...conflict.merged }
     for (const field of conflict.fields) if (conflict.choices[field] === 'remote') Object.assign(resolved, { [field]: conflict.remote[field] })
-    baseDraft.current = conflict.remote; baseRevision.current = conflict.remoteRevision; replaceDraft(resolved); setConflict(null); setProblem(''); setAutoPaused(true)
+    updateBaseDraft(conflict.remote); baseRevision.current = conflict.remoteRevision; replaceDraft(resolved); setConflict(null); setProblem(''); setAutoPaused(true)
     setNotice('Your choices are in the form. Review them and select Save draft; no conflicting version was silently overwritten.')
   }
   if (disabled) return null
