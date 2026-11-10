@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ .Campaign.Subject }}</title>
+</head>
+<body style="margin:0;background:#faf9f6;color:#171717;font:16px/1.65 Arial,sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#faf9f6;">
+    <tr><td align="center" style="padding:28px 16px;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px;background:#fff;border:1px solid #e9e5dc;border-top:4px solid #ffdf45;">
+        <tr><td style="padding:24px 28px 18px;border-bottom:1px solid #e9e5dc;">
+          <img src="https://top100afl.com/Top100%20Africa%20Future%20leaders%20Logo%20.png" alt="Top100 Africa Future Leaders" width="208" style="display:block;max-width:100%;height:auto;">
+        </td></tr>
+        <tr><td style="padding:24px 28px;color:#171717;">
+          {{ template "content" . }}
+        </td></tr>
+        <tr><td style="padding:18px 28px;border-top:1px solid #e9e5dc;color:#626262;font-size:13px;">
+          Top100 Africa Future Leaders<br>
+          <a href="{{ UnsubscribeURL }}" style="color:#805009;text-decoration:underline;">Unsubscribe or manage email preferences</a>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>
