@@ -22,6 +22,134 @@ export interface BlogPost {
 
 export const blogPosts: BlogPost[] = [
   {
+    id: "turning-a-connection-into-a-collaboration",
+    title: "Turning a Connection into a Collaboration",
+    slug: "turning-a-connection-into-a-collaboration",
+    author: "Top100 Africa Future Leaders",
+    excerpt:
+      "A good introduction can become a useful shared project. Here is how to find common purpose, combine your skills and take a manageable first step together.",
+    content: [
+      {
+        type: "paragraph",
+        text: "A good introduction can leave you full of possibility. You meet someone whose interests overlap with yours, exchange details and promise to stay in touch. The next step is often less obvious. How do you move from a friendly conversation to doing something useful together?",
+      },
+      {
+        type: "paragraph",
+        text: "In <a href=\"/blog/impact-beyond-recognition-impact-africa\">Impact Beyond Recognition: Our Next Chapter Is Impact Africa</a>, we described our ambition to bring our community's knowledge and relationships into practical action. As Impact Africa takes shape, each of us can practise a part of that work: building collaborations with a clear purpose, realistic commitments and room to learn.",
+      },
+      {
+        type: "heading",
+        text: "Start with a real conversation",
+      },
+      {
+        type: "paragraph",
+        text: "Get to know the person behind the profile. Ask what they are working on, what they care about and what they would like to learn. Share the same about yourself. Be honest about your availability, whether you are studying, job hunting, working or balancing family responsibilities.",
+      },
+      {
+        type: "paragraph",
+        text: "Look for something specific to continue discussing. Perhaps you both care about helping graduates prepare for work, or you have noticed the same gap in a local community initiative. A follow-up message could be simple:",
+      },
+      {
+        type: "paragraph",
+        text: "<em>“Hi [Name], I enjoyed our conversation about supporting recent graduates. You mentioned that applicants often struggle to explain their experience. I would like to understand that better. Would you be open to a short call next week to explore whether we could help?”</em>",
+      },
+      {
+        type: "paragraph",
+        text: "Give the other person space to consider the invitation. A useful conversation can still be worthwhile even if a joint project is not possible right now.",
+      },
+      {
+        type: "heading",
+        text: "Find a shared purpose",
+      },
+      {
+        type: "paragraph",
+        text: "A shared interest gives you somewhere to start. A shared purpose makes the work clearer: who could benefit, what difficulty are they facing, and what would a useful improvement look like? Ask the people involved before deciding what to make.",
+      },
+      {
+        type: "paragraph",
+        text: "Imagine three members who want to support a local group of recent graduates. This is a hypothetical example. They speak with the group's organiser and listen to graduates describe their application challenges. They ask what resources already exist, which ones people use and where they still get stuck.",
+      },
+      {
+        type: "paragraph",
+        text: "Suppose that conversation points to one practical need: explaining experience gained through coursework, volunteering or informal work. The team could agree to develop a short guide with prompts and examples, then invite the group to try it. That gives everyone a specific purpose to work towards.",
+      },
+      {
+        type: "heading",
+        text: "Bring different skills together",
+      },
+      {
+        type: "paragraph",
+        text: "In this example, one member might enjoy research and writing, another might be good at making information easy to read, and a third might know how to organise conversations and gather feedback. Together, those contributions could turn an idea into something people can use.",
+      },
+      {
+        type: "paragraph",
+        text: "Ask each person what they can realistically contribute and what support they need. Agree who takes responsibility for each task and who will review it. Value local knowledge and the work of coordinating the group alongside technical skills. Make space for members to learn from one another.",
+      },
+      {
+        type: "heading",
+        text: "Agree one small first step",
+      },
+      {
+        type: "paragraph",
+        text: "Choose a first version you can finish with the time and resources available. For the graduate resource, that might be a two-page draft tested with a few willing readers. Write down a simple agreement so everyone leaves the conversation with the same understanding:",
+      },
+      {
+        type: "list",
+        items: [
+          "<strong>Roles:</strong> Who writes the draft, checks the examples, arranges feedback and keeps everyone updated?",
+          "<strong>Time:</strong> How much time can each person offer, and when will you review progress?",
+          "<strong>Deliverable:</strong> What exactly will you produce, in which format, and by what agreed date?",
+          "<strong>Feedback:</strong> Who will try it, what will you ask them, and who will record what needs to change?",
+        ],
+      },
+      {
+        type: "paragraph",
+        text: "Check practical details too. Can the intended readers open it on their phones? Would a printable version or another language be more useful? Agree any costs before anyone spends money, and choose a communication channel everyone can access.",
+      },
+      {
+        type: "heading",
+        text: "Follow through, then build",
+      },
+      {
+        type: "paragraph",
+        text: "Keep your commitments visible. Share a brief update when a task is complete, when you need help or when a deadline needs to change. If your circumstances shift, say so early enough for the team to adjust. Reliability grows through these ordinary conversations.",
+      },
+      {
+        type: "paragraph",
+        text: "When the first version is ready, let the people it is intended for use it. In our example, the team could ask readers to try one prompt and describe anything confusing or missing. Listen to their responses, make useful changes and acknowledge everyone's contribution before sharing the resource more widely.",
+      },
+      {
+        type: "paragraph",
+        text: "Then decide together what comes next. You might improve the resource, hand it over to the local group, support an existing effort or bring the project to a clear close. Let what you learn guide that decision.",
+      },
+      {
+        type: "paragraph",
+        text: "This is one way to carry <strong>Impact Beyond Recognition</strong> into everyday action as we look towards Impact Africa. Think of one person you have met whose interests connect with yours. Send a thoughtful message this week. Begin with a conversation, listen carefully and agree one useful step you can take together.",
+      },
+      {
+        type: "cta",
+        text: "Connect with the Top100 Africa Future Leaders community",
+        href: "/join",
+      },
+      {
+        type: "cta",
+        text: "Explore how your organisation can contribute to future collaboration",
+        href: "/partnership",
+      },
+      {
+        type: "paragraph",
+        text: "<small><em>Cover image: AI-generated illustration created for this editorial series.</em></small>",
+      },
+    ],
+    tags: ["Impact Africa", "Impact Beyond Recognition", "Collaboration", "Community", "Youth Leadership"],
+    coverImage: "/blog/turning-a-connection-into-a-collaboration.png",
+    createdAt: "2026-11-10T16:05:00Z",
+    updatedAt: "2026-11-10T16:05:00Z",
+    readTime: 5,
+    isFeatured: true,
+    status: "published",
+  },
+  {
     id: "impact-beyond-recognition-impact-africa",
     title: "Impact Beyond Recognition: Our Next Chapter Is Impact Africa",
     slug: "impact-beyond-recognition-impact-africa",
