@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation'
 import Header from './Header'
 import Footer from './Footer'
+import { MENTOR_PORTAL } from '@/lib/mentors/contracts'
 
 export default function ConditionalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -13,7 +14,7 @@ export default function ConditionalLayout({ children }: { children: React.ReactN
     pathname?.startsWith('/auth') ||
     pathname?.startsWith('/dashboard') ||
     pathname?.startsWith('/edit-profile')
-  const hideFooter = hideLayout || pathname?.startsWith('/dashboard')
+  const hideFooter = hideLayout || pathname === MENTOR_PORTAL
 
   return (
     <>

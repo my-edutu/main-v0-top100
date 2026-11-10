@@ -1,7 +1,8 @@
 import Link from 'next/link'
+import { notFound } from 'next/navigation'
 import { LockKeyhole, Search } from 'lucide-react'
-import { memberMentorshipOpen, MEMBER_MENTORS, MentorInputError } from '@/lib/mentors/contracts'
-import { approvedMentorMember, mentorProfileFields } from '@/lib/mentors/server'
+import { memberMentorshipOpen, MEMBER_MENTORS } from '@/lib/mentors/contracts'
+import { mentorAwardeeAccess, mentorProfileFields } from '@/lib/mentors/server'
 import { fieldClass, panel, primary, secondary, sessionTime } from '@/lib/mentors/ui'
 import { Field, MentorActionForm } from '@/app/impact-africa/mentors/forms'
 import { updateMemberMentorship } from './actions'
@@ -13,6 +14,15 @@ const PAGE_SIZE = 24
 export default async function DashboardMentorsPage({ searchParams }: {
   searchParams: Promise<{ q?: string | string[]; view?: string; page?: string }>
 }) {
+  let access
+  try {
+    access = await mentorAwardeeAccess()
+  } catch {
+    console.error('[impact-mentors] Member access failed')
+    return <p className={panel} role="alert">We could not load mentorship right now. Try again shortly.</p>
+  }
+  if (!access) notFound()
+
   if (!memberMentorshipOpen()) {
     return (
       <section className={panel}>
@@ -24,13 +34,6 @@ export default async function DashboardMentorsPage({ searchParams }: {
     )
   }
 
-  let access
-  try {
-    access = await approvedMentorMember()
-  } catch (error) {
-    if (!(error instanceof MentorInputError)) console.error('[impact-mentors] Member access failed')
-    return <p className={panel} role="alert">{error instanceof MentorInputError ? error.message : 'We could not load mentorship right now. Try again shortly.'}</p>
-  }
   const { db, user } = access
   const params = await searchParams
   const q = typeof params.q === 'string' ? params.q.trim().slice(0, 80) : ''
@@ -52,7 +55,7 @@ export default async function DashboardMentorsPage({ searchParams }: {
   )
 }
 
-type Db = Awaited<ReturnType<typeof approvedMentorMember>>['db']
+type Db = NonNullable<Awaited<ReturnType<typeof mentorAwardeeAccess>>>['db']
 
 async function Directory({ db, userId, q, page }: { db: Db; userId: string; q: string; page: number }) {
   const from = (page - 1) * PAGE_SIZE

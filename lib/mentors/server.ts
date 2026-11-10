@@ -8,17 +8,26 @@ export const mentorUser = cache(async () => {
   return user?.email_confirmed_at && !user.is_anonymous ? user : null
 })
 
-export async function approvedMentorMember() {
-  if (!memberMentorshipOpen()) throw new MentorInputError('Mentor matching is currently closed to members.')
+export async function mentorAwardeeAccess() {
   const user = await mentorUser()
-  if (!user) throw new MentorInputError('Sign in to your Top100 account to continue.')
+  if (!user) return null
   const db = createAdminClient()
-  const { data, error } = await db.from('profiles').select('membership_status,account_status').eq('id', user.id).maybeSingle()
+  // Older profile schemas have no account_status column.
+  const { data, error } = await db.from('profiles').select('*').eq('id', user.id).maybeSingle()
   if (error) throw error
   if (data?.membership_status !== 'approved' || (data.account_status && data.account_status !== 'active')) {
-    throw new MentorInputError('You need an approved Top100 membership to use mentoring.')
+    return null
   }
-  return { db, user }
+  const awardee = await db.from('awardees').select('id').eq('profile_id', user.id).limit(1).maybeSingle()
+  if (awardee.error) throw awardee.error
+  return awardee.data ? { db, user } : null
+}
+
+export async function approvedMentorMember() {
+  if (!memberMentorshipOpen()) throw new MentorInputError('Mentor matching is currently closed to members.')
+  const access = await mentorAwardeeAccess()
+  if (!access) throw new MentorInputError('You need an approved Top100 account with a linked awardee profile to use mentoring.')
+  return access
 }
 
 export type MentorProfile = {
