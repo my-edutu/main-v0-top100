@@ -2,11 +2,11 @@
 
 import { useEffect, useState, type ComponentType, type SVGProps } from "react"
 import { motion, useReducedMotion } from "framer-motion"
-import { MapPinned, Medal, Target } from "lucide-react"
+import { GraduationCap, MapPinned, Medal } from "lucide-react"
 import Counter from "@/components/Counter"
 
 type ImpactStat = {
-  key: "countries" | "goal" | "awardees"
+  key: "countries" | "schools" | "awardees"
   label: string
   description: string
   value: number
@@ -25,8 +25,8 @@ const impactStatVisuals: Record<ImpactStat["key"], ImpactStatVisual> = {
     gradient: "linear-gradient(145deg, rgba(255,179,71,0.95), rgba(255,131,87,0.92))",
     accent: "rgba(255,255,255,0.75)",
   },
-  goal: {
-    icon: Target,
+  schools: {
+    icon: GraduationCap,
     gradient: "linear-gradient(145deg, rgba(101,200,255,0.95), rgba(80,130,255,0.92))",
     accent: "rgba(255,255,255,0.8)",
   },
@@ -116,18 +116,12 @@ export default function ImpactSection() {
     setCanAnimate(reduceMotion === false)
   }, [reduceMotion])
 
-  const impactStats: ImpactStat[] = [
-    { key: "countries", label: "Countries", description: "Across Africa", value: 100, suffix: "+" },
-    { key: "goal", label: "2030 goal", description: "Youth leaders across Africa", value: 10_000, suffix: "" },
-    { key: "awardees", label: "Awardees", description: "Exceptional young Africans", value: 1_800, suffix: "+" },
-  ]
-
   return (
     <section className="section-padding">
       <div className="container space-y-10">
         <div className="mx-auto max-w-3xl space-y-4 text-center">
           <h2 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl sm:leading-tight font-sans">
-            Our reach and ambition
+            Our reach
           </h2>
           <p className="mx-auto text-sm leading-relaxed text-muted-foreground sm:text-base font-sans tracking-wide">
             Celebrating exceptional young Africans and building opportunity across the continent.
@@ -148,3 +142,9 @@ export default function ImpactSection() {
     </section>
   )
 }
+
+const impactStats: ImpactStat[] = [
+  { key: "awardees", label: "Awardees", description: "Across three cohorts", value: 1_807, suffix: "" },
+  { key: "schools", label: "Schools", description: "In the Top100 community", value: 707, suffix: "" },
+  { key: "countries", label: "Countries", description: "Across our global network", value: 101, suffix: "" },
+]
