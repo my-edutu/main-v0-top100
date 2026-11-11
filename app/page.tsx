@@ -88,8 +88,6 @@ export default async function HomePage() {
     getHomepageEvents(),
     getHomepageAnnouncements(),
   ])
-  const showTalentDiscovery = talentDiscoveryEnabled()
-  const hallOfFame = <HallOfFamePreview speakers={getFeaturedSpeakers()} />
 
   return (
     <div className="bg-background text-foreground">
@@ -98,7 +96,7 @@ export default async function HomePage() {
 
         <HomePartnersSection />
 
-        {showTalentDiscovery ? <TalentDiscoveryHomeSection /> : hallOfFame}
+        <TalentDiscoveryHomeSection />
 
         <section id="about-the-movement" aria-labelledby="about-the-movement-title" className="scroll-mt-24 py-6">
           <div className="container space-y-6">
@@ -120,7 +118,7 @@ export default async function HomePage() {
 
         <HomeFeaturedAwardeesSection />
         <HomeProject100Section />
-        {showTalentDiscovery && hallOfFame}
+        <HallOfFamePreview speakers={getFeaturedSpeakers()} />
 
         <ImpactSection />
 
