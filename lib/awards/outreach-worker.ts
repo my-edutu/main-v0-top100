@@ -47,7 +47,7 @@ export async function processOutreachJobs(db: Db, deps: { load?: typeof loadOutr
       if (!lease.data) { counts.skipped++; continue }
       startedSend = true
       const result = await (deps.send ?? sendTransactionalEmail)({ to: job.email, toName: member.name, ...message,
-        idempotencyKey: `award-outreach/${job.campaign_id}/${job.id}`, requireBrevoSmtp: true })
+        idempotencyKey: `award-outreach/${job.campaign_id}/${job.id}`, requireBrevoSmtp: false })
       if (!result.ok) {
         if (result.delivery === 'not_sent') {
           await finish('failed', 'SMTP explicitly rejected the message before acceptance. No automatic retry.'); counts.failed++; continue

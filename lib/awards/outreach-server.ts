@@ -75,7 +75,7 @@ export function outreachLinks(member: OutreachMember, token: string) {
   return {
     actionUrl: `${origin}/api/award-outreach/${token}`,
     stopUrl: `${origin}/award-outreach/stop/${token}`,
-    imageUrl: `${origin}/afl-physical-award.png`,
+    imageUrl: `${origin}/afl-physical-award-2026.png`,
     name: member.name, year: member.years.join(' / '), fee: `${awardFee('NGN').display} or ${awardFee('USD').display}`,
   }
 }

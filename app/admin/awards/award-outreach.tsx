@@ -52,7 +52,7 @@ export function AwardOutreachMetrics({ controller: c }: { controller: Controller
     <span><Users aria-hidden="true" /></span><div><strong>{unavailable ? '—' : filterOutreachAudience(rows, { year: c.year, segment: key }).length}</strong><p>{label} · {c.year === 'all' ? 'all cohorts' : c.year}</p><small>{hint}</small></div>
   </button>)}</>
 }
-const suggestedTemplate = (segment: OutreachSegment): OutreachTemplate => segment === 'paid' ? 'paid' : segment === 'verification' ? 'verification' : ['no_profile', 'not_started'].includes(segment) ? 'awareness' : segment === 'follow_up' ? 'follow_up' : 'recovery'
+const suggestedTemplate = (segment: OutreachSegment): OutreachTemplate => segment === 'paid' ? 'paid' : segment === 'verification' ? 'verification' : ['no_profile', 'not_started', 'not_started_profile'].includes(segment) ? 'awareness' : segment === 'follow_up' ? 'follow_up' : 'recovery'
 const dateLabel = (value: string | null) => value ? new Date(value).toLocaleDateString('en-GB', { timeZone: 'Africa/Lagos' }) : 'Not recorded'
 const stateLabel = (member: OutreachMember) => ({ paid: 'Confirmed paid', verification: 'Verify payment first', recovery: 'Unfinished order', not_started: 'No order started' })[member.state]
 async function post(value: unknown) {

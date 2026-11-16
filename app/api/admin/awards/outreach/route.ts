@@ -60,7 +60,10 @@ export async function GET(request: NextRequest) {
       history.push({ ...campaign, total: jobs.length, counts, issues: issues.data ?? [], paidAfterSend: campaign.template === 'paid' ? null : jobs.filter(j => j.status === 'sent' && paidIds.has(j.awardee_id)).length })
     }
     return json({ members: audience.members, setup: audience.setup, message: audience.setup ? null : OUTREACH_SETUP_MESSAGE,
-      templates: Object.fromEntries(Object.keys(OUTREACH_TEMPLATES).map(key => [key, saved?.data?.find(t => t.key === key) ?? defaultOutreachDraft(key as OutreachTemplate)])), campaigns: history, deliveryReviews: deliveryReviews?.data ?? [] })
+      templates: Object.fromEntries(Object.keys(OUTREACH_TEMPLATES).map(key => {
+        const persisted = saved?.data?.find(t => t.key === key)
+        return [key, persisted ? { subject: persisted.subject, body: persisted.body } : defaultOutreachDraft(key as OutreachTemplate)]
+      })), campaigns: history, deliveryReviews: deliveryReviews?.data ?? [] })
   } catch (error) { return fail(error) }
 }
 export async function PATCH(request: NextRequest) {

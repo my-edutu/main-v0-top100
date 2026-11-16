@@ -33,7 +33,7 @@ it('does not send after losing or expiring the worker lease', async () => {
 it('uses stable message identity and skips suppressed or recently contacted members', async () => {
   const f = setup()
   expect(await processOutreachJobs(f.db as never, { load: f.load, send: f.send })).toMatchObject({ sent: 1 })
-  expect(f.send).toHaveBeenCalledWith(expect.objectContaining({ to: 'amara@example.com', idempotencyKey: 'award-outreach/campaign/job', requireBrevoSmtp: true }))
+  expect(f.send).toHaveBeenCalledWith(expect.objectContaining({ to: 'amara@example.com', idempotencyKey: 'award-outreach/campaign/job', requireBrevoSmtp: false }))
   const g = setup(); g.load.mockResolvedValue({ setup: true, members: [{ ...member, suppressed: true }], contacts: [{ awardee_id: 'a', token: 'token' }] })
   expect(await processOutreachJobs(g.db as never, { load: g.load, send: g.send })).toMatchObject({ skipped: 1 })
   expect(g.send).not.toHaveBeenCalled()

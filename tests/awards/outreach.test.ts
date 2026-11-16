@@ -34,6 +34,13 @@ describe('award outreach audience', () => {
     expect(filterOutreachAudience(audience, { year: '2026', segment: 'verification' }).map(r => r.id)).toEqual(['d'])
     expect(filterOutreachAudience(audience, { year: '2026', segment: 'not_clicked' })).toEqual([])
   })
+  it('selects no-order members with profiles without overlapping no-profile members', () => {
+    const s = source()
+    s.awardees.push({ id: 'e', name: 'Profile only', email: 'profile@example.com', year: 2026, profile_id: 's' })
+    s.profiles.push({ id: 's', email: 'profile@example.com' })
+    const audience = buildOutreachAudience(s)
+    expect(filterOutreachAudience(audience, { year: '2026', segment: 'not_started_profile' }).map(r => r.id)).toEqual(['e'])
+  })
   it('matches a profile by normalized email without falsely calling its owner unregistered', () => {
     const s = source(); s.profiles.push({ id: 'new-profile', email: ' NEW@example.com ' })
     expect(buildOutreachAudience(s).find(r => r.id === 'b')?.profileId).toBe('new-profile')
@@ -90,6 +97,7 @@ describe('outreach templates', () => {
     expect(message.text).toContain('₦25,000 / $20')
     expect(message.html).toContain('https://www.top100afl.com/signup')
     expect(message.html).toContain('lang="en"')
+    expect(message.html).toContain('https://www.top100afl.com/Top100%20Africa%20Future%20leaders%20Logo%20.png')
     expect(message.text).not.toContain('{{')
   })
   it('rejects unknown variables and unsafe action URLs', () => {
