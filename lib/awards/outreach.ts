@@ -1,7 +1,7 @@
 /** Pure audience rules shared by admin reads, exports and the delivery worker. */
 export const OUTREACH_SEGMENTS = {
   all: 'All eligible awardees', unpaid: 'No confirmed payment', no_profile: 'No profile',
-  not_started: 'No award order', recovery: 'Unfinished orders', verification: 'Verify payment first',
+  not_started: 'No award order', not_started_profile: 'No award order · profile created', recovery: 'Unfinished orders', verification: 'Verify payment first',
   paid: 'Confirmed paid', not_clicked: 'No recorded link visit', clicked: 'Recorded link visit', follow_up: 'Follow-up due',
 } as const
 export type OutreachSegment = keyof typeof OUTREACH_SEGMENTS
@@ -100,6 +100,7 @@ export function filterOutreachAudience(rows: OutreachMember[], filter: OutreachF
       case 'unpaid': return r.state !== 'paid'
       case 'no_profile': return !r.profileId && r.state !== 'paid'
       case 'not_started': return r.state === 'not_started'
+      case 'not_started_profile': return r.state === 'not_started' && Boolean(r.profileId)
       case 'recovery': return r.state === 'recovery'
       case 'verification': return r.state === 'verification'
       case 'paid': return r.state === 'paid'

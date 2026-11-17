@@ -61,7 +61,7 @@ export async function processOutreachJobs(db: Db, deps: { load?: typeof loadOutr
         idempotencyKey: `award-outreach/${job.campaign_id}/${job.id}`,
         ...(process.env.AWARD_OUTREACH_SMTP_HOST
           ? { awardOutreach: { unsubscribeUrl: outreachLinks(member, contact.token).stopUrl.replace('/award-outreach/stop/', '/api/award-outreach/') + '/stop' } }
-          : { requireBrevoSmtp: true }) })
+          : { requireBrevoSmtp: false }) })
       if (!result.ok) {
         if (result.delivery === 'not_sent') {
           await finish('failed', 'SMTP explicitly rejected the message before acceptance. No automatic retry.'); counts.failed++; continue

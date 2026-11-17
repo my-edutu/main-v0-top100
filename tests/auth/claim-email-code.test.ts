@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   awardee: vi.fn(),
@@ -37,6 +37,14 @@ function request(email = 'ADA@example.com') {
 describe('emailed signup codes', () => {
   beforeEach(() => {
     vi.resetAllMocks()
+    vi.stubEnv('AWARD_OUTREACH_SMTP_HOST', '')
+    vi.stubEnv('AWARD_OUTREACH_SMTP_USER', '')
+    vi.stubEnv('AWARD_OUTREACH_SMTP_PASSWORD', '')
+    vi.stubEnv('BREVO_SMTP_LOGIN', 'smtp-user')
+    vi.stubEnv('BREVO_SMTP_KEY', 'smtp-key')
+    vi.stubEnv('RESEND_API_KEY', '')
+    vi.stubEnv('RESEND_FROM_EMAIL', '')
+    vi.stubEnv('BREVO_API_KEY', '')
     mocks.awardee.mockResolvedValue({ data: { email: 'ada@example.com', profile_id: null } })
     mocks.captcha.mockResolvedValue(true)
     mocks.rateLimit.mockResolvedValue(null)
@@ -44,7 +52,11 @@ describe('emailed signup codes', () => {
     mocks.send.mockResolvedValue({ ok: true })
   })
 
-  it('sends an email-bound single-use code through SMTP without returning the code', async () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  it('sends an email-bound single-use code without returning the code', async () => {
     const response = await POST(request())
     expect(response.status).toBe(200)
     expect(await response.json()).toEqual({ sent: true })
@@ -52,8 +64,20 @@ describe('emailed signup codes', () => {
       email: 'ada@example.com', mode: 'single_use', durationHours: 1,
     }))
     expect(mocks.send).toHaveBeenCalledWith(expect.objectContaining({
-      to: 'ada@example.com', requireBrevoSmtp: true, text: expect.stringContaining('AFL-K3M9Q-7VZ2R'),
+      to: 'ada@example.com', requireBrevoSmtp: false, text: expect.stringContaining('AFL-K3M9Q-7VZ2R'),
     }))
+  })
+
+  it('allows the configured Brevo API transport', async () => {
+    vi.stubEnv('BREVO_SMTP_LOGIN', '')
+    vi.stubEnv('BREVO_SMTP_KEY', '')
+    vi.stubEnv('BREVO_API_KEY', 'brevo-api-key')
+
+    const response = await POST(request())
+
+    expect(response.status).toBe(200)
+    expect(mocks.generateCode).toHaveBeenCalled()
+    expect(mocks.send).toHaveBeenCalledWith(expect.objectContaining({ requireBrevoSmtp: false }))
   })
 
   it('does not issue a code for an email that differs from the awardee record', async () => {
@@ -66,6 +90,18 @@ describe('emailed signup codes', () => {
     mocks.rateLimit.mockResolvedValueOnce(new Response(null, { status: 429 }))
     expect((await POST(request())).status).toBe(429)
     expect(mocks.generateCode).not.toHaveBeenCalled()
+  })
+
+  it('does not issue a code when no transactional provider is available', async () => {
+    vi.stubEnv('BREVO_SMTP_LOGIN', '')
+    vi.stubEnv('BREVO_SMTP_KEY', '')
+
+    const response = await POST(request())
+
+    expect(response.status).toBe(503)
+    expect(await response.json()).toEqual({ message: 'Signup email is temporarily unavailable. Please try again later.' })
+    expect(mocks.generateCode).not.toHaveBeenCalled()
+    expect(mocks.send).not.toHaveBeenCalled()
   })
 
   it('revokes a code after a definitive SMTP failure', async () => {

@@ -7,11 +7,27 @@ import { getClientIdentifier, rateLimitResponse } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 
+function hasSignupEmailProvider() {
+  const hasBrevoSmtp = Boolean(process.env.BREVO_SMTP_LOGIN?.trim() && process.env.BREVO_SMTP_KEY?.trim())
+  const hasResend = Boolean(process.env.RESEND_API_KEY?.trim() && process.env.RESEND_FROM_EMAIL?.trim())
+  const hasBrevoApi = Boolean(process.env.BREVO_API_KEY?.trim())
+  const hasTop100Smtp = Boolean(process.env.AWARD_OUTREACH_SMTP_HOST?.trim() && process.env.AWARD_OUTREACH_SMTP_USER?.trim() && process.env.AWARD_OUTREACH_SMTP_PASSWORD?.trim())
+  return hasTop100Smtp || hasBrevoSmtp || hasResend || hasBrevoApi
+}
+
 async function emailClaimCode(email: string) {
   const limited = await rateLimitResponse([
     { maxRequests: 3, windowSeconds: 900, identifier: `claim-code-email:${email}` },
   ], 'Too many code requests for this email. Wait a few minutes and try again.')
   if (limited) return limited
+
+  // Check the configured transactional provider before creating a persisted
+  // one-time code that cannot be delivered. The mail helper selects one
+  // provider and never retries through another after a send attempt.
+  if (!hasSignupEmailProvider()) {
+    console.error('[claim-code] No transactional email provider is configured')
+    return NextResponse.json({ message: 'Signup email is temporarily unavailable. Please try again later.' }, { status: 503 })
+  }
 
   try {
     const invite = await generateCode({
@@ -25,11 +41,11 @@ async function emailClaimCode(email: string) {
       subject: 'Your Top100 signup code',
       text: `Your Top100 signup code is ${invite.code}. Enter it on the signup page to request your awardee profile. It expires in one hour and can only be used once. If you didn’t request this code, you can ignore this email.`,
       html: `<div lang="en"><p>Enter this code on the Top100 signup page to request your awardee profile.</p><p style="font:700 26px monospace">${invite.code}</p><p>This code expires in one hour and can only be used once. If you didn’t request it, you can ignore this email.</p></div>`,
-      requireBrevoSmtp: true,
+      requireBrevoSmtp: false,
     })
     if (result.ok) return NextResponse.json({ sent: true })
     if (result.delivery === 'not_sent') await revokeCode(invite.id)
-    console.error('[claim-code] SMTP send failed', { delivery: result.delivery })
+    console.error('[claim-code] Transactional email send failed', { delivery: result.delivery })
     return NextResponse.json({
       message: result.delivery === 'unknown'
         ? 'We could not confirm that the email was sent. If a code arrives, you can still use it.'

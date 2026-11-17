@@ -26,6 +26,31 @@ it('accepts one-click unsubscribe requests and suppresses the matching contact',
   expect((await stopOutreach(req, { params: Promise.resolve({ token }) })).status).toBe(200)
   expect(updates).toContainEqual(expect.objectContaining({ suppressed: true, next_follow_up_at: null }))
 })
+it('returns saved templates as editable drafts without persistence fields', async () => {
+  mocks.loadAudience.mockResolvedValue({ setup: true, members: [] })
+  const query = (result: unknown) => {
+    const chain: Record<string, unknown> = {
+      select: vi.fn(() => chain),
+      order: vi.fn(() => chain),
+      limit: vi.fn(() => chain),
+      eq: vi.fn(() => chain),
+      range: vi.fn(() => chain),
+      then: (resolve: (value: unknown) => unknown) => Promise.resolve(result).then(resolve),
+    }
+    return chain
+  }
+  mocks.createAdminClient.mockReturnValue({
+    from: (table: string) => table === 'award_outreach_templates'
+      ? query({ data: [{ key: 'awareness', subject: 'Saved subject', body: 'Saved body' }], error: null })
+      : query({ data: [], error: null }),
+  })
+
+  const response = await GET(request('GET'))
+
+  expect(response.status).toBe(200)
+  const body = await response.json()
+  expect(body.templates.awareness).toEqual({ subject: 'Saved subject', body: 'Saved body' })
+})
 it('rejects cross-origin export and contact mutations', async () => {
   expect((await POST(request('POST', { action: 'export' }, 'https://attacker.test'))).status).toBe(403)
   expect((await PATCH(request('PATCH', {}, 'https://attacker.test'))).status).toBe(403)
