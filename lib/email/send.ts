@@ -11,6 +11,7 @@ const BREVO_ENDPOINT = 'https://api.brevo.com/v3/smtp/email'
 export type SendInput = {
   to: string
   toName?: string
+  replyTo?: string
   subject: string
   html: string
   text?: string
@@ -61,9 +62,10 @@ export async function sendTransactionalEmail(input: SendInput): Promise<{ ok: bo
       const sendResult = await transporter.sendMail({
         from: { name: senderName, address: senderEmail },
         ...(input.awardOutreach ? {
-          replyTo: 'nigeriatop100@gmail.com',
+          replyTo: input.replyTo || 'nigeriatop100@gmail.com',
           headers: { 'List-Unsubscribe': `<${input.awardOutreach.unsubscribeUrl}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' },
         } : {}),
+        ...(!input.awardOutreach && input.replyTo ? { replyTo: input.replyTo } : {}),
         to: { name: input.toName, address: input.to },
         subject: input.subject,
         html: input.html,
@@ -121,6 +123,7 @@ export async function sendTransactionalEmail(input: SendInput): Promise<{ ok: bo
         },
         body: JSON.stringify({
           from: resendFrom,
+          ...(input.replyTo ? { reply_to: input.replyTo } : {}),
           to: [input.to],
           subject: input.subject,
           html: input.html,
@@ -157,6 +160,7 @@ export async function sendTransactionalEmail(input: SendInput): Promise<{ ok: bo
       },
       body: JSON.stringify({
         sender: { email: senderEmail, name: senderName },
+        ...(input.replyTo ? { replyTo: { email: input.replyTo } } : {}),
         to: [{ email: input.to, ...(input.toName ? { name: input.toName } : {}) }],
         subject: input.subject,
         htmlContent: input.html,

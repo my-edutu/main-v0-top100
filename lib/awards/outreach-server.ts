@@ -74,6 +74,7 @@ export function outreachLinks(member: OutreachMember, token: string) {
   const origin = new URL(SITE_URL).origin
   return {
     actionUrl: `${origin}/api/award-outreach/${token}`,
+    buttonLabel: member.profileId ? 'View your award and order' : 'Claim your profile',
     stopUrl: `${origin}/award-outreach/stop/${token}`,
     imageUrl: `${origin}/afl-physical-award-2026.png`,
     name: member.name, year: member.years.join(' / '), fee: `${awardFee('NGN').display} or ${awardFee('USD').display}`,

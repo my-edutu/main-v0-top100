@@ -57,7 +57,7 @@ export async function processOutreachJobs(db: Db, deps: { load?: typeof loadOutr
       if (lease.error) throw new Error('Could not verify email worker ownership.')
       if (!lease.data) { counts.skipped++; continue }
       startedSend = true
-      const result = await (deps.send ?? sendTransactionalEmail)({ to: job.email, toName: member.name, ...message,
+      const result = await (deps.send ?? sendTransactionalEmail)({ to: job.email, toName: member.name, replyTo: 'nigeriatop100@gmail.com', ...message,
         idempotencyKey: `award-outreach/${job.campaign_id}/${job.id}`,
         ...(process.env.AWARD_OUTREACH_SMTP_HOST
           ? { awardOutreach: { unsubscribeUrl: outreachLinks(member, contact.token).stopUrl.replace('/award-outreach/stop/', '/api/award-outreach/') + '/stop' } }
