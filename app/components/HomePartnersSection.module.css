@@ -1,0 +1,39 @@
+.viewport {
+  overflow: hidden;
+}
+
+.track {
+  display: flex;
+  width: max-content;
+  animation: scroll-logos 28s linear infinite;
+}
+
+.viewport:focus-within .track {
+  animation-play-state: paused;
+}
+
+@media (hover: hover) {
+  .viewport:hover .track { animation-play-state: paused; }
+}
+
+.viewport:has(:focus-visible) {
+  overflow-x: auto;
+}
+
+.viewport:has(:focus-visible) .track {
+  animation: none;
+}
+
+.viewport:has(:focus-visible) .copy {
+  display: none;
+}
+
+@keyframes scroll-logos {
+  to { transform: translateX(-50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .viewport { overflow-x: auto; }
+  .track { animation: none; }
+  .copy { display: none; }
+}

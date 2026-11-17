@@ -1,0 +1,44 @@
+http:
+  routers:
+    top100-email-http:
+      rule: "Host(`email.top100afl.com`)"
+      entryPoints: [web]
+      middlewares: [top100-email-https]
+      service: noop@internal
+    top100-email-admin:
+      rule: "Host(`email.top100afl.com`)"
+      priority: 10
+      entryPoints: [websecure]
+      middlewares: [top100-email-auth, top100-email-no-store]
+      service: top100-email-standalone
+      tls:
+        certResolver: letsencrypt
+        domains:
+          - main: email.top100afl.com
+    top100-email-subscriber:
+      rule: "Host(`email.top100afl.com`) && (PathRegexp(`^/subscription/([0-9a-f-]{36}/[0-9a-f-]{36}|optin/[0-9a-f-]{36})$`) || PathPrefix(`/public/static/`) || Path(`/public/custom.css`))"
+      priority: 20
+      entryPoints: [websecure]
+      middlewares: [top100-email-no-store]
+      service: top100-email-standalone
+      tls: {}
+  middlewares:
+    top100-email-auth:
+      basicAuth:
+        usersFile: /etc/dokploy/traefik/dynamic/.top100-email.htpasswd
+        removeHeader: true
+        realm: Top100 Email
+    top100-email-no-store:
+      headers:
+        customResponseHeaders:
+          Cache-Control: "private, no-store"
+          X-Robots-Tag: "noindex, nofollow"
+    top100-email-https:
+      redirectScheme:
+        scheme: https
+        permanent: true
+  services:
+    top100-email-standalone:
+      loadBalancer:
+        servers:
+          - url: "http://top100-email-standalone:9000"

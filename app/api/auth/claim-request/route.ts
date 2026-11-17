@@ -11,7 +11,8 @@ function hasSignupEmailProvider() {
   const hasBrevoSmtp = Boolean(process.env.BREVO_SMTP_LOGIN?.trim() && process.env.BREVO_SMTP_KEY?.trim())
   const hasResend = Boolean(process.env.RESEND_API_KEY?.trim() && process.env.RESEND_FROM_EMAIL?.trim())
   const hasBrevoApi = Boolean(process.env.BREVO_API_KEY?.trim())
-  return hasBrevoSmtp || hasResend || hasBrevoApi
+  const hasTop100Smtp = Boolean(process.env.AWARD_OUTREACH_SMTP_HOST?.trim() && process.env.AWARD_OUTREACH_SMTP_USER?.trim() && process.env.AWARD_OUTREACH_SMTP_PASSWORD?.trim())
+  return hasTop100Smtp || hasBrevoSmtp || hasResend || hasBrevoApi
 }
 
 async function emailClaimCode(email: string) {

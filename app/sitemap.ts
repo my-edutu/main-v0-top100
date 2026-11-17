@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import { getPublishedPosts } from '@/lib/posts/server'
 import { getPublishedSlugs } from '@/lib/interviews/queries'
 import { SITE_URL } from '@/lib/site'
+import { talentDiscoveryEnabled } from '@/lib/talent/features'
 import { publicProfileSitemap } from '@/lib/seo/profile-sitemap'
 
 export const dynamic = 'force-static'
@@ -156,6 +157,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.3,
     },
   ]
+
+  if (talentDiscoveryEnabled()) {
+    staticRoutes.push({ url: `${baseUrl}/for-organisations` })
+  }
 
   // Use stable pages to avoid PostgREST's per-response row limit.
   const awardeeRoutes = await publicProfileSitemap((from, to) => supabase

@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/compone
 import { useDashboardBadges } from '@/app/dashboard/_providers/dashboard-badges'
 import { useDashboardMember } from '@/app/dashboard/_providers/dashboard-member'
 import type { MemberProfile } from '@/lib/member-hub'
-import { AWARD_POPUP_VARIANTS, awardPopupDay, awardPopupStorageKey, canOfferPhysicalAward, nextAwardPopupVisit, readAwardPopupVisit, type AwardPopupVisit } from '@/lib/awards/popup'
+import { AWARD_POPUP_VARIANTS, awardPopupDay, awardPopupStorageKey, canOfferPhysicalAward, nextAwardPopupVisit, readAwardCouponOffer, readAwardPopupVisit, type AwardCouponOffer, type AwardPopupVisit } from '@/lib/awards/popup'
 import { trackAwardFunnel } from '@/lib/awards/funnel'
 import { AwardPopupDesign } from './award-popup-designs'
 import styles from './award-popups.module.css'
@@ -14,8 +14,9 @@ import { Check, Clock3, ArrowRight } from 'lucide-react'
 
 export default function MagazinePopup({ member }: { member: Pick<MemberProfile, 'id' | 'name' | 'dashboardLoginCount'> }) {
   const { awardPayment, awardNeedsAttention, refreshBadges } = useDashboardBadges()
-  const { dashboardVisitReady } = useDashboardMember()
+  const { dashboardVisitReady, notifications } = useDashboardMember()
   const [visit, setVisit] = useState<AwardPopupVisit | null>(null)
+  const [couponOffer, setCouponOffer] = useState<AwardCouponOffer | null>(null)
   const [statusOpen, setStatusOpen] = useState(false)
   const previousFocus = useRef<HTMLElement | null>(null)
   const eligible = awardNeedsAttention && canOfferPhysicalAward(awardPayment)
@@ -44,6 +45,8 @@ export default function MagazinePopup({ member }: { member: Pick<MemberProfile, 
       nextVisit = nextAwardPopupVisit(null, login, awardPopupDay())
     }
     if (!nextVisit) return
+    const now = Date.now()
+    setCouponOffer(notifications.map(notice => readAwardCouponOffer(notice.awardCouponOffer, now)).find(offer => offer !== null) ?? null)
     setVisit(nextVisit)
     trackAwardFunnel(member.id, 'popup_viewed', AWARD_POPUP_VARIANTS[nextVisit.variant].id)
   }
@@ -110,7 +113,7 @@ export default function MagazinePopup({ member }: { member: Pick<MemberProfile, 
           </DialogDescription>
           <p className={styles.paymentStatusNote}>{confirmed ? 'Delivery arrangements and charges are handled separately.' : 'Please wait for the result before making another payment.'}</p>
           <Link href="/dashboard/me/award" onClick={handleClose} className={styles.cta}>View my award <ArrowRight size={20} aria-hidden="true" /></Link>
-        </div> : awardPayment && <AwardPopupDesign variant={variant} name={member.name.trim().split(/\s+/)[0]} onReserve={() => {
+        </div> : awardPayment && <AwardPopupDesign variant={variant} name={member.name.trim().split(/\s+/)[0]} couponOffer={couponOffer} onReserve={() => {
           trackAwardFunnel(member.id, 'reserve_clicked', variant.id)
           handleClose()
         }} />}

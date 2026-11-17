@@ -34,6 +34,7 @@ import { magazineBillingCurrency, normalizeMagazineCountryCode } from '@/lib/mag
 import { MEMBER_GROUPS_ENABLED, memberGroupsLockedResponse } from '@/lib/groups/access'
 import { getWhatsAppGroup, WHATSAPP_GROUPS } from '@/lib/groups/whatsapp'
 import type { AwardPaymentCurrency } from '@/lib/payments/bachs/types'
+import { AWARD_COUPON_QUOTE } from '@/lib/awards/payment-price'
 
 function routeAwardeeJourney(request: NextRequest, store: DemoDashboardStore) {
   if (request.method === 'GET') {
@@ -611,13 +612,22 @@ async function routeAward(request: NextRequest, path: string[], store: DemoDashb
     })
   }
 
+  if (path[1] === 'payment' && path[2] === 'coupon' && path.length === 3 && request.method === 'POST') {
+    const body = await readBody(request)
+    if (body?.useDefaultCoupon !== true || Object.keys(body).length !== 1) {
+      return json({ message: 'This coupon is unavailable in the local preview.' }, 422)
+    }
+    const payment = store.awardPayment
+    return json(payment.status === 'paid' || payment.attempt ? null : AWARD_COUPON_QUOTE)
+  }
+
   if (path[1] === 'payment' && path[2] === 'checkout' && path.length === 3 && request.method === 'POST') {
     const body = await readBody(request)
     const keys = body ? Object.keys(body) : []
     if (
       !body ||
-      keys.some((key) => key !== 'countryCode' && key !== 'email') ||
-      keys.length !== 2 ||
+      keys.some((key) => key !== 'countryCode' && key !== 'email' && key !== 'useDefaultCoupon') ||
+      ('useDefaultCoupon' in body && body.useDefaultCoupon !== true) ||
       typeof body.countryCode !== 'string' ||
       typeof body.email !== 'string' ||
       body.email.trim().length > 320 ||
@@ -640,7 +650,9 @@ async function routeAward(request: NextRequest, path: string[], store: DemoDashb
       return json({ message: 'A payment checkout is already being confirmed.' }, 409)
     }
 
-    const selectedOption = DEMO_AWARD_PRICE_OPTIONS.find((option) => option.currency === 'USD')
+    const selectedOption = body.useDefaultCoupon
+      ? AWARD_COUPON_QUOTE
+      : DEMO_AWARD_PRICE_OPTIONS.find((option) => option.currency === 'USD')
     if (!selectedOption) return json({ message: 'Award checkout is unavailable. Please try again.' }, 503)
 
     const attemptId = nextId(store, 'demo-bachs-attempt')

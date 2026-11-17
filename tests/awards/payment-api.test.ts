@@ -49,6 +49,17 @@ describe('Bachs member routes', () => {
     expect(response.status).toBe(422)
     expect(mocks.checkout).toHaveBeenCalledWith({id:'member-1',email:'member@example.com'}, 'USD', billing.email, 'NG', 'award-secret')
   })
+  it('passes the automatic coupon selection and never falls back to a standard checkout', async () => {
+    mocks.checkout.mockRejectedValue(new AwardPaymentError(422, 'This coupon is unavailable for your award.'))
+    expect((await POST(request({ ...billing, useDefaultCoupon: true }))).status).toBe(422)
+    expect(mocks.checkout).toHaveBeenCalledExactlyOnceWith(
+      { id: 'member-1', email: 'member@example.com' }, 'USD', billing.email, 'NG', { useDefaultCoupon: true },
+    )
+  })
+  it('rejects combining the automatic coupon with another code', async () => {
+    expect((await POST(request({ ...billing, useDefaultCoupon: true, couponCode: 'other-code' }))).status).toBe(400)
+    expect(mocks.checkout).not.toHaveBeenCalled()
+  })
   it('does not expose provider errors or secrets', async () => {
     mocks.checkout.mockRejectedValue(new Error('Authorization sk_live_secret invalid'))
     const response = await POST(request(billing))
@@ -82,6 +93,14 @@ describe('Bachs member routes', () => {
 })
 
 describe('award coupon preview', () => {
+  it('returns the default quote without exposing its code and returns null when ineligible', async () => {
+    mocks.coupon.mockResolvedValueOnce({ data: true, error: null }).mockResolvedValueOnce({ data: false, error: null })
+    mocks.view.mockResolvedValue({ status: 'unpaid', needsPayment: true, currentAttempt: null })
+    const response = await previewCoupon(request({ useDefaultCoupon: true }))
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ currency: 'NGN', baseAmountMinor: 2_500_000, discountAmountMinor: 500_000, amountMinor: 2_000_000 })
+    expect(await (await previewCoupon(request({ useDefaultCoupon: true }))).json()).toBeNull()
+  })
   it('returns a private quote only for the signed-in account with a valid grant', async () => {
     mocks.coupon.mockResolvedValueOnce({ data: false, error: null }).mockResolvedValueOnce({ data: true, error: null })
     mocks.view.mockResolvedValue({ status: 'unpaid', needsPayment: true, currentAttempt: null })

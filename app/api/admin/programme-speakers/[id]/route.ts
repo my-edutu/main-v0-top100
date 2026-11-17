@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 import { requireAdmin } from '@/lib/api/require-admin'
-import { sanitizeSpeaker } from '@/app/api/admin/programme-speakers/route'
+import { sanitizeSpeaker } from '@/lib/programme-speaker-input'
 import { createAdminClient } from '@/lib/supabase/server'
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {

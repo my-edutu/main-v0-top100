@@ -1,0 +1,11 @@
+[Unit]
+Description=Check permanent award outreach delivery failures
+
+[Timer]
+OnCalendar=*-*-* *:*:30
+AccuracySec=1s
+Persistent=true
+Unit=top100-award-bounce-monitor.service
+
+[Install]
+WantedBy=timers.target

@@ -4,20 +4,9 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 
-import { AvatarSVG } from "@/lib/avatars"
-import { resolveRemoteImageSource } from "@/lib/media/remote-image-source"
 import type { Awardee } from "@/lib/awardees"
 
-function SpotlightPortrait({ name, src }: { name: string; src?: string | null }) {
-  const [failedSource, setFailedSource] = useState<string | null>(null)
-  const imageSrc = src ? resolveRemoteImageSource(src) : null
-  if (!imageSrc || failedSource === imageSrc) return <AvatarSVG name={name} size={80} />
-  return (
-    // Member image hosts vary; load directly and fall back when inaccessible.
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={imageSrc} alt={`Portrait of ${name}`} width={80} height={80} loading="lazy" decoding="async" className="h-full w-full object-cover" onError={() => setFailedSource(imageSrc ?? null)} />
-  )
-}
+type SpotlightAwardee = Pick<Awardee, "slug" | "name" | "country" | "bio"> & { avatar_url: string }
 
 const SHUFFLE_INTERVAL_MS = 18_000
 
@@ -42,8 +31,10 @@ export function shuffleSpotlightAwardees<T>(
   return shuffled
 }
 
-export default function ImpactAwardeeSpotlight({ awardees }: { awardees: Awardee[] }) {
+export default function ImpactAwardeeSpotlight({ awardees }: { awardees: SpotlightAwardee[] }) {
   const [orderedAwardees, setOrderedAwardees] = useState(awardees)
+  const [failedPortraits, setFailedPortraits] = useState<string[]>([])
+  const visibleAwardees = orderedAwardees.filter(({ avatar_url }) => !failedPortraits.includes(avatar_url))
 
   useEffect(() => {
     setOrderedAwardees(awardees)
@@ -77,7 +68,7 @@ export default function ImpactAwardeeSpotlight({ awardees }: { awardees: Awardee
     }
   }, [awardees.length])
 
-  if (orderedAwardees.length === 0) {
+  if (visibleAwardees.length === 0) {
     return (
       <div className="mt-10 rounded-[1.75rem] border border-dashed border-orange-200 bg-[#fff] p-8 text-center sm:p-10">
         <h3 className="text-xl font-semibold">Awardee spotlights are currently unavailable.</h3>
@@ -94,41 +85,40 @@ export default function ImpactAwardeeSpotlight({ awardees }: { awardees: Awardee
     )
   }
 
-    return (
-      <div className="mt-10 grid auto-cols-[82%] grid-flow-col grid-rows-2 gap-4 overflow-x-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:auto-cols-[48%] lg:mt-14 lg:auto-cols-[31%] lg:gap-6">
-      {orderedAwardees.map((awardee, index) => (
+  return (
+    <div role="region" aria-label="Awardee profiles" className="mt-6 flex snap-x snap-proximity gap-3 overflow-x-auto pb-3 sm:mt-10 sm:gap-4 lg:mt-14 lg:grid lg:grid-cols-3 lg:gap-6 lg:overflow-visible">
+      {visibleAwardees.map((awardee) => (
         <Link
           key={awardee.slug}
           href={`/awardees/${awardee.slug}`}
-          className="group min-w-0 snap-start rounded-[1.75rem] border border-orange-100 bg-[#fff] p-5 shadow-[0_12px_45px_rgba(15,23,42,0.06)] transition hover:-translate-y-1 hover:border-orange-300 hover:shadow-[0_20px_55px_rgba(15,23,42,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-4 motion-reduce:transform-none motion-reduce:transition-none"
+          className="group w-[86%] min-w-0 shrink-0 snap-start overflow-hidden rounded-2xl border border-orange-100 bg-[#fff] shadow-[0_12px_45px_rgba(15,23,42,0.06)] transition hover:border-orange-300 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-orange-700 motion-reduce:transition-none sm:w-[46%] sm:rounded-[1.75rem] lg:w-auto motion-safe:lg:hover:-translate-y-1"
         >
-          <article className="flex h-full flex-col">
-            <div className="flex items-start justify-between gap-4">
-              <div className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-orange-100 text-slate-950 ring-4 ring-orange-50">
-                <SpotlightPortrait name={awardee.name} src={awardee.avatar_url} />
-              </div>
-              <span className="font-mono text-xs text-slate-400">
-                {String(index + 1).padStart(2, "0")}
+          <article className="grid h-full grid-cols-[2fr_3fr]">
+            <div className="relative min-h-40 overflow-hidden bg-orange-50">
+              {/* Keep the original public portrait URL and remove the card if it becomes unavailable. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={awardee.avatar_url} alt={`Portrait of ${awardee.name}`} width={160} height={200} loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover object-[center_30%]" onError={() => setFailedPortraits((sources) => [...sources, awardee.avatar_url])} />
+            </div>
+            <div className="flex min-w-0 flex-col p-3 sm:p-4">
+              <h3 className="break-words text-sm font-semibold leading-tight transition group-hover:text-orange-700 sm:text-lg">
+                {awardee.name}
+              </h3>
+              {awardee.country ? (
+                <p className="mt-1 break-words text-[10px] font-bold uppercase tracking-wide text-orange-700 sm:text-xs sm:tracking-[0.18em]">
+                  {awardee.country}
+                </p>
+              ) : null}
+              <p className="mt-2 line-clamp-3 text-xs leading-5 text-slate-600 sm:text-sm">
+                {awardee.bio ?? "Profile details coming soon."}
+              </p>
+              <span className="mt-auto inline-flex items-center gap-1.5 pt-3 text-xs font-semibold text-slate-950 sm:text-sm">
+                Meet {awardee.name.split(" ")[0]}
+                <ArrowRight
+                  aria-hidden="true"
+                  className="size-3.5 shrink-0 transition group-hover:translate-x-1 motion-reduce:transform-none motion-reduce:transition-none sm:size-4"
+                />
               </span>
             </div>
-            <h3 className="mt-5 text-xl font-semibold leading-7 transition group-hover:text-orange-700">
-              {awardee.name}
-            </h3>
-            {awardee.country ? (
-              <p className="mt-1 text-xs font-bold uppercase tracking-[0.18em] text-orange-700">
-                {awardee.country}
-              </p>
-            ) : null}
-            <p className="mt-4 line-clamp-4 text-sm leading-6 text-slate-600">
-              {awardee.bio ?? "Profile details coming soon."}
-            </p>
-            <span className="mt-auto inline-flex items-center gap-2 pt-6 text-sm font-semibold text-slate-950">
-              Meet {awardee.name.split(" ")[0]}
-              <ArrowRight
-                aria-hidden="true"
-                className="h-4 w-4 transition group-hover:translate-x-1 motion-reduce:transform-none motion-reduce:transition-none"
-              />
-            </span>
           </article>
         </Link>
       ))}

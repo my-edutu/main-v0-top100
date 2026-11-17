@@ -59,6 +59,22 @@ export const PAGE_OG: Record<string, OgCard> = {
     subtitle: "Where the Top100 network meets.",
     hero: "/IMG_0672.jpg",
   },
+  "/for-organisations": {
+    eyebrow: "Talent Discovery",
+    title: "Find and Hire African Talent",
+    subtitle: "Meet Top100 award winners, share a job or partner with us.",
+    hero: "/african-students-celebrating-achievement-at-gradua.jpg",
+  },
+  "/for-organisations/request": {
+    eyebrow: "Talent Discovery",
+    title: "Share an Opportunity with Top100",
+    subtitle: "Tell us about your role, programme or collaboration.",
+  },
+  "/opportunities": {
+    eyebrow: "Talent Discovery",
+    title: "Opportunities from the Top100 Network",
+    subtitle: "Explore public roles, programmes and funding opportunities.",
+  },
   "/get-started": {
     eyebrow: "Apply",
     title: "Apply for Top100 Africa Future Leaders 2026",
@@ -71,11 +87,23 @@ export const PAGE_OG: Record<string, OgCard> = {
     subtitle: "The speakers who have inspired and supported the Top100 community.",
     hero: "/speakers/Ruby Igwe.jpeg",
   },
+  "/impact-africa/mentors": {
+    eyebrow: "Impact Africa",
+    title: "Become an Impact Africa Mentor",
+    subtitle: "Share your experience with young African leaders.",
+    hero: "/blog/impact-beyond-recognition-impact-africa.png",
+  },
   "/impacts": {
     eyebrow: "Impact Beyond Recognition",
     title: "Celebrating the Work Beyond the Award",
     subtitle: "Leaders, stories, and moments creating lasting change across Africa.",
     hero: "/IMG_0679.jpg",
+  },
+  "/impacts/empowher": {
+    eyebrow: "EmpowHER case study",
+    title: "44 women chosen for EmpowHER",
+    subtitle: "How SWIS Africa and Top100 helped students build skills and share 10 projects in 2026.",
+    hero: "/images/empowher-showcase.jpg",
   },
   "/impactseries": {
     eyebrow: "Top100 Impact Series",

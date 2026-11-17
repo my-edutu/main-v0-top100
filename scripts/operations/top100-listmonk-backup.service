@@ -1,0 +1,7 @@
+[Unit]
+Description=Back up the private Listmonk database
+After=docker.service
+Requires=docker.service
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/top100-listmonk-backup

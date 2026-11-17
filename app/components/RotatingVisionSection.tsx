@@ -55,14 +55,14 @@ export default function RotatingVisionSection({ images }: { images: readonly str
         <div className="relative isolate flex flex-col items-center justify-center text-center text-[#fff]">
           <div aria-hidden="true" className="absolute -inset-x-8 -inset-y-10 -z-10 rounded-[3rem] bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0.42),transparent_72%)]" />
           <div className="mb-4 flex items-center gap-3 sm:gap-4">
-            <div className="text-5xl font-extrabold !text-white drop-shadow-2xl sm:text-7xl md:text-8xl lg:text-9xl" style={{ textShadow: "0 2px 4px rgba(0,0,0,0.5)" }}>
+            <div className="text-[clamp(3.25rem,17vw,5.25rem)] leading-none font-extrabold !text-white drop-shadow-2xl sm:text-8xl md:text-9xl lg:text-[9rem]" style={{ textShadow: "0 2px 4px rgba(0,0,0,0.5)" }}>
               {canAnimate ? <TypeEffect text="10,000" speed={130} /> : "10,000"}
             </div>
             <div className="flex flex-col items-start justify-center">
-              <div className="text-lg font-bold !text-white uppercase leading-tight drop-shadow-lg sm:text-xl md:text-2xl">
+              <div className="text-[clamp(1.125rem,5vw,1.5rem)] font-bold !text-white uppercase leading-tight drop-shadow-lg sm:text-2xl md:text-3xl">
                 {canAnimate ? <TypeEffect text="youth" speed={150} /> : "youth"}
               </div>
-              <div className="text-lg font-bold !text-white uppercase leading-tight drop-shadow-lg sm:text-xl md:text-2xl">
+              <div className="text-[clamp(1.125rem,5vw,1.5rem)] font-bold !text-white uppercase leading-tight drop-shadow-lg sm:text-2xl md:text-3xl">
                 {canAnimate ? <TypeEffect text="leaders" speed={200} /> : "leaders"}
               </div>
             </div>

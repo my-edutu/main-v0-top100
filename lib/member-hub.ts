@@ -6,6 +6,8 @@
 // All functions here are thin `fetch` wrappers around the /api/member/* routes,
 // which enforce auth + membership + BIO-limit rules on the server.
 
+import type { AwardCouponOffer } from '@/lib/awards/popup'
+
 import { fetchWithTimeout } from '@/lib/http/fetch-with-timeout'
 import { dashboardRead } from '@/lib/http/dashboard-read'
 
@@ -85,6 +87,7 @@ export type MemberNotification = {
   ctaLabel: string | null
   ctaUrl: string | null
   campaignId?: string | null
+  awardCouponOffer?: AwardCouponOffer
 }
 
 export type ConversationSummary = {

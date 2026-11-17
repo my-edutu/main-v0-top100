@@ -3,16 +3,15 @@ import { createElement } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 
 import { HeroCtas } from "@/app/components/HomePageHeroSection"
-import { IMPACT_HERO, IMPACT_STATS, TEAM_MEMBERS, VISION_IMAGES } from "@/lib/impact-content"
-import type { ImpactHero, ImpactStats, VisionImages } from "@/lib/impact-content"
+import { IMPACT_HERO, TEAM_MEMBERS, VISION_IMAGES } from "@/lib/impact-content"
+import type { ImpactHero, VisionImages } from "@/lib/impact-content"
 
 describe("impact content", () => {
   it("exports consumer-ready types for each impact constant", () => {
     const hero: ImpactHero = IMPACT_HERO
-    const stats: ImpactStats = IMPACT_STATS
     const visionImages: VisionImages = VISION_IMAGES
 
-    expect([hero, stats, visionImages]).toHaveLength(3)
+    expect([hero, visionImages]).toHaveLength(2)
   })
 
   it("uses the approved closed-application replacement", () => {
@@ -36,14 +35,6 @@ describe("impact content", () => {
     expect(markup).not.toContain("shadow-[")
     expect(markup).toContain('href="/partnership"')
     expect(markup).toContain("Partner with us")
-  })
-
-  it("publishes the approved movement metrics", () => {
-    expect(IMPACT_STATS.map(({ value, suffix }) => `${value.toLocaleString()}${suffix}`)).toEqual([
-      "31+",
-      "97,000",
-      "2,000+",
-    ])
   })
 
   it("contains the approved team and no Chinedu entry", () => {

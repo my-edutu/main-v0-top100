@@ -43,6 +43,7 @@ import {
   Truck,
 } from 'lucide-react'
 import PageHeader from '../components/PageHeader'
+import { AwardCouponGenerator } from './award-coupon-generator'
 import { AwardOutreachMetrics, AwardOutreachWorkspace, useAwardOutreach } from './award-outreach'
 
 // `lib/awards/money.ts` and `lib/awards/status.ts` are plain, dependency-free
@@ -691,6 +692,7 @@ export default function AdminAwardsPage() {
         </div>
       </section>
 
+      <AwardCouponGenerator />
       <AwardOutreachWorkspace controller={outreach} />
 
       {/* Filters */}

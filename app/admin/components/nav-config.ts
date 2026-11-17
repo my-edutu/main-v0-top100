@@ -25,9 +25,11 @@ import {
   Share2,
   Bot,
   BriefcaseBusiness,
+  Network,
   ClipboardList,
   Truck,
   MailOpen,
+  Send,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -63,6 +65,7 @@ export const navGroups: NavGroup[] = [
     label: 'People',
     items: [
       { label: 'Awardees', href: '/admin/awardees', icon: Star },
+      { label: 'Talent Network', href: '/admin/talent', icon: Network },
       { label: 'Team Operations', href: '/admin/team-operations', icon: BriefcaseBusiness },
       { label: 'Team Awardee Worklist', href: '/admin/team-operations/worklist', icon: ClipboardList },
       { label: 'Team Email Templates', href: '/admin/team-operations/templates', icon: MailOpen },
@@ -102,6 +105,7 @@ export const navGroups: NavGroup[] = [
     label: 'System',
     items: [
       { label: 'Messages', href: '/admin/messages', icon: Mail },
+      { label: 'Email campaigns', href: '/admin/email', icon: Send },
       { label: 'Notifications', href: '/admin/notifications', icon: Bell },
       { label: 'Insights', href: '/admin/analytics', icon: BarChart3 },
       { label: 'Settings', href: '/admin/settings', icon: Settings },

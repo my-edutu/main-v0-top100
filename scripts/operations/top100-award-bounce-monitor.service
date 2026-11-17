@@ -1,0 +1,9 @@
+[Unit]
+Description=Hold award outreach addresses after permanent Stalwart delivery failures
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /usr/local/lib/top100/award-outreach-bounce-monitor.py
+User=root

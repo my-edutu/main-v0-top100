@@ -22,6 +22,309 @@ export interface BlogPost {
 
 export const blogPosts: BlogPost[] = [
   {
+    id: "from-skills-to-paid-work",
+    slug: "from-skills-to-paid-work",
+    title: "From skills to paid work: how Top100 helps young people progress",
+    author: "Top100 Africa Future Leaders",
+    excerpt:
+      "How the Top100 community, mentors and Emerging Talent platform can help young people with fewer opportunities build skills, meet employers and stay in paid work.",
+    content: [
+      {
+        type: "paragraph",
+        text: "A young person can have the skills for a job and still struggle to get an interview. They may have few people to ask for advice, little access to paid work experience or no way to show what they can do. Top100’s programme is designed to help young people who face those barriers find paid work and grow once they’re in it.",
+      },
+      {
+        type: "heading",
+        text: "Build skills and show your work",
+      },
+      {
+        type: "paragraph",
+        text: "The Top100 community gives awardees a place to ask questions, share job leads and get feedback from peers. A graduate might use that feedback to improve a CV, practise an interview or turn a school or community project into a work sample. We’re bringing mentors on board to help awardees set career goals and work through decisions as they move into a new role.",
+      },
+      {
+        type: "heading",
+        text: "Meet employers with real opportunities",
+      },
+      {
+        type: "paragraph",
+        text: "We’re building the Emerging Talent platform so awardees can choose to share their skills, projects and career interests. Employers can use those profiles to see what a person can do and ask for an introduction. We want employers to share clear job details, including pay, what the work involves and how to apply. Paid internships and projects can give people a first step into the workforce.",
+      },
+      {
+        type: "heading",
+        text: "Measure what happens after an introduction",
+      },
+      {
+        type: "paragraph",
+        text: "We plan to follow each step with participants who agree to take part. That means tracking interviews, offers, paid starts and whether people are still in paid work at agreed follow-up points. A job lead or an introduction is recorded separately from a paid start. Over time, these checks can show where people get stuck and where they need more support.",
+      },
+      {
+        type: "paragraph",
+        text: "Progress can also mean gaining more responsibility or moving from short-term work into a steadier role. Our aim is to understand what helps young people keep earning and build a career they can sustain.",
+      },
+      {
+        type: "cta",
+        text: "Partner with Top100",
+        href: "/partnership",
+      },
+    ],
+    tags: ["Impact Africa", "Paid Work", "Emerging Talent", "Mentorship"],
+    coverImage: "/impact-paid-work.webp",
+    createdAt: "2026-11-10T21:44:00+01:00",
+    updatedAt: "2026-11-10T21:44:00+01:00",
+    readTime: 3,
+    isFeatured: false,
+    status: "published",
+  },
+  {
+    id: "turning-a-connection-into-a-collaboration",
+    title: "Turning a Connection into a Collaboration",
+    slug: "turning-a-connection-into-a-collaboration",
+    author: "Top100 Africa Future Leaders",
+    excerpt:
+      "A good introduction can become a useful shared project. Here is how to find common purpose, combine your skills and take a manageable first step together.",
+    content: [
+      {
+        type: "paragraph",
+        text: "A good introduction can leave you full of possibility. You meet someone whose interests overlap with yours, exchange details and promise to stay in touch. The next step is often less obvious. How do you move from a friendly conversation to doing something useful together?",
+      },
+      {
+        type: "paragraph",
+        text: "In <a href=\"/blog/impact-beyond-recognition-impact-africa\">Impact Beyond Recognition: Our Next Chapter Is Impact Africa</a>, we described our ambition to bring our community's knowledge and relationships into practical action. As Impact Africa takes shape, each of us can practise a part of that work: building collaborations with a clear purpose, realistic commitments and room to learn.",
+      },
+      {
+        type: "heading",
+        text: "Start with a real conversation",
+      },
+      {
+        type: "paragraph",
+        text: "Get to know the person behind the profile. Ask what they are working on, what they care about and what they would like to learn. Share the same about yourself. Be honest about your availability, whether you are studying, job hunting, working or balancing family responsibilities.",
+      },
+      {
+        type: "paragraph",
+        text: "Look for something specific to continue discussing. Perhaps you both care about helping graduates prepare for work, or you have noticed the same gap in a local community initiative. A follow-up message could be simple:",
+      },
+      {
+        type: "paragraph",
+        text: "<em>“Hi [Name], I enjoyed our conversation about supporting recent graduates. You mentioned that applicants often struggle to explain their experience. I would like to understand that better. Would you be open to a short call next week to explore whether we could help?”</em>",
+      },
+      {
+        type: "paragraph",
+        text: "Give the other person space to consider the invitation. A useful conversation can still be worthwhile even if a joint project is not possible right now.",
+      },
+      {
+        type: "heading",
+        text: "Find a shared purpose",
+      },
+      {
+        type: "paragraph",
+        text: "A shared interest gives you somewhere to start. A shared purpose makes the work clearer: who could benefit, what difficulty are they facing, and what would a useful improvement look like? Ask the people involved before deciding what to make.",
+      },
+      {
+        type: "paragraph",
+        text: "Imagine three members who want to support a local group of recent graduates. This is a hypothetical example. They speak with the group's organiser and listen to graduates describe their application challenges. They ask what resources already exist, which ones people use and where they still get stuck.",
+      },
+      {
+        type: "paragraph",
+        text: "Suppose that conversation points to one practical need: explaining experience gained through coursework, volunteering or informal work. The team could agree to develop a short guide with prompts and examples, then invite the group to try it. That gives everyone a specific purpose to work towards.",
+      },
+      {
+        type: "heading",
+        text: "Bring different skills together",
+      },
+      {
+        type: "paragraph",
+        text: "In this example, one member might enjoy research and writing, another might be good at making information easy to read, and a third might know how to organise conversations and gather feedback. Together, those contributions could turn an idea into something people can use.",
+      },
+      {
+        type: "paragraph",
+        text: "Ask each person what they can realistically contribute and what support they need. Agree who takes responsibility for each task and who will review it. Value local knowledge and the work of coordinating the group alongside technical skills. Make space for members to learn from one another.",
+      },
+      {
+        type: "heading",
+        text: "Agree one small first step",
+      },
+      {
+        type: "paragraph",
+        text: "Choose a first version you can finish with the time and resources available. For the graduate resource, that might be a two-page draft tested with a few willing readers. Write down a simple agreement so everyone leaves the conversation with the same understanding:",
+      },
+      {
+        type: "list",
+        items: [
+          "<strong>Roles:</strong> Who writes the draft, checks the examples, arranges feedback and keeps everyone updated?",
+          "<strong>Time:</strong> How much time can each person offer, and when will you review progress?",
+          "<strong>Deliverable:</strong> What exactly will you produce, in which format, and by what agreed date?",
+          "<strong>Feedback:</strong> Who will try it, what will you ask them, and who will record what needs to change?",
+        ],
+      },
+      {
+        type: "paragraph",
+        text: "Check practical details too. Can the intended readers open it on their phones? Would a printable version or another language be more useful? Agree any costs before anyone spends money, and choose a communication channel everyone can access.",
+      },
+      {
+        type: "heading",
+        text: "Follow through, then build",
+      },
+      {
+        type: "paragraph",
+        text: "Keep your commitments visible. Share a brief update when a task is complete, when you need help or when a deadline needs to change. If your circumstances shift, say so early enough for the team to adjust. Reliability grows through these ordinary conversations.",
+      },
+      {
+        type: "paragraph",
+        text: "When the first version is ready, let the people it is intended for use it. In our example, the team could ask readers to try one prompt and describe anything confusing or missing. Listen to their responses, make useful changes and acknowledge everyone's contribution before sharing the resource more widely.",
+      },
+      {
+        type: "paragraph",
+        text: "Then decide together what comes next. You might improve the resource, hand it over to the local group, support an existing effort or bring the project to a clear close. Let what you learn guide that decision.",
+      },
+      {
+        type: "paragraph",
+        text: "This is one way to carry <strong>Impact Beyond Recognition</strong> into everyday action as we look towards Impact Africa. Think of one person you have met whose interests connect with yours. Send a thoughtful message this week. Begin with a conversation, listen carefully and agree one useful step you can take together.",
+      },
+      {
+        type: "cta",
+        text: "Connect with the Top100 Africa Future Leaders community",
+        href: "/join",
+      },
+      {
+        type: "cta",
+        text: "Explore how your organisation can contribute to future collaboration",
+        href: "/partnership",
+      },
+      {
+        type: "paragraph",
+        text: "<small><em>Cover image: AI-generated illustration created for this editorial series.</em></small>",
+      },
+    ],
+    tags: ["Impact Africa", "Impact Beyond Recognition", "Collaboration", "Community", "Youth Leadership"],
+    coverImage: "/blog/turning-a-connection-into-a-collaboration.png",
+    createdAt: "2026-11-10T16:05:00Z",
+    updatedAt: "2026-11-10T16:05:00Z",
+    readTime: 5,
+    isFeatured: true,
+    status: "published",
+  },
+  {
+    id: "impact-beyond-recognition-impact-africa",
+    title: "Impact Beyond Recognition: Our Next Chapter Is Impact Africa",
+    slug: "impact-beyond-recognition-impact-africa",
+    author: "Top100 Africa Future Leaders",
+    excerpt:
+      "With our empowerment sessions complete, our next chapter is Impact Africa: bringing our community's skills and ideas into practical action across Africa.",
+    content: [
+      {
+        type: "paragraph",
+        text: "Our 2026 theme, <strong>Impact Beyond Recognition</strong>, asks us to think about what comes after achievement is celebrated. At Top100 Africa Future Leaders, we recognise outstanding young Africans and bring them together around a shared purpose: contributing to Africa's future.",
+      },
+      {
+        type: "paragraph",
+        text: "With our empowerment sessions now complete, we are looking ahead to <strong>Impact Africa</strong>. This is our next chapter: mobilising our community, connecting its talents and putting shared learning into practice. Our ambition is to use the strength of this community to create maximum impact across Africa.",
+      },
+      {
+        type: "heading",
+        text: "Recognising African excellence",
+      },
+      {
+        type: "paragraph",
+        text: "Excellence takes many forms. Graduates, innovators and changemakers bring different experiences, abilities and perspectives to the challenges around them. Recognition helps make that talent visible and introduces people to others who care about making a useful contribution.",
+      },
+      {
+        type: "paragraph",
+        text: "We want the value of recognition to continue through the relationships members build, the knowledge they share and the responsibilities they choose to take on. Celebrating an achievement can also be the beginning of a conversation about what someone hopes to do next, and who could work alongside them.",
+      },
+      {
+        type: "heading",
+        text: "Learning from experience",
+      },
+      {
+        type: "paragraph",
+        text: "Our empowerment sessions created space to learn, ask questions and think bigger. We are grateful to the speakers who gave their time and shared their experience, and to the participants who made time to engage with the sessions.",
+      },
+      {
+        type: "paragraph",
+        text: "The next task is to decide what to put into practice. Which idea stayed with us? What could we approach differently? What knowledge can we share with someone else? Reflecting on those questions will help members connect what they have learned with a practical contribution they are ready to make.",
+      },
+      {
+        type: "heading",
+        text: "Connecting people and ideas",
+      },
+      {
+        type: "paragraph",
+        text: "Our community brings together different skills and perspectives. Someone may understand a local challenge well but need help organising a response. Another member may bring research, technical knowledge, communication skills or experience of managing a project.",
+      },
+      {
+        type: "paragraph",
+        text: "Impact Africa will focus on putting those connections to useful work. A member with technical skills might help a community initiative organise its information. Someone in education could collaborate on a learning resource. A project manager might help turn a promising local idea into a workable plan. These are possibilities to explore together as we identify where our community can contribute.",
+      },
+      {
+        type: "heading",
+        text: "From learning to action: our approach to Impact Africa",
+      },
+      {
+        type: "paragraph",
+        text: "Creating maximum impact requires thoughtful choices about where we put our time, skills and resources. The approach we want to build starts with people and the needs they identify. We intend to:",
+      },
+      {
+        type: "list",
+        items: [
+          "<strong>Listen to communities.</strong> Ask what already exists, what is working and where support would be useful. People closest to an issue should help define the need and shape the response.",
+          "<strong>Connect complementary skills.</strong> Bring members together around a clear purpose, with an understanding of what each person can contribute.",
+          "<strong>Start with manageable local projects.</strong> Agree a specific goal, realistic responsibilities and the resources required. A useful first step could also mean supporting an existing community effort.",
+          "<strong>Learn while we work.</strong> Seek feedback, address difficulties and adjust the approach when the people involved tell us something needs to change.",
+          "<strong>Share what works.</strong> Help members learn from one another across communities and countries, while respecting differences in local circumstances.",
+        ],
+      },
+      {
+        type: "paragraph",
+        text: "These priorities describe the work ahead. As the next chapter takes shape, the needs we understand, the people who participate and the resources available will guide which projects we pursue. Beginning at a scale we can responsibly support gives us room to learn and build a stronger basis for wider action.",
+      },
+      {
+        type: "heading",
+        text: "Making progress visible",
+      },
+      {
+        type: "paragraph",
+        text: "As community action develops, we want to document both the work and what it achieves. That means recording the need a project addresses, the activities completed, the resources used and the feedback of the people involved. It also means asking what changed and what still needs attention.",
+      },
+      {
+        type: "paragraph",
+        text: "We intend to share honest accounts of progress, including setbacks and lessons. Learning from a project in one community can help another team make better decisions, with the necessary adjustments for its own context.",
+      },
+      {
+        type: "heading",
+        text: "Be part of the next chapter",
+      },
+      {
+        type: "paragraph",
+        text: "We invite our members, fellow changemakers and prospective partners to help shape Impact Africa. Bring your questions, your skills, your understanding of a community need and your willingness to work with others. Organisations can also contribute expertise, resources and practical support as opportunities for collaboration take shape.",
+      },
+      {
+        type: "paragraph",
+        text: "Our empowerment sessions have given us a point from which to move forward. Together, we can carry the purpose of Impact Beyond Recognition into practical community action. <strong>Our next chapter is Impact Africa.</strong>",
+      },
+      {
+        type: "cta",
+        text: "Connect with the Top100 Africa Future Leaders community",
+        href: "/join",
+      },
+      {
+        type: "cta",
+        text: "Explore how your organisation can work with us",
+        href: "/partnership",
+      },
+      {
+        type: "paragraph",
+        text: "<small><em>Cover image: AI-generated illustration created for this editorial series.</em></small>",
+      },
+    ],
+    tags: ["Impact Africa", "Impact Beyond Recognition", "Community", "Youth Leadership"],
+    coverImage: "/blog/impact-beyond-recognition-impact-africa.png",
+    createdAt: "2026-11-10T13:51:40Z",
+    updatedAt: "2026-11-10T13:51:40Z",
+    readTime: 5,
+    isFeatured: true,
+    status: "published",
+  },
+  {
     id: "from-first-class-graduate-to-global-leader",
     title: "From First-Class Graduate to Global Leader: Lessons from Top100 Awardees",
     slug: "from-first-class-graduate-to-global-leader",

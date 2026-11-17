@@ -12,7 +12,7 @@ import { SITE_URL } from '@/lib/site'
 
 export const runtime = 'nodejs'
 const caption = z.string().trim().min(1).max(5000)
-export const publishInput = z.object({
+const publishInput = z.object({
   awardeeId: z.string().uuid(), signature: z.string().regex(/^[a-f0-9]{64}$/),
   captions: z.object({ linkedin: caption, facebook: caption, instagram: caption, x: caption }).strict(),
 }).strict()

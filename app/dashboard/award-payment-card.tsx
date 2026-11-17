@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type CSSProperties, type FormEvent } from 'react'
 import { getCountries } from 'libphonenumber-js/min'
-import { ArrowRight, ChevronDown, Loader2 } from 'lucide-react'
+import { ArrowRight, Check, ChevronDown, Loader2, X } from 'lucide-react'
+import { toast } from 'sonner'
 import Image from '@/components/safe-image'
 
-import { previewAwardCoupon, startAwardPaymentCheckout, type AwardCouponQuote, type AwardPaymentView } from '@/lib/awards/payment'
+import { previewAwardCoupon, previewDefaultAwardCoupon, startAwardPaymentCheckout, type AwardCouponQuote, type AwardPaymentView } from '@/lib/awards/payment'
 import { formatAwardFee } from '@/lib/awards/payment-price'
 import { trackAwardFunnel } from '@/lib/awards/funnel'
 
@@ -21,6 +22,46 @@ const billingCountries = getCountries()
   .map((code) => ({ code, name: countryDisplayNames.of(code) ?? code }))
   .sort((left, right) => left.name.localeCompare(right.name))
 
+const couponToastId = 'award-coupon-applied'
+const couponPercent = new Intl.NumberFormat('en-NG', { style: 'percent', maximumFractionDigits: 1 })
+const confettiColors = ['#FFB77E', '#F97316', '#FFE58A', '#86EFAC']
+const couponConfetti = Array.from({ length: 16 }, (_, index) => ({
+  '--splash-x': `${((index * 73 + 19) % 300) - 150}px`,
+  '--splash-y': `${((index * 29 + 11) % 80) - 40}px`,
+  '--splash-delay': `${(index % 4) * 40}ms`,
+  '--splash-color': confettiColors[index % confettiColors.length],
+} as CSSProperties))
+
+function celebrateCoupon(quote: AwardCouponQuote) {
+  const discount = couponPercent.format(quote.discountAmountMinor / quote.baseAmountMinor)
+  const savings = formatAwardFee(quote.discountAmountMinor, quote.currency)
+
+  toast.custom((id) => (
+    <div className="relative flex w-full items-center gap-3 overflow-hidden rounded-2xl border border-[#885635] bg-[#211C24] p-3 pl-4 text-white shadow-xl">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+        {couponConfetti.map((style, index) => (
+          <span key={index} className={`top100-moment-splash-confetti ${index % 4 === 0 ? 'is-circle' : ''}`} style={style} />
+        ))}
+      </div>
+      <span className="relative grid size-10 shrink-0 place-items-center rounded-full bg-[#F97316] text-[#171412]">
+        <Check aria-hidden="true" className="size-5" />
+      </span>
+      <div className="relative min-w-0 flex-1">
+        <p className="font-semibold">{discount} coupon applied</p>
+        <p className="text-sm text-[#D0C9D0]">You saved {savings} on your award.</p>
+      </div>
+      <button
+        type="button"
+        aria-label="Dismiss coupon confirmation"
+        onClick={() => toast.dismiss(id)}
+        className="relative grid size-11 shrink-0 place-items-center rounded-lg text-[#D0C9D0] hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-[#F97316]"
+      >
+        <X aria-hidden="true" className="size-4" />
+      </button>
+    </div>
+  ), { id: couponToastId, position: 'top-center', duration: 5000 })
+}
+
 export function AwardPaymentCard({
   view,
   cancelled = false,
@@ -34,19 +75,50 @@ export function AwardPaymentCard({
 
   const [showCoupon, setShowCoupon] = useState(false)
   const [couponCode, setCouponCode] = useState('')
-  const [couponQuote, setCouponQuote] = useState<AwardCouponQuote | null>(null)
+  const [manualQuote, setManualQuote] = useState<AwardCouponQuote | null>(null)
+  const [automaticCoupon, setAutomaticCoupon] = useState<{ quote: AwardCouponQuote | null; failed?: true } | null>(null)
+  const [couponCheck, setCouponCheck] = useState(0)
   const [checkingCoupon, setCheckingCoupon] = useState(false)
   const [couponError, setCouponError] = useState('')
 
   const checkoutUnavailable = view.checkoutEnabled === false
   const validEmail = email.trim().length <= 320 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+  const couponQuote = manualQuote ?? automaticCoupon?.quote
+  const automaticCouponPending = !manualQuote && !automaticCoupon
+  const automaticCouponFailed = !manualQuote && automaticCoupon?.failed
+
+  useEffect(() => {
+    if (checkoutUnavailable) return
+    const controller = new AbortController()
+    const timeout = window.setTimeout(() => {
+      controller.abort()
+      setAutomaticCoupon({ quote: null, failed: true })
+    }, 12_000)
+    void previewDefaultAwardCoupon(controller.signal).then((quote) => {
+      if (!controller.signal.aborted) setAutomaticCoupon({ quote })
+    }).catch(() => {
+      if (!controller.signal.aborted) setAutomaticCoupon({ quote: null, failed: true })
+    }).finally(() => window.clearTimeout(timeout))
+    return () => {
+      window.clearTimeout(timeout)
+      controller.abort()
+    }
+  }, [checkoutUnavailable, couponCheck])
+
+  function recheckCoupon() {
+    setCheckoutError('')
+    setAutomaticCoupon(null)
+    setCouponCheck((check) => check + 1)
+  }
 
   async function applyCoupon() {
     if (checkingCoupon || !couponCode.trim()) return
     setCheckingCoupon(true)
     setCouponError('')
     try {
-      setCouponQuote(await previewAwardCoupon(couponCode))
+      const quote = await previewAwardCoupon(couponCode)
+      setManualQuote(quote)
+      celebrateCoupon(quote)
     } catch (error) {
       setCouponError(error instanceof Error ? error.message : 'Could not check the coupon.')
     } finally {
@@ -55,22 +127,26 @@ export function AwardPaymentCard({
   }
 
   function clearCoupon() {
+    toast.dismiss(couponToastId)
     setCouponCode('')
-    setCouponQuote(null)
+    setManualQuote(null)
     setCouponError('')
     setShowCoupon(false)
   }
 
-  const couponNeedsApplying = showCoupon && Boolean(couponCode.trim()) && !couponQuote
+  const couponNeedsApplying = showCoupon && Boolean(couponCode.trim()) && !manualQuote
+  const checkoutBlocked = startingCheckout || checkingCoupon || couponNeedsApplying ||
+    automaticCouponPending || automaticCouponFailed || checkoutUnavailable || !countryCode || !validEmail
 
   async function startCheckout(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (startingCheckout || checkingCoupon || couponNeedsApplying || checkoutUnavailable || !countryCode || !validEmail) return
+    if (checkoutBlocked) return
     setStartingCheckout(true)
     setCheckoutError('')
     try {
       const checkout = await startAwardPaymentCheckout({
-        countryCode, email: email.trim(), ...(couponQuote ? { couponCode } : {}),
+        countryCode, email: email.trim(),
+        ...(manualQuote ? { couponCode } : couponQuote ? { useDefaultCoupon: true } : {}),
       })
       if (memberId) trackAwardFunnel(memberId, 'checkout_started')
       window.location.assign(checkout.checkoutUrl)
@@ -145,9 +221,19 @@ export function AwardPaymentCard({
         </fieldset>
         {!checkoutUnavailable && (
           <div className="space-y-3 border-t border-[#39323B] pt-4">
+            {automaticCouponPending && <p role="status" className="text-sm text-[#D0C9D0]">Checking your automatic discount…</p>}
+            {automaticCouponFailed && (
+              <div className="space-y-1">
+                <p role="alert" className="text-sm text-rose-300">We couldn’t check your automatic discount.</p>
+                <div className="flex flex-wrap gap-x-4">
+                  <button type="button" onClick={recheckCoupon} className="min-h-11 text-sm text-[#FFB77E] underline underline-offset-4">Try again</button>
+                  <button type="button" onClick={() => setAutomaticCoupon({ quote: null })} className="min-h-11 text-sm text-[#D0C9D0] underline underline-offset-4">Continue without the discount</button>
+                </div>
+              </div>
+            )}
             {!showCoupon ? (
               <button type="button" disabled={startingCheckout} onClick={() => setShowCoupon(true)} className="min-h-11 text-sm font-medium text-[#FFB77E] underline underline-offset-4">
-                Have a coupon?
+                {couponQuote ? 'Use a different coupon' : 'Have a coupon?'}
               </button>
             ) : (
               <>
@@ -161,14 +247,15 @@ export function AwardPaymentCard({
                       autoCapitalize="characters"
                       spellCheck={false}
                       onChange={(event) => {
+                        if (manualQuote) toast.dismiss(couponToastId)
                         setCouponCode(event.target.value)
-                        setCouponQuote(null)
+                        setManualQuote(null)
                         setCouponError('')
                       }}
                       className="mt-2 min-h-12 w-full rounded-xl border border-[#4B434C] bg-[#211C24] px-3"
                     />
                   </label>
-                  {!couponQuote && (
+                  {!manualQuote && (
                     <button type="button" onClick={() => void applyCoupon()} disabled={!couponCode.trim()} className="min-h-12 rounded-xl border border-[#4B434C] px-4 text-sm font-semibold disabled:opacity-60">
                       {checkingCoupon ? 'Checking…' : 'Apply'}
                     </button>
@@ -178,20 +265,23 @@ export function AwardPaymentCard({
                   </button>
                 </fieldset>
                 {couponError && <p role="alert" className="text-sm text-rose-300">{couponError}</p>}
-                {couponQuote && (
-                  <dl aria-live="polite" className="space-y-1 rounded-xl border border-[#39323B] px-4 py-3 text-sm">
-                    <div className="flex justify-between gap-3">
-                      <dt>Award fee</dt><dd>{formatAwardFee(couponQuote.baseAmountMinor, 'NGN')}</dd>
-                    </div>
-                    <div className="flex justify-between gap-3 text-[#FFB77E]">
-                      <dt>Coupon discount</dt><dd>−{formatAwardFee(couponQuote.discountAmountMinor, 'NGN')}</dd>
-                    </div>
-                    <div className="flex justify-between gap-3 font-semibold">
-                      <dt>Discounted award fee</dt><dd>{formatAwardFee(couponQuote.amountMinor, 'NGN')}</dd>
-                    </div>
-                  </dl>
-                )}
               </>
+            )}
+            {couponQuote && (
+              <dl aria-live="polite" className="space-y-1 rounded-xl border border-[#39323B] px-4 py-3 text-sm">
+                <div className="flex justify-between gap-3">
+                  <dt>Award fee</dt><dd>{formatAwardFee(couponQuote.baseAmountMinor, couponQuote.currency)}</dd>
+                </div>
+                <div className="flex justify-between gap-3 text-[#FFB77E]">
+                  <dt>{manualQuote ? 'Coupon discount' : 'Automatic discount applied'}</dt><dd>−{formatAwardFee(couponQuote.discountAmountMinor, couponQuote.currency)}</dd>
+                </div>
+                <div className="flex justify-between gap-3 font-semibold">
+                  <dt>Discounted award fee</dt><dd>{formatAwardFee(couponQuote.amountMinor, couponQuote.currency)}</dd>
+                </div>
+              </dl>
+            )}
+            {couponQuote && !manualQuote && (
+              <button type="button" disabled={startingCheckout} onClick={() => setAutomaticCoupon({ quote: null })} className="min-h-11 text-sm text-[#D0C9D0] underline underline-offset-4">Remove automatic discount</button>
             )}
           </div>
         )}
@@ -203,14 +293,17 @@ export function AwardPaymentCard({
           </p>
           <button
             type="submit"
-            disabled={startingCheckout || checkingCoupon || couponNeedsApplying || checkoutUnavailable || !countryCode || !validEmail}
+            disabled={checkoutBlocked}
             className="inline-flex min-h-12 shrink-0 items-center justify-center rounded-xl bg-[linear-gradient(110deg,#f97316,#fb923c,#f59e0b)] px-5 font-semibold text-[#171412] shadow-sm transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F36C21] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
           >
-            {checkoutUnavailable ? 'Payments are not open yet' : startingCheckout ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />Opening secure checkout</> : <>Proceed <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" /></>}
+            {checkoutUnavailable ? 'Payments are not open yet' : startingCheckout ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />Opening secure checkout</> : <>{couponQuote ? 'Proceed' : 'Proceed without a coupon'} <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" /></>}
           </button>
         </div>
         {checkoutUnavailable ? <p role="status" className="text-sm leading-6 text-[#D0C9D0]">Physical award payments are not open yet. Please return once payment is available. Your recognition remains confirmed.</p> : null}
         {checkoutError ? <p role="alert" className="text-sm leading-6 text-rose-300">{checkoutError}</p> : null}
+        {checkoutError && couponQuote && !manualQuote && (
+          <button type="button" disabled={startingCheckout} onClick={recheckCoupon} className="min-h-11 text-sm text-[#FFB77E] underline underline-offset-4">Check discount again</button>
+        )}
       </form>
     </section>
   )

@@ -9,14 +9,6 @@ export const IMPACT_HERO = {
 
 export type ImpactHero = typeof IMPACT_HERO
 
-export const IMPACT_STATS = [
-  { key: "countries", label: "Countries", description: "Across Africa", value: 31, suffix: "+" },
-  { key: "lives", label: "Lives impacted", description: "Across Africa", value: 97000, suffix: "" },
-  { key: "awardees", label: "Awardees", description: "Across Africa", value: 2000, suffix: "+" },
-] as const
-
-export type ImpactStats = typeof IMPACT_STATS
-
 export type TeamMember = { name: string; role: string; image?: string; linkedIn?: string }
 
 export const TEAM_MEMBERS: readonly TeamMember[] = [

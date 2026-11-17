@@ -1,9 +1,9 @@
 "use client"
 
 import Link from "next/link"
-import Image from "@/components/safe-image"
 import { usePathname } from "next/navigation"
 import { Twitter, Instagram, Linkedin } from "lucide-react"
+import AfricaFutureLeadersLogo from "./AfricaFutureLeadersLogo"
 
 export default function Footer() {
   const pathname = usePathname()
@@ -14,14 +14,8 @@ export default function Footer() {
       <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row justify-between items-start gap-6 md:gap-12 mb-6 md:mb-12">
           <div className="flex flex-col items-start text-left">
-            <Link href="/" className="mb-3 md:mb-6">
-              <Image
-                src="/Top100 Africa Future leaders Logo .png"
-                alt="Top100 Africa Future Leaders Logo"
-                width={180}
-                height={60}
-                className="h-12 w-auto object-contain"
-              />
+            <Link href="/" aria-label="Africa Future Leaders home" className="mb-3 md:mb-6">
+              <AfricaFutureLeadersLogo />
             </Link>
             <p className="text-sm md:text-base max-w-sm text-gray-500 leading-relaxed">
               Spotlighting undergraduates and young professionals building Africa's future.

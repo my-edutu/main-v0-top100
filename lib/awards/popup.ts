@@ -12,6 +12,14 @@ export const AWARD_POPUP_VARIANTS = [
 
 export type AwardPopupVariant = typeof AWARD_POPUP_VARIANTS[number]
 export type AwardPopupVisit = { day: string; login: number; variant: number }
+export type AwardCouponOffer = { code: string; expiresAt: string }
+
+export function readAwardCouponOffer(value: unknown, now = 0): AwardCouponOffer | null {
+  if (!value || typeof value !== 'object') return null
+  const { code, expiresAt } = value as Partial<AwardCouponOffer>
+  if (typeof code !== 'string' || !/^[a-z0-9-]{1,64}$/i.test(code) || typeof expiresAt !== 'string') return null
+  return Date.parse(expiresAt) > now ? { code, expiresAt } : null
+}
 
 export function awardPopupStorageKey(memberId: string) {
   return `${AWARD_POPUP_CAMPAIGN}:visits:${memberId}`

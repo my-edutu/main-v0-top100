@@ -7,6 +7,7 @@ import type {
   MemberFeatureSubmission,
   MemberStatus,
 } from '@/lib/member-hub'
+import { readAwardCouponOffer } from '@/lib/awards/popup'
 
 const PREF_DEFAULTS = {
   recruiterVisible: true,
@@ -122,6 +123,7 @@ export function mapProfileToMemberWithLegacy(
 /** Map a `user_notifications` row to a MemberNotification. */
 export function mapNotification(row: any): MemberNotification {
   const metadata = (row?.metadata ?? {}) as Record<string, unknown>
+  const offer = row?.category === 'admin' ? readAwardCouponOffer(metadata.award_coupon_offer) : null
   return {
     id: row.id,
     title: row?.title ?? '',
@@ -134,6 +136,7 @@ export function mapNotification(row: any): MemberNotification {
     ctaLabel: row?.cta_label ?? null,
     ctaUrl: row?.cta_url ?? null,
     campaignId: row?.campaign_id ?? null,
+    ...(offer ? { awardCouponOffer: offer } : {}),
   }
 }
 

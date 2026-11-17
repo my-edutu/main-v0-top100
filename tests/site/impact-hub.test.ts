@@ -71,11 +71,11 @@ const fixtures = vi.hoisted(() => {
         bio: null,
         tagline: "Amina transforms communities across Africa.",
       },
-      awardee("Kwame", true),
-      awardee("Thandi", false),
+      { ...awardee("Kwame", true), avatar_url: "https://supabase.top100afl.com/storage/v1/object/public/awardees/kwame.webp" },
+      { ...awardee("Thandi", false), avatar_url: "https://supabase.top100afl.com/storage/v1/object/public/awardees/thandi.webp" },
       awardee("Zuri", true),
       awardee("Ngozi", false),
-      awardee("Musa", false),
+      { ...awardee("Musa", false), avatar_url: "https://supabase.top100afl.com/storage/v1/object/public/awardees/musa.webp" },
       awardee("Lebo", false),
     ],
     posts: [post(1), post(2), post(3), post(4)],
@@ -108,15 +108,12 @@ describe("Impact hub", () => {
     expect(metadata.alternates).toEqual({ canonical: `${SITE_URL}/impacts` })
   })
 
-  it("selects featured leaders first and bounds every editorial feed", async () => {
+  it("selects only leaders with public portraits and bounds every editorial feed", async () => {
     const data = await getImpactPageData()
 
     expect(data.featuredAwardees.map(({ slug }) => slug)).toEqual([
       "kwame",
-      "zuri",
-      "amina",
       "thandi",
-      "ngozi",
       "musa",
     ])
     expect(data.stories.map(({ slug }) => slug)).toEqual([
@@ -189,24 +186,17 @@ describe("Impact hub", () => {
     expect(markup).toContain("Celebrating the Work Beyond the Award")
     expect(markup).toContain('href="#leaders"')
     expect(markup).toContain('id="leaders"')
-    expect(markup).toContain('href="/partnership"')
-    expect(markup).toContain('href="/interviews"')
-    expect(markup).toContain('href="/awardees"')
-    expect(markup).toContain("31+")
-    expect(markup).toContain("97,000")
-    expect(markup).toContain("2,000+")
-    expect(markup).toContain("Hear the work behind the recognition.")
-    expect(markup).toContain(">KW</text>")
-    expect(markup).toContain(
-      'alt="Three people pose with a framed Top100 Africa Future Leaders 2025 award"',
-    )
+    expect(markup).toContain('href="/blog/from-skills-to-paid-work"')
+    expect(markup).toContain("Find a job. Grow at work.")
+    expect(markup).not.toContain("Hear the work behind the recognition.")
+    expect(markup).toContain('alt="Portrait of Kwame"')
+    expect(markup).toContain('alt="Portrait of Musa"')
+    expect(markup).toContain('poster="/impact-hero-poster.webp"')
+    expect(markup).toMatch(/<video[^>]*muted=""[^>]*playsInline=""/i)
+    expect(markup).not.toContain('src="/impact-hero.mp4"')
 
-    const aminaCard = markup.match(/href="\/awardees\/amina"[\s\S]*?<\/article>/)?.[0]
-    expect(aminaCard).toBeDefined()
-    expect(aminaCard).toContain("Profile details coming soon.")
-    expect(aminaCard).not.toContain(">Africa<")
-    expect(aminaCard).not.toContain("Amina transforms communities across Africa.")
-    expect(aminaCard).not.toContain("Building a legacy of leadership and community impact.")
+    expect(markup).not.toContain('href="/awardees/amina"')
+    expect(markup).not.toContain('href="/awardees/zuri"')
 
     for (const { slug } of getFeaturedSpeakers()) {
       expect(markup).toContain(`href="/hall-of-fame/${slug}"`)
@@ -224,33 +214,26 @@ describe("Impact hub", () => {
     }
   })
 
-  it("presents event moments as a compact mobile grid without visible captions", async () => {
+  it("presents all event photos in one slideshow without pointers", async () => {
     const markup = renderToStaticMarkup(await ImpactPage())
     const momentsSection = markup.match(
       /aria-labelledby="event-moments-title"[\s\S]*?<\/section>/,
     )?.[0]
 
     expect(momentsSection).toBeDefined()
-    expect(momentsSection).toContain("grid-cols-2")
-    expect(momentsSection).not.toContain("<figcaption")
+    expect(momentsSection).toContain('aria-roledescription="carousel"')
+    expect(momentsSection).toContain('aria-label="Event photos"')
+    expect(momentsSection).not.toContain("Previous slide")
+    expect(momentsSection).not.toContain("Next slide")
     for (const { alt } of galleryImages.slice(0, 6)) {
       expect(momentsSection).toContain(`alt="${alt}"`)
     }
   })
 
-  it("uses decorative event photographs behind both closing calls to action", async () => {
+  it("omits the closing partnership and directory cards", async () => {
     const markup = renderToStaticMarkup(await ImpactPage())
-    const partnershipPanel = markup.match(
-      /aria-labelledby="build-with-us-title"[\s\S]*?<\/article>/,
-    )?.[0]
-    const directoryPanel = markup.match(
-      /aria-labelledby="impact-directory-title"[\s\S]*?<\/article>/,
-    )?.[0]
-
-    expect(partnershipPanel).toContain('alt=""')
-    expect(partnershipPanel).toContain("%2FIMG_0676.jpg")
-    expect(directoryPanel).toContain('alt=""')
-    expect(directoryPanel).toContain("%2FIMG_0674.jpg")
+    expect(markup).not.toContain("Help the work travel further.")
+    expect(markup).not.toContain("Meet the people moving Africa forward.")
   })
 
   it("shuffles spotlight cards without mutating or losing awardees", async () => {

@@ -81,7 +81,8 @@ export default function TermsPage() {
 
       <LegalSection number="04" title="Accounts">
         <p>
-          Awardee accounts are invite-only and created with an admin-issued access code. You agree
+          Awardee accounts require an email on the awardee record and a valid signup code sent to
+          that email or issued by the AFL team. You agree
           to keep your password and access code confidential, to provide accurate profile
           information, and to tell us promptly if you believe your account has been compromised. We
           may suspend or remove accounts that breach these terms, misuse member tools, or are

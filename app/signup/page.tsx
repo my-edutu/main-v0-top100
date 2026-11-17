@@ -1,8 +1,7 @@
 'use client'
 
-import { FormEvent, useEffect, useState } from 'react'
+import { FormEvent, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import Image from '@/components/safe-image'
 import { ArrowLeft, ArrowRight, Eye, EyeOff, Loader2, Search, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -22,8 +21,11 @@ type Awardee = {
   hasAccount?: boolean
 }
 
+const requestAdminCode = 'mailto:info@top100afl.com?subject=Awardee%20signup%20code%20request'
+
 export default function SignUpPage() {
-  const [step, setStep] = useState<1 | 2>(1)
+  const [stage, setStage] = useState<'record' | 'code' | 'setup'>('record')
+  const heading = useRef<HTMLHeadingElement>(null)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<Awardee[]>([])
   const [selected, setSelected] = useState<Awardee | null>(null)
@@ -52,6 +54,15 @@ export default function SignUpPage() {
   const searchText = query.trim()
   const waiting = searchText.length >= 2 && (searching || searchedQuery !== searchText)
   const visibleResults = searchedQuery === searchText ? results : []
+  const lookingUpRecord = stage === 'record' && !selected
+  const title = submitted ? 'Request submitted'
+    : stage === 'setup' ? 'Finish setting up'
+    : stage === 'code' ? codeSent ? 'Check your email' : 'Enter your authorization code'
+    : selected ? 'Confirm your email' : 'Find your awardee record'
+
+  useEffect(() => {
+    if (selected || submitted) heading.current?.focus()
+  }, [selected, stage, submitted])
 
   useEffect(() => {
     void supabase.auth.getUser().then(({ data }) => {
@@ -84,15 +95,25 @@ export default function SignUpPage() {
 
   function choose(awardee: Awardee) {
     setSelected(awardee)
-    setStep(2)
+    setEmail('')
+    setPassword('')
+    setShowPassword(false)
     setError('')
     setNotice('')
     setCodeSent(false)
     setInviteCode('')
   }
 
-  async function sendCode() {
-    if (!selected || actionDisabled) return
+  async function sendCode(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!selected || sendingCode || accountMismatch) return
+    const submitter = (event.nativeEvent as SubmitEvent).submitter
+    if (submitter instanceof HTMLButtonElement && submitter.value === 'invite') {
+      setCodeSent(false)
+      changeStage('code')
+      return
+    }
+    if (actionDisabled) return
     setSendingCode(true)
     setError('')
     setNotice('')
@@ -107,13 +128,21 @@ export default function SignUpPage() {
       const body = await response.json().catch(() => ({}))
       if (!response.ok || !body.sent) throw new Error(body.message || body.error || 'Could not email your signup code.')
       setCodeSent(true)
-      setNotice(`Code sent to ${email.trim()}. Check your inbox and spam folder. The code expires in one hour.`)
+      setStage('code')
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not email your signup code.')
     } finally {
       setCaptchaKey(value => value + 1)
       setSendingCode(false)
     }
+  }
+
+  function changeStage(next: typeof stage) {
+    setError('')
+    setNotice('')
+    setCaptcha('')
+    setCaptchaKey(value => value + 1)
+    setStage(next)
   }
 
   async function submitClaim(accessToken: string) {
@@ -158,7 +187,10 @@ export default function SignUpPage() {
         body: JSON.stringify({ awardeeId: selected.id, email: normalizedEmail, inviteCode, captchaToken: token, password: userData.user ? undefined : password }),
       })
       const body = await response.json().catch(() => ({}))
-      if (!response.ok) throw new Error(body.message || body.error || 'Could not verify this record.')
+      if (!response.ok) {
+        if (response.status === 403 && /signup code/.test(body.message ?? '')) setStage('code')
+        throw new Error(body.message || body.error || 'Could not verify this record.')
+      }
       if (sessionData.session?.access_token && userData.user?.email?.toLowerCase() === normalizedEmail) {
         setHasSession(true)
         await submitClaim(sessionData.session.access_token)
@@ -206,23 +238,15 @@ export default function SignUpPage() {
   }
 
   return (
-    <main className="min-h-[calc(100dvh-5rem)] bg-[#fcfaf7] px-4 py-10 text-[#211a15] sm:px-6">
-      <div className="mx-auto grid max-w-5xl gap-10 lg:grid-cols-[0.8fr_1fr] lg:gap-20">
-        <div className="pt-4">
-          <h1 className="mt-0 text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">Find your awardee profile.</h1>
-          <p className="mt-5 max-w-md text-base leading-7 text-stone-600">Find your name to create an account.</p>
-        </div>
+    <main className="min-h-[calc(100dvh-5rem)] bg-[#fcfaf7] px-4 py-8 text-[#211a15] sm:px-6 sm:py-14">
+      <section className="mx-auto max-w-lg rounded-2xl border border-stone-200 bg-white p-5 sm:p-8" aria-labelledby="signup-title">
+        {!submitted && <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-orange-800">Step {stage === 'record' ? 1 : 2} of 2</p>}
+        <h1 ref={heading} tabIndex={-1} id="signup-title" className="text-3xl font-semibold tracking-tight focus:outline-none">{title}</h1>
+        <div className="mt-6 space-y-5">
+          {error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-800">{error}</p>}
+          {notice && <p role="status" className="rounded-lg bg-green-50 p-3 text-sm text-green-800">{notice}</p>}
 
-        <section className="rounded-3xl border border-stone-200 bg-white p-5 shadow-sm sm:p-8" aria-label="Claim your winner profile">
-          <div className="mb-7 flex items-center justify-between gap-3 border-b border-stone-100 pb-5">
-            <div><p className="text-xs font-bold uppercase tracking-widest text-orange-700">Step {step} of 2</p><h2 className="mt-1 text-2xl font-semibold">{step === 1 ? 'Search your name' : 'Request your profile'}</h2></div>
-            <Image src="/illustrations/winner-record.svg" alt="" aria-hidden="true" width={48} height={48} className="h-12 w-12 shrink-0" />
-          </div>
-          {selected && step > 1 && <div className="mb-6 rounded-2xl bg-orange-50 p-4"><p className="font-semibold">{selected.name}</p><p className="text-sm text-stone-600">{[selected.country, selected.course].filter(Boolean).join(' · ')}</p></div>}
-          {error && <p role="alert" className="mb-5 rounded-xl bg-red-50 p-3 text-sm text-red-800">{error}</p>}
-          {notice && <p role="status" className="mb-5 rounded-xl bg-green-50 p-3 text-sm text-green-800">{notice}</p>}
-
-          {step === 1 && <div className="space-y-5">
+          {lookingUpRecord && <div className="space-y-5">
             <div><Label htmlFor="winner-search">Your name</Label><div className="relative mt-2"><Search className="absolute left-3 top-3 h-5 w-5 text-stone-400" /><Input id="winner-search" value={query} onChange={(event) => { setQuery(event.target.value); setError('') }} placeholder="Try your first name or surname" className="h-12 pl-10" aria-describedby="search-help" /></div><p id="search-help" className="mt-2 text-sm text-stone-600">Type at least 2 letters. Try one name at a time.</p></div>
             {waiting && <p role="status" className="flex items-center gap-2 text-sm text-stone-500"><Loader2 className="h-4 w-4 animate-spin" />Finding your name…</p>}
             {suggested && !waiting && visibleResults.length > 0 && <p className="text-sm text-stone-600">Could one of these be you? Check the name and country.</p>}
@@ -238,38 +262,95 @@ export default function SignUpPage() {
             </div>
           </div>}
 
-          {!submitted && accountMismatch && <div className="my-5 rounded-xl border border-amber-300 bg-amber-50 p-4"><p className="text-sm font-semibold text-amber-950">A different account is signed in</p><p className="mt-1 text-sm leading-6 text-amber-900">Sign out to continue this claim with the email on your winner record. Your selected profile and form details will stay here.</p><Button type="button" variant="outline" className="mt-3 border-amber-400 bg-white text-amber-950 hover:bg-amber-100" disabled={signingOut} onClick={() => void signOutToContinue()}>{signingOut ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogOut className="mr-2 h-4 w-4" />}{signingOut ? 'Signing out…' : 'Sign out and continue'}</Button></div>}
-          {!submitted && !accountMismatch && step === 1 && <div className="my-5 rounded-xl border border-stone-200 bg-stone-50 p-4"><p className="text-sm font-semibold">Already registered?</p><p className="mt-1 text-sm text-stone-600">Sign in to continue to your dashboard. If you’re waiting for approval, you can still sign in.</p><div className="mt-3 flex flex-wrap gap-4 text-sm font-semibold text-orange-800"><Link href="/login" className="underline">Sign in</Link><Link href="/auth/forgot-password?area=member" className="underline">Reset password</Link></div></div>}
-          {!submitted && !accountMismatch && step === 2 && <p className="my-5 rounded-xl border border-stone-200 bg-stone-50 p-4 text-sm text-stone-700">Already have an account? <Link href="/login" className="font-semibold text-orange-800 underline">Sign in</Link> to continue.</p>}
+          {lookingUpRecord && <p className="text-sm text-stone-600">
+            Already registered? <Link href="/login" className="font-semibold text-orange-800 underline">Sign in</Link>
+            {' · '}<Link href="/auth/forgot-password?area=member" className="font-semibold text-orange-800 underline">Reset password</Link>
+          </p>}
 
-          {step === 2 && !submitted && selected?.emailHint === null && <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-800"><p className="font-semibold">This winner record has no email on file yet.</p><p className="mt-1">The AFL team needs to add or confirm your email before you can claim this profile. <a className="font-semibold underline" href="mailto:info@top100afl.com?subject=Help%20claiming%20my%20winner%20profile">Contact the team</a> and include your awardee name.</p><Button type="button" variant="ghost" className="mt-2 px-0 text-red-900" onClick={() => setStep(1)}><ArrowLeft className="mr-2 h-4 w-4" />Back to search</Button></div>}
+          {!submitted && accountMismatch && <div className="rounded-lg border border-amber-300 bg-amber-50 p-4">
+            <p className="text-sm text-amber-950">You’re signed in with a different email. Sign out to continue with the email on your awardee record.</p>
+            <Button type="button" variant="outline" className="mt-3 min-h-11" disabled={signingOut} onClick={() => void signOutToContinue()}>
+              {signingOut ? <Loader2 className="animate-spin" /> : <LogOut />}
+              {signingOut ? 'Signing out…' : 'Sign out and continue'}
+            </Button>
+          </div>}
 
-          {step === 2 && !submitted && !accountMismatch && selected && selected.emailHint !== null && <form onSubmit={requestClaim} className="space-y-5">
-            <div><Label htmlFor="claim-email">Email on your winner record</Label><Input id="claim-email" className="mt-2 h-12" type="email" required autoComplete="email" value={email} disabled={busy || sendingCode} onChange={(event) => {
-              setEmail(event.target.value)
-              setCodeSent(false)
-              setInviteCode('')
-              setNotice('')
-            }} placeholder="you@example.com" />{selected.emailHint && <p className="mt-1 text-xs text-stone-500">On file: {selected.emailHint}</p>}</div>
+          {stage === 'record' && selected && <>
+            <p className="break-words text-sm text-stone-600">Awardee record for <strong className="font-semibold text-stone-900">{selected.name}</strong></p>
+            {selected.emailHint === null ? (
+              <p className="text-sm leading-6 text-stone-600">This record has no email on file. <a className="font-semibold text-orange-800 underline" href="mailto:info@top100afl.com?subject=Help%20claiming%20my%20awardee%20record">Contact the AFL team</a> to update it.</p>
+            ) : (
+              <form onSubmit={sendCode} className="space-y-5">
+                <div>
+                  <Label htmlFor="claim-email">Email on your awardee record</Label>
+                  <Input id="claim-email" className="mt-2 h-12" type="email" required autoComplete="email" value={email} disabled={sendingCode} onChange={(event) => {
+                    setEmail(event.target.value)
+                    setCodeSent(false)
+                    setInviteCode('')
+                    setPassword('')
+                    setShowPassword(false)
+                    setError('')
+                    setNotice('')
+                  }} placeholder="you@example.com" aria-describedby="claim-email-help" />
+                  <p id="claim-email-help" className="mt-2 text-sm text-stone-600">On file: {selected.emailHint}</p>
+                </div>
+                {!accountMismatch && <>
+                  <TurnstileCaptcha key={captchaKey} action="signup" onVerify={setCaptcha} onExpire={() => setCaptcha('')} onError={() => setCaptcha('')} />
+                  {captchaUnavailable && <p role="alert" className="text-sm text-red-800">The security check is unavailable. Please try again shortly.</p>}
+                  <Button className="h-12 w-full" disabled={actionDisabled || !email.trim()}>
+                    {sendingCode && <Loader2 className="animate-spin" />}
+                    {sendingCode ? 'Sending your code…' : 'Continue'}
+                    {!sendingCode && <ArrowRight />}
+                  </Button>
+                  <button type="submit" value="invite" disabled={sendingCode} className="min-h-11 text-sm font-semibold text-orange-800 underline disabled:opacity-50">I already have an AFL invite code</button>
+                </>}
+              </form>
+            )}
+            <Button type="button" variant="ghost" className="min-h-11 px-0" disabled={sendingCode} onClick={() => {
+              changeStage('record')
+              setSelected(null)
+            }}><ArrowLeft />Back to search</Button>
+          </>}
+
+          {stage === 'code' && !accountMismatch && <>
+            {codeSent && <p className="break-words text-sm leading-6 text-stone-600">
+              Your authorization code has been sent to <strong className="font-semibold text-stone-900">{email.trim()}</strong>. It expires in one hour.
+            </p>}
+            <form className="space-y-5" onSubmit={(event) => {
+              event.preventDefault()
+              if (inviteCode.trim()) changeStage('setup')
+            }}>
+              <div>
+                <Label htmlFor="claim-code">Authorization code</Label>
+                <Input id="claim-code" className="mt-2 h-12" required autoComplete="one-time-code" autoCapitalize="characters" spellCheck={false} value={inviteCode} onChange={(event) => setInviteCode(event.target.value)} placeholder="AFL-XXXXX-XXXXX" />
+              </div>
+              <Button className="h-12 w-full" disabled={!inviteCode.trim()}>Continue <ArrowRight /></Button>
+            </form>
+            <p className="text-sm leading-6 text-stone-600">Didn’t get the code? <a className="font-semibold text-orange-800 underline" href={requestAdminCode}>Request from admin</a>.</p>
+          </>}
+          {stage === 'code' && <Button type="button" variant="ghost" className="min-h-11 px-0" onClick={() => changeStage('record')}><ArrowLeft />Back to email</Button>}
+
+          {stage === 'setup' && !submitted && !accountMismatch && <form onSubmit={requestClaim} className="space-y-5">
+            {!hasSession && <div>
+              <Label htmlFor="claim-password">Choose a sign-in password</Label>
+              <div className="relative mt-2">
+                <Input id="claim-password" className="h-12 pr-12" required minLength={8} maxLength={72} type={showPassword ? 'text' : 'password'} autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} />
+                <button type="button" className="absolute right-1 top-0 flex h-12 w-11 items-center justify-center rounded text-stone-500 hover:text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword} aria-controls="claim-password">
+                  {showPassword ? <EyeOff aria-hidden="true" className="h-5 w-5" /> : <Eye aria-hidden="true" className="h-5 w-5" />}
+                </button>
+              </div>
+              <p className="mt-2 text-sm text-stone-600">Already have an account? Use your current password or <Link href="/auth/forgot-password?area=member" className="font-semibold text-orange-800 underline">reset it</Link>.</p>
+            </div>}
+            <LegalConsent id="claim-legal-consent" />
             <TurnstileCaptcha key={captchaKey} action="signup" onVerify={setCaptcha} onExpire={() => setCaptcha('')} onError={() => setCaptcha('')} />
             {captchaUnavailable && <p role="alert" className="text-sm text-red-800">The security check is unavailable. Please try again shortly.</p>}
-            <div>
-              <Button type="button" variant="outline" disabled={actionDisabled || !email.trim()} onClick={() => void sendCode()}>
-                {sendingCode && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {sendingCode ? 'Sending…' : codeSent ? 'Resend code' : 'Email me a signup code'}
-              </Button>
-            </div>
-            <div><Label htmlFor="claim-code">Signup code</Label><Input id="claim-code" className="mt-2 h-12" required autoComplete="one-time-code" aria-describedby="claim-code-help" value={inviteCode} onChange={(event) => setInviteCode(event.target.value)} placeholder="AFL-XXXXX-XXXXX" /><p id="claim-code-help" className="mt-1 text-sm text-stone-600">Enter the code from your email. An active invite code from the AFL team also works here.</p></div>
-            {!hasSession && <div><Label htmlFor="claim-password">Choose a sign-in password</Label><div className="relative mt-2"><Input id="claim-password" className="h-12 pr-12" required minLength={8} type={showPassword ? 'text' : 'password'} autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} /><button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-1 text-stone-500 hover:text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword} aria-controls="claim-password">{showPassword ? <EyeOff aria-hidden="true" className="h-5 w-5" /> : <Eye aria-hidden="true" className="h-5 w-5" />}</button></div></div>}
-            <LegalConsent id="claim-legal-consent" />
-            <div className="flex justify-between gap-3"><Button type="button" variant="ghost" disabled={busy || sendingCode} onClick={() => setStep(1)}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button><Button disabled={actionDisabled}>{busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Submit for review<ArrowRight className="ml-2 h-4 w-4" /></Button></div>
+            <Button className="h-12 w-full" disabled={actionDisabled}>{busy && <Loader2 className="animate-spin" />}Submit for review</Button>
           </form>}
-          {submitted && <p className="text-sm text-stone-700">Your requested profile will appear after an admin approves it. <Link className="font-semibold text-orange-800 underline" href="/dashboard">Go to dashboard</Link>.</p>}
-          <div className="mt-6 border-t border-stone-100 pt-4">
-            <AuthHelpDialog />
-          </div>
-        </section>
-      </div>
+          {stage === 'setup' && !submitted && <Button type="button" variant="ghost" className="min-h-11 px-0" disabled={busy} onClick={() => changeStage('code')}><ArrowLeft />Edit code</Button>}
+          {submitted && <Link className="text-sm font-semibold text-orange-800 underline" href="/dashboard">Go to dashboard</Link>}
+          {lookingUpRecord && <div className="border-t border-stone-100 pt-4"><AuthHelpDialog /></div>}
+        </div>
+      </section>
     </main>
   )
 }

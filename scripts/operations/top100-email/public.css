@@ -1,0 +1,28 @@
+body {
+  background: #faf9f6;
+  color: #171717;
+}
+.header .logo img {
+  display: block;
+  width: min(245px, 75vw);
+  height: auto;
+  margin: 0 auto;
+}
+section.login {
+  background: #fff;
+  border: 1px solid #e9e5dc;
+  border-radius: 12px;
+  box-shadow: none;
+}
+section.login .button,
+.form .button-primary {
+  background: #ffdf45;
+  border-color: #ffdf45;
+  color: #171717;
+  font-weight: 600;
+}
+a { color: #805009; }
+:is(a, button, input):focus-visible {
+  outline: 2px solid #9b6914;
+  outline-offset: 2px;
+}

@@ -62,6 +62,8 @@ Local verification covered the checkout adapter, authenticated preview, concurre
 
 ## Campaign activation
 
+In **Top100 Admin → Award orders → Award coupons**, choose an expiry in Lagos time and select **Generate coupon**. Copy the code from the result. It is active immediately and can be used by any signed-in awardee with an unpaid award until the expiry.
+
 Apply the award migration and then `team-platform/supabase/migrations/20261107120001_team_exclude_award_coupon_payments.sql` on the shared Top100 database. The checkout refuses to reserve a coupon until the sales exclusion migration is present.
 
 1. Choose a code containing letters, digits, or hyphens. Use a randomly generated code and keep it private. Compute SHA-256 of its trimmed uppercase form and supply the lowercase hex digest as `code_digest`.
@@ -104,3 +106,5 @@ returning id, enabled, expires_at;
 ```
 
 To change the expiry, update `expires_at` on that campaign. To remove someone's access, delete their specific `(coupon_id, profile_id)` row. Set `enabled = false` on the campaign to stop new coupon checkouts.
+
+For a campaign open to all signed-in awardees, set `allow_all_awardees = true` on that campaign and skip the account grant steps. Awardees still need the code, an unpaid award, and an active campaign window. The same sales exclusion applies to payments made with the coupon.

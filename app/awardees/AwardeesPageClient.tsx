@@ -4,14 +4,15 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Image from '@/components/safe-image'
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { ArrowRight, Search, SlidersHorizontal, ArrowUpRight, MapPin } from 'lucide-react'
+import { ArrowRight, Search, ArrowUpRight, MapPin } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 import type { Awardee } from '@/lib/awardees-shared'
 import { normalizeAwardeeEntry } from '@/lib/awardees-shared'
 import { countryKey, getDiscoverySummary } from '@/lib/awardee-discovery'
 import { resolveSupabasePortrait } from '@/lib/media/remote-image-source'
-import './awardees.css'
+import { DirectorySearch } from '@/components/directory-search'
+import { readAwardeeFilters } from '@/lib/talent/directory-state'
 import { supabase } from '@/lib/supabase/client'
 import type { AwardeeDirectoryEntry } from '@/types/profile'
 
@@ -22,6 +23,7 @@ const hasLiveSupabaseKey =
   Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.startsWith('eyJ'))
 
 type AwardeesPageProps = {
+  embedded?: boolean
   initialPeople: Awardee[]
   initialSearchParams?: {
     page?: string
@@ -40,7 +42,7 @@ const parseYearParam = (year?: string | null): number | 'all' => {
 
 
 
-export default function AwardeesPageClient({ initialPeople, initialSearchParams }: AwardeesPageProps) {
+export default function AwardeesPageClient({ initialPeople, initialSearchParams, embedded = false }: AwardeesPageProps) {
   const [people, setPeople] = useState<Awardee[]>(() =>
     [...initialPeople],
   )
@@ -55,8 +57,11 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
   const currentPageFromUrl = Number(searchParams.get('page')) || 1
 
   const searchValue = searchParams.get('search') || ''
-  const selectedYear = parseYearParam(searchParams.get('year'))
-  const selectedCountry = countryKey(searchParams.get('country'))
+  const awardeeFilters = readAwardeeFilters(searchParams)
+  const yearKey = embedded ? 'awardeeYear' : 'year'
+  const countryParam = embedded ? 'awardeeCountry' : 'country'
+  const selectedYear = parseYearParam(embedded ? awardeeFilters.year : searchParams.get('year'))
+  const selectedCountry = countryKey(embedded ? awardeeFilters.country : searchParams.get('country'))
 
   useEffect(() => {
     setSearchTerm(searchValue)
@@ -71,9 +76,9 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
         params.set('page', newPage.toString())
       }
       const query = params.toString()
-      return query ? `${pathname}?${query}` : pathname
+      return `${pathname}${query ? `?${query}` : ''}${embedded ? '#leader-directory' : ''}`
     },
-    [pathname, searchParams],
+    [embedded, pathname, searchParams],
   )
 
   const createQueryParams = useCallback(() => {
@@ -84,18 +89,22 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
     (year: number | 'all') => {
       const params = createQueryParams()
       params.delete('page')
-      params.delete('country')
+      params.delete(countryParam)
+      if (embedded && params.get('view') !== 'talent') {
+        params.delete('year')
+        params.delete('country')
+      }
 
       if (year === 'all') {
-        params.set('year', 'all')
+        params.set(yearKey, 'all')
       } else {
-        params.set('year', year.toString())
+        params.set(yearKey, year.toString())
       }
 
       const query = params.toString()
       router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false })
     },
-    [createQueryParams, pathname, router],
+    [countryParam, createQueryParams, embedded, pathname, router, yearKey],
   )
 
   const updateSearch = (value: string) => {
@@ -116,15 +125,21 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
   const updateCountry = (country: string) => {
     const params = createQueryParams()
     params.delete('page')
-    if (country) params.set('country', country)
-    else params.delete('country')
+    if (embedded && params.get('view') !== 'talent') params.delete('country')
+    if (country) params.set(countryParam, country)
+    else params.delete(countryParam)
     router.replace(`${pathname}${params.size ? `?${params}` : ''}`, { scroll: false })
   }
   const resetFilters = () => {
     setSearchTerm('')
     const params = createQueryParams()
     params.delete('search')
-    params.delete('country')
+    params.delete(countryParam)
+    params.delete(yearKey)
+    if (embedded && params.get('view') !== 'talent') {
+      params.delete('country')
+      params.delete('year')
+    }
     params.delete('page')
     router.replace(`${pathname}${params.size ? `?${params}` : ''}`, { scroll: false })
   }
@@ -272,9 +287,9 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
   }, [fetchLatestEntry, removeAwardeeBySlug, upsertAwardee, hasLiveSupabaseKey])
 
   return (
-    <div className="leaders-discovery">
-      <div className="leaders-container">
-        <section className="discovery-bento" aria-label="Discover Africa Future Leaders">
+    <div className={embedded ? undefined : "leaders-discovery"}>
+      <div className={embedded ? undefined : "leaders-container"}>
+        {!embedded && <section className="discovery-bento" aria-label="Discover Africa Future Leaders">
           <header className="discovery-intro">
             <span className="discovery-eyebrow"><span /> AFRICA FUTURE LEADERS</span>
             <h1>Africa’s next chapter.<br /><span>Meet the people shaping it.</span></h1>
@@ -296,35 +311,35 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
             </div>
           )}
 
-        </section>
+        </section>}
 
-        <section id="leader-directory" className="leader-directory" aria-labelledby="directory-heading">
+        <section id="leader-directory" className={cn("leader-directory", embedded && "border-t border-stone-200")} aria-labelledby="directory-heading">
           <div className="directory-title-row">
-            <h2 id="directory-heading">Explore the directory</h2>
+            <h2 id="directory-heading">{embedded ? "Awardees" : "Explore the directory"}</h2>
           </div>
           <div className="directory-toolbar">
-            <div className="directory-search">
-              <Search size={20} aria-hidden="true" />
-              <label htmlFor="awardee-search" className="sr-only">Search leaders by name, country, or field</label>
-              <input id="awardee-search" type="search" placeholder="Find a name, country, or field…" value={searchTerm} onChange={event => updateSearch(event.target.value)} />
-              <details className="directory-filter">
-                <summary aria-label="Filter leaders"><SlidersHorizontal size={19} aria-hidden="true" /><span className="sr-only">Filters</span>{(selectedYear !== 2026 || selectedCountry) && <span className="filter-active-dot" />}</summary>
-                <div className="directory-filter-panel">
-                  <div className="directory-select"><label htmlFor="cohort-filter">Cohort</label><select id="cohort-filter" value={selectedYear} onChange={event => updateYear(event.target.value === 'all' ? 'all' : Number(event.target.value))}><option value="all">All years</option><option value="2026">2026</option><option value="2025">2025</option><option value="2024">2024</option></select></div>
-                  <div className="directory-select"><label htmlFor="country-filter">Country</label><select id="country-filter" value={selectedCountry} onChange={event => updateCountry(event.target.value)}><option value="">All countries</option>{summary.countries.map(country => <option value={country.key} key={country.key}>{country.name} ({country.count})</option>)}</select></div>
-                  <div className="directory-country-shortcuts" aria-label="Browse popular countries">
-                    <span>Popular countries</span><div className="country-chips">
-                      {summary.countries.slice(0, 5).map(country => <button key={country.key} onClick={() => updateCountry(selectedCountry === country.key ? '' : country.key)} aria-pressed={selectedCountry === country.key} className={cn(selectedCountry === country.key && 'is-selected')}>{country.name}<span>{country.count}</span></button>)}
-                    </div>
-                  </div>
-                  {(searchTerm || selectedCountry || selectedYear !== 2026) && <button className="directory-clear-filters" onClick={resetFilters}>Clear filters</button>}
+            <DirectorySearch
+              id="awardee-search"
+              label="Search leaders by name, country, or field"
+              placeholder="Find a name, country, or field…"
+              value={searchTerm}
+              onChange={updateSearch}
+              filterLabel="Filter leaders"
+              hasFilters={selectedYear !== 2025 || Boolean(selectedCountry)}
+            >
+              <div className="directory-select"><label htmlFor="cohort-filter">Cohort</label><select id="cohort-filter" value={selectedYear} onChange={event => updateYear(event.target.value === 'all' ? 'all' : Number(event.target.value))}><option value="all">All years</option><option value="2026">2026</option><option value="2025">2025</option><option value="2024">2024</option></select></div>
+              <div className="directory-select"><label htmlFor="country-filter">Country</label><select id="country-filter" value={selectedCountry} onChange={event => updateCountry(event.target.value)}><option value="">All countries</option>{summary.countries.map(country => <option value={country.key} key={country.key}>{country.name} ({country.count})</option>)}</select></div>
+              <div className="directory-country-shortcuts" aria-label="Browse popular countries">
+                <span>Popular countries</span><div className="country-chips">
+                  {summary.countries.slice(0, 5).map(country => <button key={country.key} onClick={() => updateCountry(selectedCountry === country.key ? '' : country.key)} aria-pressed={selectedCountry === country.key} className={cn(selectedCountry === country.key && 'is-selected')}>{country.name}<span>{country.count}</span></button>)}
                 </div>
-              </details>
-            </div>
+              </div>
+              {(searchTerm || selectedCountry || selectedYear !== 2025) && <button className="directory-clear-filters" onClick={resetFilters}>Clear filters</button>}
+            </DirectorySearch>
           </div>
 
           {filteredPeople.length === 0 ? (
-            <div className="directory-empty"><Search size={28} /><h3>No leaders found</h3><p>Try another name, country, field, or cohort.</p>{(searchTerm || selectedCountry) && <button onClick={resetFilters}>Clear filters <ArrowRight size={16} /></button>}</div>
+            <div className="directory-empty"><Search size={28} /><h3>No leaders found</h3><p>Try another name, country, field, or cohort.</p>{(searchTerm || selectedCountry || selectedYear !== 2025) && <button onClick={resetFilters}>Clear filters <ArrowRight size={16} /></button>}</div>
           ) : (
             <div className="leaders-grid">
               {currentPeople.map(person => {
@@ -350,10 +365,10 @@ export default function AwardeesPageClient({ initialPeople, initialSearchParams 
             </nav>
           )}
           <nav className="directory-pagination" aria-label="Explore Top100">
-            <Link href="/awardees?year=all">All awardee profiles</Link>
-            <Link href="/awardees?year=2024">2024 cohort</Link>
-            <Link href="/awardees">2025 cohort</Link>
-            <Link href="/awardees?year=2026">2026 cohort</Link>
+            <Link href={embedded ? "/awardees?year=all#leader-directory" : "/awardees?year=all"}>All awardee profiles</Link>
+            <Link href={embedded ? "/awardees?year=2024#leader-directory" : "/awardees?year=2024"}>2024 cohort</Link>
+            <Link href={embedded ? "/awardees#leader-directory" : "/awardees"}>2025 cohort</Link>
+            <Link href={embedded ? "/awardees?year=2026#leader-directory" : "/awardees?year=2026"}>2026 cohort</Link>
             <Link href="/interviews">Impact interviews</Link>
             <Link href="/blog">Articles and stories</Link>
           </nav>

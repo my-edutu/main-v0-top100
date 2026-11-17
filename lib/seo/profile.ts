@@ -1,6 +1,7 @@
 import { clampText } from '@/lib/og'
 import { SITE_URL } from '@/lib/site'
 import { buildProfileContent } from './profile-content'
+import type { TalentDraft } from '@/lib/talent/types'
 import type { AwardeeDirectoryEntry } from '@/types/profile'
 
 export function profileDescription(bio: string | null | undefined, fallback: string): string {
@@ -15,9 +16,11 @@ function webUrl(value: string | null | undefined, allowRelative = false): string
   } catch { return undefined }
 }
 
-export function profileStructuredData(profile: AwardeeDirectoryEntry, socialUrls: string[]) {
+export function profileStructuredData(profile: AwardeeDirectoryEntry, socialUrls: string[], talent?: Pick<TalentDraft, 'summary' | 'skills' | 'linkedinUrl' | 'portfolioUrl'>) {
   const url = `${SITE_URL}/awardees/${encodeURIComponent(profile.slug)}`
   const validDate = (value: string | null | undefined) => value && Number.isFinite(Date.parse(value)) ? new Date(value).toISOString() : undefined
+  const skills = [...new Set([...(profile.interests ?? []), ...(talent?.skills ?? [])])]
+  const links = [...socialUrls, talent?.linkedinUrl, talent?.portfolioUrl]
   return {
     '@context': 'https://schema.org',
     '@type': 'ProfilePage',
@@ -31,12 +34,12 @@ export function profileStructuredData(profile: AwardeeDirectoryEntry, socialUrls
       url,
       name: profile.name,
       image: webUrl(profile.avatar_url, true) || webUrl(profile.cover_image_url, true),
-      description: buildProfileContent(profile).biography || undefined,
+      description: talent?.summary || buildProfileContent(profile).biography || undefined,
       // Country and current school do not establish nationality or alumni status.
       award: profile.achievements?.map(item => item.title).filter(Boolean),
-      sameAs: [...new Set(socialUrls.map(value => webUrl(value)).filter((value): value is string => Boolean(value)))],
+      sameAs: [...new Set(links.map(value => webUrl(value)).filter((value): value is string => Boolean(value)))],
       memberOf: { '@type': 'Organization', name: 'Top100 Africa Future Leaders', url: SITE_URL },
-      knowsAbout: profile.interests || undefined,
+      knowsAbout: skills.length ? skills : undefined,
     },
   }
 }

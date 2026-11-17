@@ -25,6 +25,7 @@ describe.runIf(Boolean(database))('atomic award reconciliation in PostgreSQL', (
     await pool!.query(readFileSync('supabase/migrations/20261013215353_bachs_award_checkout_reconciliation.sql', 'utf8'))
     await pool!.query(readFileSync('supabase/migrations/20261030174333_bachs_award_late_success_recovery.sql', 'utf8'))
     await pool!.query(readFileSync('supabase/migrations/20261107120000_award_fee_coupon.sql', 'utf8'))
+    await pool!.query(readFileSync('supabase/migrations/20261107120100_award_coupon_time_only.sql', 'utf8'))
   })
   afterAll(async () => { await pool?.end() })
   async function seed(status = 'open', orderStatus = 'pending') {
@@ -129,6 +130,31 @@ describe.runIf(Boolean(database))('atomic award reconciliation in PostgreSQL', (
     expect(await state(first.attempt_id)).toMatchObject({ status: 'succeeded', captured_amount_minor: '2000000', award_payment_status: 'paid' })
     expect((await pool!.query('select award_delivery_order_is_paid(o) as eligible from award_orders o where id=$1', [order.id])).rows[0].eligible).toBe(true)
     expect((await pool!.query('select count(*) from payment_webhook_events where payment_attempt_id=$1', [first.attempt_id])).rows[0].count).toBe('1')
+  })
+  it('lets accounts without grants reserve a time-only coupon only during its active window', async () => {
+    const profileIds = [randomUUID(), randomUUID(), randomUUID()]
+    const digest = randomUUID().replaceAll('-', '').repeat(2)
+    for (const profileId of profileIds) {
+      await pool!.query('insert into profiles(id) values ($1)', [profileId])
+      await pool!.query('insert into award_orders(profile_id) values ($1)', [profileId])
+    }
+    await pool!.query(
+      "insert into award_coupons(code_digest,enabled,allow_all_awardees,starts_at,expires_at) values ($1,true,true,now()-interval '1 hour',now()+interval '1 hour')",
+      [digest],
+    )
+    const reserve = async (profileId: string, codeDigest: string) => {
+      const id = randomUUID()
+      return (await pool!.query(
+        "select reserve_bachs_award_coupon_checkout($1,$2,$3,$4,'afl-award-2026-v1',$5) as result",
+        [profileId, id, `ref-${id}`, `key-${id}`, codeDigest],
+      )).rows[0].result
+    }
+    expect(await reserve(profileIds[0], 'wrong')).toEqual({ outcome: 'coupon_unavailable' })
+    for (const profileId of profileIds.slice(0, 2)) {
+      expect(await reserve(profileId, digest)).toMatchObject({ outcome: 'created', requested_amount_minor: 2_000_000 })
+    }
+    await pool!.query("update award_coupons set expires_at=now()-interval '1 second' where code_digest=$1", [digest])
+    expect(await reserve(profileIds[2], digest)).toEqual({ outcome: 'coupon_unavailable' })
   })
   it('keeps orders with legacy bundled Paystack delivery ineligible for another delivery charge', async () => {
     const { orderId } = await seed()

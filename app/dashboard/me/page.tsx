@@ -6,6 +6,7 @@ import { ArrowUpRight, BadgeCheck, LockKeyhole } from 'lucide-react'
 
 import { RouteSection } from '../_components/route-section'
 import { meNav } from '../_lib/navigation'
+import { TalentDashboardCallout } from '@/components/talent/dashboard-callout'
 import { SignOutControl } from '../dashboard-header'
 import { useDashboardBadges } from '../_providers/dashboard-badges'
 
@@ -49,6 +50,7 @@ export default function MePage() {
           </p>
         </div>
       </header>
+      <TalentDashboardCallout />
       <div className="divide-y divide-neutral-200 rounded-2xl border border-neutral-200">
         {meNav.map((item) => {
           const content = <>

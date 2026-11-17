@@ -1,0 +1,53 @@
+# Private Listmonk service. Secret files are created on the Dokploy host, not in Git.
+services:
+  db:
+    image: postgres:17-alpine@sha256:3540c0362c809df084ffac0ae69fe794515f9de92692f02178bcdce0ef0302ac
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: listmonk
+      POSTGRES_DB: listmonk
+      POSTGRES_PASSWORD_FILE: /run/top100-secrets/db-password
+    volumes:
+      - listmonk-db:/var/lib/postgresql/data
+      - /etc/dokploy/secrets/top100-listmonk/db-password:/run/top100-secrets/db-password:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U listmonk -d listmonk"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks: [database]
+  app:
+    image: listmonk/listmonk:v6.2.0@sha256:f535d59e14991337a9f2d570273685378ae86b0d7698c3e00da444e3bc205286
+    restart: unless-stopped
+    depends_on:
+      db: {condition: service_healthy}
+    command: ["sh", "-c", "./listmonk --install --idempotent --yes --config '' && ./listmonk --upgrade --yes --config '' && ./listmonk --config ''"]
+    environment:
+      LISTMONK_app__address: 0.0.0.0:9000
+      LISTMONK_db__host: db
+      LISTMONK_db__port: 5432
+      LISTMONK_db__user: listmonk
+      LISTMONK_db__database: listmonk
+      LISTMONK_db__password_FILE: /run/top100-secrets/db-password
+      LISTMONK_db__ssl_mode: disable
+      LISTMONK_ADMIN_USER: top100_admin
+      LISTMONK_ADMIN_PASSWORD_FILE: /run/top100-secrets/admin-password
+      LISTMONK_ADMIN_API_USER: top100_bootstrap
+      TZ: Africa/Lagos
+    volumes:
+      - listmonk-uploads:/listmonk/uploads
+      - /etc/dokploy/secrets/top100-listmonk/db-password:/run/top100-secrets/db-password:ro
+      - /etc/dokploy/secrets/top100-listmonk/admin-password:/run/top100-secrets/admin-password:ro
+    networks:
+      database: {}
+      dokploy:
+        aliases: [top100-listmonk]
+volumes:
+  listmonk-db:
+  listmonk-uploads:
+networks:
+  database:
+    internal: true
+  dokploy:
+    external: true
+    name: dokploy-network
