@@ -20,4 +20,10 @@ Use the active Dokploy service `top100-frontend-hymlzt`, with the self-hosted Su
 
 Build from the current production Git revision, carrying the payment-only patch. Preserve the previous running image before swapping. Confirm both protected reconciliation endpoints return 401 without credentials, the delivery timer succeeds, the database still has 101 canonical paid awards and five paid deliveries, and neither verification path initiates a new charge or courier booking.
 
-Rollout results are appended after deployment.
+The production Docker build exited 0 and Swarm completed rollout of `top100-coupon-fx:20261117`. The prior running image is preserved as `top100-coupon-fx:rollback-20261117`; the former function definition is retained in the root-only `/var/tmp/top100-coupon-fx-db-rollback.sql`.
+
+The exact release patch on the current main branch passed 2,047 tests (28 opt-in database tests skipped) and 15 additional isolated PostgreSQL tests. This preserved the newer time-only coupon eligibility rules present in main, rather than replacing them with the older local test fixture.
+
+Both production reconciliation endpoints returned 401 without credentials. The restored delivery worker completed with HTTP 200 and zero errors; its timer is enabled. The Dokploy award schedule remains enabled every five minutes. Production reads showed 102 paid awards and five paid deliveries after rollout; six coupon FX reconciliation audit events identify the already-confirmed real checkouts. The six-adapter verification created no duplicate award claims and invoked no outbound notification callback.
+
+Source build directory and logs: `/var/tmp/top100-coupon-fx-release-20261117` and `/var/tmp/top100-coupon-fx-build.log`. Normal Git deployments must include the focused repository patch to retain both payment repairs.
