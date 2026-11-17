@@ -1,7 +1,8 @@
 import { createHmac } from 'node:crypto'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-const state = vi.hoisted(() => ({ reconcile: vi.fn() }))
+const state = vi.hoisted(() => ({ reconcile: vi.fn(), publicPayment: vi.fn() }))
 vi.mock('@/lib/awards/delivery/server', () => ({ reconcileDeliveryRow: state.reconcile }))
+vi.mock('@/lib/awards/delivery/public-payments', () => ({ reconcilePublicDeliveryNotification: state.publicPayment, DELIVERY_PAYMENT_LINK_ID: 'pl_2d4914db4ed0' }))
 import { handleDeliveryWebhook } from '@/lib/awards/delivery/webhook'
 import type { BachsConfig } from '@/lib/payments/bachs/types'
 const config: BachsConfig = { apiBaseUrl: 'https://sandbox-api.bachs.io', apiKey: 'sk_sandbox_test', awardWebhookSecret: 'secret', magazineWebhookSecret: null, organizationId: 'org-1', webhookToleranceSeconds: 300, checkoutHosts: new Set(['checkout.bachs.io']), siteUrl: 'https://top100afl.com' }
@@ -19,6 +20,11 @@ function database(current: unknown = row, error: unknown = null) {
 }
 beforeEach(() => vi.resetAllMocks())
 describe('separate delivery webhook routing', () => {
+  it('handles signed public-link metadata containing booleans before the legacy parser', async () => {
+    state.publicPayment.mockResolvedValue({ status: 'matched' })
+    const req = request({ payment_id: 'ch_test', metadata: { payment_link_id: 'pl_2d4914db4ed0', from_payment_link: true } })
+    expect(await handleDeliveryWebhook(req.raw, req.headers, database(null), config)).toBe(200)
+  })
   it('resolves reference-only notifications and rechecks authenticated provider evidence', async () => {
     const req = request(); const db = database()
     expect(await handleDeliveryWebhook(req.raw, req.headers, db, config)).toBe(200)

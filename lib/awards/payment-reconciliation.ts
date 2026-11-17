@@ -41,7 +41,8 @@ export async function reconcileAwardAttempt(
     orderId: attempt.order_id, attemptId: attempt.id, currency: attempt.currency,
     requestedMinor: Number(attempt.requested_amount_minor),
   }, options.config ?? bachsConfig(), options.fetchProvider)
-  if (!verified || (attempt.award_coupon_id && verified.status === 'paid' && verified.chargeCurrency !== 'NGN')) return { outcome: 'review_required', notificationNeeded: false }
+  // The coupon is priced in NGN; Bachs may collect that exact checkout in another currency.
+  if (!verified) return { outcome: 'review_required', notificationNeeded: false }
   if (['failed', 'expired', 'exception', 'overpaid'].includes(attempt.status) && verified.status !== 'paid') {
     return { outcome: 'review_required', notificationNeeded: false }
   }

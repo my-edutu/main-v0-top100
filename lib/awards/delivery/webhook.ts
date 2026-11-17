@@ -5,10 +5,25 @@ import { parseBachsEvent } from '@/lib/payments/bachs/events'
 import { DELIVERY_PURPOSE } from './types'
 import { reconcileDeliveryRow, type DeliveryDB, type DeliveryRow } from './server'
 
+import { DELIVERY_PAYMENT_LINK_ID, reconcilePublicDeliveryNotification } from './public-payments'
+
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 /** Return null for unrelated events; never use webhook amount or URL as payment proof. */
 export async function handleDeliveryWebhook(raw: string, headers: Headers, db: DeliveryDB, config: BachsConfig = bachsConfig()): Promise<number | null> {
   if (!config.awardWebhookSecret || !verifyBachsSignature({ rawBody: raw, timestampHeader: headers.get('x-bachs-timestamp'), signatureHeader: headers.get('x-bachs-signature'), secret: config.awardWebhookSecret, toleranceSeconds: config.webhookToleranceSeconds })) return null
+  // Public payment-link metadata includes booleans and carries no app reference.
+  // Authenticate the envelope first, then retrieve the payment and checkout.
+  let envelope
+  try { envelope = JSON.parse(raw) } catch { return null }
+  const publicData = envelope?.data
+  if (publicData && [publicData.metadata, publicData.meta, publicData.charge?.meta].some(meta => meta?.payment_link_id === DELIVERY_PAYMENT_LINK_ID)) {
+    if (!config.organizationId || envelope.organization_id !== config.organizationId) return 400
+    if (!['collection.succeeded', 'checkout.completed'].includes(envelope.type)) return 200
+    try {
+      const result = await reconcilePublicDeliveryNotification(publicData, db, config)
+      return result.status === 'unverified' ? 503 : 200
+    } catch { return 503 }
+  }
   let event
   try { event = parseBachsEvent(JSON.parse(raw)) } catch { return null }
   if (!config.organizationId || event.organization_id !== config.organizationId) return 400

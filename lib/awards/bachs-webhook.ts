@@ -447,8 +447,7 @@ export async function handleBachsEvent(
       const chargeMatches = event.type === 'checkout.completed' || Boolean(verified &&
         verified.chargeCurrency === currencyRaw && verified.grossAmount === amountRaw &&
         (!data.charge_id || data.charge_id === verified.chargeId))
-      if (!verified || verified.status !== 'paid' || !chargeMatches ||
-          (attempt.award_coupon_id && verified.chargeCurrency !== 'NGN')) {
+      if (!verified || verified.status !== 'paid' || !chargeMatches) {
         matchedAttemptId = null
       } else {
         amountMinor = verified.amountMinor

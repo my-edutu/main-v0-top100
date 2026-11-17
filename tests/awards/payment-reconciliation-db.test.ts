@@ -26,6 +26,7 @@ describe.runIf(Boolean(database))('atomic award reconciliation in PostgreSQL', (
     await pool!.query(readFileSync('supabase/migrations/20261030174333_bachs_award_late_success_recovery.sql', 'utf8'))
     await pool!.query(readFileSync('supabase/migrations/20261107120000_award_fee_coupon.sql', 'utf8'))
     await pool!.query(readFileSync('supabase/migrations/20261107120100_award_coupon_time_only.sql', 'utf8'))
+    await pool!.query(readFileSync('supabase/migrations/20261117120846_award_coupon_verified_fx_confirmation.sql', 'utf8'))
   })
   afterAll(async () => { await pool?.end() })
   async function seed(status = 'open', orderStatus = 'pending') {
@@ -123,9 +124,10 @@ describe.runIf(Boolean(database))('atomic award reconciliation in PostgreSQL', (
     const evidence = {
       checkout_id: 'coupon-checkout', reference: first.provider_reference, order_id: order.id,
       attempt_id: first.attempt_id, currency: 'NGN', amount_minor: 2_000_000,
-      status: 'paid', charge_id: 'coupon-charge', charge_currency: 'NGN', gross_amount: '20000.00',
+      status: 'paid', charge_id: 'coupon-charge', charge_currency: 'USD', gross_amount: '15.31',
     }
-    await expect(reconcile(first.attempt_id, { ...evidence, charge_currency: 'USD' })).rejects.toThrow()
+    await expect(reconcile(first.attempt_id, { ...evidence, currency: 'USD' })).rejects.toThrow()
+    await expect(reconcile(first.attempt_id, { ...evidence, amount_minor: 1_999_999 })).rejects.toThrow()
     await Promise.all([reconcile(first.attempt_id, evidence), reconcile(first.attempt_id, evidence)])
     expect(await state(first.attempt_id)).toMatchObject({ status: 'succeeded', captured_amount_minor: '2000000', award_payment_status: 'paid' })
     expect((await pool!.query('select award_delivery_order_is_paid(o) as eligible from award_orders o where id=$1', [order.id])).rows[0].eligible).toBe(true)

@@ -19,6 +19,24 @@ describe('award payment recovery', () => {
     expect(client.rpc).toHaveBeenCalledWith('reconcile_bachs_award_checkout', expect.objectContaining({ p_attempt_id: 'attempt-1', p_checkout: expect.objectContaining({ amount_minor: 2_500_000, currency: 'NGN', status: 'paid', charge_currency: 'GHS', charge_id: 'pay-1' }) }))
     expect(notify).toHaveBeenCalledWith(expect.objectContaining({ orderId: 'order-1', currency: 'NGN', amountMinor: 2_500_000 }), { db: client })
   })
+  it.each(['USD', 'KES', 'XAF', 'GHS', 'XOF'])('confirms a provider-paid NGN coupon checkout collected in %s', async chargeCurrency => {
+    const client = db(), notify = vi.fn()
+    const paid = { ...checkout, amount: '20000.00', charge: { ...checkout.charge, currency: chargeCurrency, status: chargeCurrency === 'KES' ? 'accepted' : 'succeeded', fees: { currency: chargeCurrency, amount: '8.48' } } }
+    const result = await reconcileAwardAttempt(client, { ...attempt, award_coupon_id: 'coupon-1', requested_amount_minor: 2_000_000 }, { config, notify, fetchProvider: vi.fn().mockResolvedValue(Response.json(paid)) })
+    expect(result).toEqual({ outcome: 'succeeded', notificationNeeded: true })
+    expect(client.rpc).toHaveBeenCalledWith('reconcile_bachs_award_checkout', expect.objectContaining({ p_checkout: expect.objectContaining({ currency: 'NGN', amount_minor: 2_000_000, charge_currency: chargeCurrency, gross_amount: '250.79' }) }))
+    expect(notify).toHaveBeenCalledWith(expect.objectContaining({ currency: 'NGN', amountMinor: 2_000_000 }), { db: client })
+  })
+  it.each([
+    { amount: '19999.99' }, { currency: 'USD' }, { status: 'open' },
+    { charge: { ...checkout.charge, refunds: ['refund-1'] } },
+    { metadata: { ...checkout.metadata, order_id: 'different-order' } },
+  ])('holds a coupon payment whose authenticated contract does not verify (%j)', async changed => {
+    const client = db()
+    const result = await reconcileAwardAttempt(client, { ...attempt, award_coupon_id: 'coupon-1', requested_amount_minor: 2_000_000 }, { config, fetchProvider: vi.fn().mockResolvedValue(Response.json({ ...checkout, amount: '20000.00', ...changed })) })
+    expect(result.outcome).toBe('review_required')
+    expect(client.rpc).not.toHaveBeenCalled()
+  })
   it('does not release a reservation from its local expiry alone', async () => {
     const client = db()
     await reconcileAwardAttempt(client, attempt, { config, fetchProvider: vi.fn().mockResolvedValue(Response.json({ ...checkout, status: 'expired' })) })
