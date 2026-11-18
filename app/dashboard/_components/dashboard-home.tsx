@@ -2,8 +2,8 @@
 
 import Link from 'next/link'
 import Image from '@/components/safe-image'
-import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { useEffect, useMemo, useState } from 'react'
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   ArrowUpRight,
   CalendarDays,
@@ -23,7 +23,6 @@ import {
 import { fetchLiveCalendarEvents } from '@/lib/events/live-calendar-client'
 import type { LiveCalendarEvent } from '@/lib/events/live-calendar'
 import { AFL_2026_CALENDAR } from '@/lib/events/afl-2026-calendar'
-import { DashboardLoading } from './dashboard-loading'
 import { DashboardCard } from './dashboard-card'
 import { selectUpcomingInvitations } from '../_lib/home-priority'
 import { useDashboardMember } from '../_providers/dashboard-member'
@@ -57,24 +56,10 @@ const shortcutDescriptions: Record<string, string> = {
   'Delivery cost': 'Check GIG pricing before paying',
 }
 
-function formatShortDate(value: string | null | undefined) {
-  if (!value) return 'Date to be announced'
-
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'Date to be announced'
-
-  return new Intl.DateTimeFormat('en', {
-    month: 'short',
-    day: 'numeric',
-    year: date.getFullYear() === new Date().getFullYear() ? undefined : 'numeric',
-  }).format(date)
-}
-
-export function DashboardHome() {
+export function DashboardHome({ pastSessions }: { pastSessions: ReactNode }) {
   const { member, dashboardVisitReady } = useDashboardMember()
   const [invitations, setInvitations] = useState<EventInvitation[]>([])
   const [programmeEvents, setProgrammeEvents] = useState<LiveCalendarEvent[]>([])
-  const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
   const [now, setNow] = useState(() => Date.now())
   const [nextSessionOpen, setNextSessionOpen] = useState(false)
@@ -94,7 +79,6 @@ export function DashboardHome() {
 
       inFlight = false
       if (cancelled) return
-      setLoading(false)
       setNow(Date.now())
       setLoadError([invitationResult, programmeResult].some(result => result.status === 'rejected'))
 
@@ -138,14 +122,9 @@ export function DashboardHome() {
       .map((invitation) => ({
         id: `invitation-${invitation.id}`,
         title: invitation.event?.title ?? 'Member event',
-        detail:
-          invitation.rsvp === 'pending'
-            ? 'Your RSVP is waiting'
-            : `RSVP: ${invitation.rsvp}`,
-        date: formatShortDate(invitation.event?.startAt),
+        detail: invitation.rsvp === 'pending' ? 'Your RSVP is waiting' : `RSVP: ${invitation.rsvp}`,
         sortAt: invitation.event?.startAt ? Date.parse(invitation.event.startAt) : Number.POSITIVE_INFINITY,
         cover: invitation.event?.cover ?? null,
-        href: '/dashboard/discover/events',
         startAt: invitation.event?.startAt ?? null,
         endAt: null,
         meetUrl: null,
@@ -159,10 +138,8 @@ export function DashboardHome() {
         id: `programme-${event.id}`,
         title: event.title,
         detail: event.cover ? 'Onboarding' : 'Live calendar',
-        date: formatShortDate(event.startAt),
         sortAt: Date.parse(event.startAt),
         cover: event.cover,
-        href: AFL_2026_CALENDAR.viewUrl,
         startAt: event.startAt,
         endAt: event.endAt,
         meetUrl: event.meetUrl,
@@ -252,55 +229,7 @@ export function DashboardHome() {
       <AwardeeOnboardingJourney name={member.name} />
       {loadError && <p role="status" className="hub-status rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-sm leading-5 text-neutral-700">Some events couldn’t load. We’ll retry automatically; you can also open Events directly.</p>}
 
-      <section aria-labelledby="coming-up-title" className="hub-upcoming-events min-w-0">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h2 id="coming-up-title" className="hub-panel-title">Upcoming events</h2>
-          </div>
-          <Link href="/dashboard/discover/events" className="inline-flex min-h-11 items-center gap-1 text-xs font-semibold text-[#8e3a12] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-2">
-            See more <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
-          </Link>
-        </div>
-        <div className="hub-events-rail mt-3" tabIndex={0} role="region" aria-label="Upcoming events, scroll horizontally">
-          {comingUp.length > 0 ? comingUp.map((item) => {
-            const cardContent = <>
-              <span className="relative z-10 min-w-0 self-end text-white">
-                <span className="line-clamp-4 block break-words text-[13px] font-semibold leading-4 text-white">{item.title}</span>
-                <span className="mt-1 block text-[11px] font-medium leading-4 text-white/90">{item.date}</span>
-              </span>
-            </>
-            const cardClass = "hub-upcoming-event text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-2"
-            return item.cover ? <Dialog key={item.id}>
-              <DialogTrigger asChild>
-                <button type="button" className={cardClass} style={{ backgroundImage: `linear-gradient(180deg, rgba(124,45,8,.12) 15%, rgba(124,45,8,.9) 100%), url(${item.cover})` }} aria-label={`Preview ${item.title}`}>{cardContent}</button>
-              </DialogTrigger>
-              <DialogContent className="max-h-[90dvh] w-[calc(100%-2rem)] max-w-xl overflow-y-auto rounded-[18px] border-0 bg-white p-0" overlayClassName="bg-black/75 backdrop-blur-sm" aria-describedby={undefined}>
-                <div className="bg-[#FFC528]">
-                  <Image src={item.cover} alt={`${item.title} event poster`} width={1755} height={2194} className="mx-auto max-h-[45dvh] w-auto max-w-full object-contain" />
-                </div>
-                <div className="px-5 pb-5 sm:px-6 sm:pb-6">
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[#A6440D]">{item.detail}</p>
-                  <DialogTitle className="text-xl font-semibold leading-7 text-[#171412]">{item.title}</DialogTitle>
-                  {item.startAt ? <p className="mt-3 text-sm leading-6 text-[#625B52]">
-                    {new Intl.DateTimeFormat('en', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Africa/Lagos' }).format(new Date(item.startAt))}
-                    <br />
-                    {new Intl.DateTimeFormat('en', { hour: 'numeric', minute: '2-digit', timeZone: 'Africa/Lagos' }).format(new Date(item.startAt))}
-                    {item.endAt ? `–${new Intl.DateTimeFormat('en', { hour: 'numeric', minute: '2-digit', timeZone: 'Africa/Lagos' }).format(new Date(item.endAt))}` : ''} WAT (Lagos)
-                  </p> : null}
-                  {item.summary ? <p className="mt-3 text-sm leading-6 text-[#625B52]">{item.summary}</p> : null}
-                  <div className="mt-4 grid gap-2">
-                    {item.meetUrl ? <a href={item.meetUrl} target="_blank" rel="noopener noreferrer" className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#FF9D00] px-4 text-sm font-semibold text-[#171412] hover:bg-[#FFB329] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-700"><Video size={18} aria-hidden="true" />Join on Google Meet<ArrowUpRight size={16} aria-hidden="true" /></a> : null}
-                    {item.startAt ? <a href={AFL_2026_CALENDAR.addUrl} target="_blank" rel="noopener noreferrer" className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-[#E9D6C5] px-4 text-sm font-semibold text-[#84330B] hover:bg-[#FFF8F0] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-700"><CalendarPlus size={18} aria-hidden="true" />Add to Google Calendar<ArrowUpRight size={16} aria-hidden="true" /></a> : null}
-                  </div>
-                  {item.startAt ? <p className="mt-2 text-center text-xs leading-5 text-[#625B52]">Opens the Africa Future Leaders calendar in Google Calendar.</p> : null}
-                </div>
-              </DialogContent>
-            </Dialog> : <Link key={item.id} href={item.href} target={item.href.startsWith('https://') ? '_blank' : undefined} rel={item.href.startsWith('https://') ? 'noopener noreferrer' : undefined} className={cardClass}>{cardContent}</Link>
-          }) : loading ? <DashboardLoading label="Loading events" compact /> : loadError ? null : (
-            <div className="py-3"><p className="text-sm text-[#625B52]">No upcoming events yet.</p><Link className="mt-1 inline-flex min-h-11 items-center gap-1 text-xs font-medium text-[#171717]" href="/dashboard/discover/events">View events <ArrowUpRight size={14} aria-hidden="true" /></Link></div>
-          )}
-        </div>
-      </section>
+      {pastSessions}
 
       <Link href="/dashboard/discover/groups" className="discover-advert discover-advert--whatsapp" aria-label="Find your WhatsApp group and connect with Africa Future Leaders">
         <div className="discover-advert__copy">
