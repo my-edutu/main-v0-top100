@@ -1,0 +1,9 @@
+[Unit]
+Description=Reconcile Top100 public-link delivery payments from Bachs
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/top100-award-delivery-reconciliation
+TimeoutStartSec=240

@@ -85,7 +85,7 @@ export function deliveryPaymentWarning(input: { amountMinor: number; email: stri
   const decimalAmount = `${Math.floor(input.amountMinor / 100)}.${String(input.amountMinor % 100).padStart(2, '0')}`
   const kobo = input.amountMinor.toLocaleString('en-NG')
   const email = input.email.trim() || 'the email on your Top100 account'
-  return `Before you continue, enter exactly ${decimalAmount} NGN (${amount}; ${kobo} kobo) on the Bachs payment page. Use your Top100 account email: ${email}. This public link has no delivery reference and a redirect or click is not payment confirmation. After paying, contact Top100 support at info@top100afl.com with the Bachs transaction reference and delivery ID ${input.deliveryId}. Do not pay a different amount.`
+  return `Before you continue, enter exactly ${decimalAmount} NGN (${amount}; ${kobo} kobo) on the Bachs payment page. Use your Top100 account email: ${email}. We confirm successful payments automatically using your account email and this exact amount. Allow up to five minutes, then refresh your delivery status. If it is still unconfirmed, contact nigeriatop100@gmail.com with your Bachs transaction reference and delivery ID ${input.deliveryId}. Do not pay again while confirmation is pending.`
 }
 
 export function deliveryDestinationLabel(delivery: Pick<DeliveryOrderView, 'deliveryMode' | 'destination' | 'addressLine1' | 'addressLine2' | 'city' | 'state' | 'postalCode' | 'country'>) {

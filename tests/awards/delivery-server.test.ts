@@ -33,6 +33,12 @@ describe('separately paid delivery', () => {
     expect((await dispatchPaidDelivery({ ...row, status }, db)).status).toBe(status)
     expect(state.book).not.toHaveBeenCalled(); expect(db.rpc).not.toHaveBeenCalled()
   })
+  it('records public-link payment without automatically purchasing courier service', async () => {
+    const db = database()
+    const paid = { ...row, payment_evidence: { ...row.payment_evidence, source: 'bachs_public_delivery_link', automatic_dispatch: false } }
+    expect((await dispatchPaidDelivery(paid, db)).status).toBe('paid')
+    expect(state.book).not.toHaveBeenCalled()
+  })
   it('durably claims a paid delivery before booking the exact priced destination', async () => {
     const db = database()
     state.book.mockImplementation(async input => {

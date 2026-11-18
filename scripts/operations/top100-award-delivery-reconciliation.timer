@@ -1,0 +1,10 @@
+[Unit]
+Description=Check Top100 delivery payments every five minutes
+
+[Timer]
+OnCalendar=*-*-* *:0/5:00
+Persistent=true
+Unit=top100-award-delivery-reconciliation.service
+
+[Install]
+WantedBy=timers.target
