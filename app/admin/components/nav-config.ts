@@ -98,7 +98,7 @@ export const navGroups: NavGroup[] = [
       { label: 'Announcements', href: '/admin/announcements', icon: Megaphone },
       { label: 'Homepage', href: '/admin/homepage', icon: Home },
       { label: 'Member Posts', href: '/admin/member-posts', icon: ImageIcon },
-      { label: 'Social Sharing', href: '/admin/social', icon: Share2 },
+      { label: 'Awardee features', href: '/admin/social', icon: Share2 },
     ],
   },
   {

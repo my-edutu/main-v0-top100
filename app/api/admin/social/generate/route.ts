@@ -8,6 +8,7 @@ import { SITE_URL } from '@/lib/site'
 export const runtime = 'nodejs'
 
 const SAFE_PROVIDER_MESSAGES: Record<string, string> = {
+  provider_credentials: 'The AI connection needs attention. Renew the configured API key before rewriting. Your existing write-up is unchanged.',
   provider_unavailable: 'Caption generation is temporarily unavailable. Your existing draft is unchanged.',
   provider_rejected: 'Caption generation could not be completed. Your existing draft is unchanged.',
   invalid_provider_output: 'The generated caption could not be validated. Please try again.',

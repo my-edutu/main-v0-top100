@@ -843,3 +843,7 @@ html.light .top100-admin .event-metric, .top100-admin .event-metric { min-width:
   background: #18181b;
   border-color: #3f3f46;
 }
+
+/* Writing space stays comfortable inside the shared admin form defaults. */
+.awardee-feature-composer textarea#feature-caption { min-height:320px; font-size:16px; line-height:1.75; }
+.awardee-feature-composer textarea#editorial-focus { min-height:96px; }

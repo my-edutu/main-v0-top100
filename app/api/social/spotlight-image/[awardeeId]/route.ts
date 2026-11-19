@@ -13,7 +13,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ awa
   try {
     const profile = await loadPublicAwardee(awardeeId, SITE_URL)
     if (!profile?.imageUrl || request.nextUrl.searchParams.get('v') !== spotlightSignature(profile)) return new Response('Not found', { status: 404 })
-    const image = await renderSpotlightImage(profile.imageUrl)
+    const image = await renderSpotlightImage(profile.imageUrl, fetch, profile)
     return new Response(new Uint8Array(image), { headers: { 'Content-Type': 'image/jpeg', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' } })
   } catch { return new Response('Image unavailable', { status: 422 }) }
 }

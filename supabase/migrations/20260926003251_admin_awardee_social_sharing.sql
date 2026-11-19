@@ -6,6 +6,7 @@ create table public.admin_social_share_drafts (
   caption text not null check (char_length(btrim(caption)) between 1 and 5000),
   status text not null default 'draft' check (status in ('draft', 'marked_posted')),
   publish_state text not null default 'ready'
+    constraint admin_social_share_drafts_publish_values_check
     check (publish_state in ('ready', 'publishing', 'failed', 'uncertain', 'published')),
   publish_error text,
   publish_started_at timestamptz,
