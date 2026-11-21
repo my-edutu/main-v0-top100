@@ -53,6 +53,26 @@ describe('separate magazine payment routes', () => {
     expect(mocks.view).toHaveBeenCalledWith('member-1')
   })
 
+  it('keeps paid magazine access on Play without opening or exposing checkout', async () => {
+    const headers = { cookie: 'top100-play=1' }
+    const url = 'https://top100afl.com/api/member/magazine/payment'
+    const checkout = await POST(new NextRequest(url + '/checkout', { method: 'POST', headers }))
+    expect(checkout.status).toBe(403)
+    expect(mocks.checkout).not.toHaveBeenCalled()
+
+    mocks.view.mockResolvedValue({
+      orderStatus: 'paid', applicationEligible: true,
+      currentAttempt: { status: 'open', checkoutUrl: 'https://checkout.bachs.io/c/mag' },
+    })
+    const status = await GET(new NextRequest(url, { headers }))
+    expect(await status.json()).toEqual({
+      payment: {
+        orderStatus: 'paid', applicationEligible: true, currentAttempt: { status: 'open' },
+        checkoutEnabled: false, checkoutInAppUnavailable: true,
+      },
+    })
+  })
+
   it('requires authentication for checkout and status', async () => {
     mocks.user.mockResolvedValue(null)
     expect((await POST(request({ currency: 'NGN' }))).status).toBe(401)

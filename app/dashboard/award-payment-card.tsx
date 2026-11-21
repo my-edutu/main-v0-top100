@@ -156,6 +156,12 @@ export function AwardPaymentCard({
     }
   }
 
+  if (view.checkoutInAppUnavailable) return (
+    <p role="status" className="rounded-xl border border-stone-200 bg-white p-5 text-sm text-stone-700">
+      Award checkout is unavailable in this app.
+    </p>
+  )
+
   return (
     <section
       aria-labelledby="award-payment-title"

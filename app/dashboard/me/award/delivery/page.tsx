@@ -41,7 +41,7 @@ import {
   shouldShowIncludedDelivery,
 } from '@/lib/awards/delivery/member-ui'
 
-type DeliveryResponse = { delivery: DeliveryOrderView | null; includedDelivery?: IncludedDeliveryView | null }
+type DeliveryResponse = { delivery: DeliveryOrderView | null; includedDelivery?: IncludedDeliveryView | null; checkoutInAppUnavailable?: boolean }
 
 const LOCKED_STATUSES: DeliveryOrderStatus[] = ['creating', 'open', 'paid', 'booking', 'dispatched', 'needs_review']
 
@@ -159,6 +159,7 @@ function DeliveryStatusPanel({
   now,
   onPay,
   onCheck,
+  checkoutInAppUnavailable,
   checking,
   onEdit,
 }: {
@@ -166,6 +167,7 @@ function DeliveryStatusPanel({
   now: number
   onPay: () => void
   onCheck: () => void
+  checkoutInAppUnavailable: boolean
   checking: boolean
   onEdit: () => void
 }) {
@@ -200,16 +202,17 @@ function DeliveryStatusPanel({
           <p className="mt-1 text-3xl font-semibold tabular-nums tracking-tight text-[#171412]">{formatDeliveryAmount(delivery.amountMinor, delivery.currency)}</p>
           {status === 'quoted' || status === 'expired' ? <QuoteExpiry delivery={delivery} now={now} /> : null}
         </div>
-        {canPay || canResume ? <button type="button" onClick={onPay} disabled={checking} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#ffdf45] px-5 text-sm font-medium text-[#171412] transition hover:bg-[#ffd62b] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto">
+        {!checkoutInAppUnavailable && (canPay || canResume) ? <button type="button" onClick={onPay} disabled={checking} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#ffdf45] px-5 text-sm font-medium text-[#171412] transition hover:bg-[#ffd62b] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto">
           {checking ? <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" /> : <ExternalLink className="h-4 w-4" aria-hidden="true" />}
           {checking ? 'Opening secure payment…' : canResume ? 'Continue delivery payment' : 'Pay delivery fee'}
         </button> : null}
       </div> : null}
 
-      {status === 'quoted' && !expired ? <p className="mt-4 rounded-xl bg-stone-50 px-4 py-3 text-sm leading-6 text-stone-700">Review the saved destination below, then pay the delivery fee when you are ready.</p> : null}
+      {checkoutInAppUnavailable && (canPay || canResume) ? <p className="mt-4 text-sm text-stone-600">Delivery checkout is unavailable in this app.</p> : null}
+      {!checkoutInAppUnavailable && status === 'quoted' && !expired ? <p className="mt-4 rounded-xl bg-stone-50 px-4 py-3 text-sm leading-6 text-stone-700">Review the saved destination below, then pay the delivery fee when you are ready.</p> : null}
       {status === 'expired' || (status === 'quoted' && quoteExpired) ? <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950">This quote is kept for your records but cannot be paid. Requesting a new quote will create a fresh delivery price.</p> : null}
-      {(status === 'creating' || status === 'open') && delivery.paymentMode === 'external_link' ? <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm leading-6 text-amber-950"><p className="font-medium">Your delivery payment is checked automatically.</p><p className="mt-1">Pay the exact quoted amount using your Top100 account email. Allow up to five minutes, then refresh your status. If it remains unconfirmed, contact <a href="mailto:info@top100afl.com?subject=Delivery%20payment%20verification" className="font-medium underline underline-offset-4">Top100 support</a> with your Bachs transaction reference and delivery ID <span className="font-medium">{delivery.id}</span>. Please do not pay again while confirmation is pending.</p></div> : null}
-      {(status === 'creating' || status === 'open') && delivery.paymentMode !== 'external_link' ? <div className="mt-5 rounded-xl border border-sky-200 bg-sky-50 px-4 py-4 text-sm leading-6 text-sky-950"><p className="font-medium">Your delivery payment is still being verified.</p><p className="mt-1">We will only continue once the payment provider confirms this exact delivery order. You can check again below.</p></div> : null}
+      {(status === 'creating' || status === 'open') && delivery.paymentMode === 'external_link' && !checkoutInAppUnavailable ? <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm leading-6 text-amber-950"><p className="font-medium">Your delivery payment is checked automatically.</p><p className="mt-1">Pay the exact quoted amount using your Top100 account email. Allow up to five minutes, then refresh your status. If it remains unconfirmed, contact <a href="mailto:info@top100afl.com?subject=Delivery%20payment%20verification" className="font-medium underline underline-offset-4">Top100 support</a> with your Bachs transaction reference and delivery ID <span className="font-medium">{delivery.id}</span>. Please do not pay again while confirmation is pending.</p></div> : null}
+      {(status === 'creating' || status === 'open') && (delivery.paymentMode !== 'external_link' || checkoutInAppUnavailable) ? <div className="mt-5 rounded-xl border border-sky-200 bg-sky-50 px-4 py-4 text-sm leading-6 text-sky-950"><p className="font-medium">Your delivery payment is still being verified.</p><p className="mt-1">We will only continue once the payment provider confirms this exact delivery order. You can check again below.</p></div> : null}
       {(status === 'paid' || status === 'booking') ? <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm leading-6 text-emerald-950"><p className="font-medium">Payment received — your shipment is being prepared.</p><p className="mt-1">No further payment is needed. We will show the waybill here once the courier booking is confirmed.</p></div> : null}
       {status === 'dispatched' ? <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm leading-6 text-emerald-950"><p className="font-medium">Your award has been dispatched.</p>{delivery.waybill ? <p className="mt-2 break-words">Waybill: <span className="font-medium">{delivery.waybill}</span></p> : <p className="mt-2">Waybill details are being updated.</p>}{delivery.trackingUrl ? <a href={delivery.trackingUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex min-h-10 items-center gap-2 font-medium underline underline-offset-4">Track delivery <ExternalLink className="h-4 w-4" aria-hidden="true" /></a> : null}</div> : null}
       {status === 'needs_review' ? <div className="mt-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-4 text-sm leading-6 text-rose-950"><p className="font-medium">Our delivery team needs to review this payment or booking.</p><p className="mt-1">Please do not pay again. Contact <a href="mailto:info@top100afl.com?subject=Award%20delivery%20review" className="font-medium underline underline-offset-4">Top100 support</a> and include reference <span className="font-medium">{delivery.id}</span>.</p></div> : null}
@@ -239,6 +242,7 @@ export default function AwardDeliveryPage() {
   const [error, setError] = useState('')
   const [checking, setChecking] = useState(false)
   const [checkoutBusy, setCheckoutBusy] = useState(false)
+  const [checkoutInAppUnavailable, setCheckoutInAppUnavailable] = useState(false)
   const [now, setNow] = useState(() => Date.now())
   const [ready, setReady] = useState(false)
   const returnHandled = useRef(false)
@@ -250,6 +254,7 @@ export default function AwardDeliveryPage() {
     if (!response.ok) throw new Error(readMessage(body, 'Could not load your delivery order.'))
     const nextDelivery = (body as DeliveryResponse).delivery ?? null
     setDelivery(nextDelivery)
+    setCheckoutInAppUnavailable((body as DeliveryResponse).checkoutInAppUnavailable === true)
     setIncludedDelivery(parseIncludedDelivery((body as DeliveryResponse).includedDelivery))
     if (nextDelivery) {
       setRecipientName(nextDelivery.recipientName)
@@ -330,7 +335,7 @@ export default function AwardDeliveryPage() {
   }
 
   async function startCheckout() {
-    if (!delivery || (!canPayDelivery(delivery, now) && !canResumeDelivery(delivery)) || checkoutBusy) return
+    if (checkoutInAppUnavailable || !delivery || (!canPayDelivery(delivery, now) && !canResumeDelivery(delivery)) || checkoutBusy) return
     setCheckoutBusy(true)
     setError('')
     try {
@@ -402,7 +407,7 @@ export default function AwardDeliveryPage() {
 
       <DeliveryFeeSummary payment={payment} delivery={delivery} deliveryAlreadyIncluded={showIncludedDelivery} />
 
-      {delivery ? <DeliveryStatusPanel delivery={delivery} now={now} checking={checking || checkoutBusy} onPay={() => void startCheckout()} onCheck={() => void reconcileDelivery()} onEdit={() => setFormOpen(true)} /> : null}
+      {delivery ? <DeliveryStatusPanel delivery={delivery} checkoutInAppUnavailable={checkoutInAppUnavailable} now={now} checking={checking || checkoutBusy} onPay={() => void startCheckout()} onCheck={() => void reconcileDelivery()} onEdit={() => setFormOpen(true)} /> : null}
 
       {showIncludedDelivery && includedDelivery ? <IncludedDeliveryPanel delivery={includedDelivery} /> : null}
 

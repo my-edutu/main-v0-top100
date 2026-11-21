@@ -12,6 +12,7 @@ export type AwardCouponQuote = {
 
 export type AwardPaymentView = {
   checkoutEnabled?: boolean
+  checkoutInAppUnavailable?: boolean
   status: 'unpaid' | 'pending' | 'paid' | 'failed' | 'refunded'
   priceOptions: Array<{ currency: AwardPaymentCurrency; amountMinor: number; display: string }>
   currentAttempt: null | {
