@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import Image from '@/components/safe-image'
-import { ArrowRight, Files } from 'lucide-react'
+import { ArrowRight, Award, Files } from 'lucide-react'
 import { awardLettersPath, canCreateAwardLetters, letterOptions } from '../_lib/award-letters'
 import { useDashboardMember } from '../_providers/dashboard-member'
 
@@ -46,7 +46,7 @@ export function AwardLetterCards() {
   return (
     <section className="mx-auto max-w-4xl py-1 text-[#171412]" aria-label="Letter options">
       {canCreateAwardLetters(member) ? <>
-        <p className="text-sm leading-6 text-[#625449] sm:text-base">Create and download letters on Top100 letterhead.</p>
+        <p className="text-sm leading-6 text-[#625449] sm:text-base">Create letters on Top100 letterhead or access your digital award certificate.</p>
         <div className="mt-4 grid gap-3 sm:gap-4">
           {(['recommendation', 'invitation'] as const).map(kind => {
             const { title } = letterOptions[kind]
@@ -71,6 +71,16 @@ export function AwardLetterCards() {
               </Link>
             )
           })}
+          <Link href="/dashboard/me/award/payment" className={`group flex items-center gap-4 rounded-[24px] bg-[#FFF3D9] p-5 text-[#261D06] hover:bg-[#FFEABC] sm:px-8 ${focus}`}>
+            <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-white/70">
+              <Award size={24} aria-hidden="true" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-lg font-bold leading-tight tracking-tight sm:text-xl">Digital award certificate</h2>
+              <p className="mt-1 text-sm leading-5">Download your personalized certificate once your award payment is confirmed.</p>
+            </div>
+            <ArrowRight size={20} className="shrink-0" aria-hidden="true" />
+          </Link>
         </div>
       </> : <p className="mt-2 text-sm text-[#625449]">Letters are available to Top100 awardees.</p>}
     </section>

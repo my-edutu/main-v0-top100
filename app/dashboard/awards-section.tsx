@@ -282,7 +282,7 @@ export default function AwardsSection({
   }
 
   if (screen === 'paid' && view?.confirmedPayment) {
-    return <AwardOptions />
+    return <AwardOptions member={member} />
   }
 
   if (screen === 'paid') {

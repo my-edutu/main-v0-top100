@@ -2,10 +2,11 @@
 
 import { Truck } from 'lucide-react'
 import Link from 'next/link'
+import type { MemberProfile } from '@/lib/member-hub'
 
 import { AwardCertificateCard } from '../award-certificate-card'
 
-export function AwardOptions() {
+export function AwardOptions({ member }: { member: Pick<MemberProfile, 'name'> }) {
   return (
     <div id="my-award-options" className="scroll-mt-6 space-y-6 text-white">
       <header className="space-y-2">
@@ -51,7 +52,7 @@ export function AwardOptions() {
         </div>
       </section>
 
-      <AwardCertificateCard />
+      <AwardCertificateCard member={member} />
     </div>
   )
 }
