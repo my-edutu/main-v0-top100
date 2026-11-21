@@ -1,3 +1,4 @@
+import { paymentViewForDistribution } from '@/lib/play-distribution'
 import { NextRequest, NextResponse } from 'next/server'
 
 import { MAGAZINE_GUEST_ACCESS_COOKIE } from '@/lib/magazine/guest-access'
@@ -9,10 +10,8 @@ export const runtime = 'nodejs'
 
 export async function GET(request: NextRequest) {
   try {
-    return NextResponse.json({
-      ...await getPublicMagazinePaymentView(request.cookies.get(MAGAZINE_GUEST_ACCESS_COOKIE)?.value ?? null),
-      checkoutEnabled: isMagazineCheckoutEnabled(process.env),
-    }, {
+    const view = await getPublicMagazinePaymentView(request.cookies.get(MAGAZINE_GUEST_ACCESS_COOKIE)?.value ?? null)
+    return NextResponse.json(paymentViewForDistribution(view, isMagazineCheckoutEnabled(process.env), request), {
       headers: { 'Cache-Control': 'private, no-store' },
     })
   } catch (error) {

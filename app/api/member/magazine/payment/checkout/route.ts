@@ -1,3 +1,4 @@
+import { androidCheckoutRejection } from '@/lib/play-distribution'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 
@@ -16,6 +17,8 @@ const checkoutDetailsSchema = z.object({
 }).strict()
 
 export async function POST(request: NextRequest) {
+  const rejection = androidCheckoutRejection(request)
+  if (rejection) return rejection
   const user = await getCurrentUser()
   if (!user?.id) return NextResponse.json({ message: 'Authentication required.' }, { status: 401 })
   if (!isMagazineCheckoutEnabled(process.env)) return NextResponse.json({ message: 'Magazine payment is temporarily unavailable.' }, { status: 503 })

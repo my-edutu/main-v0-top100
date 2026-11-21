@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { androidCheckoutRejection, isAndroidPlayRequest } from "@/lib/play-distribution";
 import { z } from "zod";
 import { isAdminRole } from "@/lib/types/roles";
 import { getServerSession } from "@/lib/auth-server";
@@ -25,13 +26,11 @@ export async function GET(request: NextRequest) {
   try {
     const db = createAdminClient();
     const profile = await impactProfile(db, session.user.id);
+    const view = await loadImpact(db, session.user.id, request.nextUrl.searchParams.get("group") ?? undefined);
     return NextResponse.json(
       {
-        ...(await loadImpact(
-          db,
-          session.user.id,
-          request.nextUrl.searchParams.get("group") ?? undefined,
-        )),
+        ...view,
+        checkoutEnabled: view.checkoutEnabled && !isAndroidPlayRequest(request),
         canSupportAnyGroup: isAdminRole(profile.role),
       },
       { headers: { "Cache-Control": "private, no-store" } },
@@ -48,6 +47,17 @@ export async function POST(request: NextRequest) {
       { status: 401 },
     );
   try {
+    const { action, input } = z
+      .object({
+        action: z.enum(["join", "checkout", "reconcile"]),
+        input: z.unknown(),
+      })
+      .strict()
+      .parse(await request.json());
+    if (action === "checkout") {
+      const rejection = androidCheckoutRejection(request);
+      if (rejection) return rejection;
+    }
     const rate = await checkRateLimit({
       identifier: `project100:${session.user.id}`,
       maxRequests: 20,
@@ -60,16 +70,11 @@ export async function POST(request: NextRequest) {
       );
     const db = createAdminClient();
     const profile = await impactProfile(db, session.user.id);
-    const { action, input } = z
-      .object({
-        action: z.enum(["join", "checkout", "reconcile"]),
-        input: z.unknown(),
-      })
-      .strict()
-      .parse(await request.json());
     if (action === "join")
-      return NextResponse.json(await joinImpact(db, session.user.id, input, profile.location ?? ""));
-    if (action === "checkout")
+      return NextResponse.json(
+        await joinImpact(db, session.user.id, input, profile.location ?? ""),
+      );
+    if (action === "checkout") {
       return NextResponse.json(
         await startImpactCheckout(
           db,
@@ -77,6 +82,7 @@ export async function POST(request: NextRequest) {
           input,
         ),
       );
+    }
     const { contributionId } = z
       .object({ contributionId: z.guid() })
       .strict()

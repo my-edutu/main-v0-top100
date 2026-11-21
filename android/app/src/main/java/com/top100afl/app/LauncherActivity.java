@@ -49,6 +49,11 @@ public class LauncherActivity
 
 
 
+        if (uri.isHierarchical() && "https".equals(uri.getScheme())
+                && "www.top100afl.com".equals(uri.getHost())
+                && !uri.getQueryParameters("distribution").contains("google-play")) {
+            return uri.buildUpon().appendQueryParameter("distribution", "google-play").build();
+        }
         return uri;
     }
 }

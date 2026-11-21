@@ -1,3 +1,5 @@
+import { cookies } from 'next/headers'
+import { isAndroidPlaySession } from '@/lib/play-distribution'
 import { getCurrentUser } from '@/lib/auth-server'
 import { createAdminClient } from '@/lib/supabase/server'
 import { getAwardLetterAccess } from '@/lib/award-letters/access'
@@ -8,6 +10,7 @@ import { checkRateLimit, createRateLimitResponse, RATE_LIMITS } from '@/lib/rate
 export async function POST(request: Request) {
   const user = await getCurrentUser()
   if (!user?.id) return letterResponse({ message: 'Sign in to access recommendations.' }, 401)
+  if (isAndroidPlaySession(await cookies())) return letterResponse({ message: 'Checkout is unavailable in this app.' }, 403)
   const body = await request.json().catch(() => null)
   if (body?.action !== 'checkout' && body?.action !== 'check') return letterResponse({ message: 'Choose a payment action.' }, 400)
   try {

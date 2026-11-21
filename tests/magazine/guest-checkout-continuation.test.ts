@@ -16,6 +16,13 @@ beforeEach(() => {
 afterEach(() => vi.resetAllMocks())
 
 describe('public checkout continuation', () => {
+  it('blocks guest checkout in the Play app', async () => {
+    const play = request()
+    play.headers.set('cookie', 'top100-play=1')
+    expect((await POST(play)).status).toBe(403)
+    expect(mocks.checkout).not.toHaveBeenCalled()
+  })
+
   it('keeps the existing access cookie for the same applicant', async () => {
     expect((await POST(request())).status).toBe(200)
     expect(mocks.checkout).toHaveBeenCalledWith(expect.objectContaining({ email: 'guest@example.com' }), token)

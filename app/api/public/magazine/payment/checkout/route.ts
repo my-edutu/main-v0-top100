@@ -1,3 +1,4 @@
+import { androidCheckoutRejection } from '@/lib/play-distribution'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { verifySignupCaptcha } from '@/lib/auth/signup-turnstile'
@@ -28,6 +29,8 @@ const schema = z.object({
 }).strict()
 
 export async function POST(request: NextRequest) {
+  const rejection = androidCheckoutRejection(request)
+  if (rejection) return rejection
   if (!isMagazineCheckoutEnabled(process.env)) return NextResponse.json({ message: 'Magazine payment is temporarily unavailable.' }, { status: 503 })
   let body: unknown
   try { body = await request.json() }
