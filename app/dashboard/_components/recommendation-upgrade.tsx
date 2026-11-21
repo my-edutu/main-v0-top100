@@ -18,7 +18,8 @@ async function paymentRequest(action: 'checkout' | 'check', demo = false) {
   return data as { access: RecommendationAccess; checkoutUrl?: string }
 }
 
-export function RecommendationUpgrade({ access, onAccess }: {
+export function RecommendationUpgrade({ access, onAccess, allowCheckout }: {
+  allowCheckout: boolean
   access: RecommendationAccess | null
   onAccess: (access: RecommendationAccess) => void
 }) {
@@ -28,6 +29,7 @@ export function RecommendationUpgrade({ access, onAccess }: {
   const [error, setError] = useState('')
 
   useEffect(() => {
+    if (!allowCheckout) return
     const url = new URL(window.location.href)
     const outcome = url.searchParams.get('pack')
     if (outcome === 'cancelled') {
@@ -61,10 +63,10 @@ export function RecommendationUpgrade({ access, onAccess }: {
 
     void verifyReturn()
     return () => { active = false }
-  }, [onAccess])
+  }, [allowCheckout, onAccess])
 
   async function handlePayment(action: 'checkout' | 'check') {
-    if (!access) return
+    if (!access || !allowCheckout) return
     setBusy(true)
     setError('')
     setNote('')
@@ -100,7 +102,13 @@ export function RecommendationUpgrade({ access, onAccess }: {
             : access.freeRemaining > 0
               ? `${access.freeRemaining} of ${FREE_RECOMMENDATION_LIMIT} free recommendations left`
               : `${access.credits} recommendation ${access.credits === 1 ? 'credit' : 'credits'} remaining`}
-        </p> : (
+        </p> : !allowCheckout ? (
+          <p className="rounded-xl bg-[#FFF8E7] px-4 py-3 text-sm font-semibold text-[#654800]">
+            {pendingAward || unavailable
+              ? 'We couldn’t verify your recommendation access right now. Check again later.'
+              : 'You have no recommendation credits available.'}
+          </p>
+        ) : (
           <section aria-labelledby="recommendation-upgrade" className="rounded-[20px] border border-[#EBD9A4] bg-[#FFF6DD] p-4 sm:p-6">
             <div className="flex items-start gap-3">
               <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#FFE8A3] text-[#654800]"><FileBadge size={20} aria-hidden="true" /></span>
@@ -125,7 +133,7 @@ export function RecommendationUpgrade({ access, onAccess }: {
             </div>
           </section>
         )}
-      <AlertDialog open={checkoutPrompt} onOpenChange={setCheckoutPrompt}>
+      <AlertDialog open={allowCheckout && checkoutPrompt} onOpenChange={setCheckoutPrompt}>
         <AlertDialogContent className="w-[calc(100%-2rem)] rounded-2xl bg-white text-stone-950">
           <AlertDialogHeader>
             <AlertDialogTitle>Get {RECOMMENDATION_PACK_SIZE} more recommendations</AlertDialogTitle>

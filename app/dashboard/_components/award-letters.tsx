@@ -33,7 +33,7 @@ function useAwardLetterDraft(kind: LetterKind) {
   return { draft: context.draft?.kind === kind ? context.draft : null, setDraft: context.setDraft }
 }
 
-export function AwardLetterForm({ kind }: { kind: LetterKind }) {
+export function AwardLetterForm({ kind, allowCheckout }: { kind: LetterKind; allowCheckout: boolean }) {
   const { member } = useDashboardMember()
   const router = useRouter()
   const { draft, setDraft } = useAwardLetterDraft(kind)
@@ -119,7 +119,7 @@ export function AwardLetterForm({ kind }: { kind: LetterKind }) {
       <h1 id="award-letter-heading" className="text-3xl font-semibold tracking-tight">{title}</h1>
       {canCreateAwardLetters(member) ? <>
         <p className="mt-2 text-sm leading-6 text-[#625449] sm:text-base">{description}</p>
-        {kind === 'recommendation' && <RecommendationUpgrade access={recommendationAccess} onAccess={setRecommendationAccess} />}
+        {kind === 'recommendation' && <RecommendationUpgrade access={recommendationAccess} onAccess={setRecommendationAccess} allowCheckout={allowCheckout} />}
         {canWrite && <form ref={formRef} className="mt-6 scroll-mt-24" onSubmit={generate}>
           <fieldset disabled={busy} className="grid gap-5">
             <div className="grid gap-5">
