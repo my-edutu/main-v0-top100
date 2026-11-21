@@ -11,6 +11,7 @@ type CheckoutMember = { name: string; email: string; location: string }
 type PaymentView = {
   campaign: { title: string; description: string; ngnAmountMinor: number; usdAmountMinor: number; applicationOpen: boolean }
   checkoutEnabled: boolean
+  checkoutInAppUnavailable?: boolean
   orderStatus: string
   applicationEligible: boolean
   currentAttempt: { id: string; status: string; currency: string; amountMinor: number; expiresAt: string | null; checkoutUrl?: string } | null
@@ -126,6 +127,15 @@ export function MagazinePaymentGate({ children, member }: { children: ReactNode;
       </section>
     )
   }
+
+  if (payment?.checkoutInAppUnavailable) return (
+    <p role="status" className="rounded-xl border border-stone-200 bg-white p-5 text-sm text-stone-700">
+      Magazine checkout is unavailable in this app. If you already paid, you can check your status here.
+      <button type="button" disabled={refreshing} onClick={() => void refresh(true)} className="ml-2 font-semibold underline">
+        {refreshing ? 'Checking…' : 'Check payment status'}
+      </button>
+    </p>
+  )
 
   const busy = refreshing
   const pending = payment?.orderStatus === 'pending' || payment?.currentAttempt?.status === 'open' || payment?.currentAttempt?.status === 'creating'

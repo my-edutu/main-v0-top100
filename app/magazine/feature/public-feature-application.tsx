@@ -23,6 +23,7 @@ type Campaign = {
 type PaymentView = {
   campaign: Campaign
   checkoutEnabled: boolean
+  checkoutInAppUnavailable?: boolean
   orderStatus: string
   currentAttempt: { status: string; checkoutUrl?: string } | null
   applicationStatus: string | null
@@ -171,7 +172,7 @@ export default function PublicFeatureApplication() {
   }, [refresh])
 
   const price = useMemo(() => {
-    if (!view) return null
+    if (!view || view.checkoutInAppUnavailable) return null
     const amountMinor = countryCode === 'NG' ? view.campaign.ngnAmountMinor : view.campaign.usdAmountMinor
     const currency = countryCode === 'NG' ? 'NGN' : 'USD'
     return new Intl.NumberFormat(countryCode === 'NG' ? 'en-NG' : 'en-US', { style: 'currency', currency }).format(amountMinor / 100)
@@ -179,6 +180,7 @@ export default function PublicFeatureApplication() {
 
   async function startCheckout(event?: FormEvent<HTMLFormElement>) {
     event?.preventDefault()
+    if (view?.checkoutInAppUnavailable) return
     if (captchaRequired && !captchaToken) {
       setError('Please complete the security check to continue.')
       return
@@ -300,6 +302,13 @@ export default function PublicFeatureApplication() {
                 <div className="space-y-2"><Label htmlFor="feature-summary">Your work and impact</Label><Textarea id="feature-summary" value={summary} onChange={(event) => setSummary(event.target.value)} minLength={20} maxLength={10_000} required rows={7} placeholder="Describe your work, the impact it has made, and what you would like readers to know." /></div>
                 <Button type="submit" className="w-full bg-orange-500 text-slate-950 hover:bg-orange-600" disabled={applicationBusy}>{applicationBusy ? <><LoaderCircle className="mr-2 h-4 w-4 animate-spin" />Submitting…</> : <>Submit application <ArrowRight className="ml-2 h-4 w-4" /></>}</Button>
               </form>
+            ) : view.checkoutInAppUnavailable ? (
+              <div role="status" className="space-y-4">
+                <p className="text-sm text-slate-700">Magazine checkout is unavailable in this app.</p>
+                <button type="button" onClick={() => { setContinueCheckoutAfterCode(false); setRecoveryRequired(true); setError(''); setRecoveryMessage('') }} className="text-sm font-medium text-orange-700 underline">
+                  Resume an existing application
+                </button>
+              </div>
             ) : ['exception', 'refunded'].includes(view.orderStatus) || pending ? (
               <div role="status" className="space-y-5">
                 <ShieldCheck className="h-10 w-10 text-orange-600" />

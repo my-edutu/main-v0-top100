@@ -31,3 +31,29 @@ export function androidPlayLaunchResponse(request: NextRequest) {
   })
   return response
 }
+
+export function isAndroidPlayRequest(request?: Request) {
+  return request?.headers.get('cookie')?.split(';').some(
+    (cookie) => cookie.trim() === PLAY_DISTRIBUTION_COOKIE + '=1',
+  ) ?? false
+}
+
+export function androidCheckoutRejection(request: Request) {
+  if (!isAndroidPlayRequest(request)) return null
+  return NextResponse.json({ message: 'Checkout is unavailable in this app.' }, {
+    status: 403,
+    headers: { 'Cache-Control': 'private, no-store' },
+  })
+}
+
+export function paymentViewForDistribution<T extends { currentAttempt: { checkoutUrl?: string | null } | null }>(
+  view: T, enabled: boolean, request?: Request,
+) {
+  if (!isAndroidPlayRequest(request)) return { ...view, checkoutEnabled: enabled }
+  return {
+    ...view,
+    currentAttempt: view.currentAttempt ? { ...view.currentAttempt, checkoutUrl: undefined } : view.currentAttempt,
+    checkoutEnabled: false,
+    checkoutInAppUnavailable: true,
+  }
+}

@@ -1,3 +1,4 @@
+import { androidCheckoutRejection } from '@/lib/play-distribution'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getCurrentUser } from '@/lib/auth-server'
@@ -18,6 +19,8 @@ const bodySchema = z.union([
 const privateHeaders = { 'Cache-Control': 'private, no-store' }
 
 export async function POST(request: NextRequest) {
+  const rejection = androidCheckoutRejection(request)
+  if (rejection) return rejection
   const user = await getCurrentUser()
   if (!user?.id) return NextResponse.json({ message: 'Authentication required.' }, { status: 401 })
   if (!isAwardCheckoutEnabled(process.env)) {

@@ -34,6 +34,15 @@ describe("Project100 impact access boundaries", () => {
       ).status,
     ).toBe(401);
   });
+  it("rejects Play checkout before loading member payment data", async () => {
+    auth.getServerSession.mockResolvedValue({ user: { id: "review-member" } });
+    const request = new NextRequest("http://localhost/api/member/project100/impact", {
+      method: "POST",
+      headers: { cookie: "top100-play=1" },
+      body: JSON.stringify({ action: "checkout", input: {} }),
+    });
+    expect((await POST(request)).status).toBe(403);
+  });
   it("requires authoritative admin permission before grouping or recording support", async () => {
     auth.requireAdmin.mockResolvedValue({
       error: new Response("{}", { status: 403 }),
