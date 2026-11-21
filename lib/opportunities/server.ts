@@ -215,7 +215,7 @@ const optionalDeadline = z
     message: 'Deadline must be a valid date (YYYY-MM-DD).',
   })
 
-export const createOpportunitySchema = z.object({
+const opportunitySchema = z.object({
   title: z.string().trim().min(3, 'Title must be at least 3 characters.').max(200),
   type: z.enum(OPPORTUNITY_TYPES),
   organization: optionalText(200),
@@ -226,12 +226,18 @@ export const createOpportunitySchema = z.object({
   contactEmail: optionalEmail,
   deadline: optionalDeadline,
   amountNote: optionalText(200),
-  visibility: z.enum(OPPORTUNITY_VISIBILITIES).default('members'),
-  isFeatured: z.boolean().default(false),
-  status: z.enum(OPPORTUNITY_STATUSES).default('draft'),
+  visibility: z.enum(OPPORTUNITY_VISIBILITIES),
+  isFeatured: z.boolean(),
+  status: z.enum(OPPORTUNITY_STATUSES),
 })
 
-export const updateOpportunitySchema = createOpportunitySchema.partial()
+export const createOpportunitySchema = opportunitySchema.extend({
+  visibility: opportunitySchema.shape.visibility.default('members'),
+  isFeatured: opportunitySchema.shape.isFeatured.default(false),
+  status: opportunitySchema.shape.status.default('draft'),
+})
+
+export const updateOpportunitySchema = opportunitySchema.partial()
 
 export type CreateOpportunityInput = z.infer<typeof createOpportunitySchema>
 export type UpdateOpportunityInput = z.infer<typeof updateOpportunitySchema>
