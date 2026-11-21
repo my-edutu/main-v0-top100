@@ -19,7 +19,7 @@ export default function PrivacyPage() {
       eyebrow="Privacy & Data Policy"
       title="Privacy & Data Policy"
       intro="We collect the minimum information needed to run the Top100 Africa Future Leaders platform, we never sell it, and we delete applicant data once a selection cycle successfully concludes. This policy explains exactly what we hold, why, for how long, and the rights you have over it."
-      lastUpdated="16 July 2026"
+      lastUpdated="21 November 2026"
     >
       <LegalSection number="01" title="The short version">
         <ul>
@@ -138,7 +138,7 @@ export default function PrivacyPage() {
         </p>
         <ul>
           <li><strong>Supabase</strong> — our database and authentication provider (accounts, applications, messages).</li>
-          <li><strong>Vercel</strong> — website hosting and privacy-friendly, aggregated analytics.</li>
+          <li><strong>Self-hosted infrastructure</strong> — we operate the website and database on our own servers.</li>
           <li><strong>Brevo</strong> — newsletter and transactional email delivery.</li>
           <li><strong>Google Forms</strong> — awardee cohort application intake.</li>
         </ul>
@@ -179,6 +179,22 @@ export default function PrivacyPage() {
           </a>{' '}
           with your request and we will respond within 30 days. You also have the right to complain
           to your data protection authority.
+        </p>
+        <h3 id="delete-account" className="scroll-mt-24 text-base font-bold text-slate-950">
+          Request deletion of your Top100 account
+        </h3>
+        <p>
+          You can request deletion without signing in.{' '}
+          <a
+            href="mailto:partnership@top100afl.com?subject=Top100%20account%20deletion%20request"
+            className="font-semibold text-orange-700"
+          >
+            Email our privacy team
+          </a>{' '}
+          from the email address linked to your Top100 Africa Future Leaders account. Ask us to
+          delete your account, public profile and associated personal data. We will verify your
+          identity and confirm when the request is complete. We retain only records we are
+          legally required to keep.
         </p>
       </LegalSection>
 
