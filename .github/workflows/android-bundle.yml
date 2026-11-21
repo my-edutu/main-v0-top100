@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   bundle:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
@@ -20,8 +20,10 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-      - name: Install Android SDK 36 components
-        run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+      - name: Verify Android SDK 36 components
+        run: |
+          test -f "$ANDROID_HOME/platforms/android-36/android.jar"
+          test -x "$ANDROID_HOME/build-tools/36.0.0/aapt2"
       - name: Build unsigned release bundle
         working-directory: android
         run: sh ./gradlew --no-daemon --console=plain --max-workers=2 bundleRelease
