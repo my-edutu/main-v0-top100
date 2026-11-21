@@ -1,6 +1,8 @@
 import type { AwardPaymentView } from '@/lib/awards/payment'
 import type { DeliveryOrderView, IncludedDeliveryView } from './types'
 
+export { isHostedCheckoutUrl } from '@/lib/payments/bachs/payment-links'
+
 export function deliveryQuoteExpired(delivery: Pick<DeliveryOrderView, 'expiresAt'>, now = Date.now()) {
   const expiresAt = new Date(delivery.expiresAt).getTime()
   return !Number.isFinite(expiresAt) || expiresAt <= now
@@ -58,15 +60,6 @@ export function deliveryReconcileRequest() {
 
 export function shouldReconcileDeliveryReturn(search: string) {
   return new URLSearchParams(search).get('deliveryPayment') === 'done'
-}
-
-export function isHostedCheckoutUrl(value: unknown) {
-  if (typeof value !== 'string' || !value.trim()) return false
-  try {
-    return new URL(value).protocol === 'https:'
-  } catch {
-    return false
-  }
 }
 
 export function formatDeliveryAmount(amountMinor: number, currency: string) {

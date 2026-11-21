@@ -872,6 +872,28 @@ export async function handleDemoMemberRequest(
       response = json(view)
       break
     }
+    case 'recommendation-letters': {
+      if (path.length !== 1 || !['GET', 'POST'].includes(request.method)) break
+      const { handleDemoRecommendations } = await import('@/lib/award-letters/recommendations-demo')
+      return handleDemoRecommendations(request, store, pickupPaymentState(store.awardPayment))
+    }
+    case 'award-letters': {
+      if (path.length !== 1 || request.method !== 'POST') break
+      const { parseLetterRequest } = await import('@/lib/award-letters/request')
+      const input = await parseLetterRequest(request)
+      if (!input) return json({ message: 'Check the name, recipient and opportunity fields.' }, 400)
+      if (input.kind !== 'invitation') return json({ message: 'Create recommendation letters from Saved letters.' }, 400)
+      const { renderLetter } = await import('@/lib/award-letters/render')
+      try {
+        return Response.json(await renderLetter(input, '2026', true), {
+          headers: { 'Cache-Control': 'private, no-store' },
+        })
+      } catch (error) {
+        return error instanceof RangeError
+          ? json({ message: error.message }, 400)
+          : json({ message: 'Your letter could not be prepared. Please try again.' }, 503)
+      }
+    }
     case 'festival-interest': {
       if (!canAttendFestival(store.profile.status))
         return json({ message: 'Festival registration is available to approved Top100 awardees.' }, 403)

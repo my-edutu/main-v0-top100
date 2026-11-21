@@ -40,6 +40,8 @@ const nextConfig = {
   // Docker runs its minimal server; Dokploy's npm build uses next start.
   ...(process.env.NEXT_OUTPUT_STANDALONE === 'true' ? { output: 'standalone' } : {}),
   outputFileTracingIncludes: {
+    '/api/member/award-letters': ['./private/award-letters/*.png', './node_modules/geist/dist/fonts/geist-sans/Geist-Variable.ttf'],
+    '/api/member/recommendation-letters': ['./private/award-letters/*.png', './node_modules/geist/dist/fonts/geist-sans/Geist-Variable.ttf'],
     '/api/session-materials/beyond-the-paycheck/presentation': ['./private/session-materials/beyond-the-paycheck.pptx'],
     '/api/session-materials/bloom/presentation': ['./private/session-materials/cynthia-ohaeri-bloom-preview.pdf'],
     '/api/session-materials/from-idea-to-scale/presentation': ['./private/session-materials/from-idea-to-scale-top100-afl-2026.pdf'],
