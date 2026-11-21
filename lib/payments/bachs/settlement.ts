@@ -9,7 +9,7 @@ type AwardEvidence = {
   currency: 'NGN' | 'USD'
   requestedMinor: number
   grossMinor: number
-  purpose?: 'afl_award_fee_v1' | 'afl_award_delivery_v1'
+  purpose?: 'afl_award_fee_v1' | 'afl_award_delivery_v1' | 'afl_recommendation_pack_v1'
 }
 
 function record(value: unknown): Record<string, unknown> {

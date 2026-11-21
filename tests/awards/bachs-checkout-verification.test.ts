@@ -10,6 +10,15 @@ function checkout() {
 }
 const fetchFor = (body: unknown) => vi.fn().mockResolvedValue(Response.json(body))
 describe('authenticated Bachs checkout reconciliation', () => {
+  it('only accepts the intended recommendation purchase and price', async () => {
+    const pack = { ...evidence, currency: 'USD' as const, requestedMinor: 500, purpose: 'afl_recommendation_pack_v1' as const }
+    const body = { ...checkout(), currency: 'USD', amount: '5.00' }
+    expect(await verifyBachsAwardCheckout(pack, config, fetchFor(body))).toBeNull()
+    const paidPack = { ...body, metadata: { ...body.metadata, purpose: pack.purpose } }
+    expect(await verifyBachsAwardCheckout(pack, config, fetchFor(paidPack))).toMatchObject({ status: 'paid', amountMinor: 500 })
+    expect(await verifyBachsAwardCheckout(pack, config, fetchFor({ ...paidPack, amount: '4.99' }))).toBeNull()
+  })
+
   it('separates customer processing cost from additional merchant card fees', async () => {
     const body = { ...checkout(), currency: 'USD', amount: '20.00', charge: {
       ...checkout().charge, currency: 'USD', amount_paid: '21.40', merchant_bears_cost: false,

@@ -31,6 +31,7 @@ import { AwardeeOnboardingJourney } from './awardee-onboarding-journey'
 import { DashboardCelebration } from './dashboard-celebration'
 import { AflCalendarAnnouncement } from './afl-calendar-announcement'
 import MagazinePopup from '@/app/components/MagazinePopup'
+import { AwardLettersHomeCard } from './award-letter-cards'
 import { FestivalCard } from './festival-card'
 import { canAttendFestival } from '@/lib/festival/config'
 
@@ -226,6 +227,7 @@ export function DashboardHome({ pastSessions }: { pastSessions: ReactNode }) {
       </Dialog> : null}
       <AflCalendarAnnouncement memberId={member.id} dashboardLoginCount={member.dashboardLoginCount ?? 0} />
       {canAttendFestival(member.status) && <FestivalCard />}
+      <AwardLettersHomeCard />
       <AwardeeOnboardingJourney name={member.name} />
       {loadError && <p role="status" className="hub-status rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-sm leading-5 text-neutral-700">Some events couldn’t load. We’ll retry automatically; you can also open Events directly.</p>}
 

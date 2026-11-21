@@ -37,6 +37,8 @@ export type BachsCheckoutCustomer = {
 }
 
 /** Exact request body sent to POST /v1/checkout-sessions. */
+export type BachsCheckoutPurpose = 'afl_award_fee_v1' | 'afl_magazine_feature_v1' | 'afl_project100_support_v1' | 'afl_award_delivery_v1' | 'afl_recommendation_pack_v1'
+
 export type BachsCheckoutRequest = {
   pricing: BachsCheckoutPricing
   billing_currency?: AwardPaymentCurrency
@@ -45,7 +47,7 @@ export type BachsCheckoutRequest = {
   metadata: {
     order_id: string
     payment_attempt_id: string
-    purpose: 'afl_award_fee_v1' | 'afl_magazine_feature_v1' | 'afl_project100_support_v1' | 'afl_award_delivery_v1'
+    purpose: BachsCheckoutPurpose
   }
   success_url: string
   cancel_url: string
@@ -64,8 +66,7 @@ export type CreateCheckoutInput = {
   currency: AwardPaymentCurrency
   /** Leave unset on USD award pricing so Bachs can offer adaptive local currencies. */
   adaptivePricing?: boolean
-  /** Only set by the server-side magazine feature checkout service. */
-  purpose?: 'afl_award_fee_v1' | 'afl_magazine_feature_v1' | 'afl_project100_support_v1' | 'afl_award_delivery_v1'
+  purpose?: BachsCheckoutPurpose
   /** Exact, reserved contribution amount; only used for the Project100 purpose. */
   supportAmountMinor?: number
   /** Exact server-priced GIG delivery bill, never supplied by the browser. */
