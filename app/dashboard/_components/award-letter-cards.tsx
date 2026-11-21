@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
+import Image from '@/components/safe-image'
 import { ArrowRight, Files } from 'lucide-react'
 import { awardLettersPath, canCreateAwardLetters, letterOptions } from '../_lib/award-letters'
 import { useDashboardMember } from '../_providers/dashboard-member'
