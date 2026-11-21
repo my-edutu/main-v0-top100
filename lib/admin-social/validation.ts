@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { SOCIAL_PLATFORMS } from './types'
 
-const uuid = z.string().uuid()
+const uuid = z.guid()
 
 export const draftInputSchema = z
   .object({

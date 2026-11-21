@@ -20,7 +20,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
   if ('error' in auth) return auth.error
   const { id } = await context.params
   const parsed = inputSchema.safeParse(await request.json().catch(() => null))
-  if (!z.string().uuid().safeParse(id).success || !parsed.success) return json({ message: 'Choose a valid payout action. Payment confirmation requires a transfer reference.' }, 400)
+  if (!z.guid().safeParse(id).success || !parsed.success) return json({ message: 'Choose a valid payout action. Payment confirmation requires a transfer reference.' }, 400)
   try {
     const db = createAdminClient()
     const requestRow = await db.from('team_withdrawal_requests').select('id,team_id,agent_id,amount_minor,currency,status,payout_method,payout_details').eq('id', id).maybeSingle()

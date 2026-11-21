@@ -62,9 +62,9 @@ export const project100SubmissionSchema = z
     location: requiredText('Location', 160),
     interest: requiredText('Interest', 500),
     areaOfFunction: requiredText('Area of function', 160),
-    teamLeadPreference: z.boolean({ required_error: 'Choose your team-lead preference.' }),
+    teamLeadPreference: z.boolean({ error: (issue) => issue.input === undefined ? 'Choose your team-lead preference.' : undefined }),
     resourceSupportNeeds: requiredText('Resource or support needs', 2_000),
-    consent: z.literal(true, { errorMap: () => ({ message: 'Consent is required.' }) }),
+    consent: z.literal(true, { error: 'Consent is required.' }),
   })
   .strict()
 

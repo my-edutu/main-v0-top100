@@ -9,7 +9,7 @@ export const runtime = 'nodejs'
 // already-public profiles on our own image hosts can be rendered.
 export async function GET(request: NextRequest, context: { params: Promise<{ awardeeId: string }> }) {
   const { awardeeId } = await context.params
-  if (!z.string().uuid().safeParse(awardeeId).success) return new Response('Not found', { status: 404 })
+  if (!z.guid().safeParse(awardeeId).success) return new Response('Not found', { status: 404 })
   try {
     const profile = await loadPublicAwardee(awardeeId, SITE_URL)
     if (!profile?.imageUrl || request.nextUrl.searchParams.get('v') !== spotlightSignature(profile)) return new Response('Not found', { status: 404 })

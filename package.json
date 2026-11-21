@@ -24,9 +24,8 @@
     "@aws-sdk/client-s3": "^3.1146.0",
     "@aws-sdk/s3-request-presigner": "^3.1146.0",
     "@emotion/is-prop-valid": "1.4.0",
-    "@hookform/resolvers": "^3.10.0",
+    "@hookform/resolvers": "5.2.2",
     "@marsidev/react-turnstile": "^1.4.0",
-    "@prisma/client": "^6.16.2",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.4",
     "@radix-ui/react-aspect-ratio": "1.1.1",
@@ -81,8 +80,8 @@
     "jwt-decode": "^4.0.0",
     "libphonenumber-js": "1.13.12",
     "lucide-react": "^0.454.0",
-    "markdown-it": "^14.3.2",
-    "next": "^16.3.8",
+    "markdown-it": "^14.3.3",
+    "next": "^16.4.5",
     "next-themes": "^0.4.4",
     "ng-geo-data": "1.0.0",
     "nodemailer": "^10.1.1",
@@ -97,7 +96,7 @@
     "react-time-picker": "^8.1.0",
     "read-excel-file": "^9.3.10",
     "recharts": "2.15.0",
-    "sharp": "^0.35.3",
+    "sharp": "^0.35.5",
     "sonner": "^1.7.1",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
@@ -105,7 +104,7 @@
     "vaul": "^1.1.2",
     "web-push": "^3.6.7",
     "xlsx": "npm:@e965/xlsx@^0.20.3",
-    "zod": "^3.25.76"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.19",
@@ -114,12 +113,16 @@
     "@types/react-dom": "^19.2.4",
     "@types/web-push": "^3.6.4",
     "eslint": "9.36.0",
-    "eslint-config-next": "^16.3.8",
+    "eslint-config-next": "^16.4.5",
     "postcss": "^8.5",
-    "prisma": "^6.16.2",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.20.6",
     "typescript": "^5",
-    "vitest": "^3.2.7"
+    "vitest": "^4.1.11"
+  },
+  "overrides": {
+    "vitest": {
+      "vite": "^7.3.8"
+    }
   }
 }

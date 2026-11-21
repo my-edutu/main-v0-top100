@@ -12,7 +12,7 @@ const applicationSchema = z.object({
   organization: z.string().optional().default(''),
   subject: z.string().min(1, 'Subject is required'),
   message: z.string().min(1, 'Message is required'),
-  values: z.record(z.string()).optional().default({}),
+  values: z.record(z.string(), z.string()).optional().default({}),
 })
 
 const escapeHtml = (value: string) =>
@@ -122,7 +122,7 @@ export async function POST(req: NextRequest) {
       return Response.json({
         success: false,
         error: 'Invalid input data',
-        details: error.errors,
+        details: error.issues,
       }, { status: 400 })
     }
 

@@ -7,7 +7,6 @@ export default defineConfig({
     include: ['tests/**/*.test.{ts,tsx}'],
     // Next and native image fixtures are memory-heavy; keep shared/8 GB runners stable.
     maxWorkers: 4,
-    minWorkers: 1,
   },
   // tsconfig sets jsx: "preserve" and Next compiles with the automatic
   // runtime. Vitest's default is the classic runtime, which needs React in

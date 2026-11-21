@@ -19,12 +19,12 @@ const postSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('preview'), ...selection, draft }).strict(),
   z.object({ action: z.literal('export'), ...selection, draft, format: z.enum(['csv', 'emails']).default('csv') }).strict(),
   z.object({ action: z.literal('save_template'), template, draft }).strict(),
-  z.object({ action: z.literal('campaign'), ...selection, draft, requestId: z.string().uuid(), confirmed: z.literal(true), audienceKey: z.string().length(64) }).strict(),
-  z.object({ action: z.literal('cancel'), campaignId: z.string().uuid() }).strict(),
-  z.object({ action: z.literal('resolve_delivery'), recipientId: z.string().uuid(), outcome: z.enum(['accepted', 'not_sent']), reviewNote: z.string().trim().min(10).max(500), confirmed: z.literal(true) }).strict(),
+  z.object({ action: z.literal('campaign'), ...selection, draft, requestId: z.guid(), confirmed: z.literal(true), audienceKey: z.string().length(64) }).strict(),
+  z.object({ action: z.literal('cancel'), campaignId: z.guid() }).strict(),
+  z.object({ action: z.literal('resolve_delivery'), recipientId: z.guid(), outcome: z.enum(['accepted', 'not_sent']), reviewNote: z.string().trim().min(10).max(500), confirmed: z.literal(true) }).strict(),
 ])
 const noteSchema = z.object({
-  awardeeId: z.string().uuid(), owner: z.string().max(120), notes: z.string().max(3000),
+  awardeeId: z.guid(), owner: z.string().max(120), notes: z.string().max(3000),
   reason: z.enum(OUTREACH_REASONS), suppressed: z.boolean(),
   lastContactedAt: z.string().datetime().nullable(), nextFollowUpAt: z.string().datetime().nullable(),
 }).strict()

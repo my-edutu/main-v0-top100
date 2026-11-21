@@ -10,7 +10,7 @@ import { resolveContact } from '@/lib/admin/member-contact-review'
 import { SITE_URL } from '@/lib/site'
 
 export const runtime = 'nodejs'
-const schema = z.object({ awardeeId: z.string().uuid(), template: z.enum(['welcome', 'reminder']), expectedEmail: z.string().email(), expectedActivated: z.boolean() }).strict()
+const schema = z.object({ awardeeId: z.guid(), template: z.enum(['welcome', 'reminder']), expectedEmail: z.string().email(), expectedActivated: z.boolean() }).strict()
 const json = (body: unknown, status = 200) => NextResponse.json(body, { status, headers: { 'Cache-Control': 'private, no-store' } })
 export async function POST(request: NextRequest) {
   const originError = rejectCrossOriginMutation(request)

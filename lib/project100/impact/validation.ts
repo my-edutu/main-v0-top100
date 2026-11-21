@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { matchNigeriaState } from "./grouping";
 
-const uuid = z.string().uuid();
+const uuid = z.guid();
 export const currencySchema = z.enum(["NGN", "USD"]);
 const amount = z
   .string()

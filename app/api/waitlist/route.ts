@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
         });
     } catch (error) {
         if (error instanceof z.ZodError) {
-            return Response.json({ error: "Invalid input data", details: error.errors }, { status: 400 });
+            return Response.json({ error: "Invalid input data", details: error.issues }, { status: 400 });
         }
 
         console.error("Error processing waitlist form:", error);

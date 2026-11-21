@@ -9,7 +9,7 @@ export const metadata = {
 }
 export default async function StopAwardOutreach({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
-  const valid = z.string().uuid().safeParse(token).success
+  const valid = z.guid().safeParse(token).success
   const result = valid ? await createAdminClient().from('award_outreach_contacts').select('suppressed').eq('token', token).maybeSingle() : null
   const ready = result && !result.error ? result.data : null
   return <main className="mx-auto my-16 max-w-lg rounded-2xl border bg-white p-7 text-stone-900"><p className="text-sm text-orange-800">Top100 Africa Future Leaders</p><h1 className="my-4 text-2xl font-semibold">{ready?.suppressed ? 'Award outreach stopped' : 'Your communication preference'}</h1>

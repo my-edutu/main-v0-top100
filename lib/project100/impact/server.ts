@@ -99,7 +99,7 @@ export async function loadImpact(
   groupId?: string,
   admin = false,
 ): Promise<ImpactView> {
-  if (groupId) z.string().uuid().parse(groupId);
+  if (groupId) z.guid().parse(groupId);
   const { data, error } = await db.rpc("project100_impact_snapshot", {
     p_member: memberId,
     p_group: groupId ?? null,
@@ -374,7 +374,7 @@ export async function assertCanPostImpact(
   groupId: string,
   admin = false,
 ) {
-  z.string().uuid().parse(groupId);
+  z.guid().parse(groupId);
   if (admin) return;
   const { data, error } = await db
     .from("project100_support_memberships")
@@ -393,7 +393,7 @@ export async function publishImpactUpdate(
   form: FormData,
   admin = false,
 ) {
-  const groupId = z.string().uuid().parse(form.get("groupId"));
+  const groupId = z.guid().parse(form.get("groupId"));
   const caption = z
     .string()
     .trim()
@@ -449,7 +449,7 @@ export async function deleteImpactUpdate(
   updateId: string,
   admin = false,
 ) {
-  z.string().uuid().parse(updateId);
+  z.guid().parse(updateId);
   let lookup = db
     .from("project100_support_updates")
     .select("id,image_path")

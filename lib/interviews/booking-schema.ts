@@ -9,7 +9,7 @@ export const interviewRequestSchema = z.object({
   publicationConsent: z.literal(true),
 })
 export const bookingActionSchema = z.object({ action:z.enum(['accept','request_change','member_cancel']), revision:z.number().int().nonnegative(), reason:z.string().trim().max(500).optional() })
-export const adminBookingActionSchema = z.object({ applicationId:z.string().uuid(), action:z.enum(['approve','decline','propose','reschedule','admin_cancel','complete']), revision:z.number().int().nonnegative().optional(), startsAt:z.string().datetime({offset:true}).optional(), meetingUrl:z.string().url().max(500).optional(), reason:z.string().trim().max(500).optional() }).superRefine((value, context) => {
+export const adminBookingActionSchema = z.object({ applicationId:z.guid(), action:z.enum(['approve','decline','propose','reschedule','admin_cancel','complete']), revision:z.number().int().nonnegative().optional(), startsAt:z.string().datetime({offset:true}).optional(), meetingUrl:z.string().url().max(500).optional(), reason:z.string().trim().max(500).optional() }).superRefine((value, context) => {
   if (['decline','reschedule','admin_cancel'].includes(value.action) && (value.reason?.trim().length ?? 0) < 8) {
     context.addIssue({ code:'custom', path:['reason'], message:'Add a short reason for this update.' })
   }

@@ -5,7 +5,7 @@ import { SITE_URL } from '@/lib/site'
 export const runtime = 'nodejs'
 export async function GET(request: NextRequest, context: { params: Promise<{ token: string }> }) {
   const { token } = await context.params
-  if (!z.string().uuid().safeParse(token).success) return new NextResponse('Link not found.', { status: 404 })
+  if (!z.guid().safeParse(token).success) return new NextResponse('Link not found.', { status: 404 })
   const db = createAdminClient()
   const { data: contact, error } = await db.from('award_outreach_contacts').select('awardee_id,tracking_started_at').eq('token', token).maybeSingle()
   if (error) return new NextResponse('This link is temporarily unavailable. Please contact info@top100afl.com.', { status: 503 })
