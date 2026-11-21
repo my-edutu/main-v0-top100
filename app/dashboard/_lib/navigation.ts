@@ -53,6 +53,7 @@ export const discoverNav: DashboardNavItem[] = [
     color: 'burgundy',
   },
   { label: 'Events', href: '/dashboard/discover/events', icon: CalendarDays, color: 'ember' },
+  { label: 'Programmes', href: '/dashboard/discover/programmes', icon: GraduationCap, color: 'saffron' },
   { label: 'Magazine', href: '/dashboard/discover/magazine', icon: FileText, color: 'charcoal' },
 ]
 
