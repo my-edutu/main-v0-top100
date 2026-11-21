@@ -1,12 +1,12 @@
 create role anon; create role authenticated; create role service_role bypassrls;
 create table public.events(id uuid primary key);
 create table public.profiles(id uuid primary key);
-\i supabase/migrations/20261121094701_programme_manager.sql
-\i supabase/migrations/20261121095730_programme_planning.sql
-\i supabase/migrations/20261121095953_programme_partners_impact.sql
-\i supabase/migrations/20261121100124_programme_member_interest.sql
-\i supabase/migrations/20261121100355_programme_register.sql
-\i supabase/migrations/20261121100545_programme_weekly_reports.sql
+\i supabase/migrations/20261121120100_programme_manager.sql
+\i supabase/migrations/20261121120200_programme_planning.sql
+\i supabase/migrations/20261121120300_programme_partners_impact.sql
+\i supabase/migrations/20261121120400_programme_member_interest.sql
+\i supabase/migrations/20261121120500_programme_register.sql
+\i supabase/migrations/20261121120600_programme_weekly_reports.sql
 insert into public.profiles(id) values ('00000000-0000-0000-0000-000000000001');
 do $$ declare activity uuid; begin
  select id into activity from public.programme_manager_activities limit 1;
