@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 156" fill="none">
+  <defs>
+    <linearGradient id="purple" x1="63" y1="14" x2="114" y2="91" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F1DEFF"/><stop offset=".5" stop-color="#A68AD9"/><stop offset="1" stop-color="#654597"/>
+    </linearGradient>
+    <linearGradient id="base" x1="61" y1="99" x2="122" y2="137" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#CDB7F5"/><stop offset="1" stop-color="#7555AA"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="94" cy="137" rx="46" ry="8" fill="#493365" opacity=".16"/>
+  <g transform="rotate(-8 90 77)">
+    <path d="M92 100v24" stroke="#70509E" stroke-width="9" stroke-linecap="round"/>
+    <path d="M56 66v7a36 36 0 0 0 72 0v-7" stroke="#8665B9" stroke-width="7" stroke-linecap="round"/>
+    <rect x="69" y="17" width="46" height="76" rx="23" fill="url(#purple)" stroke="#7958AF" stroke-width="2"/>
+    <path d="M74 43c0-11 7-19 16-20" stroke="#F9EAFE" stroke-width="3" stroke-linecap="round"/>
+    <path d="M95 42h18m-18 9h19m-19 9h19m-19 9h18" stroke="#7655A8" stroke-width="2" stroke-linecap="round"/>
+    <path d="M71 126h42a10 10 0 0 1 10 10v1H61v-1a10 10 0 0 1 10-10Z" fill="url(#base)" stroke="#7354A6" stroke-width="2"/>
+  </g>
+  <path d="m139 31 3 8 8 3-8 3-3 8-3-8-8-3 8-3 3-8Z" fill="#D8A34A"/>
+  <circle cx="46" cy="54" r="4" fill="#B99ADB"/>
+</svg>

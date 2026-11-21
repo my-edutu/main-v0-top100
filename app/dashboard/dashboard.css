@@ -291,12 +291,7 @@ html.light .cover-progress-title, .cover-progress-title { color:#fff!important; 
 .discover-section-heading button { display: grid; place-items: center; width: 36px; height: 44px; border: 1px solid #e8e4df; border-radius: 10px; }
 .discover-rail { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; padding: 2px 0 10px; scrollbar-width: thin; }
 .discover-rail > * { flex: 0 0 auto; scroll-snap-align: start; }
-.discover-campaign { width: min(310px, 87%); min-height: 224px; padding: 22px; border-radius: 16px; display: flex; flex-direction: column; background: #ffc48f; background-image: repeating-radial-gradient(circle at 100% 0, transparent 0 30px, #ffffff45 31px 33px, transparent 34px 58px); }
-.discover-campaign:nth-child(2) { background-color: #ace5d3; }
-.discover-campaign:nth-child(3) { background-color: #d3c5ff; }
-.discover-kicker { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
-.discover-campaign h3 { font-size: 24px; line-height: 1.15; font-weight: 600; letter-spacing: -.035em; margin: 18px 0 8px; max-width: 230px; }
-.discover-campaign p, .discover-story p { font-size: 13px; line-height: 1.6; }
+.discover-story p { font-size: 13px; line-height: 1.6; }
 .discover-cta { margin-top: auto; padding-top: 20px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 600; }
 .discover-person { width: 182px; border: 0; border-radius: 12px; overflow: hidden; padding: 0 0 12px; display: flex; flex-direction: column; gap: 12px; background: #141419 !important; }
 .discover-avatar { width: 100%; height: 205px; border-radius: 0; object-fit: cover; object-position: center top; background: linear-gradient(145deg,#483842,#191921); display: grid; place-items: center; font-size: 36px; font-weight: 500; margin-bottom: 0; }
@@ -452,12 +447,82 @@ html.light .awardee-dashboard .award-cinema-note a { color: inherit !important; 
 html.light .hub-award-dark .hub-desktop-nav, .hub-award-dark .hub-desktop-nav { background: #101014 !important; border-color: #302d34 !important; }
 html.light .hub-award-dark .hub-desktop-nav a { color: #eee9ef !important; }
 html.light .award-welcome-backdrop, .award-welcome-backdrop { background: #f5f5f4 !important; opacity: 1 !important; animation: none !important; }
-.hub-events-rail { display:flex; gap:12px; overflow-x:auto; scroll-snap-type:x mandatory; padding:3px 2px 12px; scrollbar-width:thin; }
-.hub-upcoming-event { position:relative; flex:0 0 min(220px, 70%); scroll-snap-align:start; display:flex; flex-direction:column; justify-content:flex-end; gap:6px; min-height:132px; border:1px solid #e7ddcf; border-radius:16px; padding:14px; background-color:#8c3a0f; background-size:cover; background-position:center; overflow:hidden; }
-html.light .awardee-dashboard .hub-upcoming-event,
-.awardee-dashboard .hub-upcoming-event { color:#fff!important; }
-html.light .awardee-dashboard .hub-upcoming-event :is(span,p),
-.awardee-dashboard .hub-upcoming-event :is(span,p) { color:#fff!important; }
+.hub-events-rail {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding: 0 8px 8px 0;
+}
+.programme-roadmap-card {
+  --roadmap-start: #ffdf56;
+  --roadmap-end: #fff2be;
+  --roadmap-ink: #302305;
+  --roadmap-art: #956315;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(66px, 32%);
+  align-items: center;
+  gap: 10px;
+  min-height: 168px;
+  height: 100%;
+  padding: 18px;
+  border-radius: 22px;
+  background: linear-gradient(112deg, var(--roadmap-start), var(--roadmap-end));
+  color: var(--roadmap-ink);
+}
+.programme-roadmap-card[data-programme-tone="mint"] {
+  --roadmap-start: #b9ebd8;
+  --roadmap-end: #e4f8ef;
+  --roadmap-ink: #11352a;
+  --roadmap-art: #287c63;
+}
+.programme-roadmap-card[data-programme-tone="lavender"] {
+  --roadmap-start: #d9cef8;
+  --roadmap-end: #f0e7fc;
+  --roadmap-ink: #302049;
+  --roadmap-art: #7653a1;
+}
+.programme-roadmap-card:focus-visible { outline: 2px solid var(--roadmap-art); outline-offset: 3px; }
+.programme-roadmap-copy { display: flex; min-width: 0; flex-direction: column; align-items: flex-start; gap: 6px; }
+.programme-roadmap-status { font-size: 11px; font-weight: 650; }
+.programme-roadmap-title { font-size: 18px; font-weight: 650; line-height: 1.2; overflow-wrap: anywhere; }
+.programme-roadmap-summary { font-size: 13px; line-height: 1.45; }
+.programme-roadmap-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 5px;
+  padding: 8px 11px;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 650;
+}
+.programme-roadmap-card:hover .programme-roadmap-label { text-decoration: underline; }
+.programme-card-art {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  pointer-events: none;
+}
+.programme-detail-header { grid-template-columns: minmax(0, 1fr) minmax(74px, 30%); }
+.programme-detail-header .programme-roadmap-title { font-size: clamp(22px, 4vw, 34px); }
+.programme-detail-header .programme-roadmap-summary { font-size: 14px; }
+.programme-roadmap-card.programme-card-rail {
+  flex: 0 0 min(82vw, 320px);
+  grid-template-columns: minmax(0, 1fr) minmax(62px, 30%);
+  height: auto;
+  padding: 16px;
+}
+.programme-card-rail .programme-roadmap-summary {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+html.light .discover-feed .programme-roadmap-card,
+html.light .discover-feed .programme-roadmap-card span { color: var(--roadmap-ink) !important; }
 .discover-feed > section:last-child .discover-rail { padding-bottom: 0; min-height: 0; align-items: flex-start; }
 .discover-feed > section:last-child { align-self: start; }
 @media (max-width: 639px) {

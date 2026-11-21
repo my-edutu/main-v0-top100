@@ -22,13 +22,13 @@ const amount = z
 export const joinSchema = z
   .object({
     groupId: uuid,
-    residenceCountry: z.string().trim().min(2).max(80),
+    residenceCountry: z.string().trim().min(2).max(80).optional(),
     residenceState: z.string().trim().max(80).optional(),
   })
   .strict()
   .superRefine((value, ctx) => {
     if (
-      value.residenceCountry.toLowerCase() === "nigeria" &&
+      value.residenceCountry?.toLowerCase() === "nigeria" &&
       !matchNigeriaState(value.residenceState ?? "", "Nigeria")
     )
       ctx.addIssue({

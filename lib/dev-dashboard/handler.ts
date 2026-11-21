@@ -4,6 +4,7 @@ import { festivalInterestSchema, pickupPaymentState } from '@/lib/festival/inter
 import { canAttendFestival } from '@/lib/festival/config'
 import { nigeriaStates } from '@/lib/awards/locations'
 import { IMPACT_COUNTRIES, type ImpactView } from '@/lib/project100/impact/types'
+import { joinSchema } from '@/lib/project100/impact/validation'
 import { deliveryPreviewSchema } from '@/lib/awards/delivery-preview'
 import { getLiveDeliveryPreview, getLiveDeliveryCentres } from '@/lib/awards/delivery-preview-server'
 import { checkRateLimit, createRateLimitResponse, RATE_LIMITS } from '@/lib/rate-limit'
@@ -34,6 +35,8 @@ import { magazineBillingCurrency, normalizeMagazineCountryCode } from '@/lib/mag
 import { MEMBER_GROUPS_ENABLED, memberGroupsLockedResponse } from '@/lib/groups/access'
 import { getWhatsAppGroup, WHATSAPP_GROUPS } from '@/lib/groups/whatsapp'
 import type { AwardPaymentCurrency } from '@/lib/payments/bachs/types'
+import { opportunityDeadlineDay } from '@/lib/opportunities/types'
+import { interestSchema } from '@/lib/programme-manager/interest'
 import { AWARD_COUPON_QUOTE } from '@/lib/awards/payment-price'
 
 function routeAwardeeJourney(request: NextRequest, store: DemoDashboardStore) {
@@ -432,7 +435,13 @@ async function routeOpportunities(request: NextRequest, path: string[], store: D
       }
       return true
     })
-    return json({ opportunities, tiers: ['public', 'members', 'approved'] })
+    // Keep the sample listings open for local walkthroughs as the calendar advances.
+    const today = Date.now()
+    const openSamples = opportunities.map(item => ({
+      ...item,
+      deadline: item.deadline && opportunityDeadlineDay(new Date(today + (item.isFeatured ? 14 : 28) * 86_400_000)),
+    }))
+    return json({ opportunities: openSamples, tiers: ['public', 'members', 'approved'] })
   }
 
   const opportunity = store.opportunities.find((item) => item.id === path[1])
@@ -849,23 +858,71 @@ export async function handleDemoMemberRequest(
 
   let response: Response | null = null
   switch (path[0]) {
+    case 'programme-interest': {
+      if (path.length !== 1) break
+      const asInterest = (id: string) => ({ id, kind: 'community', activity_id: null })
+      if (request.method === 'GET') {
+        const interests = store.programmeInterest ? [asInterest(store.programmeInterest.id)] : []
+        return json({ activities: [], interests })
+      }
+      if (request.method === 'POST') {
+        const parsed = interestSchema.safeParse(await readBody(request))
+        if (!parsed.success || parsed.data.kind !== 'community') {
+          return json({ message: 'Check your roles, categories, details and consent.' }, 400)
+        }
+        if (store.programmeInterest) return json({ message: 'Your interest is already recorded.' }, 409)
+        const id = randomUUID()
+        store.programmeInterest = { id, details: parsed.data.community_details }
+        return json({ interest: asInterest(id) }, 201)
+      }
+      if (request.method === 'DELETE') {
+        const body = await readBody(request)
+        if (store.programmeInterest && body?.id === store.programmeInterest.id) delete store.programmeInterest
+        return json({ message: 'Interest withdrawn.' })
+      }
+      break
+    }
     case 'project100': {
       if (path.length !== 2 || path[1] !== 'impact') break
-      if (request.method === 'POST')
-        return json({ message: 'Project100 is coming soon. Payments are unavailable in local preview.' }, 503)
-      if (request.method !== 'GET') break
       const locations = [
-        ...nigeriaStates.map(state => ({ country: 'Nigeria', state: state.name, name: state.name })),
+        ...nigeriaStates.map(state => {
+          const name = state.name === 'FCT' ? 'Federal Capital Territory' : state.name
+          return { country: 'Nigeria', state: name, name }
+        }),
         ...IMPACT_COUNTRIES.map(country => ({ country, state: null, name: country })),
       ]
-      const view: ImpactView = {
-        groups: locations.map((location, index) => ({
+      const groups = locations.map((location, index) => {
+        const id = `00000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`
+        return {
           ...location,
-          id: `00000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
+          id,
+          name: `${location.name} impact group`,
           slug: location.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-          active: true, raised: { NGN: 0, USD: 0 }, spent: { NGN: 0, USD: 0 }, members: 0,
-        })),
-        membership: null, projects: [], supporters: [], updates: [], spending: [], contributions: [],
+          active: true, raised: { NGN: 0, USD: 0 }, spent: { NGN: 0, USD: 0 },
+          members: store.project100Membership?.group_id === id ? 1 : 0,
+        }
+      })
+      if (request.method === 'POST') {
+        const body = await request.json().catch(() => null)
+        if (body?.action !== 'join')
+          return json({ message: 'Payments are unavailable in local preview.' }, 503)
+        const parsed = joinSchema.safeParse(body.input)
+        if (!parsed.success || !groups.some(group => group.id === parsed.data.groupId))
+          return json({ message: 'Choose an available impact group.' }, 400)
+        const groupId = parsed.data.groupId
+        if (store.project100Membership && store.project100Membership.group_id !== groupId)
+          return json({ message: 'Your Project100 group is already confirmed and cannot be changed.' }, 409)
+        store.project100Membership ??= {
+          group_id: groupId,
+          residence_country: parsed.data.residenceCountry ?? 'Unspecified',
+          residence_state: parsed.data.residenceState ?? null,
+        }
+        return json({ groupId })
+      }
+      if (request.method !== 'GET') break
+      const view: ImpactView = {
+        groups, membership: store.project100Membership ?? null,
+        projects: [], supporters: [], memberNames: [], updates: [], spending: [], contributions: [],
         totals: { raised: { NGN: 0, USD: 0 }, spent: { NGN: 0, USD: 0 } },
         checkoutEnabled: false, canSupportAnyGroup: false,
       }

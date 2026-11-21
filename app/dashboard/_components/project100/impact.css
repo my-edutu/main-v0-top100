@@ -411,6 +411,31 @@
   background: #fff;
   padding: 28px;
 }
+.p100-choice {
+  display: grid;
+  gap: 14px;
+  max-width: 42rem;
+}
+.p100-choice > .p100-primary {
+  justify-self: start;
+}
+.p100-choice .p100-form-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+.p100-people {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.p100-people li {
+  border-radius: 10px;
+  background: #f6f4ed;
+  padding: 7px 11px;
+  overflow-wrap: anywhere;
+}
 .p100-join {
   display: flex;
   flex-direction: column;

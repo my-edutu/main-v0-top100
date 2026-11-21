@@ -14,7 +14,7 @@ export async function POST(request: Request) {
  const user = await getCurrentUser(); if (!user?.id) return NextResponse.json({ message:'Authentication required.' }, { status:401, headers })
  const rate = await checkRateLimit({ ...RATE_LIMITS.AUTH, identifier:`programme-interest:${user.id}` }); if (!rate.success) return createRateLimitResponse(rate, 'Please wait before trying again.')
  const parsed = interestSchema.safeParse(await request.json().catch(() => null)); if (!parsed.success) return NextResponse.json({ message:'Choose an option and give consent.' }, { status:400, headers })
- const { data, error } = await createAdminClient().from('programme_manager_interests').insert({ member_id:user.id, kind:parsed.data.kind, activity_id:parsed.data.activity_id }).select('id,kind,activity_id').single()
+ const { data, error } = await createAdminClient().from('programme_manager_interests').insert({ member_id:user.id, kind:parsed.data.kind, activity_id:parsed.data.activity_id, ...(parsed.data.kind === 'community' ? { community_details: parsed.data.community_details } : {}) }).select('id,kind,activity_id').single()
  if (error) return NextResponse.json({ message:error.code === '23505' ? 'Your interest is already recorded.' : 'Interest could not be saved. The activity may no longer be open.' }, { status:409, headers })
  return NextResponse.json({ interest:data }, { status:201, headers })
 }

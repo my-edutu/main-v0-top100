@@ -50,6 +50,17 @@ describe('interactive local dashboard demo API', () => {
     expect(data.message).toBe('Authentication required.')
   })
 
+  it('locks the first Project100 destination and returns it on later visits', async () => {
+    const path = 'project100/impact'
+    const initial = await call(store, 'GET', path)
+    const lagos = initial.data.groups.find((group: { state: string }) => group.state === 'Lagos')
+    const ghana = initial.data.groups.find((group: { country: string }) => group.country === 'Ghana')
+    expect(initial.data.membership).toBeNull()
+    expect((await call(store, 'POST', path, { action: 'join', input: { groupId: lagos.id } })).response.status).toBe(200)
+    expect((await call(store, 'POST', path, { action: 'join', input: { groupId: ghana.id } })).response.status).toBe(409)
+    expect((await call(store, 'GET', path)).data.membership.group_id).toBe(lagos.id)
+  })
+
   it('loads and persists profile edits', async () => {
     const initial = await call(store, 'GET', 'me')
     expect(initial.data.member.name).toBe('Amara Okafor')

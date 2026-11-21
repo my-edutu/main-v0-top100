@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
       .strict()
       .parse(await request.json());
     if (action === "join")
-      return NextResponse.json(await joinImpact(db, session.user.id, input));
+      return NextResponse.json(await joinImpact(db, session.user.id, input, profile.location ?? ""));
     if (action === "checkout")
       return NextResponse.json(
         await startImpactCheckout(

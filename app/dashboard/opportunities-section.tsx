@@ -34,7 +34,7 @@ import {
 
 const REFRESH_DISTANCE = 64
 
-async function fetchEdutuPage(type: string, query: string, cursor?: string) {
+export async function fetchEdutuPage(type: string, query: string, cursor?: string) {
   const params = new URLSearchParams()
   if (type) params.set('type', type)
   if (query) params.set('q', query.slice(0, 200))
@@ -332,7 +332,11 @@ function FilterChip({
   )
 }
 
-function OpportunityCover({ imageUrl, detail = false }: { imageUrl?: string | null; detail?: boolean }) {
+function OpportunityCover({ imageUrl, detail = false, compact = false }: {
+  imageUrl?: string | null
+  detail?: boolean
+  compact?: boolean
+}) {
   const [failedUrl, setFailedUrl] = useState<string | null>(null)
   const image = imageUrl && imageUrl !== failedUrl ? imageUrl : null
 
@@ -340,14 +344,15 @@ function OpportunityCover({ imageUrl, detail = false }: { imageUrl?: string | nu
 
   return (
     <span className={cn(
-      'relative block overflow-hidden bg-[#eee8e0]',
-      detail ? 'aspect-[16/9] rounded-xl' : 'aspect-[7/3] shrink-0',
+      'block overflow-hidden bg-[#eee8e0]',
+      compact ? 'absolute inset-0' : 'relative',
+      detail ? 'aspect-[16/9] rounded-xl' : !compact && 'aspect-[7/3] shrink-0',
     )}>
       <SafeImage
         src={image ?? defaultOpportunityCover}
         alt=""
         fill
-        sizes={detail ? '(max-width: 640px) 90vw, 560px' : '(max-width: 767px) 100vw, 50vw'}
+        sizes={compact ? '(max-width: 390px) 82vw, 320px' : detail ? '(max-width: 640px) 90vw, 560px' : '(max-width: 767px) 100vw, 50vw'}
         unoptimized={Boolean(image)}
         referrerPolicy="no-referrer"
         className={detail ? 'object-contain' : 'object-cover'}
@@ -357,9 +362,10 @@ function OpportunityCover({ imageUrl, detail = false }: { imageUrl?: string | nu
   )
 }
 
-function OpportunityCard({ opportunity, deadlineDay }: {
+export function OpportunityCard({ opportunity, deadlineDay, compact = false }: {
   opportunity: Opportunity | EdutuOpportunity
   deadlineDay: string
+  compact?: boolean
 }) {
   const fromEdutu = 'source' in opportunity
   const countdown = fromEdutu && opportunity.deadlineNeedsReview ? 'Check with provider'
@@ -379,10 +385,25 @@ function OpportunityCard({ opportunity, deadlineDay }: {
         <button
           type="button"
           aria-label={`View details for ${opportunity.title}`}
-          className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-stone-200 bg-white text-left text-[#1c1714] transition-shadow hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-700"
+          className={cn(
+            "group flex min-w-0 flex-col overflow-hidden rounded-2xl text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-700",
+            compact
+              ? "relative isolate h-[160px] justify-end rounded-[18px] bg-[#111827] text-[#fff]"
+              : "border border-stone-200 bg-white text-[#1c1714] transition-shadow hover:shadow-md",
+          )}
         >
-          <OpportunityCover imageUrl={opportunity.imageUrl} />
-          <span className="flex w-full flex-1 flex-col px-4 pb-3 pt-4 sm:px-5">
+          <OpportunityCover imageUrl={opportunity.imageUrl} compact={compact} />
+          {compact ? <>
+            <span aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_top,#080b12_0%,#080b12e6_35%,#080b1266_70%,#080b121a_100%)]" />
+            <span className="relative flex w-full items-end justify-between gap-3 p-4">
+              <span className="min-w-0 space-y-1">
+                <span className="block text-xs font-semibold text-[#ffe3a5]">{opportunity.type}</span>
+                <span className="line-clamp-3 break-words text-lg font-semibold leading-tight text-[#fff]">{opportunity.title}</span>
+                <span className="block text-xs font-medium text-[#f0edf3]">{countdown}</span>
+              </span>
+              <ChevronRight size={18} className="mb-0.5 shrink-0 text-[#fff]" aria-hidden="true" />
+            </span>
+          </> : <span className="flex w-full flex-1 flex-col px-4 pb-3 pt-4 sm:px-5">
             <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold">
               <span className="text-[#9a3412]">{opportunity.type}</span>
               {sourceLabel && <span className="rounded-full bg-[#f5f0eb] px-2 py-0.5 text-[#60544b]">{sourceLabel}</span>}
@@ -404,7 +425,7 @@ function OpportunityCard({ opportunity, deadlineDay }: {
                 </span>
               </span>
             </span>
-          </span>
+          </span>}
         </button>
       </DialogTrigger>
       <DialogContent

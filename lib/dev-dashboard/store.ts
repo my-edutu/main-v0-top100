@@ -65,6 +65,8 @@ export type DemoInboxMessage = {
 }
 
 export type DemoDashboardStore = {
+  project100Membership?: NonNullable<import("@/lib/project100/impact/types").ImpactView["membership"]>
+  programmeInterest?: { id: string; details: import("@/lib/programme-manager/interest").CommunityDetails }
   festivalInterest?: FestivalInterest | null
   festivalTicket?: FestivalTicket | null
   profile: MemberProfile

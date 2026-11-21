@@ -73,7 +73,7 @@ export function checkDB(error: { code?: string; message?: string } | null) {
 export async function impactProfile(db: ImpactDB, memberId: string) {
   const { data, error } = await db
     .from("profiles")
-    .select("id,full_name,email,membership_status,role")
+    .select("id,full_name,email,membership_status,role,location")
     .eq("id", memberId)
     .single();
   checkDB(error);
@@ -91,6 +91,7 @@ export async function impactProfile(db: ImpactDB, memberId: string) {
     email: string | null;
     membership_status: string;
     role: string;
+    location: string | null;
   };
 }
 export async function loadImpact(
@@ -124,6 +125,24 @@ export async function loadImpact(
       }
     }),
   );
+  if (!admin && groupId && view.membership?.group_id === groupId) {
+    const { data: peers, error: peersError } = await db
+      .from("project100_support_memberships")
+      .select("profiles!inner(full_name)")
+      .eq("group_id", groupId)
+      .neq("member_id", memberId)
+      .eq("profiles.is_public", true)
+      .eq("profiles.membership_status", "approved")
+      .order("member_id")
+      .limit(100);
+    checkDB(peersError);
+    view.memberNames = (
+      (peers ?? []) as unknown as { profiles: { full_name: string | null } }[]
+    ).flatMap(({ profiles }) => {
+      const name = profiles.full_name?.trim();
+      return name ? [name] : [];
+    });
+  }
   for (const total of [
     view.totals.raised,
     view.totals.spent,
@@ -143,43 +162,48 @@ export async function joinImpact(
   db: ImpactDB,
   memberId: string,
   body: unknown,
+  profileLocation = "",
 ) {
   const input = joinSchema.parse(body);
-  const country = canonicalCountry(input.residenceCountry);
-  if (!country) throw new ImpactError("Choose a valid country of residence.");
+  const location = input.residenceCountry ?? profileLocation;
+  const country = canonicalCountry(location) ?? (/\bnigeria\b/i.test(location) ? "Nigeria" : null);
+  if (input.residenceCountry && !country)
+    throw new ImpactError("Choose a valid country of residence.");
+
   const { data: group, error } = await db
     .from("project100_support_groups")
-    .select("id,country,state,active")
+    .select("id,active")
     .eq("id", input.groupId)
-    .single();
+    .maybeSingle();
   checkDB(error);
   if (!group?.active)
     throw new ImpactError("This group is not accepting new members.", 409);
-  const state =
-    country === "Nigeria"
-      ? matchNigeriaState(input.residenceState ?? "", "Nigeria")
-      : null;
-  if (
-    country === "Nigeria"
-      ? group.country !== "Nigeria" || group.state !== state
-      : group.country === "Nigeria"
-  )
-    throw new ImpactError(
-      "Choose your state group in Nigeria, or a destination country if you live abroad.",
-    );
-  const result = await db.from("project100_support_memberships").upsert(
+
+  const state = country === "Nigeria"
+    ? matchNigeriaState(input.residenceState ?? profileLocation, "Nigeria")
+    : null;
+  const { error: insertError } = await db.from("project100_support_memberships").upsert(
     {
       member_id: memberId,
       group_id: group.id,
-      residence_country: country,
+      residence_country: country ?? "Unspecified",
       residence_state: state,
-      joined_at: new Date().toISOString(),
     },
-    { onConflict: "member_id" },
+    { onConflict: "member_id", ignoreDuplicates: true },
   );
-  checkDB(result.error);
+  checkDB(insertError);
+
+  const { data: membership, error: membershipError } = await db
+    .from("project100_support_memberships")
+    .select("group_id")
+    .eq("member_id", memberId)
+    .single();
+  checkDB(membershipError);
+  if (membership?.group_id !== group.id)
+    throw new ImpactError("Your Project100 group is already confirmed and cannot be changed.", 409);
   return { groupId: group.id };
 }
+
 async function allRows<T>(
   db: ImpactDB,
   table: string,

@@ -19,6 +19,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
     pathname.startsWith('/dashboard/me/award/payment') ||
     pathname.startsWith('/dashboard/me/award/complete')
   const newPost = pathname === '/dashboard/me/posts/new'
+  const isProgrammeDetail = /^\/dashboard\/discover\/programmes\/[^/]+$/.test(pathname)
   const fullWidthSession = pathname.startsWith('/dashboard/discover/event-videos/')
   const fullScreenAwardConfirmation = pathname === '/dashboard/me/award/complete'
   const fullScreenWhatsAppGroup =
@@ -29,14 +30,14 @@ export function DashboardShell({ children }: { children: ReactNode }) {
       {!fullScreenAwardConfirmation && <DashboardAppBar />}
       <div className={newPost ? 'min-h-[calc(100dvh-60px)]' : 'flex min-h-[calc(100dvh-60px)] items-start'}>
         {!newPost && !fullScreenAwardConfirmation && <DashboardDesktopNav />}
-        <main className={newPost || fullScreenAwardConfirmation || fullScreenWhatsAppGroup ? 'min-w-0 flex-1 p-0' : fullWidthSession ? 'min-w-0 flex-1 bg-white pb-[calc(92px+env(safe-area-inset-bottom))] lg:pb-8' : 'min-w-0 flex-1 px-4 py-5 pb-[calc(92px+env(safe-area-inset-bottom))] sm:px-6 lg:px-6 lg:py-6 lg:pb-8 xl:px-8'}>
+        <main className={newPost || fullScreenAwardConfirmation || fullScreenWhatsAppGroup ? 'min-w-0 flex-1 p-0' : fullWidthSession ? 'min-w-0 flex-1 bg-white pb-[calc(92px+env(safe-area-inset-bottom))] lg:pb-8' : `min-w-0 flex-1 px-4 py-5 sm:px-6 lg:px-6 lg:py-6 xl:px-8 ${isProgrammeDetail ? '' : 'pb-[calc(92px+env(safe-area-inset-bottom))] lg:pb-8'}`}>
           <div className={newPost || fullScreenAwardConfirmation ? 'min-h-[100dvh]' : fullScreenWhatsAppGroup || fullWidthSession ? 'min-h-[calc(100dvh-60px)]' : 'mx-auto max-w-[1280px] space-y-5'}>
             {!newPost && !fullScreenAwardConfirmation && (pathname === '/dashboard' || member.status !== 'pending') && <MembershipStatusBanner member={member} />}
             {children}
           </div>
         </main>
       </div>
-      {!newPost && !fullScreenAwardConfirmation && <DashboardBottomNav />}
+      {!newPost && !fullScreenAwardConfirmation && !isProgrammeDetail && <DashboardBottomNav />}
     </div>
   )
 }

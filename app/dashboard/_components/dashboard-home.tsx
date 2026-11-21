@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import Image from '@/components/safe-image'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
@@ -13,7 +12,6 @@ import {
   Video,
   UserRound,
   Truck,
-  LockKeyhole,
 } from 'lucide-react'
 
 import {
@@ -24,6 +22,7 @@ import { fetchLiveCalendarEvents } from '@/lib/events/live-calendar-client'
 import type { LiveCalendarEvent } from '@/lib/events/live-calendar'
 import { AFL_2026_CALENDAR } from '@/lib/events/afl-2026-calendar'
 import { DashboardCard } from './dashboard-card'
+import { DashboardFeaturedPromotions } from './dashboard-featured-promotions'
 import { selectUpcomingInvitations } from '../_lib/home-priority'
 import { useDashboardMember } from '../_providers/dashboard-member'
 import { dashboardCelebrationStorageKey } from '@/lib/dashboard/celebration'
@@ -33,17 +32,10 @@ import { AflCalendarAnnouncement } from './afl-calendar-announcement'
 import MagazinePopup from '@/app/components/MagazinePopup'
 import { AwardLettersHomeCard } from './award-letter-cards'
 import { FestivalCard } from './festival-card'
+import { HomeOpportunities } from './home-opportunities'
 import { canAttendFestival } from '@/lib/festival/config'
 
 const INTERVIEW_FORM_URL = '/dashboard/me/interview'
-const PARTNERSHIP_FORM_URL = 'https://docs.google.com/forms/d/1pabeSUOwN15Sr-VcAWIhl5k5_xwnKljFuzm90PCoEqQ/edit'
-
-const launchBanners = [
-  { title: 'Project100 Scholarship', description: 'Join your group. Keep a child in school.', comingSoon: true, image: '/dashboard/banners/project100-scholarship-roadside.png' },
-  { title: 'Impact Africa 2027', description: 'Conversations. Connections. Community impact.', comingSoon: true, image: '/dashboard/banners/impact-africa-2027.webp' },
-  { title: 'Let your organization partner with Africa Future Leaders', description: 'Create more impact together.', href: PARTNERSHIP_FORM_URL, image: '/dashboard/banners/organization-partnership-2027.webp', external: true },
-] as const
-
 const shortcutDescriptions: Record<string, string> = {
   Members: 'Meet fellow awardees',
   Profile: 'Keep your BIO current',
@@ -57,7 +49,7 @@ const shortcutDescriptions: Record<string, string> = {
   'Delivery cost': 'Check GIG pricing before paying',
 }
 
-export function DashboardHome({ pastSessions }: { pastSessions: ReactNode }) {
+export function DashboardHome({ futureProgrammes }: { futureProgrammes: ReactNode }) {
   const { member, dashboardVisitReady } = useDashboardMember()
   const [invitations, setInvitations] = useState<EventInvitation[]>([])
   const [programmeEvents, setProgrammeEvents] = useState<LiveCalendarEvent[]>([])
@@ -231,68 +223,11 @@ export function DashboardHome({ pastSessions }: { pastSessions: ReactNode }) {
       <AwardeeOnboardingJourney name={member.name} />
       {loadError && <p role="status" className="hub-status rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-sm leading-5 text-neutral-700">Some events couldn’t load. We’ll retry automatically; you can also open Events directly.</p>}
 
-      {pastSessions}
+      {futureProgrammes}
 
-      <Link href="/dashboard/discover/groups" className="discover-advert discover-advert--whatsapp" aria-label="Find your WhatsApp group and connect with Africa Future Leaders">
-        <div className="discover-advert__copy">
-          <p>Your people are here</p>
-          <h2>Find your community.</h2>
-          <span>Discover your group <ArrowUpRight size={14} aria-hidden="true" /></span>
-        </div>
-        <div className="discover-advert__art" aria-hidden="true">
-          <svg viewBox="0 0 64 64" focusable="false">
-            <circle cx="32" cy="32" r="27" fill="#fff" />
-            <path fill="#075e54" d="M32 5C17.1 5 5 17 5 31.8c0 4.8 1.3 9.4 3.7 13.5L5 59l14.1-3.7A27 27 0 1 0 32 5Zm0 48.7c-4.2 0-8.3-1.1-11.9-3.4l-.9-.5-8.4 2.2 2.2-8.2-.6-1A21.5 21.5 0 1 1 32 53.7Z" />
-            <path fill="#075e54" d="M43.8 37.3c-.7-.4-4-2-4.7-2.2-.6-.2-1.1-.4-1.5.4-.5.7-1.8 2.2-2.2 2.7-.4.5-.8.5-1.5.2-.7-.4-2.9-1.1-5.5-3.4-2-1.8-3.4-4-3.8-4.7-.4-.7 0-1.1.3-1.4.3-.3.7-.8 1.1-1.2.4-.4.5-.7.7-1.1.2-.5.1-.9 0-1.2-.2-.4-1.5-3.6-2.1-4.9-.5-1.2-1.1-1-1.5-1h-1.3c-.5 0-1.2.2-1.8.9-.6.7-2.4 2.3-2.4 5.5s2.5 6.4 2.8 6.9c.4.5 4.8 7.4 11.6 10.4 1.6.7 2.8 1.1 3.8 1.4 1.6.5 3 .4 4.1.2 1.3-.2 4-1.6 4.6-3.2.6-1.6.6-2.9.4-3.2-.2-.3-.6-.5-1.3-.8Z" />
-          </svg>
-        </div>
-      </Link>
+      <DashboardFeaturedPromotions home />
 
-      <section className="hub-launch-rail min-w-0" aria-labelledby="launch-title">
-        <div className="mb-3 flex items-end justify-between gap-3">
-          <div>
-            <h2 id="launch-title" className="hub-panel-title mt-1">Keep going</h2>
-          </div>
-        </div>
-        <div className="flex snap-x gap-4 overflow-x-auto pb-2 pr-2" role="region" aria-label="Featured member actions">
-          {launchBanners.map((banner) => (
-            'comingSoon' in banner ? (
-              <div
-                key={banner.title}
-                className="hub-launch-locked relative isolate flex min-h-[176px] min-w-[min(82vw,320px)] snap-start overflow-hidden rounded-[20px] border border-black/10 bg-black p-4 text-white"
-                role="link"
-                aria-disabled="true"
-                aria-label={`${banner.title} — Coming soon`}
-              >
-                {/* Dashboard asset paths require the browser's session cookie. */}
-                <Image src={banner.image} alt="" fill unoptimized sizes="(min-width: 640px) 320px, 82vw" className="-z-10 object-cover" />
-                <span className="absolute inset-0 -z-10 bg-gradient-to-t from-[#111827]/90 via-[#111827]/30 to-transparent" />
-                <span className="hub-launch-locked__label"><LockKeyhole size={14} aria-hidden="true" />Coming soon</span>
-                <span className="mt-auto max-w-[290px]">
-                  <span style={{ color: '#fff' }} className="block text-lg font-semibold leading-tight">{banner.title}</span>
-                  <span style={{ color: 'rgba(255,255,255,.9)' }} className="mt-1 block text-sm">{banner.description}</span>
-                </span>
-              </div>
-            ) : (
-            <Link
-              key={banner.title}
-              href={banner.href}
-              target={'external' in banner && banner.external ? '_blank' : undefined}
-              rel={'external' in banner && banner.external ? 'noopener noreferrer' : undefined}
-              className="group relative isolate flex min-h-[176px] min-w-[min(82vw,320px)] snap-start overflow-hidden rounded-[20px] border border-black/10 bg-black p-4 text-white shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-2"
-            >
-              <img src={banner.image} alt="" className="absolute inset-0 -z-10 h-full w-full object-cover transition duration-500 group-hover:scale-105" />
-              <span className="absolute inset-0 -z-10 bg-gradient-to-t from-[#111827]/75 via-[#111827]/15 to-transparent" />
-              <span className="mt-auto max-w-[290px]">
-                <span style={{ color: '#fff' }} className="mt-1 block text-lg font-semibold leading-tight [text-shadow:0_1px_3px_rgba(0,0,0,.45)]">{banner.title}</span>
-                <span style={{ color: 'rgba(255,255,255,.9)' }} className="mt-1 block text-sm [text-shadow:0_1px_2px_rgba(0,0,0,.45)]">{banner.description}</span>
-              </span>
-              <ArrowUpRight className="absolute right-4 top-4 h-5 w-5 text-white/80 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true" />
-            </Link>
-            )
-          ))}
-        </div>
-      </section>
+      <HomeOpportunities />
 
       <section className="hub-shortcuts" aria-labelledby="shortcuts-title">
         <div className="mb-3 flex items-center justify-between gap-3">

@@ -72,6 +72,7 @@ export type ImpactView = {
   } | null;
   projects: ImpactProject[];
   supporters: ImpactSupporter[];
+  memberNames?: string[];
   updates: ImpactUpdate[];
   spending: ImpactSpending[];
   contributions: ImpactContribution[];

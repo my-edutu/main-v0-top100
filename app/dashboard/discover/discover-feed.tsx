@@ -10,15 +10,18 @@ import { DashboardLoading } from '../_components/dashboard-loading'
 import { resolveStoryCover } from '@/lib/story-covers'
 import { discoverNav } from '../_lib/navigation'
 import { useDashboardMember } from '../_providers/dashboard-member'
+import { DashboardFeaturedPromotions } from '../_components/dashboard-featured-promotions'
+
+import { ProgrammeCard, type ProgrammeCardData } from '../_components/programme-card'
 
 type Story = { id: string; title: string; slug: string; excerpt: string; coverImage: string | null }
-const campaigns = [
-  { label: 'Volunteer with Top100', title: 'Put your skills to work.', description: 'Offer services or pledge cash support to the community.', action: 'Choose how to help', href: '/dashboard/discover/volunteer' },
-  { label: 'Give back', title: 'Start something that matters.', description: 'Share your social impact initiative and how you can contribute.', action: 'Share my idea', href: '/dashboard/discover/give-back' },
-  { label: 'Project100 · 2026', title: 'Help education go further.', description: 'Explore the Project100 Scholarship programme.', action: 'Learn more', href: '/initiatives/project100/scholarship' },
-]
 
-function Rail({ title, children, href }: { title: string; children: ReactNode; href?: string }) {
+type ProgrammeCardItem = ProgrammeCardData & { id: string }
+
+const programmePath = '/dashboard/discover/programmes'
+const programmeHighlights = ['community-impact-network', 'career-pathways']
+
+function Rail({ title, children, href, showArrows = true }: { title: string; children: ReactNode; href?: string; showArrows?: boolean }) {
   const ref = useRef<HTMLDivElement>(null)
   function scroll(direction: number) {
     ref.current?.scrollBy({ left: direction * ref.current.clientWidth * 0.85, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
@@ -26,8 +29,10 @@ function Rail({ title, children, href }: { title: string; children: ReactNode; h
   return <section>
     <div className="discover-section-heading"><h2>{title}</h2><div className="flex items-center gap-1">
       {href && <Link className="mr-2 text-xs underline underline-offset-4" href={href}>View all</Link>}
-      <button type="button" aria-label={`Scroll ${title} left`} onClick={() => scroll(-1)}><ChevronLeft size={18} /></button>
-      <button type="button" aria-label={`Scroll ${title} right`} onClick={() => scroll(1)}><ChevronRight size={18} /></button>
+      {showArrows && <>
+        <button type="button" aria-label={`Scroll ${title} left`} onClick={() => scroll(-1)}><ChevronLeft size={18} /></button>
+        <button type="button" aria-label={`Scroll ${title} right`} onClick={() => scroll(1)}><ChevronRight size={18} /></button>
+      </>}
     </div></div>
     <div ref={ref} className="discover-rail" tabIndex={0} role="region" aria-label={`${title}, scroll horizontally`}>{children}</div>
   </section>
@@ -91,7 +96,11 @@ function PersonCard({ person }: { person: DirectoryCard }) {
   </Link>
 }
 
-export function DiscoverFeed({ posts }: { posts: Story[] }) {
+export function DiscoverFeed({ posts, calendar }: { posts: Story[]; calendar: ProgrammeCardItem[] }) {
+  const programmes = [
+    ...programmeHighlights.flatMap(id => calendar.filter(item => item.id === id)),
+    ...calendar.filter(item => !programmeHighlights.includes(item.id)),
+  ]
   const { member } = useDashboardMember()
   const [people, setPeople] = useState<DirectoryCard[]>(() => peekPublicDirectory() ?? [])
   const [state, setState] = useState<'loading' | 'ready' | 'error'>(() => peekPublicDirectory() ? 'ready' : 'loading')
@@ -100,7 +109,7 @@ export function DiscoverFeed({ posts }: { posts: Story[] }) {
   const stories = shuffleForMember(posts, member.id, rotationWindow)
   const shortcutItems = discoverNav.map(item => {
     if (item.label === 'Members') {
-      return { ...item, label: 'Past sessions', href: '/dashboard/discover/event-videos', icon: BookOpen }
+      return { ...item, label: 'School', href: '/dashboard/discover/event-videos', icon: BookOpen }
     }
     return item.label === 'Saved'
       ? { ...item, label: 'Award', title: 'My award', href: '/dashboard/me/award', icon: Trophy }
@@ -123,24 +132,14 @@ export function DiscoverFeed({ posts }: { posts: Story[] }) {
     return () => { cancelled = true }
   }, [member.id, retry, rotationWindow])
   return <div className="discover-feed">
-    <Link href="/dashboard/discover/groups" className="discover-advert" aria-label="Find your WhatsApp group and connect with Africa Future Leaders">
-      <div className="discover-advert__copy">
-        <p>Your people are here</p>
-        <h2>Find your community.</h2>
-        <span>Discover your group <ArrowUpRight size={14} aria-hidden="true" /></span>
-      </div>
-      <div className="discover-advert__art" aria-hidden="true">
-        <i /><i /><i />
-        <SafeImage src="/illustrations/discover-community.svg" alt="" width={160} height={160} />
-      </div>
-    </Link>
+    <DashboardFeaturedPromotions />
     <header><h1 className="text-xl font-semibold tracking-tight">Find your people. Make an impact.</h1></header>
     <nav aria-label="Discover shortcuts" className="discover-shortcuts">
       {shortcutItems.map(({ href, label, icon: Icon }) =>
         <Link key={href} href={href}><Icon size={18} /><span>{label}</span><ArrowUpRight size={14} /></Link>)}
     </nav>
-    <Rail title="Make a difference">
-      {campaigns.map(campaign => <Link href={campaign.href} className="discover-campaign" key={campaign.label}><span className="discover-kicker">{campaign.label}</span><h3>{campaign.title}</h3><p>{campaign.description}</p><span className="discover-cta">{campaign.action} <ArrowUpRight size={18} /></span></Link>)}
+    <Rail title="2027 programmes" href={`${programmePath}#2027-roadmap`} showArrows={false}>
+      {programmes.map(programme => <ProgrammeCard key={programme.id} programme={programme} inRail />)}
     </Rail>
     <Rail title="People to meet" href="/dashboard/discover/members">
       {state === 'loading' && <DashboardLoading label="Loading members" compact />}
