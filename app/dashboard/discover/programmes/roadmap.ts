@@ -10,8 +10,8 @@ type ProgrammeCopy = {
 const copy: Record<string, ProgrammeCopy> = {
   'project100-route-qualification-and-conditional-school-return-pilot': {
     slug: 'project100-education-access',
-    summary: 'Support children returning to school through a local pilot.',
-    description: 'Top100 plans to work with a qualified local partner to help children return to school. The pilot includes follow-up after students return and depends on partner approval and safeguarding checks.',
+    summary: 'Help children facing poverty and life on the streets get back to school and stay there.',
+    description: 'Imagine you’re ready to go back to class, but your family can’t afford a uniform or books. For a child who spends their days on the street, costs like these can keep school out of reach. Project100 aims to help children facing these barriers return to class.',
   },
   'community-impact-network': {
     slug: 'community-impact-onboarding',

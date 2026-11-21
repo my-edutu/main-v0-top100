@@ -11,7 +11,7 @@ export type MemberCalendarItem = {
 const communityTitle = 'Community onboarding + 20 alumni connector invitations'
 const careerTitle = 'Career Pathways Labs — Cohort 1 (6 weeks)'
 const memberTitles: Record<string, string> = {
-  'Project100 route qualification and conditional school-return pilot': 'Project100 education access pilot',
+  'Project100 route qualification and conditional school-return pilot': 'Project100 Scholarship: From Street to School v2.0',
   [communityTitle]: 'Community Impact Network',
 }
 
