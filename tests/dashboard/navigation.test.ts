@@ -38,7 +38,7 @@ describe('dashboard navigation', () => {
 
   it('groups discovery and account work without duplicate hrefs', () => {
     expect(discoverNav.map(({ label }) => label)).toEqual([
-      'Members', 'Groups', 'Opportunities', 'Saved', 'Events', 'Magazine',
+      'Members', 'Groups', 'Opportunities', 'Saved', 'Events', 'Programmes', 'Magazine',
     ])
     expect(meNav.map(({ label }) => label)).toEqual([
       'Profile', 'Schedule an interview', 'Portfolio cover', 'Project100 Scholarship', 'My award', 'Delivery cost', 'Posts', 'Get featured', 'Settings',
@@ -56,6 +56,7 @@ describe('dashboard navigation', () => {
       ['Opportunities', '/dashboard/discover/opportunities'],
       ['Saved', '/dashboard/discover/opportunities/saved'],
       ['Events', '/dashboard/discover/events'],
+      ['Programmes', '/dashboard/discover/programmes'],
       ['Magazine', '/dashboard/discover/magazine'],
     ])
   })
