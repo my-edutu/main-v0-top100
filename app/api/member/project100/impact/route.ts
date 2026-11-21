@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
         ),
       );
     const { contributionId } = z
-      .object({ contributionId: z.string().uuid() })
+      .object({ contributionId: z.guid() })
       .strict()
       .parse(input);
     return NextResponse.json(

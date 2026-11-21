@@ -21,50 +21,16 @@ export type NpmAuditReport = {
   vulnerabilities?: Record<string, AuditVulnerability>
 }
 
-const BASELINE_PACKAGES = new Set(['deepmerge-ts', '@prisma/config', 'prisma'])
-const BASELINE_ADVISORY_URL = 'https://github.com/advisories/GHSA-ggr8-5vv4-36mx'
-
-const isHighSeverity = (severity?: string): boolean =>
-  severity === 'high' || severity === 'critical'
-
-const hasExpectedDirectAdvisory = (vulnerability?: AuditVulnerability): boolean =>
-  Boolean(
-    vulnerability?.via?.some(
-      (via) => typeof via === 'object' && via !== null && via.url === BASELINE_ADVISORY_URL,
-    ),
-  )
-
 export function findAuditRegressions(report: NpmAuditReport): string[] {
-  const vulnerabilities = report.vulnerabilities ?? {}
-  const regressions: string[] = []
-
-  for (const [packageName, vulnerability] of Object.entries(vulnerabilities)) {
-    if (!isHighSeverity(vulnerability.severity)) continue
-
-    if (!BASELINE_PACKAGES.has(packageName)) {
-      regressions.push(packageName)
-      continue
-    }
-
-    if (packageName === 'deepmerge-ts' && !hasExpectedDirectAdvisory(vulnerability)) {
-      regressions.push(packageName)
-    }
+  if (!report.vulnerabilities || typeof report.vulnerabilities !== 'object' ||
+      Array.isArray(report.vulnerabilities)) {
+    throw new Error('npm audit did not return a vulnerabilities map.')
   }
 
-  const highBaselinePackages = [...BASELINE_PACKAGES].filter((packageName) =>
-    isHighSeverity(vulnerabilities[packageName]?.severity),
-  )
-
-  if (
-    highBaselinePackages.length > 0 &&
-    !hasExpectedDirectAdvisory(vulnerabilities['deepmerge-ts'])
-  ) {
-    for (const packageName of highBaselinePackages) {
-      if (!regressions.includes(packageName)) regressions.push(packageName)
-    }
-  }
-
-  return regressions.sort()
+  return Object.entries(report.vulnerabilities)
+    .filter(([, vulnerability]) => vulnerability.severity === 'high' || vulnerability.severity === 'critical')
+    .map(([packageName]) => packageName)
+    .sort()
 }
 
 function main() {
@@ -76,14 +42,6 @@ function main() {
 
   const report = JSON.parse(readFileSync(auditReportPath, 'utf8')) as NpmAuditReport
   const regressions = findAuditRegressions(report)
-  const vulnerabilities = report.vulnerabilities ?? {}
-
-  if (hasExpectedDirectAdvisory(vulnerabilities['deepmerge-ts'])) {
-    console.log(
-      'Known audit baseline: GHSA-ggr8-5vv4-36mx through deepmerge-ts -> @prisma/config -> prisma.',
-    )
-  }
-
   if (regressions.length === 0) {
     console.log('No new high or critical dependency audit regressions detected.')
     return

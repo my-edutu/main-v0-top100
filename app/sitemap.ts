@@ -1,4 +1,6 @@
-import { MetadataRoute } from 'next'
+import type { MetadataRoute } from 'next'
+import { unstable_cache } from 'next/cache'
+import { connection } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 import { getPublishedPosts } from '@/lib/posts/server'
@@ -7,13 +9,10 @@ import { SITE_URL } from '@/lib/site'
 import { talentDiscoveryEnabled } from '@/lib/talent/features'
 import { publicProfileSitemap } from '@/lib/seo/profile-sitemap'
 
-export const dynamic = 'force-static'
-export const revalidate = 3600 // Revalidate every hour
-
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+const getSitemap = unstable_cache(async (): Promise<MetadataRoute.Sitemap> => {
   const baseUrl = SITE_URL
 
-  // Create a direct Supabase client (no cookies needed at build time)
+  // The sitemap reads public data without a visitor session.
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -193,4 +192,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }))
 
   return [...staticRoutes, ...awardeeRoutes, ...blogRoutes, ...interviewRoutes]
+}, ['public-sitemap'], { revalidate: 3600 })
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  // CI can compile the route without production database credentials.
+  await connection()
+  return getSitemap()
 }

@@ -21,8 +21,7 @@ export async function GET(request: NextRequest) {
   const access = await requireAdmin(request)
   if ('error' in access) return access.error
   const awardeeId = z
-    .string()
-    .uuid()
+    .guid()
     .safeParse(request.nextUrl.searchParams.get('awardeeId'))
   if (!awardeeId.success)
     return NextResponse.json({ message: 'Choose a profile.' }, { status: 400 })
@@ -44,7 +43,7 @@ export async function POST(request: NextRequest) {
   if ('error' in access) return access.error
   const input = z
     .object({
-      awardeeId: z.string().uuid(),
+      awardeeId: z.guid(),
       platform: z.enum(SPOTLIGHT_PLATFORMS).optional(),
       editorialFocus: z.string().trim().max(800).optional(),
     })

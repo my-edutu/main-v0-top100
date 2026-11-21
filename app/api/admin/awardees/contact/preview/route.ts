@@ -7,7 +7,7 @@ import { reviewContacts, type ContactAttempt } from '@/lib/admin/member-contact-
 import { SITE_URL } from '@/lib/site'
 
 export const runtime = 'nodejs'
-const schema = z.object({ awardeeIds: z.array(z.string().uuid()).min(1).max(500) }).strict()
+const schema = z.object({ awardeeIds: z.array(z.guid()).min(1).max(500) }).strict()
 const json = (body: unknown, status = 200) => NextResponse.json(body, { status, headers: { 'Cache-Control': 'private, no-store' } })
 export async function POST(request: NextRequest) {
   const originError = rejectCrossOriginMutation(request)

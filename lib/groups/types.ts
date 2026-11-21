@@ -104,7 +104,7 @@ export const MEMBERSHIP_PATCH_STATUSES = ['active', 'banned', 'pending', 'remove
 export type MembershipPatchStatus = (typeof MEMBERSHIP_PATCH_STATUSES)[number]
 
 export const membershipPatchSchema = z.object({
-  profileId: z.string().trim().uuid('Choose a member'),
+  profileId: z.string().trim().pipe(z.guid('Choose a member')),
   status: z.enum(MEMBERSHIP_PATCH_STATUSES),
 })
 

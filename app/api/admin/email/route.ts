@@ -17,13 +17,13 @@ import { sendTransactionalEmail } from '@/lib/email/send'
 export const runtime = 'nodejs'
 const segment = z.enum(Object.keys(OUTREACH_SEGMENTS) as [keyof typeof OUTREACH_SEGMENTS, ...Array<keyof typeof OUTREACH_SEGMENTS>])
 const template = z.enum(['general', ...(Object.keys(OUTREACH_TEMPLATES) as OutreachTemplate[])] as ['general', ...OutreachTemplate[]])
-const scheduleSchema = z.object({ action: z.literal('schedule'), requestId: z.string().uuid(), audienceKey: z.string().length(64), confirmed: z.literal(true),
+const scheduleSchema = z.object({ action: z.literal('schedule'), requestId: z.guid(), audienceKey: z.string().length(64), confirmed: z.literal(true),
   filter: z.object({ year: z.string().regex(/^(all|20\d{2})$/), segment, search: z.string().max(200).default('') }).strict(),
   template, limit: z.number().int().min(1).max(500), draft: z.object({ subject: z.string().min(1).max(160), body: z.string().min(1).max(6000) }).strict(),
   sendAt: z.string().datetime(),
 }).strict()
 const previewSchema = z.object({ action: z.literal('preview'), filter: z.object({ year: z.string().regex(/^(all|20\d{2})$/), segment, search: z.string().max(200).default('') }).strict(), template, limit: z.number().int().min(1).max(500), draft: z.object({ subject: z.string().min(1).max(160), body: z.string().min(1).max(6000) }).strict() }).strict()
-const inputSchema = z.discriminatedUnion('action', [scheduleSchema, previewSchema, z.object({ action: z.literal('cancel'), campaignId: z.string().uuid() }).strict(), z.object({ action: z.literal('test'), awardeeId: z.string().uuid(), template, draft: z.object({ subject: z.string().min(1).max(160), body: z.string().min(1).max(6000) }).strict() }).strict()])
+const inputSchema = z.discriminatedUnion('action', [scheduleSchema, previewSchema, z.object({ action: z.literal('cancel'), campaignId: z.guid() }).strict(), z.object({ action: z.literal('test'), awardeeId: z.guid(), template, draft: z.object({ subject: z.string().min(1).max(160), body: z.string().min(1).max(6000) }).strict() }).strict()])
 const json = (data: unknown, status = 200) => NextResponse.json(data, { status, headers: { 'Cache-Control': 'private, no-store' } })
 export async function GET(request: NextRequest) {
   const admin = await requireAdmin(request); if ('error' in admin) return admin.error
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     const db = createAdminClient()
     const campaignId = request.nextUrl.searchParams.get('id')
     if (campaignId) {
-      if (!z.string().uuid().safeParse(campaignId).success) return json({ message: 'Invalid campaign.' }, 400)
+      if (!z.guid().safeParse(campaignId).success) return json({ message: 'Invalid campaign.' }, 400)
       const campaign = await db.from('top100_email_campaigns').select('id,subject,body,status,scheduled_at,created_at,audience_filter').eq('id', campaignId).maybeSingle()
       if (campaign.error) throw new Error('Campaign unavailable')
       if (!campaign.data) return json({ message: 'Campaign not found.' }, 404)

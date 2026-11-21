@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     page < 1 ||
     page > 100000 ||
     (status && !['draft', 'marked_posted'].includes(status)) ||
-    (awardeeId && !z.string().uuid().safeParse(awardeeId).success)
+    (awardeeId && !z.guid().safeParse(awardeeId).success)
   ) {
     return NextResponse.json(
       { message: 'Invalid history filters.' },

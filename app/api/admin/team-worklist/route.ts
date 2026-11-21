@@ -6,13 +6,13 @@ import { createAdminClient } from '@/lib/supabase/server'
 export const dynamic = 'force-dynamic'
 
 const assignmentSchema = z.object({
-  teamId: z.string().uuid(),
+  teamId: z.guid(),
   year: z.number().int().min(1900).max(2100),
   defaultCountry: z.string().trim().min(2).max(80),
   maxAwardeesPerAgent: z.number().int().min(1).max(5000),
 })
 const settingsSchema = z.object({
-  teamId: z.string().uuid(),
+  teamId: z.guid(),
   defaultCountry: z.string().trim().min(2).max(80),
   maxAwardeesPerAgent: z.number().int().min(1).max(5000),
 })
@@ -193,7 +193,7 @@ export async function GET(request: NextRequest) {
   const agentId = request.nextUrl.searchParams.get('agent')
   if (assignment === 'unassigned') query = query.is('agent_id', null)
   if (assignment === 'assigned') query = query.not('agent_id', 'is', null)
-  if (agentId && z.string().uuid().safeParse(agentId).success)
+  if (agentId && z.guid().safeParse(agentId).success)
     query = query.eq('agent_id', agentId)
   const [
     { data: rows, error: rowsError, count },

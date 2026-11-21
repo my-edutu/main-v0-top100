@@ -29,8 +29,8 @@ const columns = 'revision,source_signature,story,approved_at'
 const noStore = { 'Cache-Control': 'no-store' }
 const fail = (message: string, status: number) =>
   NextResponse.json({ message }, { status })
-const awardeeId = z.string().uuid()
-const revision = z.string().uuid()
+const awardeeId = z.guid()
+const revision = z.guid()
 const signature = z.string().regex(/^[a-f0-9]{64}$/)
 const platform = z.enum(SPOTLIGHT_PLATFORMS)
 const action = z.discriminatedUnion('action', [

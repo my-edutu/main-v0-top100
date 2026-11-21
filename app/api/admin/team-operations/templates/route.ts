@@ -6,8 +6,8 @@ import { createAdminClient } from '@/lib/supabase/server'
 export const dynamic = 'force-dynamic'
 
 const templateSchema = z.object({
-  id: z.string().uuid().optional(),
-  teamId: z.string().uuid(),
+  id: z.guid().optional(),
+  teamId: z.guid(),
   channel: z.enum(['email', 'whatsapp']),
   name: z.string().trim().min(2).max(120),
   subject: z.string().trim().max(200).nullable().optional(),

@@ -7,7 +7,7 @@ import { loadProfileQuality } from '@/lib/admin/profile-quality-server'
 import { checkProfileLink } from '@/lib/admin/profile-link-probe'
 
 export const runtime = 'nodejs'
-const input = z.object({ ids: z.array(z.string().uuid()).min(1).max(QUALITY_BATCH_SIZE) })
+const input = z.object({ ids: z.array(z.guid()).min(1).max(QUALITY_BATCH_SIZE) })
 
 export async function POST(request: NextRequest) {
   const crossOrigin = rejectCrossOriginMutation(request)

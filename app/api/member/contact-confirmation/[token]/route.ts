@@ -13,7 +13,7 @@ export const maxDuration = 60
 type Context = { params: Promise<{ token: string }> }
 const input = z.discriminatedUnion('action', [
   z.object({ action: z.literal('request_code') }).strict(),
-  z.object({ action: z.enum(['confirm', 'decline']), challengeId: z.string().uuid(), code: z.string().regex(/^\d{6}$/) }).strict(),
+  z.object({ action: z.enum(['confirm', 'decline']), challengeId: z.guid(), code: z.string().regex(/^\d{6}$/) }).strict(),
 ])
 const headers = { 'Cache-Control': 'private, no-store', 'Referrer-Policy': 'no-referrer', 'X-Robots-Tag': 'noindex, nofollow' }
 const json = (body: unknown, status = 200) => NextResponse.json(body, { status, headers })
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest, context: Context) {
     const session = await getServerSession(request)
     if (!session?.user.id) return json({ message: 'Sign in to your awardee account to confirm this contact.' }, 401)
     const { token } = await context.params
-    if (!z.string().uuid().safeParse(token).success) return denied('not_found')
+    if (!z.guid().safeParse(token).success) return denied('not_found')
     const { data, error } = await createAdminClient().rpc('team_contact_confirmation_context', { p_token: token, p_user_id: session.user.id })
     if (error?.code === '42501') return denied('not_found')
     if (error || !data) return unavailable()
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest, context: Context) {
     const session = await getServerSession(request)
     if (!session?.user.id) return json({ message: 'Sign in to your awardee account to confirm this contact.' }, 401)
     const { token } = await context.params
-    if (!z.string().uuid().safeParse(token).success) return denied('not_found')
+    if (!z.guid().safeParse(token).success) return denied('not_found')
     const parsed = input.safeParse(await request.json().catch(() => null))
     if (!parsed.success) return json({ message: 'Choose an action and enter the six-digit code when confirming a response.' }, 400)
     const limited = await rateLimitResponse([

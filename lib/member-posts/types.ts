@@ -145,7 +145,7 @@ export const updateMemberPostSchema = z
 export type UpdateMemberPostInput = z.infer<typeof updateMemberPostSchema>
 
 export const moderateMemberPostSchema = z.object({
-  postId: z.string().uuid(),
+  postId: z.guid(),
   status: z.enum(['published', 'flagged', 'removed']),
   moderationNote: z.string().trim().max(1000).optional(),
 })

@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
       await deleteImpactUpdate(
         db,
         auth.user.id,
-        z.object({ id: z.string().uuid() }).parse(input).id,
+        z.object({ id: z.guid() }).parse(input).id,
         true,
       );
     if (action === "reconcile")
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
         await reconcileImpactContribution(
           db,
           auth.user.id,
-          z.object({ contributionId: z.string().uuid() }).parse(input)
+          z.object({ contributionId: z.guid() }).parse(input)
             .contributionId,
           true,
         ),

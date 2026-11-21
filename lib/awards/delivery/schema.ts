@@ -15,11 +15,11 @@ const contact = z.object({
 })
 
 export function parseDeliveryQuoteInput(body: unknown) {
-  const object = z.record(z.unknown()).parse(body)
+  const object = z.record(z.string(), z.unknown()).parse(body)
   const { recipientName, phone, ...address } = object
   const details = deliveryPreviewSchema.parse(address)
   if (details.countryCode !== 'NG') throw new Error('Online dispatch is available within Nigeria. Contact the team to arrange international delivery.')
   return { ...details, ...contact.parse({ recipientName, phone }) }
 }
 export type DeliveryQuoteInput = ReturnType<typeof parseDeliveryQuoteInput>
-export const deliveryCheckoutSchema = z.object({ deliveryId: z.string().uuid() }).strict()
+export const deliveryCheckoutSchema = z.object({ deliveryId: z.guid() }).strict()

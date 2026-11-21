@@ -7,7 +7,7 @@ import type { PayoutStatus, TeamPayout } from '@/lib/team-operations/payouts'
 export const dynamic = 'force-dynamic'
 const privateHeaders = { 'Cache-Control': 'private, no-store', 'Referrer-Policy': 'no-referrer' }
 const json = (body: unknown, status = 200) => NextResponse.json(body, { status, headers: privateHeaders })
-const querySchema = z.object({ teamId: z.string().uuid(), page: z.coerce.number().int().min(1).max(100000).default(1), status: z.enum(['open', 'paid', 'all']).default('open') })
+const querySchema = z.object({ teamId: z.guid(), page: z.coerce.number().int().min(1).max(100000).default(1), status: z.enum(['open', 'paid', 'all']).default('open') })
 const statuses = ['requested', 'under_review', 'approved', 'processing', 'paid', 'rejected', 'cancelled'] as const
 const openStatuses = ['requested', 'under_review', 'approved', 'processing']
 const pageSize = 20

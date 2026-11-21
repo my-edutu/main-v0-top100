@@ -33,8 +33,8 @@ const knownPrismaAudit: NpmAuditReport = {
 }
 
 describe('dependency audit regression gate', () => {
-  it('allows only the exact known Prisma/deepmerge advisory chain', () => {
-    expect(findAuditRegressions(knownPrismaAudit)).toEqual([])
+  it('blocks the former Prisma baseline now that the packages are removed', () => {
+    expect(findAuditRegressions(knownPrismaAudit)).toEqual(['@prisma/config', 'deepmerge-ts', 'prisma'])
   })
 
   it('blocks any additional high or critical vulnerability', () => {
@@ -58,17 +58,11 @@ describe('dependency audit regression gate', () => {
       },
     }
 
-    expect(findAuditRegressions(report)).toEqual(['runtime-package'])
+    expect(findAuditRegressions(report)).toContain('runtime-package')
   })
 
-  it('blocks the baseline package names when the underlying advisory changes', () => {
-    const report: NpmAuditReport = JSON.parse(JSON.stringify(knownPrismaAudit))
-    const direct = report.vulnerabilities?.['deepmerge-ts']?.via?.[0]
-    if (typeof direct === 'object' && direct) {
-      direct.url = 'https://github.com/advisories/GHSA-different-advisory'
-    }
-
-    expect(findAuditRegressions(report)).toContain('deepmerge-ts')
+  it('rejects a missing report instead of treating it as clean', () => {
+    expect(() => findAuditRegressions({})).toThrow('vulnerabilities map')
   })
 
   it('ignores low and moderate findings for the high-severity gate', () => {

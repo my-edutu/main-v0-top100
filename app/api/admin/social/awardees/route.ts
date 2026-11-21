@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
       { status: 400 },
     )
   const awardeeId = request.nextUrl.searchParams.get('awardeeId')
-  if (awardeeId && !z.string().uuid().safeParse(awardeeId).success)
+  if (awardeeId && !z.guid().safeParse(awardeeId).success)
     return NextResponse.json(
       { message: 'Invalid awardee ID.' },
       { status: 400 },

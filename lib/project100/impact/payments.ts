@@ -177,7 +177,7 @@ export async function reconcileImpactContribution(
   id: string,
   admin = false,
 ) {
-  z.string().uuid().parse(id);
+  z.guid().parse(id);
   let query = db
     .from("project100_support_contributions")
     .select("*")
@@ -252,7 +252,7 @@ export async function processImpactEvent(
       id: z.string().min(1).max(255),
       type: z.string().min(1),
       organization_id: z.string().nullable().optional(),
-      data: z.record(z.unknown()),
+      data: z.record(z.string(), z.unknown()),
     })
     .parse(JSON.parse(rawBody));
   const config = bachsConfig();
@@ -311,7 +311,7 @@ export async function processImpactEvent(
     );
     const metadata = object(checkout.metadata);
     if (metadata.purpose !== "afl_project100_support_v1") return;
-    const id = z.string().uuid().safeParse(metadata.order_id);
+    const id = z.guid().safeParse(metadata.order_id);
     if (id.success) contribution = await find("id", id.data);
     if (!contribution)
       throw new ImpactError(

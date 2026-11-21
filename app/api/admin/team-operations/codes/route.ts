@@ -7,8 +7,8 @@ import { createAdminClient } from '@/lib/supabase/server'
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-const createSchema = z.object({ teamId: z.string().uuid() })
-const revokeSchema = z.object({ teamId: z.string().uuid(), codeId: z.string().uuid() })
+const createSchema = z.object({ teamId: z.guid() })
+const revokeSchema = z.object({ teamId: z.guid(), codeId: z.guid() })
 
 function makeAccessCode() {
   const raw = randomBytes(10).toString('hex').toUpperCase()
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
   if ('error' in auth) return auth.error
 
   const teamId = request.nextUrl.searchParams.get('teamId')
-  if (!z.string().uuid().safeParse(teamId).success) {
+  if (!z.guid().safeParse(teamId).success) {
     return NextResponse.json({ message: 'Choose a team.' }, { status: 400 })
   }
   const admin = createAdminClient()

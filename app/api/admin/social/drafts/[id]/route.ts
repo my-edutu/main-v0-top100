@@ -14,7 +14,7 @@ export async function PATCH(
   const access = await requireAdmin(request)
   if ('error' in access) return access.error
   const { id } = await params
-  if (!z.string().uuid().safeParse(id).success)
+  if (!z.guid().safeParse(id).success)
     return NextResponse.json({ message: 'Invalid draft ID.' }, { status: 400 })
   let body: unknown
   try {

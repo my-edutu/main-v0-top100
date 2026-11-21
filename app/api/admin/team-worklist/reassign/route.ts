@@ -4,9 +4,9 @@ import { requireAdmin } from '@/lib/api/require-admin'
 import { createAdminClient } from '@/lib/supabase/server'
 
 const schema = z.object({
-  teamId: z.string().uuid(),
-  awardeeId: z.string().uuid(),
-  agentId: z.string().uuid(),
+  teamId: z.guid(),
+  awardeeId: z.guid(),
+  agentId: z.guid(),
   reason: z.string().trim().min(3).max(500),
 })
 

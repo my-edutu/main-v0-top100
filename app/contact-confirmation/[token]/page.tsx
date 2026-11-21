@@ -10,6 +10,6 @@ export const metadata = {
 }
 export default async function ContactConfirmationPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
-  if (!z.string().uuid().safeParse(token).success) notFound()
+  if (!z.guid().safeParse(token).success) notFound()
   return <ContactConfirmation key={token} token={token} />
 }

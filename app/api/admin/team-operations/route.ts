@@ -8,7 +8,7 @@ import type { PerformanceResult } from '@/lib/team-operations/performance'
 export const dynamic = 'force-dynamic'
 
 const inviteSchema = z.object({
-  teamId: z.string().uuid(),
+  teamId: z.guid(),
   fullName: z.string().trim().min(2).max(120),
   email: z.string().trim().email().toLowerCase(),
   phone: z.string().trim().max(40).optional().default(''),

@@ -5,8 +5,8 @@ const payloadSchema = z.object({
   subject: z.string().min(1).max(300).regex(/^[^\r\n]+$/),
   body: z.string().max(500_000),
   content_type: z.enum(['html', 'richtext', 'plain', 'markdown']),
-  recipients: z.array(z.object({ uuid: z.string().uuid(), email: z.string().email().max(320) }).passthrough()).length(1),
-  campaign: z.object({ uuid: z.string().uuid() }).passthrough(),
+  recipients: z.array(z.object({ uuid: z.guid(), email: z.string().email().max(320) }).passthrough()).length(1),
+  campaign: z.object({ uuid: z.guid() }).passthrough(),
   attachments: z.array(z.unknown()).max(0).nullish(),
 }).passthrough()
 export type GatewayClaim = { recipientId: string }
