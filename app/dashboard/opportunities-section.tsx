@@ -1,21 +1,23 @@
 'use client'
 
 // app/dashboard/opportunities-section.tsx
-// Replaces the inline OpportunitiesSection that used to live in
-// app/dashboard/page.tsx. Same card language (the index % 3 colour rotation is
-// kept deliberately) but backed by the member-only, visibility-tiered store at
-// /api/member/opportunities instead of the public external-feed proxy.
-//
 // Nothing here ever asks for a visibility tier — the server decides what this
 // member may see. The "Exclusive" badge simply reports what came back.
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ExternalLink, Mail, RefreshCw, Search } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { ChevronRight, ExternalLink, Mail, RefreshCw, Search, SlidersHorizontal } from 'lucide-react'
 
 import { DashboardLoading } from './_components/dashboard-loading'
+import SafeImage from '@/components/safe-image'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
+import { fetchWithTimeout } from '@/lib/http/fetch-with-timeout'
+import type { EdutuOpportunity, EdutuOpportunityPage } from '@/lib/opportunities/edutu'
 import type { MemberProfile } from '@/lib/member-hub'
+import { renderMemberPostBody } from '@/lib/member-posts/content'
+import defaultOpportunityCover from '@/public/dashboard/cards/opportunities.jpg'
 import {
   OpportunitiesSetupRequiredError,
   fetchMemberOpportunities,
@@ -23,9 +25,24 @@ import {
 import {
   OPPORTUNITY_TYPES,
   formatDeadlineCountdown,
-  isDeadlinePast,
+  formatDeadlineDate,
+  hasOpportunityExpired,
+  nextOpportunityDeadlineCheck,
+  opportunityDeadlineDay,
   type Opportunity,
 } from '@/lib/opportunities/types'
+
+const REFRESH_DISTANCE = 64
+
+async function fetchEdutuPage(type: string, query: string, cursor?: string) {
+  const params = new URLSearchParams()
+  if (type) params.set('type', type)
+  if (query) params.set('q', query.slice(0, 200))
+  if (cursor) params.set('cursor', cursor)
+  const response = await fetchWithTimeout(`/api/opportunities/edutu?${params}`, { cache: 'no-store' })
+  if (!response.ok) throw new Error('Edutu listings are temporarily unavailable.')
+  return await response.json() as EdutuOpportunityPage
+}
 
 export default function OpportunitiesSection({
   member,
@@ -33,12 +50,41 @@ export default function OpportunitiesSection({
   member: MemberProfile
 }) {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([])
+  const [edutu, setEdutu] = useState<EdutuOpportunity[]>([])
+  const [edutuCursor, setEdutuCursor] = useState<string | null>(null)
+  const [edutuError, setEdutuError] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [setupMessage, setSetupMessage] = useState('')
   const [typeFilter, setTypeFilter] = useState<string>('')
   const [searchDraft, setSearchDraft] = useState('')
   const [search, setSearch] = useState('')
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const [pullDistance, setPullDistance] = useState(0)
+  const [refreshing, setRefreshing] = useState(false)
+  const [deadlineDay, setDeadlineDay] = useState(opportunityDeadlineDay)
+  const sectionRef = useRef<HTMLElement>(null)
+  const requestId = useRef(0)
+  const activeOpportunities = [...opportunities, ...edutu].filter(item =>
+    item.status === 'published' && !hasOpportunityExpired(item.deadline, deadlineDay),
+  )
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>
+    function checkDeadlines() {
+      clearTimeout(timer)
+      const now = new Date()
+      setDeadlineDay(opportunityDeadlineDay(now))
+      timer = setTimeout(checkDeadlines, Math.max(1, nextOpportunityDeadlineCheck(now) - now.getTime()))
+    }
+    checkDeadlines()
+    window.addEventListener('focus', checkDeadlines)
+    return () => {
+      clearTimeout(timer)
+      window.removeEventListener('focus', checkDeadlines)
+    }
+  }, [])
 
   // Debounced so typing does not fire a request per keystroke.
   useEffect(() => {
@@ -47,137 +93,214 @@ export default function OpportunitiesSection({
   }, [searchDraft])
 
   const load = useCallback(async () => {
+    const id = ++requestId.current
     setLoading(true)
     setError('')
     setSetupMessage('')
-    try {
-      const rows = await fetchMemberOpportunities({
-        type: typeFilter || undefined,
-        q: search || undefined,
-      })
-      setOpportunities(rows)
-    } catch (loadError) {
+    setEdutuError(false)
+    setLoadingMore(false)
+
+    const [memberResult, edutuResult] = await Promise.allSettled([
+      fetchMemberOpportunities({ type: typeFilter || undefined, q: search || undefined }),
+      fetchEdutuPage(typeFilter, search),
+    ])
+    if (id !== requestId.current) return
+
+    if (memberResult.status === 'fulfilled') {
+      setOpportunities(memberResult.value)
+    } else {
       setOpportunities([])
-      if (loadError instanceof OpportunitiesSetupRequiredError) {
-        setSetupMessage(loadError.message)
-      } else {
-        setError(loadError instanceof Error ? loadError.message : 'Could not load opportunities.')
-      }
-    } finally {
-      setLoading(false)
+      const reason = memberResult.reason
+      if (reason instanceof OpportunitiesSetupRequiredError) setSetupMessage(reason.message)
+      else setError('Top100 listings are temporarily unavailable.')
     }
+
+    if (edutuResult.status === 'fulfilled') {
+      setEdutu(edutuResult.value.opportunities)
+      setEdutuCursor(edutuResult.value.nextCursor)
+    } else {
+      setEdutu([])
+      setEdutuCursor(null)
+      setEdutuError(true)
+    }
+    setLoading(false)
+    setRefreshing(false)
   }, [typeFilter, search])
+
+  async function loadMoreEdutu() {
+    if (!edutuCursor || loading || loadingMore) return
+    const id = requestId.current
+    setLoadingMore(true)
+    setEdutuError(false)
+    try {
+      const page = await fetchEdutuPage(typeFilter, search, edutuCursor)
+      if (id !== requestId.current) return
+      setEdutu(previous => {
+        const known = new Set(previous.map(item => item.id))
+        return [...previous, ...page.opportunities.filter(item => !known.has(item.id))]
+      })
+      setEdutuCursor(page.nextCursor)
+    } catch {
+      if (id === requestId.current) setEdutuError(true)
+    } finally {
+      if (id === requestId.current) setLoadingMore(false)
+    }
+  }
 
   useEffect(() => {
     load()
   }, [load])
 
-  const exclusiveCount = useMemo(
-    () => opportunities.filter((item) => item.visibility !== 'public').length,
-    [opportunities],
-  )
+  const refresh = useCallback(() => {
+    if (loading) return
+    setRefreshing(true)
+    void load()
+  }, [load, loading])
+
+  useEffect(() => {
+    const section = sectionRef.current
+    if (!section || loading || filtersOpen) return
+    let start: { x: number; y: number } | undefined
+    let distance = 0
+
+    function reset() {
+      start = undefined
+      distance = 0
+      setPullDistance(0)
+    }
+
+    function onTouchStart(event: TouchEvent) {
+      reset()
+      if (event.touches.length !== 1 || (document.scrollingElement?.scrollTop ?? 0) > 0) return
+      if (event.target instanceof Element && event.target.closest('input, button, [contenteditable]')) return
+      const touch = event.touches[0]
+      start = { x: touch.clientX, y: touch.clientY }
+    }
+
+    function onTouchMove(event: TouchEvent) {
+      if (!start) return
+      if (event.touches.length !== 1 || !event.cancelable) {
+        reset()
+        return
+      }
+      const touch = event.touches[0]
+      const deltaY = touch.clientY - start.y
+      const deltaX = Math.abs(touch.clientX - start.x)
+      if (!distance && (deltaY < -6 || deltaX > Math.max(8, deltaY))) {
+        reset()
+        return
+      }
+      if (deltaY <= 0 && !distance) return
+      event.preventDefault()
+      distance = Math.min(REFRESH_DISTANCE, Math.max(0, deltaY * 0.65))
+      setPullDistance(distance)
+    }
+
+    function onTouchEnd() {
+      const shouldRefresh = distance >= REFRESH_DISTANCE
+      reset()
+      if (shouldRefresh) refresh()
+    }
+
+    section.addEventListener('touchstart', onTouchStart, { passive: true })
+    section.addEventListener('touchmove', onTouchMove, { passive: false })
+    section.addEventListener('touchend', onTouchEnd)
+    section.addEventListener('touchcancel', reset)
+    return () => {
+      section.removeEventListener('touchstart', onTouchStart)
+      section.removeEventListener('touchmove', onTouchMove)
+      section.removeEventListener('touchend', onTouchEnd)
+      section.removeEventListener('touchcancel', reset)
+    }
+  }, [filtersOpen, loading, refresh])
 
   return (
-    <section className="space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h2 className="text-4xl font-bold tracking-tight text-black sm:text-5xl">Opportunities</h2>
+    <section ref={sectionRef} aria-label="Explore opportunities" className="min-w-0 space-y-4">
+      <div className="flex min-w-0 items-center gap-2">
+        <div className="relative min-w-0 flex-1">
+          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500" aria-hidden="true" />
+          <Input
+            type="search"
+            value={searchDraft}
+            onChange={(event) => setSearchDraft(event.target.value)}
+            placeholder="Search opportunities"
+            aria-label="Search opportunities"
+            className="h-12 rounded-xl border-stone-200 bg-white pl-11 text-[#171412] placeholder:text-stone-500"
+          />
         </div>
-      </div>
-
-      <div className="rounded-[30px] border border-orange-100 bg-white p-5 sm:p-7">
-        <div className="space-y-5">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-600">Member hub</p>
-              <h3 className="mt-2 text-3xl font-bold tracking-tight text-black">
-                Opportunities curated for awardees.
-              </h3>
-              <p className="mt-2 max-w-xl text-sm font-medium leading-6 text-black/60">
-                {exclusiveCount > 0
-                  ? `${exclusiveCount} of these listings are exclusive to the network — you will not find them on the public site.`
-                  : 'Scholarships, fellowships, grants and roles shared with the Top 100 network.'}
-              </p>
-            </div>
+        <Popover open={filtersOpen} onOpenChange={setFiltersOpen}>
+          <PopoverTrigger asChild>
             <Button
+              aria-label={typeFilter ? `Filter opportunities, ${typeFilter} selected` : 'Filter opportunities'}
               variant="outline"
-              className="h-11 rounded-full border-orange-200 bg-white text-black hover:bg-orange-50"
-              onClick={load}
-              disabled={loading}
+              className={cn('relative size-12 shrink-0 rounded-xl border-stone-200 bg-white text-[#171412]', typeFilter && 'border-orange-300 bg-orange-50 text-orange-800')}
             >
-              <RefreshCw className={cn('mr-2 h-4 w-4', loading && 'animate-spin')} />
-              {loading ? 'Refreshing' : 'Refresh'}
+              <SlidersHorizontal size={19} aria-hidden="true" />
+              {typeFilter && <span className="absolute right-2 top-2 size-1.5 rounded-full bg-orange-600" aria-hidden="true" />}
             </Button>
-          </div>
-
-          {/* Filters */}
-          <div className="space-y-3">
-            <div className="relative max-w-md">
-              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-black/40" />
-              <Input
-                value={searchDraft}
-                onChange={(event) => setSearchDraft(event.target.value)}
-                placeholder="Search by title, organisation or summary"
-                aria-label="Search opportunities"
-                className="h-12 rounded-2xl border-orange-100 pl-11 text-black placeholder:text-black/40"
-              />
-            </div>
-
+          </PopoverTrigger>
+          <PopoverContent align="end" aria-label="Opportunity filters" className="w-[min(19rem,calc(100vw-2rem))] rounded-2xl border-stone-200 bg-white p-4 text-[#171412]">
+            <p className="mb-3 text-sm font-semibold">Opportunity type</p>
             <div className="flex flex-wrap gap-2">
-              <FilterChip active={typeFilter === ''} onClick={() => setTypeFilter('')}>
-                All types
-              </FilterChip>
-              {OPPORTUNITY_TYPES.map((type) => (
-                <FilterChip key={type} active={typeFilter === type} onClick={() => setTypeFilter(type)}>
-                  {type}
+              {['', ...OPPORTUNITY_TYPES].map(type => (
+                <FilterChip key={type} active={typeFilter === type} onClick={() => {
+                  setTypeFilter(type)
+                  setFiltersOpen(false)
+                }}>
+                  {type || 'All types'}
                 </FilterChip>
               ))}
             </div>
+            <Button variant="ghost" className="mt-3 h-11 w-full justify-start border-t border-stone-200" disabled={loading} onClick={() => {
+              setFiltersOpen(false)
+              refresh()
+            }}>
+              <RefreshCw aria-hidden="true" /> Refresh listings
+            </Button>
+          </PopoverContent>
+        </Popover>
+      </div>
+      {(pullDistance > 0 || refreshing) && (
+        <p role="status" className="flex min-h-6 items-center justify-center gap-2 text-xs text-stone-600">
+          <RefreshCw size={14} className={refreshing ? 'motion-safe:animate-spin' : undefined} aria-hidden="true" />
+          {refreshing ? 'Refreshing opportunities…' : pullDistance >= REFRESH_DISTANCE ? 'Release to refresh' : 'Pull to refresh'}
+        </p>
+      )}
+      <div aria-busy={loading} className="space-y-4">
+        {(setupMessage || error || edutuError) && (
+          <div role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+            {setupMessage || error ? <p>Top100 listings are temporarily unavailable.</p> : null}
+            {edutuError && <p>Edutu listings are temporarily unavailable.</p>}
+            <Button type="button" variant="ghost" className="mt-1 h-11" onClick={refresh}>Try again</Button>
           </div>
-
-          {/* States */}
-          {setupMessage ? (
-            <div className="rounded-[24px] border border-amber-200 bg-amber-50 px-5 py-4">
-              <p className="text-sm font-bold text-amber-900">Opportunities are not set up yet</p>
-              <p className="mt-1 text-sm font-medium leading-6 text-amber-900/80">{setupMessage}</p>
-            </div>
-          ) : error ? (
-            <div className="rounded-[24px] border border-orange-100 bg-white px-5 py-4">
-              <p className="text-sm font-semibold text-orange-700">{error}</p>
-              <Button
-                variant="outline"
-                onClick={load}
-                className="mt-3 rounded-full border-orange-200 bg-white text-black hover:bg-orange-50"
-              >
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Try again
+        )}
+        {loading && (!refreshing || activeOpportunities.length === 0) ? (
+          <DashboardLoading label="Loading opportunities" />
+        ) : (
+          <>
+            {activeOpportunities.length > 0 ? (
+              <div className="grid gap-4 md:grid-cols-2">
+                {activeOpportunities.map((opportunity) => (
+                  <OpportunityCard key={opportunity.id} opportunity={opportunity} deadlineDay={deadlineDay} />
+                ))}
+              </div>
+            ) : !setupMessage && !error && !edutuError && (
+              <div className="rounded-2xl border border-orange-100 bg-[#fffaf4] px-6 py-10 text-center">
+                <p className="font-semibold text-black">No opportunities to show yet</p>
+                <p className="mt-2 text-sm text-black/65">
+                  {typeFilter || search
+                    ? 'Try another search or opportunity type.'
+                    : `New listings appear here as they open, ${member.name.split(' ')[0] || 'awardee'}.`}
+                </p>
+              </div>
+            )}
+            {edutuCursor && (
+              <Button type="button" variant="outline" className="min-h-11" onClick={loadMoreEdutu} disabled={loading || loadingMore}>
+                {loadingMore ? 'Loading…' : 'More from Edutu'}
               </Button>
-            </div>
-          ) : loading ? (
-            <DashboardLoading label="Loading opportunities" />
-          ) : opportunities.length === 0 ? (
-            <div className="rounded-[28px] border-2 border-dashed border-orange-200 bg-[#fffaf4] px-6 py-12 text-center">
-              <p className="text-base font-bold text-black">
-                No opportunities to show yet
-              </p>
-              <p className="mx-auto mt-2 max-w-md text-sm font-medium leading-6 text-black/60">
-                {typeFilter || search
-                    ? 'Nothing matches these filters. Try clearing the search or picking another type.'
-                    : `New listings are posted here as they open, ${member.name.split(' ')[0] || 'awardee'}. Check back soon.`}
-              </p>
-            </div>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2">
-              {opportunities.map((opportunity, index) => (
-                <OpportunityCard
-                  key={opportunity.id}
-                  opportunity={opportunity}
-                  index={index}
-                />
-              ))}
-            </div>
-          )}
-        </div>
+            )}
+          </>
+        )}
       </div>
     </section>
   )
@@ -198,7 +321,7 @@ function FilterChip({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        'rounded-full border px-4 py-2 text-xs font-semibold transition-colors',
+        'min-h-11 rounded-full border px-4 py-2 text-xs font-semibold transition-colors',
         active
           ? 'border-orange-500 bg-orange-500 text-[#fffaf0] hover:bg-orange-600'
           : 'border-orange-200 bg-white text-black/70 hover:bg-orange-50',
@@ -209,108 +332,144 @@ function FilterChip({
   )
 }
 
-function OpportunityCard({
-  opportunity,
-  index,
-}: {
-  opportunity: Opportunity
-  index: number
-}) {
-  // Kept from the original inline section so the feed still looks itself.
-  // Text on every card is text-black — never text-white, which globals.css
-  // rewrites under html.light.
-  const onOrange = index % 3 === 0
-  const surface = onOrange
-    ? 'bg-orange-500'
-    : index % 3 === 1
-      ? 'bg-[#f5f4f0]'
-      : 'bg-[#fff2e2] border border-orange-100'
+function OpportunityCover({ imageUrl, detail = false }: { imageUrl?: string | null; detail?: boolean }) {
+  const [failedUrl, setFailedUrl] = useState<string | null>(null)
+  const image = imageUrl && imageUrl !== failedUrl ? imageUrl : null
 
-  // An orange button on the orange card would vanish, so the CTA inverts there.
-  const applyClasses = onOrange
-    ? 'bg-[#fffaf0] text-black hover:bg-white'
-    : 'bg-orange-500 text-[#fffaf0] hover:bg-orange-600'
-  const exclusiveClasses = onOrange
-    ? 'bg-[#fffaf0] text-black'
-    : 'bg-orange-600 text-[#fffaf0]'
-
-  const closed = isDeadlinePast(opportunity.deadline)
-  const countdown = formatDeadlineCountdown(opportunity.deadline)
-  const exclusive = opportunity.visibility !== 'public'
+  if (detail && !image) return null
 
   return (
-    <div className={cn('flex flex-col rounded-[28px] p-6 text-black', surface)}>
-      <div className="flex items-start justify-between gap-3">
-        <p className="text-xs font-semibold tracking-[0.18em] text-black/55">
-          {opportunity.type.toUpperCase()}
-        </p>
-        <div className="flex shrink-0 items-center gap-2">
-          {exclusive ? (
-            <span className={cn('rounded-full px-3 py-1 text-xs font-bold', exclusiveClasses)}>
-              Exclusive
-            </span>
-          ) : null}
-        </div>
-      </div>
+    <span className={cn(
+      'relative block overflow-hidden bg-[#eee8e0]',
+      detail ? 'aspect-[16/9] rounded-xl' : 'aspect-[7/3] shrink-0',
+    )}>
+      <SafeImage
+        src={image ?? defaultOpportunityCover}
+        alt=""
+        fill
+        sizes={detail ? '(max-width: 640px) 90vw, 560px' : '(max-width: 767px) 100vw, 50vw'}
+        unoptimized={Boolean(image)}
+        referrerPolicy="no-referrer"
+        className={detail ? 'object-contain' : 'object-cover'}
+        onError={image ? () => setFailedUrl(image) : undefined}
+      />
+    </span>
+  )
+}
 
-      <h3 className="mt-4 text-2xl font-bold">{opportunity.title}</h3>
+function OpportunityCard({ opportunity, deadlineDay }: {
+  opportunity: Opportunity | EdutuOpportunity
+  deadlineDay: string
+}) {
+  const fromEdutu = 'source' in opportunity
+  const countdown = fromEdutu && opportunity.deadlineNeedsReview ? 'Check with provider'
+    : fromEdutu && !opportunity.deadline ? 'Deadline not listed'
+    : formatDeadlineCountdown(opportunity.deadline, new Date(`${deadlineDay}T12:00:00`))
+  const sourceLabel = fromEdutu ? 'Edutu' : opportunity.visibility !== 'public' ? 'Exclusive' : null
+  const applicationUrl = opportunity.applicationUrl?.match(/^https?:\/\/\S+$/i)?.[0]
+  const hasApplication = applicationUrl || opportunity.contactEmail
+  const showSummary = opportunity.summary && !opportunity.description?.includes(opportunity.summary)
+  const deadline = opportunity.deadline && !(fromEdutu && opportunity.deadlineNeedsReview)
+    ? formatDeadlineDate(opportunity.deadline)
+    : countdown
 
-      {opportunity.organization ? (
-        <p className="mt-1 text-sm font-semibold text-black/70">{opportunity.organization}</p>
-      ) : null}
-
-      {opportunity.summary ? (
-        <p className="mt-3 line-clamp-3 text-sm font-medium leading-6 text-black/65">{opportunity.summary}</p>
-      ) : null}
-
-      <div className="mt-5 flex flex-wrap gap-2">
-        {opportunity.location ? (
-          <span className="rounded-full bg-[#fffaf0] px-4 py-2 text-sm font-semibold text-black">
-            {opportunity.location}
-          </span>
-        ) : null}
-        <span
-          className={cn(
-            'rounded-full px-4 py-2 text-sm font-semibold text-black',
-            closed ? 'bg-[#fffaf0] opacity-70' : 'bg-[#fffaf0]',
-          )}
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <button
+          type="button"
+          aria-label={`View details for ${opportunity.title}`}
+          className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-stone-200 bg-white text-left text-[#1c1714] transition-shadow hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-700"
         >
-          {countdown}
-        </span>
-        {opportunity.amountNote ? (
-          <span className="rounded-full bg-[#fffaf0] px-4 py-2 text-sm font-semibold text-black">
-            {opportunity.amountNote}
+          <OpportunityCover imageUrl={opportunity.imageUrl} />
+          <span className="flex w-full flex-1 flex-col px-4 pb-3 pt-4 sm:px-5">
+            <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold">
+              <span className="text-[#9a3412]">{opportunity.type}</span>
+              {sourceLabel && <span className="rounded-full bg-[#f5f0eb] px-2 py-0.5 text-[#60544b]">{sourceLabel}</span>}
+            </span>
+            <span className="mt-2 text-xl font-bold leading-tight tracking-tight [overflow-wrap:anywhere]">
+              {opportunity.title}
+            </span>
+            {opportunity.organization && (
+              <span className="mt-1 text-sm text-[#61554d] [overflow-wrap:anywhere]">{opportunity.organization}</span>
+            )}
+            {opportunity.summary && (
+              <span className="mb-3 mt-2 line-clamp-2 text-sm leading-5 text-[#61554d]">{opportunity.summary}</span>
+            )}
+            <span className="mt-auto pt-3">
+              <span className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-stone-200 pt-3 text-sm">
+                <span className="font-medium text-[#61554d]">{countdown}</span>
+                <span className="inline-flex items-center gap-1 font-semibold text-[#9a3412] group-hover:underline">
+                  View details <ChevronRight size={16} aria-hidden="true" />
+                </span>
+              </span>
+            </span>
           </span>
-        ) : null}
-      </div>
-
-      <div className="mt-6 flex flex-wrap items-center gap-3">
-        {opportunity.applicationUrl ? (
-          <a
-            href={opportunity.applicationUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={cn(
-              'inline-flex items-center rounded-full px-6 py-3 text-sm font-semibold transition-colors',
-              applyClasses,
+        </button>
+      </DialogTrigger>
+      <DialogContent
+        className="z-[100] grid max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-xl grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden rounded-2xl border-stone-200 bg-white p-0 text-[#1c1714]"
+        overlayClassName="z-[99] bg-black/50"
+      >
+        <div className="border-b border-stone-200 px-5 py-4 pr-16 sm:px-6 sm:pr-16">
+          <DialogTitle className="text-xl font-bold leading-tight [overflow-wrap:anywhere]">{opportunity.title}</DialogTitle>
+          <DialogDescription className="mt-1 text-sm text-[#61554d]">
+            {opportunity.organization ?? (fromEdutu ? 'Edutu' : opportunity.type)}
+          </DialogDescription>
+        </div>
+        <div className="flex min-h-0 flex-col">
+          <div className="min-h-0 space-y-5 overflow-y-auto overscroll-contain p-5 sm:p-6">
+            <OpportunityCover imageUrl={opportunity.imageUrl} detail />
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-3 rounded-xl bg-[#f7f4f0] p-4 text-sm [overflow-wrap:anywhere]">
+              <div><dt className="text-[#61554d]">Type</dt><dd className="font-semibold">{opportunity.type}</dd></div>
+              <div>
+                <dt className="text-[#61554d]">Deadline</dt>
+                <dd className="font-semibold">{deadline}</dd>
+              </div>
+              {opportunity.location && (
+                <div><dt className="text-[#61554d]">Location</dt><dd className="font-semibold">{opportunity.location}</dd></div>
+              )}
+              {opportunity.amountNote && (
+                <div><dt className="text-[#61554d]">Funding</dt><dd className="font-semibold">{opportunity.amountNote}</dd></div>
+              )}
+            </dl>
+            {showSummary && (
+              <p className="text-sm font-medium leading-6 [overflow-wrap:anywhere]">{opportunity.summary}</p>
             )}
-          >
-            Apply
-            <ExternalLink className="ml-2 h-4 w-4" />
-          </a>
-        ) : opportunity.contactEmail ? (
-          <a
-            href={`mailto:${opportunity.contactEmail}`}
-            className={cn(
-              'inline-flex items-center rounded-full px-6 py-3 text-sm font-semibold transition-colors',
-              applyClasses,
-            )}
-          >
-            Apply by email
-            <Mail className="ml-2 h-4 w-4" />
-          </a>
-        ) : null}
-      </div>
-    </div>
+            {opportunity.description && (fromEdutu ? (
+              <p className="whitespace-pre-line text-sm leading-6 [overflow-wrap:anywhere]">{opportunity.description}</p>
+            ) : (
+              <div
+                className="text-sm leading-6 [overflow-wrap:anywhere] [&_a]:underline [&_li]:ml-4 [&_ol]:list-decimal [&_p+p]:mt-3 [&_ul]:list-disc"
+                dangerouslySetInnerHTML={{ __html: renderMemberPostBody(opportunity.description) }}
+              />
+            ))}
+          </div>
+          {hasApplication && (
+            <div className="shrink-0 border-t border-stone-200 px-5 py-3 sm:px-6">
+              {applicationUrl ? (
+                <a
+                  href={applicationUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#9a3412] px-5 text-sm font-semibold text-[#fffaf4] hover:bg-[#7c2d12]"
+                >
+                  Apply on provider site
+                  <ExternalLink size={16} aria-hidden="true" />
+                </a>
+              ) : (
+                <a
+                  href={`mailto:${opportunity.contactEmail}`}
+                  className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#9a3412] px-5 text-sm font-semibold text-[#fffaf4] hover:bg-[#7c2d12]"
+                >
+                  Apply by email
+                  <Mail size={16} aria-hidden="true" />
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }

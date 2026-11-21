@@ -91,6 +91,7 @@ export async function POST(request: NextRequest) {
       location: input.location,
       summary: input.summary,
       description: input.description,
+      image_url: input.imageUrl,
       application_url: input.applicationUrl,
       contact_email: input.contactEmail,
       deadline: input.deadline,

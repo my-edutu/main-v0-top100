@@ -85,6 +85,7 @@ type FormState = {
   location: string
   summary: string
   description: string
+  imageUrl: string
   applicationUrl: string
   contactEmail: string
   deadline: string
@@ -101,6 +102,7 @@ const EMPTY_FORM: FormState = {
   location: '',
   summary: '',
   description: '',
+  imageUrl: '',
   applicationUrl: '',
   contactEmail: '',
   deadline: '',
@@ -125,6 +127,7 @@ function formToPayload(form: FormState) {
     location: form.location.trim(),
     summary: form.summary.trim(),
     description: form.description.trim(),
+    imageUrl: form.imageUrl.trim(),
     applicationUrl: form.applicationUrl.trim(),
     contactEmail: form.contactEmail.trim(),
     deadline: form.deadline.trim(),
@@ -143,6 +146,7 @@ function opportunityToForm(opportunity: Opportunity): FormState {
     location: opportunity.location ?? '',
     summary: opportunity.summary ?? '',
     description: opportunity.description ?? '',
+    imageUrl: opportunity.imageUrl ?? '',
     applicationUrl: opportunity.applicationUrl ?? '',
     contactEmail: opportunity.contactEmail ?? '',
     deadline: opportunity.deadline ?? '',
@@ -607,6 +611,17 @@ export default function AdminOpportunitiesPage() {
                 id="opp-url"
                 value={form.applicationUrl}
                 onChange={(event) => setForm({ ...form, applicationUrl: event.target.value })}
+                placeholder="https://…"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="opp-image">Cover image URL (optional)</Label>
+              <Input
+                id="opp-image"
+                type="url"
+                value={form.imageUrl}
+                onChange={(event) => setForm({ ...form, imageUrl: event.target.value })}
                 placeholder="https://…"
               />
             </div>

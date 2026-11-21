@@ -14,6 +14,7 @@ import {
   OPPORTUNITY_VISIBILITIES,
   isDeadlinePast,
   nextAvailableSlug,
+  opportunityImageUrl,
   slugify,
   type Opportunity,
   type OpportunityStatus,
@@ -89,7 +90,7 @@ export async function loadMemberStatus(
 // ---------------------------------------------------------------------------
 
 export const OPPORTUNITY_COLUMNS =
-  'id, title, slug, type, organization, location, summary, description, application_url, contact_email, deadline, amount_note, visibility, is_featured, status, created_at, updated_at'
+  'id, title, slug, type, organization, location, summary, description, image_url, application_url, contact_email, deadline, amount_note, visibility, is_featured, status, created_at, updated_at'
 
 export function mapOpportunity(row: any, isSaved = false): Opportunity {
   return {
@@ -101,6 +102,7 @@ export function mapOpportunity(row: any, isSaved = false): Opportunity {
     location: row.location ?? null,
     summary: row.summary ?? null,
     description: row.description ?? null,
+    imageUrl: opportunityImageUrl(row.image_url),
     applicationUrl: row.application_url ?? null,
     contactEmail: row.contact_email ?? null,
     deadline: row.deadline ?? null,
@@ -222,6 +224,11 @@ const opportunitySchema = z.object({
   location: optionalText(200),
   summary: optionalText(500),
   description: optionalText(20000),
+  imageUrl: optionalText(2048)
+    .refine((value) => value === null || opportunityImageUrl(value) !== null, {
+      message: 'Use an HTTPS link to the cover image.',
+    })
+    .transform(opportunityImageUrl),
   applicationUrl: optionalUrl,
   contactEmail: optionalEmail,
   deadline: optionalDeadline,
@@ -290,6 +297,7 @@ export function toRowPatch(input: UpdateOpportunityInput): Record<string, unknow
   if (input.location !== undefined) patch.location = input.location
   if (input.summary !== undefined) patch.summary = input.summary
   if (input.description !== undefined) patch.description = input.description
+  if (input.imageUrl !== undefined) patch.image_url = input.imageUrl
   if (input.applicationUrl !== undefined) patch.application_url = input.applicationUrl
   if (input.contactEmail !== undefined) patch.contact_email = input.contactEmail
   if (input.deadline !== undefined) patch.deadline = input.deadline

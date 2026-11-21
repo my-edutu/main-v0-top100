@@ -29,6 +29,7 @@ export type Opportunity = {
   location: string | null
   summary: string | null
   description: string | null
+  imageUrl?: string | null
   applicationUrl: string | null
   contactEmail: string | null
   deadline: string | null
@@ -39,6 +40,16 @@ export type Opportunity = {
   isSaved: boolean
   createdAt: string
   updatedAt: string
+}
+
+export function opportunityImageUrl(value: unknown): string | null {
+  if (typeof value !== 'string' || !value.trim()) return null
+  try {
+    const url = new URL(value)
+    return url.protocol === 'https:' && !url.username && !url.password ? url.href : null
+  } catch {
+    return null
+  }
 }
 
 export const VISIBILITY_LABELS: Record<OpportunityVisibility, string> = {
@@ -95,6 +106,29 @@ export function formatDeadlineCountdown(deadline: string | null | undefined, now
 export function isDeadlinePast(deadline: string | null | undefined, now: Date = new Date()): boolean {
   const days = daysUntilDeadline(deadline, now)
   return days !== null && days < 0
+}
+
+const lagosDate = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Africa/Lagos',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+})
+
+export function opportunityDeadlineDay(now = new Date()): string {
+  const parts = lagosDate.formatToParts(now)
+  const day = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value
+  return `${day('year')}-${day('month')}-${day('day')}`
+}
+
+export function hasOpportunityExpired(deadline: string | null | undefined, today: string): boolean {
+  const day = deadline ? parseDeadlineDay(deadline) : null
+  return day !== null && day < Date.parse(today)
+}
+
+export function nextOpportunityDeadlineCheck(now = new Date()): number {
+  // Lagos is UTC+1 year-round. Compare against the next local midnight.
+  return Date.parse(`${opportunityDeadlineDay(now)}T00:00:00+01:00`) + 86_400_000
 }
 
 /** Short human date for a `date` column, e.g. "1 Aug 2026". */
