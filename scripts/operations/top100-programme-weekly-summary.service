@@ -1,0 +1,6 @@
+[Unit]
+Description=Generate private Top100 programme weekly summary
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/top100-programme-weekly-summary

@@ -81,6 +81,7 @@ export const navGroups: NavGroup[] = [
       { label: 'Awards', href: '/admin/awards', icon: Trophy },
       { label: 'Award deliveries', href: '/admin/award-deliveries', icon: Truck },
       { label: 'Project100 Scholarship', href: '/admin/project100-scholarship', icon: GraduationCap },
+      { label: 'Programmes & Impact', href: '/admin/programmes', icon: ClipboardList },
       { label: 'Events & invitations', href: '/admin/events', icon: Calendar },
       { label: 'Festival interest', href: '/admin/festival', icon: Ticket },
       { label: 'Interviews', href: '/admin/interviews', icon: Mic },
