@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { ArrowUpRight, Pause, Play } from 'lucide-react'
+import { ArrowUpRight } from 'lucide-react'
 import { useReducedMotion } from 'framer-motion'
 
 import SafeImage from '@/components/safe-image'
@@ -110,31 +110,13 @@ export function DashboardFeaturedPromotions({ home = false }: { home?: boolean }
           </CarouselItem>
         ))}
       </CarouselContent>
-      <div className="flex justify-center">
-        {!home && cards.map((card, index) => (
-          <button
-            key={card.href}
-            type="button"
-            aria-label={`Show ${card.title.replace(/\.$/, '')}`}
-            aria-pressed={active === index}
-            onClick={() => api?.scrollTo(index, Boolean(reducedMotion))}
-            className="grid size-11 place-items-center rounded-full focus-visible:outline-2 focus-visible:outline-orange-700"
-          >
-            <span aria-hidden="true" className={`h-2 rounded-full ${active === index ? 'w-5 bg-[#9a3412]' : 'w-2 bg-stone-400'}`} />
-          </button>
-        ))}
-        {!reducedMotion && <button
-          type="button"
-          aria-label={paused ? 'Play featured cards' : 'Pause featured cards'}
-          onClick={() => setPaused(value => !value)}
-          className={home
-            ? 'sr-only focus:not-sr-only focus:absolute focus:bottom-2 focus:right-2 focus:z-10 focus:rounded-lg focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:font-semibold focus:outline-2 focus:outline-orange-700'
-            : 'grid size-11 place-items-center rounded-full text-stone-600 focus-visible:outline-2 focus-visible:outline-orange-700'}
-        >
-          {home ? (paused ? 'Play featured cards' : 'Pause featured cards')
-            : paused ? <Play size={14} aria-hidden="true" /> : <Pause size={14} aria-hidden="true" />}
-        </button>}
-      </div>
+      {!reducedMotion && <button
+        type="button"
+        onClick={() => setPaused(value => !value)}
+        className="sr-only focus:not-sr-only focus:absolute focus:bottom-2 focus:right-2 focus:z-10 focus:rounded-lg focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:font-semibold focus:outline-2 focus:outline-orange-700"
+      >
+        {paused ? 'Play featured cards' : 'Pause featured cards'}
+      </button>}
     </Carousel>
   )
 }

@@ -107,7 +107,7 @@ export function DiscoverFeed({ posts, calendar }: { posts: Story[]; calendar: Pr
   const [retry, setRetry] = useState(0)
   const [rotationWindow] = useState(() => Math.floor(Date.now() / (1000 * 60 * 60 * 24)))
   const stories = shuffleForMember(posts, member.id, rotationWindow)
-  const shortcutItems = discoverNav.map(item => {
+  const shortcutItems = discoverNav.filter(item => item.href !== '/dashboard/discover/groups').map(item => {
     if (item.label === 'Members') {
       return { ...item, label: 'School', href: '/dashboard/discover/event-videos', icon: BookOpen }
     }

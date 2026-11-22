@@ -308,12 +308,11 @@ html.light .discover-feed .discover-person h3, html.light .discover-feed .discov
 .discover-story > div { display: flex; flex: 1; flex-direction: column; padding: 12px; }
 .discover-story h3 { font-size: 14px; font-weight: 600; line-height: 1.4; margin: 8px 0; }
 .discover-story .discover-cta { padding-top: 12px; min-height: 44px; }
-.discover-shortcuts a:nth-child(1) { background: #ffd0a2 !important; border-color: transparent; }
-.discover-shortcuts a:nth-child(2) { background: #d6caff !important; border-color: transparent; }
-.discover-shortcuts a:nth-child(3) { background: #aee5d4 !important; border-color: transparent; }
-.discover-shortcuts a:nth-child(4) { background: #f7c9d9 !important; border-color: transparent; }
-.discover-shortcuts a:nth-child(5) { background: #ffe89f !important; border-color: transparent; }
-.discover-shortcuts a:nth-child(6) { background: #c1dcfa !important; border-color: transparent; }
+.discover-shortcuts a[href="/dashboard/discover/event-videos"] { background: #ffd0a2 !important; border-color: transparent; }
+.discover-shortcuts a[href="/dashboard/discover/opportunities"] { background: #aee5d4 !important; border-color: transparent; }
+.discover-shortcuts a[href="/dashboard/me/award"] { background: #f7c9d9 !important; border-color: transparent; }
+.discover-shortcuts a[href="/dashboard/discover/events"] { background: #ffe89f !important; border-color: transparent; }
+.discover-shortcuts a[href="/dashboard/discover/programmes"] { background: #c1dcfa !important; border-color: transparent; }
 .discover-story p { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .discover-empty { font-size: 13px; padding: 20px 0; max-width: 100%; }
 html.light .discover-feed a, html.light .discover-feed h1, html.light .discover-feed h2, html.light .discover-feed h3, html.light .discover-feed p, html.light .discover-feed span { color: #211d24 !important; }
