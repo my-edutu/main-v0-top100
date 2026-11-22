@@ -1,6 +1,7 @@
 import sharp, { type OverlayOptions } from 'sharp'
 import path from 'node:path'
 import { FESTIVAL_DATE, FESTIVAL_VENUE } from '../festival/config'
+import { recommender } from './recommender'
 
 export type LetterInput = { kind: 'recommendation' | 'invitation'; name: string; recipient: string; purpose: string }
 
@@ -40,7 +41,7 @@ async function renderLetterPage(input: LetterInput, year: string | undefined, de
     `${year ? 'In ' + year + ', we' : 'We'} selected ${name} as a Top100 Africa Future Leaders award recipient. Our programme recognises young Africans who show leadership through the work they do in their communities, workplaces and fields of study. In assessing candidates, we consider the initiative they have shown, the impact of their work and their potential to lead.`,
     'That recognition is the basis for this recommendation. We value leadership that can be seen in how people take responsibility, put ideas into practice and contribute to others. An award from our programme reflects our judgement that the recipient’s work merits recognition and that their potential deserves continued support.',
     'I encourage you to consider this distinction alongside the applicant’s experience and goals. The opportunity described above would give them a chance to build on the work that earned their recognition and bring what they have learned to a new setting. I am pleased to support their application on behalf of our programme.',
-    'Thank you for considering their application. If you would like to confirm the award or learn more about our selection process, our team can be reached at partnership@top100afl.com.',
+    `Thank you for considering their application. If you would like to confirm the award or learn more about our selection process, our team can be reached at ${recommender.email}.`,
   ] : [
     `On behalf of Top100 Africa Future Leaders, we are pleased to confirm that ${name} is a Top100 Africa Future Leaders award recipient and is invited to attend the Africa Future Leaders Festival.`,
     `Festival date: ${FESTIVAL_DATE}\nVenue: ${FESTIVAL_VENUE}, Lagos, Nigeria`,
@@ -72,8 +73,8 @@ async function renderLetterPage(input: LetterInput, year: string | undefined, de
   const signature = await sharp(path.join(folder,'signature.png')).resize(195).png().toBuffer()
   layers.push({input: signature, top, left: margin})
   top += 75
-  await line('Nwosu Paul Light', 22, 5, true)
-  await line('Founder & CEO\nTOP100 AFRICA FUTURE LEADERS', 20, 0)
+  await line(recommender.name, 22, 5, true)
+  await line(`${recommender.title}\n${recommender.organisation.toUpperCase()}`, 20, 0)
   if (top > 1320) {
     if (spacious) return renderLetterPage(input, year, demo, true)
     throw new RangeError('Please shorten your entries to fit one page.')

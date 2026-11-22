@@ -930,6 +930,10 @@ export async function handleDemoMemberRequest(
       break
     }
     case 'recommendation-letters': {
+      if (path.length === 2 && path[1] === 'recommender' && request.method === 'GET') {
+        const { recommenderResponse } = await import('@/lib/award-letters/recommender')
+        return recommenderResponse()
+      }
       if (path.length !== 1 || !['GET', 'POST'].includes(request.method)) break
       const { handleDemoRecommendations } = await import('@/lib/award-letters/recommendations-demo')
       return handleDemoRecommendations(request, store, pickupPaymentState(store.awardPayment))

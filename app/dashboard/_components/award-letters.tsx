@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { canIssueRecommendation, type RecommendationAccess } from '@/lib/award-letters/recommendation-payment'
 import { RecommendationUpgrade } from './recommendation-upgrade'
+import { RecommenderDetails } from './recommender-details'
 import { requestRecommendation, SavedRecommendations, type SavedRecommendation } from './saved-recommendations'
 import { Download } from 'lucide-react'
 import { createContext, useContext, useRef, useState, type FormEvent, type ReactNode } from 'react'
@@ -119,6 +120,7 @@ export function AwardLetterForm({ kind, allowCheckout }: { kind: LetterKind; all
       <h1 id="award-letter-heading" className="text-3xl font-semibold tracking-tight">{title}</h1>
       {canCreateAwardLetters(member) ? <>
         <p className="mt-2 text-sm leading-6 text-[#625449] sm:text-base">{description}</p>
+        {kind === 'recommendation' && <RecommenderDetails applicant={name} opportunity={purpose} />}
         {kind === 'recommendation' && <RecommendationUpgrade access={recommendationAccess} onAccess={setRecommendationAccess} allowCheckout={allowCheckout} />}
         {canWrite && <form ref={formRef} className="mt-6 scroll-mt-24" onSubmit={generate}>
           <fieldset disabled={busy} className="grid gap-5">
