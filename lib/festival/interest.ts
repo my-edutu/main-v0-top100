@@ -60,3 +60,54 @@ export function pickupPaymentState(
   if (payment.status === 'pending') return 'pending'
   return 'required'
 }
+
+const festivalContactSchema = z.object({
+  name: festivalInterestSchema.shape.fullName,
+  email: z.string().trim().max(254).email('Enter a valid email address.'),
+  phone: festivalInterestSchema.shape.phone,
+}).strict()
+
+export const festivalRsvpSchema = z.object({
+  attending: z.boolean(),
+  awardee: festivalContactSchema,
+  guest: festivalContactSchema.nullable(),
+  pickup: z.enum(['festival', 'dispatch']),
+}).strict().superRefine((value, ctx) => {
+  if (!value.attending && (value.guest || value.pickup === 'festival')) {
+    ctx.addIssue({ code: 'custom', message: 'Guests and festival pickup require attendance.' })
+  }
+})
+
+export const festivalDispatchSchema = z.object({
+  recipient: festivalInterestSchema.shape.fullName,
+  phone: festivalInterestSchema.shape.phone,
+  country: z.string().trim().min(2, 'Enter a country.').max(100),
+  city: z.string().trim().min(1, 'Enter a city.').max(100),
+  region: z.string().trim().max(100),
+  address: z.string().trim().min(4, 'Enter the street address.').max(300),
+  postalCode: z.string().trim().max(24),
+}).strict()
+
+export type FestivalContact = z.infer<typeof festivalContactSchema>
+export type FestivalRsvp = z.infer<typeof festivalRsvpSchema>
+export type FestivalDispatch = z.infer<typeof festivalDispatchSchema>
+export type FestivalResponse = {
+  attending: boolean | null
+  awardee: FestivalContact | null
+  guest: FestivalContact | null
+  pickup: FestivalRsvp['pickup']
+  dispatch: FestivalDispatch | null
+}
+export type FestivalAdminResponse = FestivalResponse & {
+  memberId: string
+  name: string
+  email: string
+}
+export type FestivalResponseList = {
+  responses: FestivalAdminResponse[]
+  pageSize: number
+  total: number
+  attending: number
+  guests: number
+  dispatch: number
+}

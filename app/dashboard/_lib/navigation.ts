@@ -86,6 +86,9 @@ export function isDashboardNavActive(pathname: string, href: string) {
 export function resolveDashboardTitle(pathname: string) {
   if (pathname === '/dashboard/letters' || pathname.startsWith('/dashboard/letters/')) return 'Award letters'
   if (pathname === '/dashboard/festival') return 'Festival'
+  if (pathname === '/dashboard/festival/ticket') return 'Festival ticket'
+  if (pathname === '/dashboard/festival/rsvp') return 'Festival RSVP'
+  if (pathname === '/dashboard/festival/dispatch') return 'Award dispatch'
   if (pathname === '/dashboard/introductions') return 'Introductions'
   if (pathname === '/dashboard/applications') return 'Applications'
   if (pathname === '/dashboard/me/interview') return 'Request an interview'

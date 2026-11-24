@@ -250,6 +250,10 @@ export default function FestivalInterestPage() {
   )
   return (
     <section className="festival-page" aria-labelledby="festival-page-title">
+      <div className="flex flex-wrap gap-x-5 gap-y-2 rounded-xl border border-neutral-200 bg-white p-4 text-sm font-medium">
+        <Link href="/dashboard/festival/rsvp" className="underline underline-offset-4">RSVP and add a guest</Link>
+        <Link href="/dashboard/festival/dispatch" className="underline underline-offset-4">Request award dispatch</Link>
+      </div>
       <header className="festival-intro">
         <div className="festival-intro__image">
           <Image src={FESTIVAL_IMAGE} alt="Africa Future Leaders Festival 2026 stage" fill sizes="(min-width: 800px) 720px, 100vw" priority />
