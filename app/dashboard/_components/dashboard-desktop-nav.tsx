@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 import { cn } from '@/lib/utils'
-import { isDashboardNavActive, primaryDashboardNav, type DashboardColor } from '../_lib/navigation'
+import { isDashboardNavActive, isOpportunityDetailPath, primaryDashboardNav, type DashboardColor } from '../_lib/navigation'
 import { top100DashboardTheme } from '@/lib/dashboard/theme'
 import { NavigationPending } from './navigation-pending'
 
@@ -19,9 +19,10 @@ const activeColorClasses: Record<DashboardColor, string> = {
 
 export function DashboardDesktopNav() {
   const pathname = usePathname()
+  const hasStickyHeader = pathname === '/dashboard' || pathname === '/dashboard/discover/opportunities' || isOpportunityDetailPath(pathname)
 
   return (
-    <aside className={`hub-desktop-nav hidden w-[88px] shrink-0 border-r lg:sticky lg:top-[60px] lg:flex lg:h-[calc(100dvh-60px)] lg:flex-col xl:w-[240px] ${top100DashboardTheme.nav}`}>
+    <aside className={`hub-desktop-nav hidden w-[88px] shrink-0 border-r lg:sticky lg:flex lg:flex-col xl:w-[240px] ${hasStickyHeader ? 'lg:top-[60px] lg:h-[calc(100dvh-60px)]' : 'lg:top-0 lg:h-dvh'} ${top100DashboardTheme.nav}`}>
       <nav aria-label="Primary dashboard navigation" className="flex flex-1 flex-col gap-2 p-3 xl:p-4">
         {primaryDashboardNav.map((item) => {
           const Icon = item.icon

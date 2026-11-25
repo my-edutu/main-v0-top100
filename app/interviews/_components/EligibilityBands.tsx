@@ -10,7 +10,7 @@ const LOOKING_FOR = [
 const WHY_APPLY = [
   'Your story reaches the full Top100 network, our magazine and our social platforms',
   'A permanent, shareable profile piece you can send to funders and partners',
-  'Connection with awardees working on adjacent problems across 31 countries',
+  'Connection with awardees working on similar problems in other countries',
   'A stronger, more specific picture of what African leadership actually looks like',
 ]
 

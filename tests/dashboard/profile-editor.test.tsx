@@ -17,15 +17,23 @@ import { createDemoDashboardStore } from '@/lib/dev-dashboard/store'
 const draft = { headline: 'Founder', field: 'Climate', location: 'Lagos', organization: 'AFL', bio: 'My story', emailVisible: false, recruiterVisible: true }
 beforeEach(() => { state.cursor = 0; state.values = []; state.member = { ...createDemoDashboardStore().profile, ...draft } })
 describe('complete profile editor', () => {
-  it('opens the current editor with all About you fields and the saved BIO together', () => {
+  it('links to optional career details and opens About you on its own', () => {
     const overview = ProfileSection()
+    expect(renderToStaticMarkup(overview)).toContain('href="/dashboard/me/profile/career"')
     overview.props.onEdit()
     state.cursor = 0
     const html = renderToStaticMarkup(ProfileSection())
-    for (const field of ['headline','field','location','organization','bio']) expect(html).toContain(`profile-answer-${field}`)
-    for (const value of ['Founder', 'Climate', 'Lagos', 'AFL']) expect(html).toContain(`value="${value}"`)
+    for (const field of ['headline','field','location']) expect(html).toContain(`profile-answer-${field}`)
+    for (const value of ['Founder', 'Climate', 'Lagos']) expect(html).toContain(`value="${value}"`)
+    for (const field of ['profile-answer-organization', 'profile-answer-bio', 'id="profile-photo"']) expect(html).not.toContain(field)
+    expect(html).toContain('Save changes')
+  })
+  it('opens the saved bio independently', () => {
+    ProfileSection().props.onEditBio()
+    state.cursor = 0
+    const html = renderToStaticMarkup(ProfileSection())
     expect(html).toContain('My story')
-    expect(html).toContain('Profile editing steps')
+    expect(html).not.toContain('profile-answer-headline')
   })
   it('allows optional fields to be cleared and rejects oversized BIOs', () => {
     expect(validateProfileDraft({ ...draft, bio: '' })).toBeNull()

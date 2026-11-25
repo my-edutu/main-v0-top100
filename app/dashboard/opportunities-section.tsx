@@ -4,14 +4,15 @@
 // Nothing here ever asks for a visibility tier — the server decides what this
 // member may see. The "Exclusive" badge simply reports what came back.
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import Link from 'next/link'
-import { ChevronRight, RefreshCw, Search, SlidersHorizontal } from 'lucide-react'
+import { ChevronRight, RefreshCw, Search, X } from 'lucide-react'
 
 import { DashboardLoading } from './_components/dashboard-loading'
 import { OpportunityCover } from './_components/opportunity-cover'
+import { useOpportunityDeadlineDay } from './_lib/use-opportunity-deadline-day'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import { fetchWithTimeout } from '@/lib/http/fetch-with-timeout'
 import type { EdutuOpportunity, EdutuOpportunityPage } from '@/lib/opportunities/edutu'
@@ -24,8 +25,6 @@ import {
   OPPORTUNITY_TYPES,
   formatDeadlineCountdown,
   hasOpportunityExpired,
-  nextOpportunityDeadlineCheck,
-  opportunityDeadlineDay,
   type Opportunity,
 } from '@/lib/opportunities/types'
 
@@ -55,33 +54,38 @@ export default function OpportunitiesSection({
   const [error, setError] = useState('')
   const [setupMessage, setSetupMessage] = useState('')
   const [typeFilter, setTypeFilter] = useState<string>('')
+  const [searchOpen, setSearchOpen] = useState(false)
   const [searchDraft, setSearchDraft] = useState('')
   const [search, setSearch] = useState('')
-  const [filtersOpen, setFiltersOpen] = useState(false)
   const [pullDistance, setPullDistance] = useState(0)
   const [refreshing, setRefreshing] = useState(false)
-  const [deadlineDay, setDeadlineDay] = useState(opportunityDeadlineDay)
+  const deadlineDay = useOpportunityDeadlineDay()
   const sectionRef = useRef<HTMLElement>(null)
+  const searchInput = useRef<HTMLInputElement>(null)
   const requestId = useRef(0)
   const activeOpportunities = [...opportunities, ...edutu].filter(item =>
     item.status === 'published' && !hasOpportunityExpired(item.deadline, deadlineDay),
   )
 
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout>
-    function checkDeadlines() {
-      clearTimeout(timer)
-      const now = new Date()
-      setDeadlineDay(opportunityDeadlineDay(now))
-      timer = setTimeout(checkDeadlines, Math.max(1, nextOpportunityDeadlineCheck(now) - now.getTime()))
-    }
-    checkDeadlines()
-    window.addEventListener('focus', checkDeadlines)
-    return () => {
-      clearTimeout(timer)
-      window.removeEventListener('focus', checkDeadlines)
-    }
+  const closeSearch = useCallback(() => {
+    setSearchOpen(false)
+    setSearchDraft('')
+    setSearch('')
+    document.getElementById('opportunity-search-button')?.focus({ preventScroll: true })
   }, [])
+
+  useEffect(() => {
+    function toggleSearch() {
+      if (searchOpen) {
+        closeSearch()
+        return
+      }
+      flushSync(() => setSearchOpen(true))
+      searchInput.current?.focus({ preventScroll: true })
+    }
+    window.addEventListener('dashboard:toggle-opportunity-search', toggleSearch)
+    return () => window.removeEventListener('dashboard:toggle-opportunity-search', toggleSearch)
+  }, [closeSearch, searchOpen])
 
   // Debounced so typing does not fire a request per keystroke.
   useEffect(() => {
@@ -156,7 +160,7 @@ export default function OpportunitiesSection({
 
   useEffect(() => {
     const section = sectionRef.current
-    if (!section || loading || filtersOpen) return
+    if (!section || loading) return
     let start: { x: number; y: number } | undefined
     let distance = 0
 
@@ -169,7 +173,7 @@ export default function OpportunitiesSection({
     function onTouchStart(event: TouchEvent) {
       reset()
       if (event.touches.length !== 1 || (document.scrollingElement?.scrollTop ?? 0) > 0) return
-      if (event.target instanceof Element && event.target.closest('input, button, [contenteditable]')) return
+      if (event.target instanceof Element && event.target.closest('input, button, [contenteditable], [data-opportunity-filters]')) return
       const touch = event.touches[0]
       start = { x: touch.clientX, y: touch.clientY }
     }
@@ -209,53 +213,68 @@ export default function OpportunitiesSection({
       section.removeEventListener('touchend', onTouchEnd)
       section.removeEventListener('touchcancel', reset)
     }
-  }, [filtersOpen, loading, refresh])
+  }, [loading, refresh])
 
   return (
     <section ref={sectionRef} aria-label="Explore opportunities" className="min-w-0 space-y-4">
-      <div className="flex min-w-0 items-center gap-2">
-        <div className="relative min-w-0 flex-1">
-          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500" aria-hidden="true" />
-          <Input
-            type="search"
-            value={searchDraft}
-            onChange={(event) => setSearchDraft(event.target.value)}
-            placeholder="Search opportunities"
-            aria-label="Search opportunities"
-            className="h-12 rounded-xl border-stone-200 bg-white pl-11 text-[#171412] placeholder:text-stone-500"
-          />
-        </div>
-        <Popover open={filtersOpen} onOpenChange={setFiltersOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              aria-label={typeFilter ? `Filter opportunities, ${typeFilter} selected` : 'Filter opportunities'}
-              variant="outline"
-              className={cn('relative size-12 shrink-0 rounded-xl border-stone-200 bg-white text-[#171412]', typeFilter && 'border-orange-300 bg-orange-50 text-orange-800')}
-            >
-              <SlidersHorizontal size={19} aria-hidden="true" />
-              {typeFilter && <span className="absolute right-2 top-2 size-1.5 rounded-full bg-orange-600" aria-hidden="true" />}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent align="end" aria-label="Opportunity filters" className="w-[min(19rem,calc(100vw-2rem))] rounded-2xl border-stone-200 bg-white p-4 text-[#171412]">
-            <p className="mb-3 text-sm font-semibold">Opportunity type</p>
-            <div className="flex flex-wrap gap-2">
-              {['', ...OPPORTUNITY_TYPES].map(type => (
-                <FilterChip key={type} active={typeFilter === type} onClick={() => {
-                  setTypeFilter(type)
-                  setFiltersOpen(false)
-                }}>
-                  {type || 'All types'}
-                </FilterChip>
-              ))}
+      <div className="sticky top-[60px] z-30 min-w-0 bg-white">
+        <div id="opportunity-search" hidden={!searchOpen}>
+          {searchOpen && (
+            <div className="flex min-w-0 items-center gap-1 pt-2">
+              <div className="relative min-w-0 flex-1">
+                <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-stone-500" aria-hidden="true" />
+                <Input
+                  ref={searchInput}
+                  type="search"
+                  value={searchDraft}
+                  onChange={(event) => setSearchDraft(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Escape') {
+                      event.preventDefault()
+                      closeSearch()
+                    }
+                  }}
+                  placeholder="Search opportunities"
+                  aria-label="Search opportunities"
+                  className="h-11 rounded-xl border-stone-200 bg-white pl-11 text-[#171412] placeholder:text-stone-500"
+                />
+              </div>
+              <button
+                type="button"
+                aria-label="Close and clear search"
+                onClick={closeSearch}
+                className="grid size-11 shrink-0 place-items-center rounded-xl text-stone-600 hover:bg-orange-50 focus-visible:outline-2 focus-visible:outline-orange-700"
+              >
+                <X size={18} aria-hidden="true" />
+              </button>
             </div>
-            <Button variant="ghost" className="mt-3 h-11 w-full justify-start border-t border-stone-200" disabled={loading} onClick={() => {
-              setFiltersOpen(false)
-              refresh()
+          )}
+        </div>
+        <div
+          role="group"
+          aria-label="Filter opportunities by type"
+          data-opportunity-filters
+          className="flex min-w-0 items-center gap-1.5 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          {['', ...OPPORTUNITY_TYPES].map(type => (
+            <FilterChip key={type} active={typeFilter === type} onClick={() => {
+              setTypeFilter(type)
+              if (!searchDraft.trim()) setSearchOpen(false)
             }}>
-              <RefreshCw aria-hidden="true" /> Refresh listings
-            </Button>
-          </PopoverContent>
-        </Popover>
+              {type || 'All'}
+            </FilterChip>
+          ))}
+          <button
+            type="button"
+            aria-label="Refresh listings"
+            title="Refresh listings"
+            disabled={loading}
+            onClick={refresh}
+            className="grid size-11 shrink-0 place-items-center rounded-full text-stone-600 hover:text-orange-800 focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-orange-700 disabled:opacity-40"
+          >
+            <RefreshCw size={14} aria-hidden="true" />
+          </button>
+        </div>
       </div>
       {(pullDistance > 0 || refreshing) && (
         <p role="status" className="flex min-h-6 items-center justify-center gap-2 text-xs text-stone-600">
@@ -317,14 +336,18 @@ function FilterChip({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={cn(
-        'min-h-11 rounded-full border px-4 py-2 text-xs font-semibold transition-colors',
-        active
-          ? 'border-orange-500 bg-orange-500 text-[#fffaf0] hover:bg-orange-600'
-          : 'border-orange-200 bg-white text-black/70 hover:bg-orange-50',
-      )}
+      className="group flex min-h-11 shrink-0 items-center rounded-full focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-orange-700"
     >
-      {children}
+      <span
+        className={cn(
+          'inline-flex h-7 items-center whitespace-nowrap rounded-full border px-2.5 text-xs font-semibold transition-colors',
+          active
+            ? 'border-[#fedb56] bg-[#ffe477] text-[#302400]'
+            : 'border-stone-200 bg-[#f7f5f2] text-[#51463e] group-hover:bg-orange-50',
+        )}
+      >
+        {children}
+      </span>
     </button>
   )
 }

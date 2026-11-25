@@ -1,5 +1,8 @@
+import { CAREER_PROFILE_PATH, FOUNDERS_NETWORK_PATH } from '@/lib/founders-network'
+
 export function isInstallPromptRoute(pathname: string | null) {
-  return pathname === '/' || pathname === '/dashboard' || Boolean(pathname?.startsWith('/dashboard/'))
+  if (pathname === '/dashboard/me/profile' || pathname === CAREER_PROFILE_PATH || pathname === `${FOUNDERS_NETWORK_PATH}/submit`) return false
+  return pathname === '/dashboard' || Boolean(pathname?.startsWith('/dashboard/'))
 }
 
 export interface NativeInstallEvent extends Event {

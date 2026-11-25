@@ -8,7 +8,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ tok
   if (!z.guid().safeParse(token).success) return new NextResponse('Link not found.', { status: 404 })
   const db = createAdminClient()
   const { data: contact, error } = await db.from('award_outreach_contacts').select('awardee_id,tracking_started_at').eq('token', token).maybeSingle()
-  if (error) return new NextResponse('This link is temporarily unavailable. Please contact info@top100afl.com.', { status: 503 })
+  if (error) return new NextResponse('This link is temporarily unavailable. Please contact nigeriatop100@gmail.com.', { status: 503 })
   if (!contact) return new NextResponse('Link not found.', { status: 404 })
   const { data: awardee, error: awardeeError } = await db.from('awardees').select('profile_id').eq('id', contact.awardee_id).maybeSingle()
   if (awardeeError || !awardee) return new NextResponse('Link unavailable.', { status: 503 })

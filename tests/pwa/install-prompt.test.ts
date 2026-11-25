@@ -3,12 +3,17 @@ import type { NativeInstallEvent } from '@/lib/install-prompt'
 import { isInstallPromptRoute, requestNativeInstall, registerInstallServiceWorker } from '@/lib/install-prompt'
 
 describe('home screen installation guidance', () => {
-  it('includes dashboard pages reached after sign in', () => {
+  it('allows the install card only on dashboard routes', () => {
     expect(isInstallPromptRoute('/dashboard')).toBe(true)
     expect(isInstallPromptRoute('/dashboard/me/award/payment')).toBe(true)
-    expect(isInstallPromptRoute('/')).toBe(true)
+    expect(isInstallPromptRoute('/')).toBe(false)
     expect(isInstallPromptRoute('/login')).toBe(false)
     expect(isInstallPromptRoute('/dashboard-other')).toBe(false)
+  })
+  it('keeps the automatic install card off profile and startup forms', () => {
+    expect(isInstallPromptRoute('/dashboard/me/profile')).toBe(false)
+    expect(isInstallPromptRoute('/dashboard/me/profile/career')).toBe(false)
+    expect(isInstallPromptRoute('/dashboard/discover/founders/submit')).toBe(false)
   })
   it('opens the native prompt immediately on the click and returns the browser choice', async () => {
     const prompt = vi.fn().mockResolvedValue(undefined)

@@ -1,7 +1,12 @@
 import { Suspense } from 'react'
 import SignInContent from './page-content'
+import { getAwardeeRegisterTotals } from '@/lib/awardees/register-summary.server'
+import { getImpactStats } from '@/lib/impact-content'
 
-export default function SignInPage() {
+export const revalidate = 300
+
+export default async function SignInPage() {
+  const stats = getImpactStats(await getAwardeeRegisterTotals())
   return (
     <Suspense fallback={<div className="flex items-center justify-center min-h-screen">
       <div className="text-center">
@@ -9,7 +14,7 @@ export default function SignInPage() {
         <p className="text-muted-foreground">Loading Top100 Awardee portal...</p>
       </div>
     </div>}>
-      <SignInContent />
+      <SignInContent stats={stats} />
     </Suspense>
   )
 }

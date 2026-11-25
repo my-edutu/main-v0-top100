@@ -147,7 +147,7 @@ export default function PartnershipPage() {
               </h1>
               <p className="mt-5 max-w-2xl text-lg leading-7 text-[rgba(255,255,255,0.72)] sm:mt-6 sm:leading-8">
                 We identify, empower, and celebrate Africa&apos;s youth leaders. Bring your
-                brand, resources, or platform alongside a network that already spans 31 countries.
+                brand, resources, or platform alongside an international network of young African leaders.
               </p>
               <div className="mt-7 sm:mt-9">
                 <Button

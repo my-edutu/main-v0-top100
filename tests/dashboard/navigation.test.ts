@@ -38,7 +38,7 @@ describe('dashboard navigation', () => {
 
   it('groups discovery and account work without duplicate hrefs', () => {
     expect(discoverNav.map(({ label }) => label)).toEqual([
-      'Members', 'Groups', 'Opportunities', 'Saved', 'Events', 'Programmes', 'Magazine',
+      'Founders Network', 'Members', 'Groups', 'Opportunities', 'Saved', 'Events', 'Programmes', 'Magazine',
     ])
     expect(meNav.map(({ label }) => label)).toEqual([
       'Profile', 'Schedule an interview', 'Portfolio cover', 'Project100 Scholarship', 'My award', 'Delivery cost', 'Posts', 'Get featured', 'Settings',
@@ -51,6 +51,7 @@ describe('dashboard navigation', () => {
 
   it('routes every Discover destination to its approved durable URL', () => {
     expect(discoverNav.map(({ label, href }) => [label, href])).toEqual([
+      ['Founders Network', '/dashboard/discover/founders'],
       ['Members', '/dashboard/discover/members'],
       ['Groups', '/dashboard/discover/groups'],
       ['Opportunities', '/dashboard/discover/opportunities'],

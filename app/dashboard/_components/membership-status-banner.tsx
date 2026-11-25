@@ -21,7 +21,7 @@ const statusCopy: Record<RestrictedMemberStatus, {
   },
   rejected: {
     title: 'Your account application was not approved',
-    body: 'Contact info@top100afl.com if you believe this decision was made in error.',
+    body: 'Contact nigeriatop100@gmail.com if you believe this decision was made in error.',
     icon: AlertTriangle,
     tone: 'border-rose-300 bg-[#F8DCE6] text-[#6E1636]',
   },

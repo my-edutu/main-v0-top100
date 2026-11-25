@@ -1,19 +1,18 @@
-"use client";
-
 import Link from "next/link";
-import { Users, GraduationCap, Globe, Award } from "lucide-react";
+import { Users, GraduationCap, Globe } from "lucide-react";
 import { APPLY_AWARDEE_FORM_URL } from "@/lib/applications";
+
+import { getAwardeeRegisterTotals } from "@/lib/awardees/register-summary.server";
+import { getImpactStats } from "@/lib/impact-content";
 
 const WHATSAPP_CHANNEL_URL = "https://whatsapp.com/channel/0029Vb8lUNm96H4bB5keg402";
 
-export default function JoinPage() {
-  // Mock statistics data
-  const stats = [
-    { value: "400+", label: "Current Members", icon: <Users className="w-6 h-6" /> },
-    { value: "31+", label: "Countries Represented", icon: <Globe className="w-6 h-6" /> },
-    { value: "97,000", label: "Lives Impacted", icon: <Award className="w-6 h-6" /> },
-    { value: "15", label: "Active Chapters", icon: <GraduationCap className="w-6 h-6" /> },
-  ];
+const statIcons = { awardees: Users, countries: Globe, institutions: GraduationCap };
+
+export const revalidate = 300
+
+export default async function JoinPage() {
+  const stats = getImpactStats(await getAwardeeRegisterTotals());
 
   return (
     <div className="min-h-screen bg-zinc-900 text-white">
@@ -61,19 +60,22 @@ export default function JoinPage() {
         </div>
 
         {/* Statistics Section */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-16">
-          {stats.map((stat, index) => (
-            <div
-              key={index}
-              className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20 text-center transition-all duration-300 hover:scale-105"
-            >
-              <div className="flex justify-center mb-3 text-orange-500">
-                {stat.icon}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-6 mb-16">
+          {stats.map((stat) => {
+            const Icon = statIcons[stat.key];
+            return (
+              <div
+                key={stat.key}
+                className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20 text-center transition-all duration-300 hover:scale-105"
+              >
+                <div className="flex justify-center mb-3 text-orange-500">
+                  <Icon className="w-6 h-6" />
+                </div>
+                <div className="text-3xl font-bold text-white mb-1">{stat.value.toLocaleString("en-US")}</div>
+                <div className="text-sm text-zinc-300">{stat.label}</div>
               </div>
-              <div className="text-3xl font-bold text-white mb-1">{stat.value}</div>
-              <div className="text-sm text-zinc-300">{stat.label}</div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Membership Benefits */}

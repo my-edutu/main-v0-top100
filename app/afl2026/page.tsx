@@ -55,7 +55,7 @@ const pathways = [
   {
     title: "Partner with Us",
     description:
-      "Sponsorship, co-created labs, opportunity pipelines, or platform support — bring your organisation alongside a network spanning 31 countries.",
+      "Sponsorship, co-created labs, opportunity pipelines, or platform support — bring your organisation alongside an international network of young African leaders.",
     cta: "Explore partnership",
     href: "/partnership",
     external: false,
@@ -138,7 +138,7 @@ export default function Afl2026Page() {
                 </span>
                 <span className="inline-flex items-center gap-2 rounded-full border border-[rgba(255,255,255,0.18)] bg-[rgba(255,255,255,0.06)] px-4 py-1.5">
                   <Globe2 className="h-4 w-4 text-orange-300" aria-hidden />
-                  31 countries represented
+                  International network
                 </span>
               </div>
 

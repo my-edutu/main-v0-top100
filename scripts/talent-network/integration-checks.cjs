@@ -14,6 +14,14 @@ console.log('Talent integration structure checks passed (not a substitute for da
 const crypto = require('node:crypto')
 const homepage = read('app/page.tsx')
 const originalHomepage = homepage
+  // The live reach figures are a separate homepage change.
+  .replace('import { getAwardeeRegisterTotals } from "@/lib/awardees/register-summary.server"\n', '')
+  .replace('import { getImpactStats, TEAM_MEMBERS, VISION_IMAGES }', 'import { TEAM_MEMBERS, VISION_IMAGES }')
+  .replace('homepageAnnouncements, awardeeRegister]', 'homepageAnnouncements]')
+  .replace('    getAwardeeRegisterTotals(),\n', '')
+  .replace('  const impactStats = getImpactStats(awardeeRegister)\n\n', '')
+  .replace('<HomePageHeroSection countryCount={impactStats[0].value} />', '<HomePageHeroSection />')
+  .replace('<ImpactSection stats={impactStats} />', '<ImpactSection />')
   .replace('import { TalentDiscoveryHomeSection } from "@/components/talent/homepage-sections"\n', '')
   .replace('import { talentDiscoveryEnabled } from "@/lib/talent/features"\n', '')
   .replace('        <TalentDiscoveryHomeSection />\n', '')

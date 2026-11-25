@@ -9,7 +9,7 @@ Dashboard and Discover use Top100 event photographs with dark overlays, and the 
 ## Deployment configuration
 
 - `RESEND_API_KEY`: server-only Resend key.
-- `RESEND_FROM_EMAIL`: verified sender, for example `Top100 Africa Future Leaders <info@top100afl.com>`.
+- `RESEND_FROM_EMAIL`: verified sender, for example `Top100 Africa Future Leaders <nigeriatop100@gmail.com>`.
 - `NEXT_PUBLIC_SITE_URL`: deployed Top100 origin for email links.
 - `TOP100_WELCOME_SENDER_ID`: Paul Light's existing admin profile UUID. Without this, an unambiguous exact admin name match is required. No account is fabricated.
 

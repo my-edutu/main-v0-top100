@@ -7,7 +7,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ to
   const { token } = await context.params
   if (!z.guid().safeParse(token).success) return new NextResponse('Link not found.', { status: 404 })
   const { data, error } = await createAdminClient().from('award_outreach_contacts').update({ suppressed: true, next_follow_up_at: null, updated_at: new Date().toISOString() }).eq('token', token).select('awardee_id').maybeSingle()
-  if (error) return new NextResponse('Could not save your preference. Contact info@top100afl.com.', { status: 503 })
+  if (error) return new NextResponse('Could not save your preference. Contact nigeriatop100@gmail.com.', { status: 503 })
   if (!data) return new NextResponse('Link not found.', { status: 404 })
   const form = await request.formData().catch(() => null)
   if (form?.get('List-Unsubscribe') === 'One-Click') return new NextResponse(null, { status: 200 })

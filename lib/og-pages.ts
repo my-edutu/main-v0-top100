@@ -12,6 +12,18 @@ import type { OgCard } from "@/lib/og"
  * gradient, which is a better card than an unrelated stock photo.
  */
 export const PAGE_OG: Record<string, OgCard> = {
+  "/reports/beyond-recognition": {
+    eyebrow: "Top100 Report",
+    title: "Beyond Recognition",
+    subtitle: "How Top100 helps young African leaders turn visibility into opportunity",
+    hero: "/IMG_0673.jpg",
+  },
+  "/reports/opportunity-2027": {
+    eyebrow: "Top100 Report",
+    title: "Africa Future Leaders Opportunity Report 2027",
+    subtitle: "How young African leaders find, access and turn opportunities into progress",
+    hero: "/IMG_0676.jpg",
+  },
   "/afl2026": {
     eyebrow: "AFL 2026",
     title: "Africa Future Leaders Summit 2026",
@@ -38,7 +50,7 @@ export const PAGE_OG: Record<string, OgCard> = {
   "/awardees": {
     eyebrow: "Directory",
     title: "Meet the Top100 Africa Future Leaders",
-    subtitle: "2,000+ awardees across 31 countries.",
+    subtitle: "Explore the awardee network across cohorts.",
     hero: "/top100 2024.webp",
   },
   "/awardees-list": {
@@ -250,7 +262,7 @@ export const PAGE_OG: Record<string, OgCard> = {
   "/partnership": {
     eyebrow: "Partnership",
     title: "Partner with Top100 Africa Future Leaders",
-    subtitle: "Reach 10,000+ of Africa's most promising young people.",
+    subtitle: "Support the goal of reaching 10,000 young African leaders by 2030.",
     hero: "/IMG_0678.jpg",
   },
   "/signup": {

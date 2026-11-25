@@ -17,7 +17,9 @@ import { sanitizeDashboardRedirect } from '@/lib/dashboard/redirect'
 import { attemptLocalDashboardLogin } from '@/lib/dev-dashboard/login'
 import { AuthHelpDialog } from '@/components/auth/auth-help-dialog'
 
-export default function SignInContent() {
+import type { ImpactStats } from "@/lib/impact-content"
+
+export default function SignInContent({ stats }: { stats: ImpactStats }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -230,18 +232,12 @@ export default function SignInContent() {
         </p>
 
         <dl className="relative grid grid-cols-3 gap-6 border-t border-zinc-200/80 pt-8 tabular-nums">
-          <div>
-            <dt className="text-xs font-medium text-zinc-500">Awardees</dt>
-            <dd className="mt-1 text-2xl font-semibold tracking-tight text-zinc-950">400+</dd>
-          </div>
-          <div>
-            <dt className="text-xs font-medium text-zinc-500">Countries</dt>
-            <dd className="mt-1 text-2xl font-semibold tracking-tight text-zinc-950">31</dd>
-          </div>
-          <div>
-            <dt className="text-xs font-medium text-zinc-500">Lives impacted</dt>
-            <dd className="mt-1 text-2xl font-semibold tracking-tight text-zinc-950">97,000</dd>
-          </div>
+          {stats.map((stat) => (
+            <div key={stat.key}>
+              <dt className="text-xs font-medium text-zinc-500">{stat.label}</dt>
+              <dd className="mt-1 text-2xl font-semibold tracking-tight text-zinc-950">{stat.value.toLocaleString("en-US")}</dd>
+            </div>
+          ))}
         </dl>
       </aside>
 

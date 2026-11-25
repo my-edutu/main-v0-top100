@@ -22,6 +22,7 @@ import { fetchLiveCalendarEvents } from '@/lib/events/live-calendar-client'
 import type { LiveCalendarEvent } from '@/lib/events/live-calendar'
 import { AFL_2026_CALENDAR } from '@/lib/events/afl-2026-calendar'
 import { DashboardCard } from './dashboard-card'
+import FloatingAwardLink from '@/app/components/floating-award-link'
 import { DashboardFeaturedPromotions } from './dashboard-featured-promotions'
 import { selectUpcomingInvitations } from '../_lib/home-priority'
 import { useDashboardMember } from '../_providers/dashboard-member'
@@ -29,7 +30,6 @@ import { dashboardCelebrationStorageKey } from '@/lib/dashboard/celebration'
 import { AwardeeOnboardingJourney } from './awardee-onboarding-journey'
 import { DashboardCelebration } from './dashboard-celebration'
 import { AflCalendarAnnouncement } from './afl-calendar-announcement'
-import MagazinePopup from '@/app/components/MagazinePopup'
 import { AwardLettersHomeCard } from './award-letter-cards'
 import { FestivalCard } from './festival-card'
 import { HomeOpportunities } from './home-opportunities'
@@ -184,7 +184,7 @@ export function DashboardHome({ futureProgrammes }: { futureProgrammes: ReactNod
 
   return (
     <div className="hub-home">
-      <MagazinePopup member={member} />
+      <FloatingAwardLink />
       <DashboardCelebration
         memberId={member.id}
         name={member.name}

@@ -1,6 +1,16 @@
 --- upstream/sidebar.html
 +++ top100/sidebar.html
-@@ -13,7 +13,6 @@
+@@ -1,8 +1,7 @@
+ {% load static i18n horillafilters %}
+ {% get_company as theme_obj %}
+ <style>
+-    #sidebar,
+-    #sidebarFlyout {
++    #sidebar {
+         --sidebar-accent: {{ theme_obj.primary_600|default:'#E54F38' }};
+         --sidebar-accent-dark: {{ theme_obj.primary_700|default:'#c73f2a' }};
+         --sidebar-accent-soft: {{ theme_obj.primary_100|default:'#FEF6F5' }};
+@@ -13,7 +12,6 @@
          overflow: hidden !important;
          transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1) !important;
      }
@@ -8,7 +18,7 @@
      #sidebar.sidebar-pinned {
          width: 13rem !important; /* 208 px — expanded */
      }
-@@ -26,9 +25,7 @@
+@@ -26,31 +24,49 @@
          pointer-events: none !important;
          transition: opacity 0.12s ease !important;
      }
@@ -18,7 +28,45 @@
      #sidebar.sidebar-pinned .sidebar-chevron {
          opacity: 1 !important;
          pointer-events: auto !important;
-@@ -46,11 +43,10 @@
+         transition-delay: 0.06s;
+     }
+ 
+-    /* Version marker. The nav above is a fixed calc() height and #sidebar is
+-       overflow:hidden, so this block only exists on screen because that height
+-       leaves room for it -- change one and change the other.
++    #sidebar > .p-4 {
++        display: flex;
++        flex-direction: column;
++        height: 100%;
++        box-sizing: border-box;
++    }
++    #sidebar > .p-4 > :is(div:first-child, .sidebar-version) {
++        flex: 0 0 auto;
++    }
++    #workspaceNavigation {
++        flex: 1 1 auto;
++        min-height: 0;
++        overflow-y: auto;
++        overscroll-behavior-y: contain;
++        scroll-padding-block: 0.25rem;
++    }
++    #workspaceNavigation .sidebar-subnav-link {
++        display: flex;
++        align-items: center;
++        min-height: 2.75rem;
++        white-space: normal;
++        overflow-wrap: anywhere;
++    }
++    #workspaceNavigation :is(button, a):focus-visible,
++    #sidebarExpandBtn:focus-visible {
++        outline: 2px solid var(--sidebar-accent);
++        outline-offset: -2px;
++    }
+ 
+-       The word "Version" is hidden rather than faded when collapsed:
+-       .oh-sidebar-label uses opacity, which keeps the text occupying width, and
+-       in a 4rem rail that pushes the number itself out of view. Only the number
+-       survives the collapse, centred. */
      .sidebar-version__label {
          display: none;
      }
@@ -31,7 +79,7 @@
          text-align: center;
          padding-left: 0.25rem;
          padding-right: 0.25rem;
-@@ -58,7 +54,7 @@
+@@ -58,7 +74,7 @@
  
      /* Hide open accordion subnavs when sidebar is collapsed so they
         don't bleed through the narrow sidebar as clipped text */
@@ -40,7 +88,18 @@
          display: none !important;
      }
  
-@@ -108,7 +104,6 @@
+@@ -66,9 +82,8 @@
+     .sideboxmain.sidebox-current .oh-sidebar-label {
+         color: #fff;
+     }
+-    .sideboxmain.sidebox-current .sidebar-chevron {
++    #workspaceNavigation button[aria-expanded="true"] .sidebar-chevron {
+         transform: rotate(180deg);
+-        color: #fff;
+     }
+     /* Hover label: soft tint → accent text (distinct from the solid current page) */
+     .sideboxmain.sidebox-active:not(.sidebox-current) .oh-sidebar-label {
+@@ -108,7 +123,6 @@
          left: 4rem;
          transition: left 0.22s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s ease, box-shadow 0.3s ease;
      }
@@ -48,7 +107,7 @@
      #sidebar.sidebar-pinned ~ #floating-buttons .fab-container {
          left: 13rem;
      }
-@@ -142,38 +137,23 @@
+@@ -142,39 +156,24 @@
          color: #e5e7eb;
      }
  
@@ -56,6 +115,15 @@
 -    #sidebar.sidebar-pinned #sidebarPinBtn {
 -        background-color: #f3f4f6;
 -        color: #374151;
+-    }
+-
+-    /* Pin button — dark mode */
+-    body.dark #sidebar #sidebarPinBtn {
+-        color: #9ca3af !important;
+-    }
+-    body.dark #sidebar #sidebarPinBtn:hover {
+-        background-color: rgba(255, 255, 255, 0.06) !important;
+-        color: #e5e7eb !important;
 +    #sidebarExpandBtn {
 +        display: grid;
 +        place-items: center;
@@ -66,28 +134,22 @@
 +        background: var(--work-subtle, #fff7ed);
 +        color: var(--work-accent, #9a3412);
      }
--
--    /* Pin button — dark mode */
--    body.dark #sidebar #sidebarPinBtn {
--        color: #9ca3af !important;
+-    body.dark #sidebar.sidebar-pinned #sidebarPinBtn {
+-        background-color: rgba(255, 255, 255, 0.12) !important;
+-        color: #ffffff !important;
 +    #sidebarExpandBtn:hover, #sidebarExpandBtn:focus-visible {
 +        outline: 2px solid #f97316;
 +        outline-offset: 1px;
      }
--    body.dark #sidebar #sidebarPinBtn:hover {
--        background-color: rgba(255, 255, 255, 0.06) !important;
--        color: #e5e7eb !important;
--    }
--    body.dark #sidebar.sidebar-pinned #sidebarPinBtn {
--        background-color: rgba(255, 255, 255, 0.12) !important;
--        color: #ffffff !important;
--    }
 -
 -    /* Pin button icon: show the OPEN padlock when unpinned (hover-to-expand mode)
 -       and the CLOSED padlock when pinned (locked open). */
 -    #sidebar #sidebarPinBtn .sidebar-lock-closed {
 -        display: none;
--    }
++    #sidebarExpandBtn[aria-expanded="true"] .sidebar-expand-arrow {
++        transform: rotate(180deg);
++        transform-origin: 16px 12px;
+     }
 -    #sidebar #sidebarPinBtn .sidebar-lock-open {
 -        display: block;
 -    }
@@ -96,13 +158,19 @@
 -    }
 -    #sidebar.sidebar-pinned #sidebarPinBtn .sidebar-lock-closed {
 -        display: block;
-+    #sidebarExpandBtn[aria-expanded="true"] .sidebar-expand-arrow {
-+        transform: rotate(180deg);
-+        transform-origin: 16px 12px;
-     }
+-    }
  
      /* Module button transitions */
-@@ -267,59 +247,43 @@
+     .sideboxmain {
+@@ -210,7 +209,6 @@
+        clearly visible instead of the near-white Tailwind hover:bg-gray-50.
+        No !important: id-scoped specificity beats the utility class in light
+        mode, while the dark rule below still wins under body.dark. */
+-    #sidebarFlyout .sidebar-subnav-link:hover,
+     #sidebar .sidebar-subnav-link:hover {
+         background-color: var(--sidebar-accent-soft);
+         color: var(--sidebar-accent) !important;
+@@ -267,59 +265,43 @@
      /* Collapsed: minimal horizontal padding → 56 px inner width for icon circles.
         0.25 rem (4 px) each side gives the 2.5 rem (40 px) circle 8 px breathing
         room per side, and removes the scrollbar-width problem on Windows. */
@@ -169,7 +237,7 @@
          justify-content: center !important;
          width: 2.5rem !important;
          height: 2.5rem !important;
-@@ -332,8 +296,8 @@
+@@ -332,275 +314,48 @@
  
      /* Collapse label/chevron to zero-width so justify-content:center only sees
         the icon. The invisible label still occupies flex space without this. */
@@ -180,7 +248,77 @@
          flex: 0 0 0 !important;
          width: 0 !important;
          overflow: hidden !important;
-@@ -408,199 +372,31 @@
+     }
+ 
+-    /* Chevron hidden — accordion is replaced by hover flyout */
+-    .sidebar-chevron {
+-        display: none !important;
++    #sidebar:not(.sidebar-pinned) .sidebar-chevron {
++        display: none;
+     }
+ 
+-    /* Flyout submenu panel */
+-    #sidebarFlyout {
+-        visibility: hidden;
+-        z-index: 10060;
+-        position: fixed;
+-        min-width: 200px;
+-        max-width: 260px;
+-        padding: 6px;
+-        transform: translateX(-6px);
+-        border: 1px solid #e5e7eb;
+-        border-radius: 10px;
+-        background: #ffffff;
+-        box-shadow: 0 8px 24px -4px rgba(15, 23, 42, 0.12), 0 2px 8px -2px rgba(15, 23, 42, 0.06);
+-        opacity: 0;
+-        pointer-events: none;
+-        transition: opacity 0.15s ease, transform 0.15s ease, visibility 0s linear 0.15s;
+-    }
+-    #sidebarFlyout.is-visible {
+-        visibility: visible;
+-        transform: translateX(0);
+-        opacity: 1;
+-        pointer-events: auto;
+-        transition: opacity 0.15s ease, transform 0.15s ease;
+-    }
+-    body.dark #sidebarFlyout {
+-        border-color: #374151;
+-        background: #1f2937;
+-    }
+-    /* Flyout link hover highlight */
+-    #sidebarFlyout a.sidebar-subnav-link {
+-        color: #374151;
+-        transition: background-color 0.12s ease, color 0.12s ease;
+-    }
+-    #sidebarFlyout a.sidebar-subnav-link:hover {
+-        background-color: color-mix(in srgb, {{ theme_obj.primary_600|default:"#E54F38" }} 8%, transparent) !important;
+-        color: {{ theme_obj.primary_600|default:"#E54F38" }} !important;
+-    }
+-    #sidebarFlyout a.sidebar-subnav-link.oh-sidebar-active-link {
+-        background-color: var(--sidebar-accent) !important;
+-        color: #ffffff !important;
+-        font-weight: 600;
+-        box-shadow: 0 4px 14px -4px rgba(20, 20, 30, 0.25);
+-    }
+-    body.dark #sidebarFlyout a.sidebar-subnav-link {
+-        color: #d1d5db;
+-    }
+-    body.dark #sidebarFlyout a.sidebar-subnav-link:hover {
+-        background-color: color-mix(in srgb, {{ theme_obj.primary_600|default:"#E54F38" }} 15%, transparent) !important;
+-        color: {{ theme_obj.primary_400|default:"#F87060" }} !important;
+-    }
+-    body.dark #sidebarFlyout a.sidebar-subnav-link.oh-sidebar-active-link {
+-        background-color: var(--sidebar-accent-dark) !important;
+-        color: #ffffff !important;
+-        font-weight: 600;
+-        box-shadow: 0 4px 14px -4px rgba(20, 20, 30, 0.25);
+-    }
+-
+     @media (prefers-reduced-motion: reduce) {
+-        #sidebar, .oh-main-content, .oh-main-header, .sideboxmain, #sidebarFlyout {
++        #sidebar, .oh-main-content, .oh-main-header, .sideboxmain {
+             animation: none !important;
+             transition: none !important;
          }
      }
  
@@ -200,7 +338,10 @@
 -        #sidebar.sidebar-pinned,
 -        #sidebar.sidebar-pinned:hover {
 -            width: 4rem !important;
--        }
++        #sidebar.sidebar-pinned {
++            width: min(16rem, calc(100vw - 2rem)) !important;
++            box-shadow: 12px 0 28px #0004;
+         }
 -        #sidebar .oh-sidebar-label,
 -        #sidebar.sidebar-pinned .oh-sidebar-label,
 -        #sidebar .sidebar-chevron,
@@ -298,11 +439,7 @@
 -        }
 -        #sidebar:not(:hover) #sidebarPinBtn {
 -            display: none !important;
-+        #sidebar.sidebar-pinned { width: 4rem !important; }
-+        #sidebar.sidebar-pinned:has(#sidebarExpandBtn[aria-expanded="true"]) {
-+            width: min(13rem, calc(100vw - 44px)) !important;
-+            box-shadow: 12px 0 28px #0004;
-         }
+-        }
 +        #sidebar.sidebar-pinned ~ .oh-main-content { margin-left: 4rem !important; }
 +        #sidebar.sidebar-pinned ~ .oh-main-content .oh-main-header,
 +        #sidebar.sidebar-pinned ~ #floating-buttons .fab-container { left: 4rem !important; }
@@ -334,7 +471,16 @@
 -                        stroke-linejoin="round"
 -                        d="M13.5 10.5V6.75a4.5 4.5 0 1 1 9 0v3.75M3.75 21.75h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H3.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
 -                    />
--                </svg>
++        <div class="flex items-center mb-6">
++            <button type="button" id="sidebarExpandBtn"
++                    aria-controls="workspaceNavigation" aria-expanded="false"
++                    aria-label="{% trans 'Expand sidebar' %}" title="{% trans 'Expand sidebar' %}">
++                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
++                     stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
++                    <rect x="3" y="4" width="18" height="16" rx="3"/>
++                    <path d="M9 4v16"/>
++                    <path class="sidebar-expand-arrow" d="m14 9 3 3-3 3"/>
+                 </svg>
 -                <!-- Locked padlock: shown when the sidebar IS pinned (locked open) -->
 -                <svg
 -                    class="sidebar-lock-closed w-5 h-5"
@@ -349,16 +495,7 @@
 -                        stroke-linejoin="round"
 -                        d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
 -                    />
-+        <div class="flex items-center mb-6">
-+            <button type="button" id="sidebarExpandBtn"
-+                    aria-controls="workspaceNavigation" aria-expanded="false"
-+                    aria-label="{% trans 'Expand sidebar' %}" title="{% trans 'Expand sidebar' %}">
-+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-+                     stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-+                    <rect x="3" y="4" width="18" height="16" rx="3"/>
-+                    <path d="M9 4v16"/>
-+                    <path class="sidebar-expand-arrow" d="m14 9 3 3-3 3"/>
-                 </svg>
+-                </svg>
              </button>
 -            <div class="flex items-center gap-2 min-w-0 flex-1">
 -                {% if request.session.selected_company_instance %}
@@ -397,19 +534,132 @@
          </div>
  
          <script>
-@@ -626,7 +422,7 @@
+@@ -626,8 +381,9 @@
              })();
          </script>
  
 -        <nav
+-            class="space-y-1 overflow-hidden overflow-y-auto h-[calc(100vh_-_140px)] sidebar-scroll"
 +        <nav id="workspaceNavigation"
-             class="space-y-1 overflow-hidden overflow-y-auto h-[calc(100vh_-_140px)] sidebar-scroll"
++            class="space-y-1 overflow-x-hidden sidebar-scroll"
++            hx-boost="false"
              role="navigation"
              aria-label="{% trans 'Main navigation' %}"
-@@ -841,17 +637,8 @@
-           var sidebarRect = sidebarEl.getBoundingClientRect();
-           var sidebarRight = sidebarRect.right;
+         >
+@@ -636,10 +392,11 @@
+                 <div class="sidebar-item">
+                     <button
+                         class="sideboxmain group flex items-center gap-3 px-3 py-2.5 rounded-lg w-full transition duration-300"
++                        type="button"
+                         data-menu="{{ menues.menu }}"
+                         aria-label="{{ menues.menu }}"
+                         aria-expanded="false"
+-                        aria-haspopup="true"
++                        aria-controls="sidebar-module-{{ forloop.counter }}"
+                     >
+                         <img
+                             src="{% static menues.img_src %}"
+@@ -660,18 +417,13 @@
+                             <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                         </svg>
+                     </button>
+-                    <ul class="sidebar-subnav hidden pl-2 mt-1 space-y-0.5">
++                    <ul id="sidebar-module-{{ forloop.counter }}" class="sidebar-subnav hidden pl-2 mt-1 space-y-0.5">
+                         {% for submenu in menues.submenu %}
+                             <li>
+                                 <a
+                                     href="{{ submenu.redirect }}"
+                                     {% if submenu.match_prefixes %}data-match-prefixes="{{ submenu.match_prefixes|join:',' }}"{% endif %}
+-                                    class="sidebar-subnav-link block text-[13px] text-gray-600 px-3 py-1.5 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors duration-150 truncate"
+-                                    hx-get="{{ submenu.redirect }}"
+-                                    hx-target="#ohMainContent"
+-                                    hx-select="#ohMainContent > *"
+-                                    hx-swap="innerHTML show:window:top"
+-                                    hx-push-url="true"
++                                    class="sidebar-subnav-link block text-[13px] text-gray-600 px-3 py-1.5 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors duration-150"
+                                 >{{ submenu.menu }}</a>
+                             </li>
+                         {% endfor %}
+@@ -695,10 +447,6 @@
+             <span class="font-medium">{{ horilla_version }}</span>
+         </div>
+     </div>
+-    <!-- Flyout panel: populated and positioned by JS on hover -->
+-    <div id="sidebarFlyout">
+-        <ul id="sidebarFlyoutList" class="space-y-0.5"></ul>
+-    </div>
+ </div>
+ <script>
+     function highlightRow(checkbox) {
+@@ -776,464 +524,114 @@
+ <script>
+     document.addEventListener("DOMContentLoaded", function () {
  
+-        var ignoreCloseUntil = 0;
+-
+-        function bumpGrace(ms) {
+-          var until = Date.now() + ms;
+-          if (until > ignoreCloseUntil) ignoreCloseUntil = until;
+-        }
+-
+-        var STANDALONE_URL_PATTERNS = [
+-          /^\/recruitment\/open-recruitments\/?/i,
+-        ];
+-        function isStandaloneUrl(url) {
+-          if (!url) return false;
+-          try {
+-            var pathname = new URL(url, window.location.origin).pathname;
+-            return STANDALONE_URL_PATTERNS.some(function (rx) { return rx.test(pathname); });
+-          } catch (_) {
+-            return STANDALONE_URL_PATTERNS.some(function (rx) { return rx.test(url); });
+-          }
+-        }
+-
+-        function shouldFallbackToFullNav(text) {
+-          if (!text) return false;
+-          var hasOurContainer =
+-            text.indexOf('id="ohMainContent"') !== -1 ||
+-            text.indexOf("id='ohMainContent'") !== -1;
+-          if (hasOurContainer) return false;
+-          return true;
+-        }
+-
+-        function fullNavigateFromEvent(evt) {
+-          var trigger = evt && evt.detail && evt.detail.elt;
+-          var dest =
+-            (evt.detail && evt.detail.pathInfo && evt.detail.pathInfo.requestPath) ||
+-            (trigger && trigger.getAttribute && trigger.getAttribute("href")) ||
+-            "/";
+-          window.location.href = dest;
+-        }
+-
+-        function setActiveSidebarMenu(btn) {
+-          if (!btn) return;
+-          // Persistent current-page highlight: clear from every module button, then
+-          // apply to the active one. Distinct from the hover-only 'sidebox-active'
+-          // class so it survives mouseleave.
+-          try {
+-            document.querySelectorAll(".sideboxmain.sidebox-current").forEach(function (b) {
+-              if (b !== btn) b.classList.remove("sidebox-current");
+-            });
+-            btn.classList.add("sidebox-current");
+-          } catch (_) {}
+-          try {
+-            if (btn.dataset.menu) localStorage.setItem("activeSidebarMenu", btn.dataset.menu);
+-          } catch (_) {}
+-        }
+-
+-        // ── Hover flyout helpers ─────────────────────────────────────────────
+-
+-        var flyoutEl = document.getElementById("sidebarFlyout");
+-        var flyoutListEl = document.getElementById("sidebarFlyoutList");
+-        var flyoutCloseTimer = null;
+-        var currentFlyoutBtn = null;
+-
+-        function positionFlyout(itemRect) {
+-          var sidebarRect = sidebarEl.getBoundingClientRect();
+-          var sidebarRight = sidebarRect.right;
+-
 -          // getBoundingClientRect() fires at mouseenter while the sidebar's
 -          // width transition (64px → 208px, 0.22s) is still mid-flight,
 -          // so `right` can read as 64px even though the sidebar will expand
@@ -420,55 +670,242 @@
 -            var expandedRight = sidebarRect.left + rootFontSize * 13; /* 13rem */
 -            if (expandedRight > sidebarRight) sidebarRight = expandedRight;
 -          }
--
-+          var panelWidth = Math.min(240, window.innerWidth - sidebarRight - 14);
-+          flyoutEl.style.maxWidth = panelWidth + "px";
-           var left = sidebarRight + 6;
-           var top = itemRect.top;
-           flyoutEl.style.left = left + "px";
-@@ -867,7 +654,7 @@
++        var sidebar = document.getElementById("sidebar");
++        var expandButton = document.getElementById("sidebarExpandBtn");
++        var navigation = document.getElementById("workspaceNavigation");
++        var narrowScreen = window.matchMedia("(max-width: 991.98px)");
++        var moduleButtons = navigation.querySelectorAll("button[aria-controls]");
++        var desktopExpanded = true;
++        var openModule = null;
++        var currentModule = null;
++        try {
++          var preference = localStorage.getItem("sidebarPinned");
++          if (preference !== null) desktopExpanded = preference === "true";
++        } catch (_) {}
  
-         function showFlyout(item, btn) {
-           var subnav = item.querySelector(".sidebar-subnav");
+-          var left = sidebarRight + 6;
+-          var top = itemRect.top;
+-          flyoutEl.style.left = left + "px";
+-          flyoutEl.style.top = top + "px";
+-          requestAnimationFrame(function () {
+-            var fh = flyoutEl.offsetHeight;
+-            var vh = window.innerHeight;
+-            if (top + fh > vh - 8) {
+-              flyoutEl.style.top = Math.max(8, vh - fh - 8) + "px";
+-            }
++        function setOpenModule(button) {
++          openModule = button;
++          moduleButtons.forEach(function (moduleButton) {
++            var panel = document.getElementById(moduleButton.getAttribute("aria-controls"));
++            var expanded = moduleButton === button;
++            moduleButton.setAttribute("aria-expanded", String(expanded));
++            panel.classList.toggle("hidden", !expanded);
+           });
+         }
+ 
+-        function showFlyout(item, btn) {
+-          var subnav = item.querySelector(".sidebar-subnav");
 -          if (!subnav) return;
-+          if (!subnav || sidebarPinned) return;
-           var liItems = subnav.querySelectorAll("li");
-           if (!liItems.length) return;
+-          var liItems = subnav.querySelectorAll("li");
+-          if (!liItems.length) return;
+-
+-          clearTimeout(flyoutCloseTimer);
+-
+-          var label = btn.querySelector(".oh-sidebar-label");
+-          flyoutListEl.innerHTML = "";
+-          liItems.forEach(function (li) { flyoutListEl.appendChild(li.cloneNode(true)); });
+-          if (window.htmx) htmx.process(flyoutListEl);
+-
+-          // Restore active-link highlight in flyout
+-          var path = window.location.pathname;
+-          flyoutListEl.querySelectorAll("a[href]").forEach(function (a) {
+-            // Some submenu links (e.g. Hours Balance) have a query string baked
+-            // into their href (?year=2026) by a server-side accessibility
+-            // hook. location.pathname never includes the query string, so
+-            // strip it from href before comparing or it can never match.
+-            var href = (a.getAttribute("href") || "").split("?")[0];
+-            var extraPrefixes = (a.dataset.matchPrefixes || "").split(",").filter(Boolean);
+-            var matches = (href && href !== "/" && path.startsWith(href)) ||
+-              extraPrefixes.some(function (p) { return path.startsWith(p); });
+-            if (matches) a.classList.add("oh-sidebar-active-link");
+-          });
+-
+-          positionFlyout(item.getBoundingClientRect());
+-          flyoutEl.classList.add("is-visible");
+-          // Hover-only indicator — does NOT touch the persisted 'active' class or localStorage
+-          if (currentFlyoutBtn && currentFlyoutBtn !== btn) currentFlyoutBtn.classList.remove("sidebox-active");
+-          currentFlyoutBtn = btn;
+-          btn.classList.add("sidebox-active");
++        function setSidebarExpanded(expanded) {
++          sidebar.classList.toggle("sidebar-pinned", expanded);
++          var content = document.querySelector(".oh-main-content");
++          if (content) content.style.marginLeft = expanded && !narrowScreen.matches ? "13rem" : "";
++          var label = expanded ? '{% trans "Collapse sidebar"|escapejs %}' : '{% trans "Expand sidebar"|escapejs %}';
++          expandButton.title = label;
++          expandButton.setAttribute("aria-label", label);
++          expandButton.setAttribute("aria-expanded", String(expanded));
++          setOpenModule(expanded ? currentModule : null);
+         }
  
-@@ -953,6 +740,7 @@
-             var isLeftClick = !e.button || e.button === 0;
-             var isModified = e.metaKey || e.ctrlKey || e.shiftKey || e.altKey;
-             if (!isLeftClick || isModified) return;
-+            if (narrowSidebar.matches && sidebarPinned) setSidebarExpanded(false);
-             e.preventDefault();
-             e.stopPropagation();
-             var href = link.getAttribute("href") || link.getAttribute("hx-get") || "/";
-@@ -1020,49 +808,49 @@
+-        function hideFlyout() {
+-          if (flyoutEl) flyoutEl.classList.remove("is-visible");
+-          if (currentFlyoutBtn) { currentFlyoutBtn.classList.remove("sidebox-active"); currentFlyoutBtn = null; }
+-        }
+-
+-        function scheduleFlyoutClose() {
+-          clearTimeout(flyoutCloseTimer);
+-          flyoutCloseTimer = setTimeout(hideFlyout, 120);
+-        }
+-
+-        function cancelFlyoutClose() {
+-          clearTimeout(flyoutCloseTimer);
+-        }
+-
+-        // Attach hover listeners to all sidebar items
+-        document.querySelectorAll(".sidebar-item").forEach(function (item) {
+-          var btn = item.querySelector(".sideboxmain");
+-          if (!btn) return;
+-          item.addEventListener("mouseenter", function () {
+-            cancelFlyoutClose();
+-            showFlyout(item, btn);
+-          });
+-          item.addEventListener("mouseleave", function (e) {
+-            // If the mouse moved directly into the flyout panel, keep the hover indicator alive
+-            if (flyoutEl && flyoutEl.contains(e.relatedTarget)) return;
+-            // Don't strip the highlight synchronously: there's a 6px gap between the
+-            // module rail and the flyout, so crossing into the flyout reports a
+-            // relatedTarget outside it — clearing here would leave the flyout open
+-            // with its owning button un-highlighted. Let scheduleFlyoutClose()/
+-            // hideFlyout() clear the hover state when the flyout actually closes;
+-            // moving straight to another item clears it via showFlyout() instead.
+-            scheduleFlyoutClose();
+-          });
+-        });
+-
+-        // Top-menu links (e.g. Dashboard) are direct <a> tags, not inside .sidebar-item.
+-        // Clear any leftover hover indicator the moment the mouse enters them.
+-        document.querySelectorAll("a.sideboxmain").forEach(function (link) {
+-          link.addEventListener("mouseenter", function () {
+-            if (currentFlyoutBtn) { currentFlyoutBtn.classList.remove("sidebox-active"); currentFlyoutBtn = null; }
+-            scheduleFlyoutClose();
+-          });
+-        });
+-
+-        if (flyoutEl) {
+-          flyoutEl.addEventListener("mouseenter", cancelFlyoutClose);
+-          flyoutEl.addEventListener("mouseleave", scheduleFlyoutClose);
+-          flyoutEl.addEventListener("click", function (e) {
+-            var link = e.target.closest("a[href], a[hx-get]");
+-            if (!link) return;
+-            var isLeftClick = !e.button || e.button === 0;
+-            var isModified = e.metaKey || e.ctrlKey || e.shiftKey || e.altKey;
+-            if (!isLeftClick || isModified) return;
+-            e.preventDefault();
+-            e.stopPropagation();
+-            var href = link.getAttribute("href") || link.getAttribute("hx-get") || "/";
+-            // Capture the owning module button BEFORE hideFlyout() nulls currentFlyoutBtn
+-            var activeModuleBtn = currentFlyoutBtn;
+-            hideFlyout();
+-            if (isStandaloneUrl(href)) { window.location.href = href; return; }
+-            var target = document.getElementById("ohMainContent");
+-            if (!target || !window.htmx) { window.location.href = href; return; }
+-            document.querySelectorAll(".sidebar-subnav-link").forEach(function (l) { l.classList.remove("oh-sidebar-active-link"); });
+-            link.classList.add("oh-sidebar-active-link");
+-            // activeModuleBtn is always the correct parent — no href-matching needed
+-            if (activeModuleBtn) setActiveSidebarMenu(activeModuleBtn);
+-            bumpGrace(1500);
+-            window.history.pushState({}, "", href);
+-            htmx.ajax("GET", href, {
+-              source: link, target: "#ohMainContent",
+-              select: "#ohMainContent > *", swap: "innerHTML show:window:top",
+-              headers: { "HX-Sidebar-Nav": "true" },
+-            });
+-          }, true);
+-        }
+-
+-        // Highlight active module button based on current URL (no accordion to open)
+-        function ohAccordionInit() {
++        function syncCurrentPage() {
+           var path = window.location.pathname;
+-          var matchedBtn = null;
+-          document.querySelectorAll(".sidebar-subnav-link").forEach(function (link) {
+-            // Strip any query string (e.g. Hours Balance's ?year=2026) before
+-            // comparing — location.pathname never includes one.
+-            var href = (link.getAttribute("href") || "").split("?")[0];
+-            var extraPrefixes = (link.dataset.matchPrefixes || "").split(",").filter(Boolean);
+-            var matches = (href && href !== "/" && href !== "#" && path.startsWith(href)) ||
+-              extraPrefixes.some(function (p) { return path.startsWith(p); });
+-            if (matches) {
+-              link.classList.add("oh-sidebar-active-link");
+-              if (!matchedBtn) {
+-                var item = link.closest(".sidebar-item");
+-                matchedBtn = item && item.querySelector(".sideboxmain");
++          var best = null;
++          var bestScore = 0;
++          navigation.querySelectorAll("a[href]").forEach(function (link) {
++            var destination = new URL(link.href);
++            if (destination.origin !== window.location.origin || link.getAttribute("href").startsWith("#")) return;
++            var prefixes = [destination.pathname].concat((link.dataset.matchPrefixes || "").split(","));
++            prefixes.forEach(function (prefix) {
++              if (!prefix || prefix === "/" || !path.startsWith(prefix)) return;
++              var score = prefix.length * 2;
++              if (destination.search && destination.search === window.location.search) score += 1;
++              if (score > bestScore) {
++                best = link;
++                bestScore = score;
+               }
+-            }
+-          });
+-          // Top-level links with no submenu (e.g. Dashboard) aren't covered by
+-          // the subnav-link scan above — check them directly against the URL
+-          // so a fresh load on /dashboard/ highlights Dashboard, not whatever
+-          // module was last active in localStorage.
+-          if (!matchedBtn) {
+-            document.querySelectorAll("a.sideboxmain[href]").forEach(function (link) {
+-              if (matchedBtn) return;
+-              var href = (link.getAttribute("href") || "").split("?")[0];
+-              if (href && href !== "/" && href !== "#" && path.startsWith(href)) matchedBtn = link;
+             });
++          });
++          navigation.querySelectorAll("[aria-current], .oh-sidebar-active-link, .sidebox-current").forEach(function (element) {
++            element.removeAttribute("aria-current");
++            element.classList.remove("oh-sidebar-active-link", "sidebox-current");
++          });
++          var item = best && best.closest(".sidebar-item");
++          currentModule = item && item.querySelector("button[aria-controls]");
++          if (best) {
++            best.setAttribute("aria-current", "page");
++            if (currentModule) best.classList.add("oh-sidebar-active-link");
++            (currentModule || best).classList.add("sidebox-current");
+           }
+-          if (matchedBtn) {
+-            setActiveSidebarMenu(matchedBtn);
+-          } else {
+-            var lastMenu = null;
+-            try { lastMenu = localStorage.getItem("activeSidebarMenu"); } catch (_) {}
+-            if (lastMenu) {
+-              var btn = document.querySelector('.sideboxmain[data-menu="' + lastMenu.replace(/"/g, '\\"') + '"]');
+-              if (btn) setActiveSidebarMenu(btn);
+-            }
+-          }
+         }
  
-         ohAccordionInit();
+-        ohAccordionInit();
++        syncCurrentPage();
++        setSidebarExpanded(!narrowScreen.matches && desktopExpanded);
++        var dashboard = navigation.querySelector("a.sideboxmain");
++        if (dashboard) dashboard.setAttribute("aria-label", '{% trans "Dashboard"|escapejs %}');
  
 -        // ── Sidebar pin / collapse toggle ────────────────────────────────────
 -
-+        // The saved desktop preference and the temporary narrow-screen overlay are independent.
-         var sidebarEl = document.getElementById("sidebar");
-+        var sidebarButton = document.getElementById("sidebarExpandBtn");
-+        var narrowSidebar = window.matchMedia("(max-width: 991.98px)");
-+        var desktopSidebarExpanded = true;
-+        try {
-+          var storedSidebar = localStorage.getItem("sidebarPinned");
-+          if (storedSidebar !== null) desktopSidebarExpanded = storedSidebar === "true";
-+        } catch (_) {}
-+        var sidebarPinned = false;
- 
+-        var sidebarEl = document.getElementById("sidebar");
+-
 -        var sidebarPinned = true; // default: pinned open
 -        try { var _stored = localStorage.getItem("sidebarPinned"); if (_stored !== null) sidebarPinned = _stored === "true"; } catch (_) {}
 -
 -        function applySidebarPin(pinned, animate) {
 -          sidebarPinned = pinned;
-+        function setSidebarExpanded(expanded) {
-+          sidebarPinned = expanded;
-+          sidebarEl.classList.toggle("sidebar-pinned", expanded);
-           var content = document.querySelector(".oh-main-content");
+-          var content = document.querySelector(".oh-main-content");
 -
 -          // Suppress transition on initial load to prevent a margin slide on page open
 -          if (!animate && content) content.style.transition = "none";
@@ -482,7 +919,13 @@
 -          if (pinBtnEl) {
 -            var lockLabel = pinned ? pinBtnEl.dataset.unpinLabel : pinBtnEl.dataset.pinLabel;
 -            if (lockLabel) { pinBtnEl.title = lockLabel; pinBtnEl.setAttribute("aria-label", lockLabel); }
--          }
++        expandButton.addEventListener("click", function () {
++          var expanded = expandButton.getAttribute("aria-expanded") !== "true";
++          setSidebarExpanded(expanded);
++          if (!narrowScreen.matches) {
++            desktopExpanded = expanded;
++            try { localStorage.setItem("sidebarPinned", String(expanded)); } catch (_) {}
+           }
 -
 -          if (!animate && content) {
 -            requestAnimationFrame(function () {
@@ -490,14 +933,8 @@
 -            });
 -          }
 -          try { localStorage.setItem("sidebarPinned", pinned ? "true" : "false"); } catch (_) {}
-+          if (content) content.style.marginLeft = expanded && !narrowSidebar.matches ? "13rem" : "";
-+          var label = expanded ? '{% trans "Collapse sidebar"|escapejs %}' : '{% trans "Expand sidebar"|escapejs %}';
-+          sidebarButton.title = label;
-+          sidebarButton.setAttribute("aria-label", label);
-+          sidebarButton.setAttribute("aria-expanded", String(expanded));
-+          hideFlyout();
-         }
- 
+-        }
+-
 -        // Apply saved state immediately (no animation) to avoid layout flash
 -        applySidebarPin(sidebarPinned, false);
 -
@@ -508,56 +945,248 @@
 -            applySidebarPin(!sidebarPinned, true);
 -          });
 -        }
-+        setSidebarExpanded(!narrowSidebar.matches && desktopSidebarExpanded);
-+        sidebarButton.addEventListener("click", function () {
-+          setSidebarExpanded(!sidebarPinned);
-+          if (!narrowSidebar.matches) {
-+            desktopSidebarExpanded = sidebarPinned;
-+            try { localStorage.setItem("sidebarPinned", String(sidebarPinned)); } catch (_) {}
-+          }
+-
+-        // When cursor leaves sidebar, close any open flyout
+-        if (sidebarEl) {
+-          sidebarEl.addEventListener("mouseleave", function () {
+-            scheduleFlyoutClose();
+-          });
+-        }
+-
+-        // Re-highlight active module + link after any URL change (HTMX or browser back/forward)
+-        function syncSidebarToUrl() {
+-          document.querySelectorAll(".sidebar-subnav-link").forEach(function (l) {
+-            l.classList.remove("oh-sidebar-active-link");
+-          });
+-          var path = window.location.pathname;
+-          var matchedBtn = null;
+-          document.querySelectorAll(".sidebar-subnav-link").forEach(function (link) {
+-            // Strip any query string (e.g. Hours Balance's ?year=2026) before
+-            // comparing — location.pathname never includes one.
+-            var href = (link.getAttribute("href") || "").split("?")[0];
+-            if (href && href !== "/" && path.startsWith(href)) {
+-              link.classList.add("oh-sidebar-active-link");
+-              if (!matchedBtn) {
+-                var item = link.closest(".sidebar-item");
+-                matchedBtn = item && item.querySelector(".sideboxmain");
+-              }
+-            }
+-          });
+-          if (!matchedBtn) {
+-            document.querySelectorAll("a.sideboxmain[href]").forEach(function (link) {
+-              if (matchedBtn) return;
+-              var href = (link.getAttribute("href") || "").split("?")[0];
+-              if (href && href !== "/" && href !== "#" && path.startsWith(href)) matchedBtn = link;
+-            });
 +        });
-+        narrowSidebar.addEventListener("change", function () {
-+          setSidebarExpanded(!narrowSidebar.matches && desktopSidebarExpanded);
++        navigation.addEventListener("click", function (event) {
++          var button = event.target.closest("button[aria-controls]");
++          if (!button) return;
++          var wasOpen = openModule === button;
++          if (expandButton.getAttribute("aria-expanded") === "false") setSidebarExpanded(true);
++          setOpenModule(wasOpen ? null : button);
++          if (!wasOpen) button.scrollIntoView({ block: "nearest" });
++        });
++        narrowScreen.addEventListener("change", function () {
++          setSidebarExpanded(!narrowScreen.matches && desktopExpanded);
 +        });
 +        document.addEventListener("click", function (event) {
-+          if (narrowSidebar.matches && sidebarPinned && !sidebarEl.contains(event.target)) setSidebarExpanded(false);
-+        });
-+        document.addEventListener("keydown", function (event) {
-+          if (event.key === "Escape" && sidebarPinned && narrowSidebar.matches) {
++          if (narrowScreen.matches && expandButton.getAttribute("aria-expanded") === "true" && !sidebar.contains(event.target)) {
 +            setSidebarExpanded(false);
-+            sidebarButton.focus();
-+          }
-+        });
- 
-         // When cursor leaves sidebar, close any open flyout
-         if (sidebarEl) {
-@@ -1161,6 +949,7 @@
-               var isTopDashboard = link.matches("a.sideboxmain");
- 
-               if (isTopDashboard) {
-+                if (narrowSidebar.matches && sidebarPinned) setSidebarExpanded(false);
-                 e.preventDefault();
-                 e.stopPropagation();
-                 hideFlyout();
-@@ -1183,10 +972,19 @@
-             if (e.target.closest(".sidebar-subnav")) return;
-             if (e.target.closest("a")) return;
- 
+           }
+-          if (matchedBtn) setActiveSidebarMenu(matchedBtn);
+-        }
+-        document.addEventListener("htmx:pushUrl", syncSidebarToUrl);
+-        document.addEventListener("htmx:afterSettle", syncSidebarToUrl);
+-        window.addEventListener("popstate", syncSidebarToUrl);
+-
+-        // ── Navigation click handlers ────────────────────────────────────────
+-
+-        var navContainer = document.querySelector("#sidebar nav");
+-
+-        if (navContainer) {
+-
+-          /*
+-           * Capture phase: hard-intercept submenu link clicks before anything else.
+-           * Mirrors the original sidebox-link interception but now targets
+-           * .sidebar-subnav links instead of .sidebox links.
+-           */
+-          navContainer.addEventListener("click", function (e) {
+-            var link = e.target.closest(".sidebar-subnav a[href], .sidebar-subnav a[hx-get]");
+-            if (!link) return;
+-            var isLeftClick = !e.button || e.button === 0;
+-            var isModified = e.metaKey || e.ctrlKey || e.shiftKey || e.altKey;
+-            if (!isLeftClick || isModified) return;
+-
+-            e.preventDefault();
+-            e.stopPropagation();
+-            if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+-
+-            var href = link.getAttribute("href") || link.getAttribute("hx-get") || "/";
+-            if (isStandaloneUrl(href)) { window.location.href = href; return; }
+-
+-            var target = document.getElementById("ohMainContent");
+-            if (!target || !window.htmx) { window.location.href = href; return; }
+-
+-            document.querySelectorAll(".sidebar-subnav-link").forEach(function (l) {
+-              l.classList.remove("oh-sidebar-active-link");
+-            });
+-            link.classList.add("oh-sidebar-active-link");
+-            var parentItem = link.closest(".sidebar-item");
+-            var parentBtn = parentItem && parentItem.querySelector(".sideboxmain");
+-            if (parentBtn) setActiveSidebarMenu(parentBtn);
+-
+-            bumpGrace(1500);
+-            window.history.pushState({}, "", href);
+-            htmx.ajax("GET", href, {
+-              source: link,
+-              target: "#ohMainContent",
+-              select: "#ohMainContent > *",
+-              swap: "innerHTML show:window:top",
+-              headers: { "HX-Sidebar-Nav": "true" },
+-            });
+-          }, true);
+-
+-          // Bubble phase: top-level dashboard link + module button accordion toggles
+-          navContainer.addEventListener("click", function (e) {
+-            var link = e.target.closest("a");
+-            var isLeftClick = !e.button || e.button === 0;
+-            var isModified = e.metaKey || e.ctrlKey || e.shiftKey || e.altKey;
+-
+-            if (link && !isModified && isLeftClick) {
+-              var href = link.getAttribute("href") || link.getAttribute("hx-get");
+-              var isTopDashboard = link.matches("a.sideboxmain");
+-
+-              if (isTopDashboard) {
+-                e.preventDefault();
+-                e.stopPropagation();
+-                hideFlyout();
+-                setActiveSidebarMenu(link);
+-                if (isStandaloneUrl(href)) { window.location.href = href || "/"; return; }
+-                var target = document.getElementById("ohMainContent");
+-                if (!target || !window.htmx) { window.location.href = href || "/"; return; }
+-                bumpGrace(1500);
+-                window.history.pushState({}, "", href);
+-                htmx.ajax("GET", href, {
+-                  source: link, target: "#ohMainContent",
+-                  select: "#ohMainContent > *", swap: "innerHTML show:window:top",
+-                  headers: { "HX-Sidebar-Nav": "true" },
+-                });
+-                return;
+-              }
+-            }
+-
+-            // Clicks inside subnav are already handled in capture phase above
+-            if (e.target.closest(".sidebar-subnav")) return;
+-            if (e.target.closest("a")) return;
+-
 -            // Module button click opens flyout via hover; do not mark active without navigation
 -            var btn = e.target.closest(".sideboxmain");
-+            var btn = e.target.closest("button.sideboxmain");
-             if (!btn) return;
-+            var item = btn.closest(".sidebar-item");
-+            var submenu = item && item.querySelector(".sidebar-subnav");
-+            if (!submenu) return;
-             e.stopPropagation();
-+            if (!sidebarPinned) {
-+              showFlyout(item, btn);
-+              return;
-+            }
-+            var shouldOpen = submenu.classList.contains("hidden");
-+            submenu.classList.toggle("hidden", !shouldOpen);
-+            btn.setAttribute("aria-expanded", String(shouldOpen));
-           });
-         }
+-            if (!btn) return;
+-            e.stopPropagation();
+-          });
+-        }
+-
+-        // ── HTMX lifecycle hooks ──────────────────────────────────────────────
+-
+-        document.addEventListener("htmx:beforeRequest", function (evt) {
+-          try {
+-            var trigger = evt && evt.detail && evt.detail.elt;
+-            if (!(sidebarEl && trigger && sidebarEl.contains(trigger))) return;
+-            var requestPath =
+-              (evt.detail.pathInfo && evt.detail.pathInfo.requestPath) ||
+-              trigger.getAttribute("href") ||
+-              trigger.getAttribute("hx-get");
+-            if (isStandaloneUrl(requestPath)) {
+-              if (evt.detail) evt.detail.shouldSwap = false;
+-              evt.preventDefault();
+-              if (evt.detail && evt.detail.xhr && typeof evt.detail.xhr.abort === "function") {
+-                try { evt.detail.xhr.abort(); } catch (_) {}
+-              }
+-              window.location.href = requestPath;
+-              return;
+-            }
+-            bumpGrace(1500);
+-          } catch (_) {}
+         });
+-
+-        document.addEventListener("htmx:afterSettle", function (evt) {
+-          bumpGrace(200);
+-          var info = evt && evt.detail;
+-          if (!info || info._crumbsUpdated) return;
+-          var reqHeaders = info.requestConfig && info.requestConfig.headers;
+-          if (
+-            !reqHeaders ||
+-            (reqHeaders["HX-Sidebar-Nav"] !== "true" && reqHeaders["HX-Push-Nav"] !== "true")
+-          )
+-            return;
+-          info._crumbsUpdated = true;
+-          var xhr = info.xhr;
+-          if (!xhr || !xhr.responseText) return;
+-          try {
+-            var parser = new DOMParser();
+-            var doc = parser.parseFromString(xhr.responseText, "text/html");
+-            var newCrumbs = doc.getElementById("breadcrumbs-container");
+-            var currentCrumbs = document.getElementById("breadcrumbs-container");
+-            if (newCrumbs && currentCrumbs) currentCrumbs.innerHTML = newCrumbs.innerHTML;
+-          } catch (_) {}
++        sidebar.addEventListener("keydown", function (event) {
++          if (event.key !== "Escape" || expandButton.getAttribute("aria-expanded") !== "true") return;
++          if (narrowScreen.matches) {
++            setSidebarExpanded(false);
++            expandButton.focus();
++          } else if (openModule) {
++            openModule.focus();
++            setOpenModule(null);
++          }
+         });
++        window.addEventListener("pageshow", function (event) {
++          if (event.persisted && narrowScreen.matches) setSidebarExpanded(false);
++        });
++        document.addEventListener("htmx:pushedIntoHistory", syncCurrentPage);
  
+         // A page opened by swapping a fragment in place (a row opening a record,
+         // say) carries no header, so its crumb was never shown. Ask the server
+@@ -1273,41 +671,9 @@
+           refreshCrumbsFor((evt && evt.detail && evt.detail.path) || window.location.pathname);
+         });
+ 
+-        document.addEventListener("htmx:beforeSwap", function (evt) {
+-          try {
+-            var trigger = evt && evt.detail && evt.detail.elt;
+-            if (!(sidebarEl && trigger && sidebarEl.contains(trigger))) return;
+-            var xhr = evt.detail.xhr;
+-            if (!xhr || xhr.status < 200 || xhr.status >= 400) return;
+-            if (!shouldFallbackToFullNav(xhr.responseText)) return;
+-            if (evt.detail) evt.detail.shouldSwap = false;
+-            evt.preventDefault();
+-            fullNavigateFromEvent(evt);
+-          } catch (_) {}
+-        });
+-
+-        function sidebarNavError(evt) {
+-          try {
+-            var trigger = evt && evt.detail && evt.detail.elt;
+-            if (!(sidebarEl && trigger && sidebarEl.contains(trigger))) return;
+-            fullNavigateFromEvent(evt);
+-          } catch (_) {}
+-        }
+-        document.addEventListener("htmx:responseError", sidebarNavError);
+-        document.addEventListener("htmx:sendError", sidebarNavError);
+-        document.addEventListener("htmx:timeout", sidebarNavError);
+-        document.addEventListener("htmx:targetError", sidebarNavError);
+-
+-        /*
+-         * Browser back/forward: remove HTMX's own popstate handler and reload
+-         * instead — the sessionStorage cache is stale for programmatic htmx.ajax calls.
+-         */
++        // Horilla's in-page record history still relies on a fresh document.
+         window.onpopstate = null;
+         window.addEventListener("popstate", function () { window.location.reload(); });
+-
+-        document.addEventListener("keydown", function (e) {
+-          if (e.key === "Escape") hideFlyout();
+-        });
+       });
+ 
+     function isChartEmpty(chart) {

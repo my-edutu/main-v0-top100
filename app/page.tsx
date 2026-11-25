@@ -22,7 +22,8 @@ import FAQSection from "./components/FAQSection"
 import EventsHubSection from "./components/EventsHubSection"
 import RotatingVisionSection from "./components/RotatingVisionSection"
 import TeamRail from "./components/TeamRail"
-import { TEAM_MEMBERS, VISION_IMAGES } from "@/lib/impact-content"
+import { getAwardeeRegisterTotals } from "@/lib/awardees/register-summary.server"
+import { getImpactStats, TEAM_MEMBERS, VISION_IMAGES } from "@/lib/impact-content"
 import { SITE_URL } from "@/lib/site"
 import { TalentDiscoveryHomeSection } from "@/components/talent/homepage-sections"
 import { talentDiscoveryEnabled } from "@/lib/talent/features"
@@ -83,16 +84,19 @@ const initiatives: Initiative[] = [
 export const revalidate = 300
 
 export default async function HomePage() {
-  const [homepagePosts, homepageEvents, homepageAnnouncements] = await Promise.all([
+  const [homepagePosts, homepageEvents, homepageAnnouncements, awardeeRegister] = await Promise.all([
     getHomepagePosts(),
     getHomepageEvents(),
     getHomepageAnnouncements(),
+    getAwardeeRegisterTotals(),
   ])
+
+  const impactStats = getImpactStats(awardeeRegister)
 
   return (
     <div className="bg-background text-foreground">
       <div className="flex flex-col pb-16 [--section-gap:clamp(1.5rem,5vw,2.5rem)] sm:[--section-gap:clamp(1.75rem,4vw,3rem)] lg:[--section-gap:clamp(2rem,3vw,3.5rem)] xl:[--section-gap:clamp(2rem,2vw,4rem)] gap-[var(--section-gap)]">
-        <HomePageHeroSection />
+        <HomePageHeroSection countryCount={impactStats[0].value} />
 
         <HomePartnersSection />
 
@@ -120,7 +124,7 @@ export default async function HomePage() {
         <HomeProject100Section />
         <HallOfFamePreview speakers={getFeaturedSpeakers()} />
 
-        <ImpactSection />
+        <ImpactSection stats={impactStats} />
 
         <RotatingVisionSection images={VISION_IMAGES} />
 
