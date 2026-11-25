@@ -153,6 +153,14 @@ export default function FestivalAdminPage() {
   return (
     <div id="festival-lists" className="min-w-0 scroll-mt-24 space-y-4 pb-6 sm:space-y-5">
       <PageHeader eyebrow="Africa Future Leaders Festival 2026" title="Festival responses" />
+      <Link href="/admin/festival/fulfillment" className="flex min-w-0 items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-stone-950 hover:border-amber-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-700">
+        <ClipboardList className="size-5 shrink-0 text-amber-800" aria-hidden="true" />
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold">Award fulfillment roster</span>
+          <span className="block text-sm leading-5 text-stone-700">Festival pickup, paid dispatch and delivery payments due</span>
+        </span>
+        <ArrowUpRight className="size-4 shrink-0" aria-hidden="true" />
+      </Link>
       <div role="group" aria-label="Open a festival list" className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-5">
         {lists.map(({ key, label, icon: Icon }) => (
           <button key={key} type="button" aria-pressed={active === key} onClick={() => {
