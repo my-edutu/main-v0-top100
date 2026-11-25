@@ -23,6 +23,7 @@ import { slugifyTitle } from '@/lib/member-posts/types'
 import { awardReturnPath } from '@/lib/awards/return-url'
 import { needsClaim } from '@/lib/awards/status'
 import { validateOnboarding } from '@/lib/dashboard/onboarding'
+import { profileCareerSchema } from '@/lib/profile-career'
 import type { PortfolioCoverFields } from '@/lib/portfolio-cover/types'
 import { preparePortrait, validatePortraitUpload } from '@/lib/portfolio-cover/image'
 import { renderPortfolioCover } from '@/lib/portfolio-cover/render-cover'
@@ -160,6 +161,12 @@ function routeMe(request: NextRequest, store: DemoDashboardStore) {
 
   return readBody(request).then((patch) => {
     if (!patch) return json({ message: 'Invalid request body.' }, 400)
+
+    if ('career' in patch) {
+      const result = profileCareerSchema.safeParse(patch.career)
+      if (!result.success) return json({ message: 'Enter valid organization details and a LinkedIn company link, if available.' }, 400)
+      store.profile.career = result.data
+    }
 
     const editable = [
       'name',

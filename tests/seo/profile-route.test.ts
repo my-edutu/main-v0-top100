@@ -1,11 +1,24 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { Children, isValidElement, type ReactNode } from 'react'
 const { fetchProfile, admin } = vi.hoisted(() => ({ fetchProfile: vi.fn(), admin: vi.fn() }))
 vi.mock('@/lib/dashboard/profile-service', () => ({ fetchAwardeeBySlug: fetchProfile }))
 vi.mock('@/lib/supabase/server', () => ({ createAdminClient: admin }))
 vi.mock('@/lib/awardees', () => ({ getAwardees: async () => [] }))
+vi.mock('@/lib/interviews/queries', () => ({ getPublishedInterviews: async () => [] }))
+vi.mock('@/lib/posts/server', () => ({ getPublishedPosts: async () => [] }))
+vi.mock('@/lib/talent/public-query', () => ({ getPublishedTalentProfile: async () => null }))
 vi.mock('next/navigation', () => ({ notFound: () => { throw new Error('NEXT_NOT_FOUND') } }))
 import Page, { generateMetadata } from '@/app/awardees/[slug]/page'
 const params = Promise.resolve({ slug: 'amina-ali' })
+
+function renderedContent(node: ReactNode): string[] {
+  return Children.toArray(node).flatMap(child => {
+    if (typeof child === 'string') return [child]
+    if (!isValidElement<{ children?: ReactNode; href?: string }>(child)) return []
+    return [...(child.props.href ? [child.props.href] : []), ...renderedContent(child.props.children)]
+  })
+}
+
 describe('public profile route', () => {
   beforeEach(() => fetchProfile.mockReset())
   it.each([null, { is_public: false }])('excludes unavailable profiles (%j)', async (profile) => {
@@ -36,5 +49,20 @@ describe('public profile route', () => {
     expect(metadata.alternates?.canonical).toBe('https://top100afl.com/awardees/amina-ali')
     expect(metadata.description).toContain('Amina Ali')
     expect(metadata.description).toContain('Leads education projects')
+  })
+  it.each([false, true])('shows organization and company link only with public visibility (%s)', async (isPublic) => {
+    fetchProfile.mockResolvedValue({ slug: 'amina-ali', name: 'Amina Ali', is_public: true })
+    const companyUrl = 'https://www.linkedin.com/company/acme-builders/'
+    const rows: Record<string, unknown> = {
+      awardees: { profile_id: 'member-1' },
+      profiles: { notification_prefs: { socialLinksConsent: false } },
+      member_profile_careers: { details: { name: 'Acme Builders', type: 'startup', role: 'Founder', linkedinUrl: companyUrl, isPublic } },
+    }
+    admin.mockReturnValue({ from: (name: string) => ({ select: () => ({ eq: () => ({
+      maybeSingle: async () => ({ data: rows[name], error: null }),
+    }) }) }) })
+    const rendered = renderedContent(await Page({ params }))
+    expect(rendered.includes('Acme Builders')).toBe(isPublic)
+    expect(rendered.includes(companyUrl)).toBe(isPublic)
   })
 })

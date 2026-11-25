@@ -597,6 +597,9 @@ export default function AwardeesManagement() {
         </div>
 
         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0">
+          <Link href="/admin/awardees/organizations" className="inline-flex min-h-11 items-center rounded-xl border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-800 hover:bg-zinc-50">
+            Organizations
+          </Link>
           <Link href="/admin/awardees/quality" className="inline-flex min-h-11 items-center rounded-xl border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-800 hover:bg-zinc-50">
             Profile quality
           </Link>

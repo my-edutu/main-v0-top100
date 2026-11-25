@@ -34,6 +34,7 @@ export type MemberProfile = {
   bio: string
   location: string
   organization: string
+  career?: import('./profile-career').ProfileCareer | null
   field: string
   avatarInitials: string
   recruiterVisible: boolean

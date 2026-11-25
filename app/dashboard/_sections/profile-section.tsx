@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ProfileSocialIcon } from '@/components/profile-social-icon'
 import { SOCIAL_PLATFORMS, validateSocialLinks, type SocialLink } from '@/lib/profile-contact'
+import { CAREER_TYPES, profileCareerSchema, type ProfileCareer } from '@/lib/profile-career'
 import { publicBioUrl } from '@/lib/dashboard/bio-routing'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,15 +18,15 @@ import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { updateMemberProfile, type MemberProfile } from '@/lib/member-hub'
 import { persistThenRefresh } from '../_lib/persistence-workflows'
-import { buildProfileUpdatePatch, type ProfileEditStep } from '../_lib/profile-wizard'
+import type { ProfileEditStep } from '../_lib/profile-wizard'
 import { useDashboardMember } from '../_providers/dashboard-member'
 import { PROFILE_TEXT_LIMITS, validateProfileDraft } from '../_lib/profile-editor'
 import { MemberAvatar } from '../_components/member-avatar'
 
 type ProfileDraft = Pick<
   MemberProfile,
-  'headline' | 'field' | 'location' | 'organization' | 'bio' | 'socialLinks' | 'socialLinksConsent' | 'contactEmailConsent' | 'emailVisible' | 'recruiterVisible'
->
+  'headline' | 'field' | 'location' | 'bio' | 'socialLinks' | 'socialLinksConsent' | 'contactEmailConsent' | 'emailVisible' | 'recruiterVisible'
+> & { career: Omit<ProfileCareer, 'type'> & { type: ProfileCareer['type'] | '' } }
 
 function draftFromMember(member: MemberProfile): ProfileDraft {
   return {
@@ -35,7 +36,13 @@ function draftFromMember(member: MemberProfile): ProfileDraft {
     headline: member.headline,
     field: member.field,
     location: member.location,
-    organization: member.organization,
+    career: member.career ?? {
+      name: member.career === null ? '' : member.organization,
+      type: '',
+      role: '',
+      linkedinUrl: '',
+      isPublic: false,
+    },
     bio: member.bio,
     emailVisible: member.emailVisible,
     recruiterVisible: member.recruiterVisible,
@@ -77,11 +84,12 @@ async function uploadProfilePhoto(file: File): Promise<string> {
   return data.url
 }
 
-const stepCopy: Record<Exclude<ProfileEditStep, 'photo' | 'visibility'>, { title: string; detail: string }> = {
+type ProfileQuestionStep = Exclude<ProfileEditStep, 'photo' | 'visibility' | 'organization'>
+
+const stepCopy: Record<ProfileQuestionStep, { title: string; detail: string }> = {
   headline: { title: 'What should people know you for?', detail: 'A short line that introduces your work.' },
   field: { title: 'What field do you work in?', detail: 'For example, education, climate, health, or technology.' },
   location: { title: 'Where are you based?', detail: 'Add your city and country, if you would like to share them.' },
-  organization: { title: 'Where do you work or study?', detail: 'Add an organization, institution, or leave this blank.' },
   bio: { title: 'Tell your story.', detail: 'Write a brief BIO for your public awardee profile.' },
 }
 
@@ -90,16 +98,21 @@ export function ProfileSection() {
   const [editing, setEditing] = useState(false)
   const [activeStep, setActiveStep] = useState<0 | 1 | 2>(0)
   useEffect(() => {
-    if (!['#social-links', '#social-media'].includes(window.location.hash)) return
-    const openSocialLinksEditor = window.setTimeout(() => { setActiveStep(1); setEditing(true) }, 0)
-    return () => window.clearTimeout(openSocialLinksEditor)
+    const hash = window.location.hash
+    if (!['#social-links', '#social-media', '#career'].includes(hash)) return
+    const openEditor = window.setTimeout(() => { setActiveStep(hash === '#career' ? 0 : 1); setEditing(true) }, 0)
+    return () => window.clearTimeout(openEditor)
   }, [])
   useEffect(() => {
-    if (!editing || activeStep !== 1 || !['#social-links', '#social-media'].includes(window.location.hash)) return
-    const scrollToSocialLinks = window.setTimeout(() => {
-      document.getElementById('profile-social-links')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    if (!editing) return
+    const hash = window.location.hash
+    const target = activeStep === 0 && hash === '#career' ? 'profile-career'
+      : activeStep === 1 && ['#social-links', '#social-media'].includes(hash) ? 'profile-social-links' : null
+    if (!target) return
+    const scrollToSection = window.setTimeout(() => {
+      document.getElementById(target)?.scrollIntoView({ block: 'start' })
     }, 0)
-    return () => window.clearTimeout(scrollToSocialLinks)
+    return () => window.clearTimeout(scrollToSection)
   }, [editing, activeStep])
   const [draft, setDraft] = useState<ProfileDraft>(() => draftFromMember(member))
   const [photoFile, setPhotoFile] = useState<File | null>(null)
@@ -113,18 +126,22 @@ export function ProfileSection() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [warning, setWarning] = useState('')
-  function startEditing(section?: 'social-links') {
+  function startEditing(section?: 'social-links' | 'career') {
     setDraft(draftFromMember(member))
     setPhotoFile(null)
     setError('')
     setWarning('')
     setActiveStep(section === 'social-links' ? 1 : 0)
-    if (section === 'social-links') window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}#social-links`)
+    if (section) window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}#${section}`)
     setEditing(true)
   }
 
   function updateDraft<Key extends keyof ProfileDraft>(key: Key, value: ProfileDraft[Key]) {
     setDraft((current) => ({ ...current, [key]: value }))
+  }
+
+  function updateCareer(patch: Partial<ProfileDraft['career']>) {
+    setDraft(current => ({ ...current, career: { ...current.career, ...patch } }))
   }
 
   function selectPhoto(file?: File) {
@@ -141,8 +158,21 @@ export function ProfileSection() {
   async function saveProfile() {
     if (saving) return
     const socialLinks = (draft.socialLinks ?? []).filter(link => link.url.trim())
-    const profileValidation = validateProfileDraft(draft)
+    const profileValidation = validateProfileDraft({ ...draft, organization: draft.career.name })
     if (profileValidation) { setError(profileValidation); setActiveStep(0); return }
+    const career = draft.career
+    const originalCareer = draftFromMember(member).career
+    const careerChanged = Object.keys(career).some(key => {
+      const field = key as keyof typeof career
+      return career[field] !== originalCareer[field]
+    })
+    const hasCareer = Boolean(career.name.trim() || career.type || career.role.trim() || career.linkedinUrl.trim() || career.isPublic)
+    const careerResult = profileCareerSchema.safeParse(hasCareer ? career : null)
+    if (careerChanged && !careerResult.success) {
+      setError(!career.name.trim() ? 'Enter the organization name.' : !career.type ? 'Choose how you’re connected to the organization.' : careerResult.error.issues[0].message)
+      setActiveStep(0)
+      return
+    }
     const socialValidation = validateSocialLinks(socialLinks)
     if (socialValidation) { setError(socialValidation); setActiveStep(1); return }
     setSaving(true)
@@ -157,7 +187,18 @@ export function ProfileSection() {
       }
 
       const result = await persistThenRefresh({
-        persist: () => updateMemberProfile(member.id, { ...buildProfileUpdatePatch(draft, true), socialLinks, socialLinksConsent: draft.socialLinksConsent, contactEmailConsent: draft.contactEmailConsent }),
+        persist: () => updateMemberProfile(member.id, {
+          headline: draft.headline,
+          field: draft.field,
+          location: draft.location,
+          bio: draft.bio,
+          emailVisible: draft.emailVisible,
+          recruiterVisible: draft.recruiterVisible,
+          socialLinks,
+          socialLinksConsent: draft.socialLinksConsent,
+          contactEmailConsent: draft.contactEmailConsent,
+          ...(careerChanged && careerResult.success ? { career: careerResult.data } : {}),
+        }),
         applyPersisted: (persisted) => replaceMember({
           ...persisted,
           ...(uploadedAvatarUrl ? { avatarUrl: uploadedAvatarUrl } : {}),
@@ -189,7 +230,7 @@ export function ProfileSection() {
 
   if (!editing) {
     return (
-      <ProfileOverview member={member} onEdit={() => startEditing()} onEditSocials={() => startEditing('social-links')} />
+      <ProfileOverview member={member} onEdit={() => startEditing()} onEditSocials={() => startEditing('social-links')} onEditCareer={() => startEditing('career')} />
     )
   }
 
@@ -216,9 +257,42 @@ export function ProfileSection() {
           <section className="space-y-4 border-t border-neutral-100 pt-6" aria-labelledby="profile-details-heading">
             <div><h3 id="profile-details-heading" className="text-base font-semibold">About you</h3><p className="mt-1 text-sm text-neutral-600">These details appear on your awardee profile.</p></div>
             <div className="grid gap-4 sm:grid-cols-2">
-              {(['headline', 'field', 'location', 'organization'] as const).map(step => <ProfileQuestion key={step} step={step} value={draft[step]} onChange={value => updateDraft(step, value)} />)}
+              {(['headline', 'field', 'location'] as const).map(step => <ProfileQuestion key={step} step={step} value={draft[step]} onChange={value => updateDraft(step, value)} />)}
             </div>
             <ProfileQuestion step="bio" value={draft.bio} onChange={value => updateDraft('bio', value)} />
+          </section>
+          <section id="profile-career" className="scroll-mt-6 space-y-4 border-t border-neutral-100 pt-6" aria-labelledby="profile-career-heading">
+            <div>
+              <h3 id="profile-career-heading" className="text-base font-semibold">Career & organization</h3>
+              <p className="mt-1 text-sm text-neutral-600">Tell the Top100 team what you’re building or where you work. These details are optional.</p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="profile-answer-organization">Organization name</Label>
+                <Input id="profile-answer-organization" className="min-h-11" maxLength={160} value={draft.career.name} onChange={event => updateCareer({ name: event.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="career-type">How are you connected?</Label>
+                <select id="career-type" className="min-h-11 w-full rounded-md border border-input bg-background px-3 text-base" value={draft.career.type} onChange={event => updateCareer({ type: event.target.value as ProfileDraft['career']['type'] })}>
+                  <option value="">Choose an option</option>
+                  <option value="startup">{CAREER_TYPES.startup}</option>
+                  <option value="employer">{CAREER_TYPES.employer}</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="career-role">Your role</Label>
+                <Input id="career-role" className="min-h-11" placeholder="e.g. Co-founder" maxLength={160} value={draft.career.role} onChange={event => updateCareer({ role: event.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="career-linkedin">Organization’s LinkedIn page</Label>
+                <Input id="career-linkedin" type="url" inputMode="url" className="min-h-11" placeholder="https://www.linkedin.com/company/…" maxLength={500} value={draft.career.linkedinUrl} onChange={event => updateCareer({ linkedinUrl: event.target.value })} />
+              </div>
+            </div>
+            <label className="flex min-h-11 items-start gap-3 rounded-lg bg-neutral-50 p-3 text-sm leading-5">
+              <input type="checkbox" checked={draft.career.isPublic} onChange={event => updateCareer({ isPublic: event.target.checked })} className="mt-0.5 size-4 shrink-0 accent-orange-600" />
+              <span>Show my organization, role and company link on my public awardee profile</span>
+            </label>
+            {member.career ? <Button type="button" variant="ghost" className="min-h-11" onClick={() => updateCareer({ name: '', type: '', role: '', linkedinUrl: '', isPublic: false })}>Clear organization details</Button> : null}
           </section>
           </> : null}
           {activeStep === 1 ? <>
@@ -255,7 +329,7 @@ export function ProfileSection() {
   )
 }
 
-function ProfileOverview({ member, onEdit, onEditSocials }: { member: MemberProfile; onEdit: () => void; onEditSocials: () => void }) {
+function ProfileOverview({ member, onEdit, onEditSocials, onEditCareer }: { member: MemberProfile; onEdit: () => void; onEditSocials: () => void; onEditCareer: () => void }) {
   const [sharing, setSharing] = useState(false)
   async function shareProfile() {
     if (!member.publicSlug || sharing) return
@@ -304,6 +378,17 @@ function ProfileOverview({ member, onEdit, onEditSocials }: { member: MemberProf
         {!member.socialLinksConsent && member.socialLinks?.length ? <p className="text-sm text-neutral-500">Your social links are saved but hidden from your public profile.</p> : null}
       </section>
       {member.publicSlug ? <Button variant="outline" disabled={sharing} onClick={() => void shareProfile()} className="min-h-11"><Share2 className="mr-2 size-4" />Share profile</Button> : <p className="text-sm text-neutral-500">Your public profile link will appear here when it is available.</p>}
+      <section className="space-y-2 border-t border-neutral-200 pt-4" aria-labelledby="career-overview-title">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 id="career-overview-title" className="text-base font-semibold text-neutral-950">Career & organization</h3>
+          <button type="button" onClick={onEditCareer} className="min-h-11 text-sm font-medium text-orange-800 hover:underline">Edit organization</button>
+        </div>
+        {member.career ? <div className="space-y-1 text-sm">
+          <p className="break-words text-neutral-950">{member.career.role ? `${member.career.role} at ` : ''}{member.career.name}</p>
+          <p className="text-neutral-600">{CAREER_TYPES[member.career.type]} · {member.career.isPublic ? 'Shown on your public profile' : 'Visible to the Top100 team'}</p>
+          {member.career.linkedinUrl ? <a href={member.career.linkedinUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 text-orange-800 hover:underline"><ProfileSocialIcon platform="linkedin" />Company LinkedIn page</a> : null}
+        </div> : <p className="text-sm text-neutral-600">Add the startup you’re building or the organization you work for.</p>}
+      </section>
       <section className="space-y-3" aria-labelledby="profile-details-title">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 id="profile-details-title" className="text-base font-semibold text-neutral-950">Public profile details</h3>
@@ -312,7 +397,6 @@ function ProfileOverview({ member, onEdit, onEditSocials }: { member: MemberProf
         <dl className="grid min-w-0 grid-cols-1 divide-y divide-neutral-100 border-y border-neutral-200 sm:grid-cols-2 sm:divide-x sm:divide-y-0">
           <ProfileValue label="Field" value={member.field} />
           <ProfileValue label="Location" value={member.location} />
-          <ProfileValue label="Organization" value={member.organization} />
           <ProfileValue label="Recruiter visibility" value={member.recruiterVisible ? 'Visible to recruiters' : 'Hidden from recruiters'} />
           <ProfileValue label="Email visibility" value={member.emailVisible && member.contactEmailConsent ? 'Shown on public profile' : 'Not shown publicly'} />
           <ProfileValue label="Account email" value={member.email} />
@@ -336,7 +420,7 @@ function ProfileValue({ label, value }: { label: string; value: string }) {
 }
 
 function ProfileQuestion({ step, value, onChange }: {
-  step: Exclude<ProfileEditStep, 'photo' | 'visibility'>
+  step: ProfileQuestionStep
   value: string
   onChange: (value: string) => void
 }) {
@@ -349,14 +433,14 @@ function ProfileQuestion({ step, value, onChange }: {
         <p className="mt-1 text-sm leading-5 text-neutral-600">{copy.detail}</p>
       </div>
       <div className="space-y-2">
-        <Label htmlFor={`profile-answer-${step}`}>{step === 'bio' ? 'Your BIO' : step === 'field' ? 'Field' : step === 'organization' ? 'Organization' : step === 'location' ? 'Location' : 'Headline'}</Label>
+        <Label htmlFor={`profile-answer-${step}`}>{step === 'bio' ? 'Your BIO' : step === 'field' ? 'Field' : step === 'location' ? 'Location' : 'Headline'}</Label>
         {multiline ? (
           <>
             <Textarea maxLength={PROFILE_TEXT_LIMITS.bio} id={`profile-answer-${step}`} value={value} onChange={(event) => onChange(event.target.value)} placeholder="Share the work you do, who it helps, and what motivates you." className="min-h-48 resize-y text-base leading-6" />
             <p className="text-right text-xs text-neutral-500" aria-live="polite">{value.length.toLocaleString()} / {PROFILE_TEXT_LIMITS.bio.toLocaleString()} characters</p>
           </>
         ) : (
-          <Input maxLength={PROFILE_TEXT_LIMITS[step]} id={`profile-answer-${step}`} value={value} onChange={(event) => onChange(event.target.value)} placeholder={step === 'headline' ? 'Founder, researcher, changemaker' : step === 'field' ? 'Education, climate, health' : step === 'organization' ? 'Company or institution' : 'City, country'} className="min-h-12 text-base" />
+          <Input maxLength={PROFILE_TEXT_LIMITS[step]} id={`profile-answer-${step}`} value={value} onChange={(event) => onChange(event.target.value)} placeholder={step === 'headline' ? 'Founder, researcher, changemaker' : step === 'field' ? 'Education, climate, health' : 'City, country'} className="min-h-12 text-base" />
         )}
       </div>
     </section>
