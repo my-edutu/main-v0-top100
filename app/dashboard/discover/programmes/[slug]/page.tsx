@@ -20,6 +20,7 @@ export default async function ProgrammeDetails({ params }: { params: Promise<{ s
 
   const isCommunity = programme.id === 'community-impact-network'
   const isProject100 = slug === 'project100-education-access'
+  const previewProject100 = process.env.NODE_ENV === 'development' && process.env.PROJECT100_LAUNCH_PREVIEW === 'true'
 
   return (
     <article className="mx-auto max-w-3xl space-y-6 pb-[calc(6rem+env(safe-area-inset-bottom))]">
@@ -72,10 +73,12 @@ export default async function ProgrammeDetails({ params }: { params: Promise<{ s
 
       {isCommunity ? <ProgrammeActionBar>
         <Link href={`${base}/${programme.slug}/apply`} className={programmeActionClass}>
-          Apply <ArrowRight size={18} aria-hidden="true" />
+          Express your interest <ArrowRight size={18} aria-hidden="true" />
         </Link>
       </ProgrammeActionBar> : isProject100 ? <ProgrammeActionBar>
-        <Project100Countdown />
+        {previewProject100 ? <Link href="/dashboard/me/project100-scholarship" className={programmeActionClass}>
+          Preview Project100 <ArrowRight size={18} aria-hidden="true" />
+        </Link> : <Project100Countdown />}
       </ProgrammeActionBar> : <section className="space-y-3 rounded-2xl border border-stone-200 bg-white p-5" aria-labelledby="take-part">
         <h2 id="take-part" className="text-lg font-bold text-[#211d19]">Taking part</h2>
         <p className="text-sm leading-6 text-[#625b52]">Top100 will share dates and participation details once this programme is confirmed.</p>

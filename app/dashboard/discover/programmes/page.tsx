@@ -1,10 +1,7 @@
-import Link from 'next/link'
-
 import { ProgrammeCard } from '../../_components/programme-card'
 import { ProgrammeInterest } from './programme-interest'
 import { programmes } from './roadmap'
 
-const base = '/dashboard/discover/programmes'
 const months = [...new Set(programmes.map(programme => programme.month))]
 
 export default function ProgrammesPage() {
@@ -15,12 +12,6 @@ export default function ProgrammesPage() {
         <p className="max-w-xl text-sm leading-6 text-[#625b52] sm:text-base">
           Explore Top100’s plans for the year. Confirmed dates and signups will appear as programmes open.
         </p>
-        <nav aria-label="Programme links" className="flex flex-wrap gap-x-5 text-sm font-semibold text-[#9a3412]">
-          <Link className="inline-flex min-h-11 items-center underline underline-offset-4" href={`${base}/community-impact-onboarding`}>Community Impact Network</Link>
-          <a className="inline-flex min-h-11 items-center underline underline-offset-4" href="#open-programmes">Open for interest</a>
-          <Link className="inline-flex min-h-11 items-center underline underline-offset-4" href="/dashboard/discover/events">Upcoming events</Link>
-          <Link className="inline-flex min-h-11 items-center underline underline-offset-4" href="/dashboard/discover/opportunities">Browse opportunities</Link>
-        </nav>
       </header>
 
       <div id="2027-roadmap" className="scroll-mt-24 space-y-8">

@@ -35,7 +35,7 @@ export async function POST(request:NextRequest) {
   const db=createAdminClient()
   const {data:profile,error}=await db.from('profiles').select('id,email,full_name,role').eq('id',user.id).maybeSingle()
   if(error||!profile?.email) return NextResponse.json({message:'We could not find the email on your member profile.'},{status:404})
-  const result=await db.rpc('interview_submit_request',{p_member_id:user.id,p_email:profile.email,p_name:profile.full_name||profile.email,p_payload:parsed.data})
+  const result=await db.rpc('interview_submit_request',{p_member_id:user.id,p_email:profile.email,p_name:profile.full_name||profile.email,p_payload:{...parsed.data,topic:parsed.data.topic??'Impact interview'}})
   if(result.error) return NextResponse.json({message:setupMessage(result.error)},{status:503})
   return NextResponse.json({ok:true,existing:result.data?.existing===true,message:result.data?.existing?'You already have an active interview request.':'Request received. Your interview is not scheduled yet.'},{status:result.data?.existing?200:201})
 }

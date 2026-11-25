@@ -421,6 +421,14 @@ async function routeGroups(request: NextRequest, path: string[], store: DemoDash
 }
 
 async function routeOpportunities(request: NextRequest, path: string[], store: DemoDashboardStore) {
+  // Keep the sample listings open as the calendar advances.
+  function openSample(item: DemoDashboardStore['opportunities'][number]) {
+    return {
+      ...item,
+      deadline: item.deadline && opportunityDeadlineDay(new Date(Date.now() + (item.isFeatured ? 14 : 28) * 86_400_000)),
+    }
+  }
+
   if (path.length === 1 && request.method === 'GET') {
     const params = requestUrl(request).searchParams
     const type = params.get('type')?.toLowerCase()
@@ -435,17 +443,12 @@ async function routeOpportunities(request: NextRequest, path: string[], store: D
       }
       return true
     })
-    // Keep the sample listings open for local walkthroughs as the calendar advances.
-    const today = Date.now()
-    const openSamples = opportunities.map(item => ({
-      ...item,
-      deadline: item.deadline && opportunityDeadlineDay(new Date(today + (item.isFeatured ? 14 : 28) * 86_400_000)),
-    }))
-    return json({ opportunities: openSamples, tiers: ['public', 'members', 'approved'] })
+    return json({ opportunities: opportunities.map(openSample), tiers: ['public', 'members', 'approved'] })
   }
 
   const opportunity = store.opportunities.find((item) => item.id === path[1])
   if (!opportunity) return json({ message: 'Opportunity not found.' }, 404)
+  if (request.method === 'GET') return json({ opportunity: openSample(opportunity) })
   if (request.method === 'POST') opportunity.isSaved = true
   else if (request.method === 'DELETE') opportunity.isSaved = false
   else return null
@@ -863,14 +866,14 @@ export async function handleDemoMemberRequest(
       const asInterest = (id: string) => ({ id, kind: 'community', activity_id: null })
       if (request.method === 'GET') {
         const interests = store.programmeInterest ? [asInterest(store.programmeInterest.id)] : []
-        return json({ activities: [], interests })
+        return json(request.nextUrl.searchParams.get('scope') === 'community' ? { interests } : { activities: [], interests })
       }
       if (request.method === 'POST') {
         const parsed = interestSchema.safeParse(await readBody(request))
         if (!parsed.success || parsed.data.kind !== 'community') {
-          return json({ message: 'Check your roles, categories, details and consent.' }, 400)
+          return json({ message: 'Check your answers and confirm before submitting.' }, 400)
         }
-        if (store.programmeInterest) return json({ message: 'Your interest is already recorded.' }, 409)
+        if (store.programmeInterest) return json({ interest: asInterest(store.programmeInterest.id), alreadyRecorded: true })
         const id = randomUUID()
         store.programmeInterest = { id, details: parsed.data.community_details }
         return json({ interest: asInterest(id) }, 201)

@@ -10,6 +10,7 @@ export type EdutuOpportunityPage = {
   nextCursor: string | null
 }
 
+const detailUrl = 'https://backend.edutu.org/opportunities/'
 const catalogUrl = 'https://backend.edutu.org/opportunities/catalog'
 const categoryTypes: Record<string, string> = {
   scholarships: 'Scholarship',
@@ -83,6 +84,22 @@ export function mapEdutuOpportunity(value: unknown, now = new Date()): EdutuOppo
     updatedAt: field(row.updated_at) ?? '',
     source: 'Edutu',
   }
+}
+
+export async function fetchEdutuOpportunity(id: string): Promise<EdutuOpportunity | null> {
+  if (!/^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i.test(id)) return null
+
+  const response = await fetch(new URL(id, detailUrl), {
+    headers: { Accept: 'application/json' },
+    cache: 'no-store',
+    signal: AbortSignal.timeout(3_000),
+    redirect: 'error',
+  })
+  if (response.status === 404 || response.status === 410) return null
+  if (!response.ok) throw new Error(`Edutu listing returned HTTP ${response.status}`)
+
+  const opportunity = mapEdutuOpportunity(await response.json())
+  return opportunity?.id === `edutu:${id}` ? opportunity : null
 }
 
 export async function fetchEdutuCatalog(input: { query: string; type: string; cursor: string }) {

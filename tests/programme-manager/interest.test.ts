@@ -32,3 +32,48 @@ describe('Community Impact Network signup', () => {
   expect(interestSchema.safeParse({ ...payload, consent: false }).success).toBe(false)
  })
 })
+
+describe('Community Impact Network expression of interest', () => {
+ const answers = {
+  full_name: 'Demo Applicant',
+  email: 'member@example.com',
+  phone: '+234 801 234 5678',
+  country_code: 'NG',
+  linkedin: 'linkedin.com/in/demo',
+  bio: 'I mentor early-career engineers in my community.',
+  expertise: ['Technology, AI and Innovation'],
+  contributions: ['Mentor to Top100 Awardees and Community Members'],
+  session_idea: 'Building a global career from Africa',
+  participation: ['Virtual engagements'],
+  motivation: 'I would like to share practical career advice.',
+  confirmation: true,
+ }
+ const application = (fields: object) => ({
+  kind: 'community', activity_id: null, consent: true,
+  community_details: { version: 2, answers: fields },
+ })
+
+ it('accepts the new form without optional fields, including city, and retains answers', () => {
+  const parsed = interestSchema.parse(application(answers))
+  expect(parsed).toMatchObject({ community_details: { version: 2, answers: {
+   ...answers, linkedin: 'https://linkedin.com/in/demo',
+  } } })
+ })
+
+ it('retains the optional state or region and city as separate answers', () => {
+  expect(interestSchema.parse(application({ ...answers, region: 'Rivers State', city: 'Port Harcourt' }))).toMatchObject({
+   community_details: { answers: { region: 'Rivers State', city: 'Port Harcourt' } },
+  })
+ })
+
+ it('validates all required answers and rejects invalid choices and unsafe profile URLs', () => {
+  for (const change of [
+   { full_name: ' ' }, { email: 'broken' }, { phone: '123' }, { country_code: '' },
+   { bio: '' }, { session_idea: '' }, { motivation: '' }, { confirmation: false },
+   { expertise: ['invented category'] }, { participation: ['Virtual engagements', 'Virtual engagements'] },
+   { linkedin: 'javascript:alert(1)' },
+  ]) {
+   expect(interestSchema.safeParse(application({ ...answers, ...change })).success, JSON.stringify(change)).toBe(false)
+  }
+ })
+})

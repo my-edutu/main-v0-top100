@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { communityApplicationSchema } from './community-application'
 
 export const communityRoles = {
   volunteer: 'Community Volunteer',
@@ -16,7 +17,8 @@ export const communityCategories = {
   community: 'Community outreach',
 } as const
 
-const communityDetails = z.object({
+const legacyCommunityDetails = z.object({
+  version: z.undefined().optional(),
   roles: z.array(z.enum(Object.keys(communityRoles) as (keyof typeof communityRoles)[])).min(1).max(Object.keys(communityRoles).length),
   categories: z.array(z.enum(Object.keys(communityCategories) as (keyof typeof communityCategories)[])).min(1).max(6),
   full_name: z.string().trim().min(2).max(150),
@@ -29,8 +31,9 @@ const communityDetails = z.object({
   new Set(roles).size === roles.length && new Set(categories).size === categories.length
 )
 
+const communityDetails = z.union([communityApplicationSchema, legacyCommunityDetails])
 export type CommunityDetails = z.infer<typeof communityDetails>
-export const interestSchema = z.union([
+export const interestSchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.enum(['mentor', 'volunteer', 'programme']),
     activity_id: z.guid().nullable(),

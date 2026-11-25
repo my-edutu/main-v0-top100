@@ -4,20 +4,18 @@
 // Nothing here ever asks for a visibility tier — the server decides what this
 // member may see. The "Exclusive" badge simply reports what came back.
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ChevronRight, ExternalLink, Mail, RefreshCw, Search, SlidersHorizontal } from 'lucide-react'
+import Link from 'next/link'
+import { ChevronRight, RefreshCw, Search, SlidersHorizontal } from 'lucide-react'
 
 import { DashboardLoading } from './_components/dashboard-loading'
-import SafeImage from '@/components/safe-image'
+import { OpportunityCover } from './_components/opportunity-cover'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import { fetchWithTimeout } from '@/lib/http/fetch-with-timeout'
 import type { EdutuOpportunity, EdutuOpportunityPage } from '@/lib/opportunities/edutu'
 import type { MemberProfile } from '@/lib/member-hub'
-import { renderMemberPostBody } from '@/lib/member-posts/content'
-import defaultOpportunityCover from '@/public/dashboard/cards/opportunities.jpg'
 import {
   OpportunitiesSetupRequiredError,
   fetchMemberOpportunities,
@@ -25,7 +23,6 @@ import {
 import {
   OPPORTUNITY_TYPES,
   formatDeadlineCountdown,
-  formatDeadlineDate,
   hasOpportunityExpired,
   nextOpportunityDeadlineCheck,
   opportunityDeadlineDay,
@@ -332,36 +329,6 @@ function FilterChip({
   )
 }
 
-function OpportunityCover({ imageUrl, detail = false, compact = false }: {
-  imageUrl?: string | null
-  detail?: boolean
-  compact?: boolean
-}) {
-  const [failedUrl, setFailedUrl] = useState<string | null>(null)
-  const image = imageUrl && imageUrl !== failedUrl ? imageUrl : null
-
-  if (detail && !image) return null
-
-  return (
-    <span className={cn(
-      'block overflow-hidden bg-[#eee8e0]',
-      compact ? 'absolute inset-0' : 'relative',
-      detail ? 'aspect-[16/9] rounded-xl' : !compact && 'aspect-[7/3] shrink-0',
-    )}>
-      <SafeImage
-        src={image ?? defaultOpportunityCover}
-        alt=""
-        fill
-        sizes={compact ? '(max-width: 390px) 82vw, 320px' : detail ? '(max-width: 640px) 90vw, 560px' : '(max-width: 767px) 100vw, 50vw'}
-        unoptimized={Boolean(image)}
-        referrerPolicy="no-referrer"
-        className={detail ? 'object-contain' : 'object-cover'}
-        onError={image ? () => setFailedUrl(image) : undefined}
-      />
-    </span>
-  )
-}
-
 export function OpportunityCard({ opportunity, deadlineDay, compact = false }: {
   opportunity: Opportunity | EdutuOpportunity
   deadlineDay: string
@@ -372,125 +339,52 @@ export function OpportunityCard({ opportunity, deadlineDay, compact = false }: {
     : fromEdutu && !opportunity.deadline ? 'Deadline not listed'
     : formatDeadlineCountdown(opportunity.deadline, new Date(`${deadlineDay}T12:00:00`))
   const sourceLabel = fromEdutu ? 'Edutu' : opportunity.visibility !== 'public' ? 'Exclusive' : null
-  const applicationUrl = opportunity.applicationUrl?.match(/^https?:\/\/\S+$/i)?.[0]
-  const hasApplication = applicationUrl || opportunity.contactEmail
-  const showSummary = opportunity.summary && !opportunity.description?.includes(opportunity.summary)
-  const deadline = opportunity.deadline && !(fromEdutu && opportunity.deadlineNeedsReview)
-    ? formatDeadlineDate(opportunity.deadline)
-    : countdown
-
+  const detailId = fromEdutu ? 'edutu-' + opportunity.id.slice('edutu:'.length) : opportunity.id
   return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <button
-          type="button"
-          aria-label={`View details for ${opportunity.title}`}
-          className={cn(
-            "group flex min-w-0 flex-col overflow-hidden rounded-2xl text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-700",
-            compact
-              ? "relative isolate h-[160px] justify-end rounded-[18px] bg-[#111827] text-[#fff]"
-              : "border border-stone-200 bg-white text-[#1c1714] transition-shadow hover:shadow-md",
-          )}
-        >
-          <OpportunityCover imageUrl={opportunity.imageUrl} compact={compact} />
-          {compact ? <>
-            <span aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_top,#080b12_0%,#080b12e6_35%,#080b1266_70%,#080b121a_100%)]" />
-            <span className="relative flex w-full items-end justify-between gap-3 p-4">
-              <span className="min-w-0 space-y-1">
-                <span className="block text-xs font-semibold text-[#ffe3a5]">{opportunity.type}</span>
-                <span className="line-clamp-3 break-words text-lg font-semibold leading-tight text-[#fff]">{opportunity.title}</span>
-                <span className="block text-xs font-medium text-[#f0edf3]">{countdown}</span>
-              </span>
-              <ChevronRight size={18} className="mb-0.5 shrink-0 text-[#fff]" aria-hidden="true" />
+    <Link
+      href={`/dashboard/discover/opportunities/${encodeURIComponent(detailId)}`}
+      aria-label={`View details for ${opportunity.title}`}
+      className={cn(
+        'group flex min-w-0 flex-col overflow-hidden rounded-2xl text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-700',
+        compact
+          ? 'relative isolate h-[160px] justify-end rounded-[18px] bg-[#111827] text-[#fff]'
+          : 'border border-stone-200 bg-white text-[#1c1714] transition-shadow hover:shadow-md',
+      )}
+    >
+      <OpportunityCover imageUrl={opportunity.imageUrl} compact={compact} />
+      {compact ? <>
+        <span aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_top,#080b12_0%,#080b12e6_35%,#080b1266_70%,#080b121a_100%)]" />
+        <span className="relative flex w-full items-end justify-between gap-3 p-4">
+          <span className="min-w-0 space-y-1">
+            <span className="block text-xs font-semibold text-[#ffe3a5]">{opportunity.type}</span>
+            <span className="line-clamp-3 break-words text-lg font-semibold leading-tight text-[#fff]">{opportunity.title}</span>
+            <span className="block text-xs font-medium text-[#f0edf3]">{countdown}</span>
+          </span>
+          <ChevronRight size={18} className="mb-0.5 shrink-0 text-[#fff]" aria-hidden="true" />
+        </span>
+      </> : <span className="flex w-full flex-1 flex-col px-4 pb-3 pt-4 sm:px-5">
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold">
+          <span className="text-[#9a3412]">{opportunity.type}</span>
+          {sourceLabel && <span className="rounded-full bg-[#f5f0eb] px-2 py-0.5 text-[#60544b]">{sourceLabel}</span>}
+        </span>
+        <span className="mt-2 text-xl font-bold leading-tight tracking-tight [overflow-wrap:anywhere]">
+          {opportunity.title}
+        </span>
+        {opportunity.organization && (
+          <span className="mt-1 text-sm text-[#61554d] [overflow-wrap:anywhere]">{opportunity.organization}</span>
+        )}
+        {opportunity.summary && (
+          <span className="mb-3 mt-2 line-clamp-2 text-sm leading-5 text-[#61554d]">{opportunity.summary}</span>
+        )}
+        <span className="mt-auto pt-3">
+          <span className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-stone-200 pt-3 text-sm">
+            <span className="font-medium text-[#61554d]">{countdown}</span>
+            <span className="inline-flex items-center gap-1 font-semibold text-[#9a3412] group-hover:underline">
+              View details <ChevronRight size={16} aria-hidden="true" />
             </span>
-          </> : <span className="flex w-full flex-1 flex-col px-4 pb-3 pt-4 sm:px-5">
-            <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold">
-              <span className="text-[#9a3412]">{opportunity.type}</span>
-              {sourceLabel && <span className="rounded-full bg-[#f5f0eb] px-2 py-0.5 text-[#60544b]">{sourceLabel}</span>}
-            </span>
-            <span className="mt-2 text-xl font-bold leading-tight tracking-tight [overflow-wrap:anywhere]">
-              {opportunity.title}
-            </span>
-            {opportunity.organization && (
-              <span className="mt-1 text-sm text-[#61554d] [overflow-wrap:anywhere]">{opportunity.organization}</span>
-            )}
-            {opportunity.summary && (
-              <span className="mb-3 mt-2 line-clamp-2 text-sm leading-5 text-[#61554d]">{opportunity.summary}</span>
-            )}
-            <span className="mt-auto pt-3">
-              <span className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-stone-200 pt-3 text-sm">
-                <span className="font-medium text-[#61554d]">{countdown}</span>
-                <span className="inline-flex items-center gap-1 font-semibold text-[#9a3412] group-hover:underline">
-                  View details <ChevronRight size={16} aria-hidden="true" />
-                </span>
-              </span>
-            </span>
-          </span>}
-        </button>
-      </DialogTrigger>
-      <DialogContent
-        className="z-[100] grid max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-xl grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden rounded-2xl border-stone-200 bg-white p-0 text-[#1c1714]"
-        overlayClassName="z-[99] bg-black/50"
-      >
-        <div className="border-b border-stone-200 px-5 py-4 pr-16 sm:px-6 sm:pr-16">
-          <DialogTitle className="text-xl font-bold leading-tight [overflow-wrap:anywhere]">{opportunity.title}</DialogTitle>
-          <DialogDescription className="mt-1 text-sm text-[#61554d]">
-            {opportunity.organization ?? (fromEdutu ? 'Edutu' : opportunity.type)}
-          </DialogDescription>
-        </div>
-        <div className="flex min-h-0 flex-col">
-          <div className="min-h-0 space-y-5 overflow-y-auto overscroll-contain p-5 sm:p-6">
-            <OpportunityCover imageUrl={opportunity.imageUrl} detail />
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-3 rounded-xl bg-[#f7f4f0] p-4 text-sm [overflow-wrap:anywhere]">
-              <div><dt className="text-[#61554d]">Type</dt><dd className="font-semibold">{opportunity.type}</dd></div>
-              <div>
-                <dt className="text-[#61554d]">Deadline</dt>
-                <dd className="font-semibold">{deadline}</dd>
-              </div>
-              {opportunity.location && (
-                <div><dt className="text-[#61554d]">Location</dt><dd className="font-semibold">{opportunity.location}</dd></div>
-              )}
-              {opportunity.amountNote && (
-                <div><dt className="text-[#61554d]">Funding</dt><dd className="font-semibold">{opportunity.amountNote}</dd></div>
-              )}
-            </dl>
-            {showSummary && (
-              <p className="text-sm font-medium leading-6 [overflow-wrap:anywhere]">{opportunity.summary}</p>
-            )}
-            {opportunity.description && (fromEdutu ? (
-              <p className="whitespace-pre-line text-sm leading-6 [overflow-wrap:anywhere]">{opportunity.description}</p>
-            ) : (
-              <div
-                className="text-sm leading-6 [overflow-wrap:anywhere] [&_a]:underline [&_li]:ml-4 [&_ol]:list-decimal [&_p+p]:mt-3 [&_ul]:list-disc"
-                dangerouslySetInnerHTML={{ __html: renderMemberPostBody(opportunity.description) }}
-              />
-            ))}
-          </div>
-          {hasApplication && (
-            <div className="shrink-0 border-t border-stone-200 px-5 py-3 sm:px-6">
-              {applicationUrl ? (
-                <a
-                  href={applicationUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#9a3412] px-5 text-sm font-semibold text-[#fffaf4] hover:bg-[#7c2d12]"
-                >
-                  Apply on provider site
-                  <ExternalLink size={16} aria-hidden="true" />
-                </a>
-              ) : (
-                <a
-                  href={`mailto:${opportunity.contactEmail}`}
-                  className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#9a3412] px-5 text-sm font-semibold text-[#fffaf4] hover:bg-[#7c2d12]"
-                >
-                  Apply by email
-                  <Mail size={16} aria-hidden="true" />
-                </a>
-              )}
-            </div>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
+          </span>
+        </span>
+      </span>}
+    </Link>
   )
 }

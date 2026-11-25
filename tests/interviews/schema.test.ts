@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { interviewRequestSchema } from '@/lib/interviews/booking-schema'
 
 import {
   applicationSchema,
@@ -95,5 +96,23 @@ describe('validateHeadshot', () => {
 
   it('rejects a file whose bytes are not an allowed image', () => {
     expect(validateHeadshot(new Uint8Array([0x25, 0x50, 0x44, 0x46]), 1024).ok).toBe(false)
+  })
+})
+
+describe('dashboard interview request', () => {
+  const request = {
+    impactStory: 'I organised workshops for young leaders and helped participants put their new skills into practice.',
+    format: 'video',
+    timezone: 'Africa/Lagos',
+    publicationConsent: true,
+  }
+
+  it('accepts a request without a separate topic', () => {
+    expect(interviewRequestSchema.safeParse(request).success).toBe(true)
+  })
+
+  it('still validates and preserves a topic sent by an older client', () => {
+    expect(interviewRequestSchema.parse({ ...request, topic: '  Career mentoring in Lagos  ' }).topic).toBe('Career mentoring in Lagos')
+    expect(interviewRequestSchema.safeParse({ ...request, topic: 'Short' }).success).toBe(false)
   })
 })

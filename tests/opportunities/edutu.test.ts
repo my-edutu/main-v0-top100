@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest'
-import { fetchEdutuCatalog, mapEdutuOpportunity } from '@/lib/opportunities/edutu'
+import { fetchEdutuCatalog, fetchEdutuOpportunity, mapEdutuOpportunity } from '@/lib/opportunities/edutu'
 
 const row = {
   id: 'listing-1',
@@ -67,4 +67,20 @@ it('continues across Edutu pages when filtering by the canonical category', asyn
 it('reports upstream failures instead of inventing listings', async () => {
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 503 })))
   await expect(fetchEdutuCatalog({ query: '', type: '', cursor: '' })).rejects.toThrow('HTTP 503')
+})
+
+
+it('fetches a direct Edutu listing and verifies its identity', async () => {
+  const id = '82b1ea99-68e7-42ef-978c-6789e2dc15af'
+  const fetch = vi.fn()
+    .mockResolvedValueOnce(Response.json({ ...row, id }))
+    .mockResolvedValueOnce(Response.json(row))
+    .mockResolvedValueOnce(new Response(null, { status: 404 }))
+  vi.stubGlobal('fetch', fetch)
+  await expect(fetchEdutuOpportunity(id)).resolves.toMatchObject({ id: `edutu:${id}` })
+  expect(fetch.mock.calls[0][0].pathname).toBe(`/opportunities/${id}`)
+  await expect(fetchEdutuOpportunity(id)).resolves.toBeNull()
+  await expect(fetchEdutuOpportunity(id)).resolves.toBeNull()
+  await expect(fetchEdutuOpportunity('../catalog')).resolves.toBeNull()
+  expect(fetch).toHaveBeenCalledTimes(3)
 })

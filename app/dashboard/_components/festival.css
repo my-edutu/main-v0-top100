@@ -33,6 +33,46 @@
   display: grid;
   gap: 6px;
 }
+.festival-card[data-countdown] {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+.festival-card[data-countdown] .festival-card__content {
+  position: relative;
+  inset: auto;
+  grid-row: 2;
+  padding: 4px 18px 14px;
+}
+.festival-card__countdown {
+  position: relative;
+  grid-row: 1;
+  place-self: end center;
+  max-inline-size: calc(100% - 24px);
+  margin-bottom: 6px;
+  padding: 5px 10px 6px;
+  border-radius: 12px;
+  background: #23180ef2;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+}
+.festival-card__timer {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(6px, 2vw, 14px);
+  margin-top: 2px;
+  font-size: 10px;
+  font-weight: 600;
+}
+.festival-card__timer strong {
+  display: block;
+  color: #ffdf45;
+  font-size: clamp(21px, 6vw, 29px);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
 .festival-card__title {
   max-width: 460px;
   color: #fff;
@@ -503,6 +543,10 @@
   .festival-card__content {
     inset-inline: 28px;
     bottom: 22px;
+  }
+  .festival-card[data-countdown] .festival-card__content {
+    padding-inline: 28px;
+    padding-bottom: 22px;
   }
   .festival-card__title {
     font-size: 26px;

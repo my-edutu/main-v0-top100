@@ -1,6 +1,6 @@
 import { z } from 'zod'
 export const interviewRequestSchema = z.object({
-  topic: z.string().trim().min(10).max(160),
+  topic: z.string().trim().min(10).max(160).optional(),
   impactStory: z.string().trim().min(80).max(2000),
   format: z.enum(['video','written','either']),
   timezone: z.string().min(1).max(80).refine(value => { try { new Intl.DateTimeFormat('en', { timeZone: value }); return true } catch { return false } }),
