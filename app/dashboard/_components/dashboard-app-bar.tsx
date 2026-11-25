@@ -5,7 +5,8 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { ArrowLeft, Bell, Mail, Search } from 'lucide-react'
 
-import { resolveDashboardTitle } from '../_lib/navigation'
+import { isOpportunityDetailPath, resolveDashboardTitle } from '../_lib/navigation'
+import { awardLettersPath, letterOptions } from '../_lib/award-letters'
 import { useDashboardBadges } from '../_providers/dashboard-badges'
 import { useDashboardMember } from '../_providers/dashboard-member'
 import { top100DashboardTheme } from '@/lib/dashboard/theme'
@@ -29,9 +30,16 @@ export function DashboardAppBar() {
   const isHome = pathname === '/dashboard'
   const isNewPost = pathname === '/dashboard/me/posts/new'
   const isConversation = pathname.startsWith('/dashboard/messages/')
+  const previewKind = pathname === `${awardLettersPath}/recommendation/preview` ? 'recommendation'
+    : pathname === `${awardLettersPath}/invitation/preview` ? 'invitation' : null
+  const isLetterForm = pathname === `${awardLettersPath}/recommendation` || pathname === `${awardLettersPath}/invitation`
+  const PageTitle = pathname === awardLettersPath || previewKind ? 'h1' : 'span'
   const isMembersRoute = pathname === '/dashboard/discover/members'
+  const isOpportunitiesRoute = pathname === '/dashboard/discover/opportunities'
+  const isOpportunityDetail = isOpportunityDetailPath(pathname)
+  const hasStickyHeader = isHome || isOpportunitiesRoute || isOpportunityDetail
   const [isScrolled, setIsScrolled] = useState(false)
-  const title = pathname === '/dashboard/me/profile' ? 'Update your profile' : resolveDashboardTitle(pathname)
+  const title = previewKind ? `${letterOptions[previewKind].title} preview` : pathname === '/dashboard/me/profile' ? 'Update your profile' : resolveDashboardTitle(pathname)
   const inAppHistory = useRef<string[]>([])
 
   useEffect(() => {
@@ -47,8 +55,18 @@ export function DashboardAppBar() {
   function goBack() {
     const history = inAppHistory.current
     if (history.at(-1) === pathname) history.pop()
+    if (previewKind) {
+      router.replace(`${awardLettersPath}/${previewKind}`)
+      return
+    }
+    if (isLetterForm) {
+      router.replace(awardLettersPath)
+      return
+    }
     const previousPath = history.pop()
-    router.replace(previousPath?.startsWith('/dashboard') ? previousPath : '/dashboard')
+    router.replace(previousPath?.startsWith('/dashboard')
+      ? previousPath
+      : isOpportunityDetail ? '/dashboard/discover/opportunities' : '/dashboard')
   }
 
   useEffect(() => {
@@ -61,7 +79,7 @@ export function DashboardAppBar() {
   }, [isMembersRoute])
 
   return (
-    <header className={`hub-app-bar sticky top-0 z-40 h-[60px] border-b text-[#171412] ${top100DashboardTheme.appBar}`}>
+    <header className={`hub-app-bar h-[60px] border-b text-[#171412] ${hasStickyHeader ? 'sticky top-0 z-40' : ''} ${isOpportunityDetail ? '!bg-white' : ''} ${top100DashboardTheme.appBar}`}>
       <div className="flex h-full items-center gap-2 px-4 sm:px-6">
         {isHome ? (
           <div className="flex min-w-0 items-center gap-2">
@@ -81,16 +99,28 @@ export function DashboardAppBar() {
             <button
               type="button"
               onClick={goBack}
-              aria-label="Go back"
+              aria-label={previewKind ? 'Back to letter details' : isLetterForm ? 'Back to all letters' : 'Go back'}
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#171412] transition hover:bg-[#FFE7D5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-2"
             >
               <ArrowLeft className="h-5 w-5" strokeWidth={2} aria-hidden="true" />
             </button>
-            {!isConversation && <span className="truncate text-base font-semibold tracking-tight sm:text-lg">{title}</span>}
+            {!isConversation && <PageTitle className="truncate text-base font-semibold tracking-tight sm:text-lg">{title}</PageTitle>}
           </div>
         )}
 
         <div className="ml-auto flex items-center gap-1">
+          {isOpportunitiesRoute && (
+            <button
+              id="opportunity-search-button"
+              type="button"
+              aria-label="Search opportunities"
+              aria-controls="opportunity-search"
+              onClick={() => window.dispatchEvent(new Event('dashboard:toggle-opportunity-search'))}
+              className="flex h-11 w-11 items-center justify-center rounded-xl text-[#171412] transition hover:bg-orange-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-2"
+            >
+              <Search className="h-5 w-5" strokeWidth={2.35} aria-hidden="true" />
+            </button>
+          )}
           {isMembersRoute && isScrolled ? (
             <button
               type="button"

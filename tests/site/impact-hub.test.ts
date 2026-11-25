@@ -86,6 +86,10 @@ vi.mock("@/lib/awardees", () => ({
   getAwardees: async () => fixtures.awardees,
 }))
 
+vi.mock("@/lib/awardees/register-summary.server", () => ({
+  getAwardeeRegisterTotals: async () => ({ awardees: 1808, countries: 46, institutions: 0 }),
+}))
+
 vi.mock("@/lib/posts/server", () => ({
   getHomepagePosts: async () => fixtures.posts,
 }))
@@ -192,9 +196,9 @@ describe("Impact hub", () => {
     expect(markup).toContain('href="/partnership"')
     expect(markup).toContain('href="/interviews"')
     expect(markup).toContain('href="/awardees"')
-    expect(markup).toContain("31+")
-    expect(markup).toContain("97,000")
-    expect(markup).toContain("2,000+")
+    expect(markup).toContain(">100<")
+    expect(markup).toContain(">707<")
+    expect(markup).toContain(">1,808<")
     expect(markup).toContain("Hear the work behind the recognition.")
     expect(markup).toContain(">KW</text>")
     expect(markup).toContain(

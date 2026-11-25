@@ -1,4 +1,9 @@
-import type { PublicAchievement, PublicAwardee, SocialImageSource } from './types'
+import type {
+  PublicAchievement,
+  PublicAwardee,
+  SocialImageSource,
+} from './types'
+import { resolveRemoteImageSource } from '@/lib/media/remote-image-source'
 
 type AwardeeRow = {
   awardee_id?: unknown
@@ -26,7 +31,9 @@ function safeWebUrl(value: unknown): string | null {
   if (typeof value !== 'string' || !value.trim()) return null
   try {
     const url = new URL(value)
-    return url.protocol === 'https:' || url.protocol === 'http:' ? url.toString() : null
+    return url.protocol === 'https:' || url.protocol === 'http:'
+      ? resolveRemoteImageSource(url.toString())
+      : null
   } catch {
     return null
   }
@@ -37,7 +44,9 @@ function safeText(value: unknown, maxLength = 500): string {
 }
 
 function safeCount(value: unknown): number | null {
-  return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0
+    ? value
+    : null
 }
 
 function safeAchievements(value: unknown): PublicAchievement[] {
@@ -47,16 +56,21 @@ function safeAchievements(value: unknown): PublicAchievement[] {
     const row = item as Record<string, unknown>
     const title = safeText(row.title, 180)
     if (!title) return []
-    return [{
-      title,
-      description: safeText(row.description, 500) || undefined,
-      organization: safeText(row.organization, 160) || undefined,
-      date: safeText(row.recognition_date, 50) || undefined,
-    }]
+    return [
+      {
+        title,
+        description: safeText(row.description, 500) || undefined,
+        organization: safeText(row.organization, 160) || undefined,
+        date: safeText(row.recognition_date, 50) || undefined,
+      },
+    ]
   })
 }
 
-export function mapPublicAwardee(row: AwardeeRow, siteUrl: string): PublicAwardee {
+export function mapPublicAwardee(
+  row: AwardeeRow,
+  siteUrl: string,
+): PublicAwardee {
   const slug = typeof row.slug === 'string' ? row.slug.trim() : ''
   const base = new URL(siteUrl)
   const profileUrl = slug
@@ -66,7 +80,11 @@ export function mapPublicAwardee(row: AwardeeRow, siteUrl: string): PublicAwarde
   const cover = safeWebUrl(row.portfolio_cover_url)
   const avatar = safeWebUrl(row.avatar_url) ?? safeWebUrl(row.cover_image_url)
   const imageUrl = cover ?? avatar
-  const imageSource: SocialImageSource = cover ? 'portfolio-cover' : avatar ? 'profile-photo' : 'none'
+  const imageSource: SocialImageSource = cover
+    ? 'portfolio-cover'
+    : avatar
+      ? 'profile-photo'
+      : 'none'
 
   return {
     awardeeId: typeof row.awardee_id === 'string' ? row.awardee_id : '',
@@ -91,7 +109,26 @@ export function mapPublicAwardee(row: AwardeeRow, siteUrl: string): PublicAwarde
   }
 }
 
-export function publicSnapshot(profile: PublicAwardee): Pick<PublicAwardee, 'name' | 'bio' | 'headline' | 'country' | 'fieldOfStudy' | 'cohort' | 'year' | 'achievements' | 'impactProjects' | 'livesImpacted' | 'awardsReceived' | 'updatedAt' | 'profileUrl' | 'imageUrl' | 'imageSource'> {
+export function publicSnapshot(
+  profile: PublicAwardee,
+): Pick<
+  PublicAwardee,
+  | 'name'
+  | 'bio'
+  | 'headline'
+  | 'country'
+  | 'fieldOfStudy'
+  | 'cohort'
+  | 'year'
+  | 'achievements'
+  | 'impactProjects'
+  | 'livesImpacted'
+  | 'awardsReceived'
+  | 'updatedAt'
+  | 'profileUrl'
+  | 'imageUrl'
+  | 'imageSource'
+> {
   return {
     name: profile.name,
     bio: profile.bio,

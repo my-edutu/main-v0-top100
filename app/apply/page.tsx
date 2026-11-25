@@ -114,7 +114,7 @@ export default async function ApplyLandingPage() {
             style={{ color: '#fff' }}
           >
             Join a continent-wide community of first-class graduates and emerging leaders creating measurable impact
-            across 31 countries.
+            across Africa and beyond.
           </p>
         </div>
       </section>

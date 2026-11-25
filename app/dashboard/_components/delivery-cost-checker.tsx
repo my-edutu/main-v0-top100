@@ -50,6 +50,7 @@ export function DeliveryCostChecker({
   quoteEndpoint = '/api/member/award/delivery-quote',
   quoteFields,
   onQuoted,
+  renderQuoteNextStep,
   additionalFields,
   nigeriaOnly = false,
   quoteDisclaimer,
@@ -67,6 +68,8 @@ export function DeliveryCostChecker({
   quoteFields?: DeliveryQuoteFields
   /** Receives the server response after a valid quote is returned. */
   onQuoted?: (quote: DeliveryPreviewQuote, body: Record<string, unknown>) => void
+  /** Optional action after a price is returned or the carrier cannot issue one. */
+  renderQuoteNextStep?: (draft: DeliveryQuoteDraft, quote: DeliveryPreviewQuote | null) => ReactNode
   /** Optional fields rendered inside the same form, before destination fields. */
   additionalFields?: ReactNode
   /** Lock the checker to Nigeria while retaining the existing all-country checker elsewhere. */
@@ -92,6 +95,7 @@ export function DeliveryCostChecker({
   const [centresLoading, setCentresLoading] = useState(false)
   const [centreError, setCentreError] = useState('')
   const [quote, setQuote] = useState<DeliveryPreviewQuote | null>(null)
+  const [carrierUnavailable, setCarrierUnavailable] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [locationData, setLocationData] = useState<{ countryCode: string; options: DeliveryLocationOptions } | null>(null)
@@ -107,6 +111,10 @@ export function DeliveryCostChecker({
   const regions = domestic ? nigeriaStates.map(item => ({ name: item.name, code: item.code })) : options?.regions ?? []
   const selectedRegion = regions.find(region => region.name === state)
   const quoteUnavailable = !domestic && !!options?.quoteCountries && !options.quoteCountries.includes(countryCode)
+  const draft: DeliveryQuoteDraft = {
+    deliveryMode, country: selectedCountry, countryCode, provinceCode, addressLine1, addressLine2, city, state, postalCode,
+    ...(deliveryMode === 'service_centre' ? { serviceCentreId: Number(serviceCentreId) } : {}),
+  }
 
   useEffect(() => {
     const controller = new AbortController()
@@ -137,6 +145,7 @@ export function DeliveryCostChecker({
     if (busy.current) return
     busy.current = true
     setCentresLoading(true)
+    setCarrierUnavailable(false)
     resetCentres()
     setQuote(null)
     setError('')
@@ -162,21 +171,10 @@ export function DeliveryCostChecker({
     if (busy.current) return
     busy.current = true
     setLoading(true)
+    setCarrierUnavailable(false)
     setError('')
     setQuote(null)
     try {
-      const draft: DeliveryQuoteDraft = {
-        deliveryMode,
-        country: selectedCountry,
-        countryCode,
-        provinceCode,
-        addressLine1,
-        addressLine2,
-        city,
-        state,
-        postalCode,
-        ...(deliveryMode === 'service_centre' ? { serviceCentreId: Number(serviceCentreId) } : {}),
-      }
       const extraFields = typeof quoteFields === 'function' ? quoteFields(draft) : quoteFields ?? {}
       const response = await fetch(quoteEndpoint, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, cache: 'no-store',
@@ -189,8 +187,12 @@ export function DeliveryCostChecker({
         }),
       })
       const body = await response.json().catch(() => ({}))
-      if (!response.ok) throw new Error(body.message || 'We could not calculate delivery. Please try again.')
+      if (!response.ok) {
+        setCarrierUnavailable(['destination_unavailable', 'carrier_error', 'configuration', 'quote_failed'].includes(body.code))
+        throw new Error(body.message || 'We could not calculate delivery. Please try again.')
+      }
       if (!body.quote || !Number.isSafeInteger(body.quote.amountMinor) || body.quote.amountMinor <= 0 || body.quote.currency !== 'NGN') {
+        setCarrierUnavailable(true)
         throw new Error('GIG did not return a usable delivery price. Please try again.')
       }
       const nextQuote = body.quote as DeliveryPreviewQuote
@@ -228,18 +230,18 @@ export function DeliveryCostChecker({
           </div>
         </div>
 
-        <form onSubmit={requestQuote} onChange={() => { setQuote(null); setError('') }} className="mt-7">
+        <form onSubmit={requestQuote} onChange={() => { setQuote(null); setError(''); setCarrierUnavailable(false) }} className="mt-7">
           <fieldset disabled={loading || centresLoading} className="min-w-0 space-y-5 disabled:opacity-70">
             <legend className="sr-only">Delivery destination and method</legend>
             {!nigeriaOnly ? <DeliveryCountry value={country} onChange={(value) => {
-              setCountry(value); setLocationError(null); setState(''); setProvinceCode(''); setCity(''); setAddressLine1(''); setAddressLine2(''); setPostalCode(''); setDeliveryMode('home'); resetCentres()
+              setQuote(null); setError(''); setCarrierUnavailable(false); setCountry(value); setLocationError(null); setState(''); setProvinceCode(''); setCity(''); setAddressLine1(''); setAddressLine2(''); setPostalCode(''); setDeliveryMode('home'); resetCentres()
             }} /> : <div className="space-y-2">
               <span className="block text-sm font-medium text-[#292521]">Country</span>
               <div className="flex min-h-12 items-center rounded-xl border border-stone-300 bg-stone-50 px-3 text-base text-[#171412]">Nigeria</div>
               <p className="text-xs leading-5 text-stone-600">Online award delivery checkout is currently available within Nigeria.</p>
             </div>}
             {options?.quoteCountries && <div className="delivery-coverage">
-              {quoteUnavailable && <p role="status">GIG automatic pricing is not enabled for {country} on our account. <a href={`mailto:nigeriatop100@gmail.com?subject=${encodeURIComponent(`Award delivery quote to ${country}`)}`}>Contact Top100 for a delivery quote.</a></p>}
+              {quoteUnavailable && <p role="status">GIG automatic pricing is not enabled for {country} on our account. {!renderQuoteNextStep && <a href={`mailto:nigeriatop100@gmail.com?subject=${encodeURIComponent(`Award delivery quote to ${country}`)}`}>Contact Top100 for a delivery quote.</a>}</p>}
               <details><summary>Countries with automatic pricing</summary><p>{options.quoteCountries.map(code => deliveryCountry(code)?.name ?? code).join(', ')}. Rates depend on your exact destination.</p></details>
             </div>}
             {options && options.quoteCountries === null && <p className="text-xs leading-5 text-stone-600">Automatic-pricing availability has not been confirmed. You can still try a delivery quote.</p>}
@@ -290,7 +292,7 @@ export function DeliveryCostChecker({
               </div>
               <div className="min-w-0 space-y-2">
                 <label htmlFor="delivery-city" className="text-sm font-medium text-[#292521]">City or town</label>
-                <DeliveryCityInput key={`${countryCode}:${state}`} countryCode={countryCode} region={state} value={city} onChange={value => { setCity(value); setQuote(null); setError(''); resetCentres() }} className={fieldClass} />
+                <DeliveryCityInput key={`${countryCode}:${state}`} countryCode={countryCode} region={state} value={city} onChange={value => { setCity(value); setQuote(null); setError(''); setCarrierUnavailable(false); resetCentres() }} className={fieldClass} />
               </div>
             </div>
 
@@ -323,7 +325,10 @@ export function DeliveryCostChecker({
 
             {error ? <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm leading-6 text-rose-800">{error}</p> : null}
 
-            {quoteUnavailable ? <a className={`${actionClass} delivery-manual-quote`} href={`mailto:nigeriatop100@gmail.com?subject=${encodeURIComponent(`Award delivery quote to ${country}`)}`}>Request a delivery quote</a> : <button type="submit" disabled={deliveryMode === 'service_centre' && !selectedCentre} className={actionClass}>
+            {carrierUnavailable && !quoteUnavailable && renderQuoteNextStep && (
+              <div className="mb-3">{renderQuoteNextStep(draft, null)}</div>
+            )}
+            {quoteUnavailable ? (renderQuoteNextStep ? renderQuoteNextStep(draft, null) : <a className={`${actionClass} delivery-manual-quote`} href={`mailto:nigeriatop100@gmail.com?subject=${encodeURIComponent(`Award delivery quote to ${country}`)}`}>Request a delivery quote</a>) : <button type="submit" disabled={deliveryMode === 'service_centre' && !selectedCentre} className={actionClass}>
               {loading ? <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" /> : <MapPin className="h-4 w-4" aria-hidden="true" />}
               {loading ? 'Checking delivery cost…' : 'Check delivery cost'}
             </button>}
@@ -338,6 +343,7 @@ export function DeliveryCostChecker({
         <p className="mt-2 text-sm text-emerald-950">{quote.international ? 'International home delivery' : quote.deliveryMode === 'home' ? 'Home delivery' : 'Collection from a GIG centre'}</p>
         {quote.destination ? <p className="mt-3 break-words text-sm leading-6 text-emerald-950">Quoted to: {quote.destination}</p> : null}
         <p className="mt-3 text-xs leading-5 text-emerald-900">{quote.sample ? 'This sample price demonstrates the flow. It is not a live carrier rate.' : quote.international ? 'Lowest available carrier quote for your physical award. Final packaging can change the price.' : 'This is the current shipping price for your physical award.'} No payment has been taken.</p>
+        {renderQuoteNextStep && <div className="mt-4">{renderQuoteNextStep(draft, quote)}</div>}
       </div> : null}
     </section>
   )

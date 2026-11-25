@@ -66,7 +66,7 @@ export function AwardPaymentFaq() {
       <p className="mt-4 border-t border-[#39323B] pt-4 text-sm leading-6 text-[#C8C0CA]">
         Need help with a payment?{' '}
         <a
-          href="mailto:info@top100afl.com?subject=Award%20payment%20help"
+          href="mailto:nigeriatop100@gmail.com?subject=Award%20payment%20help"
           className="font-semibold text-[#FFB77E] underline underline-offset-4"
         >
           Contact the team

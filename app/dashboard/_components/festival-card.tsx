@@ -7,7 +7,7 @@ import './festival.css'
 export function FestivalCard() {
   return (
     <Link
-      href="/dashboard/festival"
+      href="/dashboard/festival/rsvp"
       className="festival-card"
       aria-labelledby="festival-card-title"
     >

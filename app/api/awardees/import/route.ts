@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag } from 'next/cache'
 
 import { requireAdmin } from '@/lib/api/require-admin'
 import { createAdminClient } from '@/lib/supabase/server'
@@ -71,6 +71,7 @@ export async function DELETE(request: NextRequest) {
   }
   revalidatePath('/awardees')
   revalidatePath('/admin/awardees')
+  revalidateTag('awardees', { expire: 0 })
   return NextResponse.json({ success: true, reverted: data })
 }
 
@@ -205,6 +206,7 @@ export async function POST(request: NextRequest) {
     }
     revalidatePath('/awardees')
     revalidatePath('/admin/awardees')
+    revalidateTag('awardees', { expire: 0 })
     return NextResponse.json({
       success: true,
       batch: data,

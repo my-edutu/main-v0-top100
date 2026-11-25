@@ -1,8 +1,8 @@
 import type { Ref } from 'react'
 import Link from 'next/link'
-import { CheckCircle2, Download } from 'lucide-react'
+import { CheckCircle2, Ticket } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { FESTIVAL_DATE, FESTIVAL_PAYMENT_PATH, FESTIVAL_TICKET_PATH, FESTIVAL_VENUE } from '@/lib/festival/config'
+import { FESTIVAL_DATE, FESTIVAL_PAYMENT_PATH, FESTIVAL_TICKET_VIEW_PATH, FESTIVAL_VENUE } from '@/lib/festival/config'
 import type {
   FestivalInterest,
   FestivalPaymentState,
@@ -114,7 +114,7 @@ export function FestivalInterestSummary({
       <div className="festival-actions">
         {registered && (
           <Button asChild className="festival-primary">
-            <a href={FESTIVAL_TICKET_PATH} download><Download size={16} aria-hidden="true" />Download ticket</a>
+            <Link href={FESTIVAL_TICKET_VIEW_PATH}><Ticket size={16} aria-hidden="true" />View your ticket</Link>
           </Button>
         )}
         {needsPayment && (

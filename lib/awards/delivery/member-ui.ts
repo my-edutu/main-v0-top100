@@ -1,6 +1,8 @@
 import type { AwardPaymentView } from '@/lib/awards/payment'
 import type { DeliveryOrderView, IncludedDeliveryView } from './types'
 
+export { isHostedCheckoutUrl } from '@/lib/payments/bachs/payment-links'
+
 export function deliveryQuoteExpired(delivery: Pick<DeliveryOrderView, 'expiresAt'>, now = Date.now()) {
   const expiresAt = new Date(delivery.expiresAt).getTime()
   return !Number.isFinite(expiresAt) || expiresAt <= now
@@ -60,15 +62,6 @@ export function shouldReconcileDeliveryReturn(search: string) {
   return new URLSearchParams(search).get('deliveryPayment') === 'done'
 }
 
-export function isHostedCheckoutUrl(value: unknown) {
-  if (typeof value !== 'string' || !value.trim()) return false
-  try {
-    return new URL(value).protocol === 'https:'
-  } catch {
-    return false
-  }
-}
-
 export function formatDeliveryAmount(amountMinor: number, currency: string) {
   return new Intl.NumberFormat(currency === 'NGN' ? 'en-NG' : 'en', {
     style: 'currency',
@@ -85,7 +78,7 @@ export function deliveryPaymentWarning(input: { amountMinor: number; email: stri
   const decimalAmount = `${Math.floor(input.amountMinor / 100)}.${String(input.amountMinor % 100).padStart(2, '0')}`
   const kobo = input.amountMinor.toLocaleString('en-NG')
   const email = input.email.trim() || 'the email on your Top100 account'
-  return `Before you continue, enter exactly ${decimalAmount} NGN (${amount}; ${kobo} kobo) on the Bachs payment page. Use your Top100 account email: ${email}. This public link has no delivery reference and a redirect or click is not payment confirmation. After paying, contact Top100 support at info@top100afl.com with the Bachs transaction reference and delivery ID ${input.deliveryId}. Do not pay a different amount.`
+  return `Before you continue, enter exactly ${decimalAmount} NGN (${amount}; ${kobo} kobo) on the Bachs payment page. Use your Top100 account email: ${email}. We confirm successful payments automatically using your account email and this exact amount. Allow up to five minutes, then refresh your delivery status. If it is still unconfirmed, contact nigeriatop100@gmail.com with your Bachs transaction reference and delivery ID ${input.deliveryId}. Do not pay again while confirmation is pending.`
 }
 
 export function deliveryDestinationLabel(delivery: Pick<DeliveryOrderView, 'deliveryMode' | 'destination' | 'addressLine1' | 'addressLine2' | 'city' | 'state' | 'postalCode' | 'country'>) {

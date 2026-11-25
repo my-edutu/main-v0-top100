@@ -18,10 +18,12 @@ import {
   type DemoDashboardStore,
 } from '@/lib/dev-dashboard/store'
 import { nextAvailableSlug, slugifyGroupName } from '@/lib/groups/types'
+import { hasOpportunityExpired, opportunityDeadlineDay } from '@/lib/opportunities/types'
 import { slugifyTitle } from '@/lib/member-posts/types'
 import { awardReturnPath } from '@/lib/awards/return-url'
 import { needsClaim } from '@/lib/awards/status'
 import { validateOnboarding } from '@/lib/dashboard/onboarding'
+import { profileCareerSchema } from '@/lib/profile-career'
 import type { PortfolioCoverFields } from '@/lib/portfolio-cover/types'
 import { preparePortrait, validatePortraitUpload } from '@/lib/portfolio-cover/image'
 import { renderPortfolioCover } from '@/lib/portfolio-cover/render-cover'
@@ -156,6 +158,12 @@ function routeMe(request: NextRequest, store: DemoDashboardStore) {
 
   return readBody(request).then((patch) => {
     if (!patch) return json({ message: 'Invalid request body.' }, 400)
+
+    if ('career' in patch) {
+      const result = profileCareerSchema.safeParse(patch.career)
+      if (!result.success) return json({ message: 'Enter valid organization details and a LinkedIn company link, if available.' }, 400)
+      store.profile.career = result.data
+    }
 
     const editable = [
       'name',
@@ -436,6 +444,12 @@ async function routeOpportunities(request: NextRequest, path: string[], store: D
 
   const opportunity = store.opportunities.find((item) => item.id === path[1])
   if (!opportunity) return json({ message: 'Opportunity not found.' }, 404)
+  if (request.method === 'GET') {
+    if (opportunity.status !== 'published' || hasOpportunityExpired(opportunity.deadline, opportunityDeadlineDay())) {
+      return json({ message: 'Opportunity not found.' }, 404)
+    }
+    return json({ opportunity })
+  }
   if (request.method === 'POST') opportunity.isSaved = true
   else if (request.method === 'DELETE') opportunity.isSaved = false
   else return null
@@ -859,6 +873,28 @@ export async function handleDemoMemberRequest(
       }
       response = json(view)
       break
+    }
+    case 'recommendation-letters': {
+      if (path.length !== 1 || !['GET', 'POST'].includes(request.method)) break
+      const { handleDemoRecommendations } = await import('@/lib/award-letters/recommendations-demo')
+      return handleDemoRecommendations(request, store, pickupPaymentState(store.awardPayment))
+    }
+    case 'award-letters': {
+      if (path.length !== 1 || request.method !== 'POST') break
+      const { parseLetterRequest } = await import('@/lib/award-letters/request')
+      const input = await parseLetterRequest(request)
+      if (!input) return json({ message: 'Check the name, recipient and opportunity fields.' }, 400)
+      if (input.kind !== 'invitation') return json({ message: 'Create recommendation letters from Saved letters.' }, 400)
+      const { renderLetter } = await import('@/lib/award-letters/render')
+      try {
+        return Response.json(await renderLetter(input, '2026', true), {
+          headers: { 'Cache-Control': 'private, no-store' },
+        })
+      } catch (error) {
+        return error instanceof RangeError
+          ? json({ message: error.message }, 400)
+          : json({ message: 'Your letter could not be prepared. Please try again.' }, 503)
+      }
     }
     case 'festival-interest': {
       if (!canAttendFestival(store.profile.status))

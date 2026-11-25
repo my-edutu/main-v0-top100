@@ -10,6 +10,7 @@ import { DashboardLoading } from '../_components/dashboard-loading'
 import { resolveStoryCover } from '@/lib/story-covers'
 import { discoverNav } from '../_lib/navigation'
 import { useDashboardMember } from '../_providers/dashboard-member'
+import { DiscoverPromotions } from './discover-promotions'
 
 type Story = { id: string; title: string; slug: string; excerpt: string; coverImage: string | null }
 const campaigns = [
@@ -123,17 +124,7 @@ export function DiscoverFeed({ posts }: { posts: Story[] }) {
     return () => { cancelled = true }
   }, [member.id, retry, rotationWindow])
   return <div className="discover-feed">
-    <Link href="/dashboard/discover/groups" className="discover-advert" aria-label="Find your WhatsApp group and connect with Africa Future Leaders">
-      <div className="discover-advert__copy">
-        <p>Your people are here</p>
-        <h2>Find your community.</h2>
-        <span>Discover your group <ArrowUpRight size={14} aria-hidden="true" /></span>
-      </div>
-      <div className="discover-advert__art" aria-hidden="true">
-        <i /><i /><i />
-        <SafeImage src="/illustrations/discover-community.svg" alt="" width={160} height={160} />
-      </div>
-    </Link>
+    <DiscoverPromotions />
     <header><h1 className="text-xl font-semibold tracking-tight">Find your people. Make an impact.</h1></header>
     <nav aria-label="Discover shortcuts" className="discover-shortcuts">
       {shortcutItems.map(({ href, label, icon: Icon }) =>

@@ -2,16 +2,12 @@
 
 import { useEffect, useState, type ComponentType, type SVGProps } from "react"
 import { motion, useReducedMotion } from "framer-motion"
-import { MapPinned, Medal, Target } from "lucide-react"
+import { GraduationCap, MapPinned, Medal, Target } from "lucide-react"
 import Counter from "@/components/Counter"
 
-type ImpactStat = {
-  key: "countries" | "goal" | "awardees"
-  label: string
-  description: string
-  value: number
-  suffix: string
-}
+import type { ImpactStat, ImpactStats } from "@/lib/impact-content"
+
+type HomepageStat = Omit<ImpactStat, "key"> & { key: ImpactStat["key"] | "goal" }
 
 type ImpactStatVisual = {
   icon: ComponentType<SVGProps<SVGSVGElement>>
@@ -19,11 +15,16 @@ type ImpactStatVisual = {
   accent: string
 }
 
-const impactStatVisuals: Record<ImpactStat["key"], ImpactStatVisual> = {
+const impactStatVisuals: Record<HomepageStat["key"], ImpactStatVisual> = {
   countries: {
     icon: MapPinned,
     gradient: "linear-gradient(145deg, rgba(255,179,71,0.95), rgba(255,131,87,0.92))",
     accent: "rgba(255,255,255,0.75)",
+  },
+  institutions: {
+    icon: GraduationCap,
+    gradient: "linear-gradient(145deg, rgba(176,219,160,0.95), rgba(107,190,116,0.9))",
+    accent: "rgba(255,255,255,0.8)",
   },
   goal: {
     icon: Target,
@@ -38,7 +39,7 @@ const impactStatVisuals: Record<ImpactStat["key"], ImpactStatVisual> = {
 }
 
 type ImpactMetricCardProps = {
-  stat: ImpactStat
+  stat: HomepageStat
   index: number
   animated: boolean
 }
@@ -68,7 +69,6 @@ export function ImpactMetricCard({ stat, index, animated }: ImpactMetricCardProp
           </div>
           <div className="text-4xl font-bold tracking-tight text-slate-900 ml-2">
             <Counter target={stat.value} duration={2000} className="text-black" />
-            {stat.suffix}
           </div>
         </div>
         <div className="text-left">
@@ -108,7 +108,7 @@ export function ImpactMetricCard({ stat, index, animated }: ImpactMetricCardProp
   )
 }
 
-export default function ImpactSection() {
+export default function ImpactSection({ stats }: { stats: ImpactStats }) {
   const [canAnimate, setCanAnimate] = useState(false)
   const reduceMotion = useReducedMotion()
 
@@ -116,11 +116,12 @@ export default function ImpactSection() {
     setCanAnimate(reduceMotion === false)
   }, [reduceMotion])
 
-  const impactStats: ImpactStat[] = [
-    { key: "countries", label: "Countries", description: "Across Africa", value: 100, suffix: "+" },
-    { key: "goal", label: "2030 goal", description: "Youth leaders across Africa", value: 10_000, suffix: "" },
-    { key: "awardees", label: "Awardees", description: "Exceptional young Africans", value: 1_800, suffix: "+" },
-  ]
+  const goal: HomepageStat = {
+    key: "goal",
+    label: "2030 goal",
+    description: "Youth leaders across Africa",
+    value: 10_000,
+  }
 
   return (
     <section className="section-padding">
@@ -134,8 +135,8 @@ export default function ImpactSection() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {impactStats.map((stat, index) => (
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+          {[...stats, goal].map((stat, index) => (
             <ImpactMetricCard
               key={stat.label}
               stat={stat}

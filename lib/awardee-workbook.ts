@@ -45,7 +45,7 @@ const aliases: Record<ImportField, string[]> = {
   bio: ['about', 'biography', 'bio', 'description'],
   year: ['award year', 'cohort year', 'year', 'batch'],
   imageUrl: ['image url', 'photo url', 'avatar url', 'portrait', 'photo', 'image', 'upload a clear professional photo of yourself preferably a studio or high quality portrait'],
-  tagline: ['tagline', 'position', 'title', 'what university higher institution did you attend'],
+  tagline: ['tagline', 'position', 'title'],
   headline: ['headline', 'summary', 'intro'],
   linkedin: ['linkedin url', 'linkedin', 'linked in'],
   twitter: ['twitter url', 'twitter', 'x profile'],
@@ -53,6 +53,7 @@ const aliases: Record<ImportField, string[]> = {
   facebook: ['facebook url', 'facebook'],
   website: ['website url', 'website', 'portfolio'],
   cgpa: ['cgpa', 'gpa', 'what was your cgpa or academic achievement'],
+  institution: ['institution', 'university', 'school', 'what university higher institution did you attend'],
   educationLevel: ['education level', 'level of education', 'what level of education have you completed'],
   graduationYear: ['graduation year', 'year graduated', 'what year did you graduate'],
   firstClass: ['first class', 'bgs', 'first class graduate or best graduating student', 'are you a first class graduate or best graduating student'],
@@ -250,7 +251,7 @@ function applyFields(record: ImportRecord, fields: Partial<Record<ImportField, s
     ;(record as unknown as Record<string, unknown>)[to] = value
   }
   const profileImport: Record<string, string> = {}
-  for (const field of ['educationLevel', 'graduationYear', 'firstClass', 'proofUrl'] as const) {
+  for (const field of ['institution', 'educationLevel', 'graduationYear', 'firstClass', 'proofUrl'] as const) {
     const value = cell(fields[field])
     if (value) profileImport[field] = value
   }

@@ -22,7 +22,7 @@ import {
   sortForMember,
   visibleTiersFor,
 } from '@/lib/opportunities/server'
-import { OPPORTUNITY_TYPES } from '@/lib/opportunities/types'
+import { OPPORTUNITY_TYPES, opportunityDeadlineDay } from '@/lib/opportunities/types'
 
 export const runtime = 'nodejs'
 
@@ -72,17 +72,22 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ opportunities: [], tiers })
   }
 
+  const activeDeadlines = `deadline.is.null,deadline.gte.${opportunityDeadlineDay()}`
+  const listingFilter = q
+    ? `and(or(${activeDeadlines}),or(title.ilike.%${q}%,organization.ilike.%${q}%,summary.ilike.%${q}%))`
+    : activeDeadlines
+
   let query = supabase
     .from('opportunities')
     .select(OPPORTUNITY_COLUMNS)
     .eq('status', 'published')
     .in('visibility', tiers)
+    .or(listingFilter)
     .order('is_featured', { ascending: false })
     .order('deadline', { ascending: true, nullsFirst: false })
     .limit(MAX_ROWS)
 
   if (type) query = query.eq('type', type)
-  if (q) query = query.or(`title.ilike.%${q}%,organization.ilike.%${q}%,summary.ilike.%${q}%`)
   if (savedOnly) query = query.in('id', Array.from(savedIds))
 
   const { data, error } = await query

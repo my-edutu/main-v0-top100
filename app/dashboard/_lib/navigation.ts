@@ -5,6 +5,7 @@ import {
   FileText,
   Home,
   Newspaper,
+  Rocket,
   Settings,
   Trophy,
   Truck,
@@ -13,6 +14,7 @@ import {
   Users,
   type LucideIcon,
 } from 'lucide-react'
+import { CAREER_PROFILE_PATH, FOUNDERS_NETWORK_PATH } from '@/lib/founders-network'
 
 export type DashboardColor =
   | 'ember'
@@ -43,6 +45,7 @@ export const primaryDashboardNav: PrimaryDashboardNavItem[] = [
 
 export const discoverNav: DashboardNavItem[] = [
   { label: 'Members', href: '/dashboard/discover/members', icon: Users, color: 'forest' },
+  { label: 'Founders Network', href: FOUNDERS_NETWORK_PATH, icon: Rocket, color: 'forest' },
   { label: 'Groups', href: '/dashboard/discover/groups', icon: Users, color: 'cobalt' },
   { label: 'Opportunities', href: '/dashboard/discover/opportunities', icon: Compass, color: 'saffron' },
   {
@@ -70,6 +73,10 @@ export const meNav: DashboardNavItem[] = [
 
 const allDashboardNav = [...primaryDashboardNav, ...discoverNav, ...meNav]
 
+export function isOpportunityDetailPath(pathname: string) {
+  return /^\/dashboard\/discover\/opportunities\/(?!saved$)[^/]+$/.test(pathname)
+}
+
 export function isDashboardNavActive(pathname: string, href: string) {
   // The Awardees destination sits under Discover, but it is its own primary
   // destination. Keep both tabs from appearing active on the directory route.
@@ -83,7 +90,13 @@ export function isDashboardNavActive(pathname: string, href: string) {
 }
 
 export function resolveDashboardTitle(pathname: string) {
+  if (pathname === CAREER_PROFILE_PATH) return 'Career & organization'
+  if (pathname === `${FOUNDERS_NETWORK_PATH}/submit`) return 'Your startup'
+  if (pathname === '/dashboard/letters' || pathname.startsWith('/dashboard/letters/')) return 'Award letters'
   if (pathname === '/dashboard/festival') return 'Festival'
+  if (pathname === '/dashboard/festival/ticket') return 'Festival ticket'
+  if (pathname === '/dashboard/festival/rsvp') return 'Festival RSVP'
+  if (pathname === '/dashboard/festival/dispatch') return 'Award dispatch'
   if (pathname === '/dashboard/me/interview') return 'Request an interview'
   if (pathname.startsWith('/dashboard/discover/event-videos')) return 'Past sessions'
   const matchingItem = allDashboardNav

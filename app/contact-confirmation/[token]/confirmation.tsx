@@ -98,7 +98,7 @@ export default function ContactConfirmation({ token }: { token: string }) {
       </> : null}
       {error ? <p role="alert" className={styles.error}>{error}</p> : null}
       {!loading && !details && !unauthenticated ? <div className={styles.actions}><Link className={styles.button} href="/dashboard/me/award">Continue to my award</Link><button className={styles.button} disabled={busy} onClick={() => void switchAccount()}>Use a different awardee account</button><button className={styles.button} onClick={() => { setError(''); void load() }}>Try again</button></div> : null}
-      <p className={styles.footer}>You can continue to your award without confirming contact. For help, contact <a href="mailto:info@top100afl.com">info@top100afl.com</a>.</p>
+      <p className={styles.footer}>You can continue to your award without confirming contact. For help, contact <a href="mailto:nigeriatop100@gmail.com">nigeriatop100@gmail.com</a>.</p>
     </section>
   </main>
 }

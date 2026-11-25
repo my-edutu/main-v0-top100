@@ -432,7 +432,7 @@ export async function sendTransactionalEmail(input: SendInput): Promise<{ ok: bo
   const apiKey = process.env.BREVO_API_KEY
   if (!apiKey) return { ok: false, reason: 'BREVO_API_KEY is not configured' }
 
-  const senderEmail = process.env.BREVO_SENDER_EMAIL ?? 'info@top100afl.com'
+  const senderEmail = process.env.BREVO_SENDER_EMAIL ?? 'nigeriatop100@gmail.com'
   const senderName = process.env.BREVO_SENDER_NAME ?? 'Top100 Africa Future Leaders'
 
   try {
@@ -755,7 +755,7 @@ git commit -m "feat(opportunities): category filter chips in the member dashboar
 | Variable | Purpose |
 | --- | --- |
 | `BREVO_API_KEY` | Already used by the newsletter; now also transactional sends |
-| `BREVO_SENDER_EMAIL` | Defaults to `info@top100afl.com` |
+| `BREVO_SENDER_EMAIL` | Defaults to `nigeriatop100@gmail.com` |
 | `BREVO_SENDER_NAME` | Defaults to `Top100 Africa Future Leaders` |
 | `NEXT_PUBLIC_SITE_URL` | Dashboard link in the notification email |
 

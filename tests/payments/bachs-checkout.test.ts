@@ -33,6 +33,20 @@ afterEach(() => {
 })
 
 describe('buildCheckoutRequest', () => {
+  it('prices a recommendation pack at 5 USD independently of award prices', () => {
+    const request = buildCheckoutRequest({
+      ...ngnInput,
+      currency: 'USD',
+      purpose: 'afl_recommendation_pack_v1',
+      adaptivePricing: true,
+      successPath: '/dashboard/letters/recommendation?pack=return',
+    })
+    expect(request.pricing).toEqual({ currency: 'USD', amount: '5.00' })
+    expect(request.billing_currency).toBeUndefined()
+    expect(request.metadata.purpose).toBe('afl_recommendation_pack_v1')
+    expect(request.success_url).toBe('https://top100afl.com/dashboard/letters/recommendation?pack=return')
+  })
+
   it('builds the server-owned NGN payload with exact pricing', () => {
     expect(buildCheckoutRequest(ngnInput)).toEqual({
       pricing: { currency: 'USD', amount: '20.00', currency_options: { NGN: '25000.00' } },

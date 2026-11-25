@@ -19,7 +19,7 @@ import { SITE_URL } from "@/lib/site"
 const urbanist = Urbanist({ subsets: ["latin"], variable: "--font-sans" })
 const globalTitle = "Top100 Africa Future Leaders | Celebrating Impact Beyond Recognition"
 const globalDescription =
-  "Meet 2,000+ awardees and the speakers, partners, and stories turning recognition into lasting impact across Africa."
+  "Meet our awardees and the speakers, partners, and stories turning recognition into lasting impact across Africa."
 
 export const metadata: Metadata = {
   title: {

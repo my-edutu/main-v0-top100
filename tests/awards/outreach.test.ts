@@ -88,6 +88,13 @@ describe('award outreach audience', () => {
 })
 
 describe('outreach templates', () => {
+  it('renders emphasis safely and strips markup from plain text', () => {
+    const message = buildOutreachMessage({ subject: 'Award', body: '**AFL2026** **<script>alert(1)</script>**' }, { name: 'A', year: '2026', fee: '$20', actionUrl: 'https://example.com', stopUrl: 'https://example.com/stop', imageUrl: 'https://example.com/image.png' })
+    expect(message.html).toContain('<strong>AFL2026</strong>')
+    expect(message.html).not.toContain('<script>')
+    expect(message.text).toContain('AFL2026')
+    expect(message.text).not.toContain('**')
+  })
   it('renders personalized escaped HTML and plain text with server supplied links and fees', () => {
     const draft = defaultOutreachDraft('awareness')
     const message = buildOutreachMessage(draft, { name: '<Alice>', year: '2023', fee: '₦25,000 / $20', actionUrl: 'https://www.top100afl.com/signup', stopUrl: 'https://www.top100afl.com/stop', imageUrl: 'https://www.top100afl.com/afl-physical-award.png' })

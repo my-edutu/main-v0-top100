@@ -11,8 +11,8 @@ function workbook() {
     ['A-2', 'Alex Okoro', 'alex@example.com', 'Ghana'],
   ]), 'Winners')
   XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet([
-    ['Application ID', 'About', 'Department'],
-    ['A-1', 'Leads a research team.', 'Engineering'],
+    ['Application ID', 'About', 'Department', 'What university/higher institution did you attend?'],
+    ['A-1', 'Leads a research team.', 'Engineering', 'University of Lagos'],
     ['A-2', 'Builds community projects.', 'Education'],
   ]), 'Bios')
   XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet([
@@ -32,7 +32,7 @@ describe('multi-tab winner imports', () => {
     expect(records).toHaveLength(2)
     expect(records[0]).toMatchObject({
       externalId: 'A-1', email: 'ada@example.com', bio: 'Leads a research team.',
-      course: 'Engineering', year: 2026, social_links: { linkedin: 'https://linkedin.com/in/ada' },
+      course: 'Engineering', year: 2026, profile_import: { institution: 'University of Lagos' }, social_links: { linkedin: 'https://linkedin.com/in/ada' },
     })
   })
 
@@ -46,6 +46,9 @@ describe('multi-tab winner imports', () => {
     const review = planReviewedImport(records, [base, { ...base, id: 'id-2', email: 'alex@example.com', slug: 'alex-okoro', metadata: { import_external_id: 'A-2' }, profile_id: 'user-2' }])
     expect(review.actions).toHaveLength(1)
     expect(review.actions[0].payload).toMatchObject({ bio: 'Leads a research team.', course: 'Engineering' })
+    expect(review.actions[0].payload.metadata).toEqual({
+      import_external_id: 'A-1', profile_import: { institution: 'University of Lagos' },
+    })
     expect(review.actions[0].payload).not.toHaveProperty('country')
     expect(review.issues.some((issue) => issue.message.includes('claimed'))).toBe(true)
   })

@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { parseDraftInput, parseMarkPostedInput } from '@/lib/admin-social/validation'
 
 describe('admin social draft validation', () => {
+  it('can persist an X feature so it can later be marked posted', () => {
+    expect(parseDraftInput({ awardeeId: '24c4f56b-f3d8-4f8a-81d8-a09509e04511', platform: 'x', caption: 'Meet a leader.' })?.platform).toBe('x')
+  })
   it('accepts the supported platform and a bounded caption', () => {
     expect(parseDraftInput({
       awardeeId: '24c4f56b-f3d8-4f8a-81d8-a09509e04511',

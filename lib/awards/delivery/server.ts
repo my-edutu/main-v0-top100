@@ -235,6 +235,7 @@ export async function startDeliveryCheckout(memberId: string, deliveryId: string
 
 export async function dispatchPaidDelivery(row: DeliveryRow, db: DeliveryDB): Promise<DeliveryRow> {
   if (row.status !== 'paid') return row
+  if (row.payment_evidence?.source === 'bachs_public_delivery_link' && row.payment_evidence.automatic_dispatch === false) return row
   if (!hasDeliveryPaymentEvidence(row)) {
     const result = await db.from('award_delivery_orders')
       .update({ status: 'needs_review', booking_response: { reason: 'Delivery payment evidence is not confirmed. No booking was attempted.' } })

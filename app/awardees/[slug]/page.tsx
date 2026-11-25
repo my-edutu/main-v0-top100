@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/server'
 import { validateSocialLinks, type SocialLink } from '@/lib/profile-contact'
+import { readProfileCareer } from '@/lib/profile-career'
 import Image from '@/components/safe-image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -142,11 +143,16 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
   const contactDb = createAdminClient()
   const { data: linkedAwardee, error: linkedAwardeeError } = await contactDb.from('awardees').select('profile_id').eq('slug', slug).maybeSingle()
   if (linkedAwardeeError) throw new Error('Could not verify profile contact consent', { cause: linkedAwardeeError })
-  const { data: contactProfile, error: contactProfileError } = linkedAwardee?.profile_id
-    ? await contactDb.from('profiles').select('email,notification_prefs').eq('id', linkedAwardee.profile_id).maybeSingle()
-    : { data: null, error: null }
+  const [contactResult, careerResult] = linkedAwardee?.profile_id
+    ? await Promise.all([
+      contactDb.from('profiles').select('email,notification_prefs').eq('id', linkedAwardee.profile_id).maybeSingle(),
+      contactDb.from('member_profile_careers').select('details').eq('profile_id', linkedAwardee.profile_id).maybeSingle(),
+    ])
+    : [{ data: null, error: null }, { data: null, error: null }]
+  const { data: contactProfile, error: contactProfileError } = contactResult
   if (contactProfileError) throw new Error('Could not verify profile contact consent', { cause: contactProfileError })
   const contactPrefs = contactProfile?.notification_prefs ?? {}
+  const career = readProfileCareer(careerResult.data?.details)
   const memberLinks = contactPrefs.socialLinksConsent === true && !validateSocialLinks(contactPrefs.socialLinks)
     ? Object.fromEntries((contactPrefs.socialLinks as SocialLink[]).map(link => [link.platform, link.url])) : {}
   const contactEmail = contactPrefs.emailVisible === true && contactPrefs.contactEmailConsent === true ? contactProfile?.email : null
@@ -192,6 +198,19 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
                 <p className="mx-auto mt-3 max-w-xl text-base leading-6 text-stone-600 sm:mx-0 sm:text-lg sm:leading-7">
                   {heroSubtitle}
                 </p>
+              )}
+              {career?.isPublic && (
+                <div className="mt-3 flex flex-wrap items-center justify-center gap-x-2 text-sm text-stone-700 sm:justify-start">
+                  <p className="min-w-0 break-words">
+                    {career.role ? `${career.role} at ` : career.type === 'startup' ? 'Building ' : 'Working at '}
+                    <span className="font-medium text-stone-900">{career.name}</span>
+                  </p>
+                  {career.linkedinUrl && (
+                    <a href={career.linkedinUrl} target="_blank" rel="noopener noreferrer" aria-label={`${career.name} on LinkedIn`} className="inline-flex size-11 shrink-0 items-center justify-center rounded-full border border-stone-200 text-[#0a66c2] hover:border-[#0a66c2] focus-visible:outline focus-visible:outline-2">
+                      <Linkedin className="size-4" aria-hidden="true" />
+                    </a>
+                  )}
+                </div>
               )}
               <div className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm text-stone-600 sm:justify-start">
                 {awardee.country ? <span>{awardee.country}</span> : null}

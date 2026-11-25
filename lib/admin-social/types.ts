@@ -1,4 +1,4 @@
-export const SOCIAL_PLATFORMS = ['linkedin', 'facebook', 'instagram'] as const
+export const SOCIAL_PLATFORMS = ['linkedin', 'facebook', 'instagram', 'x'] as const
 export type SocialPlatform = (typeof SOCIAL_PLATFORMS)[number]
 
 export type SocialDraftStatus = 'draft' | 'marked_posted'
@@ -60,4 +60,5 @@ export const SOCIAL_PLATFORM_LABELS: Record<SocialPlatform, string> = {
   linkedin: 'LinkedIn',
   facebook: 'Facebook',
   instagram: 'Instagram',
+  x: 'X',
 }

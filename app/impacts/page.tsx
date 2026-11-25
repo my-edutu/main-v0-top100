@@ -5,7 +5,8 @@ import { ArrowRight } from "lucide-react"
 
 import HallOfFamePreview from "@/app/components/HallOfFamePreview"
 import BlogCover from "@/components/BlogCover"
-import { IMPACT_HERO, IMPACT_STATS } from "@/lib/impact-content"
+import { getAwardeeRegisterTotals } from "@/lib/awardees/register-summary.server"
+import { getImpactStats, IMPACT_HERO } from "@/lib/impact-content"
 import { ogMetadata } from "@/lib/og"
 import { pageOg } from "@/lib/og-pages"
 import { getFeaturedSpeakers } from "@/lib/speakers"
@@ -37,7 +38,10 @@ const momentLayouts = [
 ] as const
 
 export default async function ImpactPage() {
-  const { featuredAwardees, stories, moments } = await getImpactPageData()
+  const [{ featuredAwardees, stories, moments }, awardeeRegister] = await Promise.all([
+    getImpactPageData(),
+    getAwardeeRegisterTotals(),
+  ])
 
   return (
     <main className="overflow-hidden bg-[#fffaf2] text-slate-950">
@@ -80,14 +84,29 @@ export default async function ImpactPage() {
         </div>
       </section>
 
+      <aside className="border-b border-[#e5dfd3] bg-[#f5f0e7]" aria-label="Top100 impact report">
+        <div className="container flex flex-wrap items-center justify-between gap-x-8 gap-y-2 py-5">
+          <p className="text-sm text-[#342e27]">
+            <strong className="mr-2 font-bold">Beyond Recognition</strong>
+            How Top100 helps young African leaders turn visibility into opportunity.
+          </p>
+          <Link
+            href="/reports/beyond-recognition"
+            className="inline-flex min-h-11 items-center gap-2 text-sm font-bold text-[#843c1d] underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4"
+          >
+            Read the report <ArrowRight aria-hidden="true" className="h-4 w-4" />
+          </Link>
+        </div>
+      </aside>
+
       <ImpactSeriesSection />
 
       <section aria-label="Impact at a glance" className="bg-[#0b1220] text-[#fff]">
         <div className="container grid divide-y divide-[rgba(255,255,255,0.14)] sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-          {IMPACT_STATS.map((stat) => (
+          {getImpactStats(awardeeRegister).map((stat) => (
             <div key={stat.key} className="flex items-center gap-4 py-6 sm:px-7 sm:first:pl-0 sm:last:pr-0">
               <p className="shrink-0 text-3xl font-semibold tracking-tight sm:text-4xl">
-                {stat.value.toLocaleString("en-US")}{stat.suffix}
+                {stat.value.toLocaleString("en-US")}
               </p>
               <div>
                 <p className="text-sm font-semibold text-[#fff]">{stat.label}</p>

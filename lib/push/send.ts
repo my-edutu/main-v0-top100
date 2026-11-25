@@ -5,7 +5,7 @@ import { isValidSubscription, notificationPath } from './validation'
 export async function sendMemberPush(db: SupabaseClient, userIds: string[], payload: { title: string; body: string; url?: string; tag?: string }) {
   const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
   const privateKey = process.env.VAPID_PRIVATE_KEY
-  const subject = process.env.VAPID_SUBJECT || 'mailto:info@top100afl.com'
+  const subject = process.env.VAPID_SUBJECT || 'mailto:nigeriatop100@gmail.com'
   const result = {
     accepted: 0,
     failed: 0,

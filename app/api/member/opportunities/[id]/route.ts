@@ -1,5 +1,5 @@
 // app/api/member/opportunities/[id]/route.ts
-// Bookmark / un-bookmark one opportunity. Both verbs are idempotent.
+// Read, bookmark, or un-bookmark one opportunity.
 //
 // A member may only ever save something they are actually allowed to see, so
 // the target row is re-checked against visibleTiersFor() before the save is
@@ -12,15 +12,50 @@ import { createAdminClient } from '@/lib/supabase/server'
 import { checkRateLimit, RATE_LIMITS, createRateLimitResponse } from '@/lib/rate-limit'
 import {
   OPPORTUNITIES_SETUP_MESSAGE,
+  OPPORTUNITY_COLUMNS,
   isMissingOpportunityTable,
   loadMemberStatus,
+  mapOpportunity,
   visibleTiersFor,
 } from '@/lib/opportunities/server'
+import { opportunityDeadlineDay } from '@/lib/opportunities/types'
 
 export const runtime = 'nodejs'
 
 function setupResponse() {
   return NextResponse.json({ message: OPPORTUNITIES_SETUP_MESSAGE, setupRequired: true }, { status: 503 })
+}
+
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const user = await getCurrentUser()
+  if (!user?.id) return NextResponse.json({ message: 'Authentication required.' }, { status: 401 })
+
+  const rate = await checkRateLimit({ ...RATE_LIMITS.QUERY, identifier: `opportunity-detail:${user.id}` })
+  if (!rate.success) return createRateLimitResponse(rate, 'Too many requests. Please try again shortly.')
+
+  const { id } = await params
+  if (!/^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i.test(id)) {
+    return NextResponse.json({ message: 'Opportunity not found.' }, { status: 404 })
+  }
+
+  const supabase = createAdminClient()
+  const status = await loadMemberStatus(supabase, user.id)
+  const { data, error } = await supabase
+    .from('opportunities')
+    .select(OPPORTUNITY_COLUMNS)
+    .eq('id', id)
+    .eq('status', 'published')
+    .in('visibility', visibleTiersFor({ status }))
+    .or(`deadline.is.null,deadline.gte.${opportunityDeadlineDay()}`)
+    .maybeSingle()
+
+  if (error) {
+    if (isMissingOpportunityTable(error)) return setupResponse()
+    console.error('[member-opportunities] detail lookup failed', error)
+    return NextResponse.json({ message: 'Could not load this opportunity.' }, { status: 500 })
+  }
+  if (!data) return NextResponse.json({ message: 'Opportunity not found.' }, { status: 404 })
+  return NextResponse.json({ opportunity: mapOpportunity(data) })
 }
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {

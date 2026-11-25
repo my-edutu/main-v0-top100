@@ -33,7 +33,7 @@ describe('registered festival interest', () => {
     expect(html).toContain('+2348031234567')
     expect(html).toContain('Requested at festival')
     expect(html).toContain('Edit details')
-    expect(html).toContain('href="/api/member/festival-interest/ticket"')
+    expect(html).toContain('href="/dashboard/festival/ticket"')
     expect(html).toContain('e078c178-077d-43c4-9f31-1140beab9cc3')
     expect(html).not.toContain('<input')
     expect(html).not.toContain('<form')

@@ -68,7 +68,7 @@ export default function GetStartedPage() {
                 Start your Top100 application.
               </h1>
               <p className="mt-5 max-w-lg text-lg leading-8 text-slate-600">
-                Four routes into a network of young leaders across 31 countries — the awardee cohort, ambassadorship,
+                Four routes into an international network of young African leaders — the awardee cohort, ambassadorship,
                 partnership, and volunteering. Every application is reviewed by a real team.
               </p>
 

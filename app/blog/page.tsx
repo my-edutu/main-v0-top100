@@ -17,7 +17,7 @@ const POSTS_PER_PAGE = 9;
 
 const PAGE_TITLE = "Stories & Insights from Africa's Future Leaders";
 const PAGE_DESCRIPTION =
-  "Essays, partnership spotlights, and leadership lessons from the Top100 Africa Future Leaders network — 400+ awardees across 31 countries.";
+  "Essays, partnership spotlights, and leadership lessons from the Top100 Africa Future Leaders network.";
 
 type BlogPageProps = {
   // Next 15 passes searchParams as a promise.

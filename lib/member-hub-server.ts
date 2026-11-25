@@ -7,6 +7,7 @@ import type {
   MemberFeatureSubmission,
   MemberStatus,
 } from '@/lib/member-hub'
+import { readProfileCareer } from '@/lib/profile-career'
 
 const PREF_DEFAULTS = {
   recruiterVisible: true,
@@ -91,6 +92,7 @@ export function mapProfileToMemberWithLegacy(
     bio: firstText(row?.bio, legacyAwardee?.bio),
     location: firstText(row?.location, legacyAwardee?.country),
     organization: firstText(row?.organization, row?.tagline, legacyAwardee?.tagline),
+    ...(row?.career !== undefined ? { career: readProfileCareer(row.career) } : {}),
     field: firstText(row?.field, row?.field_of_study, legacyAwardee?.course),
     avatarInitials: initials(name),
     avatarUrl: row?.avatar_url ?? null,

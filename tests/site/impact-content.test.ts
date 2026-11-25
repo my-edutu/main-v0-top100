@@ -3,13 +3,14 @@ import { createElement } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 
 import { HeroCtas } from "@/app/components/HomePageHeroSection"
-import { IMPACT_HERO, IMPACT_STATS, TEAM_MEMBERS, VISION_IMAGES } from "@/lib/impact-content"
+import { IMPACT_HERO, getImpactStats, TEAM_MEMBERS, VISION_IMAGES } from "@/lib/impact-content"
+import { summarizeAwardeeRegister } from "@/lib/awardees/register-summary"
 import type { ImpactHero, ImpactStats, VisionImages } from "@/lib/impact-content"
 
 describe("impact content", () => {
   it("exports consumer-ready types for each impact constant", () => {
     const hero: ImpactHero = IMPACT_HERO
-    const stats: ImpactStats = IMPACT_STATS
+    const stats: ImpactStats = getImpactStats(null)
     const visionImages: VisionImages = VISION_IMAGES
 
     expect([hero, stats, visionImages]).toHaveLength(3)
@@ -38,12 +39,25 @@ describe("impact content", () => {
     expect(markup).toContain("Partner with us")
   })
 
-  it("publishes the approved movement metrics", () => {
-    expect(IMPACT_STATS.map(({ value, suffix }) => `${value.toLocaleString()}${suffix}`)).toEqual([
-      "31+",
-      "97,000",
-      "2,000+",
+  it("keeps approved reach figures while incomplete register fields are being filled", () => {
+    const rows = [
+      { country: " Ghana ", institution: "University of Ghana" },
+      { country: "GHANA", institution: " university  of Ghana " },
+      { country: "Lagos", institution: null },
+    ]
+    const register = summarizeAwardeeRegister(rows)
+    expect(register).toEqual({ awardees: 3, countries: 1, institutions: 1 })
+    expect(getImpactStats(register).map(({ key, value }) => [key, value])).toEqual([
+      ["countries", 100],
+      ["institutions", 707],
+      ["awardees", 3],
     ])
+    expect(getImpactStats(null).map(({ key }) => key)).toEqual(["countries", "institutions"])
+  })
+
+  it("uses higher supported register totals when data grows", () => {
+    expect(getImpactStats({ awardees: 1810, countries: 101, institutions: 708 }).map(({ value }) => value))
+      .toEqual([101, 708, 1810])
   })
 
   it("contains the approved team and no Chinedu entry", () => {

@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { revalidatePath, revalidateTag } from 'next/cache'
 import { validateSocialLinks } from '@/lib/profile-contact'
+import { profileCareerSchema } from '@/lib/profile-career'
 import { PROFILE_TEXT_LIMITS } from '@/app/dashboard/_lib/profile-editor'
 import { getCurrentUser } from '@/lib/auth-server'
 import { createAdminClient } from '@/lib/supabase/server'
@@ -55,13 +56,17 @@ async function loadLinkedAwardee(supabase: ReturnType<typeof createAdminClient>,
   } | null
 }
 
+function loadCareer(supabase: ReturnType<typeof createAdminClient>, userId: string) {
+  return supabase.from('member_profile_careers').select('details').eq('profile_id', userId).maybeSingle()
+}
+
 export async function GET() {
   const user = await getCurrentUser()
   if (!user?.id) return NextResponse.json({ message: 'Authentication required.' }, { status: 401 })
 
   const supabase = createAdminClient()
 
-  const [profileResult, awardee, notificationsRes, featuresRes] = await Promise.all([
+  const [profileResult, awardee, notificationsRes, featuresRes, careerResult] = await Promise.all([
     supabase.from('profiles')
       .select('id,role,full_name,email,access_code,slug,membership_status,headline,bio,location,organization,tagline,field,field_of_study,avatar_url,portfolio_cover_url,notification_prefs,bio_update_count,bio_update_limit,created_at')
       .eq('id', user.id)
@@ -79,11 +84,13 @@ export async function GET() {
       .eq('member_id', user.id)
       .order('created_at', { ascending: false })
       .limit(50),
+    loadCareer(supabase, user.id),
   ])
 
   const { data: profile, error } = profileResult
   if (error) return NextResponse.json({ message: 'Could not load your profile.' }, { status: 500 })
   if (!profile) return NextResponse.json({ message: 'Profile not found. Contact the admin team.' }, { status: 404 })
+  if (careerResult.error) return NextResponse.json({ message: 'Could not load your career details.' }, { status: 500 })
 
   let notificationRows: MemberNotificationRow[] = notificationsRes.data ?? []
   const hasHandbook = (row: MemberNotificationRow) => row.campaign_id === PARTICIPANT_HANDBOOK_CAMPAIGN_ID
@@ -149,7 +156,7 @@ export async function GET() {
     : row)
 
   return NextResponse.json({
-    member: mapProfileToMember(profile, awardee?.id ?? null, awardee),
+    member: mapProfileToMember({ ...profile, career: careerResult.data?.details }, awardee?.id ?? null, awardee),
     notifications: notifications.map(mapNotification),
     featureSubmissions: (featuresRes.data ?? []).map(mapFeature),
   })
@@ -164,6 +171,15 @@ export async function PATCH(request: NextRequest) {
     patch = await request.json()
   } catch {
     return NextResponse.json({ message: 'Invalid request body.' }, { status: 400 })
+  }
+
+  if (!patch || typeof patch !== 'object' || Array.isArray(patch)) {
+    return NextResponse.json({ message: 'Invalid request body.' }, { status: 400 })
+  }
+  if ('career' in patch) {
+    const result = profileCareerSchema.safeParse(patch.career)
+    if (!result.success) return NextResponse.json({ message: 'Enter valid organization details and a LinkedIn company link, if available.' }, { status: 400 })
+    patch.career = result.data
   }
 
   for (const [key, limit] of Object.entries(PROFILE_TEXT_LIMITS)) {
@@ -196,12 +212,16 @@ export async function PATCH(request: NextRequest) {
       (key) => typeof patch[key] === 'string' && patch[key] !== (profile as any)[key],
     )
 
-  const { data: updated, error: updateError } = await supabase.rpc('update_member_profile_atomic', {
+  const updateArgs = {
     p_profile_id: user.id,
     p_columns: columns,
     p_preference_patch: preferencePatch,
     p_increment_bio: false,
-  })
+  }
+  const updatesCareer = 'career' in patch
+  const { data: updated, error: updateError } = updatesCareer
+    ? await supabase.rpc('update_member_profile_with_career', { ...updateArgs, p_career: patch.career })
+    : await supabase.rpc('update_member_profile_atomic', updateArgs)
 
   if (updateError) {
     // Missing membership columns => supabase/SETUP-MEMBER-HUB.sql has not been
@@ -218,7 +238,11 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ message: 'Profile not found.' }, { status: 404 })
   }
 
-  const awardee = await loadLinkedAwardee(supabase, user.id)
+  const [awardee, careerResult] = await Promise.all([
+    loadLinkedAwardee(supabase, user.id),
+    updatesCareer ? null : loadCareer(supabase, user.id),
+  ])
+  if (careerResult?.error) console.error('[member/me] Could not reload career details after saving:', careerResult.error.message)
 
   // Keep the public awardee record in sync with dashboard BIO edits. This runs
   // server-side with the service role — the dashboard session has no awardee
@@ -244,5 +268,8 @@ export async function PATCH(request: NextRequest) {
 
   if (awardee?.slug) revalidatePath(`/awardees/${awardee.slug}`)
 
-  return NextResponse.json({ member: mapProfileToMember(updated, awardee?.id ?? null, awardee) })
+  return NextResponse.json({ member: mapProfileToMember({
+    ...updated,
+    career: updatesCareer ? updated.career : careerResult?.data?.details,
+  }, awardee?.id ?? null, awardee) })
 }
