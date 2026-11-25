@@ -13,11 +13,12 @@ export function FestivalStatus({ tone = 'neutral', children }: { tone?: keyof ty
   return <span className={`inline-flex max-w-full rounded-md px-2 py-1 text-xs font-medium leading-4 ${statusTone[tone]}`}>{children}</span>
 }
 
-export function FestivalRecord({ number, name, attendance, fulfillment, children }: {
+export function FestivalRecord({ number, name, attendance, fulfillment, summary, children }: {
   number: number
   name: string
   attendance: ReactNode
   fulfillment: ReactNode
+  summary?: ReactNode
   children: ReactNode
 }) {
   return (
@@ -26,7 +27,10 @@ export function FestivalRecord({ number, name, attendance, fulfillment, children
         <summary className="grid min-h-16 cursor-pointer list-none grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl px-3.5 py-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-700 md:px-4 [&::-webkit-details-marker]:hidden">
           <span className="self-start pt-0.5 text-xs font-medium tabular-nums text-stone-600 md:self-center md:pt-0">{number}.</span>
           <span className="grid min-w-0 gap-2 md:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1.2fr)] md:items-center md:gap-4">
-            <span className="min-w-0 break-words text-sm font-semibold leading-5 text-stone-950 sm:text-[15px]">{name}</span>
+            <span className="min-w-0 [overflow-wrap:anywhere]">
+              <span className="block text-sm font-semibold leading-5 text-stone-950 sm:text-[15px]">{name}</span>
+              {summary && <span className="mt-1 block space-y-0.5 text-xs leading-5 text-stone-700">{summary}</span>}
+            </span>
             <span className="flex min-w-0 flex-wrap items-center gap-1.5 md:contents">
               <span className="flex min-w-0 flex-wrap gap-1.5">{attendance}</span>
               <span className="min-w-0">{fulfillment}</span>

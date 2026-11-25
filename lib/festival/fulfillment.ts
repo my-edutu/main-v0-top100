@@ -12,9 +12,12 @@ export type FulfillmentOrder = NonNullable<Parameters<typeof mapPaymentView>[0]>
   email: string | null
   phone: string | null
   city: string | null
+  state: string | null
   country: string | null
   gig_waybill: string | null
 }
+type DeliveryCharge = { amount: string; currency: string }
+
 type Contact = { full_name: string | null; email: string | null; phone: string | null }
 type FulfillmentResponse = {
   member_id: string
@@ -44,7 +47,9 @@ export type FulfillmentDelivery = {
   recipient: string
   phone: string
   city: string
+  region: string
   country: string
+  charge: DeliveryCharge | null
   waybill: string | null
   paidAt: string | null
   expiresAt: string
@@ -78,6 +83,7 @@ export type FulfillmentRecord = {
   destination: string
   waybill: string | null
   shippingAmountMinor: number | null
+  shippingCharge: DeliveryCharge | null
 }
 export type FulfillmentRoster = {
   checkedAt: string
@@ -182,6 +188,10 @@ export function buildFulfillmentRoster(source: FulfillmentSources, now = new Dat
     }
 
     const shipping = queue === 'pickup' && !activeDeliveries.length ? undefined : delivery
+    const destination = shipping
+      ? [shipping.city, shipping.region, shipping.country]
+      : dispatchAddress ? [dispatchAddress.city, dispatchAddress.region, dispatchAddress.country]
+        : legacyShipping ? [order?.city, order?.state, order?.country] : []
     records.push({
       memberId,
       name: rsvp?.awardee_name || profile?.full_name || ticket?.full_name || awardee?.full_name || order?.recipient_name || 'Awardee',
@@ -196,10 +206,10 @@ export function buildFulfillmentRoster(source: FulfillmentSources, now = new Dat
       collectorPhone: delegate?.phone ?? '',
       recipientName: shipping?.recipient || dispatchAddress?.recipient || (legacyShipping ? order?.recipient_name : null) || '',
       recipientPhone: shipping?.phone || dispatchAddress?.phone || (legacyShipping ? order?.phone : null) || '',
-      destination: [shipping?.city || dispatchAddress?.city || (legacyShipping ? order?.city : null),
-        shipping?.country || dispatchAddress?.country || (legacyShipping ? order?.country : null)].filter(Boolean).join(', '),
+      destination: [...new Set(destination.map((part) => part?.trim()).filter(Boolean))].join(', '),
       waybill: shipping?.waybill || historicalWaybill || null,
       shippingAmountMinor: shipping?.amountMinor ?? null,
+      shippingCharge: shipping?.verified ? shipping.charge : null,
     })
   }
 

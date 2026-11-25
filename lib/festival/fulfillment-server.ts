@@ -14,7 +14,7 @@ type Receipt = {
   charge_id: string
   checkout_id: string
   delivery_id: string | null
-  evidence: { email?: string }
+  evidence: { email?: string; charge_currency?: string; gross_amount?: string }
 }
 
 async function readRows<Row extends Record<Key, string>, Key extends string>(
@@ -40,7 +40,7 @@ async function readRows<Row extends Record<Key, string>, Key extends string>(
 export async function loadFestivalFulfillment(db: Db = createAdminClient()) {
   const [orders, attempts, profiles, rawAwardees, responses, tickets, deliveryOrders, receipts] = await Promise.all([
     readRows<FulfillmentOrder, 'id'>(db, 'award_orders',
-      'id,profile_id,awardee_id,recipient_name,email,phone,city,country,gig_waybill,status,award_payment_status,award_paid_attempt_id,award_paid_at,award_amount_kobo,paid_at,paystack_reference,paystack_status', 'id'),
+      'id,profile_id,awardee_id,recipient_name,email,phone,city,state,country,gig_waybill,status,award_payment_status,award_paid_attempt_id,award_paid_at,award_amount_kobo,paid_at,paystack_reference,paystack_status', 'id'),
     readRows<FulfillmentSources['attempts'][number], 'id'>(db, 'award_payment_attempts',
       'id,order_id,provider,charge_scope,status,currency,requested_amount_minor,captured_amount_minor,confirmed_at', 'id'),
     readRows<FulfillmentSources['profiles'][number], 'id'>(db, 'profiles', 'id,full_name,email,phone', 'id'),
@@ -64,11 +64,18 @@ export async function loadFestivalFulfillment(db: Db = createAdminClient()) {
       ['paid', 'booking', 'dispatched', 'needs_review'].includes(row.status) && hasDeliveryPaymentEvidence(row) &&
       (!publicCheckout || receiptMatches)
     if (verified && receipt) verifiedReceipts.add(receipt.charge_id)
+    const evidence = receiptMatches ? receipt.evidence : row.payment_evidence
+    const chargeCurrency = evidence?.charge_currency
+    const chargeAmount = evidence?.gross_amount
+    const charge = verified && typeof chargeCurrency === 'string' && /^[A-Z]{3}$/.test(chargeCurrency) &&
+      typeof chargeAmount === 'string' && /^\d+\.\d{2}$/.test(chargeAmount) && Number.isFinite(Number(chargeAmount)) && Number(chargeAmount) > 0
+      ? { currency: chargeCurrency, amount: chargeAmount } : null
     return {
       id: row.id, order_id: row.order_id, member_id: row.member_id, status: row.status, verified,
       possiblePayment: Boolean(row.paid_at || row.charge_id || row.waybill || ['paid', 'booking', 'dispatched', 'needs_review'].includes(row.status)),
       recipient: row.quote_input?.recipientName ?? '', phone: row.quote_input?.phone ?? '',
-      city: row.quote_input?.city ?? '', country: row.quote_input?.country ?? '',
+      city: row.quote_input?.city ?? '', region: row.quote_input?.state ?? '', country: row.quote_input?.country ?? '',
+      charge,
       waybill: row.waybill, paidAt: row.paid_at, expiresAt: row.expires_at, amountMinor: Number(row.amount_minor),
     }
   })

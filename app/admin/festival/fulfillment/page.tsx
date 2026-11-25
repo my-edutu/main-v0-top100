@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { AlertCircle, Clock3, PackageCheck, RefreshCw, Search, Truck, UserCheck } from 'lucide-react'
 import { festivalRequest } from '@/lib/festival/client'
-import { fulfillmentQueues, type FulfillmentQueue, type FulfillmentRoster } from '@/lib/festival/fulfillment'
+import { fulfillmentQueues, type FulfillmentQueue, type FulfillmentRecord, type FulfillmentRoster } from '@/lib/festival/fulfillment'
 import PageHeader from '../../components/PageHeader'
 import { FestivalListActions } from '../festival-list-actions'
 import { FestivalDetailGroup, FestivalPagination, FestivalRecord, FestivalStatus, festivalControl } from '../festival-list-ui'
@@ -20,11 +20,18 @@ const timestamp = new Intl.DateTimeFormat('en-NG', {
   dateStyle: 'medium', timeStyle: 'short', timeZone: 'Africa/Lagos',
 })
 const naira = new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' })
+function formatCharge(charge: NonNullable<FulfillmentRecord['shippingCharge']>) {
+  return new Intl.NumberFormat('en-NG', {
+    style: 'currency', currency: charge.currency, minimumFractionDigits: 2, maximumFractionDigits: 2,
+  }).format(Number(charge.amount))
+}
+
 const pageSize = 25
 const columns = [
   'Awardee', 'Awardee email', 'Awardee phone', 'List', 'Status', 'Award fee verified at (WAT)',
   'Delivery payment verified at (WAT)', 'Named collector', 'Collector phone', 'Delivery recipient',
-  'Recipient phone', 'Delivery destination', 'Delivery quote (NGN)', 'Waybill', 'Award order',
+  'Recipient phone', 'Delivery destination', 'Delivery fee (NGN)', 'Bachs charge amount', 'Bachs charge currency',
+  'Waybill', 'Award order',
   'Festival ticket', 'Roster checked at (WAT)',
 ]
 
@@ -59,7 +66,7 @@ export default function FestivalFulfillmentPage() {
   const selected = view?.records.filter((record) => record.queue === active) ?? []
   const query = search.trim().toLowerCase()
   const rows = selected.filter((row) => [
-    row.name, row.email, row.phone, row.collectorName, row.recipientName, row.orderId, row.waybill,
+    row.name, row.email, row.phone, row.collectorName, row.recipientName, row.destination, row.orderId, row.waybill,
   ].some((value) => value?.toLowerCase().includes(query)))
   const first = (page - 1) * pageSize
   const displayTime = view ? timestamp.format(new Date(view.checkedAt)) : ''
@@ -120,7 +127,7 @@ export default function FestivalFulfillmentPage() {
               <label className="flex min-h-11 min-w-0 items-center gap-2 rounded-lg border border-stone-200 bg-white px-3 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-orange-700 sm:flex-1">
                 <Search className="size-4 shrink-0 text-stone-500" aria-hidden="true" />
                 <span className="sr-only">Search this list</span>
-                <input type="search" placeholder="Search name, email, collector or waybill" value={search}
+                <input type="search" placeholder="Search name, destination or waybill" value={search}
                   onChange={(event) => { setSearch(event.target.value); setPage(1) }}
                   className="min-h-11 min-w-0 w-full bg-transparent text-sm text-stone-950 outline-none" />
               </label>
@@ -133,6 +140,7 @@ export default function FestivalFulfillmentPage() {
                   record.shippingPaidAt ? timestamp.format(new Date(record.shippingPaidAt)) : '',
                   record.collectorName, record.collectorPhone, record.recipientName, record.recipientPhone,
                   record.destination, record.shippingAmountMinor === null ? '' : (record.shippingAmountMinor / 100).toFixed(2),
+                  record.shippingCharge?.amount ?? '', record.shippingCharge?.currency ?? '',
                   record.waybill ?? '', record.orderId ?? '', record.ticketId ?? '', displayTime,
                 ]} />
             </div>
@@ -145,6 +153,13 @@ export default function FestivalFulfillmentPage() {
               <ol aria-label={queues[active].label} className="space-y-2">
                 {rows.slice(first, first + pageSize).map((row, index) => (
                   <FestivalRecord key={row.memberId} name={row.name} number={first + index + 1}
+                    summary={active === 'dispatch-paid' && (
+                      <>
+                        <span className="block">{row.destination || 'Destination unavailable'}</span>
+                        {row.shippingAmountMinor !== null && <span className="block">Delivery fee {naira.format(row.shippingAmountMinor / 100)}</span>}
+                        {row.shippingCharge && <span className="block">Bachs charged {formatCharge(row.shippingCharge)}</span>}
+                      </>
+                    )}
                     attendance={<FestivalStatus tone={row.awardPaidAt ? 'good' : 'pending'}>
                       {row.awardPaidAt ? 'Award fee verified' : 'Award fee unconfirmed'}
                     </FestivalStatus>}
@@ -163,7 +178,8 @@ export default function FestivalFulfillmentPage() {
                         {row.recipientName && <p>{row.recipientName}</p>}
                         {row.recipientPhone && <p>{row.recipientPhone}</p>}
                         <p>{row.destination || 'Destination unavailable'}</p>
-                        {row.shippingAmountMinor !== null && <p>{naira.format(row.shippingAmountMinor / 100)}</p>}
+                        {row.shippingAmountMinor !== null && <p>Delivery fee {naira.format(row.shippingAmountMinor / 100)}</p>}
+                        {row.shippingCharge && <p>Bachs charged {formatCharge(row.shippingCharge)}</p>}
                         {row.waybill && <p>Waybill {row.waybill}</p>}
                         {row.shippingPaidAt && <p>Paid {timestamp.format(new Date(row.shippingPaidAt))} WAT</p>}
                       </FestivalDetailGroup>

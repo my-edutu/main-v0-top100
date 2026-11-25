@@ -5,12 +5,13 @@ const paidAt = '2026-11-25T10:00:00Z'
 const now = new Date('2026-11-25T16:00:00Z')
 const order: FulfillmentOrder = {
   id: 'order', profile_id: 'member', awardee_id: null, recipient_name: 'Amina Example', email: 'amina@example.org',
-  phone: null, country: null, city: null, gig_waybill: null, status: 'paid', award_payment_status: 'paid',
+  phone: null, country: null, city: null, state: null, gig_waybill: null, status: 'paid', award_payment_status: 'paid',
   award_paid_attempt_id: 'attempt',
 }
 const delivery: FulfillmentDelivery = {
   id: 'delivery', order_id: 'order', member_id: 'member', status: 'paid', verified: true, possiblePayment: true,
-  recipient: 'Amina Example', phone: '+2348031234567', city: 'Lagos', country: 'Nigeria', waybill: null,
+  recipient: 'Amina Example', phone: '+2348031234567', city: 'Ikeja', region: 'Lagos', country: 'Nigeria', waybill: null,
+  charge: { currency: 'USD', amount: '5.00' },
   paidAt, amountMinor: 170_000, expiresAt: '2026-11-26T10:00:00Z',
 }
 const rsvp: FulfillmentSources['responses'][number] = {
@@ -56,7 +57,10 @@ describe('festival fulfillment roster', () => {
 
   it('includes paid delivery without a response and shows whether a waybill already exists', () => {
     expect(roster({ responses: [], deliveries: [delivery] })).toMatchObject({
-      awardPaid: 1, records: [{ queue: 'dispatch-paid', status: 'Awaiting waybill', shippingPaidAt: paidAt }],
+      awardPaid: 1, records: [{
+        queue: 'dispatch-paid', status: 'Awaiting waybill', shippingPaidAt: paidAt,
+        destination: 'Ikeja, Lagos, Nigeria', shippingCharge: { currency: 'USD', amount: '5.00' },
+      }],
     })
     expect(roster({ responses: [], deliveries: [{ ...delivery, status: 'dispatched', waybill: 'AWB1' }] }))
       .toMatchObject({ records: [{ queue: 'dispatch-paid', status: 'Waybill issued', waybill: 'AWB1' }] })
@@ -65,7 +69,7 @@ describe('festival fulfillment roster', () => {
   it('holds records for conflicting methods or an unverified shipping payment', () => {
     expect(roster({ deliveries: [delivery] })).toMatchObject({ records: [{ queue: 'review', status: 'Check pickup against existing delivery' }] })
     expect(roster({ responses: [], deliveries: [{ ...delivery, verified: false }] })).toMatchObject({
-      records: [{ queue: 'review', status: 'Verify delivery evidence before fulfillment', shippingPaidAt: null }],
+      records: [{ queue: 'review', status: 'Verify delivery evidence before fulfillment', shippingPaidAt: null, shippingCharge: null }],
     })
     expect(roster({ responses: [], deliveries: [{ ...delivery, order_id: 'other' }] }))
       .toMatchObject({ records: [{ queue: 'review', status: 'Conflicting delivery records' }] })
