@@ -68,7 +68,7 @@ describe('award payment copy', () => {
         payment={{ currency: 'NGN', amountMinor: 2_500_000, paidAt: '2026-09-08T10:00:00.000Z' }}
       />,
     )
-    const options = renderToStaticMarkup(<AwardOptions />)
+    const options = renderToStaticMarkup(<AwardOptions member={{ name: 'Amara Okafor' }} />)
 
     expect(success).toContain('/illustrations/award-payment-confirmed.svg')
     expect(success).toContain('View my award')
