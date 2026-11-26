@@ -12,6 +12,12 @@ import type { OgCard } from "@/lib/og"
  * gradient, which is a better card than an unrelated stock photo.
  */
 export const PAGE_OG: Record<string, OgCard> = {
+  "/reports/back-in-class": {
+    eyebrow: "Project100 Scholarship",
+    title: "Back in Class",
+    subtitle: "How Project100 helps children return to school",
+    hero: "/reports/back-in-class/school-walk.webp",
+  },
   "/reports/beyond-recognition": {
     eyebrow: "Top100 Report",
     title: "Beyond Recognition",

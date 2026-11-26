@@ -39,6 +39,12 @@ const getSitemap = unstable_cache(async (): Promise<MetadataRoute.Sitemap> => {
       priority: 0.8,
     },
     {
+      url: `${baseUrl}/reports/back-in-class`,
+      lastModified: new Date('2026-11-26'),
+      changeFrequency: 'yearly',
+      priority: 0.7,
+    },
+    {
       url: `${baseUrl}/reports/beyond-recognition`,
       lastModified: new Date('2026-11-25'),
       changeFrequency: 'yearly',

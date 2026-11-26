@@ -133,6 +133,10 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
   const awardee = normalizeAwardeeEntry(raw)
   const content = buildProfileContent(awardee)
   const portfolioCoverUrl = typeof raw.portfolio_cover_url === 'string' ? raw.portfolio_cover_url : null
+  // The first background detail may come from a legacy course field.
+  const firstDetail = content.details[0]
+  const background = firstDetail?.source === 'field_of_study' || firstDetail?.source === 'current_school' ? firstDetail : null
+  const profileFacts = background ? content.details.slice(1) : content.details
 
   const relatedAwardees = (await getAwardees())
     .filter((entry) => entry.slug !== slug && entry.is_public === true)
@@ -244,21 +248,29 @@ export default async function AwardeeDetail({ params }: { params: Promise<{ slug
         {talent && <TalentPortfolio profile={talent} />}
 
         {content.details.length > 0 && (
-          <section className="border-b border-stone-200 py-6" aria-labelledby="profile-background">
-            <h2 id="profile-background" className="text-lg font-semibold text-[#25211D]">Background and profile details</h2>
-            <dl className="mt-4 grid gap-5 sm:grid-cols-2 sm:gap-8">
-              {content.details.map(detail => (
-                <div key={detail.source}>
-                  <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">{detail.label}</dt>
-                  <dd className="mt-2 break-words text-sm leading-6 text-[#25211D] sm:text-base">{detail.value}</dd>
-                </div>
-              ))}
-            </dl>
+          <section className="mt-6 overflow-hidden rounded-2xl border border-stone-200 bg-stone-50 sm:mt-8" aria-labelledby="profile-background">
+            <h2 id="profile-background" className="px-4 pb-3 pt-4 text-lg font-semibold tracking-tight text-[#171412] sm:px-6 sm:pt-5">Profile details</h2>
+            {background && (
+              <dl className="border-y border-amber-100 bg-[#fff5e3] px-4 py-3.5 sm:px-6 sm:py-4">
+                <dt className="text-sm font-semibold text-orange-900">{background.source === 'field_of_study' ? 'Field of study' : 'Background'}</dt>
+                <dd className="mt-1 break-words text-base font-medium leading-snug text-[#25211D] sm:text-lg">{background.value}</dd>
+              </dl>
+            )}
+            {profileFacts.length > 0 && (
+              <dl className="grid grid-cols-1 gap-x-4 gap-y-3.5 px-4 py-4 min-[360px]:grid-cols-2 sm:grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] sm:gap-x-6 sm:px-6">
+                {profileFacts.map(detail => (
+                  <div key={detail.source} className="min-w-0">
+                    <dt className="text-sm font-medium text-stone-600">{detail.label}</dt>
+                    <dd className="mt-0.5 break-words text-base font-semibold leading-snug text-[#25211D]">{detail.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
           </section>
         )}
 
-        <div className="max-w-3xl py-8 sm:py-12">
-          <ProfileBiography name={awardee.name} content={content} />
+        <div className="max-w-3xl py-8 empty:py-3 sm:py-12 sm:empty:py-4">
+          {(content.sections.length > 0 || content.details.length === 0) && <ProfileBiography name={awardee.name} content={content} />}
 
           {/* Featured LinkedIn Post */}
           {awardee.linkedin_post_url && (

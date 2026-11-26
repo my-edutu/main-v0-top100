@@ -98,8 +98,6 @@ export default async function HomePage() {
       <div className="flex flex-col pb-16 [--section-gap:clamp(1.5rem,5vw,2.5rem)] sm:[--section-gap:clamp(1.75rem,4vw,3rem)] lg:[--section-gap:clamp(2rem,3vw,3.5rem)] xl:[--section-gap:clamp(2rem,2vw,4rem)] gap-[var(--section-gap)]">
         <HomePageHeroSection countryCount={impactStats[0].value} />
 
-        <HomePartnersSection />
-
         <TalentDiscoveryHomeSection />
 
         <section id="about-the-movement" aria-labelledby="about-the-movement-title" className="scroll-mt-24 py-6">
@@ -120,6 +118,7 @@ export default async function HomePage() {
           </div>
         </section>
 
+        <HomePartnersSection />
         <HomeFeaturedAwardeesSection />
         <HomeProject100Section />
         <HallOfFamePreview speakers={getFeaturedSpeakers()} />

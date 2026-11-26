@@ -28,7 +28,7 @@ const originalHomepage = homepage
   .replace('<PartnershipHeroSection showTalentPipelines={talentDiscoveryEnabled()} />', '<PartnershipHeroSection />')
 const body = Buffer.from(originalHomepage)
 const blobSha = crypto.createHash('sha1').update(`blob ${body.length}\0`).update(body).digest('hex')
-assert.equal(blobSha, '2d8b1aee0aa10fab5d3ee0e0a0cd82c465af4565', 'Homepage must preserve every byte of the pinned original outside the talent discovery integrations')
+assert.equal(blobSha, 'd6eee4f7a318222424e3506d5caeceab7d989bac', 'Homepage must preserve every byte of the pinned original outside the talent discovery integrations')
 assert.match(read('app/awardees/[slug]/page.tsx'), /<StructuredData data={personSchema}/, 'Profiles must use the shared JSON-LD serializer')
 assert.doesNotMatch(read('components/talent/portfolio.tsx'), /application\/ld\+json/, 'The portfolio must not emit duplicate profile markup')
 assert.match(read('supabase/schema/talent-discovery-constraints.sql'), /\(published is null\) = \(published_revision is null\)/)

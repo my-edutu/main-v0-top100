@@ -47,6 +47,18 @@ export default function Project100Page() {
           </div>
         </section>
 
+        <aside aria-label="Project100 report" className="border-b border-orange-200 bg-[#fff5e1]">
+          <div className="container flex flex-wrap items-center justify-between gap-x-8 gap-y-2 py-5">
+            <p className="text-sm text-[#342e27]">
+              <strong className="mr-2 font-bold">Back in Class</strong>
+              How Project100 helps children return to school.
+            </p>
+            <Link href="/reports/back-in-class" className="inline-flex min-h-11 items-center text-sm font-bold text-[#843c1d] underline underline-offset-4">
+              Read Back in Class
+            </Link>
+          </div>
+        </aside>
+
         {/* About Section */}
         <section className="py-16 bg-white">
           <div className="container mx-auto px-4">
@@ -243,8 +255,8 @@ export default function Project100Page() {
               </p>
               <div className="relative h-64 rounded-xl overflow-hidden max-w-2xl mx-auto">
                 <Image
-                  src="https://placehold.co/600x400?text=Education+Transforming+Lives"
-                  alt="Children in a classroom receiving educational support"
+                  src="/project100/outreach/08-bayelsa.webp"
+                  alt="The Project100 team speaks to students in a hall in Bayelsa"
                   fill
                   className="object-cover opacity-80"
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -316,134 +328,6 @@ export default function Project100Page() {
                   <Link href="/initiatives/opportunities/scholarships" className="block w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-6 rounded-lg transition duration-300 text-center">
                     Learn More
                   </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Stories Section */}
-        <section className="py-16 bg-white">
-          <div className="container mx-auto px-4">
-            <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">Scholar Stories</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-              <div className="bg-gray-50 rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="h-48 bg-gray-200 relative">
-                  <Image
-                    src="https://placehold.co/600x300?text=Aisha%27s+Journey"
-                    alt="Scholar story"
-                    layout="fill"
-                    objectFit="cover"
-                  />
-                </div>
-                <div className="p-6">
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Aisha's Journey</h3>
-                  <p className="text-gray-700 mb-4">
-                    From the streets of Lagos to university — Aisha's story of transformation through education.
-                  </p>
-                  <button className="text-blue-600 font-medium hover:underline">
-                    Read Full Story
-                  </button>
-                </div>
-              </div>
-
-              <div className="bg-gray-50 rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="h-48 bg-gray-200 relative">
-                  <Image
-                    src="https://placehold.co/600x300?text=David%27s+Achievement"
-                    alt="Scholar story"
-                    layout="fill"
-                    objectFit="cover"
-                  />
-                </div>
-                <div className="p-6">
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">David's Achievement</h3>
-                  <p className="text-gray-700 mb-4">
-                    How a scholarship helped David become the first in his family to attend college.
-                  </p>
-                  <button className="text-blue-600 font-medium hover:underline">
-                    Read Full Story
-                  </button>
-                </div>
-              </div>
-
-              <div className="bg-gray-50 rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="h-48 bg-gray-200 relative">
-                  <Image
-                    src="https://placehold.co/600x300?text=Fatima%27s+Leadership"
-                    alt="Scholar story"
-                    layout="fill"
-                    objectFit="cover"
-                  />
-                </div>
-                <div className="p-6">
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Fatima's Leadership</h3>
-                  <p className="text-gray-700 mb-4">
-                    From refugee to scholar — Fatima's path to becoming a community leader.
-                  </p>
-                  <button className="text-blue-600 font-medium hover:underline">
-                    Read Full Story
-                  </button>
-                </div>
-              </div>
-
-              <div className="bg-gray-50 rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="h-48 bg-gray-200 relative">
-                  <Image
-                    src="https://placehold.co/600x300?text=Samuel%27s+Success"
-                    alt="Scholar story"
-                    layout="fill"
-                    objectFit="cover"
-                  />
-                </div>
-                <div className="p-6">
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Samuel's Success</h3>
-                  <p className="text-gray-700 mb-4">
-                    Overcoming financial hardship to pursue engineering at a top university.
-                  </p>
-                  <button className="text-blue-600 font-medium hover:underline">
-                    Read Full Story
-                  </button>
-                </div>
-              </div>
-
-              <div className="bg-gray-50 rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="h-48 bg-gray-200 relative">
-                  <Image
-                    src="https://placehold.co/600x300?text=Grace%27s+Journey"
-                    alt="Scholar story"
-                    layout="fill"
-                    objectFit="cover"
-                  />
-                </div>
-                <div className="p-6">
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Grace's Journey</h3>
-                  <p className="text-gray-700 mb-4">
-                    From rural village to medical school — breaking barriers in healthcare.
-                  </p>
-                  <button className="text-blue-600 font-medium hover:underline">
-                    Read Full Story
-                  </button>
-                </div>
-              </div>
-
-              <div className="bg-gray-50 rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="h-48 bg-gray-200 relative">
-                  <Image
-                    src="https://placehold.co/600x300?text=Kofi%27s+Transformation"
-                    alt="Scholar story"
-                    layout="fill"
-                    objectFit="cover"
-                  />
-                </div>
-                <div className="p-6">
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Kofi's Transformation</h3>
-                  <p className="text-gray-700 mb-4">
-                    Becoming the first in his family to graduate despite multiple challenges.
-                  </p>
-                  <button className="text-blue-600 font-medium hover:underline">
-                    Read Full Story
-                  </button>
                 </div>
               </div>
             </div>

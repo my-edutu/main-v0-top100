@@ -67,21 +67,6 @@ export default async function ImpactPage() {
         </div>
       </section>
 
-      <aside className="border-b border-[#e5dfd3] bg-[#f5f0e7]" aria-label="Top100 impact report">
-        <div className="container flex flex-wrap items-center justify-between gap-x-8 gap-y-2 py-5">
-          <p className="text-sm text-[#342e27]">
-            <strong className="mr-2 font-bold">Beyond Recognition</strong>
-            How Top100 helps young African leaders turn visibility into opportunity.
-          </p>
-          <Link
-            href="/reports/beyond-recognition"
-            className="inline-flex min-h-11 items-center gap-2 text-sm font-bold text-[#843c1d] underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4"
-          >
-            Read the report <ArrowRight aria-hidden="true" className="h-4 w-4" />
-          </Link>
-        </div>
-      </aside>
-
       <ImpactEvidence />
       <ImpactSeriesSection light />
 

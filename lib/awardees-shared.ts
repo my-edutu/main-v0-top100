@@ -29,6 +29,7 @@ export type StaticAwardeeRecord = {
 
 export const normalizeAwardeeEntry = (entry: AwardeeDirectoryEntry): Awardee => ({
     ...entry,
+    name: entry.name.replace(/^\s*`+\s*/, ''),
     course: entry.field_of_study ?? entry.current_school ?? null,
     impact_projects: entry.impact_projects ?? null,
     lives_impacted: entry.lives_impacted ?? null,
